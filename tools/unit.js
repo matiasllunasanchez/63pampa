@@ -1260,7 +1260,7 @@ test('charlas: una escena VUELO no lleva placa — el fondo es el juego', () => 
 // Con que piruetas se vuela una mision suelta. Se prueba aca y no a ojo porque si la cuenta se
 // corre en uno, el selector mide OTRO avion que el de la campaña — y eso no da error: da una
 // pirueta que sale (o no) cuando no debia, que es justo lo que las notas de playtest van a acusar.
-const { loadoutAt: loadAt, UPGRADES: UPS, ofertaTrasMision: ofertaTras, SIN_ENTREGA } = await import('../src/data/upgrades.js');
+const { loadoutAt: loadAt, UPGRADES: UPS, BANCO, CHAFITAS: CHAF, chafitasDe, nextUpgrades: nextUps, ofertaTrasMision: ofertaTras, SIN_ENTREGA } = await import('../src/data/upgrades.js');
 const { MISSIONS: MIS } = await import('../src/data/missions.js');
 const { SECUENCIAS } = await import('../src/data/story.js');
 
@@ -1355,40 +1355,41 @@ test('libreta: LA RAMPA DE ENTRADA — el tutorial no entrega, la segunda sirve 
   }
 });
 
-test('libreta: se gana UNA por ventana, en el orden causal del guion', () => {
+test('libreta: se gana UNA por ventana, en el orden del BANCO', () => {
   assert.deepEqual(loadAt(1), [], 'entrando a m2 todavia no hay nada: el tutorial no entrego');
-  assert.deepEqual(loadAt(2), [UPS[0].id], 'entrando a m3, la que sirvio m2');
-  assert.deepEqual(loadAt(4), [UPS[0].id, UPS[1].id, UPS[2].id]);
+  assert.deepEqual(loadAt(2), [BANCO[0].id], 'entrando a m3, la que sirvio m2');
+  assert.deepEqual(loadAt(4), [BANCO[0].id, BANCO[1].id, BANCO[2].id]);
   // la cuenta se DERIVA de la misma regla que usa la campaña, no de una tabla aparte
   for (let i = 0; i <= MIS.length; i++) {
     let n = 0;
     for (let j = 0; j < i; j++) if (ofertaTras(j) > 0) n++;
-    assert.equal(loadAt(i).length, Math.min(n, UPS.length), `loadout de i=${i}`);
+    assert.equal(loadAt(i).length, Math.min(n, BANCO.length), `loadout de i=${i}`);
   }
 });
 
-test('libreta: con 14 misiones se aprenden TODAS, y el banco no se queda sin cartas', () => {
-  // LA CUENTA CAMBIO TRES VECES Y ESTA PRUEBA ES LA QUE SE ENTERA. Con 12 misiones sobraban dos
-  // mejoras sin aprender. Con las 14 del guion 3.0 la misma regla daria 13 ventanas para 12
-  // cartas: el banco se quedaria VACIO antes del final y las ultimas misiones no entregarian
-  // nada — en silencio, porque `nextUpgrades` devuelve lista vacia y la pantalla no se abre.
-  // La segunda ventana cerrada (m10) es lo que cuadra la cuenta, y lo hace por una razon de
-  // guion, no numerica. Lo que se prueba aca es que ventanas y cartas EMPATEN.
+test('libreta: 12 ventanas y 16 cartas — con las CHAFITAS quedan cuatro sin aprender, y nunca falta carta', () => {
+  // LA CUENTA CAMBIO CUATRO VECES Y ESTA PRUEBA ES LA QUE SE ENTERA. Con 12 misiones sobraban dos
+  // mejoras; con las 14 del guion 3.0 la segunda ventana cerrada (m10) hizo empatar 12 y 12. El
+  // 8/10 entraron las cuatro cartas de CHAFITAS (decision del autor): 16 cartas para 12 ventanas.
   let ventanas = 0;
   for (let i = 0; i < MIS.length; i++) if (ofertaTras(i) > 0) ventanas++;
-  assert.equal(ventanas, UPS.length, 'una ventana por mejora: ni sobran cartas ni sobran noches');
-  assert.equal(loadAt(MIS.length).length, UPS.length, 'terminada la campaña estan las doce');
+  assert.equal(ventanas, 12, 'las ventanas no cambiaron');
+  assert.equal(BANCO.length, UPS.length + 4, 'doce piruetas y cuatro chafitas');
+  assert.equal(BANCO.length - ventanas, 4, 'quedan cuatro sin aprender por partida');
   // y ninguna ventana puede quedar sin cartas para ofrecer
   for (let i = 0; i < MIS.length; i++) {
     const o = ofertaTras(i);
-    if (o > 0) assert.ok(loadAt(i).length < UPS.length, `la ventana de i=${i} tiene algo que ofrecer`);
+    if (o > 0) assert.ok(loadAt(i).length < BANCO.length, `la ventana de i=${i} tiene algo que ofrecer`);
   }
 });
 
 test('libreta: nunca desborda ni devuelve basura', () => {
   assert.deepEqual(loadAt(-5), []);
-  assert.equal(loadAt(999).length, UPS.length);
-  for (const id of loadAt(999)) assert.ok(UPS.some(u => u.id === id), `id desconocido: ${id}`);
+  assert.equal(loadAt(999).length, BANCO.length);
+  for (const id of loadAt(999)) assert.ok(BANCO.some(u => u.id === id), `id desconocido: ${id}`);
+  assert.ok(BANCO.every(Boolean), 'el ORDEN no nombra nada que no exista');
+  assert.equal(new Set(BANCO.map(u => u.id)).size, BANCO.length, 'sin repetidas');
+  for (const u of UPS) assert.ok(BANCO.includes(u), `${u.id}: toda pirueta esta en el banco`);
 });
 
 test('libreta: es un ARRAY NUEVO cada vez (nadie puede ensuciar el catalogo)', () => {
@@ -1397,6 +1398,26 @@ test('libreta: es un ARRAY NUEVO cada vez (nadie puede ensuciar el catalogo)', (
   const a = loadAt(4); a.push('intruso');
   assert.equal(loadAt(4).length, 3);
   assert.equal(UPS.length, 12);
+});
+
+test('chafitas en el banco: la primera desde M3 «El invento», y cada MAS CHAFITAS pide la anterior', () => {
+  // tras M2 se sirve la primera pirueta; la oferta de M3 (indice 2) trae CHAFITAS
+  assert.equal(nextUps([], 1)[0].id, 'mask', 'M2 sirve TERRAIN MASKING');
+  assert.ok(nextUps(['mask'], 2).some(u => u.id === 'chafitas1'), 'tras M3 se ofrece CHAFITAS');
+  // si no se elige, queda esperando
+  assert.ok(nextUps(['mask', 'splits'], 2).some(u => u.id === 'chafitas1'), 'la no elegida queda esperando');
+  // sin la primera, las MAS CHAFITAS no salen nunca
+  const sinChaf = UPS.map(u => u.id);
+  assert.ok(!nextUps(sinChaf, 4).some(u => u.id === 'chafitas2'), 'MAS CHAFITAS pide CHAFITAS');
+  assert.deepEqual(nextUps(sinChaf, 4).map(u => u.id), ['chafitas1'], 'sin la primera, solo queda la primera');
+  // las cargas son las cartas que se tienen, de 0 a 4
+  assert.equal(chafitasDe([]), 0);
+  assert.equal(chafitasDe(['mask', 'chafitas1']), 1);
+  assert.equal(chafitasDe(new Set(CHAF.map(c => c.id))), 4);
+  // las cartas tienen todo lo que dibuja la tarjeta (nombre, que hace, tecla, la voz)
+  for (const c of CHAF) for (const k of ['name', 'desc', 'tecla', 'quote']) assert.ok(c[k], `${c.id}: falta ${k}`);
+  assert.ok(/chaff/i.test(CHAF[0].quote) && /chafitas/i.test(CHAF[0].quote), 'chaff los yanquis, chafitas el Pichon');
+  assert.ok(!/invent/i.test(CHAF.map(c => c.desc + c.quote).join(' ')), 'nadie dice que invento nada (ni el Pichon ni los yanquis)');
 });
 
 // ---------------- EL DIRECTOR: el calendario de una cinematica (core/cine.js) ----------------

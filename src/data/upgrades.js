@@ -36,19 +36,40 @@ export const UPGRADES = [
   { id: 'barrel', name: 'TONEL BARRIL', seq: 'rolar: abajo der arriba izq', desc: 'La O grande: vuelve al punto exacto', quote: 'Para cuando haya que volver a buscar a alguien.' },
 ];
 
-/** LAS CHAFITAS (8/10/2026) — la primera mejora del banco que NO es una pirueta, y por eso vive fuera
- *  de UPGRADES (que son claves de data/moves.js). Hoy estan activas en todas las misiones con
- *  CHAPITAS.CARGAS; colgarlas del banco —de CHAPITAS.CARGAS_MIN a CARGAS_MAX— esta pendiente
- *  (docs/sistemas/SPEC_CHAPITAS.md). La tarjeta ya tiene su texto, del autor:
- *  "en el guion o descripcion le vamos a indicar que se llaman chaff segun los estadounidenses, pero
- *  el Pichon les va a poner chafitas porque son chapitas pero mas finitas" — literal, menos "una
- *  tecnica inventada por ellos": el chaff lo desarrollaron a la vez los britanicos (Window) y los
- *  alemanes (Düppel); los estadounidenses le pusieron el nombre (ver PREGUNTAS_HISTORICAS). */
-export const MEJORA_CHAFITAS = {
-  id: 'chafitas', name: 'CHAFITAS', seq: 'H / circulo',
-  desc: 'Los estadounidenses le dicen chaff. El Pichon les dice chafitas: son chapitas, pero mas finitas. Desvian los misiles de radar y te borran del radar si bajas',
-  quote: 'Chaff le dicen los yanquis. Yo les digo chafitas: son chapitas, pero mas finitas.',
-};
+/** LAS CHAFITAS (8/10/2026) — las primeras mejoras del banco que NO son piruetas, y por eso viven
+ *  fuera de UPGRADES (que son claves de data/moves.js y las leen moveAllowed, el pulso y los
+ *  interruptores de OPCIONES). CUATRO CARTAS, una carga cada una (decision del autor, 8/10: "mejorable
+ *  de 1 a 4 max", "4 cartas, 1 carga c/u"): la primera, CHAFITAS, se ofrece desde M3 «El invento»;
+ *  las otras tres, MAS CHAFITAS, piden la anterior. En campaña las cargas del avion son las cartas
+ *  que se tienen (`chafitasDe`); fuera de ella, CHAPITAS.CARGAS (docs/sistemas/SPEC_CHAPITAS.md).
+ *
+ *  El texto, del autor: "en el guion o descripcion le vamos a indicar que se llaman chaff segun los
+ *  estadounidenses, pero el Pichon les va a poner chafitas porque son chapitas pero mas finitas" —
+ *  literal, menos "una tecnica inventada por ellos": el chaff lo desarrollaron a la vez los britanicos
+ *  (Window) y los alemanes (Düppel); los estadounidenses le pusieron el nombre (PREGUNTAS_HISTORICAS).
+ *  Regla de atribucion (MEJORAS_PICHON.md): el Pichon no dice que invento nada. */
+const chafita = (k, name, desc, quote, requiere) => ({ id: 'chafitas' + k, chafitas: k, name, tecla: 'H / circulo', desc, quote, requiere });
+export const CHAFITAS = [
+  chafita(1, 'CHAFITAS',
+    'Una carga: el aluminio desvia los misiles de radar; la bengala, los de calor',
+    'Chaff le dicen los yanquis. Yo les digo chafitas: son chapitas, pero mas finitas.'),
+  chafita(2, 'MAS CHAFITAS', 'Otro cartucho de chafitas: dos cargas por avion', 'La maquina de tallarines no para.', 'chafitas1'),
+  chafita(3, 'MAS CHAFITAS', 'Otro cartucho: tres cargas por avion', 'Le dimos a la manivela toda la noche.', 'chafitas2'),
+  chafita(4, 'MAS CHAFITAS', 'El ultimo cartucho: cuatro cargas por avion, el maximo', 'Cuatro. Mas no entran.', 'chafitas3'),
+];
+
+/** EL BANCO: el ORDEN en que se entregan las mejoras, piruetas y chafitas juntas. Es el orden causal
+ *  de UPGRADES con las cuatro cartas intercaladas: la primera, CHAFITAS, justo despues de la que
+ *  sirve M2 —asi la oferta de M3 «El invento» es CHAFITAS contra el SPLIT-S, y si no se elige queda
+ *  esperando en la proxima—; MAS CHAFITAS mas adelante, repartidas.
+ *  ⚠ CON ESTO SOBRAN CARTAS: 16 para 12 ventanas, y quedan CUATRO sin aprender por partida (antes se
+ *  aprendian todas). Es buscado: elegir pesa de verdad. */
+const ORDEN = ['mask', 'chafitas1', 'splits', 'breakt', 'loyo', 'chafitas2', 'sturn', 'popup', 'hiyo', 'chafitas3',
+  'jink', 'spin', 'climb', 'chafitas4', 'climbmax', 'barrel'];
+export const BANCO = ORDEN.map(id => UPGRADES.find(u => u.id === id) || CHAFITAS.find(c => c.id === id));
+
+/** Cuantas cargas de chafitas da la libreta `owned` (las cartas de chafitas que tiene). */
+export const chafitasDe = owned => CHAFITAS.filter(c => (owned && owned.includes ? owned.includes(c.id) : owned && owned.has && owned.has(c.id))).length;
 
 /** ¿Puede SALIR esta pirueta? Son dos preguntas distintas que se responden juntas porque quien
  *  juega las vive como una sola: TENERLA (en campaña se gana una por mision) y QUERERLA (MEJORAS
@@ -91,9 +112,9 @@ export function moveAllowed(id, { campaign, owned, off }) {
 // el banco no se abra ahi DICE algo: el que inventaba las mejoras no esta, y esa noche no hay
 // nada nuevo que aprender. Vuelve a abrirse en m11, ya con el Turco solo.
 //
-// Quedan 12 ventanas para 12 mejoras: se aprenden TODAS por partida, que es la otra diferencia
-// con el esquema viejo. Si se quiere volver a dejar alguna sin aprender, la perilla es esta
-// funcion o el largo de UPGRADES — no un parche en game.js.
+// Quedan 12 ventanas. Hasta el 8/10 eran 12 mejoras y se aprendian TODAS; con las cuatro cartas de
+// CHAFITAS el BANCO tiene 16, y quedan CUATRO sin aprender por partida (decision del autor). La perilla
+// es esta funcion o el largo del BANCO — no un parche en game.js.
 //
 // Devuelve CUANTAS cartas ofrece el epilogo de la mision `i` (0-based). Cero = el banco ni se abre.
 // Es la unica regla del ritmo del banco y vive aca, no en game.js, por dos motivos: se puede
@@ -108,10 +129,11 @@ export function ofertaTrasMision(i) {
   return 2;                                // de la tercera en adelante, se elige
 }
 
-/** Las proximas `n` mejoras NO aprendidas, en orden del guion. `owned` = Set/array de ids. */
+/** Las proximas `n` mejoras NO aprendidas, en el orden del BANCO. `owned` = Set/array de ids. Una
+ *  que pide otra (`requiere`, las MAS CHAFITAS) no se ofrece hasta tenerla. */
 export function nextUpgrades(owned, n) {
   const has = id => owned.includes ? owned.includes(id) : owned.has(id);
-  return UPGRADES.filter(u => !has(u.id)).slice(0, n);
+  return BANCO.filter(u => !has(u.id) && (!u.requiere || has(u.requiere))).slice(0, n);
 }
 
 // ---------- EL LOADOUT DE REFERENCIA (PLAN_MISIONES_FASES §1, el selector "real real") ----------
@@ -142,5 +164,5 @@ export function nextUpgrades(owned, n) {
 export function loadoutAt(i) {
   let n = 0;
   for (let j = 0; j < Math.max(0, i | 0); j++) if (ofertaTrasMision(j) > 0) n++;
-  return UPGRADES.slice(0, Math.min(n, UPGRADES.length)).map(u => u.id);
+  return BANCO.slice(0, Math.min(n, BANCO.length)).map(u => u.id);
 }

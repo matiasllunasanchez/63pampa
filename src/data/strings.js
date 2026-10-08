@@ -607,7 +607,7 @@ export const STRINGS = {
     cargaSinChancha: 'EN ESTA MISION LA CHANCHA NO BAJA',
     upgRitual: '"ESO NO SE PUEDE."  ...  "A VER. MOSTRAME."',
     upgRitualLib: '"...A VER, PIBE. MOSTRAME."',
-    upgSub: 'ELEGI UNA MEJORA', upgSub1: 'TU PRIMERA MEJORA', upgCombo: 'COMBO:',
+    upgSub: 'ELEGI UNA MEJORA', upgSub1: 'TU PRIMERA MEJORA', upgCombo: 'COMBO:', upgTecla: 'TECLA:',
 
     // ---------- EL PODER RASANTE (SPEC_PODER_RASANTE, tecla 6) ----------
     // LA RADIO ROTA (RF-05): la doctrina gritada. No es decoracion — es UNO de los cinco
@@ -1682,7 +1682,7 @@ export const STRINGS = {
     cargaSinChancha: 'THE TANKER DOES NOT COME SOUTH ON THIS ONE',
     upgRitual: '"THAT CANNOT BE DONE."  ...  "SHOW ME."',
     upgRitualLib: '"...ALL RIGHT, KID. SHOW ME."',
-    upgSub: 'CHOOSE ONE UPGRADE', upgSub1: 'YOUR FIRST UPGRADE', upgCombo: 'COMBO:',
+    upgSub: 'CHOOSE ONE UPGRADE', upgSub1: 'YOUR FIRST UPGRADE', upgCombo: 'COMBO:', upgTecla: 'KEY:',
 
     // EL PODER RASANTE (tecla 6)
     rasOn: 'RASANTE', rasOff: 'RASANTE — OVER', rasReady: '! RASANTE READY — [5] !',

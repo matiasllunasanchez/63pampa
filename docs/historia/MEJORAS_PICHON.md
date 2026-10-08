@@ -56,10 +56,10 @@ el freno en vuelo.
 
 > **ESTADO (8/10/2026): implementada como las CHAFITAS — con la bengala adentro** (una por carga:
 > desvía al Sidewinder; ver «LA EXPLICACIÓN REAL», abajo) (el nombre del Pichón: "son chapitas, pero más
-> finitas"; los estadounidenses le dicen chaff), **activa desde ya** (tecla H / ◯, dos
-> cargas por avión; [SPEC_CHAPITAS](../sistemas/SPEC_CHAPITAS.md)). Falta colgarla del banco del
-> Pichón: hoy el banco solo entrega piruetas (`data/upgrades.js`), así que es la primera mejora que
-> no lo es. El Sidewinder de LA COLA (infrarrojo) no lo engaña el aluminio: lo engaña **la bengala**
+> finitas"; los estadounidenses le dicen chaff) (tecla H / ◯; [SPEC_CHAPITAS](../sistemas/SPEC_CHAPITAS.md)).
+> Es la primera mejora del banco que no es una pirueta (`data/upgrades.js`, `CHAFITAS` y `BANCO`).
+> **En el banco desde el 8/10:** cuatro cartas (CHAFITAS + tres MÁS CHAFITAS, una carga cada
+> una, de 1 a 4), la primera desde M3 «El invento». El Sidewinder de LA COLA (infrarrojo) no lo engaña el aluminio: lo engaña **la bengala**
 > que lleva cada carga. «Quince segundos» (§2) queda como mejora aparte si algún día se separan.
 
 ### LA EXPLICACIÓN REAL — para el guion, a futuro (8/10/2026)

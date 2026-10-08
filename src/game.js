@@ -6,7 +6,7 @@ import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
-import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision } from './data/upgrades.js';
+import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe } from './data/upgrades.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -850,6 +850,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function chapitasAccion() {
       if (S.state !== 'play' || cfg.devcam) return;
       const visto = run.detection > 0.001 || run.estrellas > 0 || run.radarVisto;
+      // un avion SIN chafitas (en campaña, antes de ganar la carta): la tecla no existe todavia
+      if (!(run.chapitasMax > 0)) { beep(150, 0.06, 'square', 0.03); return; }
       const r = chapitasSys.soltar(plane.x, plane.y, PZ, visto);
       if (!r) { beep(150, 0.09, 'square', 0.05); cartel(T('chapitas_nada'), P.dim); return; }
       run.spd = Math.max(34, run.spd * (1 - CHAPITAS.FRENO));          // el freno abierto
@@ -1749,8 +1751,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // Y MODOS desde el 30/9 (lo que cuelga pesa y se suelta igual en cualquiera); la cuenta en km,
       // solo con ruta.
       naftaSys.preparar(cfg.carga, rutaSys.hay());
-      // LAS CHAPITAS (CHAPITAS en data/tuning.js): cargas llenas, nada en el aire
-      chapitasSys.reset();
+      // LAS CHAPITAS (CHAPITAS en data/tuning.js): cargas llenas, nada en el aire. EN CAMPAÑA las cargas
+      // son las cartas de CHAFITAS que se ganaron en el banco del Pichon (0 a 4, data/upgrades.js);
+      // en los demas modos, CHAPITAS.CARGAS
+      chapitasSys.reset(conLibreta() ? chafitasDe(pichon) : CHAPITAS.CARGAS);
     }
 
     // ---------- EL HANGAR (estado 'carga', PLAN_NAFTA_ALCANCE N7) ----------

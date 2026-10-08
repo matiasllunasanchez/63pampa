@@ -88,9 +88,30 @@ del avión, que brillan "como brillan los aviones con la luz, pero el doble".
 
 ## 5 · Pendiente
 
-- **Colgarla del banco del Pichón**, de 1 a 4 cargas (`CARGAS_MIN` / `CARGAS_MAX`). Hoy está activa en todas las misiones, con 2. El banco
+- ~~Colgarla del banco del Pichón~~ **HECHO (8/10)** — ver §6. El banco
   (`data/upgrades.js`) solo sabe de piruetas: hace falta que acepte una mejora que no lo es.
 - **La explicación real para el guion** (lo verificado y lo que no): [MEJORAS_PICHON.md §1](../historia/MEJORAS_PICHON.md), «LA EXPLICACIÓN REAL». El autor: "quizá por cada mejora puede (o no) cambiar el guion".
 - **El brillo** (8/10): la mancha amarilla que tapaba el avión al abrirse la carga eran los destellos de las tiras con radio de mundo (~12 px cada uno) y su halo, más el halo de la bengala. Ahora: destellos de ~2 px como los de la chapa, sin halo, y la bengala con tope del 25%. Si hace falta, se ajusta en `BRILLO`, `DESTELLO_R`, `DESTELLA` y `BENGALA`.
 - **Dudas históricas:** cómo cargaba el chaff el A-4 (las fuentes lo dicen para Mirage y Dagger),
   y los datos sin verificar del 8/10 (ver PREGUNTAS_HISTORICAS).
+
+## 6 · En el banco del Pichón (8/10/2026)
+
+Decisión del autor: **cuatro cartas, una carga cada una**, y la primera **desde M3 «El invento»**.
+
+| Carta | Qué da | Cuándo se ofrece |
+|---|---|---|
+| **CHAFITAS** | 1 carga | desde la oferta de M3 (contra el SPLIT-S); si no se elige, queda esperando |
+| **MÁS CHAFITAS** ×3 | +1 cada una, hasta 4 | más adelante en el orden, y cada una solo si se tiene la anterior (`requiere`) |
+
+- **En campaña** las cargas del avión son las cartas que se tienen (`chafitasDe(pichon)`, de 0 a 4). Sin
+  ninguna, la fila de abajo del estante queda vacía y la tecla no hace nada (un beep grave, sin cartel).
+  **Fuera de la campaña** salen con `CHAPITAS.CARGAS` (2), como todas las piruetas, que se tienen todas.
+- **El banco** (`data/upgrades.js`): `UPGRADES` sigue siendo la lista de piruetas (la leen
+  `moveAllowed`, el pulso y los interruptores de OPCIONES); `CHAFITAS` son las cuatro cartas, y `BANCO`
+  el orden de entrega con todo junto. `nextUpgrades` y `loadoutAt` recorren `BANCO`.
+- **La cuenta cambió:** 12 ventanas y 16 cartas → **quedan cuatro sin aprender por partida** (antes se
+  aprendían las doce). Es buscado: elegir pesa.
+- **La tarjeta** dice TECLA en vez de COMBO, y la frase del Pichón: *"Chaff le dicen los yanquis. Yo les
+  digo chafitas: son chapitas, pero más finitas."*
+

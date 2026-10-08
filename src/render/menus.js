@@ -10,7 +10,7 @@ import { PLANES } from '../data/planes.js';
 import { T, getLang } from '../core/i18n.js';
 import { CAMPAIGNS } from '../data/campaigns.js';
 import { MISSIONS, climaxOf } from '../data/missions.js';
-import { UPGRADES, loadoutAt } from '../data/upgrades.js';
+import { BANCO, loadoutAt } from '../data/upgrades.js';
 import { fmtDate } from '../systems/saves.js';
 
 // ELECCION DE AVION — la pantalla previa de CICLO DE MUERTE y POR LA PATRIA. Usa los MISMOS
@@ -668,11 +668,11 @@ function drawLoadout(i) {
   const ids = loadoutAt(i);
   ctx.textAlign = 'left'; ctx.font = labelFont(8);
   ctx.fillStyle = P.dim;
-  ctx.fillText(T('misLibreta', { n: ids.length, m: UPGRADES.length }), 40, NH - 30);
+  ctx.fillText(T('misLibreta', { n: ids.length, m: BANCO.length }), 40, NH - 30);
   ctx.font = descFont(9); ctx.fillStyle = ids.length ? P.foam : P.ink;
   // los nombres completos no entran (doce mejoras de hasta 15 caracteres): va la lista corta y,
   // pasadas unas cuantas, se corta con puntos suspensivos — el numero de arriba dice el total.
-  const nombres = ids.map(id => (UPGRADES.find(u => u.id === id) || {}).name || id);
+  const nombres = ids.map(id => (BANCO.find(u => u.id === id) || {}).name || id);
   let txt = nombres.length ? nombres.join(' · ') : T('misLibretaVacia');
   while (txt.length > 88 && nombres.length > 1) { nombres.pop(); txt = nombres.join(' · ') + ' …'; }
   ctx.fillText(txt, 40, NH - 19);
@@ -794,7 +794,8 @@ export function drawUpgrade(w) {
     ctx.fillStyle = P.body; ctx.font = descFont(10);
     ctx.fillText(u.desc, x + 12, y + 33);
     ctx.fillStyle = P.dim; ctx.font = descFont(10);
-    ctx.fillText(T('upgCombo') + ' ' + u.seq, x + 12, y + 46);
+    // las CHAFITAS no son un combo: se sueltan con su tecla
+    ctx.fillText(u.tecla ? T('upgTecla') + ' ' + u.tecla : T('upgCombo') + ' ' + u.seq, x + 12, y + 46);
     ctx.fillText('"' + u.quote + '"', x + 12, y + 58);
     ctx.textAlign = 'center';
   }
