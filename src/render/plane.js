@@ -17,7 +17,7 @@ import { inp } from '../core/input.js';
 import { proj } from '../core/fx.js';
 import { hzSprite, hzWorld } from '../core/horizon.js';
 import { P } from '../data/palette.js';
-import { drawCono, drawVaporAla, drawCruce } from './mach.js';
+import { drawCono, drawVaporAla, drawCruce, drawParpadeo } from './mach.js';
 import { luz } from './brillo.js';
 import { nocheDe } from './noche.js';
 import { NOCHE } from '../data/noche.js';
@@ -52,7 +52,9 @@ let boostSc = 1;   // factor animado del achique por turbo
 
 const BOB_Y  = 1.5;    // amplitud del bob vertical (px)
 const BOB_X  = 0.75;    // amplitud de la deriva horizontal (px) — desfasada del bob → flota en "8"
-const WOBBLE = 0.026;  // amplitud de la micro-oscilacion de alabeo (rad, ~1.5°)
+// (8/10, el autor: "un balanceo leve en el eje longitudinal mientras vuela, para que no parezca tan
+// estatico"): era 0.026 y rapido —se leia como temblor—; ahora ~2,6° y LENTO, el aire que mece el ala
+const WOBBLE = 0.045;  // amplitud del balanceo de alabeo (rad, ~2.6°)
 
 /** LA LLAMA DE LA TURBINA. Una sola llama, con INTENSIDAD — no dos efectos distintos.
  *
@@ -837,7 +839,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   const alive = S.state === 'play';
   const bobY = alive ? Math.sin(run.t * 3.1) * BOB_Y * 0.6 + Math.sin(run.t * 1.7) * BOB_Y * 0.4 : 0;
   const bobX = alive ? Math.sin(run.t * 2.3 + 1.1) * BOB_X : 0;
-  const wob  = alive ? (Math.sin(run.t * 2.3) * 0.7 + Math.sin(run.t * 3.7) * 0.3) * WOBBLE : 0;
+  // tres senos desparejos: una ola larga (~7 s) que mece, una media que la desordena y el pulso
+  // rapido de antes, chiquito — nunca se repite igual y nunca se lee como metronomo
+  const wob  = alive ? (Math.sin(run.t * 0.9) * 0.55 + Math.sin(run.t * 1.7 + 0.7) * 0.3 + Math.sin(run.t * 3.7) * 0.15) * WOBBLE : 0;
   // EL TAMBALEO DEL AVION ROTO (pedido del autor 1/10): con la integridad en AVERIA_HUMO o menos, las
   // alas se bambolean — dos senos rapidos y desparejos, que no lean como el vaiven de siempre — y
   // crece hacia el cero. Va sumado a `wob`, asi lo ve tambien la estela de punta de ala.
@@ -917,6 +921,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // avion, asi que el avion va adentro de la nube y no tapado por ella. Va aca —antes de las tres
   // ramas de dibujo— para que salga igual con hoja, con sprite viejo o con el fallback de rects.
   if (alive) drawCono(spW, spH, run.spd, run.t);
+  if (alive) drawParpadeo(spW, spH, run.spd, run.t);   // Mach 1: el halo que titila (render/mach.js)
   // media altura del CUERPO del avion (sin el aire del frame): a esto se pega la llama del turbo
   if (useSheet) {
     ctx.imageSmoothingEnabled = false;   // pixel art nítido (el save/restore de afuera lo repone)
