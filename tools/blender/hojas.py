@@ -26,8 +26,10 @@ def _helo(fuente):
     """8 yaws (de frente a perfil, cola a la derecha) x 2 fases del rotor."""
     return [dict(modelo=fuente % ph, yaw=i / 7 * math.pi / 2) for ph in (0, 1) for i in range(8)]
 
-# LA CHANCHA: los cuatro conos de helice y la boca del pod de estribor (CH_MOT de tools/models/enemies.js)
+# LA CHANCHA: los cuatro conos de helice y la boca de los dos pods de manguera, estribor (ancla 4) y
+# babor (ancla 5). CH_MOT y CH_POD son los de tools/blender/modelos_enemigos.py
 CH_MOT = [2.9, 5.9]
+CH_POD = (8.0, 0.80, 1.15)
 _conos = sorted(x for mx in CH_MOT for x in (-mx, mx))
 
 HOJAS = {
@@ -38,7 +40,7 @@ HOJAS = {
        for m in ('seaKing', 'wessex', 'seaLynx', 'gazelle', 'scout')},
     'chancha': dict(fw=160, fh=112, dist=40, elev=12, lookY=2.8, baseYaw=0, cols=3, nivelado=1,
                     frames=[dict(modelo='bl:hercules', roll=a) for a in (-0.10, 0, 0.10)],
-                    puntos=[(x, 1.10, -4.35) for x in _conos] + [(CH_MOT[0], 0.10, 2.30)]),
+                    puntos=[(x, 1.10, -4.35) for x in _conos] + [(sg * CH_POD[0], CH_POD[1], CH_POD[2]) for sg in (1, -1)]),
     'jet': dict(fw=128, fh=96, dist=16, lookY=0.2, cols=5, nivelado=2,
                 frames=[dict(modelo='bl:caza', roll=a * R) for a in (-30, -15, 0, 15, 30)]),
     'harrier': dict(fw=128, fh=96, dist=16, lookY=0.2, cols=5, nivelado=2,

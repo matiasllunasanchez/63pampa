@@ -218,7 +218,7 @@ export function drawResults(w) {
   // "DERRIBADO": es el remate de la partida. Debajo, la mision y recien despues los numeros.
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(20);
-  ctx.fillText(T(R.puntos === false ? 'res_fin' : 'res_title'), W / 2, 22);
+  ctx.fillText(T(R.puntos === false ? 'res_fin' : R.salvo ? 'res_salvo' : 'res_title'), W / 2, 22);
   ctx.fillStyle = P.ink; ctx.font = descFont(11);
   ctx.fillText(R.mission.name, W / 2, 36);
 

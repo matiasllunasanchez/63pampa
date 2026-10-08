@@ -167,6 +167,9 @@ BAKE.modelos('enemies', (THREE, K) => {
     // proposito: `CH_HOSE_X` del juego larga la manguera a 3 m del eje —que a esta escala cae
     // justo en el motor interno— y una manguera que sale de la nada se nota en el acto, mientras
     // que un pod diez metros corrido no lo nota nadie. El juego manda; la foto informa.
+    // (8/10: YA NO. En el modelo de Blender, el que se ve, los pods se fueron afuera del motor externo y
+    // CH_HOSE_X paso a 9,7 para salir de ahi — tools/blender/modelos_enemigos.py. Esta es la hoja vieja
+    // de `?horno=three`, que no se re-horneo: con ella la manguera cruza en diagonal.)
     for (const sg of [-1, 1]) {
       const x = sg * CH_MOT[0];
       // ⚠ NO SE VA A LEER COMO UN POD, Y ESTA BIEN ASI. Un Mk 32 mide 4,5 x 0,6 m: a la escala a

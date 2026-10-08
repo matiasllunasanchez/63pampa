@@ -56,3 +56,6 @@ export function enAlcance() {
  *  es la puerta unica del techo: detector, red, tinte, estrellas y HUD leen de ahi. Sin ruta
  *  devuelve el mismo numero que recibe. */
 export const techo = t => (ruta ? techoAlcance(t, run.dist, objetivo, lineas, FLY_TOP, RUTA_RADAR_RAMPA_M) : t);
+
+// __rutaDbg (QUITAR): el alcance del radar en este metro
+if (typeof window !== 'undefined') window.__rutaDbg = () => JSON.stringify({ hay: !!ruta, en: enAlcance(), p: +(Math.max(0, run.dist) / (objetivo || 1)).toFixed(3), lineas });

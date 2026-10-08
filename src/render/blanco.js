@@ -263,7 +263,7 @@ function llama(f, u, semilla) {
 // marcar un pedazo de cielo vacio.
 const CORCHETES_Z = BL.VISIBLE_Z;
 
-function corchetes(listo, alt) {
+function corchetes(listo, alt, previa) {
   if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ) return;
   const z = zVista(blanco.z);
   const s = proj(BL.X, blanco.base, z), k = s.k;
@@ -278,12 +278,13 @@ function corchetes(listo, alt) {
   const t = Math.max(2, Math.round(k * 0.7)), a = Math.max(4, (xr - xl) * 0.25);
   // EN DISTANCIA DE SOLTAR, verde y titilando con el latido del tablero (render/hud.js):
   // corchetes y mira dicen "ahora" junto con la cinta, el altimetro y el estante.
+  // …y ANTES, en la PREVIA (8/10): verde FIJO —llegando a la zona, corregi—; titila recien cuando es ya
   const verde = !!listo && Math.floor(performance.now() / 160) % 2 === 0;
-  const COL = listo ? (verde ? '#7fe07a' : '#2e8f3a') : P.warn;
+  const COL = listo ? (verde ? '#7fe07a' : '#2e8f3a') : previa ? '#7fe07a' : P.warn;
   // EL MISMO APARECER DEL BUQUE (drawBlanco), tres veces mas rapido: enteros al primer tercio
   const apM = Math.min(1, 3 * Math.max(0, (BL.VISIBLE_Z - blanco.z) / (BL.VISIBLE_Z - BL.APARECE_Z)));
   if (apM <= 0) return;
-  ctx.globalAlpha = apM * (listo ? 1 : 0.55 + 0.45 * Math.abs(Math.sin(run.t * 4)));
+  ctx.globalAlpha = apM * (listo || previa ? 1 : 0.55 + 0.45 * Math.abs(Math.sin(run.t * 4)));
   // DE LEJOS, SOLO LA FLECHA: el buque es una mota en el horizonte, justo donde cae la mira, y los
   // corchetes encima lo tapaban entero (playtest 23/9: "aparece cuando ya estas demasiado cerca").
   // Los corchetes entran cuando ya hay casco que abrazar.
@@ -319,7 +320,7 @@ function corchetes(listo, alt) {
  *  dicen Puma por radio y el tablero titilando en verde (render/hud.js), y la altura el altimetro. */
 export function drawBlancoHud(h) {
   if (!h || !h.enAtaque) return;
-  corchetes(h.listo, h.alt);
+  corchetes(h.listo, h.alt, h.previa);
   // LA MIRA SOLO EN VERDE: en la ventana de distancia Y a buena altura. Antes adentro de los
   // corchetes iba tambien una cuenta atras en numeros; el autor los saco el 26/9 ("quitemos los
   // numeros dentro"), asi que lo que queda es binario y se lee de un golpe: o hay mira, o no hay.

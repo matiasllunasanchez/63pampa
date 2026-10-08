@@ -488,7 +488,13 @@ export const CH_SPD_F = 0.75;    // factor del avance del mundo mientras estas c
 // con 34 la manguera cruzaba media pantalla y el avion parecia suelto. Con 24 el tramo se lee
 // como lo que es: la manguera sale de adelante y viene hacia vos.
 export const CH_Z = 24;
-export const CH_HOSE_X = 3;      // cuanto sale la manguera hacia el costado (del ala derecha)
+// CUANTO SALE LA MANGUERA HACIA EL COSTADO: lo que esta la BOCA DEL POD de estribor del eje del
+// Hercules, en metros de mundo (8/10). En el KC-130 los pods van afuera del motor externo, y la
+// manguera corre derecho para atras desde ahi: la canasta tiene que estar a la misma x que el pod o
+// la manguera cruza en diagonal por abajo del ala. Medido en la hoja horneada (ancla 4 de chancha en
+// src/data/cajas.js: (134,59 - 80) px x 26 m / 146 px = 9,7). Antes era 3, y el pod se habia colgado
+// del motor interno para que coincidiera. Si se mueve CH_POD en tools/blender/, se mueve esto.
+export const CH_HOSE_X = 9.7;
 export const CH_HOSE_Y = 6;      // cuanto cuelga la canasta por debajo del avion
 // LA CANASTA VA A LA PROFUNDIDAD DE JUEGO (PZ = 14), o sea CH_Z - PZ metros por detras del
 // Hercules. No es un capricho de largo de manguera: si la canasta estuviera a otra profundidad

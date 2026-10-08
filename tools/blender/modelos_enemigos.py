@@ -107,6 +107,9 @@ def caza(T, K):
 # REMANGA atras —la panza sube para dejar salir la rampa— en vez de un tubo con un cono girado; la
 # pintura (verde con manchones arena, panza gris) y las ventanas de la cabina van pintadas.
 CH_MOT = [2.9, 5.9]
+# la BOCA de cada pod de manguera (x, y, z): afuera del motor externo, colgado bajo el ala. Es el
+# mismo numero que CH_POD de hojas.py (el ancla que proyecta el horno)
+CH_POD = (8.0, 0.80, 1.15)
 def hercules(T, K):
     raiz = _raiz(T, 'Hercules')
     VERDE, ARENA, GRIS, GRIS_D, NEG = '#4a5842', '#8f8055', '#8e9a95', '#6d7975', '#1c221d'
@@ -146,11 +149,20 @@ def hercules(T, K):
             _subdiv(loft('cono', [(-4.85, 0.02, 0.02, 1.10), (-4.60, 0.22, 0.22, 1.10), (-4.00, 0.33, 0.33, 1.10)],
                          raiz, gris, n=12, expo=2.0, cerrar=(True, True), x0=x), 1)
             elipsoide('escape', (x, 0.92, 0.20), (0.18, 0.12, 0.45), raiz, negro, seg=10, anillos=6)
-    # LOS PODS DE MANGUERA (Mk 32), colgados del motor interno: lo que la hace CHANCHA
+    # LOS PODS DE MANGUERA, donde van en el KC-130 de verdad: AFUERA DEL MOTOR EXTERNO, en el ala
+    # exterior, colgados de un pilon corto (8/10, el autor: "hay cuadrados que tiene la chancha").
+    # Hasta hoy colgaban del motor interno porque la canasta del juego salia a 3 m del eje; ahora es
+    # al reves: la canasta sale de donde esta el pod (CH_HOSE_X en src/data/tuning.js). Un cuerpo
+    # gordo y CUADRADO (expo 3) —a 4 px de diametro un cilindro fino no se lee—, colgado mas abajo
+    # que las gondolas y en gris claro, para que no se lea como un quinto y sexto motor. Adelante la
+    # ojiva de la turbina de aire; atras la BOCA, de donde el juego larga la manguera naranja
+    # (render/chancha.js). La boca es un ancla: CH_POD en hojas.py.
     for sg in (-1, 1):
-        x = sg * CH_MOT[0]
-        _subdiv(loft('pod', [(-0.75, 0.02, 0.02, 0.10), (-0.30, 0.25, 0.25, 0.10), (1.80, 0.30, 0.30, 0.10),
-                             (2.30, 0.17, 0.17, 0.10)], raiz, gris, n=12, expo=2.0, cerrar=(True, True), x0=x), 1)
-        disco('boca_pod', (x, 0.10, 2.31), 0.12, raiz, negro)
-        caja('pilon_pod', (x, 0.62, 0.90), (0.13, 0.90, 0.80), raiz, gondola)
+        x = sg * CH_POD[0]
+        _subdiv(loft('pod', [(-3.05, 0.03, 0.03, CH_POD[1]), (-2.75, 0.18, 0.18, CH_POD[1]), (-2.35, 0.32, 0.32, CH_POD[1]),
+                             (0.55, 0.33, 0.33, CH_POD[1]), (CH_POD[2] - 0.05, 0.20, 0.20, CH_POD[1])],
+                     raiz, gris, n=12, expo=3.0, cerrar=(True, True), x0=x), 1)
+        disco('ojiva_pod', (x, CH_POD[1], -3.06), 0.06, raiz, negro)
+        disco('boca_pod', (x, CH_POD[1], CH_POD[2]), 0.15, raiz, negro)
+        caja('pilon_pod', (x, 1.45, -0.85), (0.14, 0.75, 1.70), raiz, gondola)
     return raiz

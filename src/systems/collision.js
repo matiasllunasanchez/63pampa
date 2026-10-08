@@ -10,6 +10,7 @@
 
 import { plane, cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
+import * as rasante from './rasante.js';
 import { geoActiva, esTierraEn, alturaSuelo } from '../core/geografia.js';   // G1: agua o tierra, por punto
 // AVERIAS: los impactos por DISPARO (bomba, misil, trazadora) pueden no matar, segun el modelo
 // de vida elegido en OPCIONES. Chocar algo sigue matando siempre — ver core/damage.js.
@@ -250,6 +251,13 @@ export function collisionSystem(dt) {
       // asi que pasar por el hueco sale gratis sin un solo `if` extra.
       if (o.type === 'ola') {
         const hAqui = olaBump(o, plane.x - o.x, 0);
+        // MANTENER RASANTE TE SALVA DE LAS OLAS (8/10, el autor: "mantener rasante debe evitar daños de
+        // olas, no de objetos como barcazas"): con el poder o el estado RASANTE la ola se atraviesa —
+        // espuma y sacudon, sin cara que mate ni cresta que cobre. Lo demas sigue chocando igual.
+        if (hAqui > 0.25 && (rasante.active() || run.aguante === 1)) {
+          if (plane.y < hAqui + 1.2) { run.shake = Math.min(7, run.shake + 1.2); if (!sfxOne('waterNear')) boom(0.06); }
+          continue;
+        }
         if (hAqui > 0.25) {
           if (plane.y < hAqui * OLA_FACE_KILL) return { death: 'death_sea' };
           if (plane.y < hAqui + 1.2) {

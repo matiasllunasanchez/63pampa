@@ -2159,7 +2159,7 @@ test('niebla: el canon MEZCLA, no conmuta', () => {
 });
 
 // ================= LA CHANCHA (PLAN_HORNEADO B7b) =================
-test('chancha: la hoja trae las cinco anclas que el render dibuja encima', async () => {
+test('chancha: la hoja trae las seis anclas que el render dibuja encima', async () => {
   // Las helices y la manguera NO se hornean —un disco quieto se ve muerto, y la manguera se mueve—
   // asi que se pintan por codigo sobre el sprite. Donde van lo mide el horno proyectando puntos
   // del modelo con la misma camara con la que horneo. Si el modelo mueve un motor y la hoja no se
@@ -2167,15 +2167,27 @@ test('chancha: la hoja trae las cinco anclas que el render dibuja encima', async
   // la manguera vuelve a nacer en la panza — dos cosas que ningun error de runtime delata.
   const { CAJAS } = await import('../src/data/cajas.js');
   const p = CAJAS.chancha.puntos;
-  assert.ok(Array.isArray(p) && p.length === 5,
-    'la Chancha tiene que declarar 4 helices + la boca del pod');
+  assert.ok(Array.isArray(p) && p.length === 6,
+    'la Chancha tiene que declarar 4 helices + la boca de los dos pods');
   // las cuatro helices estan a la MISMA altura y simetricas respecto del centro del frame
   const cx = CAJAS.chancha.fw / 2;
   assert.equal(p[0][1], p[3][1], 'las helices dejaron de estar a la misma altura');
   assert.ok(Math.abs((p[0][0] + p[3][0]) / 2 - cx) < 1.5, 'las helices externas no son simetricas');
   assert.ok(Math.abs((p[1][0] + p[2][0]) / 2 - cx) < 1.5, 'las helices internas no son simetricas');
-  // el pod es de ESTRIBOR: cae del lado +x, o sea a la derecha del centro
+  // el pod 4 es el de ESTRIBOR (+x, a la derecha del centro) y el 5 su espejo de babor
   assert.ok(p[4][0] > cx, 'la boca del pod dejo de estar en el ala de estribor');
+  assert.ok(Math.abs((p[4][0] + p[5][0]) / 2 - cx) < 1.5 && p[4][1] === p[5][1], 'los dos pods no son simetricos');
+  // y van AFUERA del motor externo, como en el KC-130 (8/10): la boca, mas lejos del eje que la helice
+  assert.ok(p[4][0] > p[3][0], 'el pod de estribor volvio adentro del motor externo');
+  // LA CANASTA SALE DEL POD: CH_HOSE_X (metros de mundo) es la x de la boca en la hoja. Si se mueve
+  // el pod en el modelo y no esto, la manguera cruza en diagonal por abajo del ala
+  const { CH_HOSE_X } = await import('../src/data/tuning.js');
+  // el ancho de mundo de la hoja (`chancha: { wu }` de render/enemies.js), leido del fuente: el
+  // modulo carga imagenes y no se importa en node
+  const wu = +readFileSync(new URL('../src/render/enemies.js', import.meta.url), 'utf8').match(/chancha: \{ wu: ([\d.]+) \}/)[1];
+  const b = CAJAS.chancha.box, cw = b.x1 - b.x0 + 1;
+  const podX = (p[4][0] - (b.x0 + cw / 2)) * wu / cw;
+  assert.ok(Math.abs(podX - CH_HOSE_X) < 0.4, `CH_HOSE_X ${CH_HOSE_X} y la boca del pod (${podX.toFixed(2)} m) no coinciden`);
 });
 
 test('chancha: el render usa las anclas y no fracciones a ojo', () => {

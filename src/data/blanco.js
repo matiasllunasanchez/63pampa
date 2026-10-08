@@ -49,6 +49,9 @@ export const BL = {
   /** ¡LE ERRASTE! (autor, 8/10: "antes de la pantalla en negro debe decir LE ERRASTE"): segundos
    *  de vuelo entre el cruce sin acierto y el fundido, para que el rotulo llegue a leerse. */
   ERRADO_T: 1.4,
+  /** LA PREVIA: cuantos segundos antes de que se abra la ventana de suelta el corchete pasa a verde fijo
+   *  (8/10: "para corregir antes de lanzar"). Con la ventana abierta y la altura bien, titila. */
+  PREVIA_S: 2.5,
   PERDIDA_SUBE: 9,
 
   /** LA ESPOLETA: segundos de vuelo que la bomba necesita para armarse. Es lo que hace que la
@@ -173,7 +176,7 @@ export const BL = {
    *  viraje. `EST_S` es cuanto hay que aguantar escondido por estrella — el general
    *  (EST_PERDER_S, 20 s) daria 80 s al ras, que es un tramo y no un escape. */
   ESCAPE_EST_S: 6,   // (8/10: era 9 — con 4 estrellas eran 36 s de escape; ahora dos estrellas, 12 s)
-  ESCAPE_EST: 2,     // con cuantas estrellas arranca el escape (eran todas: EST_MAX = 4)
+  ESCAPE_EST: 4,     // con cuantas estrellas arranca el escape (8/10: "con las 4 alarmas prendidas hasta salir del radar")
   /** EL VIRAJE (pedido del autor, 24/9): sin estrellas, Puma dice "los perdimos" y se deja LEER
    *  (`VIR_LEER`); despues "comencemos la vuelta a casa" mientras el cuadro se funde a negro
    *  (`VIR_NEGRO`, el fundido dura `VIR_FUNDE`); y ahi el video del viraje, de dia o de noche. */

@@ -15,7 +15,8 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { BL } from '../data/blanco.js';
 import { BOMBA_PANZA, BOMBA_DERIVA } from '../data/tuning.js';
-import { blanco, resetBlanco, altoEn, zonaEn, predecir, holgura, AGUA, TIERRA } from '../core/blanco.js';
+import { blanco, resetBlanco, altoEn, zonaEn, predecir, holgura, vyAlRas, AGUA, TIERRA } from '../core/blanco.js';
+import { active as rasanteActivo } from './rasante.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { estructura } from '../data/estructuras.js';
 import { cargaDe } from '../data/cargas.js';
@@ -85,6 +86,18 @@ function armar() {
 // vuelve a encarar el mismo buque —ardiendo— y cada bomba que le pega suma puntos)
 const aTiro = () => blanco.on && blanco.z > PZ && blanco.z < BL.VISIBLE_Z && blanco.negroT < 0
   && blanco.perdidaT < 0 && !blanco.escapando;
+
+/** AL RAS (8/10, el autor: "la altura del poder RASANTE debe permitirme tirar, si no me bloquea y
+ *  termina siendo un bug"): con el poder RASANTE o el estado RASANTE puesto, y por debajo de la banda
+ *  de soltar, la altura CUENTA COMO PERFECTA — la bomba sale lanzada (`vyAlRas`, core/blanco.js)
+ *  como si cayera desde el medio de la banda. Por encima de la banda, la suelta de siempre. */
+const alRas = () => (rasanteActivo() || run.aguante === 1) && plane.y < altIdeal()[0];
+const yIdeal = () => (altIdeal()[0] + altIdeal()[1]) / 2 - BOMBA_PANZA;
+/** La vy con la que sale la bomba si se suelta AHORA: la del avion, o la lanzada al ras. La usan la
+ *  prediccion de aca y `bombaSale()` de game.js — una sola cuenta, o la mira mentiria. */
+export function vySuelta() {
+  return aTiro() && alRas() ? vyAlRas(plane.y - BOMBA_PANZA, yIdeal(), blanco.base) : plane.vy;
+}
 
 /** LA SUELTA pide una bomba (tecla de soltar). Con el buque a tiro sale la del CENTRO primero —la
  *  del buque—; si no, una del ala. La del centro NUNCA sale lejos del buque: esta bloqueada para
@@ -292,7 +305,14 @@ export function step(dt) {
   // el odometro SALTA —una sonda, un relevo— se resincroniza: sin esto, un salto al final de la
   // mision dejaba el buque a veintinueve kilometros.
   const segunOdo = PZ + objetivo - run.dist;
-  if ((blanco.z === 0 && blanco.zPrev === 0) || Math.abs(blanco.z - segunOdo) > 60) blanco.z = blanco.zPrev = segunOdo;
+  if ((blanco.z === 0 && blanco.zPrev === 0) || Math.abs(blanco.z - segunOdo) > 60) {
+    // …SIN SALTEARSE EL CRUCE (8/10, el autor: "no le di, pase por arriba, justo hubo relevo, segui y
+    // termino la mision"): si el salto deja al buque detras del avion —el cruce cayo durante el relevo,
+    // cuando esto no corre— el cruce se juzga igual, ahora: el buque se pone en el avion y el paso de
+    // abajo lo hace cruzar. Sin esto no habia veredicto y la mision seguia como si nada.
+    const cruzo = blanco.z >= PZ && segunOdo < PZ && !blanco.escapando && blanco.negroT < 0 && blanco.preNegroT < 0;
+    blanco.z = blanco.zPrev = cruzo ? PZ : segunOdo;
+  }
   blanco.zPrev = blanco.z;
   blanco.z -= run.spd * dt;
   if (blanco.hundido) blanco.sinkT += dt;
@@ -409,17 +429,24 @@ export function step(dt) {
   // llama "la ventana de distancia ideal"— y no parpadea por un tiron del morro. Tu altura queda
   // para lo suyo: decidir si esa ventana esta VERDE o sigue ROJA con la flecha.
   const [a0, a1] = altIdeal();
-  const yRef = Math.max(a0, Math.min(a1, plane.y)) - BOMBA_PANZA;
+  const yRef = alRas() ? yIdeal() : Math.max(a0, Math.min(a1, plane.y)) - BOMBA_PANZA;
   const pRef = puede ? predecir(plane.x, yRef, 0, vxB, run.spd, blanco.z, spdRate) : null;
   blanco.enDist = puede && (hit(pRef) || holgura(plane.x, yRef, 0, vxB, run.spd, blanco.z, holguraMax, spdRate) !== null);
-  blanco.buenaAlt = plane.y >= a0 && plane.y <= a1;
+  // LA PREVIA (8/10, el autor: "cuando empiezo a estar cerca de la zona de tirar, el corchete en verde, para
+  // corregir antes de lanzar"): la ventana de distancia se abre dentro de BL.PREVIA_S segundos. Se pregunta
+  // lo mismo que `enDist` pero con el buque donde va a estar entonces.
+  const zF = blanco.z - run.spd * BL.PREVIA_S;
+  blanco.previa = puede && !blanco.enDist && zF > PZ
+    && (hit(predecir(plane.x, yRef, 0, vxB, run.spd, zF, spdRate)) || holgura(plane.x, yRef, 0, vxB, run.spd, zF, holguraMax, spdRate) !== null);
+  blanco.buenaAlt = (plane.y >= a0 && plane.y <= a1) || alRas();
   // LO REAL, con tu altura y tu trepada: es lo que decide el envion que se le cuelga a la bomba, y
   // lo que leen las señas de Puma. Verde exige que TAMBIEN esto pegue — si no, la mira prometeria
   // una bomba que despues se queda corta.
+  const vyS = vySuelta();
   blanco.pred = puede
-    ? predecir(plane.x, plane.y - BOMBA_PANZA, plane.vy, vxB, run.spd, blanco.z, spdRate) : null;
+    ? predecir(plane.x, plane.y - BOMBA_PANZA, vyS, vxB, run.spd, blanco.z, spdRate) : null;
   blanco.extra = puede && !hit(blanco.pred)
-    ? holgura(plane.x, plane.y - BOMBA_PANZA, plane.vy, vxB, run.spd, blanco.z, holguraMax, spdRate)
+    ? holgura(plane.x, plane.y - BOMBA_PANZA, vyS, vxB, run.spd, blanco.z, holguraMax, spdRate)
     : 0;
   // VERDE = en la ventana de distancia, a buena altura, y una suelta ahora pega de verdad
   blanco.listo = blanco.enDist && blanco.buenaAlt && blanco.extra !== null;
@@ -565,6 +592,8 @@ export function hud() {
   const vivo = !blanco.cumplido && !blanco.lento && blanco.negroT < 0 && blanco.perdidaT < 0;
   return {
     listo: vivo && blanco.listo,
+    // en verde ANTES de la ventana (PREVIA_S) o ya en ella aunque la altura no de: hay que corregir
+    previa: vivo && !blanco.listo && (blanco.previa || blanco.enDist),
     // QUE CORREGIR DE LA ALTURA: -1 hay que BAJAR, 1 hay que SUBIR, 0 estas en la banda.
     // La flecha del buque cambio de oficio (pedido del autor, 26/9): era un "ahi esta" que no
     // decia nada que el buque no dijera solo, y ahora es la unica pista de COMO llegar a poder

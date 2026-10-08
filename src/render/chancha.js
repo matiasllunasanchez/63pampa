@@ -1,8 +1,8 @@
 // EL DIBUJO DE LA CHANCHA (SPEC_PODER_CHANCHA RF-03/RF-08). El estado vive en
 // systems/chancha.js; aca solo se LEE su snapshot y se pinta (convencion 4 de ARQUITECTURA).
 //
-// SILUETA PROCEDURAL, cero assets (RNF-01): cuatro turbohelices, ala alta, cola en T y la
-// manguera con la canasta colgando del ala derecha. Cuando llegue la hoja horneada se enchufa
+// SILUETA PROCEDURAL, cero assets (RNF-01): cuatro turbohelices, ala alta, cola en T y las dos
+// mangueras con su canasta colgando de los pods de las alas. Cuando llegue la hoja horneada se enchufa
 // como en render/enemies.js —si cargo, sprite; si no, esto— y no hay que tocar nada mas.
 
 import { ctx, px, W, H, HOR, F } from './ctx.js';
@@ -51,6 +51,8 @@ export function drawChancha() {
     px(s.x - w * 0.2, bodyY + h * 0.12, Math.max(1, w * 0.05), Math.max(1, h * 0.36), '#8a9992');
     px(s.x + w * 0.14, bodyY - h * 0.95, Math.max(1, w * 0.035), Math.max(1, h * 1.0), '#5a6a63');
     px(s.x + w * 0.06, bodyY - h * 1.05, Math.max(1, w * 0.17), Math.max(1, h * 0.22), '#5a6a63');
+    // los dos pods de manguera, afuera de los motores externos
+    for (const f of [-0.37, 0.37]) px(s.x + w * f - Math.max(1, w * 0.02), bodyY, Math.max(2, w * 0.04), Math.max(1, h * 0.3), '#8e9a95');
   }
   // LAS HELICES VAN SIEMPRE POR CODIGO, con hoja o sin ella: un disco horneado se ve MUERTO, y lo
   // que dice que este avion esta volando —y no pegado en el cielo— es que las cuatro giren.
@@ -82,29 +84,27 @@ export function drawChancha() {
     ctx.globalAlpha = 1;
   }
 
-  // LA MANGUERA: sale del POD del ala derecha, cuelga y termina en la canasta. Se dibuja como una
-  // cadena de puntos con panza —no una recta— porque una manguera tensa se lee como un palo.
+  // LAS DOS MANGUERAS (8/10, el autor: "la manguera la veo pero tiene que ser mas visible, quiza
+  // naranja"). Salen de la BOCA DE CADA POD —afuera del motor externo, como en el KC-130 de verdad—,
+  // cuelgan y terminan en su canasta. La de estribor es la de la cita (la canasta de systems/chancha.js);
+  // la de babor no carga a nadie: esta porque el avion real larga las dos, y una sola manguera
+  // colgando de un ala se lee como algo que se solto. Va ESPEJADA EN PANTALLA respecto del Hercules,
+  // no en el mundo: la camara anda pegada a la canasta de estribor, y la de babor en su lugar de
+  // verdad queda 19 m a la izquierda y a la profundidad de juego — una raya naranja que cruza medio
+  // mar hasta salirse del cuadro. Espejada, el par se lee como lo que es.
   //
-  // DE DONDE SALE, HASTA HOY, ERA EL CENTRO DEL FUSELAJE: la cadena arrancaba en `s`, o sea que la
-  // manguera nacia en la panza del Hercules y no en un pod. Nadie lo habia notado porque el
-  // airframe tampoco tenia pod donde nacer. Ahora el modelo lleva uno y el horno dice en que pixel
-  // quedo (`anclaje` indice 4), asi que la manguera sale de donde tiene que salir.
-  const pod = hoja ? enemyArt.anclaje('chancha', 4, s.x, { centerY: s.y }, k) : null;
-  const ox = pod ? pod.x : s.x, oy = pod ? pod.y : s.y;
+  // De donde sale cada una lo dice el horno (`anclaje` 4 y 5, la boca del pod proyectada con la
+  // camara con la que se horneo). La hoja de three (`?horno=three`) solo trae la 4: la 5 es su espejo.
+  const pd = hoja ? enemyArt.anclaje('chancha', 4, s.x, { centerY: s.y }, k) : null;
+  const pi = hoja ? enemyArt.anclaje('chancha', 5, s.x, { centerY: s.y }, k) : null;
+  const oD = pd || { x: s.x + w * 0.37, y: bodyY + h * 0.2 };
+  const oI = pi || { x: 2 * s.x - oD.x, y: oD.y };
   const b = proj(c.bx, c.by, c.bz);
-  const cuelga = Math.abs(b.y - oy) * 0.25;
-  for (let i = 0; i <= 12; i++) {
-    const u = i / 12;
-    const hx = ox + (b.x - ox) * u, hy = oy + (b.y - oy) * u + Math.sin(u * Math.PI) * cuelga;
-    px(hx, hy, Math.max(1, k * 0.16), Math.max(1, k * 0.16), '#2c332f');
-  }
-  // LA CANASTA: el aro. Es lo que hay que ir a buscar, asi que se dibuja MAS claro que el resto
-  // del avion — es el unico punto de toda la pantalla que importa mientras dura la cita.
-  const bw = Math.max(2, k * 1.5);
-  px(b.x - bw / 2, b.y - bw / 2, bw, Math.max(1, bw * 0.25), c.conn ? P.accent : P.foam);
-  px(b.x - bw / 2, b.y + bw / 4, bw, Math.max(1, bw * 0.25), c.conn ? P.accent : P.foam);
-  px(b.x - bw / 2, b.y - bw / 2, Math.max(1, bw * 0.22), bw, c.conn ? P.accent : P.foam);
-  px(b.x + bw / 2, b.y - bw / 2, Math.max(1, bw * 0.22), bw, c.conn ? P.accent : P.foam);
+  const bI = { x: 2 * s.x - b.x, y: b.y, k: b.k };
+  manguera(oI, bI, k);
+  manguera(oD, b, k);
+  canasta(bI, false, 0.7);
+  canasta(b, c.conn, 1);
 
   // LA CAJA — donde hay que meterse y SOSTENERSE (pedido del autor 24/9). Tres estados, y el color es
   // todo el mensaje:
@@ -146,4 +146,59 @@ export function drawChancha() {
     const mx = Math.max(16, Math.min(W - 16, s.x));
     if (Math.sin(run.t * 9) > -0.3) flechaIn(mx, HOR + 8, 2, 'blanco', -1);
   }
+}
+
+// EL NARANJA DE LA MANGUERA: el de las mangueras de reabastecimiento, que se pintan para que el que
+// recibe las vea contra el cielo. Con el gris oscuro de antes (una cadena de puntos de 1 px) la
+// manguera se perdia contra el mar. El oscuro va de sombra, abajo a la derecha: le da cuerpo de tubo.
+const MANG = '#f08a2c', MANG_SOMBRA = '#7a3814', MANG_MARCA = '#f4efe2';
+
+/** La manguera, de la boca del pod `o` a la canasta `b` (los dos en pantalla). Engorda hacia la
+ *  canasta, que esta mas cerca de la camara (CH_Z - CH_HOSE_Z contra CH_Z): de grosor parejo se ve
+ *  como un hilo pegado al cielo y no como un tubo que viene hacia vos. */
+function manguera(o, b, k) {
+  const kb = b.k;                                          // la escala a la profundidad de la canasta
+  const cuelga = Math.abs(b.y - o.y) * 0.25;
+  const n = Math.max(12, Math.ceil(Math.hypot(b.x - o.x, b.y - o.y)));   // un punto por pixel: sin huecos
+  // dos pasadas: primero la sombra corrida un pixel abajo y a la derecha, despues el naranja encima.
+  // Con la sombra pegada a cada punto, en el tramo casi vertical cada punto tapaba la del anterior y
+  // la manguera salia rayada como una cadena.
+  for (const pasada of [0, 1]) {
+    for (let i = 0; i <= n; i++) {
+      const u = i / n;
+      const hx = o.x + (b.x - o.x) * u, hy = o.y + (b.y - o.y) * u + Math.sin(u * Math.PI) * cuelga;
+      const t = Math.max(2, (k + (kb - k) * u) * 0.26);
+      if (!pasada) { px(hx - t / 2 + 1, hy - t / 2 + 1, t, t, MANG_SOMBRA); continue; }
+      // LAS MARCAS BLANCAS de la punta: las fajas que tiene la manguera real cerca de la canasta
+      const marca = (u > 0.78 && u < 0.82) || (u > 0.87 && u < 0.91);
+      px(hx - t / 2, hy - t / 2, t, t, marca ? MANG_MARCA : MANG);
+    }
+  }
+}
+
+/** LA CANASTA vista de atras, que es como la ve el que va a cargar: el ARO abierto, cuatro rayos y el
+ *  acople en el medio. Es lo que hay que ir a buscar, asi que va MAS claro que el resto del avion
+ *  —el unico punto de toda la pantalla que importa mientras dura la cita— y con un filo oscuro para
+ *  que no se pierda contra un cielo claro. Enganchado, el aro pasa al naranja de la caja. */
+function canasta(b, conn, alfa) {
+  const R = Math.max(2, b.k * 0.8), g = Math.max(1, R * 0.24);
+  const col = conn ? P.accent : P.foam;
+  ctx.globalAlpha = alfa;
+  const aro = (r, grueso, color) => {
+    const n = Math.max(12, Math.ceil(r * 6));
+    for (let i = 0; i < n; i++) {
+      const a = i / n * Math.PI * 2;
+      px(b.x + Math.cos(a) * r - grueso / 2, b.y + Math.sin(a) * r - grueso / 2, grueso, grueso, color);
+    }
+  };
+  aro(R, g + 2, '#1e2420');                                // el filo
+  for (let i = 0; i < 4; i++) {                            // los rayos de la canasta
+    const a = Math.PI / 4 + i * Math.PI / 2;
+    for (let r = R * 0.3; r < R; r += 1) px(b.x + Math.cos(a) * r - 0.5, b.y + Math.sin(a) * r - 0.5, 1, 1, P.dim);
+  }
+  aro(R, g, col);
+  const ac = Math.max(2, R * 0.55);                        // el acople, donde entra la sonda
+  px(b.x - ac / 2, b.y - ac / 2, ac, ac, '#1e2420');
+  px(b.x - ac / 4, b.y - ac / 4, ac / 2, ac / 2, MANG);
+  ctx.globalAlpha = 1;
 }

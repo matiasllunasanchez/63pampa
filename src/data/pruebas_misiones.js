@@ -258,6 +258,8 @@ const t16 = {
 const t17 = {
   ...t15,
   id: 't17', name: 'IDA Y VUELTA SMALL',
+  // SIN EL COMPAÑERO QUE TE SEÑA "MAS ABAJO" al entrar al radar (8/10, el autor). Lo heredan t18, t20 y t21.
+  senaRadar: false,
   goal: { ...t15.goal, dist: 6000 },
   par: 4000,   // t15 x 6/29, redondeado
 };

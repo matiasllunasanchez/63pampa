@@ -99,11 +99,11 @@ export const STRINGS = {
     // EL SIDEWINDER DE LA COLA (30/9): el disparo, cuando una maniobra lo hizo seguir de largo y
     // cuando la poscombustion con quiebres lo sacudio (`aim9_sacudido`). El "¡QUEBRA!" del momento
     // de maniobrar es `caza_break`, que ahora lo grita el misil.
-    aim9_tira: '¡MISIL EN LA COLA, {c}!',
+    aim9_tira: '¡SIDEWINDER EN LA COLA, {c}!',
     aim9_perdido: '¡Se fue de largo! Lo perdiste.',
     aim9_sacudido: '¡Lo sacudiste! Perdio el blanco.',
     aim9_chocaron: '¡Se dieron entre ellos! ¡Segui, segui!',
-    aim9_choque_pop: '{n} MISILES',
+    aim9_choque_pop: '{n} SIDEWINDER',
     caza_warn: '¡RAPIDO POR LA COLA, {c}!',
     caza_out: 'Se quedo sin nafta el ingles.',
     caza_break: '¡QUEBRA, {c}, QUEBRA!',
@@ -1170,7 +1170,7 @@ export const STRINGS = {
     // EL RADAR CON ALCANCE (PLAN_NAFTA_ALCANCE N2): la placa fuera de alcance y los dos cruces
     hud_fuera_radar: 'FUERA DE RADAR', hud_zona_radar: 'ZONA RADAR', hud_detectando: 'DETECTANDO...',
     radarEntra: 'ENTRANDO EN RADAR', radarSale: 'FUERA DE RADAR',
-    res_title: 'MISION CUMPLIDA', res_fin: 'MISION FINALIZADA', res_total: 'TOTAL', res_rank: 'CALIFICACION:',
+    res_title: 'MISION CUMPLIDA', res_salvo: 'VOLVISTE A SALVO', res_fin: 'MISION FINALIZADA', res_total: 'TOTAL', res_rank: 'CALIFICACION:',
     res_flight: 'PUNTAJE DE VUELO', res_kills: 'BLANCOS', res_acc: 'PRECISION', res_ras: 'RACHA RASANTE',
     rank_cadete: 'CADETE', rank_piloto: 'PILOTO', rank_as: 'AS', rank_halcon: 'HALCON DEL ATLANTICO',
     // ---------- BRIEFING CORTO ----------
@@ -1279,11 +1279,11 @@ export const STRINGS = {
     death_caza: 'A Sea Harrier got on your tail',
     death_sidewinder: 'A Sidewinder got you',
     death_aden: 'The Harrier\'s burst got you',
-    aim9_tira: 'MISSILE ON YOUR SIX, {c}!',
+    aim9_tira: 'SIDEWINDER ON YOUR SIX, {c}!',
     aim9_perdido: 'It overshot! You lost it.',
     aim9_sacudido: 'You shook it! It lost lock.',
     aim9_chocaron: 'They hit each other! Keep going!',
-    aim9_choque_pop: '{n} MISSILES',
+    aim9_choque_pop: '{n} SIDEWINDERS',
     caza_warn: 'BREAK, {c}! ON YOUR SIX!',
     caza_out: 'The Brit ran out of fuel.',
     caza_break: 'BREAK, {c}, BREAK!',
@@ -1681,7 +1681,7 @@ export const STRINGS = {
     // todavia: T() cae solo al español, asi que el juego funciona igual (campaña es-only por ahora).
     mom_turn: '! 180 TURN !', mom_pass_n: 'ATTEMPT {n}',
     hud_mission: 'MISSION {n}/{m}',
-    res_title: 'MISSION COMPLETE', res_fin: 'MISSION FINISHED', res_total: 'TOTAL', res_rank: 'RATING:',
+    res_title: 'MISSION COMPLETE', res_salvo: 'HOME SAFE', res_fin: 'MISSION FINISHED', res_total: 'TOTAL', res_rank: 'RATING:',
     res_flight: 'FLIGHT SCORE', res_kills: 'TARGETS', res_acc: 'ACCURACY', res_ras: 'LOW-PASS STREAK',
     rank_cadete: 'CADET', rank_piloto: 'PILOT', rank_as: 'ACE', rank_halcon: 'HAWK OF THE ATLANTIC',
     brief_title: 'MISSION ORDER', brief_goal: 'OBJECTIVE:', brief_go: 'ANY KEY  to take off',

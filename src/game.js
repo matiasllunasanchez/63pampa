@@ -2330,6 +2330,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // sistemas. Aca queda solo lastRun: la foto POR VALOR que arma freezeRun() al terminar la
     // misión, porque entre niveles de campaña se llama reset() y borraria los contadores.
     let lastRun = null;
+    let volvioSalvo = false;   // la mision termino SALIENDO DEL RADAR tras el ataque (8/10): titular VOLVISTE A SALVO
     let resT = 0, resRow = 0;   // recuento: tiempo y cuantas filas ya entraron
     const RANKS = ['rank_cadete', 'rank_piloto', 'rank_as', 'rank_halcon'];
     // fraccion de la velocidad de vuelo que conserva el avion durante el MOMENTUM.
@@ -2371,6 +2372,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       seawolfSys.reset();
       reencareTrasChoque = false;
       limpiarCarteles();
+      volvioSalvo = false;
       // …y lo mismo, sin parametro, en IDA Y VUELTA: es el banco de pruebas del pasillo largo
       // (pruebas_misiones.js t15) y el poder es una de las cosas que se van a probar ahi. Pedido
       // del autor, 12/9. PROVISORIO — se saca junto con `rasanteProbe` al cerrar el plan.
@@ -3089,6 +3091,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       escapeSys.terminar();
       fases.tapar(null);
       blancoSys.terminarEscape();
+      // VOLVISTE A SALVO (8/10, el autor: "la parte de aterrizaje quitemosla por ahora; una vez que salgo,
+      // cinematica y pantalla de finalizacion satisfactoria — VOLVISTE A SALVO"). Con ruta, el video del
+      // viraje ES el final: la vuelta y el aterrizaje quedan guardados para cuando vuelvan.
+      if (rutaSys.hay()) { volvioSalvo = true; run.climaxHecho = 1; finishObjective(); return; }
       run.dist = objectiveDist + 1;    // la vuelta cuenta desde el buque: lo escapado no es camino a casa
       // del otro lado del negro el avion vuelve con aire abajo: el fundido tapa el primer segundo, y
       // sin esto se iba al agua antes de que el jugador lo viera (medido)
@@ -3230,6 +3236,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         mission: m, flight, kills, acc, bKills, bAcc, bRas, total, par, stars: starN,
         // la perilla de la mision (data/missions.js): el recuento se muestra sin numeros
         puntos: m.puntos !== false,
+        salvo: volvioSalvo,
         rank: RANKS[Math.min(RANKS.length - 1, starN - 1)],
         rows: [
           { k: 'res_flight', v: flight },
@@ -3284,7 +3291,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // …y su envion viaja CON ella: el techo de `BOMBA_REL_MAX` se corre con el, o el integrador
         // le recortaria justo lo que la holgura le dio (ver la nota en core/blanco.js).
         extra: envion,
-        vy: plane.vy,                                    // trepando sale para arriba: vuela mas y llega mas lejos
+        // trepando sale para arriba: vuela mas y llega mas lejos. AL RAS (RASANTE puesto) sale lanzada
+        // como desde la altura perfecta — systems/blanco.js `vySuelta`
+        vy: runClimax() === 'suelta' ? blancoSys.vySuelta() : plane.vy,
         vx: plane.vx * BOMBA_DERIVA,                     // la inercia de venir cruzado, no un guiado
       };
     }
@@ -4273,7 +4282,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // verde ya es del radar —su tinte, su placa— y de los mensajes buenos, y no se mezclan)
           cartel(T(alc ? 'radarEntra' : 'radarSale'), alc ? P.accent : P.ink);
           // …y en la IDA un compañero te lo marca con el avion: abajo, y sin radio (SENAS_COMP.radar)
-          if (alc && run.dist < objectiveDist) senaCompanero('radar', 1);
+          // (la mision lo puede apagar con `senaRadar: false` — 8/10, las SMALL de prueba)
+          if (alc && run.dist < objectiveDist && !(curMission() && curMission().senaRadar === false)) senaCompanero('radar', 1);
           // …y EL ESCANEO: la linea que barre la pantalla y la red que respira (world.ESC_*)
           if (alc) radarScanT = run.t;
         }
@@ -4347,7 +4357,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (cfg.fuelOn && run.fuel <= 0) { sinCombustible(); return; }
       // LLEGASTE A CASA (PLAN_MISION_CINCO_FASES §11): la VUELTA se termino. En una mision sin
       // fases esto es siempre falso y el pasillo cierra donde cerro siempre — en el objetivo.
-      if (fases.llegaste()) { iniciarAterrizaje(); return; }
+      // (…no durante el ESCAPE ni su viraje: ahi el final es VOLVISTE A SALVO, no la pista — 8/10)
+      if (fases.llegaste() && !blancoSys.escapando() && !vir && !virVid) { iniciarAterrizaje(); return; }
       // RF-01: con clímax PASADA, los spawns se cortan ENTRY_CLEAR_M antes del buque. El último
       // tramo del pasillo se vacía y lo único que queda adelante es el blanco — es la mitad de
       // "sin corte": no hay obstáculos que desaparezcan de golpe al abrirse el mundo.
@@ -4417,7 +4428,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (b === 'escape' || (b && b.escape)) empezarEscape();
         // …Y EL VIRAJE: sin estrellas, escapaste. Es la bisagra entre las dos mitades, y el pasillo
         // no la puede mostrar —no rota—, asi que la cuenta un video (ver `viraje`).
-        if (blancoSys.escapando() && run.estrellas <= 0 && !vir) { vir = { fase: 'perdimos', t: 0 }; radioTramo('vir_perdimos'); missiles.length = 0; }
+        // EL FIN DEL ESCAPE ES SALIR DEL RADAR (8/10, el autor: "el objetivo final es salir del radar luego
+        // de haber atacado, con las alarmas prendidas; una vez que salgo, cinematica y pantalla de partida
+        // satisfactoria"). Con ruta, la linea es el horizonte de radar de la vuelta; sin ruta, perder las
+        // estrellas, como antes.
+        const salio = rutaSys.hay() ? !rutaSys.enAlcance() : run.estrellas <= 0;
+        if (blancoSys.escapando() && salio && !vir) { vir = { fase: 'perdimos', t: 0 }; radioTramo('vir_perdimos'); missiles.length = 0; }
         // LA LINEA RECTA (V2): la artilleria de popa tira mientras escapas. Un tiro que pega es un
         // golpe de chapa; si el avion no aguanta, entra el siguiente — y el escape sigue.
         const es = blancoSys.escapando() && !vir ? escapeSys.step(dt) : null;
@@ -5068,9 +5084,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           squadRender.drawFormation({ selPlane, exit: S.state === 'play' ? Math.min(1, ex / squad.EXIT_T) : null });
       }
 
-      // líneas de velocidad
-      ctx.globalAlpha = 0.5;
+      // líneas de velocidad — MAS TENUES (8/10, el autor: "transparencia al 50%; algunas mas fuertes si
+      // queres, pero que no tapen tanto, cargan mucho la pantalla"): a la mitad de lo que eran, y una de
+      // cada cinco (fija por su angulo, no sorteada por cuadro) un poco mas marcada
       for (const s of streaks) {
+        ctx.globalAlpha = (s.a * 7.31) % 1 < 0.2 ? 0.42 : 0.25;
         // el LARGO del trazo lo trae la linea (9 por omision, lo de siempre). Lo estira quien la
         // creo: en primera persona el punto de fuga esta en tu cara y una raya de nueve pixeles no
         // se lee como velocidad, se lee como caspa.
@@ -5464,13 +5482,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // pantalla— y el de mision tiene que poder tapar al de la escena.
       drawCine(cine.state());
 
-      // LA MARCA DE MODO DEV (8/10, core/dev.js): una etiqueta chica en la esquina, para no confundir
-      // nunca una partida de prueba con el juego de verdad. Solo con `yarn start` (no en las pruebas)
-      if (typeof window !== 'undefined' && window.RASANTE_DEV) {
-        ctx.save(); ctx.font = 'bold 7px monospace'; ctx.textAlign = 'right';
-        ctx.globalAlpha = 0.85; ctx.fillStyle = '#0a0e11'; ctx.fillRect(W - 26, H - 10, 24, 9);
-        ctx.fillStyle = '#ff6a50'; ctx.fillText('DEV', W - 5, H - 3); ctx.restore();
-      }
+      // (la etiqueta DEV de la esquina se saco el 8/10 a pedido del autor)
       // EL ROTULO QUE PASA VOLANDO, arriba de todo menos del fundido de mision
       if (rotuloT0 >= 0) {
         const tr = (performance.now() - rotuloT0) / 1000;

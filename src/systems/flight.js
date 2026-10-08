@@ -551,7 +551,8 @@ export function flightSystem(dt, deps) {
     run.shake = Math.min(7, run.shake + 18 * dt);
   }
 
-  const colchon = rasante.active() && deathMsg === 'death_sea';
+  // (…y el estado RASANTE tambien, 8/10: mantener rasante no te puede ahogar por las olas del agua)
+  const colchon = (rasante.active() || run.aguante === 1) && deathMsg === 'death_sea';
   if (!colchon && plane.y <= (run.scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
     // EL AGUA PERDONA MAS EN UN FILO (§11.1). El tramo es de SIGILO: lo que tiene que matarte es
     // que te vean, no un panzazo. Sin esto el agua se comia casi todas las muertes del filo —el

@@ -135,7 +135,8 @@ export function drawCruce(cx, cy, dt) {
   const fade = (1 - f) * (1 - f);
   ctx.save();
   // EL ANILLO que sale disparado hacia atras — el frente de presion pasandote
-  ctx.globalAlpha = fade * 0.8;
+  // (a la mitad, 8/10: "que no tapen tanto, cargan mucho la pantalla")
+  ctx.globalAlpha = fade * 0.4;
   ctx.strokeStyle = '#f4fbf9';
   ctx.lineWidth = Math.max(1, (1 - f) * 3);
   ctx.beginPath(); ctx.ellipse(cx, cy, 22 + f * 150, (22 + f * 150) * 0.5, 0, 0, 6.2832); ctx.stroke();
@@ -146,7 +147,7 @@ export function drawCruce(cx, cy, dt) {
     const a = i * 2.399;
     const r0 = 26 + f * 120, r1 = r0 + 16 + f * 46;
     const ca = Math.cos(a), sa = Math.sin(a) * 0.55;   // achatadas: el mundo es ancho
-    ctx.globalAlpha = fade * (0.35 + (i % 3) * 0.12);
+    ctx.globalAlpha = fade * (i % 4 ? 0.18 + (i % 3) * 0.06 : 0.4);   // a la mitad, y la de cada cuatro mas marcada
     ctx.strokeStyle = i % 4 ? '#eaf6f3' : P.crest;
     ctx.lineWidth = 1;
     ctx.beginPath();

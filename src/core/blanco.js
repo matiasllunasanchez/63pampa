@@ -48,6 +48,7 @@ export const blanco = {
   listo: false,       // ES EL MOMENTO: soltar ahora pega armada en el casco
   extra: 0,           // el envion de la holgura que necesita una suelta AHORA (ver `holgura`)
   enDist: false,      // el buque esta en la VENTANA DE DISTANCIA (independiente de tu altura)
+  previa: false,      // la ventana de distancia se abre en BL.PREVIA_S segundos (el corchete en verde fijo)
   buenaAlt: false,    // estas en la banda de BL.ALT_IDEAL
   tuvoVentana: false, // la ventana de esta pasada llego a abrirse (para saber si se PASO)
   perdidaT: -1,       // reloj del MOMENTO PERDIDO (fundido + piloto automatico), -1 = no
@@ -126,6 +127,31 @@ function pisoEn(x, dz) {
  *  se mueve despues de soltar, la bomba no se entera. Es leer adelante lo que la fisica ya decide. */
 export function predecir(px, py, vy, vx, spd, zBuque, acc) {
   return simular(px, py, vy, vx, spd, zBuque, 0, acc);
+}
+
+/** LA SUELTA AL RAS (8/10, el autor: "mantener RASANTE y tirar la bomba debe ser mas facil, porque me
+ *  permite mantener la altura PERFECTA"). Pegado al agua la bomba no tenia caida: tocaba el mar al
+ *  salir, sin armar. Con RASANTE puesto sale LANZADA — un envion hacia arriba, el tiro de los que
+ *  bombardeaban al ras — con la vy justa para caer en el MISMO TIEMPO que soltada quieta desde
+ *  `pyIdeal`. Mismo tiempo es mismo alcance (lo horizontal no depende de la altura) y la espoleta
+ *  armada igual; y como va mas baja que la de arriba hasta el final, al casco le entra mejor.
+ *  `piso` = contra que detona (el agua, o la base de la estructura). */
+function caida(py, vy, piso) {
+  let y = py, v = vy, t = 0;
+  const dt = 1 / 60;
+  for (let i = 0; i < 300; i++) {
+    t += dt;
+    v -= BOMBA_G * Math.min(1, t / BOMBA_PLANEO) * dt; y += v * dt;
+    if (y <= piso) break;
+  }
+  return t;
+}
+export function vyAlRas(py, pyIdeal, piso) {
+  if (py >= pyIdeal) return 0;
+  const T = caida(pyIdeal, 0, piso);
+  let lo = 0, hi = 40;
+  for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2; if (caida(py, m, piso) < T) lo = m; else hi = m; }
+  return (lo + hi) / 2;
 }
 
 /** LA HOLGURA DE LA SUELTA (pedido del autor, 26/9/2026): "quiero que el juego te permita lanzar la
