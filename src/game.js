@@ -123,6 +123,8 @@ import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
 import { setNiebla, luzDelCielo } from './render/borde.js';
 import * as chafita from './render/chafita.js';
+import { lanzarCola } from './core/aim9.js';
+import { humo as humoHorneado } from './render/fuego.js';
 import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
@@ -727,14 +729,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const fz = Math.min(1, A.fuerza * K);
       const [n0, n1, n2] = A.nucleo, [h0, h1, h2] = A.halo;
       // el destello de la chapa (nucleo + halo, latiendo) y su luz derramada, en (x, y)
-      const destella = (x, y, r, a) => {
+      // `derrama`: si ademas suma su LUZ DERRAMADA (render/brillo.js). Cada tira destella, pero el halo
+      // grande lo pone una de cada cuatro (y uno de cada tres tubos): con las 150 a la vez el resplandor
+      // sumado tapaba el avion entero en el instante en que se abren
+      const destella = (x, y, r, a, derrama = true) => {
         const g = ctx.createRadialGradient(x, y, 0, x, y, r);
         g.addColorStop(0, `rgba(${n0},${n1},${n2},${a})`);
         g.addColorStop(0.45, `rgba(${h0},${h1},${h2},${a * 0.5})`);
         g.addColorStop(1, `rgba(${h0},${h1},${h2},0)`);
         ctx.globalAlpha = 1; ctx.fillStyle = g;
         ctx.fillRect(x - r, y - r, r * 2, r * 2);
-        luz(ctx, x, y, r * 2.2, A.halo, a * 0.5);
+        if (derrama) luz(ctx, x, y, r * 2.2, A.halo, a * 0.5);
       };
       const raya = (s, L, ang, col, wid) => {
         ctx.strokeStyle = col; ctx.lineWidth = wid;
@@ -764,12 +769,42 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             if (!chafita.dibujar(tumba, ang, s.x, s.y, L))
               raya(s, L, ang, cara > 0.6 && A.filo ? A.filo : '#c9d6dd', Math.max(1, s.k * 0.04));
             if (cara > CHAPITAS.DESTELLA && fz > 0 && D.alfa > 0)
-              destella(s.x, s.y, Math.max(1.5, D.radio * s.k * 0.2 * K), Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * pulso(j)) * a0 * cerca(p.z));
+              destella(s.x, s.y, Math.max(1.5, D.radio * s.k * 0.2 * K), Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * pulso(j)) * a0 * cerca(p.z), j % 3 === 0);
           });
           continue;
         }
         // …REVENTADOS: cada tubo abre su nubecita de tiras, que se abre, gira y cae
         const te = t - CHAPITAS.TUBO_ABRE, abre = 0.35 + te * 1.6;
+        // …Y LA BENGALA DEL CARTUCHO (8/10: "un cartucho de chafitas tenia 30 chafitas y UNA bengala
+        // dentro"): una sola por carga, colgada de su paracaidas debajo de la nube —donde la pone el
+        // sistema, que es tambien donde revienta el misil de calor— dejando un hilo de humo. Primero el
+        // humo (queda detras), despues la bengala.
+        const B = CHAPITAS.BENGALA, bg = n.bengala;
+        // (el ritmo con el reloj de la nube, no por cuadro: a 120 fps no larga el doble de humo; y cada
+        // bocanada guarda su lugar RELATIVO a la nube, asi viaja con ella)
+        n.humos = n.humos || [];
+        if (bg && t - (n.humoUlt === undefined ? -9 : n.humoUlt) >= B.HUMO_CADA && n.vida > 0.5) {
+          n.humoUlt = t;
+          n.humos.push({ x: bg.x, y: bg.y + 0.05, dz: bg.z - n.z, t, f: n.humos.length });
+        }
+        n.humos = n.humos.filter(h => t - h.t < B.HUMO_VIDA);
+        for (const h of n.humos) {
+          const zz = n.z + h.dz;
+          if (zz < 3) continue;
+          const s = proj(h.x, h.y + (t - h.t) * 0.4, zz), u = (t - h.t) / B.HUMO_VIDA;
+          ctx.globalAlpha = 0.5 * (1 - u) * a0 * cerca(zz);
+          humoHorneado(s.x, s.y, Math.max(2, s.k * (0.15 + u * 0.45)), h.f, 'gris');
+        }
+        if (bg && bg.z >= 3 && bg.z < 9999) {
+          const s = proj(bg.x, bg.y, bg.z), late = 0.75 + 0.25 * Math.sin(run.t * 31);
+          ctx.globalAlpha = a0 * cerca(bg.z);
+          if (!chafita.dibujarBengala(Math.floor(run.t * 12), s.x, s.y, s.k * B.ALTO * 32 / 22)) px(s.x - 1, s.y - 1, 2, 2, '#fff7dc');
+          // la bola a 500 °C: su luz derramada (de dia y de noche), naranja con el corazon blanco
+          const r = Math.max(4, s.k * B.LUZ) * late;
+          ctx.globalAlpha = 1;
+          luz(ctx, s.x, s.y, r, [255, 196, 120], B.LUZ_A * late * a0 * cerca(bg.z));
+          luzNoche(ctx, s.x, s.y, r * 1.6, [255, 170, 90], B.NOCHE_A * late * a0 * cerca(bg.z));
+        }
         n.tiras.forEach((q, i) => {
           const c = tubo(n.tubos[q.tubo]);
           const z = c.z + q.dz * abre;
@@ -784,7 +819,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           if (cara < CHAPITAS.DESTELLA || !(fz > 0) || !(D.alfa > 0)) return;
           const p = pulso(i);
           destella(s.x, s.y, Math.max(1.5, D.radio * s.k * 0.25 * K * p),
-            Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * p) * a0 * cerca(z) * (cara - CHAPITAS.DESTELLA) / (1 - CHAPITAS.DESTELLA));
+            Math.min(1, D.alfa * K * Math.min(1, A.fuerza * 1.4) * p) * a0 * cerca(z) * (cara - CHAPITAS.DESTELLA) / (1 - CHAPITAS.DESTELLA), i % 4 === 0);
         });
       }
       ctx.globalAlpha = 1;
@@ -5838,6 +5873,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       window.__chapitas = n => { if (n !== undefined) run.chapitas = +n; return JSON.stringify(Object.assign(chapitasSys.snapshot(),
         { det: +run.detection.toFixed(2), est: run.estrellas, ola: run.radarWave, spd: Math.round(run.spd), integ: run.integ, st: S.state, y: +plane.y.toFixed(1),
           misiles: missiles.map(m => ({ t: m.tipo || '-', z: Math.round(m.z), done: !!m.done, cebo: !!m.cebo })) })); };
+      // …y `__cola(dz)` un Sidewinder de LA COLA, de atras (el de calor: lo que se lleva la BENGALA)
+      window.__cola = (dz = -8) => { missiles.push(lanzarCola({ x: plane.x + 2, y: plane.y + 1, z: PZ + dz }, { x: plane.x, y: plane.y, pz: PZ })); return missiles.length; };
       window.__dart = (dz = 90) => { missiles.push({ tipo: 'dart', x: plane.x, y: plane.y, z: PZ + dz, done: false }); return missiles.length; };
       // QUITAR — un misil guiado comun de frente, para probar el SEÑUELO de los tanques (8/10)
       window.__misil = () => { missiles.push({ x: plane.x + 6, y: plane.y + 3, z: PZ + 220 }); return JSON.stringify(missiles.map(m => ({ z: Math.round(m.z), done: !!m.done, cebo: !!m.cebo }))); };

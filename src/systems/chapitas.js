@@ -16,7 +16,7 @@
 import { run } from '../core/run.js';
 import { missiles } from '../core/world.js';
 import { CHAPITAS } from '../data/tuning.js';
-import { tomaNube, nubeNueva, pasoNube, borraAlarmas } from '../core/chapitas.js';
+import { tomaNube, nubeNueva, pasoNube, borraAlarmas, porCalor } from '../core/chapitas.js';
 
 let nubes = [];          // las nubes en el aire (marco del mundo: corren con run.spd)
 let ventana = null;      // { desde, visto } desde el ultimo soltar; null si no hay nada que cerrar
@@ -34,6 +34,10 @@ export function ponerCargas(n) { run.chapitas = n; ventana = null; }
 
 /** SOLTAR. `x, y, pz`: donde esta el avion. `visto`: si el radar te estaba viendo (la barra cargando,
  *  alguna estrella, o arriba del techo). Devuelve los misiles que tomo la nube, o null si no quedaban. */
+let rnd = Math.random;
+/** Para las pruebas: un azar fijo (`f` devuelve 0..1), o el de siempre sin argumento. */
+export const azar = f => { rnd = f || Math.random; };
+
 export function soltar(x, y, pz, visto) {
   if (!(run.chapitas > 0)) return null;
   run.chapitas--;
@@ -48,11 +52,28 @@ export function soltar(x, y, pz, visto) {
   n.tiras = Array.from({ length: CHAPITAS.TIRAS_TUBO * CHAPITAS.TUBOS }, (_, i) => ({ tubo: i % CHAPITAS.TUBOS, dx: (Math.random() - 0.5) * 2.4,
     dy: (Math.random() - 0.5) * 1.6, dz: (Math.random() - 0.5) * 2.4, a: Math.random() * 6.283,
     w: (Math.random() - 0.5) * 9, cae: 0.6 + Math.random() * 1.4 }));
+  // LA BENGALA, como blanco aparte: el misil de CALOR revienta en ella (el autor, 8/10: "el misil debe
+  // explotar en la bengala y/o la nube de chafitas"); el de radar, en la nube. Cuelga debajo de la nube
+  // desde que el tubo revienta (CHAPITAS.BENGALA.CAE), y se apaga con ella.
+  n.bengala = { x, y, z: n.z, chapitas: true, esBengala: true };
   nubes.push(n);
   run.chapitasOnda = 1;
   ventana = { desde: 0, visto: !!visto };
   const tomados = [];
-  for (const m of missiles) if (tomaNube(m, pz)) { m.cebo = n; tomados.push(m); }
+  // la MITAD revienta en la nube (o en la bengala); la otra se desvia a un COSTADO y pasa de largo
+  n.costados = [];
+  for (const m of missiles) {
+    if (!tomaNube(m, pz)) continue;
+    const blanco = porCalor(m) ? n.bengala : n;
+    if (rnd() < CHAPITAS.EXPLOTA) m.cebo = blanco;
+    else {
+      const [a, b] = CHAPITAS.LADO, lado = rnd() < 0.5 ? -1 : 1;
+      const c = { x: blanco.x, y: blanco.y, z: blanco.z, chapitas: true, pasa: 1, de: blanco,
+        dx: lado * (a + rnd() * (b - a)), dy: rnd() * 3 - 1.5 };
+      n.costados.push(c); m.cebo = c;
+    }
+    tomados.push(m);
+  }
   return tomados;
 }
 
@@ -61,10 +82,15 @@ export function soltar(x, y, pz, visto) {
 export function step(dt, spd, bajoTecho) {
   run.chapitasOnda = Math.max(0, run.chapitasOnda - dt / CHAPITAS.VIDA);
   // (se MUTA la misma nube y no se reemplaza: los misiles la tienen agarrada como `m.cebo`)
-  for (const n of nubes) Object.assign(n, pasoNube(n, dt, spd));
+  for (const n of nubes) {
+    Object.assign(n, pasoNube(n, dt, spd));
+    const b = n.bengala, cae = CHAPITAS.BENGALA.CAE * Math.max(0, n.t - CHAPITAS.TUBO_ABRE);
+    if (b && b.z < 9999) { b.x = n.x; b.y = n.y - cae; b.z = n.z; }
+    for (const c of n.costados || []) if (c.z < 9999) { c.x = c.de.x + c.dx; c.y = c.de.y + c.dy; c.z = c.de.z; }
+  }
   // la nube que se apaga deja de ser blanco: el misil que la seguia ya te perdio igual (collision.js
   // lo trata como el tanque hundido — pasa de largo)
-  for (const n of nubes) if (n.vida <= 0 && n.z < 9999) n.z = 9999;
+  for (const n of nubes) if (n.vida <= 0 && n.z < 9999) { n.z = 9999; if (n.bengala) n.bengala.z = 9999; for (const c of n.costados || []) c.z = 9999; }
   nubes = nubes.filter(n => n.z < 9999);
   if (!ventana) return null;
   ventana.desde += dt;

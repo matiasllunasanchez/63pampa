@@ -21,6 +21,12 @@ const TIRA = { src: '../assets/ammo/tira.png', img: new Image(), ready: false };
 TIRA.img.onload = () => { TIRA.ready = true; };
 TIRA.img.src = TIRA.src;
 
+// …Y LA BENGALA del cartucho (hojas.py `bengala`): el tubito de carton marron ardiendo por abajo, 8
+// cuadros de fuego latiendo, 24x32, el fuego abajo
+const BENG = { src: '../assets/ammo/bengala.png', img: new Image(), ready: false };
+BENG.img.onload = () => { BENG.ready = true; };
+BENG.img.src = BENG.src;
+
 const FW = 16, FH = 16, VISTAS = 6, VARIANTES = 4;
 
 export const lista = () => HOJA.ready && HOJA.img.naturalWidth > 0;
@@ -58,6 +64,19 @@ export function dibujarTira(variante, v, ang, x, y, largo) {
   ctx.drawImage(TIRA.img, col * FW, fila * FH, FW, FH, -s / 2, -s / 2, s, s);
   drawBorde(ctx, TIRA.img, col * FW, fila * FH, FW, FH, -s / 2, -s / 2, s, s);
   ctx.restore();
+  ctx.imageSmoothingEnabled = sm;
+  return true;
+}
+
+/** Dibuja UNA BENGALA: el cuadro `f` (0-7, el latido del fuego), con el fuego en (x, y) —el tubito
+ *  arriba—, de `alto` px el cuadro entero. false si la hoja no cargo. */
+export function dibujarBengala(f, x, y, alto) {
+  if (!(BENG.ready && BENG.img.naturalWidth > 0)) return false;
+  const c = ((f | 0) % 8 + 8) % 8, h = Math.max(4, Math.round(alto)), w = Math.round(h * 24 / 32);
+  const sm = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  // el fuego esta a 26 de 32 del alto del cuadro
+  ctx.drawImage(BENG.img, c * 24, 0, 24, 32, Math.round(x - w / 2), Math.round(y - h * 26 / 32), w, h);
   ctx.imageSmoothingEnabled = sm;
   return true;
 }

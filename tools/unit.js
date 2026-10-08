@@ -2888,12 +2888,13 @@ test('peso sin ruta: el tanque existe, el % pasa a los externos primero y soltar
 });
 
 // ---------- LAS CHAPITAS — el chaff (8/10, CHAPITAS en data/tuning.js) ----------
-test('chapitas: solo engañan a los misiles de radar (Sea Dart, Sea Wolf), no al Sea Cat ni al Sidewinder', async () => {
+test('chapitas: el aluminio engaña al radar (Sea Dart, Sea Wolf) y la bengala al Sidewinder; no al Sea Cat', async () => {
   const { engaña } = await import('../src/core/chapitas.js');
   assert.equal(engaña({ tipo: 'dart' }), true, 'Sea Dart: radar semiactivo');
   assert.equal(engaña({ tipo: 'wolf', def: 'wolf' }), true, 'Sea Wolf: lo sigue un radar');
   assert.equal(engaña({ tipo: 'wolf', def: 'cat' }), false, 'Sea Cat: un operador a ojo');
-  assert.equal(engaña({ tipo: 'aim9' }), false, 'Sidewinder: infrarrojo (eso es para las bengalas)');
+  assert.equal(engaña({ tipo: 'aim9', fase: 'guia' }), true, 'Sidewinder: infrarrojo — se lo lleva la BENGALA del tubo');
+  assert.equal(engaña({ tipo: 'aim9', fase: 'perdido' }), false, 'el que ya te perdio no cuenta');
   assert.equal(engaña({ tipo: 'aden' }), false);
   assert.equal(engaña({ tracer: true }), false);
   assert.equal(engaña({}), false, 'Rapier y portatiles: opticos');
@@ -2906,6 +2907,7 @@ test('chapitas: la nube toma a los que vienen cerca por delante, y se queda atra
   assert.equal(tomaNube({ tipo: 'dart', z: PZ + 80 }, PZ), true);
   assert.equal(tomaNube({ tipo: 'dart', z: PZ + CHAPITAS.ALCANCE_Z + 1 }, PZ), false, 'muy lejos: ya te tienen de nuevo');
   assert.equal(tomaNube({ tipo: 'dart', z: PZ - 2 }, PZ), false, 'el que ya paso no vuelve');
+  assert.equal(tomaNube({ tipo: 'aim9', fase: 'guia', z: PZ - 30 }, PZ), true, 'el Sidewinder de LA COLA, de atras: la bengala queda ahi');
   assert.equal(tomaNube({ tipo: 'dart', z: PZ + 80, done: true }, PZ), false);
   assert.equal(tomaNube({ tipo: 'dart', z: PZ + 80, cebo: {} }, PZ), false, 'el que ya sigue otro cebo, sigue ese');
   // la nube sale con el avion: a crucero (80 u/s) se queda a la vista (z > 2) mas de medio segundo
@@ -2937,7 +2939,7 @@ test('chapitas: los numeros del autor (8/10): 30 tubos de 16 cm por carga, de 1 
   sys.reset();
 });
 
-test('chapitas: el sistema gasta cargas, engancha a los de radar y avisa el sigilo', async () => {
+test('chapitas: el sistema gasta cargas, engancha a los de radar y de calor, y avisa el sigilo', async () => {
   const sys = await import('../src/systems/chapitas.js');
   const { run } = await import('../src/core/run.js');
   const { missiles } = await import('../src/core/world.js');
@@ -2945,11 +2947,14 @@ test('chapitas: el sistema gasta cargas, engancha a los de radar y avisa el sigi
   missiles.length = 0;
   sys.reset();
   assert.equal(run.chapitas, CHAPITAS.CARGAS);
-  const dart = { tipo: 'dart', x: 0, y: 10, z: 100 }, aim = { tipo: 'aim9', x: 0, y: 10, z: 100 };
-  missiles.push(dart, aim);
+  const dart = { tipo: 'dart', x: 0, y: 10, z: 100 }, aim = { tipo: 'aim9', fase: 'perdido', x: 0, y: 10, z: 100 };
+  const cola = { tipo: 'aim9', fase: 'guia', x: 0, y: 10, z: -20 }, cat = { tipo: 'wolf', def: 'cat', x: 0, y: 10, z: 100 };
+  missiles.push(dart, aim, cola, cat);
+  sys.azar(() => 0);                                     // revientan (EXPLOTA)
   const r = sys.soltar(0, 10, 14, true);
-  assert.deepEqual(r, [dart], 'solo el de radar toma la nube');
-  assert.ok(dart.cebo && dart.cebo.chapitas && !aim.cebo);
+  assert.deepEqual(r, [dart, cola], 'el de radar (aluminio) y el Sidewinder de la cola (bengala); no el perdido ni el Sea Cat');
+  assert.ok(dart.cebo && dart.cebo.chapitas && !aim.cebo && !cat.cebo);
+  assert.ok(cola.cebo.esBengala && !dart.cebo.esBengala, 'el de calor revienta en la BENGALA; el de radar, en la nube');
   assert.equal(run.chapitas, CHAPITAS.CARGAS - 1);
   assert.equal(run.chapitasOnda, 1, 'la mancha del radar');
   assert.equal(sys.step(0.1, 80, false), null, 'arriba todavia: nada');
@@ -2958,6 +2963,15 @@ test('chapitas: el sistema gasta cargas, engancha a los de radar y avisa el sigi
   for (let i = 0; i < CHAPITAS.CARGAS; i++) sys.soltar(0, 10, 14, false);
   assert.equal(run.chapitas, 0);
   assert.equal(sys.soltar(0, 10, 14, false), null, 'sin cargas no sale nada');
+  // …y la otra mitad SE DESVIA a un costado de la nube y pasa de largo (no revienta)
+  missiles.length = 0; sys.reset(); sys.azar(() => 0.9);
+  const otro = { tipo: 'dart', x: 0, y: 10, z: 100 };
+  missiles.push(otro); sys.soltar(0, 10, 14, false);
+  assert.equal(otro.cebo.pasa, 1, 'va al costado de la nube');
+  assert.ok(Math.abs(otro.cebo.dx) >= CHAPITAS.LADO[0], 'a un costado, no al centro');
+  sys.step(0.05, 80, true);
+  near(otro.cebo.x, sys.nubesEnElAire()[0].x + otro.cebo.dx, 1e-9, 'el costado viaja con la nube');
+  sys.azar();
   missiles.length = 0; sys.reset();
 });
 

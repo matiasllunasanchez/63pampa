@@ -54,12 +54,81 @@ el freno en vuelo.
 > necesitás.** Es la mejora perfecta para el sistema de LA COLA — y es literalmente cómo
 > funcionaba.
 
-> **ESTADO (8/10/2026): implementada como las CHAFITAS** (el nombre del Pichón: "son chapitas, pero más
+> **ESTADO (8/10/2026): implementada como las CHAFITAS — con la bengala adentro** (una por carga:
+> desvía al Sidewinder; ver «LA EXPLICACIÓN REAL», abajo) (el nombre del Pichón: "son chapitas, pero más
 > finitas"; los estadounidenses le dicen chaff), **activa desde ya** (tecla H / ◯, dos
 > cargas por avión; [SPEC_CHAPITAS](../sistemas/SPEC_CHAPITAS.md)). Falta colgarla del banco del
 > Pichón: hoy el banco solo entrega piruetas (`data/upgrades.js`), así que es la primera mejora que
-> no lo es. Ojo con LA COLA: ahí te persigue un Sidewinder, que es **infrarrojo** — las chapitas no
-> lo engañan; para ese son las bengalas («Quince segundos»).
+> no lo es. El Sidewinder de LA COLA (infrarrojo) no lo engaña el aluminio: lo engaña **la bengala**
+> que lleva cada carga. «Quince segundos» (§2) queda como mejora aparte si algún día se separan.
+
+### LA EXPLICACIÓN REAL — para el guion, a futuro (8/10/2026)
+
+> El autor: *"seguro lo ponga en el guion, quizá; quizá por cada mejora puede (o no) cambiar el
+> guion, tengo que ver, pero anotá todo lo relevante para agregar a futuro — la explicación real"*.
+> Esto es esa explicación, con cada dato marcado: ✅ verificado (fuente al pie) · ⚠ sin verificar
+> (vino de un buscador con IA o del chat, y no se lo encontró en una fuente) · ✗ falso.
+
+**Qué es y cómo engaña (el principio).**
+- ✅ El radar emite ondas que rebotan en el metal del avión. Miles de tiras de aluminio rebotan
+  esas ondas a la vez: en la pantalla del operador aparece una **mancha enorme** donde estaba el
+  avión, que "desaparece" adentro o parece multiplicarse. El misil guiado por radar se va contra la
+  mancha. (Es lo que hace el juego: la mancha en el radar y el misil que se va a la nube.)
+- ✅ Las tiras se cortan a una medida que depende de la onda del radar que se quiere engañar. Para
+  el radar del **Sea Dart** salieron de **7 cm** (La Nación: "un cuarto de la longitud de onda").
+  ⚠ El buscador decía "la mitad": la regla general del chaff es media onda, pero la fuente argentina
+  dice un cuarto. Si va al guion, que diga solo "siete centímetros, la medida del radar del Sea Dart".
+- ⚠ Que la frecuencia la sacó la **Jefatura de Inteligencia de la Fuerza Aérea** — sin fuente.
+
+**Quién y dónde.**
+- ✅ El mayor **Fernando Rezoagli** (ingeniero, jefe del Escuadrón Control de la II Brigada). La
+  máquina la propuso el suboficial mayor **Tomasso**. Primero cortaron a tijera sus hijos de 15 y 13
+  años con compañeros de escuela.
+- ✅ La máquina de tallarines la prestó la fábrica de pastas **"Vía Nápoli"** (el cartel del museo;
+  La Nación dice "Nápoli"). Hoy está en la **Sala Histórica de la II Brigada Aérea** (Paraná). El
+  ancho de un tallarín era el que hacía falta.
+- ✅ El aluminio: los **rollos que envolvían los escapes de los motores del Canberra**.
+- ⚠ "Más de **140 kilos** de chaff en menos de una semana", "las 24 horas" — las 24 h están en la
+  fuente de 1982 (Rezoagli: *"24 horas por día, durante casi una semana"*); los 140 kg, sin fuente.
+
+**Cómo se cargaba y se tiraba.**
+- ✅ **Canberra:** en los **cartuchos de arranque de motor** ya usados — primero **una bengala con
+  paracaídas**, después el chaff hasta llenar, y una tapa plástica. Un cilindro con **siete
+  cartuchos** soldado en la cola; en el tablero del navegador, **una llave y una luz roja por
+  cartucho**. La táctica: esperar ~2 s después del lanzamiento del Sea Dart y quebrar el rumbo
+  mientras se soltaba.
+- ✅ **Mirage y Dagger:** cartuchos de 1,5" envueltos en papel higiénico con cinta, **en el freno
+  aerodinámico**: se soltaban al abrirlo. (Es el precio de la mejora en el juego: perder velocidad.)
+- ⚠ **El A-4** (el avión del juego): ninguna fuente dice cómo lo cargaba. Es la duda que más importa.
+- ⚠ "Tubos de **16 cm**", "**30** chafitas por carga", "de **1 a 4** cargadores por avión" — del autor,
+  sin fuente; el juego los usa. Chocan con los siete cartuchos del Canberra.
+
+**La bengala.**
+- ✅ Ardía a **500 °C unos 15 segundos** colgada de un **paracaídas** (para no caer enseguida): más
+  caliente que el escape del motor, así el misil infrarrojo (el **Sidewinder**) se iba a ella.
+- ⚠ Que la pólvora la desarrolló **Fabricaciones Militares**, y que el escape del Canberra rondaba
+  los **400 °C** — sin fuente.
+
+**¿Sirvió?**
+- ✅ Rezoagli: *"No volvieron a derribarnos un avión durante muchas misiones"*; los dos Canberra
+  derribados **no habían soltado** chaff ni bengala. Otra fuente: *"es difícil determinar su
+  efectividad"*. ✅ El capitán **García Puebla** (RIFLE 3) esquivó AIM-9L el 1/5/82 soltando bengalas y
+  chaff cada 15 s.
+- ✗ "Salvó a numerosos pilotos" como hecho general: no lo dice ninguna fuente así.
+
+**El nombre.**
+- ✅ **"Chaff"** es el nombre estadounidense. ✗ **No lo inventaron ellos:** lo desarrollaron casi a la
+  vez los británicos ("Window", Hamburgo, julio de 1943) y los alemanes ("Düppel").
+- En el juego: **CHAFITAS**, el nombre del Pichón — *"son chapitas, pero más finitas"*.
+
+**La regla de atribución sigue valiendo** (arriba): el Pichón no dice que inventó nada; los nombres
+reales (Rezoagli, Tomasso, la fábrica Vía Nápoli) van en la placa del cierre.
+
+**Idea del autor, pendiente:** que cada mejora pueda (o no) cambiar el guion — p. ej., una escena en
+el taller con la máquina de tallarines si se eligió esta.
+
+**Fuentes:** [La Nación, 15/4/2024](https://www.lanacion.com.ar/lifestyle/con-una-maquina-de-hacer-tallarines-la-historia-del-ingenioso-invento-que-salvo-la-vida-de-varios-nid15042024/) ·
+la foto del museo que mandó el autor (cartel "VÍA NAPOLI") · las de §1 y PREGUNTAS_HISTORICAS.
 
 ## 2 · LAS BENGALAS CASERAS ✅ verificado
 

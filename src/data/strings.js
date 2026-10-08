@@ -89,7 +89,7 @@ export const STRINGS = {
     // LAS CHAFITAS (systems/chapitas.js): asi les dice el Pichon — "son chapitas, pero mas finitas"
     chapitas_fuera: 'CHAFITAS', chapitas_nada: 'SIN CHAFITAS',
     chapitas_toman: '{n} MISIL(ES) DETRÁS DE LA NUBE', chapitas_baja: '¡ABAJO, YA! — BAJÁ DEL RADAR',
-    chapitas_quedan: 'QUEDAN {n}', chapitas_senuelo: '¡CHAFITAS!',
+    chapitas_quedan: 'QUEDAN {n}', chapitas_senuelo: '¡CHAFITAS!', chapitas_bengala: '¡BENGALA!',
     chapitas_sigilo: 'TE PERDIERON', chapitas_sigilo2: 'EN SU RADAR EXPLOTASTE — SIGILO',
     tanques_nafta: 'IBAN CON NAFTA: {km} KM AL MAR',
     tanques_vel: '+{v}% VELOCIDAD',
@@ -1282,7 +1282,7 @@ export const STRINGS = {
     tanque_senuelo: 'DECOY!',
     chapitas_fuera: 'CHAFITAS', chapitas_nada: 'NO CHAFITAS LEFT',
     chapitas_toman: '{n} MISSILE(S) INTO THE CLOUD', chapitas_baja: 'DOWN, NOW! — GET UNDER THE RADAR',
-    chapitas_quedan: '{n} LEFT', chapitas_senuelo: 'CHAFITAS!',
+    chapitas_quedan: '{n} LEFT', chapitas_senuelo: 'CHAFITAS!', chapitas_bengala: 'FLARE!',
     chapitas_sigilo: 'THEY LOST YOU', chapitas_sigilo2: 'ON THEIR SCOPE YOU BLEW UP — STEALTH',
     tanques_nafta: 'THEY HAD FUEL: {km} KM INTO THE SEA',
     tanques_vel: '+{v}% SPEED',

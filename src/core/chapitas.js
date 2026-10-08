@@ -4,16 +4,27 @@
 // (cuantas quedan, la nube en el aire, la ventana) vive en systems/chapitas.js.
 import { CHAPITAS } from '../data/tuning.js';
 
-/** ¿Este misil se deja engañar por las chapitas? Solo los GUIADOS POR RADAR (CHAPITAS.ENGANA): el
- *  Sea Dart y el Sea Wolf. El Sea Cat es el mismo objeto que el Sea Wolf (`tipo: 'wolf'`) con
- *  `def: 'cat'`, pero lo guia un operador a ojo: el aluminio no le cambia nada. */
-export const engaña = m => !!m && CHAPITAS.ENGANA.includes(m.tipo) && !(m.tipo === 'wolf' && m.def === 'cat');
+/** ¿Lo engaña EL ALUMINIO? Los GUIADOS POR RADAR (CHAPITAS.ENGANA): el Sea Dart y el Sea Wolf. El
+ *  Sea Cat es el mismo objeto que el Sea Wolf (`tipo: 'wolf'`) con `def: 'cat'`, pero lo guia un
+ *  operador a ojo: el aluminio no le cambia nada. */
+export const porRadar = m => !!m && CHAPITAS.ENGANA.includes(m.tipo) && !(m.tipo === 'wolf' && m.def === 'cat');
+
+/** ¿Lo engaña LA BENGALA? El INFRARROJO: el Sidewinder (`aim9`), de frente o de cola, mientras
+ *  todavia te sigue (no el que ya te perdio ni el que estalla). */
+export const porCalor = m => !!m && m.tipo === 'aim9' && m.fase !== 'perdido' && m.fase !== 'estallido';
+
+/** ¿Lo engaña una carga de chafitas? Cada tubo lleva aluminio Y una bengala: radar o calor. */
+export const engaña = m => porRadar(m) || porCalor(m);
 
 /** ¿La nube se lleva a ESTE misil, ahora? Tiene que poder engañarse, seguir vivo y siguiendote
- *  (no ya resuelto, ni detras de un señuelo, ni de otro cebo), y estar por delante tuyo a menos de
- *  ALCANCE_Z. `pz` es la profundidad del avion. */
-export const tomaNube = (m, pz) => engaña(m) && !m.done && !m.senuelo && !m.cebo
-  && m.z - pz > 0 && m.z - pz <= CHAPITAS.ALCANCE_Z;
+ *  (no ya resuelto, ni detras de un señuelo, ni de otro cebo), y estar a menos de ALCANCE_Z: por
+ *  DELANTE el de radar; el de calor de los DOS LADOS — el Sidewinder de LA COLA viene de atras, y la
+ *  bengala queda justo ahi. `pz` es la profundidad del avion. */
+export function tomaNube(m, pz) {
+  if (!engaña(m) || m.done || m.senuelo || m.cebo) return false;
+  const dz = m.z - pz;
+  return porCalor(m) ? Math.abs(dz) <= CHAPITAS.ALCANCE_Z : dz > 0 && dz <= CHAPITAS.ALCANCE_Z;
+}
 
 /** LA NUBE NUEVA, soltada desde el avion en (x, y), apenas detras de la profundidad `pz`. Sale con la
  *  velocidad del avion (`lleva` = 1) y se va quedando atras (ver pasoNube). `vida` en segundos;

@@ -139,6 +139,11 @@ HOJAS = {
                  destino='assets/ammo/tira.png',
                  frames=[dict(modelo='bl:municion_tira:%d' % v, rots=[('X', a * R), ('Y', a * 0.7 * R)])
                          for v in range(4) for a in (0, 30, 60, 90, 120, 150)]),
+    # …Y LA BENGALA del cartucho (el autor, 8/10: "una bengalita marron con fuego y humo saliendo"): el
+    # tubito de carton ardiendo por abajo, 8 cuadros de fuego latiendo. Sin volteo: siempre de costado
+    'bengala': dict(nueva=True, fw=24, fh=32, pos=(0, 0.05, 2.6), fov=26, lookY=0.05, cols=8, cajas=False, contorno=False,
+                    destino='assets/ammo/bengala.png',
+                    frames=[dict(modelo='bl:municion_bengala:%d' % f, rots=[]) for f in range(8)]),
     # ---------------- EL FUEGO Y EL HUMO (4/10/2026, tools/blender/modelos_fuego.py) ----------------
     # HOJAS NUEVAS: hasta hoy el fuego y el humo se dibujaban por codigo con rectangulos. De frente y sin
     # volteo (`rots` vacio), sin contorno (el fuego no tiene borde oscuro) y sin caja (la grilla la sabe

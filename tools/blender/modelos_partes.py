@@ -340,3 +340,22 @@ def municion_tira(T, K, var=0):
     ob = _obj('tira', me, g, K['mat_cel']('aluminio', '#d4dce1', True))
     sol = ob.modifiers.new('espesor', 'SOLIDIFY'); sol.thickness = 0.008     # que se vea de los dos lados
     return g
+
+def municion_bengala(T, K, fase='0'):
+    """LA BENGALA DEL CARTUCHO (8/10/2026, el autor: "cada cartucho de chaff tenia una bengala dentro"…
+    "puede ser literal una bengalita marron con fuego y humo saliendo, y un poco de brillo"). Un TUBITO
+    DE CARTON marron con su tapa, ardiendo por la punta de abajo: la llama naranja con el corazon
+    blanco (ardia a 500 °C, La Nacion). El humo lo pone el juego (game.js, drawChapitas). `fase` (0-7)
+    la inclina un poco y hace latir el fuego: son los cuadros de la hoja. (La de verdad colgaba de un
+    paracaidas; el autor la prefiere asi, sin el.)"""
+    f = int(fase)
+    g = vacio(T, 'bengala', (0, 0, 0), (0, 0, 0.35 + math.sin(f / 8 * 2 * math.pi) * 0.12))
+    hueso('carton', g, K['mat_cel']('carton', '#7a5232'), (0, 0.42, 0), (0, -0.12, 0), 0.075, 0.075, seg=10)
+    for y in (0.30, 0.0):
+        hueso('vuelta', g, K['mat_cel']('vuelta', '#5e3d24'), (0, y + 0.02, 0), (0, y - 0.02, 0), 0.079, 0.079, seg=10)
+    hueso('tapa', g, K['mat_cel']('tapa', '#a33a24'), (0, 0.47, 0), (0, 0.41, 0), 0.08, 0.08, seg=10)
+    late = 1 + 0.3 * math.sin(f * 2.3)
+    hueso('llama', g, K['mat_emisivo']('llama', '#ff8a2a'), (0, -0.12, 0), (0, -0.12 - 0.30 * late, 0), 0.10 * late, 0.0, seg=10)
+    hueso('llama2', g, K['mat_emisivo']('llama2', '#ffd36b'), (0, -0.12, 0.04), (0, -0.12 - 0.18 * late, 0.04), 0.065 * late, 0.0, seg=8)
+    elipsoide('nucleo', (0, -0.15, 0.09), (0.05, 0.045, 0.03), g, K['mat_emisivo']('nucleo', '#fff7dc'), seg=8, anillos=6)
+    return g

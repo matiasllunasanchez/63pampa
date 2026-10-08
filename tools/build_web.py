@@ -122,6 +122,7 @@ def main():
     js, ok = sub_path(js, '../assets/ammo/aim9.png', uri(ASSETS / 'ammo' / 'aim9.png', 'image/png')); n += ok
     js, ok = sub_path(js, '../assets/ammo/chafita.png', uri(ASSETS / 'ammo' / 'chafita.png', 'image/png')); n += ok
     js, ok = sub_path(js, '../assets/ammo/tira.png', uri(ASSETS / 'ammo' / 'tira.png', 'image/png')); n += ok
+    js, ok = sub_path(js, '../assets/ammo/bengala.png', uri(ASSETS / 'ammo' / 'bengala.png', 'image/png')); n += ok
     js, ok = sub_path(js, '../assets/ui/malvinas.webp', uri(ASSETS / 'ui' / 'malvinas.webp', 'image/webp')); n += ok
     js, ok = sub_path(js, '../assets/ui/miras.webp', uri(ASSETS / 'ui' / 'miras.webp', 'image/webp')); n += ok
     # ILUSTRACIONES de portada y de fin (assets/photos/{ppal,win,lose}/): NO entran en

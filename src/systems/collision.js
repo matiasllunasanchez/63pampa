@@ -493,10 +493,23 @@ export function collisionSystem(dt) {
         m.x += (c.x - m.x) * Math.min(1, S.GIRO * dt);
         m.y += (c.y - m.y) * Math.min(1, S.GIRO * dt);
         if (Math.hypot(c.x - m.x, c.y - m.y, c.z - m.z) < S.RADIO) {
+          // SE DESVIO AL COSTADO DE LA NUBE (CHAPITAS.EXPLOTA): no revienta — "lo de siempre", como un
+          // misil esquivado. Sigue de largo hacia atras y abajo; si iba bajo, termina en el agua.
+          if (c.pasa === 1) {
+            run.score += 75; stats.dodges++; boom(0.06, true);
+            m.cebo = { x: c.x + Math.sign(c.dx || 1) * 4, y: c.y - 3, z: c.z - 6, chapitas: true, pasa: 2 };
+            continue;
+          }
+          if (c.pasa === 2) {
+            m.cebo = null; m.done = true; m.senuelo = true;
+            if (m.y < PIQUE.BAJO) piqueMunicion(m.x, piqueAdelante(), 'misil');
+            m.z = 0;
+            continue;
+          }
           explodeAt(c.x, c.y, c.z, false, true, true);
           boom(0.18, true); run.shake = Math.min(8, run.shake + 2.5);
           const s = proj(c.x, c.y, c.z);
-          popup(s.x, s.y - 12, T(c.chapitas ? 'chapitas_senuelo' : 'tanque_senuelo') + ' +' + S.PTS, P.accent, true);
+          popup(s.x, s.y - 12, T(c.esBengala ? 'chapitas_bengala' : c.chapitas ? 'chapitas_senuelo' : 'tanque_senuelo') + ' +' + S.PTS, P.accent, true);
           if (!c.chapitas) c.z = 9999;
           else if (Math.hypot(c.x - plane.x, c.y - plane.y, c.z - PZ) < S.CERCA) softHit(null, S.SOFT);
           m.z = 0; m.done = true;

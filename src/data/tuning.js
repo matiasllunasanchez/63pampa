@@ -1051,9 +1051,9 @@ export const SENUELO_TQ = { VEL: 260, GIRO: 6, RADIO: 3, PTS: 150 };
 //              8/10: "un avion suele llevar entre 1 y 4 cargadores; podria ser mejorable de 1 a 4 max".
 //              Hoy salen con CARGAS; cuando la mejora del Pichon exista, arranca en CARGAS_MIN y sube
 //              hasta CARGAS_MAX (el estante dibuja hasta 4)
-//   ENGANA     que misiles engaña: los GUIADOS POR RADAR. El Sea Dart (radar semiactivo) y el Sea
+//   ENGANA     que misiles engaña EL ALUMINIO: los GUIADOS POR RADAR. El Sea Dart (radar semiactivo) y el Sea
 //              Wolf (lo sigue un radar de a bordo). NO el Sea Cat (un operador a ojo), NO el
-//              Sidewinder (infrarrojo: para ese son las bengalas, «Quince segundos»), NO las
+//              Sidewinder (infrarrojo: a ese se lo lleva LA BENGALA del cartucho, abajo), NO las
 //              trazadoras ni la rafaga del Harrier. Los misiles genericos (sin `tipo`) tampoco.
 //   ALCANCE_Z  hasta que distancia por delante (u) los toma la nube; mas lejos ya te tienen de nuevo
 //   VIDA       segundos que la nube brilla y engaña; despues es aluminio que cae
@@ -1088,6 +1088,20 @@ export const CHAPITAS = {
   FRENO: 0.15,
   VENTANA: 4,
   PTS: 150,
+  // QUE LE PASA AL MISIL ENGAÑADO (el autor, 8/10: "a veces se desvia hacia la nube de los costados, a
+  // veces explota EN la nube —y ahi, si esta cerca, te daña un poco o nada—; y si se desvia, nada, lo
+  // de siempre"). EXPLOTA es la probabilidad de reventar en la nube (o en la bengala, el de calor); si
+  // no, se va hacia un COSTADO de la nube, a LADO u (de/a), y pasa de largo como un misil esquivado:
+  // sus 75 puntos y, si iba bajo, al agua.
+  EXPLOTA: 0.5, LADO: [2.5, 6],
+  // LA BENGALA del cartucho (8/10: "un cartucho de chafitas tenia 30 chafitas y UNA bengala dentro";
+  // La Nacion: una bengala con paracaidas en cada cartucho del Canberra; ardia a 500 °C unos 15 s).
+  // UNA por carga: se enciende cuando los tubos revientan y cae debajo de la nube: CAE u/s (la de verdad
+  // colgaba de un paracaidas; el autor la prefiere "una bengalita marron con fuego y humo saliendo, y
+  // un poco de brillo": sin paracaidas, cae un poco mas rapido); ALTO es el alto del dibujo (u). Es lo que se lleva a los misiles INFRARROJOS (el Sidewinder), tambien a los de LA
+  // COLA, que vienen de atras: ALCANCE_Z para los dos lados. LUZ: el radio del resplandor (u); LUZ_A y
+  // NOCHE_A su pico de dia y de noche. HUMO_CADA / HUMO_VIDA: el hilo de humo que deja.
+  BENGALA: { CAE: 1.4, ALTO: 0.35, LUZ: 1.0, LUZ_A: 0.3, NOCHE_A: 0.6, HUMO_CADA: 0.06, HUMO_VIDA: 1.1 },
 };
 
 // ---------- EL BREAK TURN y EL JINK, con fisica de avion (systems/moves.js) ----------
