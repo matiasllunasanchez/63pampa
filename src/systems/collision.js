@@ -42,7 +42,7 @@ import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../c
 import { mvTight } from '../data/moves.js';
 // EL SIDEWINDER (30/9/2026): la cuenta de su vuelo, pura, y la voz de Puma que avisa cuando quebrar
 import { lanzarFrente, pasoAim9, quiebreGrupal } from '../core/aim9.js';
-import { AIM9, ADEN, PIQUE, SENUELO_TQ } from '../data/tuning.js';
+import { AIM9, ADEN, PIQUE, SENUELO_TQ, CHAPITAS } from '../data/tuning.js';
 import { hablar } from '../core/voz.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
@@ -480,8 +480,12 @@ export function collisionSystem(dt) {
     // EL TANQUE COMO SEÑUELO (8/10, SENUELO_TQ): el misil que tomo un tanque soltado va contra EL —
     // sea del tipo que sea— y revienta ahi. Si el tanque ya se hundio, te perdio igual: pasa de largo
     // sin poder pegarte (done) y sigue con su movimiento de siempre.
+    // …Y LAS CHAPITAS (8/10, CHAPITAS): la nube de aluminio es el mismo cebo con sus numeros. Se
+    // diferencia en dos cosas: la nube NO se consume con el primer misil (es una nube, se lleva a
+    // todos los que tomo), y si el estallido te queda cerca te sacude — "sin dañarme practicamente
+    // nada, o poco": el golpe no letal, que frena y quema un poco de nafta.
     if (m.cebo) {
-      const c = m.cebo, S = SENUELO_TQ;
+      const c = m.cebo, S = c.chapitas ? CHAPITAS : SENUELO_TQ;
       if (c.z >= 9999 || c.y < -1) { m.cebo = null; m.done = true; m.senuelo = true; }
       else {
         const dz = c.z - m.z;
@@ -492,8 +496,10 @@ export function collisionSystem(dt) {
           explodeAt(c.x, c.y, c.z, false, true, true);
           boom(0.18, true); run.shake = Math.min(8, run.shake + 2.5);
           const s = proj(c.x, c.y, c.z);
-          popup(s.x, s.y - 12, T('tanque_senuelo') + ' +' + S.PTS, P.accent, true);
-          c.z = 9999; m.z = 0; m.done = true;
+          popup(s.x, s.y - 12, T(c.chapitas ? 'chapitas_senuelo' : 'tanque_senuelo') + ' +' + S.PTS, P.accent, true);
+          if (!c.chapitas) c.z = 9999;
+          else if (Math.hypot(c.x - plane.x, c.y - plane.y, c.z - PZ) < S.CERCA) softHit(null, S.SOFT);
+          m.z = 0; m.done = true;
           run.score += S.PTS; stats.dodges++;
         }
         continue;

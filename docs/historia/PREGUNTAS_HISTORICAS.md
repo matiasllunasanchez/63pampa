@@ -720,7 +720,38 @@ cerca de los hangares de la II Brigada Aérea); otra la ubica en **Comodoro Riva
 5. **La máquina de fideos** puede vivir en el taller del Turco como objeto **sin explicar**,
    y revelarse en una sola línea. Nadie tiene que decir "esto es chaff".
 
-**Estado: investigado y NO implementado.** Pendiente de decisión de autor.
+**Estado: IMPLEMENTADO el 8/10/2026 como LAS CHAPITAS** (pedido del autor; ver
+[SPEC_CHAPITAS](../sistemas/SPEC_CHAPITAS.md)). Engaña solo a los misiles de radar (Sea Dart, Sea
+Wolf), cuesta velocidad (el freno, punto 3) y va activa desde ya; se colgará de las mejoras del
+Pichón más adelante.
+
+### Lo que trajo el autor el 8/10 (una charla con un buscador con IA) — ⚠ SIN VERIFICAR
+
+**Coincide con lo verificado** (refuerza, no cambia nada): la tallarinera industrial, el aluminio de
+los rollos que envolvían las toberas, el chaff de los Mirage y Dagger en los aerofrenos con papel
+higiénico y cinta, y en los Canberra los cartuchos de arranque de motor reusados.
+
+**Datos nuevos, a confirmar antes de ponerlos en pantalla:**
+- **La fábrica de pastas sería "Vía Nápoli", de Paraná**, y la máquina estaría en la Sala Histórica
+  de la II Brigada Aérea (Paraná). Si se confirma, resuelve la discrepancia Paraná / Comodoro
+  Rivadavia a favor de Paraná. La fuente que cita es La Nación (15/4/2024).
+- **Tiras de unos 7 cm**, "a la mitad de la longitud de onda del radar" (el principio es correcto
+  para el chaff en general; la cifra es de un resumen de La Nación).
+- **Contra el Sea Dart** en particular (mismo resumen). Es lo que el juego ya hace: el Sea Dart es el
+  misil del radar.
+- **Cómo se cargaba el cartucho:** pólvora negra con fulminante eléctrico al fondo, papel higiénico
+  compactado como tapón térmico, el aluminio prensado, y una tapa de balsa o cartón con cinta, todo
+  apuntando hacia atrás. Es plausible, pero **ninguna fuente citada lo dice así de detallado**: suena
+  a reconstrucción del buscador. El juego toma solo la idea general (un cartucho que sale expulsado
+  hacia atrás, un soplo de humo, y la nube que abre el viento).
+
+**Lo que CONTRADICE lo verificado — no va al juego:**
+- **"Los activaban cuando el detector de radar les avisaba que un misil los buscaba."** El capitán
+  Carballo dijo que sus aviones *no tenían receptor de alerta radar*. El juego no te avisa con un
+  instrumento que no existía: el aviso es la barra del radar (lo que ve el que te busca) y la radio.
+- **"Salvó la vida de numerosos pilotos."** Lo verificado es *"es difícil determinar su
+  efectividad"*, con un caso concreto (García Puebla, que además soltaba bengalas contra un misil
+  infrarrojo). La placa del cierre no puede afirmar más que eso.
 
 **Fuentes:** [The War Zone — Argentine Air Force Went To War With Chaff Made By Pasta Machine](https://www.twz.com/air/argentine-air-force-went-to-war-with-chaff-made-by-pasta-machine) ·
 [Xataka — la máquina de hacer pasta contra los misiles británicos](https://www.xataka.com/magnet/1982-guerra-malvinas-vio-hecho-insolito-argentina-combatio-misiles-britanicos-maquina-hacer-pasta)

@@ -352,6 +352,9 @@ export function initInput(cv, a) {
     if (!e.repeat && (e.code === 'Digit3' || e.code === 'Numpad3')) a.chanchaCall();   // LA CHANCHA: el reabastecedor (pasillo)
     if (e.code === 'KeyF') inp.apunta = true;   // LA MIRA DE LA BOMBA (y sigue siendo `sink` para la camara libre)
     if (e.code === 'KeyB') inp.tanq = true;   // SOLTAR TANQUES: mantener apunta, soltar tira (game.js, 27/9)
+    // LAS CHAPITAS [H] (8/10, systems/chapitas.js): el chaff. Al lado de la [G] —el freno, la cobra—
+    // porque el chaff iba EN EL FRENO AERODINAMICO; tecla propia porque soltarlo no es frenar a fondo.
+    if (e.code === 'KeyH' && !e.repeat && S.state === 'play') a.chapitas();
     if (!e.repeat && (e.code === 'Digit5' || e.code === 'Numpad5')) a.rasanteToggle();  // RASANTE: el resorte al ras (pasillo)
     // EL PACK DE SEÑALES (data/senales.js): 6, 7, 8, 9 y 0
     if (!e.repeat) { const m = /^(?:Digit|Numpad)([06789])$/.exec(e.code); if (m) a.senal(m[1]); }
@@ -608,6 +611,9 @@ export function initInput(cv, a) {
       // la pista anterior en todas las pantallas (arriba): en 'play' cede, porque el mando no tiene
       // otro boton libre y es la mano que vuela — soltar es una decision de vuelo.
       if (hit(10) && S.state === 'play') a.soltarTanques();
+      // ◯ = LAS CHAPITAS en vuelo (8/10). Era el unico boton sin dueño en 'play' (en los menus y la
+      // pausa sigue siendo volver: esas pantallas lo leen antes y no llegan aca).
+      if (hit(1) && S.state === 'play') a.chapitas();
       setPad('u', du);                                         // potencia (gas / subir) — default: ARRIBA SUBE
       setPad('d', dd);                                         // picada (bajar)
       setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)

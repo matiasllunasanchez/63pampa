@@ -71,7 +71,8 @@ export function resetFila() {
  *  llevaba gastado el que manda, para cobrarle despues solo lo que gasto el mientras esperaba. */
 function ficha() {
   return { fuel: run.fuel, fuelSync: run.fuelSync, tanque: run.tanque, naftaCap: run.naftaCap,
-    integ: run.integ, escudo: run.escudo, escudoT: run.escudoT, msl: run.msl, gastoRef: run.gastoLider };
+    integ: run.integ, escudo: run.escudo, escudoT: run.escudoT, msl: run.msl, gastoRef: run.gastoLider,
+    chapitas: run.chapitas };   // las chapitas son de cada avion (CHAPITAS.CARGAS)
 }
 
 /** La ficha del numeral `i` AHORA. Los de atras vuelan a crucero economico: gastan RELEVO_AHORRO de
@@ -86,7 +87,7 @@ function ficha() {
 function fichaDe(i) {
   const f = run.flota[i];
   const gasto = RELEVO_AHORRO * (run.gastoLider - (f ? f.gastoRef : 0));
-  if (!f) return { fuel: Math.max(0, 100 - gasto), tanque: null, integ: 100, escudo: 1, escudoT: 0, msl: MSL_MAX };
+  if (!f) return { fuel: Math.max(0, 100 - gasto), tanque: null, integ: 100, escudo: 1, escudoT: 0, msl: MSL_MAX, chapitas: run.chapitasMax };
   return { ...f, fuel: Math.max(0, f.fuel - gasto) };
 }
 
@@ -95,6 +96,7 @@ function ponerFicha(f, conMunicion) {
   if (f.tanque) { run.tanque = f.tanque; run.naftaCap = f.naftaCap; run.fuelSync = f.fuelSync; }
   run.fuel = f.fuel;
   run.integ = f.integ; run.escudo = f.escudo; run.escudoT = f.escudoT;
+  if (f.chapitas !== undefined) run.chapitas = f.chapitas;
   if (conMunicion) run.msl = f.msl;
 }
 

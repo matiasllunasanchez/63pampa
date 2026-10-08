@@ -127,7 +127,7 @@ import * as momRender from './legacy/momentum_render.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { BOMBA_CARGA_T, BOMBA_CARGA_VZ } from './data/tuning.js';
-import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA } from './data/tuning.js';
+import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA, CHAPITAS } from './data/tuning.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
          LAND_COSTO_CHAPA, LAND_PTS, FUGA_Y } from './data/tuning.js';
@@ -149,6 +149,7 @@ import { alturaBlanco } from './core/geografia.js';   // el piso de una estructu
 import * as rutaSys from './systems/ruta.js';
 import * as naftaSys from './systems/nafta.js';
 import * as estrellas from './systems/estrellas.js';
+import * as chapitasSys from './systems/chapitas.js';
 import { piso as pisoEstrella } from './core/estrellas.js';
 import { EST_MAX } from './data/tuning.js';
 import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T, SENAS_COMP } from './data/senales.js';
@@ -712,6 +713,52 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       cartel(T(r.pilon === 'ala' ? 'tanques_fuera' : 'tanque_fuera'), P.accent, sub || null);
       // y se VE: las rayas de velocidad, como un turbo chico (el empujon llega de a poco, flight.js)
       for (let i = 0; i < 6 + gana; i++) streaks.push({ a: Math.random() * 6.283, r: 20 + Math.random() * 18, v: 260 + Math.random() * 160, life: 0.4 });
+    }
+
+    /** LA NUBE DE CHAPITAS en el aire: tiras largas de aluminio que se abren, giran cada una a su
+     *  ritmo y destellan al agarrar la luz — plateado, blanco, plateado. Se apaga en el ultimo segundo. */
+    function drawChapitas() {
+      for (const n of chapitasSys.nubesEnElAire()) {
+        const t = n.t, abre = 0.35 + t * 1.6, a0 = Math.min(1, n.vida);
+        if (a0 <= 0) continue;
+        n.tiras.forEach((q, i) => {
+          const z = n.z + q.dz * abre;
+          if (z < 2) return;
+          const s = proj(n.x + q.dx * abre, n.y + q.dy * abre - q.cae * t * t, z);
+          const L = Math.max(2, s.k * 0.9), ang = q.a + q.w * t;
+          const fase = (Math.floor(run.t * 22) + i) % 5;
+          ctx.globalAlpha = a0 * (fase === 0 ? 1 : 0.75);
+          ctx.strokeStyle = fase === 0 ? '#ffffff' : fase < 3 ? '#c9d6dd' : '#8fa3ae';
+          ctx.lineWidth = Math.max(1, s.k * 0.07);
+          ctx.beginPath();
+          ctx.moveTo(s.x - Math.cos(ang) * L / 2, s.y - Math.sin(ang) * L / 2);
+          ctx.lineTo(s.x + Math.cos(ang) * L / 2, s.y + Math.sin(ang) * L / 2);
+          ctx.stroke();
+        });
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    /** LAS CHAPITAS (tecla H / ◯ en vuelo; CHAPITAS en data/tuning.js, systems/chapitas.js). El chaff
+     *  de la maquina de fideos: abre el freno —se pierde velocidad, el precio de MEJORAS_PICHON §1—,
+     *  deja una nube de aluminio que se lleva a los misiles de radar que vienen, y si te estaban
+     *  viendo, bajar del radar enseguida borra las alarmas (el orquestador lo cierra en update). */
+    function chapitasAccion() {
+      if (S.state !== 'play' || cfg.devcam) return;
+      const visto = run.detection > 0.001 || run.estrellas > 0 || run.radarVisto;
+      const r = chapitasSys.soltar(plane.x, plane.y, PZ, visto);
+      if (!r) { beep(150, 0.09, 'square', 0.05); cartel(T('chapitas_nada'), P.dim); return; }
+      run.spd = Math.max(34, run.spd * (1 - CHAPITAS.FRENO));          // el freno abierto
+      // EL CARTUCHO: sale expulsado hacia atras con un golpe de polvora — un soplo gris de la cola, y
+      // recien ahi el viento abre la nube (lo que trajo el autor el 8/10; ver PREGUNTAS_HISTORICAS)
+      { const sc = proj(plane.x, plane.y - 0.4, PZ - 0.5);
+        for (let i = 0; i < 14; i++) { const an = Math.random() * 6.283, v = 20 + Math.random() * 50;
+          parts.push({ x: sc.x, y: sc.y, vx: Math.cos(an) * v, vy: Math.sin(an) * v * 0.6 + 10, life: 0.35 + Math.random() * 0.3,
+            c: Math.random() < 0.5 ? '#9aa4a8' : '#d9dfe2', r: Math.max(1, sc.k * 0.25) }); } }
+      beep(1300, 0.05, 'square', 0.04, 600); setTimeout(() => beep(1500, 0.05, 'square', 0.035, 700), 70);
+      run.shake = Math.max(run.shake, 1.2);
+      cartel(T('chapitas_fuera'), P.accent, r.length ? T('chapitas_toman', { n: r.length })
+        : visto ? T('chapitas_baja') : T('chapitas_quedan', { n: run.chapitas }));
     }
 
     /** Las señales de LA CHANCHA vueltas cosas que se ven y se oyen. Vive en el orquestador —y no
@@ -1598,6 +1645,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // Y MODOS desde el 30/9 (lo que cuelga pesa y se suelta igual en cualquiera); la cuenta en km,
       // solo con ruta.
       naftaSys.preparar(cfg.carga, rutaSys.hay());
+      // LAS CHAPITAS (CHAPITAS en data/tuning.js): cargas llenas, nada en el aire
+      chapitasSys.reset();
     }
 
     // ---------- EL HANGAR (estado 'carga', PLAN_NAFTA_ALCANCE N7) ----------
@@ -1757,7 +1806,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // control se leian como si fueran configurables — el cursor se paraba encima y daban ganas
       // de apretarles izquierda/derecha a ver que cambiaba.
       { note: 'ctrlHands' }, { note: 'ctrlWasd' }, { note: 'ctrlArena' }, { note: 'ctrlBombs' }, { note: 'ctrlSame' }, { note: 'ctrlBoth' },
-      ...[['Aim'], ['Cam'], ['Tempo'], ['Chancha'], ['Tanques'], ['Cambio'], ['Inv'], ['Music'], ['Pause'], ['Menu']]
+      ...[['Aim'], ['Cam'], ['Tempo'], ['Chancha'], ['Tanques'], ['Chapitas'], ['Cambio'], ['Inv'], ['Music'], ['Pause'], ['Menu']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
 
       { head: 'optSecPartida' },
@@ -2752,6 +2801,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // en el arena (el 3D vuela con los controles del pasillo, 30/9: la energia dejo la [G])
       chanchaCall: () => { if (S.state === 'arena') { if (arena.active()) arena.cyclePip(); return; } pedirChancha(); },
       soltarTanques: () => soltarTanquesAccion(),
+      chapitas: () => chapitasAccion(),
       /** EL PODER RASANTE (tecla 6). Funcion con nombre y no cuerpo de la accion, por el mismo
        *  motivo que `pedirChancha`: la sonda del fixture tiene que apretar EXACTAMENTE lo que
        *  aprieta el jugador. Si llamara a `rasante.toggle()` por su cuenta se saltearia los gates
@@ -4291,6 +4341,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // general: es un escape, no un tramo— y NO SE NARRAN: desde el impacto rige el silencio de
       // radio. Lo que dice que vas perdiendolas es el panel de la busqueda.
       const escapando = blancoSys.escapando();
+      // LAS CHAPITAS: la nube corre con el mundo, y si soltaste VISTO y bajaste del radar dentro de
+      // la ventana, se borran TODAS las alarmas — la barra, las estrellas y la escalada de oleadas.
+      // Para el operador fuiste una explosion en su pantalla; vos estas abajo, en sigilo.
+      if (chapitasSys.step(dt, run.spd, plane.y <= fases.techoRadar(RADAR_ALT)) === 'sigilo') {
+        run.detection = 0; run.radarWave = 0;
+        estrellas.resetEstrellas();
+        beep(420, 0.12, 'triangle', 0.05, 180);
+        cartel(T('chapitas_sigilo'), P.accent, T('chapitas_sigilo2'));
+      }
       const estBaja = estrellas.step(dt, plane.y <= fases.techoRadar(RADAR_ALT), escapando ? BL_BLANCO.ESCAPE_EST_S : 0);
       if (escapando) { /* silencio */ }
       else if (estBaja) radioTramo(run.estrellas === 0 ? 'est_limpio' : 'est_baja');
@@ -5097,6 +5156,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // …Y EL SIDEWINDER QUE TE TIRO, por la misma razon: viene de atras, entre la camara y vos,
       // y se te pone en la cola por ENCIMA del avion (render/aim9.js)
       for (const m of missiles) if (m.tipo === 'aim9' && m.z < PZ) drawAim9(m);
+      // …Y LAS CHAPITAS: la nube sale del avion y se queda atras, entre vos y la camara
+      drawChapitas();
       // …Y LA RAFAGA: el aro del punto fijado y los tiros que todavia vienen de atras (render/aden.js)
       for (const a of caza.avisosAden()) drawAvisoAden(a);
       for (const m of missiles) if (m.tipo === 'aden' && m.z < PZ) drawAden(m);
@@ -5721,6 +5782,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       window.__fuelset = v => { run.fuel = Math.max(0, Math.min(100, +v)); return run.fuel; };
       window.__vidas = v => { if (v !== undefined) run.lives = +v; return run.lives; };   // el ultimo avion: __vidas(1)
       // EL SEA WOLF: la foto del ciclo y los misiles en el aire (x, y, z, si ya son señuelo)
+      // LAS CHAPITAS (8/10): la foto del sistema; `__chapitas(n)` pone n cargas. `__dart(dz)` larga un
+      // Sea Dart de frente a `dz` (el misil de radar, el que la nube engaña)
+      window.__chapitas = n => { if (n !== undefined) run.chapitas = +n; return JSON.stringify(Object.assign(chapitasSys.snapshot(),
+        { det: +run.detection.toFixed(2), est: run.estrellas, ola: run.radarWave, spd: Math.round(run.spd), integ: run.integ, st: S.state, y: +plane.y.toFixed(1),
+          misiles: missiles.map(m => ({ t: m.tipo || '-', z: Math.round(m.z), done: !!m.done, cebo: !!m.cebo })) })); };
+      window.__dart = (dz = 90) => { missiles.push({ tipo: 'dart', x: plane.x, y: plane.y, z: PZ + dz, done: false }); return missiles.length; };
       // QUITAR — un misil guiado comun de frente, para probar el SEÑUELO de los tanques (8/10)
       window.__misil = () => { missiles.push({ x: plane.x + 6, y: plane.y + 3, z: PZ + 220 }); return JSON.stringify(missiles.map(m => ({ z: Math.round(m.z), done: !!m.done, cebo: !!m.cebo }))); };
       window.__misiles = () => JSON.stringify({ m: missiles.map(m => ({ z: Math.round(m.z), done: !!m.done, cebo: !!m.cebo })), tq: pmissiles.filter(p => p.tanque).length, cuelga: !!run.tanque, integ: run.integ, dodges: stats.dodges });

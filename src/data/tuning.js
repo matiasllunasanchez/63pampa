@@ -1039,6 +1039,40 @@ export const TURBO = { ALEJA: 4, CAM_RATE: 2.5, REACCION: 0.55, REAC_RATE: 4 };
 // que lo hizo.
 export const SENUELO_TQ = { VEL: 260, GIRO: 6, RADIO: 3, PTS: 150 };
 
+// ---------- LAS CHAPITAS — el chaff de la maquina de fideos (core/chapitas.js, systems/chapitas.js) ----------
+// El autor, 8/10: "tirar chapitas largas brillantes: si tengo un misil cerca se desvia y explota detras
+// mio sin dañarme practicamente nada, o poco; y si estoy con radar, tiro chapitas y bajo del radar, me
+// elimina todas las alarmas y vuelvo al sigilo. En el radar se genera una onda grande alrededor del
+// avion — pareciera que exploto, cuando en realidad esta debajo". Lo historico en
+// docs/historia/MEJORAS_PICHON.md §1 («Fideos»): iba EN EL FRENO AERODINAMICO, y soltarlo era abrir
+// el freno — EL PRECIO es perder velocidad justo cuando mas se la necesita.
+//
+//   CARGAS     por avion (cada uno del escuadron trae las suyas: el relevo no las hereda)
+//   ENGANA     que misiles engaña: los GUIADOS POR RADAR. El Sea Dart (radar semiactivo) y el Sea
+//              Wolf (lo sigue un radar de a bordo). NO el Sea Cat (un operador a ojo), NO el
+//              Sidewinder (infrarrojo: para ese son las bengalas, «Quince segundos»), NO las
+//              trazadoras ni la rafaga del Harrier. Los misiles genericos (sin `tipo`) tampoco.
+//   ALCANCE_Z  hasta que distancia por delante (u) los toma la nube; mas lejos ya te tienen de nuevo
+//   VIDA       segundos que la nube brilla y engaña; despues es aluminio que cae
+//   INERCIA    1/s con que la nube pierde la velocidad del avion (sale con ella y el aire la frena):
+//              con 0.6 se ve quedar atras ~1 s a crucero — la camara esta a 14 u del avion, y una
+//              nube quieta en el mundo la pasaria en una decima, sin que nadie la vea
+//   VEL/GIRO/RADIO  como va el misil contra la nube (los del señuelo de tanque: la misma cuenta)
+//   CERCA      si revienta a menos de esto de vos te sacude: SOFT (0-1) del golpe no letal
+//   FRENO      la fraccion de velocidad que se pierde al abrir el freno (de un golpe; se recupera sola)
+//   VENTANA    segundos despues de soltar en los que BAJAR DEL RADAR borra las alarmas
+//   PTS        por misil engañado
+export const CHAPITAS = {
+  CARGAS: 2,
+  ENGANA: ['dart', 'wolf'],
+  ALCANCE_Z: 160, VIDA: 4, INERCIA: 0.6,
+  VEL: 260, GIRO: 6, RADIO: 3,
+  CERCA: 8, SOFT: 0.35,
+  FRENO: 0.15,
+  VENTANA: 4,
+  PTS: 150,
+};
+
 // ---------- EL BREAK TURN y EL JINK, con fisica de avion (systems/moves.js) ----------
 // El autor, 5/10: "el JINK y el BREAK TURN estan siendo demasiado arcade / rapidos; tienen que tener una
 // continuidad mas fluida, como las ultimas maniobras". Antes clavaban la velocidad lateral y el alabeo

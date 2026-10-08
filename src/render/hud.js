@@ -1318,7 +1318,8 @@ const nombrePlaca = i => planeName(i) || pilotName(i);
 export function anchoSquad() {
   const nombre = nombrePlaca(alMando(run));
   ctx.font = F_VAL;
-  const wFila = Math.max(2, avionesEnPlaca()) * SQ_PASO + 3 + ctx.measureText(nombre).width;
+  const wFila = Math.max(2, avionesEnPlaca()) * SQ_PASO + 3 + ctx.measureText(nombre).width
+    + (run.chapitasMax > 0 ? CHAPITAS_W : 0);
   return Math.max(ALERTA_MIN_W, Math.round(wFila) + 6);
 }
 
@@ -1343,6 +1344,7 @@ export function drawSquadPips(x, y) {
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
   ctx.fillStyle = P.accent; ctx.font = F_VAL;
   ctx.fillText(nombre, x + 5 + avionesEnPlaca() * SQ_PASO, y + 8);
+  chapitasQuedan(x + anchoSquad(), y);
 }
 
 /** NIVEL DE ALERTA — cuantos te estan buscando (PLAN_ESTRELLAS_BUSQUEDA §7).
@@ -1421,7 +1423,50 @@ function radarAlerta(x, y, visto, activo, fuera, fuerte) {
   // lento y apagado: es el eco viejo de donde te vieron por ultima vez. A nivel cero no hay
   // contacto — nadie te busca, no hay eco que marcar— y la pantalla queda verde girando sola.
   const on = visto ? Math.floor(run.t * 8) % 2 === 0 : Math.floor(run.t * 2.5) % 2 === 0;
-  if (activo && on) px(x + 6, y + 2, 1, 1, visto ? P.warn : '#7d2f1e');
+  // CON LAS CHAPITAS EN EL AIRE el contacto no esta: se lo comio la mancha (ver chapitasRadar)
+  if (activo && on && !(run.chapitasOnda > 0)) px(x + 6, y + 2, 1, 1, visto ? P.warn : '#7d2f1e');
+}
+
+// LA MANCHA DE LAS CHAPITAS EN EL RADAR (el autor, 8/10: "en el radar se genera una onda grande
+// alrededor del avion, lo que confunde y pareciera que exploto, cuando en realidad esta debajo").
+// Desde el contacto —donde estabas— sale un estallido de eco: un destello blanco que llena la
+// pantalla, y anillos que crecen MAS ALLA del aro del radar y se apagan. Es lo que veia el operador:
+// un blanco que de golpe se vuelve una nube enorme y despues nada. `run.chapitasOnda` va de 1 (recien
+// soltadas) a 0 (CHAPITAS.VIDA despues); la escribe systems/chapitas.js.
+function chapitasRadar(x, y) {
+  const o = run.chapitasOnda || 0;
+  if (!(o > 0)) return;
+  const cx = x + 6.5, cy = y + 2.5, u = 1 - o;
+  ctx.save();
+  // el destello: los primeros instantes la pantalla entera se lava
+  if (u < 0.12) { ctx.globalAlpha = (0.12 - u) / 0.12 * 0.8; ctx.fillStyle = '#eaf6ff'; ctx.fillRect(x, y, 9, 9); }
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    const r = 1 + (u * 3 + i * 0.33) % 1 * 14;          // tres anillos en tanda, de 1 a 15 px
+    ctx.globalAlpha = o * (1 - r / 15) * 0.9;
+    ctx.strokeStyle = Math.floor(run.t * 14 + i) % 2 ? '#d8eefc' : RADAR_VERDE.punta;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, 6.283); ctx.stroke();
+  }
+  // la nube misma: granos de eco que titilan alrededor de donde estabas
+  ctx.globalAlpha = o;
+  for (let i = 0; i < 10; i++) {
+    const a = i * 2.4 + run.t * 0.7, d = 1 + (i * 7 % 5) * (0.6 + u * 1.6);
+    if ((Math.floor(run.t * 18) + i) % 3) px(Math.round(cx + Math.cos(a) * d), Math.round(cy + Math.sin(a) * d), 1, 1, '#f4fbff');
+  }
+  ctx.restore();
+}
+
+// LAS CHAPITAS QUE QUEDAN, en la placa del ESCUADRON: son de CADA AVION (el relevo trae las suyas), y
+// esa placa es la de quien vuela. Tiritas plateadas paradas al final de la fila, una por carga
+// (CHAPITAS.CARGAS), destellando de a una; la gastada queda como un surco gris. `x` es el canto
+// derecho de la placa.
+const CHAPITAS_W = 6;
+function chapitasQuedan(xDer, y) {
+  if (!(run.chapitasMax > 0)) return;
+  for (let i = 0; i < run.chapitasMax; i++) {
+    const on = i < run.chapitas;
+    px(xDer - 4 - i * 2, y + 2, 1, SQUAD_H - 4, on ? (Math.floor(run.t * 3 + i) % 4 ? '#c9d6dd' : '#ffffff') : BAL_APAGADA);
+  }
 }
 
 // LA BALIZA: 7x7, una cupula de cinco filas sobre su pie de dos. Tan alta como ancha a proposito:
@@ -1547,6 +1592,7 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   // EL RADAR, ENCIMA y quieto: es lo unico que queda cuando no suena nada
   plate(x, y, RADAR_W, ALERTA_H);
   radarAlerta(x + 3, y + 3, visto, n > 0, fuera, detectando && latido);
+  chapitasRadar(x + 3, y + 3);
   // …Y EL BORDE DE LA CAJA EN VERDE mientras estas en la zona (pedido del autor, 26/9: "y los bordes
   // de la caja"), el mismo verde del rotulo: la caja entera dice "aca el radar existe". Se va con
   // el rotulo cuando entran las balizas —con alarma, el marco verde alrededor del rojo se leeria
@@ -1674,6 +1720,16 @@ function drawRadar(x, y, w, visto) {
   px(bx, y + 4, Math.round(bw * Math.max(0, Math.min(1, run.detection))), 3, P.warn);
   if (run.radarWave > 0) px(bx + Math.round(bw * Math.min(0.55, 0.35 + run.radarWave * 0.03)), y + 3, 1, 5, P.accent);
   misilChico(mx, y + 5, dispara);   // centrado en la fila de la barra
+  // LAS CHAPITAS EN ESTA BARRA (8/10): la del radar es la que se ve siempre que te detectan, haya o no
+  // panel de alarmas. La carga se deshace en eco: granos plateados que titilan por toda la barra y
+  // se van apagando con la nube — el operador perdio tu blanco adentro de la mancha.
+  const o = run.chapitasOnda || 0;
+  if (o > 0) {
+    ctx.save(); ctx.globalAlpha = Math.min(1, o * 1.4);
+    for (let i = 0; i < bw; i += 2) if ((i * 7 + Math.floor(run.t * 24)) % 5 < 2)
+      px(bx + i, y + 3 + ((i * 3 + Math.floor(run.t * 18)) % 5), 1, 1, i % 4 ? '#c9d6dd' : '#ffffff');
+    ctx.restore();
+  }
   return y + RADAR_H + AIRE;
 }
 

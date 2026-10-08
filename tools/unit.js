@@ -2887,6 +2887,67 @@ test('peso sin ruta: el tanque existe, el % pasa a los externos primero y soltar
   nafta.preparar(null);
 });
 
+// ---------- LAS CHAPITAS — el chaff (8/10, CHAPITAS en data/tuning.js) ----------
+test('chapitas: solo engañan a los misiles de radar (Sea Dart, Sea Wolf), no al Sea Cat ni al Sidewinder', async () => {
+  const { engaña } = await import('../src/core/chapitas.js');
+  assert.equal(engaña({ tipo: 'dart' }), true, 'Sea Dart: radar semiactivo');
+  assert.equal(engaña({ tipo: 'wolf', def: 'wolf' }), true, 'Sea Wolf: lo sigue un radar');
+  assert.equal(engaña({ tipo: 'wolf', def: 'cat' }), false, 'Sea Cat: un operador a ojo');
+  assert.equal(engaña({ tipo: 'aim9' }), false, 'Sidewinder: infrarrojo (eso es para las bengalas)');
+  assert.equal(engaña({ tipo: 'aden' }), false);
+  assert.equal(engaña({ tracer: true }), false);
+  assert.equal(engaña({}), false, 'Rapier y portatiles: opticos');
+});
+
+test('chapitas: la nube toma a los que vienen cerca por delante, y se queda atras de a poco', async () => {
+  const { tomaNube, nubeNueva, pasoNube } = await import('../src/core/chapitas.js');
+  const { CHAPITAS } = await import('../src/data/tuning.js');
+  const PZ = 14;
+  assert.equal(tomaNube({ tipo: 'dart', z: PZ + 80 }, PZ), true);
+  assert.equal(tomaNube({ tipo: 'dart', z: PZ + CHAPITAS.ALCANCE_Z + 1 }, PZ), false, 'muy lejos: ya te tienen de nuevo');
+  assert.equal(tomaNube({ tipo: 'dart', z: PZ - 2 }, PZ), false, 'el que ya paso no vuelve');
+  assert.equal(tomaNube({ tipo: 'dart', z: PZ + 80, done: true }, PZ), false);
+  assert.equal(tomaNube({ tipo: 'dart', z: PZ + 80, cebo: {} }, PZ), false, 'el que ya sigue otro cebo, sigue ese');
+  // la nube sale con el avion: a crucero (80 u/s) se queda a la vista (z > 2) mas de medio segundo
+  let n = nubeNueva(0, 10, PZ), t = 0;
+  while (n.z > 2 && t < 5) { n = pasoNube(n, 1 / 60, 80); t += 1 / 60; }
+  assert.ok(t > 0.6 && t < 2, `se ve quedar atras ~1 s (fue ${t.toFixed(2)} s)`);
+  assert.ok(n.y < 10 && n.vida < CHAPITAS.VIDA, 'cae y se apaga');
+});
+
+test('chapitas: el sigilo pide estar visto al soltar Y bajar del radar dentro de la ventana', async () => {
+  const { borraAlarmas } = await import('../src/core/chapitas.js');
+  const { CHAPITAS } = await import('../src/data/tuning.js');
+  assert.equal(borraAlarmas({ vistoAlSoltar: true, bajoTecho: true, desde: 1 }), true);
+  assert.equal(borraAlarmas({ vistoAlSoltar: false, bajoTecho: true, desde: 1 }), false, 'nadie te veia: no hay nada que borrar');
+  assert.equal(borraAlarmas({ vistoAlSoltar: true, bajoTecho: false, desde: 1 }), false, 'soltar arriba y quedarse no esconde');
+  assert.equal(borraAlarmas({ vistoAlSoltar: true, bajoTecho: true, desde: CHAPITAS.VENTANA + 0.1 }), false, 'tarde: ya te reencontraron');
+});
+
+test('chapitas: el sistema gasta cargas, engancha a los de radar y avisa el sigilo', async () => {
+  const sys = await import('../src/systems/chapitas.js');
+  const { run } = await import('../src/core/run.js');
+  const { missiles } = await import('../src/core/world.js');
+  const { CHAPITAS } = await import('../src/data/tuning.js');
+  missiles.length = 0;
+  sys.reset();
+  assert.equal(run.chapitas, CHAPITAS.CARGAS);
+  const dart = { tipo: 'dart', x: 0, y: 10, z: 100 }, aim = { tipo: 'aim9', x: 0, y: 10, z: 100 };
+  missiles.push(dart, aim);
+  const r = sys.soltar(0, 10, 14, true);
+  assert.deepEqual(r, [dart], 'solo el de radar toma la nube');
+  assert.ok(dart.cebo && dart.cebo.chapitas && !aim.cebo);
+  assert.equal(run.chapitas, CHAPITAS.CARGAS - 1);
+  assert.equal(run.chapitasOnda, 1, 'la mancha del radar');
+  assert.equal(sys.step(0.1, 80, false), null, 'arriba todavia: nada');
+  assert.equal(sys.step(0.1, 80, true), 'sigilo', 'bajo del radar dentro de la ventana');
+  assert.equal(sys.step(0.1, 80, true), null, 'una sola vez');
+  for (let i = 0; i < CHAPITAS.CARGAS; i++) sys.soltar(0, 10, 14, false);
+  assert.equal(run.chapitas, 0);
+  assert.equal(sys.soltar(0, 10, 14, false), null, 'sin cargas no sale nada');
+  missiles.length = 0; sys.reset();
+});
+
 // ---------- EL HANGAR (PLAN_NAFTA_ALCANCE N7) ----------
 test('hangar: las cargas elegibles existen, llevan la bomba del buque y tienen sus textos', async () => {
   const { CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE, cargaDe, CARGAS } = await import('../src/data/cargas.js');
