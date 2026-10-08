@@ -49,6 +49,16 @@ const AIM_PITCH = 5;    // cuanto sube/baja la mira FIJA con el cabeceo (unidade
 // avion se come la pantalla, bajarla; no hay que rehornear nada.
 export const PLANE_SCALE = 0.85;
 let boostSc = 1;   // factor animado del achique por turbo
+// EL PASO ENTRE POSES (autor, 8/10: "mas fluido"). La hoja trae 9 alabeos (uno cada 15°) y 3 cabeceos;
+// sin nada en el medio, el avion saltaba de pose en pose. Tres remiendos, ninguno toca la hoja:
+//   · GIRO RESIDUAL: entre columna y columna el sprite gira en 2D lo que le falta (±7,5° como mucho),
+//     asi el alabeo se ve continuo y el cambio de frame queda escondido adentro del giro.
+//   · HISTERESIS en las filas: se entra a trepada/picada pasado FILA_ENTRA y se sale recien bajo
+//     FILA_SALE — en el borde ya no titila entre dos poses.
+//   · FUNDIDO de fila: al cambiar de cabeceo, el frame viejo se apaga encima del nuevo en FILA_FUNDE s.
+const ALABEO_RAD = 1.05;                       // el alabeo a fondo que traen los frames (~60°, ver muzzles)
+const FILA_ENTRA = 0.36, FILA_SALE = 0.26, FILA_FUNDE = 0.11;
+let filaSost = 1, filaAnt = 1, filaCambioT = -1, filaPrevCuadro = 1;
 
 const BOB_Y  = 1.5;    // amplitud del bob vertical (px)
 const BOB_X  = 0.75;    // amplitud de la deriva horizontal (px) — desfasada del bob → flota en "8"
@@ -872,7 +882,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // parches (adentro del contexto del avion) y la estela de punta de ala (despues del restore, en
   // pixeles de mundo). Las tres tienen que leer LA MISMA tabla de anclas o se separan.
   // La pirueta empinada gana sobre el poder (ver la rama de dibujo), asi que no cuenta.
-  const skRas = ras && rosterActive() ? skinOf(pilotName(alMando(run))) : null;
+  const skRas = ras && rosterActive() ? skinOf(pilotName(alMando(run)), pl) : null;
   const rasHoja = !!(ras && useSheet && !run.mvSteep && (skRas ? skRas.sheet3Img : pl.sheet3Ok));
   const AN = rasHoja ? ANCLAS.ras : ANCLAS.base;
   // EL GIRO TOTAL DEL SPRITE, resuelto en UN SOLO LUGAR.
@@ -888,7 +898,15 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // que ser LA MISMA pose que el sprite dibuja, no una copia de la formula que pueda quedar vieja.
   const colPose = rolling ? (SHEET_NF - 1) / 2 : Math.round((1 - bank) / 2 * (SHEET_NF - 1));
   const pcPose = run.senalT > 0 && run.senalPitch ? run.senalPitch : Math.max(-1, Math.min(1, plane.pitch));
-  const rowPose = pcPose > 0.33 ? 0 : pcPose < -0.33 ? 2 : 1;
+  // la fila con HISTERESIS: para cambiar hay que pasar FILA_ENTRA; para volver a nivel, bajar de FILA_SALE
+  if (filaSost === 1) { if (pcPose > FILA_ENTRA) filaSost = 0; else if (pcPose < -FILA_ENTRA) filaSost = 2; }
+  else if (filaSost === 0 ? pcPose < FILA_SALE : pcPose > -FILA_SALE) filaSost = Math.abs(pcPose) > FILA_ENTRA ? (pcPose > 0 ? 0 : 2) : 1;
+  const rowPose = filaSost;
+  const ahoraS = performance.now() / 1000;
+  if (rowPose !== filaPrevCuadro) { filaAnt = filaPrevCuadro; filaCambioT = ahoraS; filaPrevCuadro = rowPose; }
+  const fundeFila = filaCambioT >= 0 ? 1 - (ahoraS - filaCambioT) / FILA_FUNDE : 0;   // 1 → 0
+  // lo que el alabeo pide mas alla de la columna elegida (±media columna), en radianes de pantalla
+  const resto = rolling ? 0 : (bank - (1 - 2 * colPose / (SHEET_NF - 1))) * ALABEO_RAD;
   const prRoll = rolling ? Math.min(1, run.mvT / MOVES.tonel.dur) : 0;   // 0→1 durante el tonel
   // EL SPRITE DEL PODER NO SE GIRA, Y SE PROBO AL REVES. Un rato existio aca una rotacion que
   // alineaba el avion con el punto de fuga del carril — geometricamente impecable: toda recta
@@ -898,8 +916,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // punta en el agua. Lo corrige la HOJA (cabeceo y alabeo compensados en el horneado), que es el
   // unico lugar donde se puede inclinar una cosa sin inclinar la otra.
   const spinTot = rolling ? run.mvRoll + hz
-    : run.mvRoll ? run.mvRoll + hz + wobT
-    : useSheet ? wobT
+    : run.mvRoll ? run.mvRoll + hz + wobT + (useSheet ? resto : 0)
+    : useSheet ? wobT + resto
     : bank * 0.42 + wobT;
   // + lo que la SEÑA pide mas alla de la hoja (la panza), + el giro SOLO DEL DIBUJO de una maniobra
   // (`mvGiro`: la diagonal del derrape), que el horizonte giratorio no se come como al `mvRoll`
@@ -937,7 +955,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // relevo te sube al avion del que sigue: el numeral avanza y la marca del ala CAMBIA sola.
     // Es la unica señal en pantalla de que ya no estas volando tu avion. Fuera de campaña no
     // hay roster y `sk` es null, asi que se usa la hoja generica de siempre.
-    const sk = rosterActive() ? skinOf(pilotName(alMando(run))) : null;
+    const sk = rosterActive() ? skinOf(pilotName(alMando(run)), pl) : null;
     let img = sk ? sk.sheetImg : pl.sheetImg;
     const hoja2 = sk ? sk.sheet2Img : (pl.sheet2Ok ? pl.sheet2Img : null);
     // LA HOJA DEL PODER RASANTE. Durante el poder la camara se corre 10 unidades al costado y el
@@ -994,6 +1012,14 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     if (inp.fire && !run.overheat && run.fireT > 0.06 && !hoja4) fogonazos(spW, spH, AN.tips[rowPose][colPose]);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
+    // EL FUNDIDO DE FILA: el cabeceo de recien se apaga ENCIMA del nuevo (solo entre filas de la
+    // misma hoja; las poses de pirueta y la cobra cambian de hoja y ahi manda la maniobra)
+    if (fundeFila > 0 && !hoja4 && row === rowPose && filaAnt !== row) {
+      const a0 = ctx.globalAlpha;
+      ctx.globalAlpha = a0 * fundeFila;
+      ctx.drawImage(img, sx4, filaAnt * FH4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
+      ctx.globalAlpha = a0;
+    }
     drawBorde(ctx, img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);   // a contraluz (render/borde.js)
     // LA CARGA, encima del avion y en el MISMO recorte: cada capa esta horneada con la camara y la
     // pose de la hoja que se esta dibujando, y el avion ya le recorto de fabrica lo que el ala le

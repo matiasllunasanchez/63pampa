@@ -34,6 +34,17 @@ DESTINO = {
     'skin_pichon': ('a4-skyhawk', 'skin_pichon'),
 }
 CELULAS = ('sky', 'a4q', 'dagger', 'supere', 'pampa', 'mirage')
+# LAS VARIANTES DEL ESCUADRON (modelos.py, 8/10): var_<celula>_<n> -> <carpeta>/variante<n>.png. Solo
+# la vista base (los numerales se dibujan con esa) y sin capas de carga: la carga es la misma celula.
+for _c in CELULAS:
+    for _n in range(1, 5):
+        DESTINO['var_%s_%d' % (_c, _n)] = (DESTINO[_c][0], 'variante%d' % _n)
+SOLO_BASE = lambda clave: clave.startswith('var_')
+# `CLAVES=var_sky_1,var_sky_2 .venv-art/bin/python3 armar_juego.py`: arma SOLO esas claves (y mide
+# las anclas solo si entre ellas esta `sky`)
+if os.environ.get('CLAVES'):
+    _q = os.environ['CLAVES'].split(',')
+    DESTINO = {k: v for k, v in DESTINO.items() if k in _q}
 CAPAS = ('tanques_ala', 'bombas_ala', 'tanque_centro', 'bomba_centro')
 VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     'base': (3, 84, '', True), 'empinada': (2, 84, '2', True), 'ras': (3, 168, '3', False),
@@ -160,6 +171,7 @@ if __name__ == '__main__':
     for clave, (carpeta, base) in DESTINO.items():
         dest = os.path.join(PLANES, carpeta)
         for vista, (filas, fw, suf, sim) in VISTAS.items():
+            if SOLO_BASE(clave) and vista != 'base': continue
             h = hoja(os.path.join(OUT, clave, vista), filas, fw, sim)
             con_contorno(h, filas, fw).save(os.path.join(dest, '%s%s.png' % (base, suf)))
             if clave in CELULAS:
@@ -170,5 +182,6 @@ if __name__ == '__main__':
                 tips = json.load(open(os.path.join(OUT, clave, vista, 'tips.json')))['tips']
                 medidas[vista] = anclas(h, fw, filas, tips)
         print('OK', clave)
+    if 'sky' not in DESTINO: sys.exit(0)            # no se re-midio nada: las anclas quedan como estan
     escribir_anclas(medidas['base'], medidas['ras'], medidas.get('cobra'))
     print('ANCLAS -> src/data/anclas_horno.js  (base alto %s · ras alto %s)' % (medidas['base']['alto'], medidas['ras']['alto']))

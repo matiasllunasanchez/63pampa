@@ -1339,3 +1339,24 @@ altura (data/moves.js `cobra`, tecla de freno [G] / L2). La referencia que mand�
 
 **Decisión del autor (4/10):** el juego manda — la cobra queda como el freno, aunque no sea
 histórica.
+
+
+---
+
+## LAS VARIANTES DEL ESCUADRÓN: ¿CÓMO SE DIFERENCIABAN LOS AVIONES? _(8/10/2026)_
+
+**Pedido del autor:** "no veo variedad de aviones del escuadrón, todos tienen el mismo avión —
+deberían tener variantes". Hoy cada numeral (y cada Fiel) lleva otro **reparto** del camuflaje (más
+marrón o más verde), otro **tono** (lavado por el sol y la sal, o recién repintado) y dos de cada
+cinco, **bandas amarillas** de identificación en las alas (tools/blender/modelos.py, `_variantes`).
+
+**A verificar:**
+1. Las **bandas amarillas** de identificación: ¿las llevaban los A-4B/C, los Dagger y los Mirage
+   en 1982? ¿Desde qué fecha, en qué lugar exacto (alas, deriva) y en todos los aviones o solo en
+   algunos?
+2. ¿El camuflaje marrón/verde de los A-4 variaba de un avión a otro (cada uno pintado con su
+   patrón) o seguía una plantilla?
+3. ¿Los Super Étendard y el A-4Q de la Armada tenían diferencias visibles entre aviones, más allá
+   del número de cola?
+
+**Decisión del autor:** pendiente; el juego ya lleva las variantes.

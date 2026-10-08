@@ -29,12 +29,15 @@ import { pose } from '../core/senales.js';
  *  plano (al CONTROL LIBRE: aceleran, crecen y pasan al costado de la camara — "te siguen ahi
  *  atras aunque no los veas"). Fuera de esos dos momentos NO se dibuja nunca: en vuelo seria
  *  un costo de render que no aporta y taparia el juego. */
-/** La hoja de sprite que le toca al numeral `idx`: la VARIANTE de ese Fiel si existe, o la hoja
- *  generica del avion elegido. Devolver la generica no es un caso de error — fuera de campaña no
- *  hay roster, y el build web puede descartar las variantes por el limite de tamaño. */
+/** La hoja de sprite que le toca al numeral `idx`: con roster (campaña y pruebas) y en el A-4, la
+ *  SKIN de ese Fiel; si no, la VARIANTE de escuadron de ese numeral (data/planes.js, `variantes`: el
+ *  numeral 0 vuela la de siempre). Devolver la generica no es un caso de error — el build web puede descartar las
+ *  skins y las variantes por el limite de tamaño. */
 function hojaDe(pl, idx) {
-  const sk = rosterActive() ? skinOf(pilotName(idx)) : null;
+  const sk = rosterActive() ? skinOf(pilotName(idx), pl) : null;
   if (sk) return sk.sheetImg;
+  const v = !sk && idx > 0 && pl.variantes ? pl.variantes[(idx - 1) % pl.variantes.length] : null;
+  if (v && v.complete && v.naturalWidth) return v;
   return pl.sheetOk ? pl.sheetImg : null;
 }
 

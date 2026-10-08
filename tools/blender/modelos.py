@@ -265,7 +265,13 @@ def mat_pintura(K, nombre, P, bandera=None):
             else:
                 nz = N.new('ShaderNodeTexNoise'); nz.inputs['Scale'].default_value = Q.get('escala', 0.32)
                 nz.inputs['Detail'].default_value = 1.2; nz.inputs['Roughness'].default_value = 0.45
-                if 'W' in nz.inputs: nz.noise_dimensions = '4D'; nz.inputs['W'].default_value = Q.get('semilla', 0.0)
+                # la SEMILLA mueve el dibujo por la 4ta dimension del ruido. Solo si la ficha la pide: las
+                # celulas de siempre siguen en 3D y no cambian. (En Blender 5 la entrada W no aparece por
+                # clave —`'W' in nz.inputs`, `.get('W')`— aunque exista: se la busca por nombre)
+                if Q.get('semilla') is not None:
+                    nz.noise_dimensions = '4D'
+                    w = next((i for i in nz.inputs if i.name == 'W'), None)
+                    if w is not None: w.default_value = Q['semilla']
                 L.new(tc.outputs['Object'], nz.inputs['Vector'])
                 rp = N.new('ShaderNodeValToRGB'); rp.color_ramp.interpolation = 'CONSTANT'
                 e = rp.color_ramp.elements
@@ -485,6 +491,54 @@ FICHAS = {
     'skin_vasco': _con_pintura(A4, arriba=['#7d6449', '#616d51'], panza='#bed0de'),
 }
 FICHAS['a4q']['carga'] = dict(A4['carga'], tanque='#dfe3e6')
+
+# LAS VARIANTES DEL ESCUADRON (autor, 8/10: "no veo variedad de aviones del escuadron, todos tienen el
+# mismo avion — deberian tener variantes"). Cada celula trae CUATRO, una por numeral (la formacion es
+# de cinco: el lider vuela la hoja de siempre). A la distancia de la formacion la marca chica de un ala
+# no se lee; lo que SI se lee es el DIBUJO del camuflaje (manchas grandes) y el TONO de la chapa. Asi
+# que cada variante cambia las tres cosas que sobreviven a 84 px:
+#   · la SEMILLA del ruido del camuflaje: otras manchas en otro lugar — cada avion se pintaba a mano
+#   · el REPARTO del camuflaje (`corte`): uno mas marron, otro mas verde. Desde la cola el ala se ve
+#     escorzada y la semilla sola casi no se nota; el color que DOMINA si
+#   · el TONO: uno lavado por el sol y la sal, uno recien repintado (mas oscuro)
+#   · las BANDAS AMARILLAS de identificacion en las alas, en dos de los cuatro (ver
+#     docs/historia/PREGUNTAS_HISTORICAS.md: que aviones las llevaban y desde cuando)
+# Solo la vista BASE: los numerales se dibujan con la hoja base (render/squad.js). Fuera de campaña;
+# en campaña cada numeral es un Fiel y lleva su skin (arriba).
+AMARILLO_ID = '#d9b03a'
+
+def _tono(hexs, f):
+    """`f` > 0 aclara y destiñe hacia un gris calido (lavado); `f` < 0 oscurece (repintado)."""
+    c = [int(hexs[i:i + 2], 16) for i in (1, 3, 5)]
+    if f >= 0: c = [v + (o - v) * f for v, o in zip(c, (0xb8, 0xb4, 0xa6))]
+    else: c = [v * (1 + f) for v in c]
+    return '#%02x%02x%02x' % tuple(max(0, min(255, round(v))) for v in c)
+
+def _variantes(base):
+    P = base['pintura']
+    envergadura = max(e[0] for e in base['ala'])
+    banda = dict(x=(0.56 * envergadura, 0.70 * envergadura), color=AMARILLO_ID)
+    marcas = list(P.get('marcas', []))
+    corte = P.get('corte', 0.5)
+    def v(semilla, tono=0.0, bandas=False, reparto=0.0):
+        return _con_pintura(base, semilla=semilla, corte=corte + reparto, arriba=[_tono(c, tono) for c in P['arriba']],
+                            panza=_tono(P['panza'], tono * 0.5), marcas=marcas + ([banda] if bandas else []))
+    return [v(1.9, reparto=-0.16), v(3.7, 0.26), v(5.3, bandas=True, reparto=0.16), v(7.1, -0.18, bandas=True)]
+
+for _clave in ('sky', 'a4q', 'dagger', 'mirage', 'supere', 'pampa'):
+    for _n, _f in enumerate(_variantes(FICHAS[_clave]), 1):
+        FICHAS['var_%s_%d' % (_clave, _n)] = _f
+
+# …Y LOS FIELES TAMBIEN (8/10). En campaña y en las pruebas los numerales son los Fieles, y su skin
+# era la misma chapa con una marquita en el ala: cinco aviones iguales a la distancia de la
+# formacion. Cada uno toma el reparto/tono/bandas de una variante y CONSERVA su marca. TERO, el
+# que arranca de lider, queda con el camuflaje de siempre; VASCO conserva su camuflaje lavado.
+_VAR_A4 = _variantes(A4)
+for _nom, _n in (('puma', 1), ('gitano', 3), ('pichon', 4)):
+    _p = dict(_VAR_A4[_n - 1]['pintura'])
+    _p['marcas'] = MARCAS[_nom] + [m for m in _p['marcas'] if m['color'] == AMARILLO_ID]
+    FICHAS['skin_' + _nom] = dict(A4, pintura=_p)
+FICHAS['skin_vasco'] = _con_pintura(A4, arriba=['#7d6449', '#616d51'], panza='#bed0de', semilla=3.7)
 
 def construir(clave, T, K):
     return jet(T, K, FICHAS[clave])

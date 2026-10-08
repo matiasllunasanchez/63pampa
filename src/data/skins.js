@@ -49,8 +49,10 @@ for (const nombre in ARCHIVO) {
 const lista = im => im.complete && im.naturalWidth > 0;
 
 /** La skin de `nombre` (TERO, PUMA…) o null si no hay. `null` es una respuesta valida: el que
- *  dibuja cae a la hoja generica. Nunca tira. */
-export function skinOf(nombre) {
+ *  dibuja cae a la hoja generica. Nunca tira. Con `pl` (el avion que se esta dibujando), solo si es
+ *  el A-4: las skins son de esa celula, y un Dagger de las pruebas no puede volar con chapa de A-4. */
+export function skinOf(nombre, pl) {
+  if (pl && !/a4-skyhawk\//.test(pl.sheet || '')) return null;
   const s = cache[nombre];
   if (!s || !lista(s.img)) return null;
   return { sheetImg: s.img, sheet2Img: lista(s.img2) ? s.img2 : null,

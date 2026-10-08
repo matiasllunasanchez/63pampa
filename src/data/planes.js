@@ -108,5 +108,11 @@ PLANES.forEach(pl => {
     for (const nom of CAPAS_CARGA) {
       pl.capas[nom] = ['', '2', '3', '4'].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
     }
+    // LAS VARIANTES DEL ESCUADRON (autor, 8/10: "todos tienen el mismo avion — deberian tener
+    // variantes"): cuatro hojas base por avion, una por numeral — otro reparto y tono del camuflaje,
+    // y dos con las bandas amarillas de identificacion (tools/blender/modelos.py, `_variantes`).
+    // Las dibuja render/squad.js para los numerales fuera de campaña; si no cargan (build web, horno
+    // viejo) los numerales vuelan con la hoja de siempre.
+    pl.variantes = HORNO_VIEJO ? [] : [1, 2, 3, 4].map(n => { const im = new Image(); im.src = dir + 'variante' + n + '.png'; return im; });
   }
 });
