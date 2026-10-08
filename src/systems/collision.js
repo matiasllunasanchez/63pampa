@@ -42,7 +42,7 @@ import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../c
 import { mvTight } from '../data/moves.js';
 // EL SIDEWINDER (30/9/2026): la cuenta de su vuelo, pura, y la voz de Puma que avisa cuando quebrar
 import { lanzarFrente, pasoAim9, quiebreGrupal } from '../core/aim9.js';
-import { AIM9, ADEN, PIQUE } from '../data/tuning.js';
+import { AIM9, ADEN, PIQUE, SENUELO_TQ } from '../data/tuning.js';
 import { hablar } from '../core/voz.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
@@ -477,6 +477,28 @@ export function collisionSystem(dt) {
     }
   }
   for (const m of missiles) {
+    // EL TANQUE COMO SEÑUELO (8/10, SENUELO_TQ): el misil que tomo un tanque soltado va contra EL —
+    // sea del tipo que sea— y revienta ahi. Si el tanque ya se hundio, te perdio igual: pasa de largo
+    // sin poder pegarte (done) y sigue con su movimiento de siempre.
+    if (m.cebo) {
+      const c = m.cebo, S = SENUELO_TQ;
+      if (c.z >= 9999 || c.y < -1) { m.cebo = null; m.done = true; m.senuelo = true; }
+      else {
+        const dz = c.z - m.z;
+        m.z += Math.sign(dz) * Math.min(Math.abs(dz), S.VEL * dt);
+        m.x += (c.x - m.x) * Math.min(1, S.GIRO * dt);
+        m.y += (c.y - m.y) * Math.min(1, S.GIRO * dt);
+        if (Math.hypot(c.x - m.x, c.y - m.y, c.z - m.z) < S.RADIO) {
+          explodeAt(c.x, c.y, c.z, false, true, true);
+          boom(0.18, true); run.shake = Math.min(8, run.shake + 2.5);
+          const s = proj(c.x, c.y, c.z);
+          popup(s.x, s.y - 12, T('tanque_senuelo') + ' +' + S.PTS, P.accent, true);
+          c.z = 9999; m.z = 0; m.done = true;
+          run.score += S.PTS; stats.dodges++;
+        }
+        continue;
+      }
+    }
     // LA RAFAGA DEL HARRIER (systems/caza.js, ADEN en data/tuning.js): cada tiro va en linea recta
     // del cañon al punto FIJADO, llega a tu profundidad en ADEN.T y sigue de largo. No te sigue: si
     // en el aviso te corriste del punto, pasa; si seguis ahi, te mata.

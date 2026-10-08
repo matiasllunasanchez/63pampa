@@ -694,6 +694,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // Lleno o vacio lo decide lo que tenia adentro, y eso decide cuanto pega (core/nafta.js).
       const salen = tanquesSalen(r.pilon, r.soltados.length);
       r.soltados.forEach((km, i) => pmissiles.push(Object.assign(salen[i], { tanque: estadoTanque(km) })));
+      // …Y SON SEÑUELO (8/10, SENUELO_TQ en data/tuning.js): los misiles guiados que vienen se van
+      // contra el tanque mas cercano (systems/collision.js resuelve el choque)
+      const cebos = salen.slice(0, r.soltados.length);
+      for (const m of missiles) {
+        if (m.done || m.senuelo || m.tracer || m.tipo === 'aden' || m.fase === 'perdido' || m.fase === 'estallido') continue;
+        let mejor = null, dMin = 1e9;
+        for (const c of cebos) { const d = Math.abs(c.x - m.x) + Math.abs(c.y - m.y); if (d < dMin) { dMin = d; mejor = c; } }
+        if (mejor) m.cebo = mejor;
+      }
       run.cargaTanque = 0;
       beep(240, 0.12, 'square', 0.06, 90);
       run.shake = Math.max(run.shake, 1.5);
@@ -5700,6 +5709,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       window.__fuelset = v => { run.fuel = Math.max(0, Math.min(100, +v)); return run.fuel; };
       window.__vidas = v => { if (v !== undefined) run.lives = +v; return run.lives; };   // el ultimo avion: __vidas(1)
       // EL SEA WOLF: la foto del ciclo y los misiles en el aire (x, y, z, si ya son señuelo)
+      // QUITAR — un misil guiado comun de frente, para probar el SEÑUELO de los tanques (8/10)
+      window.__misil = () => { missiles.push({ x: plane.x + 6, y: plane.y + 3, z: PZ + 220 }); return JSON.stringify(missiles.map(m => ({ z: Math.round(m.z), done: !!m.done, cebo: !!m.cebo }))); };
+      window.__misiles = () => JSON.stringify({ m: missiles.map(m => ({ z: Math.round(m.z), done: !!m.done, cebo: !!m.cebo })), tq: pmissiles.filter(p => p.tanque).length, cuelga: !!run.tanque, integ: run.integ, dodges: stats.dodges });
       window.__seawolf = () => JSON.stringify(Object.assign(seawolfSys.snapshot(PZ), { causa: ultimaCausa, misiles: missiles.filter(m => m.tipo === 'wolf').map(m => ({ id: m.id, x: +m.x.toFixed(1), y: +m.y.toFixed(1), z: Math.round(m.z), s: !!m.senuelo })) }));
       // UN COMPAÑERO TE HACE SEÑAS (data/senales.js SENAS_COMP): __senacomp('alerta', 'costado', -1)
       window.__senacomp = (id, sale, lado) => { const ok = senaCompanero(id, lado); if (ok && sale) senas.sale = sale; return ok; };

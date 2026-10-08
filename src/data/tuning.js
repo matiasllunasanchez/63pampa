@@ -1022,6 +1022,14 @@ export const COBRA = { SUBE: 0.12, BAJA: 0.72, FRENO: 0.75, SUBE_VY: 5,
   // Sin el pasarse de entrada (~30%) el objetivo sube para llegar a lo mismo: 9.4 → z ≈ 4,6 (x3).
   ACERCA: 9.4, ENTRA: 5, K: 26, AMORT: 3.2 };
 
+// ---------- LOS TANQUES COMO SEÑUELO (game.js soltarTanquesAccion, systems/collision.js) ----------
+// El autor, 8/10: "si un misil te esta persiguiendo, soltar los tanques —vacios o llenos— permite que el
+// misil le pegue a eso y evitar que te pegue". Al soltar, cada misil GUIADO en el aire (no trazadoras
+// ni rafagas) se va contra el tanque mas cercano: VEL u/s de cierre, GIRO 1/s de correccion hacia el,
+// y revienta a RADIO u. Si el tanque toca el agua antes, el misil ya te perdio: pasa de largo. PTS al
+// que lo hizo.
+export const SENUELO_TQ = { VEL: 260, GIRO: 6, RADIO: 3, PTS: 150 };
+
 // ---------- EL BREAK TURN y EL JINK, con fisica de avion (systems/moves.js) ----------
 // El autor, 5/10: "el JINK y el BREAK TURN estan siendo demasiado arcade / rapidos; tienen que tener una
 // continuidad mas fluida, como las ultimas maniobras". Antes clavaban la velocidad lateral y el alabeo

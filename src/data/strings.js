@@ -85,6 +85,7 @@ export const STRINGS = {
     sq_seco: '{c} EN RESERVA — VUELVE A LA BASE',
     // SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5)
     tanques_fuera: 'TANQUES FUERA', tanque_fuera: 'TANQUE CENTRAL FUERA', tanques_nada: 'NO QUEDAN TANQUES',
+    tanque_senuelo: '¡SEÑUELO!',
     tanques_nafta: 'IBAN CON NAFTA: {km} KM AL MAR',
     tanques_vel: '+{v}% VELOCIDAD',
     tq_tocado: 'TOCADO',
@@ -1272,6 +1273,7 @@ export const STRINGS = {
     sq_dmg_sub: 'DAMAGED, back to base',
     sq_seco: '{c} ON RESERVE — RETURNING TO BASE',
     tanques_fuera: 'TANKS AWAY', tanque_fuera: 'CENTER TANK AWAY', tanques_nada: 'NO TANKS LEFT',
+    tanque_senuelo: 'DECOY!',
     tanques_nafta: 'THEY HAD FUEL: {km} KM INTO THE SEA',
     tanques_vel: '+{v}% SPEED',
     tq_tocado: 'HIT',
