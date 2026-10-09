@@ -65,8 +65,8 @@ mano que te lleva a los costados. Ningún modo re-mapea nada.
 | **rolar** (girar el horizonte) | `Q` `E` · `←` `→`⁴ | stick der ←→ (analógico) | • | banquea = **vira** | • ⁵ |
 | **mirar arriba/abajo** | `R` · `↑` `↓`⁴ | stick der ↑↓ (analógico) | • | • | — |
 | **cañón** | `X` · `ESPACIO` · `K` · click izq | **R1** · `✕` | • | • (en la PASADA no)⁶ | • |
-| **el secundario elegido** (bomba, tanques o chafitas) | `Z` · `TAB` · click der⁷ | **L1** · `□` (bomba) | • | • (en la PASADA suelta las bombas) | • |
-| **elegir el secundario** | `1` tanques · `2` bomba · `3` chafitas · **ruedita** (saltea lo que no tenés) | — | solo pasillo; el estante marca el elegido con una flechita y su número en naranja. Con tanques, `Z` es mantener-apunta, soltar-tira (como `B`); con chafitas sale al apretar |
+| **el secundario elegido** (bomba, tanques o chafitas) | `Z` · `TAB` · click der⁷ | **L1** · `□` | • | • (en la PASADA suelta las bombas) | • |
+| **elegir el secundario** | `1` tanques · `2` bomba · `3` chafitas · **ruedita** (saltea lo que no tenés) | **cruceta ◄ ►** (en vuelo; ahí deja de esquivar, el stick sigue) | solo pasillo; el estante marca el elegido con una flechita y su número en naranja. Con tanques, `Z` es mantener-apunta, soltar-tira (como `B`); con chafitas sale al apretar |
 | **turbo** | `SHIFT` · `C` | gatillo (R2) | • | • | — |
 | **freno** | `G` | **L2** | — | • | — |
 | **media vuelta** (viraje de combate) | `W` `S` `S` (el SPLIT-S) | stick izq ↑↓↓ | es el SPLIT-S | • (solo ARENA) | — |
@@ -110,7 +110,7 @@ mano que te lleva a los costados. Ningún modo re-mapea nada.
 | **SOLTAR TANQUES** | `B` | **L3** (en vuelo) | solo pasillo, en cualquier misión con tanques: primero el par de ala, después el central ([SPEC_NAFTA_ALCANCE §6](SPEC_NAFTA_ALCANCE.md)) |
 | **CHAFITAS** (chaff) | `H` | **◯** (en vuelo) | solo pasillo; en campaña, las cargas que ganaste en el banco del Pichón (0 a 4), en los demás modos dos: desvía los misiles de radar y, si te veían, bajar del radar enseguida borra las alarmas ([SPEC_CHAPITAS](SPEC_CHAPITAS.md)) |
 | **invertir el eje Y** | OPCIONES → EJE Y | `△` | **todo el juego a la vez** (ver §6) |
-| **pista musical** | `N` / `M` | **L3** / **R3** | cualquier pantalla (**L3 en vuelo es soltar tanques**) |
+| **pista musical** (solo POR LA PATRIA, 9/10) | `N` / `M` | **L3** / **R3** | cualquier pantalla (**L3 en vuelo es soltar tanques**) |
 | **navegar menús** | flechas · `ENTER` · `ESC` | cruceta/sticks · `✕` · `◯` | todas |
 
 ¹ **La cruceta ↑ —y en el teclado `3` en el ARENA, `J` en el PASILLO (9/10)— es "el poder del recurso del modo"**: reparto de energía en

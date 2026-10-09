@@ -535,6 +535,7 @@ export function initInput(cv, a) {
 
   // escribe un control de vuelo del pad en `inp`, y lo LIMPIA al soltar — sin pisar al teclado
   function setPad(f, v) { if (v || padHeld[f]) inp[f] = v; padHeld[f] = v; }
+  let padSec = null;   // el secundario que tomo L1 al apretarse (ver abajo)
 
   function pollGamepad() {
     const pads = navigator.getGamepads ? [...navigator.getGamepads()] : [];
@@ -620,7 +621,18 @@ export function initInput(cv, a) {
       const lx = ax(0), ly = ax(1);
       // COMBOS con el pad: el FLANCO de cada direccion (stick cruzando la zona muerta, o la
       // cruceta) cuenta como un toque — doble flick del stick = doble tap. Mismo detector.
-      const dl = (lx < 0 || down(14)) ? 1 : 0, dr = (lx > 0 || down(15)) ? 1 : 0;
+      // LA CRUCETA IZQ/DER EN EL PASILLO ELIGE EL SECUNDARIO (9/10, como 1/2/3 y la ruedita del
+      // teclado): un toque, uno al lado. Ahi deja de esquivar —el stick sigue haciendolo—; en el
+      // pulso y en los menus sigue como siempre.
+      const enPasillo = S.state === 'play';
+      const cl = down(14), cr = down(15);
+      if (enPasillo) {
+        if (cl && !padHeld.secL) a.secundariaPaso(-1);
+        if (cr && !padHeld.secR) a.secundariaPaso(1);
+      }
+      padHeld.secL = cl; padHeld.secR = cr;
+      const crL = !enPasillo && cl, crR = !enPasillo && cr;
+      const dl = (lx < 0 || crL) ? 1 : 0, dr = (lx > 0 || crR) ? 1 : 0;
       const du = (cfg.invY ? ly > 0 : ly < 0) ? 1 : 0, dd = (cfg.invY ? ly < 0 : ly > 0) ? 1 : 0;
       const teclea = S.state === 'play' || S.state === 'pulso';   // los dos consumen TOQUES
       if (teclea) {
@@ -629,8 +641,8 @@ export function initInput(cv, a) {
         if (du && !padHeld.u) dirTap('u');
         if (dd && !padHeld.d) dirTap('d');
       }
-      setPad('l', (lx < 0 || down(14)) ? 1 : 0);               // stick izq / cruceta izq = esquivar
-      setPad('r', (lx > 0 || down(15)) ? 1 : 0);
+      setPad('l', (lx < 0 || crL) ? 1 : 0);                    // stick izq (y fuera del pasillo, la cruceta) = esquivar
+      setPad('r', (lx > 0 || crR) ? 1 : 0);
       // STICK IZQUIERDO, EJE VERTICAL: ARRIBA SUBE, lo mismo que la W del teclado. `ly < 0` es el
       // stick arriba en el mapeo estandar, y va a 'u' — el mismo campo que escribe la W, asi que
       // las dos entradas no pueden divergir por construccion.
@@ -666,7 +678,17 @@ export function initInput(cv, a) {
       setPad('d', dd);                                         // picada (bajar)
       setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)
       setPad('turbo', down(7));                                // turbo (gatillo)
-      setPad('msl', down(4) || down(2));                       // L1 = misil (□ tambien)
+      // L1 (□ tambien) = EL SECUNDARIO ELEGIDO en el pasillo, como [Z]: la bomba, los TANQUES (mantener
+      // apunta, soltar tira) o las CHAFITAS (al apretar). Lo elegido se TOMA al apretar y se sostiene
+      // hasta soltar: cambiar con la cruceta a mitad de una mira no tira nada solo. Fuera del pasillo,
+      // la bomba de siempre.
+      const l1 = down(4) || down(2);
+      if (l1 && !padHeld.l1) padSec = S.state === 'play' ? a.secundaria() : 'bomba';
+      setPad('msl', l1 && padSec === 'bomba');
+      setPad('tanq', l1 && padSec === 'tanque');
+      if (l1 && !padHeld.l1 && padSec === 'chafitas') a.chapitas();
+      padHeld.l1 = l1;
+      if (!l1) padSec = null;
       // ...y en el PULSO ese mismo boton es EL REMATE, igual que la Z del teclado. Por FLANCO:
       // sostenerlo tiene que valer una sola suelta, como una tecla que no repite.
       if (S.state === 'pulso' && (hit(4) || hit(2))) a.pulsoTap('Z');
@@ -692,7 +714,8 @@ export function initInput(cv, a) {
         for (const k in rNow) { if (rNow[k] && !rPrev[k]) dirTap(k); rPrev[k] = rNow[k]; }
       }
     } else {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);   // soltar el vuelo
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'tanq', 'brake', 'rollAx', 'camAx']) setPad(f, 0);   // soltar el vuelo
+      padHeld.l1 = false; padSec = null;
       rPrev.L = rPrev.R = rPrev.U = rPrev.D = 0;   // volver a jugar con el stick sostenido = un toque nuevo
       // navegacion de menus por FLANCO (cruceta o stick)
       const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;

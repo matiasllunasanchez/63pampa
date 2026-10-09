@@ -2627,9 +2627,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // como zona de toque sin chrome encima del HUD.)
 
     // reproductor de música: visible solo cuando suena una pista del reproductor y se puede cambiar
-    // — o sea en juego (no lobby ni historia) y en los modos que no son campaña. Se togglea en el loop.
+    // — o sea en juego (no lobby ni historia) y solo en POR LA PATRIA (9/10). Se togglea en el loop.
     const playerEl = document.getElementById('player');
-    const canPickMusic = () => gameMode !== 'campaign'
+    // LA MUSICA SE ELIGE SOLO EN POR LA PATRIA (9/10, el autor): en la campaña y en los demas modos suena
+    // la que corresponde y [N]/[M] (L3/R3 fuera de vuelo) no hacen nada.
+    const canPickMusic = () => gameMode === 'survival'
       && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options'
       && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'pruebas' && S.state !== 'cines' && S.state !== 'misiones' && S.state !== 'saves' && S.state !== 'story'
       && S.state !== 'epilogue';
