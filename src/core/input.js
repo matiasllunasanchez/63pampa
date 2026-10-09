@@ -94,6 +94,12 @@ const ARROW_STICK = { ArrowLeft: 'rollL', ArrowRight: 'rollR', ArrowUp: 'camU', 
 // pantalla que te esta pidiendo esa tecla.
 const vyField = f => cfg.invY && S.state !== 'pulso' && (f === 'u' || f === 'd') ? (f === 'u' ? 'd' : 'u') : f;
 const keyField = c => vyField(KEYMAP[c] !== undefined ? KEYMAP[c] : (cfg.aim ? ARROW_FLY : ARROW_STICK)[c]);
+// ALT / OPTION + IZQUIERDA o DERECHA = ROLAR EN EL LUGAR (autor, 8/10: "manteniendo alguna tecla puedo
+// hacer el giro sobre el eje de ROLL sin moverme para los costados — ALT u OPTION en mac"). Con ALT
+// apretado, lo que iba a esquivar ('l'/'r', de las flechas o de A/D) pasa a ser el giro libre
+// ('rollL'/'rollR', el mismo de Q/E: solo rola el dibujo del avion, ver core/horizon.js stepHorizon).
+const ALT_ROLL = { l: 'rollL', r: 'rollR' };
+const conAlt = (kf, alt) => alt && ALT_ROLL[kf] ? ALT_ROLL[kf] : kf;
 
 // TOKENS DEL DETECTOR DE COMBOS. Minusculas = stick IZQUIERDO (volar), mayusculas = stick DERECHO.
 // La distincion es lo que permite que una secuencia diga con QUE mano se hace: los rolidos piden
@@ -315,7 +321,13 @@ export function initInput(cv, a) {
     if (S.state === 'play' && cfg.devcam && isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
     // PIRUETAS: cada toque fresco alimenta el detector de combos (ver dirTap). Sale del CAMPO que
     // la tecla escribe, no de la tecla: asi A/D dan 'l'/'r' o 'L'/'R' segun en que vida esten.
-    const kf = keyField(e.code);
+    // ALT solo no hace nada (y no le deja el foco al menu de la ventana)
+    if (e.code === 'AltLeft' || e.code === 'AltRight') { e.preventDefault(); return; }
+    const kf0 = keyField(e.code), kf = conAlt(kf0, e.altKey);
+    // ALT apretado o soltado CON la tecla sostenida: la repeticion trae el otro campo, y el que quedo
+    // escrito se apaga — si no, el avion seguiria corriendose (o rolando) solo
+    if (kf !== kf0) inp[kf0] = 0;
+    else if (e.repeat && ALT_ROLL[kf0] && (e.code === 'KeyA' || e.code === 'KeyD' || ARROW_FLY[e.code])) inp[ALT_ROLL[kf0]] = 0;
     if (!e.repeat && TAPTOK[kf] && (S.state === 'play' || S.state === 'pulso' || S.state === 'arena')) dirTap(TAPTOK[kf]);
     // anyPress solo con pulsaciones FRESCAS (!e.repeat): el auto-repeat de una tecla sostenida no
     // debe saltear pantallas (historia, derribado, transiciones). inp si se re-setea siempre.
@@ -365,6 +377,9 @@ export function initInput(cv, a) {
     // las FLECHAS se sueltan en SUS DOS VIDAS. Si la mira cambia con la tecla apretada, el keyup
     // llegaria con la otra vida activa y el campo viejo quedaria clavado en 1 — el avion doblando solo.
     if (ARROW_FLY[e.code]) { inp[ARROW_FLY[e.code]] = 0; inp[ARROW_STICK[e.code]] = 0; }
+    // …y A/D tambien sueltan su giro de ALT
+    if (e.code === 'KeyA') inp.rollL = 0;
+    if (e.code === 'KeyD') inp.rollR = 0;
     // LOS VERTICALES SE SUELTAN LOS DOS, por la misma razon que las flechas: si el eje se invierte
     // (△) con la tecla apretada, el keydown escribio un campo y el keyup limpiaria el otro.
     if (KEYMAP[e.code] === 'u' || KEYMAP[e.code] === 'd') { inp.u = 0; inp.d = 0; }

@@ -126,9 +126,12 @@ export function formationSlots(n) {
  *  vivo", distinto por puesto para que no respiren todos juntos. */
 export function puestoFormacion(slots, i, px, py, t) {
   const sl = slots[i], rank = Math.ceil((i + 1) / 2);
+  // EL VAIVEN ES DEL AIRE (autor, 8/10: "cuando estan despegando se mueven en el lugar como cuando
+  // vuelan"): en la pista cada uno apoya quieto, y el vaiven entra a medida que SU rueda deja el piso
+  const yb = Math.max(0.8, py - rank * 1.7), aire = Math.min(1, (yb - 0.8) / 1.2);
   return {
     x: px + sl.dx,
-    y: Math.max(0.8, py - rank * 1.7) + Math.sin(t * 2.6 + i * 1.9) * 0.25,
+    y: yb + Math.sin(t * 2.6 + i * 1.9) * 0.25 * aire,
     dz: sl.dz,
     rank,
   };

@@ -59,7 +59,22 @@ if os.environ.get('VISTAS'): VISTAS = {k: v for k, v in VISTAS.items() if k in o
 def hoja(carpeta, filas, fw, sim):
     A.FW, A.FILAS = fw, filas
     h = A.hoja(carpeta)
-    return A.simetriza(h) if sim else h
+    if not sim: return h
+    # LA SONDA DE UN LADO (8/10): si esta vista se horneo tambien SIN sonda (hornear_todo.py,
+    # SONDA_LATERAL), se simetriza ESA y se le pegan encima los pixeles en que la de verdad difiere —
+    # la sonda y lo que tapa—, que quedan del lado en que van. Si no, la simetria la duplicaba.
+    sin = carpeta.rstrip('/') + '_sinsonda'
+    if not os.path.isdir(sin): return A.simetriza(h)
+    crudo_sin = A.hoja(sin)
+    s = A.simetriza(crudo_sin.copy())
+    pc, pn, ps = h.load(), crudo_sin.load(), s.load()
+    for r in range(filas):
+        x0, y0 = 4 * fw, r * fw
+        for y in range(fw):
+            for x in range(fw):
+                c, n = pc[x0 + x, y0 + y], pn[x0 + x, y0 + y]
+                if c != n: ps[x0 + x, y0 + y] = c
+    return s
 
 def con_contorno(h, filas, fw):
     A.FW, A.FILAS = fw, filas

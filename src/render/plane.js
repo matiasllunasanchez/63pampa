@@ -851,7 +851,10 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   const bobX = alive ? Math.sin(run.t * 2.3 + 1.1) * BOB_X : 0;
   // tres senos desparejos: una ola larga (~7 s) que mece, una media que la desordena y el pulso
   // rapido de antes, chiquito — nunca se repite igual y nunca se lee como metronomo
-  const wob  = alive ? (Math.sin(run.t * 0.9) * 0.55 + Math.sin(run.t * 1.7 + 0.7) * 0.3 + Math.sin(run.t * 3.7) * 0.15) * WOBBLE : 0;
+  // el vaiven es del AIRE: en el carreteo del despegue el avion va quieto sobre las ruedas, y el vaiven
+  // entra a la par que se recoge el tren (autor, 8/10)
+  const enAire = S.state === 'takeoff' ? 1 - run.gear : 1;
+  const wob  = alive ? (Math.sin(run.t * 0.9) * 0.55 + Math.sin(run.t * 1.7 + 0.7) * 0.3 + Math.sin(run.t * 3.7) * 0.15) * WOBBLE * enAire : 0;
   // EL TAMBALEO DEL AVION ROTO (pedido del autor 1/10): con la integridad en AVERIA_HUMO o menos, las
   // alas se bambolean — dos senos rapidos y desparejos, que no lean como el vaiven de siempre — y
   // crece hacia el cero. Va sumado a `wob`, asi lo ve tambien la estela de punta de ala.

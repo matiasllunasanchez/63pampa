@@ -35,6 +35,17 @@ export const HZ_N = 4;
 // ALABEO PLENO del avion, en radianes. No es un numero a ojo: los frames horneados del sprite van
 // de -60° a +60° (ver SHEET_NF en data/planes.js), asi que plane.bank = ±1 ES ±60°.
 export const BANK_FULL = Math.PI / 3;
+// EL TOPE DEL ALABEO con CONTROL DIRECTO (autor, 8/10: "deberia inclinarse un poco, NO TANTO, y
+// moverse a la derecha, pero no quedar vertical"): ahi el alabeo es solo la pose —el avion se corre de
+// costado igual— y a fondo pedia ±1 = 60°, que con el horizonte inclinado se leia casi vertical. Lo
+// aplican el vuelo (systems/flight.js) y el autopiloto del relevo (systems/squad.js). Con CONTROL POR
+// ALABEO el angulo es el estado del avion y va entero.
+// 0,5 (30°) quedo corto; el autor, despues: "deberia inclinarse igual que como se inclina en el JINK".
+// El jink rola a 0,75…0,97 segun el quiebre (systems/moves.js): 0,85 es su medio.
+// 0,85 dejo el avion CASI VERTICAL manteniendo la tecla (autor, 8/10: "se inclina mucho, queda casi
+// vertical; eso no debe pasar a menos que haya apretado el ALT"): con el horizonte inclinado encima,
+// 51° se leia como cuchillo. 0,55 (≈33°): inclina claro sin acostarse — rolar de verdad es con ALT.
+export const ALABEO_DIRECTO = 0.55;
 // Inclinacion maxima (rad) del modo TOTAL: ~25°, alrededor de DOS QUINTOS del alabeo real. Sigue
 // siendo menos que la verdad a proposito —el alabeo esta SIEMPRE presente, y darlo entero seria un
 // fondo que nunca se queda quieto— pero el 0.22 anterior (12.6°) se leia como un temblor y no como

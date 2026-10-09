@@ -16,6 +16,7 @@
 //           { death } (se estrello) · undefined (segui volando). El orquestador actua sobre eso.
 
 import { plane, cfg, cam, stats, CTRL_BANK } from '../core/state.js';
+import { ALABEO_DIRECTO } from '../core/horizon.js';
 import { run } from '../core/run.js';
 import { cartel } from '../core/cartel.js';
 import { inp, mouse, pointer } from '../core/input.js';
@@ -389,7 +390,8 @@ export function flightSystem(dt, deps) {
     const steerV = cfg.control === CTRL_BANK ? run.bankA / BANK_MAX
       : pointer.steer ? plane.vx / 26
         : ((inp.r - inp.l) * 0.9 + (plane.vx / 30) * 0.35);
-    bankTgt = Math.max(-1, Math.min(1, steerV));
+    // con CONTROL DIRECTO el alabeo es solo la pose: topa en ALABEO_DIRECTO (el del jink, core/horizon.js)
+    bankTgt = Math.max(-1, Math.min(1, steerV)) * (cfg.control === CTRL_BANK ? 1 : ALABEO_DIRECTO);
     const vin = inp.u - inp.d;   // -1 pica / 0 / +1 trepa
     run.pitchHold = vin !== 0 ? run.pitchHold + dt : 0;
     pitchTgt = pitchTarget(vin, run.pitchHold, plane.vy);

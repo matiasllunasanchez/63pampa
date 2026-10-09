@@ -12,7 +12,8 @@
 // La matematica pura (fases, indicativos, puestos de formacion) esta en core/squad.js para que
 // tools/unit.js la pruebe sin canvas. Aca queda solo lo que toca stores.
 
-import { cfg, cam, plane } from '../core/state.js';
+import { cfg, cam, plane, CTRL_BANK } from '../core/state.js';
+import { ALABEO_DIRECTO } from '../core/horizon.js';
 import { AVION } from '../data/pilots.js';
 import { run } from '../core/run.js';
 import { obstacles, missiles } from '../core/world.js';
@@ -336,7 +337,7 @@ export function updateRelevo(dt) {
     const pvx = (nx - plane.x) / Math.max(dt, 1 / 240);
     const pvy = (ny - plane.y) / Math.max(dt, 1 / 240);
     // bank/pitch salen del movimiento real: el autopiloto banquea como banquearia el jugador
-    plane.bank += (Math.max(-1, Math.min(1, pvx / 26)) - plane.bank) * Math.min(1, dt * 8);
+    plane.bank += (Math.max(-1, Math.min(1, pvx / 26)) * (cfg.control === CTRL_BANK ? 1 : ALABEO_DIRECTO) - plane.bank) * Math.min(1, dt * 8);
     plane.pitch += (Math.max(-1, Math.min(1, pvy / 14)) - plane.pitch) * Math.min(1, dt * 6);
     plane.x = nx; plane.y = ny;
     plane.vx = Math.max(-30, Math.min(30, pvx));

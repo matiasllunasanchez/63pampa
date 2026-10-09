@@ -36,6 +36,9 @@ CONTROLES = bool(GUARDAR)
 CAPA = arg('--capa')
 PIEZAS_CAPA = {'tanques_ala': ('tanques_ala', 'pilon_ala'), 'bombas_ala': ('bombas_ala', 'pilon_ala'),
                'tanque_centro': ('tanque_centro', 'pilon_centro'), 'bomba_centro': ('bomba_centro', 'pilon_centro')}
+# `--sin-sonda`: hornea el avion SIN la sonda de reabastecimiento. La usa armar_juego.py para que la
+# columna nivelada se pueda simetrizar sin duplicar la sonda del A-4, que va de UN solo lado (ver ahi).
+SIN_SONDA = '--sin-sonda' in ARGS
 MODELO = arg('--modelo', 'out/sky.json')
 OUT = os.path.join(AQUI, arg('--out', 'out/sky_cel'))
 FW = FH = int(arg('--px', '84'))
@@ -500,6 +503,9 @@ if __name__ == '__main__':
                 if ob.name in mias: continue
                 if ob.name in todas: ob.hide_render = True        # las otras cargas: afuera
                 else: ob.is_holdout = True                        # el avion: tapa sin pintar
+    if SIN_SONDA:
+        for ob in raiz.children_recursive:
+            if ob.name.startswith('sonda'): ob.hide_render = True
     if GUARDAR:
         guardar(T, raiz)
     else:
