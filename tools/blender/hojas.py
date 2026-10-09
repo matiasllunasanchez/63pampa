@@ -172,8 +172,13 @@ HOJAS = {
     # izquierda. 7 columnas (6 del paso + cuerpo a tierra) x 2 filas (guarnicion / desembarco con bergen).
     # Con EL CONTORNO DE DOS TONOS de bake_common.js (claro arriba-izquierda, oscuro abajo-derecha): el
     # soldado tiene que leerse sobre turba, arena y nieve en la misma partida.
-    'soldados': dict(fw=24, fh=24, pos=(0, 0.9667, 6.8217), fov=24, lookY=0.9667, cols=7, cajas=False, contorno=False,
-                     contorno2=('#a8aa78', '#12150c'), destino='assets/world/soldats/soldados.png',
+    # AL DOBLE (48 px; el autor, 9/10: "los soldados se ven horribles, no parecen soldados"): a 24 px el
+    # soldado media 14 px y el contorno claro de dos tonos lo dejaba en esqueleto. Mismo encuadre (la
+    # grilla de diseño sigue siendo 24, render/soldiers.js RES), miembros mas gruesos (modelos_soldados
+    # LEGIBLE) y el contorno de dos tonos mas SUAVE: sin el, el camuflaje lo perdia sobre la turba.
+    'soldados': dict(fw=48, fh=48, pos=(0, 0.9667, 6.8217), fov=24, lookY=0.9667, cols=7, cajas=False,
+                     contorno2=('#7f8258', '#14170e'),
+                     destino='assets/world/soldats/soldados.png',
                      # fila 2: EL CONSCRIPTO ARGENTINO (casco M1, oliva liso, 90 % de alto), sin bergen
                      frames=[dict(modelo=m, rots=[]) for b, bando in ((0, 'brit'), (1, 'brit'), (0, 'arg'))
                              for m in ['bl:soldado_corre:%d:%d:%s' % (i, b, bando) for i in range(6)] + ['bl:soldado_tierra:%d:%s' % (b, bando)]]),

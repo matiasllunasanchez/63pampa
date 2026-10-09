@@ -32,7 +32,11 @@ sheet.src = HORNO_VIEJO ? SRC.replace('/soldats/', '/soldats/three/') : SRC;
  *  Las dos cosas ya fallaron una vez. `complete && naturalWidth` no depende de ninguna. */
 export const isReady = () => sheet.complete && sheet.naturalWidth > 0;
 
-export const FW = 24, FH = 24;      // lado de la celda, en pixeles de la hoja
+export const FW = 24, FH = 24;      // lado de la celda, en pixeles de DISEÑO (los de la hoja vieja)
+/** LA HOJA DE BLENDER VA AL DOBLE (9/10): 48 px de celda con el MISMO encuadre, asi que FW/FH/SUELO
+ *  siguen valiendo en la grilla de diseño y solo el recorte se multiplica. La de three.js, a 1. */
+export const RES_BLENDER = 2;
+const RES = HORNO_VIEJO ? 1 : RES_BLENDER;
 export const WU = 2.9;              // lo que mide esa celda en unidades de MUNDO
 export const SUELO = 20;            // fila del piso dentro de la celda
 export const PASOS = 6;             // columnas del ciclo de carrera; la 6 es el cuerpo a tierra
@@ -63,7 +67,7 @@ function celda(ctx, col, fila, x, y, k, dir) {
   ctx.save();
   ctx.imageSmoothingEnabled = SMOOTH;
   flipIf(ctx, x, dir);
-  ctx.drawImage(sheet, col * FW, fila * FH, FW, FH,
+  ctx.drawImage(sheet, col * FW * RES, fila * FH * RES, FW * RES, FH * RES,
     Math.round(x - s / 2), Math.round(y - s * (SUELO + 1) / FH), Math.round(s), Math.round(s));
   ctx.restore();
 }

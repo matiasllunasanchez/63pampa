@@ -2022,10 +2022,12 @@ test('soldados: la hoja horneada tiene la grilla que el render espera', () => {
   const render = readFileSync(new URL('../src/render/soldiers.js', import.meta.url), 'utf8');
   const FW = numDe(render, 'FW'), FH = numDe(render, 'FH');
   const PASOS = numDe(render, 'PASOS'), ARG = numDe(render, 'FILA_ARGENTINO');
+  // la de Blender va a RES_BLENDER veces la grilla de diseño (la de three.js, la de soldats/three/, a 1)
+  const R = numDe(render, 'RES_BLENDER');
   const png = readFileSync(new URL('../assets/world/soldats/soldados.png', import.meta.url));
   const w = png.readUInt32BE(16), h = png.readUInt32BE(20);
-  assert.equal(w, (PASOS + 1) * FW, 'la hoja no tiene las columnas que el render recorta');
-  assert.equal(h, (ARG + 1) * FH, 'la hoja no tiene las tres filas (guarnicion, desembarco, conscripto)');
+  assert.equal(w, (PASOS + 1) * FW * R, 'la hoja no tiene las columnas que el render recorta');
+  assert.equal(h, (ARG + 1) * FH * R, 'la hoja no tiene las tres filas (guarnicion, desembarco, conscripto)');
 });
 
 test('soldados: el que desembarca lleva bergen y el de guarnicion no', () => {

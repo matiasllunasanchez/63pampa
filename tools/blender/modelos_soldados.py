@@ -99,6 +99,11 @@ def _cabeza(padre, m, y, x=0.0, K=None, color='verde'):
     if color == 'casco': casco_m1(padre, m, x - 0.01, y + 0.31)
     else: boina(padre, K, color, x - 0.01, y + 0.33)
 
+# MIEMBROS LEGIBLES (9/10, el autor: "los soldados se ven horribles, no parecen soldados"): con los
+# grosores reales (muslo de 17 cm) a 48 px una pierna mide 2-3 px y el soldado se leia como un palito.
+# Se exageran, como en todo pixel art: brazos y piernas un 35 % mas gruesos.
+LEGIBLE = 1.35
+
 def soldado_corre(T, K, paso='0', bergen='0', bando='brit'):
     p, bergen = int(paso) / 6, bergen == '1'
     g = vacio(T, 'soldado', escala=ESC_ARG if bando == 'arg' else 1.0); m = _mats(K, bando)
@@ -134,8 +139,8 @@ def soldado_corre(T, K, paso='0', bergen='0', bando='brit'):
     for lado in (-1, 1):                                                       # los brazos, braceando
         zH = lado * ANCHO * 0.42
         tono = m['UL'] if lado < 0 else m['U']
-        codo, R = miembro(tr, tono, (0, yc - 0.02, zH * f), Matrix.Identity(3), 0, s * 0.5 * lado + 0.15, BRAZO, 0.065 * f, 0.055 * f)
-        miembro(tr, tono, codo, R, 0, -0.85, ANTEBRAZO, 0.055 * f, 0.045 * f)
+        codo, R = miembro(tr, tono, (0, yc - 0.02, zH * f), Matrix.Identity(3), 0, s * 0.5 * lado + 0.15, BRAZO, 0.065 * f * LEGIBLE, 0.055 * f * LEGIBLE)
+        miembro(tr, tono, codo, R, 0, -0.85, ANTEBRAZO, 0.055 * f * LEGIBLE, 0.045 * f * LEGIBLE)
     # el FUSIL cruzado al pecho
     d = Vector((-math.sin(0.55), math.cos(0.55), 0)) * 0.31
     o = Vector((-0.18, yc - 0.26, -ANCHO * 0.30))
@@ -143,10 +148,10 @@ def soldado_corre(T, K, paso='0', bergen='0', bando='brit'):
     for lado in (-1, 1):                                                       # las piernas, el paso
         a = -s * 0.62 * lado
         flex = 0.15 + 0.9 * max(0.0, c * lado)
-        rod, R = miembro(g, m['UD'], (0, Y_CADERA, lado * ANCHO * 0.24 * f), Matrix.Identity(3), 0, a, MUSLO, 0.085 * f, 0.07 * f)
+        rod, R = miembro(g, m['UD'], (0, Y_CADERA, lado * ANCHO * 0.24 * f), Matrix.Identity(3), 0, a, MUSLO, 0.085 * f * LEGIBLE, 0.07 * f * LEGIBLE)
         # LA RODILLA SE DOBLA HACIA ATRAS (+x, el soldado mira a -x). Con -flex se doblaba para adelante
         # y el autor lo vio enseguida: "tiene las rodillas torcidas al reves"
-        pie, R2 = miembro(g, m['UD'], rod, R, 0, flex, PIERNA, 0.07 * f, 0.055 * f)
+        pie, R2 = miembro(g, m['UD'], rod, R, 0, flex, PIERNA, 0.07 * f * LEGIBLE, 0.055 * f * LEGIBLE)
         b = pieza('bota', g, m['BOOT'], (0.21, 0.10, 0.13), tuple(pie + Vector((-0.04, -0.02, 0))))
         b.rotation_euler = (0, 0, math.atan2(R2[1][0], R2[0][0]))
     return g
