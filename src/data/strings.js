@@ -10,7 +10,7 @@ export const STRINGS = {
   es: {
     langName: 'Español',
     pageHeader: '■ <b>RASANTE</b> · Atlántico Sur, 1982 · Batalla por Malvinas',
-    pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: bomba (mantené para apuntar, soltá para tirar) &nbsp;·&nbsp; <kbd>F</kbd>/clic der. mantenido: mira de bomba — con la mira, <kbd>ESPACIO</kbd> tira la bomba y <kbd>B</kbd> los tanques &nbsp;·&nbsp; <kbd>B</kbd>: soltar tanques &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: poscombustión &nbsp;·&nbsp; <kbd>3</kbd>: llamar a la Chancha (reabastecer) &nbsp;·&nbsp; <kbd>5</kbd>: poder RASANTE &nbsp;·&nbsp; <kbd>T</kbd>: tren (al aterrizar) &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (clic: cañón · clic der.: mira de bomba)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB bomba · R2/RT poscombustión · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: poscombustión<br>La poscombustión quema combustible.',
+    pageFooter: '<kbd>W</kbd>: gas — si soltás, el avión cae &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: esquivar &nbsp;·&nbsp; <kbd>S</kbd>: picada &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: rolar &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: mirar arriba/abajo &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>ESPACIO</kbd>: cañón &nbsp;·&nbsp; <kbd>Z</kbd>: el secundario elegido (bomba: mantené para apuntar, soltá para tirar) &nbsp;·&nbsp; <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>/ruedita: elegir tanques, bomba o chafitas &nbsp;·&nbsp; <kbd>F</kbd>/clic der. mantenido: mira de bomba — con la mira, <kbd>ESPACIO</kbd> tira la bomba y <kbd>B</kbd> los tanques &nbsp;·&nbsp; <kbd>B</kbd>: soltar tanques &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: poscombustión &nbsp;·&nbsp; <kbd>J</kbd>: llamar a la Chancha (reabastecer) &nbsp;·&nbsp; <kbd>H</kbd>: chafitas &nbsp;·&nbsp; <kbd>N</kbd><kbd>M</kbd>: pista musical &nbsp;·&nbsp; <kbd>5</kbd>: poder RASANTE &nbsp;·&nbsp; <kbd>T</kbd>: tren (al aterrizar) &nbsp;·&nbsp; <kbd>ESC</kbd>: pausa &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: mira libre (clic: cañón · clic der.: mira de bomba)<br>Joystick (PlayStation o Xbox): stick izq vuela · stick der rola y mira · R1/RB cañón · L1/LB bomba · R2/RT poscombustión · L2/LT freno · START pausa<br>Táctil: arrastrá a la izquierda para volar · derecha arriba: fuego · derecha abajo: poscombustión<br>La poscombustión quema combustible.',
     aria: 'Juego Rasante: WASD para volar, flechas para rolar y mirar, X dispara, Shift poscombustión',
     death_land: 'Chocaste el terreno', death_sea: 'Impactaste el mar',
     death_pared: 'Te comiste la ladera',
@@ -153,7 +153,7 @@ export const STRINGS = {
     bar_tempo: 'MOMENTUM', tempoOn: 'MOMENTUM', tempoOff: 'TIEMPO REAL', tempoReady: '! MOMENTUM LISTO — [4] !',   // sin uso desde el 12/9: ahora es la lengueta LISTO
     // LA CHANCHA (tecla 5): el ritual de radio del reabastecimiento. Las lineas citan el TONO de
     // la escena del guion sin reproducirla — esa es del modo historia.
-    bar_chancha: 'CHANCHA', ch_ready: '! CHANCHA LISTA — [3] !',
+    bar_chancha: 'CHANCHA', ch_ready: '! CHANCHA LISTA — [J] !',
     bar_rasante: 'RASANTE',
     // LA RACHA A RAS: la unica palabra que queda del multiplicador (ver render/hud.js). Se dibuja
     // letra por letra para ocupar el ancho de la barra, asi que conviene que sea CORTA.
@@ -376,7 +376,8 @@ export const STRINGS = {
     ctrlGun: 'CAÑON',           ctrlGunK: 'X · ESPACIO · K',    ctrlGunP: 'R1   ·   ✕',
     // BOMBA y no MISIL (12/9): lo que el avion lleva colgado y lo que suelta es una bomba —el
     // estante del tablero la dibuja—. MISIL quedo para lo que te tiran a vos.
-    ctrlMsl: 'BOMBA',           ctrlMslK: 'Z   ·   TAB',        ctrlMslP: 'L1   ·   □',
+    ctrlMsl: 'SOLTAR EL SECUNDARIO', ctrlMslK: 'Z   ·   TAB', ctrlMslP: 'L1   ·   □',
+    ctrlSecund: 'ELEGIR SECUNDARIO (1 tanques · 2 bomba · 3 chafitas)', ctrlSecundK: '1 2 3  ·  RUEDITA', ctrlSecundP: '—',
     ctrlBoost: 'POSCOMBUSTION', ctrlBoostK: 'SHIFT   ·   C',    ctrlBoostP: 'gatillo',
     ctrlBrake: 'FRENO (3D)',    ctrlBrakeK: 'G',                ctrlBrakeP: 'L2',
     ctrlTurn: 'MEDIA VUELTA (3D)', ctrlTurnK: 'W  S  S',          ctrlTurnP: 'stick izq ↑ ↓ ↓',
@@ -395,12 +396,12 @@ export const STRINGS = {
     ctrlAim: 'MIRA fija/movil', ctrlAimK: 'CAPS LOCK · mouse',  ctrlAimP: 'siempre fija',
     ctrlCam: 'CAMARA (climax)', ctrlCamK: 'V',                  ctrlCamP: 'cruceta ABAJO',
     ctrlTempo: 'MOMENTUM (camara lenta)', ctrlTempoK: '4',      ctrlTempoP: 'SELECT',
-    ctrlChancha: 'LA CHANCHA (reabastecer)', ctrlChanchaK: '3', ctrlChanchaP: 'cruceta ARRIBA',
+    ctrlChancha: 'LA CHANCHA (reabastecer)', ctrlChanchaK: 'J', ctrlChanchaP: 'cruceta ARRIBA',
     ctrlTanques: 'SOLTAR TANQUES', ctrlTanquesK: 'B', ctrlTanquesP: 'L3 (en vuelo)',
     ctrlChapitas: 'CHAFITAS (chaff)', ctrlChapitasK: 'H', ctrlChapitasP: '◯ (en vuelo)',
     ctrlCambio: 'CAMBIO DE PILOTO', ctrlCambioK: 'P', ctrlCambioP: 'R3 (en vuelo)',
     ctrlInv: 'INVERTIR EL EJE Y', ctrlInvK: 'OPCIONES: EJE Y',  ctrlInvP: '△',
-    ctrlMusic: 'PISTA MUSICAL', ctrlMusicK: '1   ·   2',        ctrlMusicP: 'L3 · R3',
+    ctrlMusic: 'PISTA MUSICAL', ctrlMusicK: 'N   ·   M',        ctrlMusicP: 'L3 · R3',
     ctrlPause: 'PAUSA',         ctrlPauseK: 'ESC',              ctrlPauseP: 'START',
     ctrlMenu: 'EN LOS MENUS',   ctrlMenuK: 'flechas · ENTER · ESC', ctrlMenuP: 'cruceta · ✕ · ◯',
     selKeys: '[ESC] ATRAS      [ENTER] SELECCIONAR',
@@ -1228,7 +1229,7 @@ export const STRINGS = {
   en: {
     langName: 'English',
     pageHeader: '■ <b>RASANTE</b> · frontal view · South Atlantic, 1982',
-    pageFooter: '<kbd>W</kbd>: throttle — release and you fall &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: dodge &nbsp;·&nbsp; <kbd>S</kbd>: dive &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: roll &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: look up/down &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>SPACE</kbd>: cannon &nbsp;·&nbsp; <kbd>Z</kbd>: bomb (hold to aim, release to drop) &nbsp;·&nbsp; <kbd>F</kbd>/hold right click: bomb sight — with the sight on, <kbd>SPACE</kbd> drops the bomb and <kbd>B</kbd> the tanks &nbsp;·&nbsp; <kbd>B</kbd>: drop tanks &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: afterburner &nbsp;·&nbsp; <kbd>3</kbd>: call the tanker (refuel) &nbsp;·&nbsp; <kbd>5</kbd>: RASANTE power &nbsp;·&nbsp; <kbd>T</kbd>: gear (on landing) &nbsp;·&nbsp; <kbd>ESC</kbd>: pause &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: free aim (click: cannon · right click: bomb sight)<br>Gamepad (PlayStation or Xbox): left stick flies · right stick rolls and looks · R1/RB cannon · L1/LB bomb · R2/RT afterburner · L2/LT airbrake · START pause<br>Touch: drag on the left to fly · top-right: fire · bottom-right: afterburner<br>The afterburner burns fuel.',
+    pageFooter: '<kbd>W</kbd>: throttle — release and you fall &nbsp;·&nbsp; <kbd>A</kbd><kbd>D</kbd>: dodge &nbsp;·&nbsp; <kbd>S</kbd>: dive &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd>: roll &nbsp;·&nbsp; <kbd>↑</kbd><kbd>↓</kbd>: look up/down &nbsp;·&nbsp; <kbd>X</kbd>/<kbd>SPACE</kbd>: cannon &nbsp;·&nbsp; <kbd>Z</kbd>: the picked secondary (bomb: hold to aim, release to drop) &nbsp;·&nbsp; <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>/wheel: pick tanks, bomb or chaff &nbsp;·&nbsp; <kbd>F</kbd>/hold right click: bomb sight — with the sight on, <kbd>SPACE</kbd> drops the bomb and <kbd>B</kbd> the tanks &nbsp;·&nbsp; <kbd>B</kbd>: drop tanks &nbsp;·&nbsp; <kbd>SHIFT</kbd>/<kbd>C</kbd>: afterburner &nbsp;·&nbsp; <kbd>J</kbd>: call the tanker (refuel) &nbsp;·&nbsp; <kbd>H</kbd>: chaff &nbsp;·&nbsp; <kbd>N</kbd><kbd>M</kbd>: music track &nbsp;·&nbsp; <kbd>5</kbd>: RASANTE power &nbsp;·&nbsp; <kbd>T</kbd>: gear (on landing) &nbsp;·&nbsp; <kbd>ESC</kbd>: pause &nbsp;·&nbsp; <kbd>CAPS</kbd>/<kbd>MOUSE</kbd>: free aim (click: cannon · right click: bomb sight)<br>Gamepad (PlayStation or Xbox): left stick flies · right stick rolls and looks · R1/RB cannon · L1/LB bomb · R2/RT afterburner · L2/LT airbrake · START pause<br>Touch: drag on the left to fly · top-right: fire · bottom-right: afterburner<br>The afterburner burns fuel.',
     aria: 'Rasante game: arrows to maneuver, X to fire, Shift for afterburner',
     death_land: 'You hit the ground', death_sea: 'You hit the sea',
     death_pared: 'You flew into the hillside',
@@ -1338,7 +1339,7 @@ export const STRINGS = {
     dead_out: 'OUT OF ACTION',
     bar_fuel: 'FUEL', bar_cannon: 'CANNON 20MM', bar_overheat: 'OVERHEAT',
     bar_tempo: 'MOMENTUM', tempoOn: 'MOMENTUM', tempoOff: 'REAL TIME', tempoReady: '! MOMENTUM READY — [4] !',
-    bar_chancha: 'TANKER', ch_ready: '! TANKER READY — [3] !',
+    bar_chancha: 'TANKER', ch_ready: '! TANKER READY — [J] !',
     bar_rasante: 'RASANTE',
     mult_perfect: 'PERFECT',
     mult_rasante: 'LOW PASS',
@@ -1491,7 +1492,8 @@ export const STRINGS = {
     ctrlGas: 'THROTTLE (climb)', ctrlGasK: 'W',                 ctrlGasP: 'left stick up',
     ctrlDive: 'DIVE',           ctrlDiveK: 'S',                 ctrlDiveP: 'left stick down',
     ctrlGun: 'CANNON',          ctrlGunK: 'X · SPACE · K',      ctrlGunP: 'R1   ·   ✕',
-    ctrlMsl: 'BOMB',            ctrlMslK: 'Z   ·   TAB',        ctrlMslP: 'L1   ·   □',
+    ctrlMsl: 'RELEASE SECONDARY', ctrlMslK: 'Z   ·   TAB',     ctrlMslP: 'L1   ·   □',
+    ctrlSecund: 'PICK SECONDARY (1 tanks · 2 bomb · 3 chaff)', ctrlSecundK: '1 2 3  ·  WHEEL', ctrlSecundP: '—',
     ctrlBoost: 'AFTERBURNER', ctrlBoostK: 'SHIFT   ·   C',    ctrlBoostP: 'trigger',
     ctrlBrake: 'AIRBRAKE (3D)', ctrlBrakeK: 'G',                ctrlBrakeP: 'L2',
     ctrlTurn: 'COMBAT TURN (3D)', ctrlTurnK: 'W  S  S',          ctrlTurnP: 'left stick ↑ ↓ ↓',
@@ -1509,12 +1511,12 @@ export const STRINGS = {
     ctrlAim: 'SIGHT fixed/free', ctrlAimK: 'CAPS LOCK · mouse', ctrlAimP: 'always fixed',
     ctrlCam: 'CAMERA (climax)', ctrlCamK: 'V',                  ctrlCamP: 'd-pad DOWN',
     ctrlTempo: 'MOMENTUM (slow motion)', ctrlTempoK: '4',       ctrlTempoP: 'SELECT',
-    ctrlChancha: 'THE TANKER (refuel)', ctrlChanchaK: '3',      ctrlChanchaP: 'd-pad UP',
+    ctrlChancha: 'THE TANKER (refuel)', ctrlChanchaK: 'J',      ctrlChanchaP: 'd-pad UP',
     ctrlTanques: 'DROP TANKS', ctrlTanquesK: 'B', ctrlTanquesP: 'L3 (in flight)',
     ctrlChapitas: 'CHAFITAS (chaff)', ctrlChapitasK: 'H', ctrlChapitasP: '◯ (in flight)',
     ctrlCambio: 'PILOT SWAP', ctrlCambioK: 'P', ctrlCambioP: 'R3 (in flight)',
     ctrlInv: 'INVERT Y AXIS',   ctrlInvK: 'OPTIONS: Y AXIS',    ctrlInvP: '△',
-    ctrlMusic: 'MUSIC TRACK',   ctrlMusicK: '1   ·   2',        ctrlMusicP: 'L3 · R3',
+    ctrlMusic: 'MUSIC TRACK',   ctrlMusicK: 'N   ·   M',        ctrlMusicP: 'L3 · R3',
     ctrlPause: 'PAUSE',         ctrlPauseK: 'ESC',              ctrlPauseP: 'START',
     ctrlMenu: 'IN MENUS',       ctrlMenuK: 'arrows · ENTER · ESC', ctrlMenuP: 'd-pad · ✕ · ◯',
     selKeys: '[ESC] BACK      [ENTER] SELECT',

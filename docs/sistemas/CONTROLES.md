@@ -3,7 +3,9 @@
 > **Estado: normativo.** Esta tabla es lo que `src/core/input.js` *hace*, leído del código el
 > 22/8/2026 y puesto al día el **30/9/2026**: el mundo 3D (ARENA y PASADA) pasó a volar con **los
 > controles del pasillo** (§3, pedido del autor), y las teclas de los poderes se corrieron el 25/9
-> (la CHANCHA a `3`, RASANTE a `5`, soltar tanques a `B`, el pack de señales en `6`–`0`). Si cambiás un binding, cambiás este documento **y** la tabla `ctrl*` de
+> (la CHANCHA a `3`, RASANTE a `5`, soltar tanques a `B`, el pack de señales en `6`–`0`), y el **9/10/2026**
+> otra vez: **el SECUNDARIO** — `1` tanques, `2` bomba, `3` chafitas (o la ruedita) y `Z` suelta lo elegido;
+> por eso la **Chancha pasó a `J`** y la **música a `N` / `M`** (el `3` del ARENA sigue siendo su energía). Si cambiás un binding, cambiás este documento **y** la tabla `ctrl*` de
 > `src/data/strings.js` en los dos idiomas (esa tabla es la pantalla CONTROLES del juego).
 
 ---
@@ -63,7 +65,8 @@ mano que te lleva a los costados. Ningún modo re-mapea nada.
 | **rolar** (girar el horizonte) | `Q` `E` · `←` `→`⁴ | stick der ←→ (analógico) | • | banquea = **vira** | • ⁵ |
 | **mirar arriba/abajo** | `R` · `↑` `↓`⁴ | stick der ↑↓ (analógico) | • | • | — |
 | **cañón** | `X` · `ESPACIO` · `K` · click izq | **R1** · `✕` | • | • (en la PASADA no)⁶ | • |
-| **misil / bomba** | `Z` · `TAB` · click der⁷ | **L1** · `□` | • | • (en la PASADA suelta las bombas) | • |
+| **el secundario elegido** (bomba, tanques o chafitas) | `Z` · `TAB` · click der⁷ | **L1** · `□` (bomba) | • | • (en la PASADA suelta las bombas) | • |
+| **elegir el secundario** | `1` tanques · `2` bomba · `3` chafitas · **ruedita** (saltea lo que no tenés) | — | solo pasillo; el estante marca el elegido con una flechita y su número en naranja. Con tanques, `Z` es mantener-apunta, soltar-tira (como `B`); con chafitas sale al apretar |
 | **turbo** | `SHIFT` · `C` | gatillo (R2) | • | • | — |
 | **freno** | `G` | **L2** | — | • | — |
 | **media vuelta** (viraje de combate) | `W` `S` `S` (el SPLIT-S) | stick izq ↑↓↓ | es el SPLIT-S | • (solo ARENA) | — |
@@ -103,14 +106,14 @@ mano que te lleva a los costados. Ningún modo re-mapea nada.
 | **cámara** | `V` | cruceta **abajo** | arena y pasada: **cabina ↔ 3ª persona**. En el pasillo **no hace nada visible**: los zooms 1.5×–2.5× están desactivados (partían el raster del mar en rayas, ver `CAM_ZOOMS` en `game.js`) |
 | **mira fija / móvil** | `CAPS LOCK` | — (con mando es **siempre fija**) | pasillo y barcaza |
 | **cámara lenta** (MOMENTUM) | `4` | **SELECT** | solo pasillo |
-| **LA CHANCHA** (reabastecer) | `3` | **cruceta ↑** ¹ | solo pasillo, y no en los modos de clímax suelto. Con ruta: fuera del radar, por tramo (ver [SPEC_NAFTA_ALCANCE §5](SPEC_NAFTA_ALCANCE.md)) |
+| **LA CHANCHA** (reabastecer) | `J` | **cruceta ↑** ¹ | solo pasillo, y no en los modos de clímax suelto. Con ruta: fuera del radar, por tramo (ver [SPEC_NAFTA_ALCANCE §5](SPEC_NAFTA_ALCANCE.md)) |
 | **SOLTAR TANQUES** | `B` | **L3** (en vuelo) | solo pasillo, en cualquier misión con tanques: primero el par de ala, después el central ([SPEC_NAFTA_ALCANCE §6](SPEC_NAFTA_ALCANCE.md)) |
 | **CHAFITAS** (chaff) | `H` | **◯** (en vuelo) | solo pasillo; en campaña, las cargas que ganaste en el banco del Pichón (0 a 4), en los demás modos dos: desvía los misiles de radar y, si te veían, bajar del radar enseguida borra las alarmas ([SPEC_CHAPITAS](SPEC_CHAPITAS.md)) |
 | **invertir el eje Y** | OPCIONES → EJE Y | `△` | **todo el juego a la vez** (ver §6) |
-| **pista musical** | `1` / `2` | **L3** / **R3** | cualquier pantalla (**L3 en vuelo es soltar tanques**) |
+| **pista musical** | `N` / `M` | **L3** / **R3** | cualquier pantalla (**L3 en vuelo es soltar tanques**) |
 | **navegar menús** | flechas · `ENTER` · `ESC` | cruceta/sticks · `✕` · `◯` | todas |
 
-¹ **La cruceta ↑ —y `3` en el teclado— es "el poder del recurso del modo"**: reparto de energía en
+¹ **La cruceta ↑ —y en el teclado `3` en el ARENA, `J` en el PASILLO (9/10)— es "el poder del recurso del modo"**: reparto de energía en
 el ARENA, LA CHANCHA en el PASILLO. Es un botón para dos poderes porque son la misma pregunta
 —administrar lo que te queda— y **nunca coexisten**. Desde el 30/9 el teclado también los tiene en la
 misma tecla (antes `G` y `5`): los controles del 3D son los del pasillo.

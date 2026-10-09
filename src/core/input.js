@@ -37,7 +37,9 @@ export const pointer = { steer: null };   // arrastre de vuelo tactil (null fuer
 // `backReq`: pidieron VOLVER a la linea anterior del dialogo. Es un pulso aparte de `anyPress` y
 // no un caso del mapeo de teclas porque la misma flecha izquierda, en vuelo, mueve el avion — el
 // que decide que significa es quien lee el pulso, y solo el modo historia lo mira.
-export const flags = { anyPress: false, startReq: false, backReq: false };
+export const flags = { anyPress: false, startReq: false, backReq: false, zTanq: false };
+// LA RUEDITA del secundario: cuanto desplazamiento es un paso, y cuanto esperar entre pasos (ms)
+const RUEDA_PASO = 40, RUEDA_ESPERA = 160;
 
 // QUE FAMILIA DE MANDO HAY ENCHUFADA. No cambia NINGUN binding —el mapeo estandar de la Gamepad API
 // pone A/✕ en 0, B/◯ en 1, X/□ en 2 e Y/△ en 3, o sea en la MISMA posicion fisica— sino los
@@ -349,19 +351,37 @@ export function initInput(cv, a) {
     // tecla estaba libre y es la inicial de TREN, que en un juego en español es la mnemotecnia
     // buena; el resto del vuelo la accion se ignora sola.
     if (e.code === 'KeyT' && !e.repeat) a.gearToggle();
-    if (e.code === 'KeyZ' || e.code === 'Tab') { inp.msl = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }   // misil (Z o TAB)
+    // [Z] / TAB = EL SECUNDARIO ELEGIDO (9/10, el autor: "1 tanque, 2 bomba, 3 chafitas", y la ruedita):
+    // en el pasillo suelta lo que este elegido. Los TANQUES se portan como la [B] (mantener apunta,
+    // soltar tira), la BOMBA como siempre y las CHAFITAS salen al apretar. Fuera del pasillo (arena,
+    // pulso, pasada) [Z] es la bomba de siempre. `zTanq` recuerda que esta [Z] es la de los tanques,
+    // para soltarlos al levantarla aunque mientras tanto se haya cambiado de secundario.
+    if (e.code === 'KeyZ' || e.code === 'Tab') {
+      const sec = S.state === 'play' ? a.secundaria() : 'bomba';
+      if (sec === 'tanque') { inp.tanq = true; flags.zTanq = true; }
+      else if (sec === 'chafitas') { if (!e.repeat) a.chapitas(); }
+      else inp.msl = true;
+      if (!e.repeat) flags.anyPress = true; e.preventDefault();
+    }
     // EL REMATE ES LA ACCION DE SOLTAR, no una tecla concreta: cualquier entrada de MISIL lo manda
     // (Z, TAB, y en el mando L1/□). El glifo dice 'Z' con teclado y el boton cuando hay mando.
     if (!e.repeat && S.state === 'pulso' && (e.code === 'KeyZ' || e.code === 'Tab')) a.pulsoTap('Z');
     if (e.code === 'Enter' && !e.repeat) flags.anyPress = true;
-    // MUSICA: tecla 1 = pista anterior, tecla 2 = siguiente (el motor lo ignora fuera de modo)
-    if (!e.repeat && (e.code === 'Digit1' || e.code === 'Numpad1')) a.trackPrev();
-    if (!e.repeat && (e.code === 'Digit2' || e.code === 'Numpad2')) a.trackNext();
+    // MUSICA: [N] = pista anterior, [M] = siguiente (el motor lo ignora fuera de modo). Eran el 1 y el
+    // 2 hasta el 9/10: los numeros pasaron a elegir el SECUNDARIO en vuelo.
+    if (!e.repeat && e.code === 'KeyN') a.trackPrev();
+    if (!e.repeat && e.code === 'KeyM') a.trackNext();
+    // EL SECUNDARIO, en el pasillo: 1 los TANQUES, 2 la BOMBA, 3 las CHAFITAS (el orden del estante)
+    const nSec = /^(?:Digit|Numpad)([123])$/.exec(e.code);
+    if (!e.repeat && nSec && S.state === 'play') a.elegirSecundaria(+nSec[1]);
     if (!e.repeat && (e.code === 'Digit4' || e.code === 'Numpad4')) a.tempoToggle();   // MOMENTUM: camara lenta (pasillo)
     if (!e.repeat && e.code === 'KeyP') a.cambioPiloto();   // CAMBIO DE PILOTO (solo con la mecanica prendida: lo decide game.js)
     // 25/9: el 6 al 0 pasaron a ser el PACK DE SEÑALES, y los poderes se corrieron un lugar —
     // RASANTE del 6 al 5, la CHANCHA del 5 al 3, y SOLTAR TANQUES del 3 a la [B].
-    if (!e.repeat && (e.code === 'Digit3' || e.code === 'Numpad3')) a.chanchaCall();   // LA CHANCHA: el reabastecedor (pasillo)
+    // LA CHANCHA, el reabastecedor: la [J] desde el 9/10 (el 3 elige las chafitas). En el ARENA el 3
+    // sigue siendo su poder del modo —el reparto de energia, que pasa por la misma accion—.
+    if (!e.repeat && e.code === 'KeyJ') a.chanchaCall();
+    if (!e.repeat && (e.code === 'Digit3' || e.code === 'Numpad3') && S.state !== 'play') a.chanchaCall();
     if (e.code === 'KeyF') inp.apunta = true;   // LA MIRA DE LA BOMBA (y sigue siendo `sink` para la camara libre)
     if (e.code === 'KeyB') inp.tanq = true;   // SOLTAR TANQUES: mantener apunta, soltar tira (game.js, 27/9)
     // LAS CHAPITAS [H] (8/10, systems/chapitas.js): el chaff. Al lado de la [G] —el freno, la cobra—
@@ -385,7 +405,7 @@ export function initInput(cv, a) {
     if (KEYMAP[e.code] === 'u' || KEYMAP[e.code] === 'd') { inp.u = 0; inp.d = 0; }
     if (isFire(e.code)) inp.fire = false;
     if (isTurbo(e.code)) inp.turbo = false;
-    if (e.code === 'KeyZ' || e.code === 'Tab') inp.msl = false;
+    if (e.code === 'KeyZ' || e.code === 'Tab') { inp.msl = false; if (flags.zTanq) { flags.zTanq = false; inp.tanq = false; } }
     if (e.code === 'KeyB') inp.tanq = false;
     if (e.code === 'KeyF') inp.apunta = false;
     if (e.code === 'KeyG') inp.brake = 0;
@@ -428,6 +448,19 @@ export function initInput(cv, a) {
     if (e.pointerType === 'mouse') { const p = canvasPos(e); mouse.x = p.x; mouse.y = p.y; if (cfg.aim) mouse.on = true; }
     if (e.pointerId === steerPtr) pointer.steer = canvasPos(e);
   });
+  // LA RUEDITA pasa de un SECUNDARIO al siguiente (9/10). Un TOQUE por muesca: el panel tactil larga
+  // decenas de eventos chicos por gesto, asi que se junta el desplazamiento hasta RUEDA_PASO y despues
+  // se espera RUEDA_ESPERA ms antes de aceptar otro.
+  let rueda = 0, ruedaT = 0;
+  cv.addEventListener('wheel', e => {
+    if (S.state !== 'play') return;
+    e.preventDefault();
+    rueda += e.deltaY;
+    const ahora = performance.now();
+    if (Math.abs(rueda) >= RUEDA_PASO && ahora - ruedaT > RUEDA_ESPERA) {
+      a.secundariaPaso(rueda > 0 ? 1 : -1); rueda = 0; ruedaT = ahora;
+    }
+  }, { passive: false });
   cv.addEventListener('contextmenu', e => e.preventDefault());          // click derecho = misil, sin menu
   function ptrEnd(e) {
     if (e.pointerId === steerPtr) { steerPtr = null; pointer.steer = null; }

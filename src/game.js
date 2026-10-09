@@ -681,7 +681,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       else chanchaDice(r === 'early' ? 'ch_early' : r === 'used' ? 'ch_used' : 'ch_nozone');
     }
 
-    /** SOLTAR LOS TANQUES (tecla 3 / L3, PLAN_NAFTA_ALCANCE N5). En el pasillo de cualquier mision
+    /** SOLTAR LOS TANQUES ([B], o [Z] con los tanques elegidos; L3. PLAN_NAFTA_ALCANCE N5). En el pasillo de cualquier mision
      *  (con o sin ruta desde el 30/9). Sale el par de ala si sigue colgado, si no el del centro.
      *  Si alguno iba con nafta se avisa cuanta se fue al mar: soltar lleno es una decision cara, y
      *  el jugador tiene que enterarse en el momento. */
@@ -841,6 +841,27 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         });
       }
       ctx.globalAlpha = 1;
+    }
+
+    // ---------- EL SECUNDARIO (9/10, el autor: "1 tanque, 2 bomba, 3 chafitas", o la ruedita) ----------
+    // [Z] suelta lo elegido (core/input.js); el estante del HUD lo marca con su fila. El orden es el del
+    // estante: arriba el par de ala (tanques), al medio la bomba, abajo las chafitas.
+    const SECUNDARIOS = ['tanque', 'bomba', 'chafitas'];
+    /** Si el avion TIENE ese secundario ahora (la ruedita saltea los que no). */
+    const tieneSecundario = k => (k === 'tanque' ? naftaSys.hayTanque() && !!proximoPilon(run.tanque)
+      : k === 'chafitas' ? run.chapitasMax > 0 && run.chapitas > 0 : true);
+    function elegirSecundaria(k) {
+      if (!k) return;
+      run.secundaria = k;
+      // con lo que tiene suena alto; elegir algo vacio igual queda marcado, pero suena apagado
+      beep(tieneSecundario(k) ? 700 : 260, 0.05, 'square', 0.035);
+    }
+    function secundariaPaso(dir) {
+      const i0 = SECUNDARIOS.indexOf(run.secundaria);
+      for (let d = 1; d <= SECUNDARIOS.length; d++) {
+        const k = SECUNDARIOS[(i0 + dir * d + SECUNDARIOS.length * 3) % SECUNDARIOS.length];
+        if (tieneSecundario(k)) { elegirSecundaria(k); return; }
+      }
     }
 
     /** LAS CHAPITAS (tecla H / ◯ en vuelo; CHAPITAS en data/tuning.js, systems/chapitas.js). El chaff
@@ -1907,7 +1928,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // El cursor las saltea igual que a los encabezados.
       { head: 'optSecCtrl' },
       { cols: true },   // rotulos TECLADO / JOYSTICK de las dos columnas
-      ...[['Fly'], ['Gas'], ['Dive'], ['Gun'], ['Msl'], ['Boost'], ['Brake'], ['Turn'], ['Pips'], ['Roll'], ['Pan'], ['Moves']]
+      ...[['Fly'], ['Gas'], ['Dive'], ['Gun'], ['Msl'], ['Secund'], ['Boost'], ['Brake'], ['Turn'], ['Pips'], ['Roll'], ['Pan'], ['Moves']]
         .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
       // NOTAS al pie de la tabla: no son controles ni opciones, son las dos reglas que la tabla
       // sola no alcanza a explicar. Van como tipo aparte (`note`) porque puestas como filas de
@@ -2915,6 +2936,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       chanchaCall: () => { if (S.state === 'arena') { if (arena.active()) arena.cyclePip(); return; } pedirChancha(); },
       soltarTanques: () => soltarTanquesAccion(),
       chapitas: () => chapitasAccion(),
+      secundaria: () => run.secundaria,
+      elegirSecundaria: n => elegirSecundaria(SECUNDARIOS[n - 1]),
+      secundariaPaso: dir => secundariaPaso(dir),
       /** EL PODER RASANTE (tecla 6). Funcion con nombre y no cuerpo de la accion, por el mismo
        *  motivo que `pedirChancha`: la sonda del fixture tiene que apretar EXACTAMENTE lo que
        *  aprieta el jugador. Si llamara a `rasante.toggle()` por su cuenta se saltearia los gates
@@ -5930,6 +5954,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           misiles: missiles.map(m => ({ t: m.tipo || '-', z: Math.round(m.z), done: !!m.done, cebo: !!m.cebo })) })); };
       // …y `__cola(dz)` un Sidewinder de LA COLA, de atras (el de calor: lo que se lleva la BENGALA)
       window.__cola = (dz = -8) => { missiles.push(lanzarCola({ x: plane.x + 2, y: plane.y + 1, z: PZ + dz }, { x: plane.x, y: plane.y, pz: PZ })); return missiles.length; };
+      window.__secund = () => run.secundaria;   // el SECUNDARIO elegido (9/10)
       window.__dart = (dz = 90) => { missiles.push({ tipo: 'dart', x: plane.x, y: plane.y, z: PZ + dz, done: false }); return missiles.length; };
       // QUITAR — un misil guiado comun de frente, para probar el SEÑUELO de los tanques (8/10)
       window.__misil = () => { missiles.push({ x: plane.x + 6, y: plane.y + 3, z: PZ + 220 }); return JSON.stringify(missiles.map(m => ({ z: Math.round(m.z), done: !!m.done, cebo: !!m.cebo }))); };

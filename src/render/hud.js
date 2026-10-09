@@ -1807,10 +1807,18 @@ function drawEstante(h) {
   plate(X_RACK, CUADROS_Y, RACK_W, CUADRO);
   const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1;
   const VACIO = '#2e3c45';
+  // EL SECUNDARIO ELEGIDO (9/10, [Z] suelta lo elegido; 1/2/3 o la ruedita lo cambian): su fila lleva
+  // una flechita naranja afuera, a la izquierda, y su numero en naranja. Fila por fila es el mismo orden
+  // que las teclas: arriba los tanques (1), al medio la bomba (2), abajo las chafitas (3).
+  const yElegida = { tanque: CUADROS_Y + 5, bomba: CUADROS_Y + 13, chafitas: CUADROS_Y + 21 }[run.secundaria];
   const fila = (yy, ico, n, col, mono, colDig) => {
     iconoEn(cx, yy, ico, col, undefined, mono);
-    if (n !== null) digito(xd, yy - 2, n, colDig || (n > 0 ? P.foam : VACIO));
+    const elegida = yy === yElegida;
+    if (n !== null) digito(xd, yy - 2, n, elegida && n > 0 ? P.accent : colDig || (n > 0 ? P.foam : VACIO));
   };
+  if (yElegida !== undefined) {
+    px(X_RACK - 3, yElegida - 2, 1, 5, P.accent); px(X_RACK - 2, yElegida - 1, 1, 3, P.accent); px(X_RACK - 1, yElegida, 1, 1, P.accent);
+  }
   // ARRIBA: el par de ala
   const ya = CUADROS_Y + 5, ala = r ? r.ala : c.ala;
   if (ala === 'tanque') {
