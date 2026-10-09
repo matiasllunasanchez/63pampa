@@ -954,7 +954,10 @@ export const MAR_GRANO = { TAM: 0.05, TAM_MIN: 0.5, TAM_MAX: 1.5, PX: 2.5, MAX: 
 // Z_MAX: hasta donde se dibuja la cresta — mas alla del campo de puntos del mar (SEA_FAR_Z = 190): de
 // lejos la ola es solo eso, una raya de espuma.
 // CUERPO: que tan opaca es la cara de la ola, del filo hasta el mar (8/10: "a veces parece transparente")
-export const OLA_CRESTA = { PASO_PX: 1.5, GROSOR: 0.22, GROSOR_H: 0.07, MIN: 0.45, HIERVE: 4, ROMPE: 3.2, Z_MAX: 720, CUERPO: 0.92 };
+// FADE_Z / FADE_T: la ola APARECE de a poco — en los ultimos FADE_Z m antes de Z_MAX y en sus primeros
+// FADE_T s de vida (8/10: "aparecen en el horizonte de golpe")
+export const OLA_CRESTA = { PASO_PX: 1.5, GROSOR: 0.22, GROSOR_H: 0.07, MIN: 0.45, HIERVE: 4, ROMPE: 3.2, Z_MAX: 720, CUERPO: 0.92,
+  FADE_Z: 250, FADE_T: 1.2 };
 // ---------- MAS OLAS (systems/spawn.js, 2/10: "muchas mas olas por mision, y que se vean desde mas lejos") ----------
 // RATE_K multiplica OLA_RATE (brisa y tormenta); CALMA es la tasa con mar en calma: 0, y a proposito
 // — protege a m1, el tutorial (una ola ahi seria enseñar dos cosas a la vez; fixture agua §1);
@@ -1544,7 +1547,10 @@ export const CAZA_PTS = {
 // PIRUETAS QUE FUERZAN EL SOBREPASO (§3 paso 3). Son exactamente las de esquive: el BREAK TURN, el
 // JINK y el S-TURN. Aca las mejoras del Pichon encuentran su para que — y el gate de campaña sale
 // gratis, porque una pirueta que no aprendiste no se puede ejecutar.
-export const CAZA_MV_FUERZA = ['breakt', 'jink', 'sturn'];
+// …Y LOS FRENOS (8/10, el autor: "si vienen persiguiendome Harriers y freno, dejan de estar atras mio
+// y pasan de largo"). Es la jugada de manual contra el que te tiene en la cola: frenar en seco para
+// que se pase. Las cuatro maniobras de freno (las que escriben `mvFreno` en systems/moves.js).
+export const CAZA_MV_FUERZA = ['breakt', 'jink', 'sturn', 'cobra', 'derrape', 'mortal', 'cobrainv'];
 
 // (Aca estaban CAZA_MSL_* — "un misil lento desde la cola que se esquiva con una pirueta" — y
 // NINGUN archivo del juego las leia: la idea quedo escrita y nunca se construyo. Se construyo el

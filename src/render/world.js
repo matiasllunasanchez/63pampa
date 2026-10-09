@@ -1481,7 +1481,13 @@ function crestas(olas, dv, clima) {
     const camZ = o.z;
     if (camZ < 3 || camZ > C.Z_MAX) continue;
     const k = F / camZ;
-    const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / C.Z_MAX) * 0.45);
+    // APARECE DE A POCO (8/10: "las olas grandes aparecen en el horizonte de golpe, que aparezcan con
+    // algun fade in"): se enciende en los ultimos FADE_Z m antes de Z_MAX y, ademas, en sus primeros
+    // FADE_T s de vida — la que nace adentro del alcance (a SPAWN_Z) tampoco salta de la nada.
+    const lejos = Math.max(0, Math.min(1, (C.Z_MAX - camZ) / C.FADE_Z));
+    const aparece = lejos * lejos * (3 - 2 * lejos) * Math.min(1, Math.max(0, run.t - (o.nace ?? -1e9)) / C.FADE_T);
+    if (aparece <= 0.01) continue;
+    const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / C.Z_MAX) * 0.45) * aparece;
     const wzR = dv + camZ;
     const cx = cam.x - bendW(camZ);
     const half = Math.min(320, (W / 2 + 10) / k + 6);

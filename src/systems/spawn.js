@@ -206,6 +206,7 @@ export function spawnOla(kind, hFijo) {
   const h = hFijo || OLA_H[kind] * f;
   const o = {
     type: 'ola', kind, h, x: 0, z: SPAWN_Z, done: false, ph: Math.random() * 6,
+    nace: run.t,   // para que su cresta aparezca de a poco (OLA_CRESTA.FADE_T, render/world.js)
     // el espesor acompaña a la altura por la RAIZ del factor: crece, pero menos que la altura —
     // una ola el doble de alta no es el doble de larga
     wz: OLA_WZ * (1 + (h / OLA_H[kind] - 1) * OLA_WZ_VAR),

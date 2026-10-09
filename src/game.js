@@ -6693,7 +6693,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
     // ---------- loop ----------
     let last = performance.now();
-    function frame(now) {
+    function frameCuerpo(now) {
       // el telon del cordon: se arma al entrar al climax y se abre solo (raw: es cinematica, no
       // la toca la camara lenta del MOMENTUM)
       // EL PISO EN CERO NO ES ADORNO: `last` se siembra con performance.now() y el `now` del PRIMER
@@ -6834,6 +6834,24 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       draw(); updateMusic(S.state);
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
       requestAnimationFrame(frame);
+    }
+    // EL LOOP NO SE MUERE (9/10: "se termina tildando despues de terminar o perder algunos niveles").
+    // `frameCuerpo` pide el cuadro siguiente RECIEN AL FINAL: una excepcion en cualquier update o
+    // draw cortaba la cadena para siempre — la pantalla quedaba clavada en el ultimo cuadro y la
+    // musica seguia. Ahora el cuadro que falla se pierde, el error queda anotado (consola, y
+    // `window.__errores` con su pila: la consola de Electron la escribe en el log, ver
+    // electron/main.js) y el juego sigue. No es la causa: es para que no se cuelgue y se pueda
+    // encontrar la causa.
+    let erroresCuadro = 0;
+    function frame(now) {
+      try { frameCuerpo(now); }
+      catch (e) {
+        erroresCuadro++;
+        const nota = { t: Date.now(), estado: S.state, msg: String(e && e.message), pila: String(e && e.stack).slice(0, 2000) };
+        if (typeof window !== 'undefined') { const l = window.__errores || (window.__errores = []); l.push(nota); if (l.length > 50) l.shift(); }
+        if (erroresCuadro <= 5 || erroresCuadro % 600 === 0) console.error('[RASANTE] error en el cuadro #' + erroresCuadro + ' (estado ' + S.state + '; el juego sigue): ' + nota.pila);
+        requestAnimationFrame(frame);
+      }
     }
     applyChrome();
     reset();

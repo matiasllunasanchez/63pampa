@@ -2,6 +2,7 @@
 // El juego es una app canvas autocontenida; Electron solo la envuelve en una ventana nativa.
 const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 // EL MODO DEV (8/10): `yarn start` -> dev (sin el arranque del fichin, audio en mute, con el MODO DEV
 // en el menu); `yarn start --prod` -> el juego de verdad. Empaquetado es siempre el de verdad.
@@ -35,6 +36,23 @@ function createWindow() {
   win.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
 
   win.once('ready-to-show', () => win.show());
+
+  // EL LOG DE ERRORES (9/10: el juego "se termina tildando" y no habia forma de saber por que). Los
+  // errores y avisos de la pagina —incluido el del loop que sobrevive a un cuadro roto, src/game.js
+  // `frame`— se escriben en <userData>/rasante.log (en macOS, ~/Library/Application Support/<app>/).
+  // Se recorta solo: pasando 1 MB arranca de nuevo.
+  const logPath = path.join(app.getPath('userData'), 'rasante.log');
+  const anotar = linea => {
+    try {
+      if (fs.existsSync(logPath) && fs.statSync(logPath).size > 1e6) fs.writeFileSync(logPath, '');
+      fs.appendFileSync(logPath, new Date().toISOString() + ' ' + linea + '\n');
+    } catch (e) { /* sin log no se rompe nada */ }
+  };
+  win.webContents.on('console-message', (e, nivel, msg, linea, fuente) => {
+    if (nivel >= 2) anotar((nivel >= 3 ? 'ERROR ' : 'AVISO ') + msg + (fuente ? ' (' + fuente + ':' + linea + ')' : ''));
+  });
+  win.webContents.on('render-process-gone', (e, d) => anotar('EL RENDERER MURIO ' + JSON.stringify(d)));
+  win.webContents.on('unresponsive', () => anotar('LA PAGINA NO RESPONDE'));
 
   // LE AVISA A LA PAGINA cuando esta a pantalla completa, para que se saque el encabezado y el pie
   // y el juego pueda crecer un escalon entero mas (ver `ajustarEscala` en src/render/ctx.js).
