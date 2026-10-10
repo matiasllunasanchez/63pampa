@@ -21,6 +21,8 @@
 //   seq   → el combo, como se teclea (para la tarjeta)
 //   desc  → que hace, en una linea
 //   quote → la voz de la dupla (Pichon vivo) o de la libreta (M8+)
+import { DESDE_BRP } from './bombas.js';
+
 export const UPGRADES = [
   { id: 'mask', name: 'TERRAIN MASKING', seq: 'abajo abajo-abajo', desc: 'Clava el avion a ras: congela el roce y descarga el radar', quote: 'Si abajo no nos ven... por que subimos?' },
   { id: 'splits', name: 'SPLIT-S', seq: 'arriba abajo abajo (alto)', desc: 'Medio tonel y picada: la salida vertical hacia abajo', quote: 'Necesitaba una forma de irse para abajo YA.' },
@@ -78,7 +80,26 @@ export const CINTA = [
   arma('cinta2', 2, 'cinta', 'CINTA LARGA', 'La rafaga aguanta una vez y media antes de recalentar', 'Le alargue la cinta. Apretala mas tiempo.'),
   arma('cinta3', 3, 'cinta', 'CINTA ENTERA', 'El doble de rafaga antes de recalentar', 'Toda la cinta que entra en el ala.', 'cinta2'),
 ];
+/** LA BRP-250 (10/10/2026, el autor: "deberia ser otra mejora del Pichon") — la bomba española con la
+ *  espoleta rehecha (data/bombas.js; es «Doce segundos», §3 de docs/historia/MEJORAS_PICHON.md), que en
+ *  campaña deja de llegar sola por la fecha y pasa a ser una carta del banco: sin ella se vuela con la
+ *  MK-17, la que casi no detona. Una sola carta: la bomba se cambia una vez y queda.
+ *  TIENE FECHA (MEJORAS_PICHON §3: "no puede aparecer antes de fines de mayo, o sea no antes de M7"):
+ *  `desde` es la primera ventana que la ofrece — la de despues de M6, y se vuela desde M7.
+ *  Y TIENE PRECIO (la regla de diseño del banco): pesa la mitad que la MK-17 — un golpe en el extremo
+ *  rompe la mitad y la explosion abarca menos (`dano`, `radio`, `boquete` en data/bombas.js).
+ *  Fuera de campaña manda `bombaDe` (data/bombas.js). */
+export const BOMBA_BRP = { id: 'brp', bomba: 'brp', name: 'BRP-250', tecla: 'Z / L1', desde: DESDE_BRP - 1,
+  desc: 'Explota casi siempre. Pero pesa la mitad: en el extremo rompe menos',
+  quote: 'Le rehicieron la espoleta. La que pega, ahora revienta.' };
 const tiene = (owned, id) => !!owned && (owned.includes ? owned.includes(id) : owned.has(id));
+/** LAS CARTAS DE CARGA QUE SE PUEDEN APAGAR (10/10, el autor: "configuraciones para los aviones,
+ *  definidas por mejoras del Pichon, activables o no"): OPCIONES → MEJORAS DEL PICHON les pone el mismo
+ *  interruptor que a las piruetas (`cfg.movesOff`, la clave presente = apagada). La BRP es la primera. */
+export const APAGABLES = [BOMBA_BRP];
+/** La bomba que da la libreta `owned` en campaña: la BRP si se gano la carta y no esta apagada en
+ *  `off` (cfg.movesOff); si no, la MK-17. */
+export const bombaDeLibreta = (owned, off) => (tiene(owned, BOMBA_BRP.id) && !(off && off[BOMBA_BRP.id]) ? 'brp' : 'mk17');
 /** El nivel de METRALLA (1 comun, 2 plata, 3 oro) que da la libreta `owned`. */
 export const metrallaDe = owned => 1 + METRALLA.filter(c => tiene(owned, c.id)).length;
 /** El nivel de CINTA (1 a 3) que da la libreta `owned`. */
@@ -92,9 +113,11 @@ export const cintaDe = owned => 1 + CINTA.filter(c => tiene(owned, c.id)).length
  *  aprendian todas). Es buscado: elegir pesa de verdad. */
 //  ⚠ Y CON LA METRALLA Y LA CINTA (9/10) son 20 para 12: quedan OCHO sin aprender. La PLATA llega
 //  temprano (tras el SPLIT-S), la CINTA LARGA a mitad, y el ORO y la CINTA ENTERA en la segunda mitad.
-const ORDEN = ['mask', 'chafitas1', 'splits', 'metralla2', 'breakt', 'loyo', 'cinta2', 'chafitas2', 'sturn', 'popup',
+//  …Y LA BRP (10/10) va QUINTA: con el loadout de referencia se la tiene entrando a M7, que es donde
+//  antes llegaba por la fecha (DESDE_BRP). Saltearla deja la MK-17 — y la carta sigue esperando.
+const ORDEN = ['mask', 'chafitas1', 'splits', 'metralla2', 'brp', 'breakt', 'loyo', 'cinta2', 'chafitas2', 'sturn', 'popup',
   'hiyo', 'metralla3', 'chafitas3', 'jink', 'spin', 'cinta3', 'climb', 'chafitas4', 'climbmax', 'barrel'];
-const CARTAS = [...UPGRADES, ...CHAFITAS, ...METRALLA, ...CINTA];
+const CARTAS = [...UPGRADES, ...CHAFITAS, ...METRALLA, ...CINTA, BOMBA_BRP];
 export const BANCO = ORDEN.map(id => CARTAS.find(u => u.id === id));
 
 /** Cuantas cargas de chafitas da la libreta `owned` (las cartas de chafitas que tiene). */
@@ -160,9 +183,12 @@ export function ofertaTrasMision(i) {
 
 /** Las proximas `n` mejoras NO aprendidas, en el orden del BANCO. `owned` = Set/array de ids. Una
  *  que pide otra (`requiere`, las MAS CHAFITAS) no se ofrece hasta tenerla. */
-export function nextUpgrades(owned, n) {
+//  `tras` = la mision (0-based) cuya ventana ofrece: una carta con `desde` (la BRP) no sale antes.
+//  Sin `tras`, sin fecha.
+export function nextUpgrades(owned, n, tras) {
   const has = id => owned.includes ? owned.includes(id) : owned.has(id);
-  return BANCO.filter(u => !has(u.id) && (!u.requiere || has(u.requiere))).slice(0, n);
+  return BANCO.filter(u => !has(u.id) && (!u.requiere || has(u.requiere))
+    && !(u.desde != null && tras != null && tras < u.desde)).slice(0, n);
 }
 
 // ---------- EL LOADOUT DE REFERENCIA (PLAN_MISIONES_FASES §1, el selector "real real") ----------

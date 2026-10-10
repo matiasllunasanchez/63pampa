@@ -1375,8 +1375,9 @@ test('libreta: 12 ventanas y 20 cartas — con CHAFITAS, METRALLA y CINTA quedan
   let ventanas = 0;
   for (let i = 0; i < MIS.length; i++) if (ofertaTras(i) > 0) ventanas++;
   assert.equal(ventanas, 12, 'las ventanas no cambiaron');
-  assert.equal(BANCO.length, UPS.length + 8, 'doce piruetas, cuatro chafitas, dos metrallas y dos cintas');
-  assert.equal(BANCO.length - ventanas, 8, 'quedan ocho sin aprender por partida');
+  // El 10/10, la BRP-250: 21 para 12.
+  assert.equal(BANCO.length, UPS.length + 9, 'doce piruetas, cuatro chafitas, dos metrallas, dos cintas y la BRP');
+  assert.equal(BANCO.length - ventanas, 9, 'quedan nueve sin aprender por partida');
   // y ninguna ventana puede quedar sin cartas para ofrecer
   for (let i = 0; i < MIS.length; i++) {
     const o = ofertaTras(i);
@@ -1408,7 +1409,7 @@ test('chafitas en el banco: la primera desde M3 «El invento», y cada MAS CHAFI
   // si no se elige, queda esperando
   assert.ok(nextUps(['mask', 'splits'], 2).some(u => u.id === 'chafitas1'), 'la no elegida queda esperando');
   // sin la primera, las MAS CHAFITAS no salen nunca
-  const sinChaf = [...UPS, ...METR, ...CINTA].map(u => u.id);
+  const sinChaf = [...UPS, ...METR, ...CINTA].map(u => u.id).concat('brp');
   assert.ok(!nextUps(sinChaf, 4).some(u => u.id === 'chafitas2'), 'MAS CHAFITAS pide CHAFITAS');
   assert.deepEqual(nextUps(sinChaf, 4).map(u => u.id), ['chafitas1'], 'sin la primera, solo queda la primera');
   // las cargas son las cartas que se tienen, de 0 a 4
@@ -1432,6 +1433,25 @@ test('metralla y cinta en el banco: de fabrica la comun y la corta, y cada carta
   assert.deepEqual(nextUps(todo, 4).map(u => u.id), ['metralla2', 'cinta2'], 'solo salen las primeras de cada escalera');
   for (const c of [...METR, ...CINTA]) for (const k of ['name', 'desc', 'tecla', 'quote']) assert.ok(c[k], `${c.id}: falta ${k}`);
   assert.ok(!/invent/i.test([...METR, ...CINTA].map(c => c.desc + c.quote).join(' ')), 'el Pichon no dice que invento nada');
+});
+
+test('la BRP es una carta: sin ella MK-17, con ella BRP; y se la tiene entrando a M7', async () => {
+  const { bombaDeLibreta, BOMBA_BRP } = await import('../src/data/upgrades.js');
+  const { DESDE_BRP } = await import('../src/data/bombas.js');
+  assert.equal(bombaDeLibreta([]), 'mk17');
+  assert.equal(bombaDeLibreta(['brp']), 'brp');
+  assert.equal(bombaDeLibreta(new Set(['brp'])), 'brp');
+  assert.equal(bombaDeLibreta(['brp'], { brp: 1 }), 'mk17', 'apagada en MEJORAS DEL PICHON: MK-17 aunque se tenga');
+  assert.equal(bombaDeLibreta(['brp'], {}), 'brp');
+  assert.ok(BANCO.includes(BOMBA_BRP), 'esta en el banco');
+  assert.equal(bombaDeLibreta(loadAt(DESDE_BRP - 1)), 'mk17', 'entrando a M6, todavia la MK-17');
+  assert.equal(bombaDeLibreta(loadAt(DESDE_BRP)), 'brp', 'entrando a M7, la BRP (donde antes llegaba por la fecha)');
+  // TIENE FECHA: ninguna ventana anterior a la de M6 la ofrece, aunque le toque por orden
+  const casiTodo = BANCO.map(u => u.id).filter(id => id !== 'brp');
+  for (let i = 0; i < DESDE_BRP - 1; i++) assert.ok(!nextUps(casiTodo, 4, i).some(u => u.id === 'brp'), `la ventana de i=${i} no la ofrece`);
+  assert.ok(nextUps(casiTodo, 4, DESDE_BRP - 1).some(u => u.id === 'brp'), 'la de despues de M6 si');
+  for (const k of ['name', 'desc', 'tecla', 'quote']) assert.ok(BOMBA_BRP[k], `falta ${k}`);
+  assert.ok(!/invent/i.test(BOMBA_BRP.desc + BOMBA_BRP.quote), 'el Pichon no dice que invento nada');
 });
 
 test('las tres metrallas: la rafaga dura lo que dice la CINTA con cualquier cadencia', async () => {

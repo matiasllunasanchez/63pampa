@@ -351,7 +351,7 @@ export const STRINGS = {
     // Despues de M9 el bloque de arriba cambia de nombre — es su libreta, no ya la dupla.
     optMejoras: 'MEJORAS DEL PICHON', optMejorasGo: 'VER',
     mejTitle: 'MEJORAS DEL PICHON',
-    mejSecPiruetas: 'PIRUETAS DEL PICHON', mejSecPuesto: 'PUESTO DE PILOTO',
+    mejSecPiruetas: 'PIRUETAS DEL PICHON', mejSecCarga: 'CARGA DEL PICHON', mejSecPuesto: 'PUESTO DE PILOTO',
     mejOn: 'ACTIVA', mejOff: 'APAGADA',
     mejWhat: 'QUE HACE', mejHowto: 'COMO SE HACE',
     mejKeys: '[↑] [↓] ELEGIR      [←] [→] PRENDER / APAGAR      [ESC] VOLVER',
@@ -1474,7 +1474,7 @@ export const STRINGS = {
     optHitboxes: 'HITBOXES', optDevcam: 'CAMERA MODE', optDevcamOff: 'NORMAL', optDevcamOn: 'FREE',
     optMejoras: "PICHON'S UPGRADES", optMejorasGo: 'VIEW',
     mejTitle: "PICHON'S UPGRADES",
-    mejSecPiruetas: "PICHON'S MOVES", mejSecPuesto: 'PILOT STATION',
+    mejSecPiruetas: "PICHON'S MOVES", mejSecCarga: "PICHON'S LOADOUT", mejSecPuesto: 'PILOT STATION',
     mejOn: 'ON', mejOff: 'OFF',
     mejWhat: 'WHAT IT DOES', mejHowto: 'HOW TO DO IT',
     mejKeys: '[↑] [↓] SELECT      [←] [→] ON / OFF      [ESC] BACK',

@@ -282,6 +282,43 @@ mejoras que tiene puestas y darse cuenta de cuántas quedaron sin hacer.
 
 ---
 
+# LA DIRECCION: LAS CONFIGURACIONES DE CADA AVION SON MEJORAS (10/10/2026)
+
+> El autor: *"la idea es tener diferentes configuraciones para los aviones, inicialmente definidas por
+> mejoras del Pichon, configurables (activables o no) a futuro"*.
+
+**Que quiere decir.** Lo que cuelga de un avion —que bomba, cuantas, que tanques, donde— deja de ser
+un dato fijo del avion o de la fecha y pasa a **ganarse en el banco**, carta por carta, con su fecha y
+su precio como cualquier mejora. **A futuro**, lo ganado se puede **prender y apagar**, igual que hoy las
+piruetas aprendidas en OPCIONES → MEJORAS DEL PICHON (`cfg.movesOff`, `moveAllowed` en `data/upgrades.js`).
+
+**La primera carta de este tipo: la BRP-250** (`BOMBA_BRP` en `data/upgrades.js`, 10/10). Sin ella se vuela
+con la MK-17; con ella, la BRP. Ofrecida desde la ventana de despues de M6 (§3 «Doce segundos»: la
+fecha), con su precio (pesa la mitad: en el extremo rompe menos). Todavia no se puede apagar.
+
+**Las piezas que ya existen y esto reusa:**
+- el **banco** entrega cartas que no son piruetas (CHAFITAS, METRALLA, CINTA, BRP) — con `requiere` y `desde`;
+- el **interruptor** de MEJORAS DEL PICHON (hoy solo piruetas) — lo que falta para lo "activable";
+- el **hangar** (`data/cargas.js`): la carga se elige entre configuraciones, y cada pieza esta horneada
+  en su propia CAPA — lo que falta para mostrar configuraciones nuevas.
+
+**Candidatas que trajo el autor (10/10, a verificar antes de entrar — vinieron de un buscador con IA):**
+- **DAGGER, «configuracion India»:** tanques en el ala interna y en la panza, bombas de 250 kg en el ala
+  media. El modelo de hoy tiene DOS puntos (par de ala + centro) y no puede colgar tanque Y bomba en el
+  ala: pide un tercer punto y capas nuevas.
+- **DAGGER SIN REABASTECIMIENTO:** no tenia sonda — su alcance es solo lo que lleva colgado (sin Chancha).
+- **BRP = Bomba Retardada por Paracaidas:** el paracaidas la frena (te alejas de las esquirlas, pega de
+  punta). Candidata a verse: abrir el paracaidas al soltarla.
+- **A-4Q (Armada):** soporte multiple (TER) en la panza con Mk 82 Snakeye (aletas frenadoras) — la §5 «Aletas».
+- **A-4B, fin de la guerra:** adaptador multiple en el centro con Mk 81 de 250 lb (dudoso: ver dudas abajo).
+
+**Dudas de esas referencias** (para el historiador): tanques de 1.400 L del A-4 (los Sargent Fletcher
+eran de 300 gal ≈ 1.136 L); el 8/6 y las tres Mk 81 por A-4B contra el Sir Galahad; cuantas Snakeye por
+A-4Q; si las espoletas de 12 s (§3) fueron de la **BR-250** (caida libre) o de la **BRP-250** (paracaidas)
+— el juego hoy la llama BRP-250; el peso de la MK-17 (el juego dice 500 kg; la Mk 17 es de 1.000 lb ≈ 454 kg).
+
+---
+
 # ⚠ DETALLES FINOS *(no bloquean nada — se puede producir sin resolverlos)*
 
 1. **¿Los A-4 llevaban el chaff igual que los Mirage y Dagger** (en el freno aerodinámico),

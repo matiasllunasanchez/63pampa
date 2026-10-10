@@ -6,7 +6,7 @@ import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
-import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe } from './data/upgrades.js';
+import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES } from './data/upgrades.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -1140,7 +1140,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function trasResultados() {
       if (gameMode === 'campaign' && !S.test) {
         const nOferta = curLevel + 1 < MISSIONS.length ? ofertaTrasMision(curLevel) : 0;
-        upgOffer = nOferta ? nextUpgrades(pichon, nOferta) : [];
+        upgOffer = nOferta ? nextUpgrades(pichon, nOferta, curLevel) : [];   // (curLevel: las cartas con fecha)
         if (upgOffer.length) { upgSel = 0; upgT = 0; setState('upgrade'); return; }
       }
       irAlEpilogo();
@@ -1808,7 +1808,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  ahi; la mision la puede decir y `?bomba=mk17|brp` la pisa. */
     function bombaDeLaMision() {
       let q = null; try { q = new URLSearchParams(location.search).get('bomba'); } catch (e) { }
-      return BOMBAS[q] ? q : bombaDe(curMission(), MISSIONS.indexOf(curMission()));
+      if (BOMBAS[q]) return q;
+      const m = curMission();
+      // EN CAMPAÑA LA BRP ES UNA CARTA DEL BANCO (10/10, data/upgrades.js): la que trae la mision si la
+      // fija, si no la de la libreta; en los demas modos, la regla de siempre (`bombaDe`)
+      // (…y apagable en MEJORAS DEL PICHON: apagada, la MK-17 aunque se tenga la carta)
+      if (m && !m.bomba && conLibreta()) return bombaDeLibreta(pichon, cfg.movesOff);
+      return bombaDe(m, MISSIONS.indexOf(m));
     }
     /** El renglon del hangar con la bomba de hoy y su dato curioso (el origen). */
     function fichaBomba() {
@@ -2195,6 +2201,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
     // PIRUETAS APAGADAS: preferencia de la PERSONA (una clave global), no de la partida. Por eso no
     // entra en el formato de guardado: apagar el jink porque te sale sin querer no es progreso.
+    // …Y LAS CARTAS DE CARGA APAGADAS (10/10, `APAGABLES` en data/upgrades.js: la BRP), en la misma
+    // clave y el mismo conjunto: es el mismo interruptor.
     const MOVES_OFF_KEY = 'rasante_piruetas_off';
     function saveMovesOff() {
       try { localStorage.setItem(MOVES_OFF_KEY, JSON.stringify(Object.keys(cfg.movesOff))); } catch (e) { }
@@ -2205,7 +2213,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (!Array.isArray(ids)) return;
         // se valida contra UPGRADES por la misma razon que loadOpts valida contra `opts`: una clave
         // vieja o a mano no puede meter en cfg un id de pirueta que no existe.
-        for (const id of ids) if (UPGRADES.some(u => u.id === id)) cfg.movesOff[id] = 1;
+        for (const id of ids) if (UPGRADES.some(u => u.id === id) || APAGABLES.some(u => u.id === id)) cfg.movesOff[id] = 1;
       } catch (e) { }
     }
 
@@ -2236,6 +2244,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         { head: () => T('mejSecPiruetas') },
         MEJ_MASTER,
         ...mejUpgrades().map(mejMoveRow),
+        // LA CARGA (10/10): las cartas de configuracion del avion, con el mismo interruptor. Apagada,
+        // la carta no cuenta aunque se tenga (la BRP: se vuela con la MK-17)
+        { head: () => T('mejSecCarga') },
+        ...APAGABLES.map(mejMoveRow),
         { head: () => T('mejSecPuesto') },
         ...MEJ_PREFS,
       ];
@@ -5714,7 +5726,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           const c = r.card();
           return { label: r.label(), value: r.names()[i], preview: r.preview, raw: r.opts[i],
                    sw: !!r.sw, swOn: r.get() === true,
-                   card: c && { ...c, seq: padTxt(c.seq || '') } };
+                   // (una carta sin combo —la BRP— dice su tecla en el renglon de COMO SE HACE)
+                   card: c && { ...c, seq: padTxt(c.seq || (c.tecla ? T('upgTecla') + ' ' + c.tecla : '')) } };
         }),
       });
 
