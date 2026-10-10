@@ -169,6 +169,8 @@ export function tobera(x, y0, f, esc, forzar) {
 /** La intensidad de ESTE cuadro, suavizada. Sin la rampa, apretar turbo hacia SALTAR la llama de
  *  3 a 9 px en un cuadro y se leia como un parpadeo, no como una aceleracion. */
 let flameF = 0;
+let miraMezcla = 0, miraT = -1;   // la mira entre fija (0) y el cursor (1) — ver el final de drawPlane
+const MIRA_IR = 0.1, MIRA_VUELVE = 0.4;   // s: soltarse hacia el cursor / volver a fija
 /** La intensidad de la tobera de ESTE cuadro, para el escuadron: despegan con vos, a la par. */
 export const llama = () => flameF;
 function stepFlame() {
@@ -1193,9 +1195,18 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // SE DIBUJA CON sx/sy, NO CON x/y (ver viewMouse en game.js): x/y son "a que le apuntas" —
     // llevan deshecho el giro del horizonte para desproyectar al mundo—, y usarlas para dibujar
     // despegaba el reticulo del cursor apenas el mundo se inclinaba.
-    const c = vm.on ? { x: vm.sx, y: vm.sy } : proj(plane.x, plane.y + plane.pitch * AIM_PITCH, 70);
+    //
+    // LA MIRA NO SALTA (9/10): el mouse la suelta y a los 5 s quieto vuelve sola (core/input.js).
+    // miraMezcla va de 0 (fija) a 1 (en el cursor): ir al cursor es casi inmediato porque tiene que
+    // caer bajo la mano; volver a fija es mas lento, para que se lea que se fue a su lugar.
+    const ahoraM = performance.now() / 1000, dtM = miraT < 0 ? 0 : Math.min(0.05, ahoraM - miraT);
+    miraT = ahoraM;
+    miraMezcla = vm.on ? Math.min(1, miraMezcla + dtM / MIRA_IR) : Math.max(0, miraMezcla - dtM / MIRA_VUELVE);
+    const fija = proj(plane.x, plane.y + plane.pitch * AIM_PITCH, 70);
+    const em = miraMezcla * miraMezcla * (3 - 2 * miraMezcla);
+    const c = { x: fija.x + (vm.sx - fija.x) * em, y: fija.y + (vm.sy - fija.y) * em };
     // MIRA elegible desde el menu [M] (cfg.mira, 1..9). Si la hoja no cargo aun, reticulo vectorial.
-    if (!drawMira(cfg.mira, c.x, c.y, MIRA_SIZE, vm.on ? 0.9 : 0.7)) {
+    if (!drawMira(cfg.mira, c.x, c.y, MIRA_SIZE, 0.7 + 0.2 * em)) {
       ctx.globalAlpha = 0.7;
       px(c.x - 5, c.y, 3, 1.5, P.accent); px(c.x + 3, c.y, 3, 1.5, P.accent);
       px(c.x, c.y - 5, 1.5, 3, P.accent); px(c.x, c.y + 3, 1.5, 3, P.accent);

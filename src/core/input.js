@@ -6,7 +6,8 @@
 //
 // LO QUE EXPONE (estado, identidad estable — se muta, no se reasigna):
 //   inp      controles de vuelo: l/r/u/d + fire/turbo/msl
-//   mouse    la MIRA en PC (x,y en pantalla; `on` = mira LIBRE, se habilita con CAPS LOCK activa)
+//   mouse    la MIRA en PC (x,y en pantalla; `on` = mira LIBRE: se suelta al mover el mouse y vuelve
+//            sola a fija tras MIRA_QUIETA quieto; con CAPS LOCK activa queda libre siempre)
 //   pointer  arrastre de vuelo tactil en `pointer.steer` (null o {x,y})
 //   flags    pulsos de un frame: `anyPress` (hubo tecla/tap fresco) y `startReq` (pidieron jugar)
 //
@@ -40,6 +41,12 @@ export const pointer = { steer: null };   // arrastre de vuelo tactil (null fuer
 export const flags = { anyPress: false, startReq: false, backReq: false, zTanq: false };
 // LA RUEDITA del secundario: cuanto desplazamiento es un paso, y cuanto esperar entre pasos (ms)
 const RUEDA_PASO = 40, RUEDA_ESPERA = 160;
+// LA MIRA SE SUELTA SOLA (9/10, pedido del autor): mover el mouse la despega del avion y, si queda
+// QUIETO MIRA_QUIETA ms, vuelve sola a la posicion fija (render/plane.js la desliza de vuelta).
+// MIRA_SUELTA (px de diseño) es lo que hay que moverlo para soltarla: sin umbral, el temblor del
+// panel tactil o el pointermove que llega al recuperar el foco la soltaban sin querer.
+// Con MIRA MOVIL (CAPS LOCK / OPCIONES) no vuelve nunca: queda libre como siempre.
+const MIRA_QUIETA = 5000, MIRA_SUELTA = 4;
 
 // QUE FAMILIA DE MANDO HAY ENCHUFADA. No cambia NINGUN binding —el mapeo estandar de la Gamepad API
 // pone A/✕ en 0, B/◯ en 1, X/□ en 2 e Y/△ en 3, o sea en la MISMA posicion fisica— sino los
@@ -444,8 +451,16 @@ export function initInput(cv, a) {
     // OJO: NO se llama a readCaps aca. Los eventos de puntero no traen el estado de CAPS LOCK, asi
     // que preguntarselo daba siempre "apagada" y la mira se daba vuelta en cada movimiento del
     // mouse. Ver el comentario de readCaps.
-    // el mouse mueve la mira solo con MIRA MOVIL (cfg.aim); con FIJA, readCaps ya la clavo al centro
-    if (e.pointerType === 'mouse') { const p = canvasPos(e); mouse.x = p.x; mouse.y = p.y; if (cfg.aim) mouse.on = true; }
+    // Con la mira FIJA, mouse.x/y se queda donde la solto: es el ancla contra la que se mide
+    // MIRA_SUELTA, asi un movimiento lento (muchos eventos chicos) tambien la suelta.
+    if (e.pointerType === 'mouse') {
+      const p = canvasPos(e);
+      if (mouse.on || Math.hypot(p.x - mouse.x, p.y - mouse.y) >= MIRA_SUELTA) {
+        mouse.x = p.x; mouse.y = p.y; mouse.on = true;
+        clearTimeout(miraQuietaT);
+        miraQuietaT = setTimeout(() => { if (!cfg.aim) mouse.on = false; }, MIRA_QUIETA);
+      }
+    }
     if (e.pointerId === steerPtr) pointer.steer = canvasPos(e);
   });
   // LA RUEDITA pasa de un SECUNDARIO al siguiente (9/10). Un TOQUE por muesca: el panel tactil larga
@@ -506,6 +521,7 @@ export function initInput(cv, a) {
   let btnPrev = [];                            // estado previo de botones (flanco)
   let padLast = performance.now();             // para el dt del movimiento fluido de la mira
   let capsPrev = null;
+  let miraQuietaT = 0;                         // el reloj de MIRA_QUIETA (ver pointermove)
   const nav = { u: false, d: false, l: false, r: false };   // navegacion previa (cruceta+stick)
 
   // CAPS LOCK gobierna la mira: activa = MOVIL (la mueve el mouse), inactiva = FIJA.
@@ -528,9 +544,10 @@ export function initInput(cv, a) {
     if (!e.getModifierState) return;
     const now = e.getModifierState('CapsLock');
     const want = now ? 1 : 0;
-    if (capsPrev !== null && now !== capsPrev && cfg.aim !== want) { cfg.aim = want; a.aimChanged(cfg.aim); }
+    // apagar CAPS la devuelve a fija YA; prendida, la suelta el proximo movimiento del mouse.
+    // (Antes se apagaba en CADA tecla con la mira fija — ahora eso mataria la mira suelta por mouse.)
+    if (capsPrev !== null && now !== capsPrev && cfg.aim !== want) { cfg.aim = want; if (!want) mouse.on = false; a.aimChanged(cfg.aim); }
     capsPrev = now;
-    if (!cfg.aim) mouse.on = false;             // MIRA FIJA: el mouse no la despega del centro
   }
 
   // escribe un control de vuelo del pad en `inp`, y lo LIMPIA al soltar — sin pisar al teclado
