@@ -58,15 +58,44 @@ export const CHAFITAS = [
   chafita(4, 'MAS CHAFITAS', 'El ultimo cartucho: cuatro cargas por avion, el maximo', 'Cuatro. Mas no entran.', 'chafitas3'),
 ];
 
+/** LA METRALLA Y SU CINTA (9/10/2026) — dos escaleras de mejoras del cañon, con el mismo molde que las
+ *  chafitas (cartas fuera de UPGRADES, cada una pide la anterior). El autor: "3 mejoras diferentes de
+ *  balas relacionadas a la rapidez de disparo [...] dejar el basico al inicio" y "otras 3 mejoras seran
+ *  la CANTIDAD/CAPACIDAD de balas, lo que permitira mantener mas tiempo los disparos".
+ *
+ *  METRALLA: la COMUN viene de fabrica (nivel 1); las cartas dan la de PLATA (2) y la de ORO (3).
+ *  Cadencia, sonido, fogonazo y reloj de cada una: METRALLAS en data/tuning.js.
+ *  CINTA: la de fabrica (1) y dos cartas que la alargan — cuanto aguanta la rafaga: CINTAS en tuning.
+ *  En campaña el nivel son las cartas que se tienen (`metrallaDe`, `cintaDe`); fuera de ella, la COMUN
+ *  con la cinta corta (decision del autor, ver game.js). */
+const arma = (id, nivel, campo, name, desc, quote, requiere) => ({ id, [campo]: nivel, name, tecla: 'X / ESPACIO', desc, quote, requiere });
+export const METRALLA = [
+  arma('metralla2', 2, 'metralla', 'METRALLA DE PLATA', 'El doble de tiros por segundo', 'Le cambie los resortes del cerrojo. Ahora escupe.'),
+  arma('metralla3', 3, 'metralla', 'METRALLA DE ORO', 'Tres veces y media mas rapida, pero tarda un segundo en girar',
+    'Seis caños que giran. Dale un segundo, que despues no para.', 'metralla2'),
+];
+export const CINTA = [
+  arma('cinta2', 2, 'cinta', 'CINTA LARGA', 'La rafaga aguanta una vez y media antes de recalentar', 'Le alargue la cinta. Apretala mas tiempo.'),
+  arma('cinta3', 3, 'cinta', 'CINTA ENTERA', 'El doble de rafaga antes de recalentar', 'Toda la cinta que entra en el ala.', 'cinta2'),
+];
+const tiene = (owned, id) => !!owned && (owned.includes ? owned.includes(id) : owned.has(id));
+/** El nivel de METRALLA (1 comun, 2 plata, 3 oro) que da la libreta `owned`. */
+export const metrallaDe = owned => 1 + METRALLA.filter(c => tiene(owned, c.id)).length;
+/** El nivel de CINTA (1 a 3) que da la libreta `owned`. */
+export const cintaDe = owned => 1 + CINTA.filter(c => tiene(owned, c.id)).length;
+
 /** EL BANCO: el ORDEN en que se entregan las mejoras, piruetas y chafitas juntas. Es el orden causal
  *  de UPGRADES con las cuatro cartas intercaladas: la primera, CHAFITAS, justo despues de la que
  *  sirve M2 —asi la oferta de M3 «El invento» es CHAFITAS contra el SPLIT-S, y si no se elige queda
  *  esperando en la proxima—; MAS CHAFITAS mas adelante, repartidas.
  *  ⚠ CON ESTO SOBRAN CARTAS: 16 para 12 ventanas, y quedan CUATRO sin aprender por partida (antes se
  *  aprendian todas). Es buscado: elegir pesa de verdad. */
-const ORDEN = ['mask', 'chafitas1', 'splits', 'breakt', 'loyo', 'chafitas2', 'sturn', 'popup', 'hiyo', 'chafitas3',
-  'jink', 'spin', 'climb', 'chafitas4', 'climbmax', 'barrel'];
-export const BANCO = ORDEN.map(id => UPGRADES.find(u => u.id === id) || CHAFITAS.find(c => c.id === id));
+//  ⚠ Y CON LA METRALLA Y LA CINTA (9/10) son 20 para 12: quedan OCHO sin aprender. La PLATA llega
+//  temprano (tras el SPLIT-S), la CINTA LARGA a mitad, y el ORO y la CINTA ENTERA en la segunda mitad.
+const ORDEN = ['mask', 'chafitas1', 'splits', 'metralla2', 'breakt', 'loyo', 'cinta2', 'chafitas2', 'sturn', 'popup',
+  'hiyo', 'metralla3', 'chafitas3', 'jink', 'spin', 'cinta3', 'climb', 'chafitas4', 'climbmax', 'barrel'];
+const CARTAS = [...UPGRADES, ...CHAFITAS, ...METRALLA, ...CINTA];
+export const BANCO = ORDEN.map(id => CARTAS.find(u => u.id === id));
 
 /** Cuantas cargas de chafitas da la libreta `owned` (las cartas de chafitas que tiene). */
 export const chafitasDe = owned => CHAFITAS.filter(c => (owned && owned.includes ? owned.includes(c.id) : owned && owned.has && owned.has(c.id))).length;

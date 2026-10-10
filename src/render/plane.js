@@ -31,7 +31,7 @@ import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
          CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT,
          ROCIADA_TURBO, CORTINA_TURBO,
          ROCIADA_VERTICE, ROCIADA_FILAS, ROCIADA_REVUELTO, ROCIADA_REVUELTO_V,
-         ROCIADA_RAS_CORTE, AVERIA_TAMBALEO, PIQUE, DERRAPE } from '../data/tuning.js';
+         ROCIADA_RAS_CORTE, AVERIA_TAMBALEO, PIQUE, DERRAPE, METRALLAS } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
 import { alMando } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
@@ -353,9 +353,16 @@ function muzzles(bank) {
 // RASANTE (tres cuartos de costado) ese lugar es el fuselaje, y no se veian nunca.
 const FOGON = ['#cf4d16', '#f07c22', '#ffb43c', '#ffe08a', '#fff6d8'];
 const FOGON_RAIZ = 0.24;                           // de la raiz a la punta: donde van los cañones del A-4
+// CUANDO SE VE: los 0,05 s que siguen a cada tiro (run.tiroT). Antes se miraba `fireT > 0.06`, que
+// solo servia a 9 tiros/s: a 18 el cuadro entre tiros es mas corto que eso y el fogonazo no salia.
+// Con la de ORO (31,5/s) queda prendido toda la rafaga, cambiando de estrella en cada cuadro.
+const FOGON_DUR = 0.05;
+const fogonOn = () => run.tiroT < FOGON_DUR;
 function fogonazos(spW, spH, tp) {
   if (!tp) return;
-  const k = spW / 84;                              // la escala del sprite (84 = el cuadro de la hoja base)
+  // la escala del sprite (84 = el cuadro de la hoja base), y CRECE CON LA METRALLA (autor, 9/10):
+  // comun, plata y oro, `fogon` en METRALLAS (data/tuning.js)
+  const k = spW / 84 * (METRALLAS[run.metralla] || METRALLAS[1]).fogon;
   for (const [tx, ty] of [[tp[0], tp[1]], [tp[2], tp[3]]]) estrellaFogon(tx * spW * FOGON_RAIZ, ty * spH * FOGON_RAIZ, k);
 }
 function estrellaFogon(x, y, k) {
@@ -1014,7 +1021,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // del ala. Son ESTRELLAS en las raices medidas de la hoja (ver `fogonazos`), asi que asoman alrededor
     // del ala tambien con la hoja del poder RASANTE.
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
-    if (inp.fire && !run.overheat && run.fireT > 0.06 && !hoja4) fogonazos(spW, spH, AN.tips[rowPose][colPose]);
+    if (fogonOn() && !hoja4) fogonazos(spW, spH, AN.tips[rowPose][colPose]);
     drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
     // EL FUNDIDO DE FILA: el cabeceo de recien se apaga ENCIMA del nuevo (solo entre filas de la
@@ -1094,7 +1101,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
       ctx.restore();
     }
     // mismo orden que arriba: fogonazos detras, llama del turbo adelante
-    if (inp.fire && !run.overheat && run.fireT > 0.06) muzzles(bank);
+    if (fogonOn()) muzzles(bank);
     drawGear(run.gear, 1);
     ctx.drawImage(pl.img, -PW / 2, -PH / 2, PW, PH);
     tobera(0, TOBERA_F * PH * (84 / 48), ff, PH / 48 * 2.4);
@@ -1106,7 +1113,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // el fallback de rects usa LA MISMA tobera que las otras dos ramas: si no, cuando la hoja no
     // carga el avion volveria a tener la antorcha vieja y el juego se contradiria a si mismo
     tobera(0, 3, ff, 1.1);
-    if (inp.fire && !run.overheat && run.fireT > 0.06) { px(-16, -2, 3, 2, P.ink); px(13, -2, 3, 2, P.ink); }
+    if (fogonOn()) { px(-16, -2, 3, 2, P.ink); px(13, -2, 3, 2, P.ink); }
   }
   // EL VAPOR DE ALA (PLAN_TRANSONICO V1), DELANTE del sprite: se levanta DEL extrados, o sea que
   // esta entre el ala y la camara. Es el efecto VERIDICO del A-4 — un Skyhawk virando fuerte en el

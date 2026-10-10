@@ -399,6 +399,25 @@ export const GUN_COOL_FIRE = 0.22;
 export const GUN_COOL_IDLE = 0.5;
 export const GUN_RESET = 0.3;
 
+// LAS TRES METRALLAS DEL PASILLO (9/10, autor). La COMUN es la de siempre; PLATA y ORO son cartas del
+// banco del Pichon (data/upgrades.js). El arena tiene su propia cadencia (SHOT_CD) y no las usa.
+//   cad       tiros por segundo: x1, x2 y x3,5 de la comun ("la velocidad seria x3.5 mas rapido")
+//   calienta  segundos que giran los caños antes del primer tiro. La de ORO: lo que tarda minigun00
+//             en empezar a disparar — medido en el archivo, el ritmo de 20 golpes/s aparece al 1,0 s
+//   fogon     escala del fogonazo (render/plane.js): crece con la metralla
+//   sfx       el loop del disparo (data/sfx.js)
+export const METRALLAS = [null,
+  { cad: 9, calienta: 0, fogon: 1, sfx: 'gun' },
+  { cad: 18, calienta: 0, fogon: 1.35, sfx: 'gunPlata' },
+  { cad: 31.5, calienta: 1.0, fogon: 1.75, sfx: 'gunOro' },
+];
+// LA CINTA: cuantos segundos aguanta la rafaga antes de recalentar, por nivel (1 de fabrica, 2 y 3 son
+// cartas). El 1 es el de siempre: 1 / (GUN_HEAT_SHOT·9 − GUN_COOL_FIRE) = 3,125 s.
+export const CINTAS = [null, 3.125, 4.7, 6.25];
+/** El calor de UN tiro de la metralla `m` con la cinta `c`: el que hace que la rafaga dure CINTAS[c]
+ *  sea cual sea la cadencia — mas rapida es mas balas, no menos rafaga. (1,1) da GUN_HEAT_SHOT. */
+export const calorTiro = (m, c) => (1 / CINTAS[c] + GUN_COOL_FIRE) / METRALLAS[m].cad;
+
 // SALUD DE LOS ENEMIGOS. El globo cae de un tiro (es un globo); las aeronaves aguantan una rafaga
 // corta, para que valga la pena sostener el disparo y apuntar. Los que tienen mas de 1 muestran
 // barra de vida (ver drawHpBar en render/world.js).

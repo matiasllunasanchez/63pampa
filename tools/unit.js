@@ -1260,7 +1260,7 @@ test('charlas: una escena VUELO no lleva placa — el fondo es el juego', () => 
 // Con que piruetas se vuela una mision suelta. Se prueba aca y no a ojo porque si la cuenta se
 // corre en uno, el selector mide OTRO avion que el de la campaña — y eso no da error: da una
 // pirueta que sale (o no) cuando no debia, que es justo lo que las notas de playtest van a acusar.
-const { loadoutAt: loadAt, UPGRADES: UPS, BANCO, CHAFITAS: CHAF, chafitasDe, nextUpgrades: nextUps, ofertaTrasMision: ofertaTras, SIN_ENTREGA } = await import('../src/data/upgrades.js');
+const { loadoutAt: loadAt, UPGRADES: UPS, BANCO, CHAFITAS: CHAF, METRALLA: METR, CINTA, chafitasDe, metrallaDe, cintaDe, nextUpgrades: nextUps, ofertaTrasMision: ofertaTras, SIN_ENTREGA } = await import('../src/data/upgrades.js');
 const { MISSIONS: MIS } = await import('../src/data/missions.js');
 const { SECUENCIAS } = await import('../src/data/story.js');
 
@@ -1367,15 +1367,16 @@ test('libreta: se gana UNA por ventana, en el orden del BANCO', () => {
   }
 });
 
-test('libreta: 12 ventanas y 16 cartas — con las CHAFITAS quedan cuatro sin aprender, y nunca falta carta', () => {
-  // LA CUENTA CAMBIO CUATRO VECES Y ESTA PRUEBA ES LA QUE SE ENTERA. Con 12 misiones sobraban dos
+test('libreta: 12 ventanas y 20 cartas — con CHAFITAS, METRALLA y CINTA quedan ocho sin aprender, y nunca falta carta', () => {
+  // LA CUENTA CAMBIO CINCO VECES Y ESTA PRUEBA ES LA QUE SE ENTERA. Con 12 misiones sobraban dos
   // mejoras; con las 14 del guion 3.0 la segunda ventana cerrada (m10) hizo empatar 12 y 12. El
-  // 8/10 entraron las cuatro cartas de CHAFITAS (decision del autor): 16 cartas para 12 ventanas.
+  // 8/10 entraron las cuatro cartas de CHAFITAS (decision del autor): 16 cartas para 12 ventanas. El
+  // 9/10, dos de METRALLA y dos de CINTA: 20 para 12.
   let ventanas = 0;
   for (let i = 0; i < MIS.length; i++) if (ofertaTras(i) > 0) ventanas++;
   assert.equal(ventanas, 12, 'las ventanas no cambiaron');
-  assert.equal(BANCO.length, UPS.length + 4, 'doce piruetas y cuatro chafitas');
-  assert.equal(BANCO.length - ventanas, 4, 'quedan cuatro sin aprender por partida');
+  assert.equal(BANCO.length, UPS.length + 8, 'doce piruetas, cuatro chafitas, dos metrallas y dos cintas');
+  assert.equal(BANCO.length - ventanas, 8, 'quedan ocho sin aprender por partida');
   // y ninguna ventana puede quedar sin cartas para ofrecer
   for (let i = 0; i < MIS.length; i++) {
     const o = ofertaTras(i);
@@ -1407,7 +1408,7 @@ test('chafitas en el banco: la primera desde M3 «El invento», y cada MAS CHAFI
   // si no se elige, queda esperando
   assert.ok(nextUps(['mask', 'splits'], 2).some(u => u.id === 'chafitas1'), 'la no elegida queda esperando');
   // sin la primera, las MAS CHAFITAS no salen nunca
-  const sinChaf = UPS.map(u => u.id);
+  const sinChaf = [...UPS, ...METR, ...CINTA].map(u => u.id);
   assert.ok(!nextUps(sinChaf, 4).some(u => u.id === 'chafitas2'), 'MAS CHAFITAS pide CHAFITAS');
   assert.deepEqual(nextUps(sinChaf, 4).map(u => u.id), ['chafitas1'], 'sin la primera, solo queda la primera');
   // las cargas son las cartas que se tienen, de 0 a 4
@@ -1418,6 +1419,29 @@ test('chafitas en el banco: la primera desde M3 «El invento», y cada MAS CHAFI
   for (const c of CHAF) for (const k of ['name', 'desc', 'tecla', 'quote']) assert.ok(c[k], `${c.id}: falta ${k}`);
   assert.ok(/chaff/i.test(CHAF[0].quote) && /chafitas/i.test(CHAF[0].quote), 'chaff los yanquis, chafitas el Pichon');
   assert.ok(!/invent/i.test(CHAF.map(c => c.desc + c.quote).join(' ')), 'nadie dice que invento nada (ni el Pichon ni los yanquis)');
+});
+
+test('metralla y cinta en el banco: de fabrica la comun y la corta, y cada carta pide la anterior', () => {
+  assert.equal(metrallaDe([]), 1, 'de fabrica, la COMUN');
+  assert.equal(metrallaDe(['metralla2']), 2, 'PLATA');
+  assert.equal(metrallaDe(new Set(['metralla2', 'metralla3'])), 3, 'ORO');
+  assert.equal(cintaDe([]), 1);
+  assert.equal(cintaDe(['cinta2', 'cinta3']), 3);
+  // el ORO no sale sin la PLATA, ni la CINTA ENTERA sin la LARGA
+  const todo = BANCO.map(u => u.id).filter(id => id !== 'metralla2' && id !== 'metralla3' && id !== 'cinta2' && id !== 'cinta3');
+  assert.deepEqual(nextUps(todo, 4).map(u => u.id), ['metralla2', 'cinta2'], 'solo salen las primeras de cada escalera');
+  for (const c of [...METR, ...CINTA]) for (const k of ['name', 'desc', 'tecla', 'quote']) assert.ok(c[k], `${c.id}: falta ${k}`);
+  assert.ok(!/invent/i.test([...METR, ...CINTA].map(c => c.desc + c.quote).join(' ')), 'el Pichon no dice que invento nada');
+});
+
+test('las tres metrallas: la rafaga dura lo que dice la CINTA con cualquier cadencia', async () => {
+  const { METRALLAS, CINTAS, calorTiro, GUN_HEAT_SHOT, GUN_COOL_FIRE } = await import('../src/data/tuning.js');
+  assert.ok(Math.abs(calorTiro(1, 1) - GUN_HEAT_SHOT) < 1e-12, 'la comun con la cinta corta es la de siempre');
+  for (let m = 1; m <= 3; m++) for (let c = 1; c <= 3; c++) {
+    const dura = 1 / (calorTiro(m, c) * METRALLAS[m].cad - GUN_COOL_FIRE);
+    assert.ok(Math.abs(dura - CINTAS[c]) < 1e-9, `metralla ${m}, cinta ${c}: ${dura.toFixed(2)} s`);
+  }
+  assert.equal(METRALLAS[3].cad / METRALLAS[1].cad, 3.5, 'la de oro: x3,5 de la comun');
 });
 
 // ---------------- EL DIRECTOR: el calendario de una cinematica (core/cine.js) ----------------

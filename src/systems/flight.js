@@ -27,7 +27,7 @@ import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { TURBO } from '../data/tuning.js';
 import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE, GEO_ISLA_IMPACTO,
-         GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
+         METRALLAS, calorTiro, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
          FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
@@ -691,18 +691,27 @@ export function flightSystem(dt, deps) {
 
   // cañón
   run.fireT -= dt;
+  run.tiroT += dt;
   // CON LA MIRA DE LA BOMBA PUESTA el gatillo es de la bomba, no del cañon (ver abajo)
   const gatillo = inp.fire && !inp.apunta;
+  const met = METRALLAS[run.metralla] || METRALLAS[1];   // comun, plata u oro (data/tuning.js)
   run.heat -= dt * (gatillo ? GUN_COOL_FIRE : GUN_COOL_IDLE);
   if (run.heat < 0) run.heat = 0;
   if (run.overheat && run.heat < GUN_RESET) run.overheat = false;
-  if (gatillo && !run.overheat && run.fireT <= 0 && mvAllowsFire()) {
-    run.fireT = 1 / 9; stats.shots++;   // denominador de la PRECISION del recuento
+  // LA DE ORO CALIENTA (autor, 9/10): con el gatillo apretado los caños giran `calienta` s antes del
+  // primer tiro — lo mismo que tarda su sonido en empezar a disparar. Soltar o recalentar los para, y
+  // el sonido vuelve a arrancar del giro (systems/audio.js).
+  run.giro = gatillo && !run.overheat ? run.giro + dt : 0;
+  if (gatillo && !run.overheat && run.giro >= met.calienta && run.fireT <= 0 && mvAllowsFire()) {
+    // la cadencia ARRASTRA el resto, de a lo sumo un cuadro: con `fireT = 1 / cad` cada tiro esperaba
+    // el cuadro entero que sobraba, y a 60 fps la de 18 tiros/s tiraba 15
+    run.fireT = Math.max(run.fireT, -dt) + 1 / met.cad; run.tiroT = 0;
+    stats.shots++;   // denominador de la PRECISION del recuento
     const vm = deps.viewMouse();
     // DOS CAÑONES, uno por lado, TURNANDOSE. Antes salia todo de un punto en el centro del avion.
     // Se alterna en vez de disparar los dos juntos a proposito: asi la cadencia, el daño y la
     // PRECISION del recuento (hits/shots) quedan exactamente iguales que antes — lo unico que
-    // cambia es de donde sale cada trazadora. A 9 tiros por segundo se ven los dos chorros.
+    // cambia es de donde sale cada trazadora. Con cualquier metralla se ven los dos chorros.
     gunSide = -gunSide;
     const bx = plane.x + gunSide * GUN_X;
     // Las dos lineas CONVERGEN en el punto apuntado, como un armamento reglado de verdad: salen
@@ -726,9 +735,9 @@ export function flightSystem(dt, deps) {
       }
     }
     bullets.push({ x: bx, y: plane.y, z: PZ + 3, x0: bx, y0: plane.y, z0: PZ + 3, tx, ty, path: true });
-    run.heat += GUN_HEAT_SHOT;
+    run.heat += calorTiro(run.metralla, run.cinta);   // la CINTA dice cuanto aguanta la rafaga
     if (run.heat >= 1) { run.overheat = true; beep(140, 0.3, 'sawtooth', 0.05); }
-    else if (!sfxSrc('gun')) beep(1100 + Math.random() * 300, 0.04, 'square', 0.028);   // web: beep; escritorio: loop de metralla
+    else if (!sfxSrc(met.sfx)) beep(1100 + Math.random() * 300, 0.04, 'square', 0.028);   // web: beep; escritorio: loop de metralla
   }
 
   // misiles del jugador: cooldown, recarga lenta y lanzamiento (tecla Z / botón táctil)

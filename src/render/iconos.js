@@ -1,7 +1,49 @@
 // EL DIBUJO DE UN ICONO DEL TABLERO. La tabla de que hay y que letra lo reemplaza mientras tanto
 // vive en data/iconos.js; aca solo se dibuja.
-import { ctx } from './ctx.js';
+import { ctx, U, SC } from './ctx.js';
 import { ICONOS } from '../data/iconos.js';
+import { ICONOS_FINOS, ICONOS_FINOS_PAL } from '../data/iconos_finos.js';
+
+// LOS ICONOS FINOS (9/10, tools/iconos_finos.py): los de los relojes del tablero, en PIXELES REALES
+// —un tercio del de diseño— dibujados como las balas del cañon: luz de arriba, sombra abajo y el borde
+// en un tono oscuro del mismo color. Se dibujan en lugar del de pixeles (`pix`) cuando existen, en el
+// mismo lugar y centrados igual, asi que nadie que llame cambia. Solo en la grilla de DISEÑO (el
+// tablero): ahi un tercio cae justo en el pixel real.
+const FINO = 1 / (U * SC);
+const HUECO = '#0a0e11';                    // lo calado: el fondo de la placa
+const TONOS = new Map();
+/** Los tonos de un color '#rgb' o '#rrggbb' (con o sin alfa), con las letras de las balas del cañon
+ *  (data/iconos.js): `{ g: el color, h: su luz, s: su sombra, o: su borde, x: hueco }`. Se cachean:
+ *  son pocos colores y se piden cada cuadro. */
+export function tonos(col) {
+  let t = TONOS.get(col);
+  if (t) return t;
+  let h = String(col).replace('#', '');
+  if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+  const rgb = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) || 0);
+  const mez = (a, k) => '#' + rgb.map(v => Math.round(v + (a - v) * k).toString(16).padStart(2, '0')).join('');
+  t = { g: col, h: mez(255, 0.45), s: mez(0, 0.3), o: mez(0, 0.62), x: HUECO };
+  // los OTROS MATERIALES (mayusculas: las aletas, las fajas y la espoleta de la bomba) caen en los
+  // mismos tres tonos — asi se dibuja en un solo color sin perder la forma (`mono`)
+  for (const [a, b, c] of ['ABC', 'DEF', 'JKL']) { t[a] = t.h; t[b] = t.g; t[c] = t.s; }
+  TONOS.set(col, t);
+  return t;
+}
+/** Un icono fino centrado en (cx, cy) de DISEÑO, con la paleta `pal` (ver `tonos`). Junta los pixeles
+ *  seguidos del mismo color de cada fila en un solo rectangulo. */
+function iconoFino(cx, cy, filas, pal) {
+  const w = filas[0].length, h = filas.length;
+  const x0 = Math.round(cx / FINO - w / 2) * FINO, y0 = Math.round(cy / FINO - h / 2) * FINO;
+  for (let j = 0; j < h; j++) {
+    const f = filas[j];
+    for (let i = 0; i < w;) {
+      const c = f[i]; let k = i + 1;
+      while (k < w && f[k] === c) k++;
+      if (c !== '.') { ctx.fillStyle = pal[c]; ctx.fillRect(x0 + i * FINO, y0 + j * FINO, (k - i) * FINO, FINO); }
+      i = k;
+    }
+  }
+}
 
 const IMGS = new Map();
 
@@ -29,6 +71,13 @@ export function iconoEn(cx, cy, nombre, col, col2, mono) {
   const x0 = Math.round(cx - (w - 1) / 2), y0 = Math.round(cy - (h - 1) / 2);
   const im = d.png ? img(d.png) : null;
   if (im) { ctx.drawImage(im, x0, y0, w, h); return; }
+  // el FINO, centrado donde caeria el de pixeles (su centro es (cx, cy) + medio pixel). Los de colores
+  // propios (la bomba) los usan salvo en `mono`, que es todo en `col` con su luz y su sombra
+  if (ICONOS_FINOS[nombre]) {
+    const propia = ICONOS_FINOS_PAL[nombre];
+    iconoFino(cx + 0.5, cy + 0.5, ICONOS_FINOS[nombre], propia && !mono ? propia : tonos(col));
+    return;
+  }
   if (!d.pix) { icono(x0, y0, 7, nombre, col); return; }
   if (d.pal) {
     for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {

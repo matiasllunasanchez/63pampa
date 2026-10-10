@@ -6,7 +6,7 @@
 // Lo que necesita saber del juego (estado, config, avion...) NO lo lee de variables globales:
 // entra por parametro. Asi el modulo no depende del closure de game.js y se puede probar solo.
 import { SFXB, SFX_DEF } from '../data/sfx.js';
-import { RAS_MUS, RAS_AGUA, BANDA_ALT } from '../data/tuning.js';
+import { RAS_MUS, RAS_AGUA, BANDA_ALT, METRALLAS } from '../data/tuning.js';
 import { AUDIO_BLOQUEADO } from '../data/sonido.js';
 
 let lastState = 'modeselect';   // ultimo estado conocido, para las llamadas que no lo reciben
@@ -200,13 +200,23 @@ export function updateSfx(dt, w) {
       // silencio no se lea como que se rompio el sonido — se lee como que te acercaste al mar.
       if (w.state === 'play' && w.plane.y <= BANDA_ALT) sfxTgt.waterNear = SFX_DEF.waterNear.v * (rasOn ? RAS_AGUA : 1);
       const tirando = w.state === 'play' && w.firing && !w.overheat;
+      // cual de las tres metrallas suena (METRALLAS en data/tuning.js): si cambia entre corridas, la
+      // que sonaba se apaga sola por el fundido de los loops
+      const gk = (METRALLAS[w.metralla] || METRALLAS[1]).sfx, gd = SFX_DEF[gk];
       if (tirando) {
-        sfxTgt.gun = SFX_DEF.gun.v;                                       // metralla
+        sfxTgt[gk] = gd.v;                                                // metralla
         if (!tirabaPrev) {                                                // APRETASTE: corta la descarga y entra la rafaga ya
           sfxStop('descarga');
-          const g = sfxLoop('gun'); if (g) g.volume = SFX_DEF.gun.v * SFX_MASTER;
+          const g = sfxLoop(gk);
+          if (g) {
+            if (gd.bucle) { try { g.currentTime = 0; } catch (e) { } }    // la de ORO: arranca del giro
+            g.volume = gd.v * SFX_MASTER;
+          }
         }
-      } else if (tirabaPrev) sfxOne('descarga');                          // SOLTASTE (o se recalento)
+      } else if (tirabaPrev) {                                            // SOLTASTE (o se recalento)
+        sfxOne('descarga');
+        if (gd.corta) { const g = sfxLoop(gk); if (g) { g.volume = 0; g.pause(); } }   // la de ORO no se apaga: se corta
+      }
       tirabaPrev = tirando;
       // AMBIENTE POR CONTEXTO DEL MAPA — y con el poder puesto, NADA. La tormenta, la batalla y el
       // viento son el MUNDO, y el mundo es justo lo que el poder apaga: quedan el motor y el agua,
@@ -232,6 +242,9 @@ export function updateSfx(dt, w) {
   }
   for (const k of SFX_LOOP_KEYS) {
     const a = sfxLoop(k); if (!a) continue;
+    // `bucle` (data/sfx.js): da vueltas por un tramo y no por el archivo entero
+    const b = SFX_DEF[k].bucle;
+    if (b && !a.paused && a.currentTime >= b[1]) { try { a.currentTime = b[0]; } catch (e) { } }
     const tgt = (sfxTgt[k] || 0) * SFX_MASTER;
     a.volume += (tgt - a.volume) * Math.min(1, dt * 3.5);
     if (tgt > 0 && a.paused && musicStarted) a.play().catch(() => { });

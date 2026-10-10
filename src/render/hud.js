@@ -8,7 +8,7 @@
 // objectiveDist, objectiveShip, goalKind) vive en game.js y entra por parametro, igual que las
 // otras pantallas (render/screens.js, render/menus.js).
 
-import { ctx, px, DW as W, DH as H, PZ, U, avisoFont } from './ctx.js';
+import { ctx, px, DW as W, DH as H, PZ, U, SC, avisoFont } from './ctx.js';
 import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
 import { cargaDe } from '../data/cargas.js';
@@ -21,7 +21,7 @@ import { T } from '../core/i18n.js';
 import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu,
   concentracion as concSeg } from '../core/aguante.js';
 import { P, RADAR_VERDE, RADAR_OPACO, RADAR_GRIS, colDefensa } from '../data/palette.js';
-import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT, ZONAS_GASTO } from '../data/tuning.js';
+import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT, ZONAS_GASTO, METRALLAS } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
 import { alMando, filaOk, filaDeVidas } from '../core/squad.js';
 import { pilotName, planeName } from '../systems/squad.js';
@@ -29,8 +29,8 @@ import { active as tempoActive, meterVal as tempoMeter } from '../systems/tempo.
 import { meterVal as chMeter, gastada as chGastada, snapshot as chSnap } from '../systems/chancha.js';
 import { attitude } from '../core/horizon.js';
 import { retrato, silueta } from './retratos.js';
-import { icono, iconoEn } from './iconos.js';
-import { ICONO_BUQUE, ICONO_BUQUE_NOMBRE } from '../data/iconos.js';
+import { icono, iconoEn, tonos } from './iconos.js';
+import { ICONO_BUQUE, ICONO_BUQUE_NOMBRE, CANON_METAL } from '../data/iconos.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { CARA_PILOTO, GESTOS, GESTO_SOSTEN, SONRISA_PTS, SONRISA_T } from '../data/gestos.js';
 import { radio, visible as radioVisible } from '../core/radioVN.js';
@@ -395,9 +395,10 @@ function relojSalud(x, y) {
   // LAS DOS ESQUINAS DE LA IZQUIERDA SON DE LOS ICONOS: ni la escala ni sus bloques entran ahi, con
   // un pixel de aire. Sin esto la cruz se pegaba al segundo bloque y el escudo a las marcas rojas.
   const libre = (qx, qy) => !(qx - x <= 7 && (qy - y <= 7 || qy - y >= 19));
-  const marca = (a, rr, col) => {
-    const qx = Math.round(cx + Math.cos(a) * rr), qy = Math.round(cy + Math.sin(a) * rr);
-    if (libre(qx, qy)) px(qx, qy, 1, 1, col);
+  // una marca RADIAL fina (ver `marcaFina`), si su centro cae fuera de las esquinas de los iconos
+  const marca = (a, r0, r1, grosor, col) => {
+    const rm = (r0 + r1) / 2;
+    if (libre(Math.round(cx + Math.cos(a) * rm), Math.round(cy + Math.sin(a) * rm))) marcaFina(cx, cy, a, r0, r1, grosor, col);
   };
   // LA CHAPA SE MARCA EN HORAS Y EL ESCUDO EN SEGUNDOS (playtest 11/9). Arriba, CUATRO BLOQUES
   // gruesos, uno por escalon de averia, PRENDIDOS hasta donde llega la chapa: "cuantos tramos me
@@ -405,37 +406,30 @@ function relojSalud(x, y) {
   // piruetas— y el hueco entre bloques es el escalon. Abajo, una escala FINA y apretada, como la de
   // los segundos: es la que se mueve rapido y va y vuelve. La diferencia de trazo es lo que separa
   // las dos escalas de un vistazo, antes que el color.
+  // (9/10: los bloques son una banda continua en pixeles reales, y las dos agujas tienen punta — el
+  // mismo trazo que el resto de los relojes, ver `reloj`)
   if (total !== null) {
-    const hechos = new Set();
     for (let k = 0; k <= 120; k++) {
       const f = k / 120;
       if (Math.abs(f - 0.25) < 0.03 || Math.abs(f - 0.5) < 0.03 || Math.abs(f - 0.75) < 0.03) continue;
-      const col = f > total + 1e-6 ? '#2e3c45' : f < 0.25 ? P.warn : P.foam;
-      for (const rr of [r, r - 1]) {
-        const qx = Math.round(cx + Math.cos(arriba(f)) * rr), qy = Math.round(cy + Math.sin(arriba(f)) * rr);
-        if (!libre(qx, qy) || hechos.has(qx * 1000 + qy)) continue;   // el primero que llega lo pinta
-        hechos.add(qx * 1000 + qy);
-        px(qx, qy, 1, 1, col);
-      }
+      marca(arriba(f), r - 1.4, r + 0.4, 2, f > total + 1e-6 ? '#2e3c45' : f < 0.25 ? P.warn : P.foam);
     }
   }
-  // el rojo del escudo es el mismo umbral en que la aguja empieza a parpadear
-  for (let i = 0; i <= 24; i++) marca(abajo(i / 24), r, i / 24 <= 0.35 ? P.warn : '#55676f');
+  // el rojo del escudo es el mismo umbral en que la aguja empieza a parpadear; largas cada cuarto
+  for (let i = 0; i <= 24; i++) {
+    const larga = i % 6 === 0;
+    marca(abajo(i / 24), larga ? r - 1.4 : r - 0.6, r + 0.5, larga ? 2 : 1, i / 24 <= 0.35 ? P.warn : larga ? ESCALA_LARGA : ESCALA_COL);
+  }
   // EL MINUTERO: amarillo siempre —es su nombre—, rojo y parpadeando cuando queda poco o mientras se
   // esta rozando, que es cuando hay que mirarlo
-  const aT = abajo(temp);
-  pxLinea(cx, cy, cx + Math.cos(aT) * (r - 2), cy + Math.sin(aT) * (r - 2),
+  agujaSimple(cx, cy, abajo(temp), r - 2,
     temp < 0.35 || rozando ? (Math.sin(run.t * 16) > 0 ? P.warn : '#7d2f1e') : P.accent);
   // LA DE LAS HORAS, encima: con el avion sano tapa la base del minutero y le deja la punta afuera.
-  // Gruesa con una segunda raya al costado de afuera de su mitad.
+  // Corta y GORDA: es la que se lee de lejos.
   if (total !== null) {
-    const aC = arriba(total), l = r - 4;
     const col = total <= 0.25 ? (Math.sin(run.t * 10) > 0 ? '#ff5340' : P.warn) : P.foam;
-    const ox = Math.round(Math.sin(aC)), oy = Math.round(-Math.cos(aC));
-    pxLinea(cx + ox, cy + oy, cx + ox + Math.cos(aC) * l, cy + oy + Math.sin(aC) * l, col);
-    pxLinea(cx, cy, cx + Math.cos(aC) * l, cy + Math.sin(aC) * l, col);
+    aguja(cx, cy, arriba(total), r - 4, { o: AGUJA_BORDE, h: col, g: col, x: P.ink }, 1.3);
   }
-  px(cx - 1, cy - 1, 2, 2, P.ink);                        // el eje
   // LA CRUZ en vez de la palabra: es salud, y una cruz lo dice en cualquier idioma y en menos lugar.
   // BLANCA Y NO ROJA: la cruz roja sobre fondo claro es un emblema protegido (Convenios de Ginebra)
   // y a mas de un juego le pidieron sacarla. Una cruz clara dice «salud» igual.
@@ -894,34 +888,84 @@ function barraPoder(px0, py0, val, col, claro, oscuro, on, lista, rot) {
 // que el tablero es una fila entera, el centro de la fila es el lugar del instrumento principal.
 // CUADRADO CON EL RESTO: su placa es la misma de 26 de todos los relojes.
 const ADI = { cx: xVuelo(1) + 13, cy: CUADROS_Y + 13, r: 10 };
-const ADI_SKY = '#3c6c8e', ADI_GND = '#6b4a2a', ADI_LINE = '#f2f7fb';
+// LA BOLA EN PIXELES REALES (9/10, el autor: "los indicadores estan perfectos, falta mejorar este"): se
+// pinta como los relojes y las balas — un tercio del pixel de diseño, sin antialias —, asi el borde es
+// redondo y no un serrucho. Cielo y tierra van en TRES BANDAS cada uno (mas claros contra el horizonte,
+// como la bola de verdad que refleja la luz de la cabina), con la ESCALERA de cabeceo, la escala de
+// ALABEO fija arriba con el indice que gira con la bola, y el avioncito con borde, como la aguja.
+const ADI_SKY = ['#5b93b8', '#3c6c8e', '#2d5574'], ADI_GND = ['#86603a', '#6b4a2a', '#53391f'];
+const ADI_LINE = '#f2f7fb', ADI_ARO = '#0a0e11', ADI_ESCALA = '#8c9ca4';
+const ADI_ALABEO = [-60, -30, -20, -10, 10, 20, 30, 60].map(g => g * Math.PI / 180);   // las marcas de arriba
 
 function drawADI() {
   const { cx, cy, r } = ADI;
   plate(cx - 13, cy - 13, CUADRO, CUADRO);
-  // la bola girada, fila por fila y pixel por pixel. Son ~340 pruebas por cuadro (nada) y evita
-  // arc()+clip, que entra con ANTIALIAS: en un HUD de pixel art duro un borde borroneado se lee
-  // como suciedad, no como instrumento.
   const a = -attitude();                    // la bola gira al REVES que el avion, como la de verdad
   const sa = Math.sin(a), ca = Math.cos(a);
   // CABECEO: trepar baja el horizonte (el avion queda por encima), picar lo sube. 5 px = medio
   // radio a cabeceo pleno — suficiente para leerlo sin que el suelo se vaya de la bola.
   const po = Math.max(-1, Math.min(1, plane.pitch)) * 5;
-  for (let dy = -r; dy <= r; dy++) {
-    const hw = Math.floor(Math.sqrt(r * r - dy * dy));
-    for (let dx = -hw; dx <= hw; dx++) {
-      const d = -dx * sa + dy * ca - po;    // distancia con signo a la linea del horizonte
-      px(cx + dx, cy + dy, 1, 1, Math.abs(d) < 0.8 ? ADI_LINE : d > 0 ? ADI_GND : ADI_SKY);
+  // el centro de la bola cae en el centro del pixel (cx, cy), como la bola de pixeles de antes
+  const ox = cx + 0.5, oy = cy + 0.5, R = r + 0.5;
+  const i0 = Math.floor((ox - R) / FINO), i1 = Math.ceil((ox + R) / FINO);
+  const j0 = Math.floor((oy - R) / FINO), j1 = Math.ceil((oy + R) / FINO);
+  for (let j = j0; j < j1; j++) {
+    let tramo = null, desde = i0;
+    for (let i = i0; i <= i1; i++) {
+      let col = null;
+      if (i < i1) {
+        const dx = (i + 0.5) * FINO - ox, dy = (j + 0.5) * FINO - oy, rr = Math.hypot(dx, dy);
+        if (rr <= R) {
+          const d = -dx * sa + dy * ca - po;      // distancia con signo al horizonte (+ = tierra)
+          const t = dx * ca + dy * sa;            // a lo largo del horizonte
+          if (rr > R - FINO) col = ADI_ARO;       // el canto de la bola
+          else if (Math.abs(d) < 0.45) col = ADI_LINE;
+          // LA ESCALERA: a 2,5 y 5 del horizonte, de los dos lados; las largas a 5
+          else if ((Math.abs(Math.abs(d) - 2.5) < FINO * 0.55 && Math.abs(t) < 1.8)
+            || (Math.abs(Math.abs(d) - 5) < FINO * 0.55 && Math.abs(t) < 3.2)) col = d < 0 ? '#c9dceb' : '#d8c3a5';
+          else {
+            const k = Math.abs(d) < 2 ? 0 : Math.abs(d) < 6 ? 1 : 2;   // tres bandas: claro contra el horizonte
+            col = d > 0 ? ADI_GND[k] : ADI_SKY[k];
+          }
+          // EL INDICE DE ALABEO: un triangulito blanco en el "arriba" de la bola, que gira con ella
+          const ua = dx * sa - dy * ca, ub = dx * ca + dy * sa;   // ua: hacia el cielo de la bola
+          if (ua > R - 3.2 && ua < R - 1.2 && Math.abs(ub) < (ua - (R - 3.2)) * 0.55) col = ADI_LINE;
+        }
+      }
+      if (col !== tramo) {
+        if (tramo) { ctx.fillStyle = tramo; ctx.fillRect(desde * FINO, j * FINO, (i - desde) * FINO, FINO); }
+        tramo = col; desde = i;
+      }
     }
   }
-  // SIMBOLO DEL AVION, fijo: dos alas y el techo de la cabina. Es la referencia contra la que se
-  // lee la bola — si esta sobre el marron, venis con la trompa en el suelo.
-  px(cx - 7, cy, 4, 1, P.accent);
-  px(cx + 4, cy, 4, 1, P.accent);
-  px(cx - 1, cy - 1, 3, 1, P.accent);
-  px(cx, cy, 1, 1, P.accent);
-  // muesca de las 12: marca donde queda ARRIBA para el avion, siempre en el mismo lugar
-  px(cx, cy - r, 1, 2, P.accent);
+  // LA ESCALA DE ALABEO, fija sobre el canto: 10, 20, 30 y 60 a cada lado, finas (las de 30 y 60 mas
+  // largas); el cero es la muesca naranja, que no llega al borde de la placa
+  for (const g of ADI_ALABEO) {
+    const larga = Math.abs(g) > 0.5;
+    marcaFina(ox, oy, -Math.PI / 2 + g, R + 0.3, R + (larga ? 1.6 : 1), 1, ADI_ESCALA);
+  }
+  marcaFina(ox, oy, -Math.PI / 2, R + 0.3, R + 1.6, 3, P.accent);   // la muesca de las 12: donde queda ARRIBA
+  // EL AVIONCITO, fijo: las dos alas y el punto del centro, en naranja con borde — como la aguja —.
+  // Es la referencia contra la que se lee la bola: si esta sobre el marron, venis con la trompa abajo.
+  avioncitoAdi(ox, oy);
+}
+/** El simbolo del avion del horizonte: alas con su caida a los costados y el centro, con borde. */
+function avioncitoAdi(ox, oy) {
+  const dentro = (dx, dy) => {
+    const ax = Math.abs(dx);
+    if (ax >= 2.6 && ax <= 7.4 && Math.abs(dy) <= 0.5) return true;                  // las alas
+    if (ax >= 2.6 && ax <= 3.3 && dy > 0 && dy <= 1.6) return true;                  // su caida hacia adentro
+    return Math.hypot(dx, dy) <= 0.9;                                                // el centro
+  };
+  const R = 8.2;
+  const i0 = Math.floor((ox - R) / FINO), i1 = Math.ceil((ox + R) / FINO);
+  const j0 = Math.floor((oy - 2) / FINO), j1 = Math.ceil((oy + 3) / FINO);
+  const borde = (dx, dy) => dentro(dx + FINO, dy) || dentro(dx - FINO, dy) || dentro(dx, dy + FINO) || dentro(dx, dy - FINO);
+  for (let j = j0; j < j1; j++) for (let i = i0; i < i1; i++) {
+    const dx = (i + 0.5) * FINO - ox, dy = (j + 0.5) * FINO - oy;
+    const col = dentro(dx, dy) ? (dy < -0.15 ? '#ffd08a' : P.accent) : borde(dx, dy) ? AGUJA_BORDE : null;
+    if (col) { ctx.fillStyle = col; ctx.fillRect(i * FINO, j * FINO, FINO, FINO); }
+  }
 }
 
 // ---------- EL RELOJ: un cuadrado con aguja, hermano del horizonte ----------
@@ -1101,48 +1145,134 @@ function pxLinea(x0, y0, x1, y1, col) {
   for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, col);
 }
 
+// ---------- LOS RELOJES: MARCAS FINAS Y AGUJA CON PUNTA (9/10) ----------
+// El autor, con el reloj del cañon atornillado: "mejoremos TODOS los indicadores visualmente como
+// mejoraste la metralleta, solo que simples, para que puedan tener mejoras similares en un futuro".
+// Asi que hay UN reloj con dos terminaciones:
+//   SIMPLE (todos)   la escala en marcas RADIALES —largas cada cuarto, cortas entre medio— en vez de
+//                    puntitos, y la aguja con PUNTA: ancha al pie, afinada al final, con borde oscuro
+//                    para despegarse de la escala y el eje encima. En el color de siempre de cada uno.
+//   METAL (`metal`)  la mejora: marco de dos pixeles con bisel, OCHO TUERCAS, y escala y aguja en
+//                    'plata' u 'oro' (paletas en data/iconos.js, CANON_METAL). Hoy la usa el cañon
+//                    segun su metralla; cualquier reloj puede llevarla pasandole `metal`.
+// Lo fino va en PIXELES REALES (FINO, un tercio del de diseño): redondeadas al pixel de diseño, las
+// trece marcas de un arco de radio 10 salian con escalones de uno y de dos — "los puntitos estan
+// medio chuecos" (el autor, 9/10). Todo gira sobre el MISMO centro exacto, escala y aguja.
+
+/** Un pixel REAL en la grilla de diseño (un tercio). */
+const FINO = 1 / (U * SC);
+const ESCALA_COL = '#55676f', ESCALA_LARGA = '#8c9ca4';   // las marcas del reloj simple: cortas y largas
+const AGUJA_BORDE = '#0a0e11';                            // el borde de la aguja simple: el fondo de la placa
+
+/** Pinta un dibujo de CANON_METAL con su esquina en (x, y), que tiene que caer en la grilla real.
+ *  Junta los pixeles seguidos del mismo color en un solo rectangulo: son pocos por fila. */
+function pintaFino(x, y, filas, pal) {
+  for (let j = 0; j < filas.length; j++) {
+    const f = filas[j];
+    for (let i = 0; i < f.length;) {
+      const c = f[i]; let k = i + 1;
+      while (k < f.length && f[k] === c) k++;
+      if (c !== '.') { ctx.fillStyle = pal[c]; ctx.fillRect(x + i * FINO, y + j * FINO, (k - i) * FINO, FINO); }
+      i = k;
+    }
+  }
+}
+/** Un trazo RADIAL de `grosor` pixeles reales, de r0 a r1 del centro: las marcas de la escala. */
+function marcaFina(cx, cy, a, r0, r1, grosor, col) {
+  const c = Math.cos(a), sn = Math.sin(a);
+  ctx.fillStyle = col;
+  for (let d = r0; d <= r1 + 1e-6; d += FINO) {
+    const fx = Math.round((cx + c * d) / FINO - grosor / 2) * FINO, fy = Math.round((cy + sn * d) / FINO - grosor / 2) * FINO;
+    ctx.fillRect(fx, fy, grosor * FINO, grosor * FINO);
+  }
+}
+/** LA AGUJA CON PUNTA: ancha al pie (`gordo` de medio ancho) y afinada hasta `largo`, con una cola
+ *  corta atras, borde y el eje encima. `pal` = { o: borde, h: la cara con luz, g: la otra cara,
+ *  x: el perno }; la simple pasa el mismo color en las dos caras. Se rasteriza en pixeles reales,
+ *  fila por fila, juntando los tramos del mismo color. */
+function aguja(cx, cy, a, largo, pal, gordo) {
+  const { o: O, h: L, g: G, x: X } = pal;
+  const c = Math.cos(a), sn = Math.sin(a), COLA = largo * 0.3, EJE = gordo + 0.05;
+  const ancho = t => t < 0 ? gordo * 0.7 : gordo * Math.pow(Math.max(0, 1 - t / largo), 0.75);
+  const R = largo + 1;
+  const i0 = Math.floor((cx - R) / FINO), i1 = Math.ceil((cx + R) / FINO);
+  const j0 = Math.floor((cy - R) / FINO), j1 = Math.ceil((cy + R) / FINO);
+  for (let j = j0; j < j1; j++) {
+    let tramo = null, desde = i0;
+    for (let i = i0; i <= i1; i++) {
+      let col = null;
+      if (i < i1) {
+        const dx = (i + 0.5) * FINO - cx, dy = (j + 0.5) * FINO - cy;
+        const t = dx * c + dy * sn, d = -dx * sn + dy * c, rr = Math.hypot(dx, dy);
+        if (rr <= 0.45) col = X;                                   // el perno del eje
+        else if (rr <= EJE) col = dx + dy < 0 ? L : G;
+        else if (rr <= EJE + FINO) col = O;
+        else if (t >= -COLA && t <= largo + FINO) {
+          const w = ancho(t);
+          if (Math.abs(d) <= w && t <= largo) col = d < 0 ? L : G;
+          else if (Math.abs(d) <= w + FINO) col = O;
+        }
+      }
+      if (col !== tramo) {
+        if (tramo) { ctx.fillStyle = tramo; ctx.fillRect(desde * FINO, j * FINO, (i - desde) * FINO, FINO); }
+        tramo = col; desde = i;
+      }
+    }
+  }
+}
+/** La aguja SIMPLE de un color (con su borde oscuro y el eje), sobre el centro (cx, cy). */
+const agujaSimple = (cx, cy, a, largo, col) => aguja(cx, cy, a, largo, { o: AGUJA_BORDE, h: col, g: col, x: P.ink }, 0.8);
+
 /** `o` = { val 0..1, col, ico, icoCol, zona: [desde, hasta] en rojo, zonas: [[desde, hasta, col]]
  *  (varias y de cualquier color; manda sobre `zona`), marcas: [[f, col]] marcas LARGAS, fin: icono
  *  al final de la escala (o null), txt: el numero al pie, txtCol, uni: la unidad, chica y apagada,
  *  en el renglon de ARRIBA del numero, critico: el borde titila en rojo
  *  (ver bordeCritico), borde: color del borde de la placa, fijo y sin titilar (hoy: el turbo),
- *  roto: el vidrio va rajado (ver vidrioRoto) } */
+ *  roto: el vidrio va rajado (ver vidrioRoto), metal: 'plata' | 'oro' la terminacion de metal (ver
+ *  arriba), tiembla: radianes que se le suman a la aguja este cuadro, aguja: false no la dibuja }
+ *  `ico` puede ser una FUNCION (x, y, pal) que dibuja su propio icono — la de las balas del cañon. */
 function reloj(x, y, o) {
   if (o.roto) plateRota(x, y, CUADRO, CUADRO); else plate(x, y, CUADRO, CUADRO);
   const cx = x + 13, cy = y + 16, r = 10;
   const ang = f => Math.PI + Math.PI * Math.max(0, Math.min(1, f));
-  // LA ESCALA: trece marcas. Las de la zona van en rojo — el peligro es parte del dial, no un aviso
+  const met = o.metal ? CANON_METAL.pal[o.metal] : null;
+  // EL MARCO DE METAL: dos pixeles, el de afuera oscuro y el de adentro con bisel (luz arriba e
+  // izquierda, sombra abajo y derecha), asi se lee como chapa y no como una linea doble
+  if (met) {
+    bordePlaca(x, y, CUADRO, CUADRO, met.o);
+    px(x + 1, y + 1, CUADRO - 2, 1, met.g); px(x + 1, y + 1, 1, CUADRO - 2, met.g);
+    px(x + 1, y + CUADRO - 2, CUADRO - 2, 1, met.s); px(x + CUADRO - 2, y + 1, 1, CUADRO - 2, met.s);
+  }
+  // LA ESCALA: trece marcas radiales, largas cada cuarto. Las de la zona van en su color — el peligro
+  // es parte del dial, no un aviso
   const zonas = o.zonas || (o.zona ? [[o.zona[0], o.zona[1], P.warn]] : []);
   for (let i = 0; i <= 12; i++) {
-    const f = i / 12, a = ang(f);
+    const f = i / 12, larga = i % 3 === 0;
     const z = zonas.find(([d, h]) => f >= d && f <= h);
-    px(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 1, 1, z ? z[2] : '#55676f');
+    const col = z ? z[2] : larga ? (met ? met.h : ESCALA_LARGA) : (met ? met.s : ESCALA_COL);
+    marcaFina(cx, cy, ang(f), larga ? r - 1.6 : r - 0.7, r + 0.6, larga ? 2 : 1, col);
   }
   // LAS MARCAS LARGAS: un punto de la escala que importa por si solo (Mach 1, el techo del radar).
   // Cruzan el aro para afuera y para adentro: se ven aunque caigan entre dos marcas comunes.
-  for (const [f, col] of o.marcas || []) {
-    const a = ang(f), c = Math.cos(a), s = Math.sin(a);
-    pxLinea(cx + c * (r - 2), cy + s * (r - 2), cx + c * (r + 1), cy + s * (r + 1), col);
-  }
+  for (const [f, col] of o.marcas || []) marcaFina(cx, cy, ang(f), r - 2.6, r + 1.2, 2, col);
   // LAS FRANJAS: un arco POR DENTRO de la escala, para zonas que no son peligro sino regimen (las
   // tres zonas de gasto del altimetro). Van adentro para no pisar las marcas de la escala, que en el
   // altimetro ya dicen agua y banda del x10.
   // ERAN 37 PUNTITOS DE UN PIXEL y no se leian (26/9, el autor: "no se si ya se marca, pero deberia
-  // quedar claro"). Ahora es una banda CONTINUA de dos pixeles, y la zona en la que estas va
-  // prendida y las otras a media luz (el 4to elemento, `on`: false la apaga; sin el, prendida):
-  // lo que el ojo tiene que encontrar de reojo es DONDE ESTOY, no el mapa entero.
-  for (let k = 0; k <= 72; k++) {
-    const f = k / 72, z = (o.franjas || []).find(([d, h]) => f >= d && f <= h);
+  // quedar claro"). Es una banda CONTINUA, y la zona en la que estas va prendida y las otras a media
+  // luz (el 4to elemento, `on`: false la apaga; sin el, prendida): lo que el ojo tiene que encontrar
+  // de reojo es DONDE ESTOY, no el mapa entero.
+  for (let k = 0; k <= 96; k++) {
+    const f = k / 96, z = (o.franjas || []).find(([d, h]) => f >= d && f <= h);
     if (!z) continue;
-    const a = ang(f), c = Math.cos(a), sn = Math.sin(a);
     ctx.globalAlpha = z[3] === false ? 0.35 : 1;
-    px(cx + c * (r - 3), cy + sn * (r - 3), 1, 1, z[2]);
-    px(cx + c * (r - 4), cy + sn * (r - 4), 1, 1, z[2]);
+    marcaFina(cx, cy, ang(f), r - 4.3, r - 2.9, 2, z[2]);
   }
   ctx.globalAlpha = 1;
-  // LA UNIDAD VA IMPRESA EN LA CARA, como en un reloj de verdad: chica, apagada, arriba del numero
-  // y ANTES que la aguja, asi la aguja le pasa por encima. Al lado del numero no entra —a cuatro
-  // digitos el numero se come el ancho util del cuadrado.
+  // LO IMPRESO EN LA CARA va ANTES que la aguja, asi la aguja le pasa por encima: la unidad, el icono
+  // del final de la escala, el del instrumento y el numero.
+  // LA UNIDAD VA IMPRESA EN LA CARA, como en un reloj de verdad: chica, apagada, arriba del numero.
+  // Al lado del numero no entra —a cuatro digitos el numero se come el ancho util del cuadrado.
   if (o.uni) {
     // en CUERPO 4, la mitad del numero: es una etiqueta impresa, no un dato. A cuerpo 5 competia
     // con los digitos y el ojo la leia dos veces.
@@ -1150,19 +1280,54 @@ function reloj(x, y, o) {
     ctx.fillText(o.uni, x + CUADRO - 3, y + CUADRO - 10);
     ctx.textAlign = 'left';
   }
-  const a = ang(o.val);
-  pxLinea(cx, cy, cx + Math.cos(a) * (r - 2), cy + Math.sin(a) * (r - 2), o.col);
-  px(cx - 1, cy - 1, 2, 2, P.ink);                       // el eje
   if (o.fin) icono(x + CUADRO - 8, y + 9, 6, o.fin, o.finCol || P.warn);   // su '+' es calado (data/iconos.js)
-  icono(x + 2, y + CUADRO - 9, 7, o.ico, o.icoCol || P.dim);
+  if (typeof o.ico === 'function') o.ico(x, y, met);
+  else if (o.ico) icono(x + 2, y + CUADRO - 9, 7, o.ico, o.icoCol || P.dim);
   if (o.txt) {
     ctx.font = F_ROT; ctx.textAlign = 'right'; ctx.fillStyle = o.txtCol || P.dim;
     ctx.fillText(o.txt, x + CUADRO - 3, y + CUADRO - 4);
     ctx.textAlign = 'left';
   }
+  if (o.aguja !== false) {
+    const a = ang(o.val) + (o.tiembla || 0);
+    if (met) aguja(cx, cy, a, 8.5, met, 1.15); else agujaSimple(cx, cy, a, 8, o.col);
+  }
   if (o.roto) vidrioRoto(x, y);
   if (o.borde) bordePlaca(x, y, CUADRO, CUADRO, o.borde);   // el fijo primero: el critico manda
   if (o.critico) bordeCritico(x, y, CUADRO, CUADRO);
+  // LAS OCHO TUERCAS del metal, encima de todo (tambien del borde que titila): las cuatro esquinas y
+  // el medio de cada lado, centradas sobre el marco
+  if (met) {
+    const lejos = CUADRO - 2, medio = CUADRO / 2 - 1;
+    for (const [tx, ty] of [[0, 0], [medio, 0], [lejos, 0], [0, medio], [lejos, medio], [0, lejos], [medio, lejos], [lejos, lejos]])
+      pintaFino(x + tx, y + ty, CANON_METAL.tuerca, met);
+  }
+}
+
+// ---------- EL CAÑON (9/10) ----------
+// Uno por METRALLA (data/upgrades.js): la COMUN es el reloj simple; la de PLATA y la de ORO llevan la
+// terminacion de metal. Las tres llevan, en vez del icono, tres balas finas y largas con borde ("las
+// balas mas finas y largas, dorado, borde dorado"; y despues, "las balas y los iconos mejoralos en los
+// indicadores base"): en la comun van en el gris apagado de los iconos, con su luz y su sombra.
+/** Las tres balas, donde va el icono de los otros relojes: en el metal del reloj o, sin metal, en gris. */
+function balas(x, y, met) {
+  const pal = met || tonos(P.dim);       // sin metal: los tonos del gris de los iconos (render/iconos.js)
+  for (let k = 0; k < 3; k++) pintaFino(x + 3, y + 17 + k * 7 * FINO, CANON_METAL.bala, pal);
+}
+function relojCanon(x, y, metralla) {
+  const met = METRALLAS[metralla] || METRALLAS[1];
+  // MIENTRAS CALIENTA (autor, 9/10: "que la aguja tiemble"): el segundo en que los caños de la de ORO
+  // giran sin tirar todavia (`calienta` en METRALLAS, run.giro), la aguja salta contra el tope —cada vez
+  // mas, a medida que el giro sube—, como un instrumento sobre una maquina que arranca
+  const calentando = met.calienta > 0 && run.giro > 0 && run.giro < met.calienta;
+  reloj(x, y, {
+    val: run.heat, zona: [0.75, 1], critico: run.overheat || run.heat > 0.75,
+    metal: metralla >= 3 ? 'oro' : metralla >= 2 ? 'plata' : null,
+    ico: balas,
+    tiembla: calentando ? 0.13 * (0.35 + 0.65 * run.giro / met.calienta) * Math.random() : 0,
+    // la aguja de la COMUN es BLANCA (autor, 9/10), y roja en la zona donde se traba
+    col: run.overheat ? (Math.sin(run.t * 12) > 0 ? P.warn : '#7d2f1e') : run.heat > 0.75 ? P.warn : P.foam,
+    txt: Math.round(run.heat * 100) + '%', txtCol: run.overheat ? P.warn : P.dim });
 }
 
 // ---------- EL CUADRO DEL PILOTO (playtest 10/9) ----------
@@ -1780,16 +1945,30 @@ function misilChico(x, y, on) {
   iconoEn(x + (MSL_ICO_W - 1) / 2, y, 'misil', vivo ? '#e9edf0' : '#2e3c45', vivo ? P.accent : '#2e3c45');
 }
 
-// LOS NUMEROS DEL ESTANTE: 3x5, de pixel, como todo el tablero (la fuente de 5 px no se lee a este
-// tamaño). Del 0 al 4: lo mas que cuelga de un pilon, o las chapitas al tope (CHAPITAS.CARGAS_MAX).
+// LOS NUMEROS DEL ESTANTE: de pixel, porque la fuente de 5 px no se lee a este tamaño. Del 0 al 4: lo
+// mas que cuelga de un pilon, o las chapitas al tope (CHAPITAS.CARGAS_MAX). FINOS desde el 9/10, como
+// los iconos que acompañan: trazo de dos pixeles reales y esquinas redondeadas, 7x15 reales (5 de alto,
+// como antes). Los de 3x5 de diseño quedaban gordos al lado de la bomba y el tanque nuevos.
 const DIG = {
-  0: ['###', '#.#', '#.#', '#.#', '###'], 1: ['.#.', '##.', '.#.', '.#.', '###'],
-  2: ['###', '..#', '###', '#..', '###'], 3: ['###', '..#', '.##', '..#', '###'],
-  4: ['#.#', '#.#', '###', '..#', '..#'],
+  0: ['.#####.', '#######', '##...##', '##...##', '##...##', '##...##', '##...##', '##...##', '##...##', '##...##', '##...##', '##...##', '##...##', '#######', '.#####.'],
+  1: ['..###..', '.####..', '##.##..', '...##..', '...##..', '...##..', '...##..', '...##..', '...##..', '...##..', '...##..', '...##..', '...##..', '#######', '#######'],
+  2: ['.#####.', '#######', '##...##', '.....##', '.....##', '....###', '...###.', '..###..', '.###...', '###....', '##.....', '##.....', '##.....', '#######', '#######'],
+  3: ['######.', '#######', '.....##', '.....##', '.....##', '.....##', '.######', '.######', '.....##', '.....##', '.....##', '.....##', '.....##', '#######', '######.'],
+  4: ['##...##', '##...##', '##...##', '##...##', '##...##', '##...##', '#######', '#######', '.....##', '.....##', '.....##', '.....##', '.....##', '.....##', '.....##'],
 };
 function digito(x, y, n, col) {
   const d = DIG[Math.max(0, Math.min(4, n | 0))];
-  for (let j = 0; j < 5; j++) for (let i = 0; i < 3; i++) if (d[j][i] === '#') px(x + i, y + j, 1, 1, col);
+  ctx.fillStyle = col;
+  const x0 = x + FINO;                                   // 7 de 9: centrado en la celda de 3
+  for (let j = 0; j < d.length; j++) {
+    const f = d[j];
+    for (let i = 0; i < f.length;) {
+      let k = i + 1;
+      while (k < f.length && f[k] === f[i]) k++;
+      if (f[i] === '#') ctx.fillRect(x0 + i * FINO, y + j * FINO, (k - i) * FINO, FINO);
+      i = k;
+    }
+  }
 }
 
 /** EL ESTANTE: LO QUE CUELGA DEL AVION, tres filas (8/10).
@@ -2157,11 +2336,9 @@ export function drawHUD(h) {
   if (pide((dmgShown() && run.integ < 100) || amarilla() < 0.97, 'salud')) relojSalud(xSalud, CUADROS_Y);
   if (pide(run.heat > 0.05 || run.overheat, 'canon'))
     // EL CAÑON no tiene municion que contar —dispara hasta recalentarse y se traba hasta enfriar—,
-    // asi que el reloj marca TEMPERATURA, con la zona roja donde se traba.
-    reloj(X_CANON, CUADROS_Y, {
-      val: run.heat, ico: 'canon', zona: [0.75, 1], critico: run.overheat || run.heat > 0.75,
-      col: run.overheat ? (Math.sin(run.t * 12) > 0 ? P.warn : '#7d2f1e') : run.heat > 0.75 ? P.warn : P.accent,
-      txt: Math.round(run.heat * 100) + '%', txtCol: run.overheat ? P.warn : P.dim });
+    // asi que el reloj marca TEMPERATURA, con la zona roja donde se traba. Uno por METRALLA: el
+    // simple de siempre, o el atornillado de plata o de oro (ver relojCanon).
+    relojCanon(X_CANON, CUADROS_Y, run.metralla);
 
   // ---- EL CENTRO: LOS CUATRO DEL VUELO (playtest 11/9) -----------------------------------------
   // VELOCIDAD, MACH, ALTITUD y GAS, en relojes como los del resto de la fila. Pedido del autor con

@@ -124,6 +124,10 @@ export const run = {
 
   // --- armas ---
   fireT: 0,        // cadencia del canon
+  tiroT: 9,        // segundos desde el ultimo tiro (el fogonazo se ve mientras es chico)
+  giro: 0,         // segundos que llevan girando los caños con el gatillo apretado (la de ORO calienta)
+  metralla: 1,     // 1 comun, 2 plata, 3 oro (METRALLAS en data/tuning.js; la pone game.js al preparar)
+  cinta: 1,        // 1 a 3: cuanto aguanta la rafaga (CINTAS)
   msl: MSL_MAX,    // misiles disponibles
   mslCd: 0,        // cooldown entre lanzamientos
   mslRegen: 0,     // temporizador de recarga lenta
@@ -225,7 +229,7 @@ export function resetRun() {
     orden: [], flota: [], cambioCd: 0, gastoLider: 0,
     gear: 1,
     windT: 0, windF: 1,
-    fireT: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
+    fireT: 0, tiroT: 9, giro: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
     rollCd: 0,
     mv: null, mvT: 0, mvY0: 0, mvX0: 0, mvFase: '', mvCanto: 0, mvPose: 0, mvLado: 0, derrapeAgua: 0, mvRoll: 0, mvGiro: 0, mvSteep: 0, mvCobra: 0, mvMortal: 0, mvFreno: 0, mvSeed: 0, mvTgt: 0, camPan: 0,
     // alabeo VIVO del control por ALABEO (cfg.control = 1), en radianes. Es el estado del avion:

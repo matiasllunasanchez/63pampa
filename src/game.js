@@ -6,7 +6,7 @@ import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
-import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe } from './data/upgrades.js';
+import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe } from './data/upgrades.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -2552,6 +2552,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
                           // quieto sin nadie que lo suelte, y eso no se arregla desde adentro
       lecFoco = null; lecIdx = 0;   // las lecciones de la mision vuelven a empezar con la corrida
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
+      // LA METRALLA Y SU CINTA (data/upgrades.js): en campaña, las cartas que se ganaron en el banco
+      // del Pichon; de fabrica —y en los demas modos, decision del autor (9/10: "fuera de campaña
+      // metralleta normal")—, la COMUN con la cinta corta.
+      run.metralla = conLibreta() ? metrallaDe(pichon) : 1;
+      run.cinta = conLibreta() ? cintaDe(pichon) : 1;
       resetPlane();     // el avion a la posicion de arranque
       resetStats();     // los contadores del recuento final
       clearWorld();     // vacia el campo de obstaculos, balas, particulas…
@@ -3901,7 +3906,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // FOGONAZO (D3): se apaga solo, rapido. Va acá y no en un sistema porque tiene que correr en
       // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
       run.flash = Math.max(0, run.flash - dt / FLASH_T);
-      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, soldiers, alarmaBuque: blancoSys.alarma() });   // loops con fade
+      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, metralla: run.metralla, soldiers, alarmaBuque: blancoSys.alarma() });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
       const camZt = 1;   // ver CAM_ZOOMS: el zoom por raster quedo desactivado
@@ -5876,6 +5881,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // salta el intersticial en curso y dispara lo que venia despues: sirve para recorrer la
       // cadena de posmision sin esperar los segundos de negro.
       window.__interYa = () => { const f = interNext; interNext = null; interDur = 0; if (f) f(); return S.state; };
+      // LAS TRES METRALLAS en la corrida en curso (y la cinta), para capturas: __metralla(3, 2)
+      window.__metralla = (m, c) => { run.metralla = m; if (c) run.cinta = c; return JSON.stringify({ metralla: run.metralla, cinta: run.cinta, heat: +run.heat.toFixed(2), giro: +run.giro.toFixed(2), tiros: stats.shots }); };
       window.__estado = () => JSON.stringify({ st: S.state, nivel: curLevel, inter: interTxt, interT: +interT.toFixed(2), interDur, oferta: upgOffer.length, runT: +run.t.toFixed(2) });
       window.__czstart = o => caza.start(o || {});
       window.__czdbg = () => caza.dbg();

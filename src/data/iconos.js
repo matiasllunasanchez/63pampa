@@ -297,3 +297,34 @@ export const ICONO_BUQUE = { t42: 'buque_t42', t21: 'buque_t21', log: 'buque_log
  *  El Atlantic Conveyor era un PORTACONTENEDORES; el mundo lo dibuja con la hoja de desembarco
  *  (`log`) porque no hay otra, pero arriba si se puede decir la verdad. */
 export const ICONO_BUQUE_NOMBRE = { 'ATLANTIC CONVEYOR': 'buque_carga' };
+
+// EL RELOJ DEL CAÑON, ATORNILLADO (9/10, pedido del autor: "las balas mas finas y largas, dorado,
+// borde dorado [...] borde de cuadrado mas gordo con tuercas alrededor como asegurado"). A diferencia
+// del resto de esta tabla, estos dibujos van en PIXELES REALES —un tercio del de diseño—: una bala
+// fina con borde no entra en la grilla de diseño (con borde arriba y abajo, el dorado era UN pixel).
+// Los pinta `relojCanon` en render/hud.js. Cada letra es un color de la paleta del metal; '.' es vacio.
+// DOS METALES (9/10): la METRALLA DE PLATA y la de ORO (data/upgrades.js) usan el mismo dibujo; la
+// COMUN es el reloj simple de antes. o borde · h luz · g cuerpo · s sombra · x el hueco del perno.
+export const CANON_METAL = {
+  pal: {
+    oro: { o: '#6b4a10', h: '#ffe08a', g: '#e2aa32', s: '#a87a1c', x: '#2a1c06' },
+    plata: { o: '#46505a', h: '#ffffff', g: '#c3ccd4', s: '#86929e', x: '#161b20' },
+  },
+  // vaina, el engarce (la columna oscura) y la punta ojival — 24x5, o sea 8 de diseño de largo
+  bala: [
+    '.ooooooooooooooooooo....',
+    'ohhhhhhhhhhhhhohhhhhoo..',
+    'ogggggggggggggogggggggoo',
+    'osssssssssssssosssssoo..',
+    '.ooooooooooooooooooo....',
+  ],
+  // la tuerca, 6x6 (2 de diseño): va centrada sobre el marco, que tambien mide 2; el centro es el perno
+  tuerca: [
+    '.oooo.',
+    'ohhhgo',
+    'ohxxgo',
+    'ogxxso',
+    'ogssso',
+    '.oooo.',
+  ],
+};
