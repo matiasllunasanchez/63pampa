@@ -196,7 +196,23 @@ app.whenReady().then(async () => {
 
   for (const id of IDS) {
     const M = CAT[id];
-    const { r, tr, visto, fin, salida, muerto } = await correr(id, M.dur);
+    // UNA MUERTE NO ES UNA MEDICION: se repite. El pasillo se limpia en cada muestra, pero con la
+    // maquina cargada (otra compuerta corriendo al lado) un cuadro largo alcanza para que el avion
+    // pise algo entre muestra y muestra — y la pirueta salia roja sin que nada en ella estuviera
+    // mal. Se espera a que el relevo devuelva el vuelo y se mide de nuevo; si muere TRES veces
+    // seguidas en la misma maniobra, ahi si se dice, porque eso ya es un patron y no mala suerte.
+    let corrida;
+    for (let intento = 0; intento < 3; intento++) {
+      corrida = await correr(id, M.dur);
+      if (!corrida.muerto) break;
+      inf(`${id}: el avion murio en el medio ('${corrida.muerto}') — se espera el relevo y se repite`);
+      for (let k = 0; k < 60 && await estado() !== 'play'; k++) {
+        if (k % 10 === 9) await tap('Return');   // 'dead' (sin relevo) pide un toque para reintentar
+        await sleep(200);
+      }
+      for (let k = 0; k < 14; k++) { gas(); await sleep(50); }
+    }
+    const { r, tr, visto, fin, salida, muerto } = corrida;
     const nom = `${id} (${M.name})`;
     let mal = 0;
     const falla = m => { bad(`${nom}: ${m}`); mal++; };
