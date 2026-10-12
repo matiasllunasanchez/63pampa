@@ -127,6 +127,8 @@ def main():
     js, ok = sub_path(js, '../assets/ammo/bengala.png', uri(ASSETS / 'ammo' / 'bengala.png', 'image/png')); n += ok
     js, ok = sub_path(js, '../assets/ui/malvinas.webp', uri(ASSETS / 'ui' / 'malvinas.webp', 'image/webp')); n += ok
     js, ok = sub_path(js, '../assets/ui/miras.webp', uri(ASSETS / 'ui' / 'miras.webp', 'image/webp')); n += ok
+    # EL LOGO de la portada y del selector de modo (render/menus.js)
+    js, ok = sub_path(js, '../assets/ui/logo_rasante.svg', uri(ASSETS / 'ui' / 'logo_rasante.svg', 'image/svg+xml')); n += ok
     # ILUSTRACIONES de portada y de fin (assets/photos/{ppal,win,lose}/): NO entran en
     # el build web — son ~20 fotos y el Artifact tope 16 MB. Mismo criterio que TBACK. En
     # Electron/Steam si van; aca las pantallas caen al fondo opaco (drawEndBg/drawPpalBg lo

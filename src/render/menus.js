@@ -23,7 +23,7 @@ export function drawMenu(w) {
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(18);              // logotipo: Kirana
-  ctx.fillText(T('title'), W / 2, 20);
+  titulo(W / 2, 20, 18);
   // EL MODO manda: va pegado al logotipo y en grande, porque es DONDE ESTAS. El rotulo de la
   // pantalla ("elegi tu avion") es la instruccion, y va despues de un respiro.
   ctx.fillStyle = P.foam; ctx.font = menuFont(13);
@@ -104,14 +104,64 @@ export function drawMenu(w) {
 // —el 20 es lo que baja el resalte por debajo del nombre—: 72 + 174 + 20 = 266, adentro. El paso
 // 29 es el mismo minimo de JUEGO RAPIDO y PRUEBAS, el que no pega la descripcion de una fila al
 // nombre de la siguiente.
-export const MODE_ROWS = { y0: 72, rh: 29 };
+// …y 96 desde el LOGO (12/10, el autor: "mas abajo"): el marco del fichin tapa el borde de arriba y el
+// logo quedaba pegado al brillo del bisel. Hoy son CINCO filas (con MODO DEV): 96 + 4*29 + 20 = 232.
+export const MODE_ROWS = { y0: 96, rh: 29 };
+
+// EL LOGO (12/10, el autor): el SVG que diseño — RASANTE, la linea, las tres estrellas y las Malvinas —
+// reemplaza al texto en Kirana de la portada y del selector de modo. En el ambar de siempre (P.accent,
+// escrito en el SVG). Salio de assets/rasante_logofinal.svg sin la placa que lo envolvia (venia con las
+// letras CALADAS en un rectangulo blanco) y con el viewBox recortado al dibujo. Si no cargo, el texto
+// de siempre: la portada nunca queda sin nombre.
+//
+// SE RECORTA SOLO AL CARGAR. Cada exportacion del SVG trae otra mesa de trabajo —la segunda llego con el
+// lienzo al DOBLE de ancho y el logo en la mitad izquierda, y se dibujaba chico y corrido del centro—,
+// asi que en vez de confiar en el viewBox se rasteriza una vez en grande, se mide lo opaco y se guarda
+// SOLO eso. Cualquier exportacion nueva calza sola.
+const LOGO = new Image();
+let LOGO_C = null, LOGO_K = 0.214;   // el logo recortado (canvas) y su alto / ancho
+LOGO.onload = () => {
+  const nw = LOGO.naturalWidth || 300, nh = LOGO.naturalHeight || 150;
+  const RW = 2400, RH = Math.round(RW * nh / nw);
+  const c = document.createElement('canvas'); c.width = RW; c.height = RH;
+  const g = c.getContext('2d'); g.drawImage(LOGO, 0, 0, RW, RH);
+  const d = g.getImageData(0, 0, RW, RH).data;
+  let x0 = RW, y0 = RH, x1 = -1, y1 = -1;
+  for (let y = 0; y < RH; y++) for (let x = 0; x < RW; x++) {
+    if (d[(y * RW + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  if (x1 < 0) return;   // vacio: queda el texto de respaldo
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  LOGO_C = document.createElement('canvas'); LOGO_C.width = w; LOGO_C.height = h;
+  LOGO_C.getContext('2d').drawImage(c, x0, y0, w, h, 0, 0, w, h);
+  LOGO_K = h / w;
+};
+LOGO.src = '../assets/ui/logo_rasante.svg';
+const logoListo = () => !!LOGO_C;
+/** El logo centrado en `cx`, con la BASE (el pie de las estrellas) en `yPie` y `ancho` px nativos. */
+function drawLogo(cx, yPie, ancho) {
+  const alto = ancho * LOGO_K;
+  const s = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true;   // vector: suave, no pixelado
+  ctx.drawImage(LOGO_C, Math.round(cx - ancho / 2), Math.round(yPie - alto), ancho, alto);
+  ctx.imageSmoothingEnabled = s;
+}
+
+/** EL TITULO DE LOS MENUS con el logo, donde antes iba RASANTE en Kirana a `px` con la base en `yBase`:
+ *  las LETRAS del logo quedan a la misma altura que las del texto (las estrellas cuelgan por debajo). */
+function titulo(cx, yBase, px) {
+  if (!logoListo()) { ctx.fillText(T('title'), cx, yBase); return; }
+  const altoL = px * 1.24;                      // las letras son ~58% del logo y la mayuscula ~72% del cuerpo
+  drawLogo(cx, yBase - px * 0.72 + altoL, altoL / LOGO_K);
+}
 
 export function drawTitle(w) {
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = titleFont(34);   // logotipo: Kirana
-  ctx.fillText(T('title'), NW / 2, 62);
-  ctx.fillStyle = P.ink; ctx.globalAlpha = 0.75; ctx.font = '8px monospace';
-  ctx.fillText(T('subtitle'), NW / 2, 78); ctx.globalAlpha = 1;
+  if (logoListo()) drawLogo(NW / 2, 68, 230);
+  else { ctx.fillStyle = P.accent; ctx.font = titleFont(34); ctx.fillText(T('title'), NW / 2, 62); }   // logotipo: Kirana
+  // "BATALLA POR MALVINAS · ATLANTICO SUR · 1982", CHICO Y ABAJO, arriba del homenaje (12/10, el autor):
+  // debajo del logo competia con el; aca es el contexto del homenaje, que es donde se lee.
+  ctx.fillStyle = P.ink; ctx.globalAlpha = 0.55; ctx.font = '6px monospace';
+  ctx.fillText(T('subtitle'), NW / 2, NH - 60); ctx.globalAlpha = 1;
   // HOMENAJE: es lo ultimo que se lee antes de empezar, y va en la manuscrita — es la razon de
   // ser del juego, no un pie de pagina (ver docs/REFERENCIAS.md). Antes vivia perdido abajo de
   // la pantalla de eleccion de avion.
@@ -156,9 +206,16 @@ export function drawModeSelect(w) {
   const topeRotulo = yLista - 20 - ctx.measureText(T('modePrompt')).actualBoundingBoxAscent;
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(MODE_TITULO_PX);   // mismo logotipo que la portada
-  const mt = ctx.measureText(T('title')), altoLogo = mt.actualBoundingBoxAscent + mt.actualBoundingBoxDescent;
-  const aire = Math.max(0, (topeRotulo - altoLogo) / 2);
-  ctx.fillText(T('title'), NW / 2, aire + mt.actualBoundingBoxAscent);
+  if (logoListo()) {
+    // EL LOGO, mas chico que en la portada, en el medio del hueco de arriba (mismo aire arriba y abajo)
+    // 160 y no 130 (el autor, 12/10: "mas grande"): lo que entra en el hueco con aire arriba y abajo
+    const anchoL = 160, altoL = anchoL * LOGO_K;
+    drawLogo(NW / 2, Math.max(4, (topeRotulo - altoL) / 2) + altoL, anchoL);
+  } else {
+    const mt = ctx.measureText(T('title')), altoLogo = mt.actualBoundingBoxAscent + mt.actualBoundingBoxDescent;
+    const aire = Math.max(0, (topeRotulo - altoLogo) / 2);
+    ctx.fillText(T('title'), NW / 2, aire + mt.actualBoundingBoxAscent);
+  }
 
   // opciones CHICAS, pegadas a la IZQUIERDA y centradas verticalmente. La ultima es SALIR.
   // el orden tiene que coincidir con MODES en game.js: la fila que se toca sale de ese indice
@@ -243,7 +300,7 @@ export function drawOptions(w) {
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(26);
-  ctx.fillText(T('title'), NW / 2, 40);
+  titulo(NW / 2, 40, 26);
 
   const x = 40;
   ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
@@ -369,7 +426,7 @@ export function drawMejoras(w) {
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(26);
-  ctx.fillText(T('title'), NW / 2, 40);
+  titulo(NW / 2, 40, 26);
 
   const x = 40, xv = MEJ_CARD.x - 16;    // borde derecho de los valores de la lista
   ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
@@ -490,7 +547,7 @@ function drawRowMenu(w, titleKey, textOf, geo) {
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(26);
-  ctx.fillText(T('title'), NW / 2, 40);
+  titulo(NW / 2, 40, 26);
 
   const { y0, rh, headH } = geo || CAMP_ROWS, x = 40, PAD_X = 9;
   ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
@@ -727,7 +784,7 @@ export function drawSaves(w) {
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(26);
-  ctx.fillText(T('title'), NW / 2, 40);
+  titulo(NW / 2, 40, 26);
   const x = 40, y0 = 100, rh = 17;
   ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
   ctx.fillText(T('savesTitle'), x, y0 - 20);
