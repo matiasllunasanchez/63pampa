@@ -5180,6 +5180,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // VA EN EL PASE DEL MUNDO, ANTES DEL AVION: nace detras de la panza (z = PZ + 4) y de ahi
       // solo se aleja, asi que siempre esta MAS LEJOS que vos. Pintarla despues del avion (23/9)
       // la ponia ENCIMA del sprite justo en la suelta — se veia salir de arriba del avion.
+      const PARA_ABRE = 0.12, PARA_T = 0.25;   // el paracaidas de la BRP: cuando se abre y cuanto tarda en inflarse
       for (const pm of pmissiles) {
         if (pm.z >= BOMBA_Z_TOPE || pm.z <= 3) continue;   // mismo corte que el prune: el tiro largo se sigue viendo
         const s = proj(pm.x, pm.y, pm.z), k = s.k;
@@ -5221,6 +5222,28 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           px(-w, L / 2 - Math.max(1, L * 0.2), w * 2, Math.max(1, L * 0.2), '#2b2e1f');
         }
         ctx.restore();
+        // EL PARACAIDAS DE LA BRP (12/10, el autor; BRP = Bomba Retardada por Paracaidas): a poco de
+        // soltarla se abre un paracaidas chico de la cola, que es tambien lo que la distingue de la MK-17
+        // a la vista. SOLO EL DIBUJO: la caida sigue siendo la de core/balistica.js — si el paracaidas
+        // frenara la bomba, la mira tendria que saberlo, y eso es otra cuenta (pendiente, si se quiere).
+        if (kBomba < 1 && (pm.t || 0) > PARA_ABRE) {
+          const u = Math.min(1, ((pm.t || 0) - PARA_ABRE) / PARA_T), e = 1 - (1 - u) * (1 - u);
+          const r = caja * 0.5 * (0.25 + 0.75 * e);              // el casquete se infla
+          const cy = by - caja * (0.5 + 0.55 * e);               // y se separa de la cola
+          const cola = by - caja * 0.28;
+          ctx.save();
+          ctx.globalAlpha = 0.75; ctx.strokeStyle = '#2e3128'; ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (const i of [-1, 0, 1]) { ctx.moveTo(bx + i * r * 0.85, cy); ctx.lineTo(bx, cola); }
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+          ctx.beginPath(); ctx.ellipse(bx, cy, r, r * 0.6, 0, Math.PI, 0); ctx.closePath();
+          ctx.fillStyle = '#d8cfb2'; ctx.fill();
+          ctx.fillStyle = '#a8442e';                             // la faja del centro
+          ctx.fillRect(Math.round(bx - r * 0.18), Math.round(cy - r * 0.6), Math.max(1, Math.round(r * 0.36)), Math.round(r * 0.6));
+          ctx.strokeStyle = '#3b3a30'; ctx.stroke();
+          ctx.restore();
+        }
       }
       // NIEBLA: al final del mundo y ADENTRO del giro. Va acá y no antes porque tiene que tapar
       // los obstáculos — que es lo único que la vuelve una mecánica y no un filtro de color.
