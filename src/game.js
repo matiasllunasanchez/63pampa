@@ -438,6 +438,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  POR LA PATRIA o PERSECUCION pasan por la misma puerta con `S.test` puesto, y esos modos se
      *  juegan con todas las piruetas — gatearlos seria probar otro juego que el que van a probar. */
     const conLibreta = () => gameMode === 'campaign' || (S.test && gameMode === 'cycle');
+    // ¿EL AVION TIENE SONDA? (data/planes.js, `sonda`). El Dagger no tenia (12/10): sin sonda la Chancha
+    // no existe para el, en ningun modo — no es una regla del guion, es el avion.
+    const sinSonda = () => !!(PLANES[selPlane] && PLANES[selPlane].sonda === false);
+    // ¿LA CHANCHA EXISTE EN ESTA CORRIDA? La rotura del guion (la mision con `chancha: false`, en campaña,
+    // el selector y PRUEBAS) o un avion sin sonda. UNA sola regla para el pedido, la ida y el HUD.
+    const chanchaViva = () => !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false) && !sinSonda();
     let upgOffer = [];               // la oferta de la pantalla actual (2 tarjetas)
     let cargaSel = 0, cargaT = 0;    // EL HANGAR (PLAN_NAFTA_ALCANCE N7): la tarjeta marcada y su reloj
     let upgSel = 0, upgT = 0;        // cursor y reloj propio de la pantalla
@@ -646,7 +652,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // Fuera de campaña —ciclo, por la patria— siempre esta viva: ahi no hay narrativa.
         // La otra mitad de "como en campaña" (S0): en el SELECTOR y en PRUEBAS la mision trae SU
         // regla, asi que probar M7 sin el poder es probar M7 de verdad.
-        viva: !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false),
+        viva: chanchaViva(),
         t: run.t,
         // CUANTO HAY QUE ESPERAR, y por que puede no ser CH_MIN_T. Los 240 s por defecto se
         // eligieron contra misiones cuyo pasillo dura MEDIO MINUTO: ahi la espera dice "esto es un
@@ -677,7 +683,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // las otras dos lineas del ritual (Condor y la Chancha) las dispara el sistema por dt:
       // ver el bloque 'ack'/'come' de chancha.tick — aca solo suena el pedido.
       beep(150, 0.09, 'square', 0.05);
-      if (r === 'broken') radioCh('ch_broken');   // la negativa del guion no la dice ella
+      // la negativa del guion no la dice ella; la del Dagger, tampoco: no hay a quien pedirle
+      if (r === 'broken') radioCh(sinSonda() ? 'ch_sinsonda' : 'ch_broken');
       else chanchaDice(r === 'early' ? 'ch_early' : r === 'used' ? 'ch_used' : 'ch_nozone');
     }
 
@@ -1823,7 +1830,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     /** Las tarjetas del hangar, con los numeros ya hechos: el dibujo no sabe de nafta. */
     function filasCarga() {
-      const sinChancha = !!(curMission() && curMission().chancha === false);
+      const sinChancha = !!(curMission() && curMission().chancha === false) || sinSonda();
       return CARGAS_ELEGIBLES.map(id => {
         const c = cargaDe(id), b = colgadoDe(id).bombas, v = Math.round((velRelativa(colgadoDe(id)) - 1) * 100);
         return {
@@ -3388,7 +3395,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           llega = naftaSys.kmRestan() * (escapeSys.fugaOn() ? 0.6 : 1) >= bingo;
         } else llega = run.fuel * (escapeSys.fugaOn() ? 0.6 : 1) >= 40;
       }
-      const hayChancha = !(curMission() && curMission().chancha === false);
+      const hayChancha = !(curMission() && curMission().chancha === false) && !sinSonda();
       que.push(!llega && hayChancha ? 'sena_chancha' : 'sena_casa');
       const alerta = { sena_fuga: 1, sena_dano: 1, sena_chancha: 1 };
       senas = { t: -SENAS.DESDE, idx: detras(run), frena: true, sale: 'abajo', lado: 1,
@@ -4556,7 +4563,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           if (alc) { if (chancha.despedir()) chanchaRadio('adios'); }
           else if (!chIdaLlena && !chancha.snapshot() && rutaSys.alBlanco() <= rd.chanchaIda[0]) {
             const r = chancha.pedir({ fuelOn: true, enPasillo: !cfg.devcam, t: run.t, minT: 0,
-              viva: !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false),
+              viva: chanchaViva(),
               auto: true, espera: true, eta: CH_ETA_RUTA });
             if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); chanchaDice('ch_arriba'); }   // primero el aviso: "suba, soldado"
           }
@@ -5495,7 +5502,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // una mision donde no se puede morir tiene UNA vida, aunque despegue el escuadron entero
         unaVida: !!((gameMode === 'campaign' || gameMode === 'cycle') && curMission() && curMission().sinMuerte),
         // ¿la Chancha existe en esta mision? La misma regla que el gate de `pedir` (ver `viva`)
-        chanchaViva: !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false),
+        chanchaViva: chanchaViva(),
         // LA VUELTA, para la barra de objetivo: cuanto llevas hecho del regreso y cuanto mide. Va
         // por snapshot, como el resto — el HUD no pregunta, recibe.
         // (EN EL ESCAPE todavia no: la cinta se queda sobre el buque hasta el viraje)
