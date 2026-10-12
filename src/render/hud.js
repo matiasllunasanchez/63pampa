@@ -8,7 +8,7 @@
 // objectiveDist, objectiveShip, goalKind) vive en game.js y entra por parametro, igual que las
 // otras pantallas (render/screens.js, render/menus.js).
 
-import { ctx, px, DW as W, DH as H, PZ, U, SC, avisoFont } from './ctx.js';
+import { ctx, px, DW as W, DH as H, PZ, U, SC, avisoFont, uiFont } from './ctx.js';
 import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
 import { cargaDe } from '../data/cargas.js';
@@ -1223,6 +1223,10 @@ function aguja(cx, cy, a, largo, pal, gordo) {
 /** La aguja SIMPLE de un color (con su borde oscuro y el eje), sobre el centro (cx, cy). */
 const agujaSimple = (cx, cy, a, largo, col) => aguja(cx, cy, a, largo, { o: AGUJA_BORDE, h: col, g: col, x: P.ink }, 0.8);
 
+/** LA LETRA DE LOS NUMEROS de los relojes (12/10). Se muta, no se reasigna: la sonda __fuenteNum
+ *  (game.js) la cambia en vivo para comparar las candidatas (FONT_PANEL en render/ctx.js). */
+export const NUMEROS = { fam: 'CCSuperHuman' };   // elegida por el autor el 12/10 entre la tanda del panel
+
 /** `o` = { val 0..1, col, ico, icoCol, zona: [desde, hasta] en rojo, zonas: [[desde, hasta, col]]
  *  (varias y de cualquier color; manda sobre `zona`), marcas: [[f, col]] marcas LARGAS, fin: icono
  *  al final de la escala (o null), txt: el numero al pie, txtCol, uni: la unidad, chica y apagada,
@@ -1284,7 +1288,14 @@ function reloj(x, y, o) {
   if (typeof o.ico === 'function') o.ico(x, y, met);
   else if (o.ico) icono(x + 2, y + CUADRO - 9, 7, o.ico, o.icoCol || P.dim);
   if (o.txt) {
-    ctx.font = F_ROT; ctx.textAlign = 'right'; ctx.fillStyle = o.txtCol || P.dim;
+    // EL NUMERO EN NUMEROS.fam (CC SuperHuman, autor 12/10; antes Kirana); monospace hasta que carga.
+    // Kirana era ANCHA: "100%" a 7 px pisaba el icono; va a 5,5 y se achica hasta entrar a la derecha del icono
+    // con un pixel de aire ("mas chicos los numeros, se pisan", 12/10).
+    let fs = 5.5;
+    ctx.font = uiFont(NUMEROS.fam, fs, '');
+    const ancho = ctx.measureText(o.txt).width, LUGAR = CUADRO - (typeof o.ico === 'function' ? 16 : 14);   // las balas son mas largas
+    if (ancho > LUGAR) { fs = Math.max(3.5, fs * LUGAR / ancho); ctx.font = uiFont(NUMEROS.fam, fs, ''); }
+    ctx.textAlign = 'right'; ctx.fillStyle = o.txtCol || P.dim;
     ctx.fillText(o.txt, x + CUADRO - 3, y + CUADRO - 4);
     ctx.textAlign = 'left';
   }

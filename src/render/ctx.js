@@ -159,9 +159,11 @@ export const FONT_BRAND = ['Kirana', 'OtflagSans', 'Gomarice', 'MalvinasSans', '
 export const FONT_SIMPLE = ['Opencare', 'Vegabond', 'Cochocib', 'Kabur', 'Mayorice'];
 // assets/fonts/simple/others/ — la tanda en prueba (ver DESC_TRY en render/menus.js)
 export const FONT_OTHERS = ['EmbolismSpark', 'GlimpRThin', 'GlimpRThinItalic', 'SmoothElegant'];
+// assets/fonts/panel/ui_game/ — candidatas para los numeros de los relojes (12/10)
+export const FONT_PANEL = ['CosmicSuperHuman', 'CCSuperHuman', 'Wiltype', 'Thernaly', 'Unitblock'];
 const fontReady = {};
 if (typeof document !== 'undefined' && document.fonts && document.fonts.load) {
-  for (const fam of [...FONT_BRAND, ...FONT_SIMPLE, ...FONT_OTHERS]) {
+  for (const fam of [...FONT_BRAND, ...FONT_SIMPLE, ...FONT_OTHERS, ...FONT_PANEL]) {
     document.fonts.load('32px ' + fam).then(f => { fontReady[fam] = f.length > 0; }).catch(() => { });
   }
 }

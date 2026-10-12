@@ -85,7 +85,7 @@ import { drawTrayectoria } from './render/trayectoria.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
 import { drawRotuloVuelo, ROTULO, ROTULO_T, ROTULO_NOMBRE, ROTULO_ESCAPE, ROTULO_FALLO } from './render/rotulo.js';
-import { tarjetaPiloto, TARJETA_LADO, tarjetaLugar } from './render/hud.js';
+import { tarjetaPiloto, TARJETA_LADO, tarjetaLugar, NUMEROS } from './render/hud.js';
 import { PULSO } from './data/pulso.js';
 import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
@@ -6024,6 +6024,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // salta el intersticial en curso y dispara lo que venia despues: sirve para recorrer la
       // cadena de posmision sin esperar los segundos de negro.
       window.__interYa = () => { const f = interNext; interNext = null; interDur = 0; if (f) f(); return S.state; };
+      // LA LETRA DE LOS NUMEROS de los relojes, para comparar candidatas: __fuenteNum('Thernaly')
+      window.__fuenteNum = f => { NUMEROS.fam = f; return f; };
       // LAS TRES METRALLAS en la corrida en curso (y la cinta), para capturas: __metralla(3, 2)
       window.__metralla = (m, c) => { run.metralla = m; if (c) run.cinta = c; return JSON.stringify({ metralla: run.metralla, cinta: run.cinta, heat: +run.heat.toFixed(2), giro: +run.giro.toFixed(2), tiros: stats.shots }); };
       window.__estado = () => JSON.stringify({ st: S.state, nivel: curLevel, inter: interTxt, interT: +interT.toFixed(2), interDur, oferta: upgOffer.length, runT: +run.t.toFixed(2) });
