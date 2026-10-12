@@ -366,3 +366,149 @@ def puesto(T, K):
         pieza('ventana', raiz, oscuro, (0.03, 0.42, 0.54), (sg * (W / 2 + 0.03), 1.65, 0))
     bolsas(raiz, K, [(-1.3 + i * 0.6, 0.13, -1.45, 0) for i in range(5)] + [(-1.0 + i * 0.6, 0.37, -1.45, 0) for i in range(4)])
     return raiz
+
+# ============================ LA BASE COSTERA (el blanco en tierra) ============================
+# (12/10/2026, el autor: "LA BASE SE VE HORRIBLE, HORNEALA Y MEJORALA"). Hasta hoy la dibujaba el canvas
+# desde el perfil (render/blanco.js drawEstructura): rectangulos y un arco plano. Ahora es una hoja como
+# las de los buques (hojas.py `base_costera`: el mismo teleobjetivo de costado, 10 unidades de punta a
+# punta = la eslora del blanco) y el perfil de la bomba se re-mide de ella (data/blanco.js PERFIL.base).
+# La MISMA composicion de izquierda a derecha que las piezas de data/estructuras.js — cerco, tanques,
+# barracas, deposito, el HANGAR y la TORRE al centro, taller, deposito, barracas, la antena, tanque —
+# pero con forma: las bovedas Nissen de chapa ondulada con su frente y su porton, la torre de control
+# con la cabina encendida, los tanques de combustible con su escalera, el cerco de alambre, la antena
+# reticulada con su plato, el radomo detras, bolsas de arena y la bandera.
+# La camara ve el lado -x del modelo y -z queda a la IZQUIERDA (ver hornear_hoja.py, quarter = pi/2).
+CHAPA_B, FRENTE_B, OSCURO_B = '#6e6a55', '#8c8771', '#1b1d18'
+HORMIGON, TORRE_B, TECHO_B = '#85837a', '#aeab9f', '#4a4a43'
+
+def _boveda(nombre, raiz, mat, cz, x0, x1, R, base=0.0, N=18, onda=0.018):
+    """Una BOVEDA NISSEN con el eje en x (el frente mira a la camara): medio cilindro de chapa
+    ondulada — la onda va a lo largo, en bandas de luz."""
+    bm = bmesh.new(); secs = []
+    for i in range(N + 1):
+        x = x0 + (x1 - x0) * i / N
+        rr = R * (1 + onda * math.cos(i * math.pi))
+        sec = [bm.verts.new((x, 0, cz - rr))]
+        for k in range(17):
+            a = math.pi - math.pi * k / 16
+            sec.append(bm.verts.new((x, base + rr * math.sin(a), cz + rr * math.cos(a))))
+        sec.append(bm.verts.new((x, 0, cz + rr)))
+        secs.append(sec)
+    for a, b in zip(secs, secs[1:]):
+        for k in range(len(a) - 1): bm.faces.new((a[k], a[k + 1], b[k + 1], b[k]))
+    bm.faces.new(list(reversed(secs[0]))); bm.faces.new(secs[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(nombre); bm.to_mesh(me); bm.free()
+    me.shade_smooth(); me.set_sharp_from_angle(angle=math.radians(30))
+    return _obj(nombre, me, raiz, mat)
+
+def _frente(raiz, K, cz, x, R, base, porton, ventanas=0):
+    """El FRENTE de una boveda: la pared en semicirculo, el porton oscuro y las ventanas."""
+    pared = K['mat_cel']('frente_b', FRENTE_B)
+    bm = bmesh.new()
+    vs = [bm.verts.new((x, 0, cz - R))] + [bm.verts.new((x, base + R * math.sin(math.pi - math.pi * k / 16), cz + R * math.cos(math.pi - math.pi * k / 16))) for k in range(17)] + [bm.verts.new((x, 0, cz + R))]
+    bm.faces.new(vs)
+    me = bpy.data.meshes.new('frente'); bm.to_mesh(me); bm.free()
+    _obj('frente', me, raiz, pared)
+    oscuro = K['mat_cel']('porton_b', OSCURO_B)
+    pw, ph = porton
+    pieza('porton', raiz, oscuro, (0.03, ph, pw), (x - 0.02, ph / 2, cz))
+    pieza('dintel', raiz, K['mat_cel']('marco_b', '#5b5848'), (0.05, 0.05, pw + 0.08), (x - 0.03, ph + 0.02, cz))
+    for k in range(ventanas):
+        dz = (k - (ventanas - 1) / 2) * (pw + 0.30)
+        if abs(dz) < 1e-6: continue
+        pieza('ventana', raiz, K['mat_cel']('vidrio_b', '#3d4a4e'), (0.03, 0.16, 0.16), (x - 0.02, ph * 0.62, cz + dz))
+
+def _nissen(raiz, K, cz, R, prof, porton, ventanas=0, x_frente=-1.2, base=0.06):
+    _boveda('nissen', raiz, K['mat_cel']('chapa_b', CHAPA_B), cz, x_frente, x_frente + prof, R, base)
+    _frente(raiz, K, cz, x_frente - 0.005, R, base, porton, ventanas)
+
+def _tanque_comb(raiz, K, x, z, r, alto):
+    """El TANQUE DE COMBUSTIBLE: cilindro con el techo apenas conico, una franja y la escalera."""
+    columna('tanque_comb', raiz, K['mat_cel']('tanque_b', '#a4a796'), x, z,
+            [(0, r, r), (alto, r, r), (alto + 0.08, r * 0.86, r * 0.86), (alto + 0.16, r * 0.25, r * 0.25)], expo=2.0)
+    columna('franja', raiz, K['mat_cel']('franja_b', '#5f6a44'), x, z, [(alto * 0.62, r + 0.005, r + 0.005), (alto * 0.72, r + 0.005, r + 0.005)], expo=2.0)
+    for dz in (-0.07, 0.07):
+        poste('escalera', raiz, K['mat_cel']('escalera_b', '#4a4c44'), x - r - 0.02, 0, alto, z + dz, 0.012, 0.012, seg=4)
+    columna('muro', raiz, K['mat_cel']('muro_b', '#7f7c69'), x, z, [(0, r * 1.45, r * 1.45), (0.14, r * 1.45, r * 1.45)], expo=6.0)
+
+def _cerco(raiz, K, z0, z1, x=-2.1, alto=0.5):
+    """EL CERCO: postes y tres hilos de alambre (a 240 px, alambre es una linea)."""
+    m = K['mat_cel']('cerco_b', '#4d4f47')
+    n = max(2, int(round((z1 - z0) / 0.32)) + 1)
+    for i in range(n):
+        poste('poste_c', raiz, m, x, 0, alto, z0 + (z1 - z0) * i / (n - 1), 0.022, 0.018, seg=5)
+    for y in (alto * 0.35, alto * 0.65, alto * 0.95):
+        pieza('alambre', raiz, m, (0.012, 0.012, z1 - z0), (x, y, (z0 + z1) / 2))
+
+def base_costera(T, K):
+    raiz = _raiz(T, 'Base costera')
+    # LA PLAYA DE HORMIGON donde se apoya todo, con su cordon
+    bloque('playa', raiz, K['mat_cel']('hormigon_b', HORMIGON), (0.2, 0.025, 0), (4.6, 0.05, 10.1), bisel=0.01)
+    # cercos de las puntas y la tranquera
+    _cerco(raiz, K, -5.0, -4.55); _cerco(raiz, K, -3.55, -3.05); _cerco(raiz, K, 3.55, 4.0); _cerco(raiz, K, 4.55, 5.0)
+    pieza('barrera', raiz, K['mat_cel']('barrera_b', '#c9c2a8'), (0.03, 0.03, 0.42), (-2.1, 0.42, -3.3), (0.35, 0, 0))
+    # col 1-2 y 18: los TANQUES DE COMBUSTIBLE
+    _tanque_comb(raiz, K, -0.6, -4.18, 0.34, 0.86)
+    _tanque_comb(raiz, K, 0.2, -3.80, 0.30, 0.74)
+    _tanque_comb(raiz, K, -0.6, 4.25, 0.30, 0.80)
+    # col 4-5 y 14-15: las BARRACAS (Nissen chicas, puerta y dos ventanas)
+    _nissen(raiz, K, -2.50, 0.52, 2.4, (0.22, 0.34), ventanas=3, x_frente=-1.5)
+    _nissen(raiz, K, 2.50, 0.52, 2.4, (0.22, 0.34), ventanas=3, x_frente=-1.5)
+    # col 6 y 13: los DEPOSITOS — bloques de techo plano con porton enrollable
+    for cz, alto in ((-1.75, 0.95), (1.75, 0.85)):
+        bloque('deposito_b', raiz, K['mat_cel']('depo_b', '#7c7966'), (-0.4, alto / 2, cz), (2.0, alto, 0.48), bisel=0.02)
+        bloque('techo_d', raiz, K['mat_cel']('techo_d', TECHO_B), (-0.4, alto + 0.03, cz), (2.1, 0.06, 0.56), bisel=0.01)
+        pieza('porton_d', raiz, K['mat_cel']('roll_b', '#56574c'), (0.03, alto * 0.62, 0.30), (-1.42, alto * 0.31, cz))
+    # col 7-9: EL HANGAR GRANDE, abierto, con un avion asomando en la sombra
+    _nissen(raiz, K, -0.75, 1.45, 3.4, (2.0, 1.15), x_frente=-1.65, base=0.10)
+    pieza('interior', raiz, K['mat_emisivo']('interior_b', '#2a2a22'), (0.02, 0.10, 1.6), (-1.66, 0.05, -0.75))
+    # col 10-11: LA TORRE DE CONTROL — fuste, cabina vidriada encendida, techo, baranda y antenas
+    torre = K['mat_cel']('torre_b', TORRE_B)
+    bloque('fuste', raiz, torre, (-0.9, 1.15, 0.62), (0.55, 2.3, 0.55), bisel=0.02)
+    bloque('cabina_t', raiz, torre, (-0.9, 2.52, 0.62), (0.90, 0.46, 0.90), bisel=0.02)
+    pieza('vidrio_t', raiz, K['mat_emisivo']('vidrio_t', '#e8d79a'), (0.92, 0.20, 0.92), (-0.9, 2.56, 0.62))
+    bloque('techo_t', raiz, K['mat_cel']('techo_t', TECHO_B), (-0.9, 2.80, 0.62), (1.05, 0.08, 1.05), bisel=0.01)
+    pieza('baranda', raiz, K['mat_cel']('baranda_t', '#5a5b52'), (1.0, 0.03, 1.0), (-0.9, 2.30, 0.62))
+    poste('antena_t', raiz, K['mat_cel']('metal_t', '#4b4d47'), -0.9, 2.84, 3.35, 0.45, 0.018, 0.008, seg=5)
+    # la MANGA de viento, naranja y blanca, en su palo
+    poste('palo_manga', raiz, K['mat_cel']('metal_t', '#4b4d47'), -1.45, 0, 1.1, 1.05, 0.02, 0.015, seg=5)
+    manga = loft('manga', [(1.05, 0.05, 0.05, 1.08), (1.35, 0.03, 0.03, 1.06)], raiz, K['mat_cel']('manga', '#e07a3a'), n=8, cerrar=(True, True), x0=-1.45)
+    # col 12: el TALLER — galpon a dos aguas
+    bm = bmesh.new()
+    W, H0, H1, z0 = 0.9, 0.95, 1.40, 1.25
+    pts = [(z0 - W / 2, 0), (z0 + W / 2, 0), (z0 + W / 2, H0), (z0, H1), (z0 - W / 2, H0)]
+    fr = [bm.verts.new((-1.45, y, z)) for z, y in pts]; at = [bm.verts.new((0.8, y, z)) for z, y in pts]
+    bm.faces.new(fr); bm.faces.new(list(reversed(at)))
+    for i in range(5): bm.faces.new((fr[i], fr[(i + 1) % 5], at[(i + 1) % 5], at[i]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new('taller'); bm.to_mesh(me); bm.free()
+    _obj('taller', me, raiz, K['mat_cel']('taller_b', '#8a8571'))
+    pieza('porton_t', raiz, K['mat_cel']('porton_b', OSCURO_B), (0.03, 0.70, 0.55), (-1.47, 0.35, 1.25))
+    # col 16: LA ANTENA reticulada, con su plato y los vientos
+    m = K['mat_cel']('reticula', '#55574f')
+    for dz, dx in ((-0.14, -0.08), (0.14, -0.08), (0, 0.14)):
+        hueso('pata_a', raiz, m, (-0.3 + dx, 0, 3.25 + dz), (-0.3, 2.65, 3.25), 0.03, 0.012, seg=4)
+    for y in (0.5, 1.0, 1.5, 2.0):
+        k = 1 - y / 2.65
+        pieza('travesano', raiz, m, (0.02, 0.02, 0.28 * k + 0.02), (-0.3 - 0.08 * k, y, 3.25))
+    plato = elipsoide('plato', (0, 0, 0), (0.05, 0.22, 0.22), raiz, K['mat_cel']('plato', '#c8c9c0'), seg=14, anillos=8)
+    plato.location = (-0.42, 1.95, 3.25)
+    for dz in (-0.9, 0.9):
+        hueso('viento', raiz, m, (-0.3, 2.4, 3.25), (-0.3, 0, 3.25 + dz), 0.005, 0.005, seg=3)
+    # EL RADOMO detras, asomando entre el taller y la antena
+    bloque('base_radomo', raiz, K['mat_cel']('hormigon_b', HORMIGON), (1.6, 0.35, 2.4), (0.8, 0.7, 0.8), bisel=0.02)
+    elipsoide('radomo', (1.6, 0.98, 2.4), (0.55, 0.52, 0.55), raiz, K['mat_cel']('radomo', '#d6d5cb'), seg=20, anillos=12)
+    # LA BANDERA en su mastil, junto a la torre
+    poste('mastil', raiz, K['mat_cel']('metal_t', '#4b4d47'), -1.8, 0, 1.9, -0.25, 0.018, 0.012, seg=5)
+    pieza('bandera', raiz, K['mat_cel']('union_az', '#2d4a8a'), (0.02, 0.22, 0.36), (-1.8, 1.76, -0.07))
+    pieza('cruz_h', raiz, K['mat_cel']('union_rj', '#c4302a'), (0.025, 0.05, 0.36), (-1.81, 1.76, -0.07))
+    pieza('cruz_v', raiz, K['mat_cel']('union_rj', '#c4302a'), (0.025, 0.22, 0.06), (-1.81, 1.76, -0.07))
+    # BOLSAS DE ARENA: un pozo con su ametralladora delante de las barracas de la derecha
+    nido = vacio(raiz, 'nido', (-2.05, 0, 2.45), escala=0.32)
+    arco_bolsas(nido, K, 0.75, math.pi * 0.55, math.pi * 1.45, 7, filas=2)
+    hueso('ametralladora', nido, K['mat_cel']('metal_t', '#4b4d47'), (0, 0.42, 0), (-0.7, 0.5, 0), 0.04, 0.03, seg=5)
+    # tambores sueltos junto al deposito de la izquierda
+    for i, (x, z) in enumerate(((-1.75, -1.35), (-1.8, -1.12), (-1.6, -1.22))):
+        columna('tambor_b', raiz, K['mat_cel']('tambor_b%d' % (i % 2), '#6d7a4a' if i % 2 else '#7d8a55'), x, z, [(0, 0.075, 0.075), (0.2, 0.075, 0.075)], expo=2.0)
+    return raiz

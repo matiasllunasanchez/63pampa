@@ -16,7 +16,10 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');
-const CLASES = ['t21', 't42', 'log', 'cv'];
+const CLASES = ['t21', 't42', 'log', 'cv', 'base'];
+// LAS ESTRUCTURAS HORNEADAS (12/10/2026): la clase 'base' sale de la hoja de la BASE COSTERA, que es
+// de UN cuadro (en tierra no se hamaca). Los buques: buque_<clase>.png, tres poses.
+const HOJA = { base: 'base_costera' }, POSES_DE = { base: 1 };
 const BANDAS = 20, ALFA = 40, POSES = 3;
 
 app.whenReady().then(async () => {
@@ -24,7 +27,7 @@ app.whenReady().then(async () => {
   await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html'));
   const out = {};
   for (const c of CLASES) {
-    const f = path.join(ROOT, 'assets', 'world', 'enemies', 'buque_' + c + '.png');
+    const f = path.join(ROOT, 'assets', 'world', 'enemies', (HOJA[c] || 'buque_' + c) + '.png');
     if (!fs.existsSync(f)) { console.log('(no existe ' + c + ')'); continue; }
     const url = 'file://' + f;
     out[c] = await win.webContents.executeJavaScript(
@@ -33,7 +36,7 @@ app.whenReady().then(async () => {
       '  const cv = document.createElement("canvas"); cv.width = im.naturalWidth; cv.height = im.naturalHeight;' +
       '  const g = cv.getContext("2d"); g.drawImage(im, 0, 0);' +
       '  const W = cv.width, H = cv.height, d = g.getImageData(0,0,W,H).data;' +
-      '  const fw = Math.round(W / ' + POSES + ');' +          // el frame 0 es el primero de la fila
+      '  const fw = Math.round(W / ' + (POSES_DE[c] || POSES) + ');' +          // el frame 0 es el primero de la fila
       '  const op = (x,y) => d[(y*W+x)*4+3] > ' + ALFA + ';' +
       '  let x0=1e9, x1=-1, y1=-1;' +
       '  for (let x=0;x<fw;x++) for (let y=0;y<H;y++) if (op(x,y)) { if(x<x0)x0=x; if(x>x1)x1=x; if(y>y1)y1=y; }' +

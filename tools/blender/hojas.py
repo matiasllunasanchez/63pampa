@@ -57,6 +57,11 @@ HOJAS = {
     **{('buque_' + c): dict(fw=240, fh=72, dist=90, fov=2.42, lookY=1.76, clipY=0, baseYaw=0, quarter=math.pi / 2,
                             cols=3, nivelado=1, frames=[dict(modelo='bl:' + c, roll=a) for a in (-0.04, 0, 0.04)])
        for c in ('t42', 't21', 'log', 'cv')},
+    # LA BASE COSTERA (12/10/2026, modelos_tierra.py `base_costera`): el blanco en tierra, horneado con
+    # el MISMO teleobjetivo de costado que los buques — ocupa la eslora y apoya en el piso (clipY 0).
+    # Un solo cuadro: en tierra no se hamaca. Hoja NUEVA (no hubo version de three.js).
+    'base_costera': dict(fw=240, fh=72, dist=90, fov=2.42, lookY=1.76, clipY=0, baseYaw=0, quarter=math.pi / 2,
+                         cols=1, nueva=True, frames=[dict(modelo='bl:base_costera')]),
     **{('proa_' + c): dict(fw=56, fh=72, dist=90, fov=2.42, lookY=1.64, clipY=0, baseYaw=0, quarter=0,
                            cols=3, nivelado=1, frames=[dict(modelo='bl:' + c, roll=a) for a in (-0.05, 0, 0.05)])
        for c in ('t42', 't21', 'log', 'cv')},

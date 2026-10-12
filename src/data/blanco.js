@@ -202,11 +202,12 @@ export const PERFIL = {
   // corrida a popa. Los otros tienen el pico al medio o adelante. Medido con
   // `npx electron tools/perfil_buques.js`, que reproduce exacto los tres de arriba.
   cv: [0.109, 0.109, 0.114, 0.130, 0.135, 0.104, 0.098, 0.098, 0.093, 0.135, 0.166, 0.316, 0.311, 0.187, 0.130, 0.083, 0.078, 0.078, 0.078, 0.073],
-  // LAS ESTRUCTURAS EN TIERRA (data/estructuras.js). No salen de una hoja horneada sino al reves: el
-  // dibujo se hace DESDE este perfil, columna por columna, asi que la bomba pega donde se ve edificio
-  // por construccion. Las alturas son sobre el piso de la explanada, no sobre el agua.
-  // base: cerco · tanques · barracas · deposito · HANGAR y TORRE al centro · barracas · antena · tanque
-  base: [0.05, 0.10, 0.10, 0.05, 0.07, 0.07, 0.11, 0.15, 0.16, 0.16, 0.30, 0.30, 0.15, 0.11, 0.07, 0.07, 0.26, 0.05, 0.10, 0.05],
+  // LAS ESTRUCTURAS EN TIERRA (data/estructuras.js). Las alturas son sobre el piso de la explanada, no
+  // sobre el agua. La BASE COSTERA esta horneada desde el 12/10/2026 (assets/world/enemies/
+  // base_costera.png) y su perfil se mide de la hoja como el de los buques (`npx electron
+  // tools/perfil_buques.js`): cerco · tanques · barracas · el HANGAR · la TORRE · taller y radomo ·
+  // barracas · la ANTENA · tanque. Sin la hoja (build viejo) se dibuja desde este perfil.
+  base: [0.015, 0.102, 0.102, 0.087, 0.061, 0.066, 0.128, 0.153, 0.158, 0.184, 0.327, 0.281, 0.281, 0.138, 0.148, 0.153, 0.255, 0.133, 0.097, 0.046],
 };
 
 /** LA FASE DEL ESCAPE: lo que rige mientras escapas, tapando a las fases de la vuelta (que recien

@@ -28,6 +28,10 @@
 export const ESTRUCTURAS = {
   'BASE COSTERA': {
     clase: 'base',
+    // HORNEADA (12/10/2026, el autor: "la base se ve horrible, horneala y mejorala"): Blender,
+    // tools/blender/modelos_tierra.py `base_costera`. Las piezas de abajo quedan para el dibujo de
+    // respaldo (sin la hoja) y describen la misma composicion.
+    hoja: 'base_costera',
     piezas: [
       { tipo: 'cerco', de: 0, a: 0 },
       { tipo: 'tanque', de: 1, a: 2 },
