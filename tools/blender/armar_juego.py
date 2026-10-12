@@ -189,6 +189,11 @@ if __name__ == '__main__':
             if SOLO_BASE(clave) and vista != 'base': continue
             h = hoja(os.path.join(OUT, clave, vista), filas, fw, sim)
             con_contorno(h, filas, fw).save(os.path.join(dest, '%s%s.png' % (base, suf)))
+            if clave in CELULAS and vista == 'base' and os.path.isdir(os.path.join(OUT, clave, 'capas', 'tren_base')):
+                # EL TREN DE ATERRIZAJE (9/10): la capa que el juego dibuja debajo del avion al despegar
+                # y al aterrizar (render/plane.js drawTren)
+                t = hoja(os.path.join(OUT, clave, 'capas', 'tren_base'), filas, fw, sim)
+                con_contorno(t, filas, fw).save(os.path.join(dest, 'tren.png'))
             if clave in CELULAS:
                 for capa in CAPAS:
                     c = hoja(os.path.join(OUT, clave, 'capas', '%s_%s' % (capa, vista)), filas, fw, sim)

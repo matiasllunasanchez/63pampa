@@ -115,6 +115,10 @@ PLANES.forEach(pl => {
     // y dos con las bandas amarillas de identificacion (tools/blender/modelos.py, `_variantes`).
     // Las dibuja render/squad.js para los numerales fuera de campaña; si no cargan (build web, horno
     // viejo) los numerales vuelan con la hoja de siempre.
+    // EL TREN DE ATERRIZAJE horneado (9/10): una capa con la grilla de la hoja base (render/plane.js
+    // drawTren). Sin ella —build web, horno viejo— el tren se dibuja como antes.
+    pl.tren = null;
+    if (!HORNO_VIEJO) { pl.tren = new Image(); pl.tren.src = dir + 'tren.png'; }
     pl.variantes = HORNO_VIEJO ? [] : [1, 2, 3, 4].map(n => { const im = new Image(); im.src = dir + 'variante' + n + '.png'; return im; });
   }
 });

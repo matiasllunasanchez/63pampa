@@ -615,6 +615,23 @@ export function drawGear(g, u) {
   ctx.globalAlpha = 1;
 }
 
+/** EL TREN HORNEADO (9/10, el autor: "las ruedas se ven feas, y en un tamaño feo"): la capa `tren.png`
+ *  de cada avion (tools/blender/modelos.py `tren`), la misma grilla que la hoja base, dibujada con el
+ *  MISMO cuadro y el mismo rectangulo que el sprite y DEBAJO de el. Al recogerse (`g` 1 → 0) sube
+ *  TREN_SUBE del cuadro —lo que asoma bajo el ala— y el sprite la va tapando; el ultimo tramo se apaga.
+ *  Devuelve false si la capa no esta (build web, horno viejo): quien llama cae a drawGear. */
+const TREN_SUBE = 0.13;
+export function drawTren(pl, g, col, row, x, y, w, h) {
+  const im = pl && pl.tren;
+  if (!(im && im.complete && im.naturalWidth)) return false;
+  if (g <= 0) return true;
+  const a0 = ctx.globalAlpha;
+  ctx.globalAlpha = a0 * Math.min(1, g * 5);
+  ctx.drawImage(im, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH, x, y - (1 - g) * TREN_SUBE * h, w, h);
+  ctx.globalAlpha = a0;
+  return true;
+}
+
 // `camScale` (opcional): empujon de camara del ESCUADRON al CONTROL LIBRE — agranda SOLO el
 // sprite del avion. Acercarse escalando el raster ya dibujado esta prohibido en este juego
 // (parte el mar en rayas, ver CAM_ZOOMS en game.js); esta es la version que el plano puede pagar.
@@ -1022,7 +1039,10 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // del ala tambien con la hoja del poder RASANTE.
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
     if (fogonOn() && !hoja4) fogonazos(spW, spH, AN.tips[rowPose][colPose]);
-    drawGear(run.gear, 1);   // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma
+    // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma. El tren horneado va
+    // con la hoja BASE (y las skins, misma celula); con las otras hojas, o sin la capa, el dibujado
+    const conBase = !F3 && !hoja4 && img !== hoja2;
+    if (!(conBase && drawTren(pl, run.gear, col, row, -dW / 2, -dH / 2, dW, dH))) drawGear(run.gear, 1);
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
     // EL FUNDIDO DE FILA: el cabeceo de recien se apaga ENCIMA del nuevo (solo entre filas de la
     // misma hoja; las poses de pirueta y la cobra cambian de hoja y ahi manda la maniobra)

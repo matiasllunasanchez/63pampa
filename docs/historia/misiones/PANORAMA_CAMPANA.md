@@ -3,8 +3,9 @@
 *Las catorce misiones de un vistazo: qué se ataca, qué está pasando en la historia, y quién
 queda vivo.*
 
-> Sacado del código el 3/10/2026 — `missions.js` y `story.js`. Si una misión dice una cosa acá y
-> otra en su `M#_LECTURA.md`, gana el documento de la misión.
+> Sacado del código el 3/10/2026 y actualizado el 9/10 con lo decidido. Si una misión dice una
+> cosa acá y otra en su `M#_CAMBIOS.md`, gana el documento de cambios. **Qué está revisado y qué
+> falta decidir:** `README.md` y `../PENDIENTES_GUION.md`, sección 4.
 
 ---
 
@@ -125,7 +126,7 @@ SALTÁ!"* No salta. Esa noche el Turco junta sus cosas en una caja de cartón, s
 se lo pida. En la puerta del locker está la foto de La Casada, la que vieron mil veces — y al
 despegarla, la da vuelta.
 
-> **Muere el Vasco.**
+> **Muere el Vasco.** Y desde acá la Chancha ya no entra al radar: sólo aparece en la ida.
 
 ---
 
@@ -155,7 +156,7 @@ venía justo detrás cubriéndole la cola. Esa noche el Turco encuentra su libre
 página de aviones imposibles. Hace la cuenta que nadie le pidió — todo lo que llegaron a probar
 juntos es un cuarto de lo que hay ahí adentro.
 
-> **Muere el Pichón.**
+> **Muere el Pichón.** Desde la próxima, las mejoras las construye el Turco solo.
 
 ---
 

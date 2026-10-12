@@ -35,6 +35,7 @@ def trabajos(claves):
             if SONDA_LATERAL(k) and v in VISTAS_SIM: yield [k, v, SIN]
             if k in CELULAS:
                 for c in CAPAS: yield [k, v, c]
+                if v == 'base': yield [k, v, 'tren']     # EL TREN (9/10): solo en la vista base
 
 def hornear(t):
     k, v, c = t

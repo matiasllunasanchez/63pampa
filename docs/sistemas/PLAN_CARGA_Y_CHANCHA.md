@@ -98,3 +98,14 @@ una opción de la mano. No hay que escribir nada nuevo — ya está escrito.
   tensión del pasillo.
 - **Si las misiones fijan la carga** o siempre la elige el jugador. Hay misiones donde el guion ya
   dice qué llevaban.
+
+---
+
+## Cargar y fallar — pedido del autor, 9/10
+
+> *"ALGUNAS NAVES skyhawk no llegaban a cargar combustible y debian regresar, quiza podemos
+> implementar eso (...) incluso si el jugador no carga correctamente el juego tendria qe decirte no
+> pudiste recargar, tenes qe volver a base o algo asi."*
+
+**Si el jugador no logra cargar de la Chancha**, el juego se lo dice y lo manda de vuelta a la base.
+Era un problema frecuente en 1982. Detalle y dudas en `../historia/misiones/M5_CAMBIOS.md` · 5.

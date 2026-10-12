@@ -389,6 +389,33 @@ directa, a confirmar cuando lleguemos a M3.
 
 ---
 
+# CUARTA RONDA — 9/10/2026 · M2 es sobrevolar la isla tras los ataques
+
+*Está entera en **`ESCALERA_DE_APRENDIZAJE.md`**, «Revisión del 9/10», con el texto completo del
+autor. Lo que toca a M2:*
+
+> *"Quiza podemos hacer la mision 2 que nos avisan qe atacaron pradera del ganso y puerto
+> argentinoy. nos mandan a sobrevolar la isla, es una mision donde veremos el radar pero solo
+> conoceremos los limites y quiza nos cruzamos sea harriers, pero el radar no dispara ni nada,
+> porqe el objetivo no es un barco, el radar es general no es de un barco, es general, asi qe solo
+> aparecen harriers en esta configurafcion y ya veremos como y cuantos"*
+
+# 16 · Avisan de los ataques y los mandan a sobrevolar la isla
+
+**Estado:** ⬜ · **⚠ reemplaza el 12** (diversión 2, más lejos)
+
+La mañana del 1 de mayo: atacaron Pradera del Ganso y Puerto Argentino. **Se sobrevuela la isla**,
+se ve el radar y **se aprenden sus límites**.
+
+# 17 · El radar de tierra no dispara: sólo aparecen Sea Harriers
+
+**Estado:** ⬜ · 🔵 cuántos · **Toca:** radar, `estrellas.js`
+
+El radar es general, no de un barco: **no tira misiles**. Lo único que aparece son Sea Harriers.
+**⚠ Reabre el 14:** había quedado uno por estrella; ahora *«ya veremos cómo y cuántos»*.
+
+---
+
 ## Resumen para la sesión que implementa
 
 | # | Qué | Dónde toca |
@@ -407,6 +434,8 @@ directa, a confirmar cuando lleguemos a M3.
 | 13 | Se aprenden Momentum, turbo y la Chancha (cierra el 5) | lecciones, `missions.js` |
 | 14 | Un Harrier por estrella en M2 (dos en el resto), y se reponen | `estrellas.js` |
 | 15 | En M2 se habla: es tutorial (deja sin efecto el 7) | `story.js` |
+| 16 | ⚠ **M2 es sobrevolar la isla tras los ataques del 1/5** — reemplaza el 12 | `missions.js` |
+| 17 | 🔵 El radar de tierra no dispara: sólo Sea Harriers, cuántos a definir — reabre el 14 | radar, `estrellas.js` |
 | 11 | **Regla de campaña: sólo pasillo.** Salen pasada, arena, pulso y el minijuego Momentum; el poder Momentum queda | **las catorce** · ✅ dudas resueltas |
 
 ## Y lo que ya sabemos que hay que tocar igual

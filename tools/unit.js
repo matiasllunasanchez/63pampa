@@ -6,7 +6,7 @@
 // justo donde suelen romperse las cosas.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import {
   pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor, clamp, clamp01,
   PITCH_DELAY, PITCH_RAMP, ENERGY_MAX, SPD_MIN, SCRAPE_BASE, SCRAPE_MIN,
@@ -4139,3 +4139,38 @@ test('estructura · la cuenta ve las lomas, y en el terreno de t18 igual hay sue
     assert.equal(A9.quiebreGrupal(s1.ms, s1.b, P9).length, 2, 'con varios, el quiebre sirve a media distancia: es lo que deja que estallen lejos');
   });
 }
+
+// ---------- EL REPRODUCTOR Y SUS ARCHIVOS (10/10/2026) ----------
+// POR QUE EXISTE ESTA PRUEBA. En dos dias el reproductor se quedo mudo DOS VECES sin que nada
+// avisara: una porque la pista se llamaba `Zona rasante.m4a` en el codigo y `zona_rasante.m4a` en
+// el disco, y otra porque el autor movio `nadie_vuela_solo.m4a` a `opcionales/`. Las dos veces el
+// juego arranco igual, sin error: un `new Audio()` con una ruta que no existe falla en silencio y
+// recien se nota jugando, cuando toca esa pista y no suena nada.
+//
+// La musica NO esta en el repo por capricho del autor —entra y sale, se renombra, se reemplaza—
+// asi que la unica defensa posible es esta: que la lista del codigo y la carpeta coincidan.
+test('reproductor: cada pista de MUSIC_POOL existe en el disco', () => {
+  const audio = readFileSync(new URL('../src/systems/audio.js', import.meta.url), 'utf8');
+  const pool = audio.slice(audio.indexOf('const MUSIC_POOL = ['), audio.indexOf('const musPool'));
+  const rutas = [...pool.matchAll(/'(\.\.\/assets\/[^']+)'/g)].map(m => m[1]);
+  assert.ok(rutas.length >= 3, 'no se pudo leer MUSIC_POOL de systems/audio.js (cambio la forma?)');
+  for (const r of rutas) {
+    const abs = new URL('../src/' + r, import.meta.url);
+    assert.ok(existsSync(abs), `el reproductor pide ${r} y ese archivo no esta en el disco`);
+  }
+});
+
+// LA PISTA QUE PIDE UNA MISION tiene que existir en el reproductor. Si no, `idxDePista` devuelve
+// -1, la mision cae a la pista de campaña y nadie se entera de que perdio SU tema — que es
+// justamente lo que "obligatorio" venia a garantizar (hoy: ALAMBRE en M3).
+test('misiones: la pista que pide una mision esta en el reproductor', () => {
+  const audio = readFileSync(new URL('../src/systems/audio.js', import.meta.url), 'utf8');
+  const pool = audio.slice(audio.indexOf('const MUSIC_POOL = ['), audio.indexOf('const musPool'));
+  const nombres = [...pool.matchAll(/\[\s*'([a-z0-9_]+)'\s*,/g)].map(m => m[1]);
+  const mis = readFileSync(new URL('../src/data/missions.js', import.meta.url), 'utf8');
+  const pedidas = [...mis.matchAll(/^\s*musica:\s*'([a-z0-9_]+)'/gm)].map(m => m[1]);
+  assert.ok(pedidas.includes('alambre'), 'alguna mision tiene que pedir ALAMBRE (es M3, la del invento)');
+  for (const p of pedidas) {
+    assert.ok(nombres.includes(p), `una mision pide la pista '${p}' y el reproductor no la tiene`);
+  }
+});

@@ -2,6 +2,11 @@
 
 *1 de mayo de 1982 · costa de las islas*
 
+
+> **⚠ 9/10/2026 — esta lectura describe la misión como está hoy en el código.** Lo decidido
+> después —la escalera de aprendizaje y los cambios de octubre— está en **`M2_CAMBIOS.md`** y en
+> **`ESCALERA_DE_APRENDIZAJE.md`**, y manda sobre lo que dice acá.
+
 ---
 
 ## PANEO GENERAL

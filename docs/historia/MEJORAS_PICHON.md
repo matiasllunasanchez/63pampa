@@ -262,6 +262,58 @@ interceptación y radiolocalización **con procedimientos manuales y operadores 
 
 ---
 
+## 10 · EL «TRACTOR MISILÍSTICO» 🟡 el hecho sí, los detalles no *(10/10/2026)*
+
+**No es una mejora del Pichón** —es de tierra, y el Pichón trabaja en el hangar— pero es el mismo
+gesto que todo este catálogo y por eso vive acá: gente que agarró lo que tenía roto y lo hizo
+disparar.
+
+**Lo real, corroborado.** En **BAM Cóndor** (Pradera del Ganso / Goose Green) personal de la Fuerza
+Aérea montó una **lanzadora de cohetes de un Pucará averiado sobre el techo de un tractor**, y la
+disparaba **con la batería del propio tractor**, accionada desde un interruptor en la cabina. El
+techo cedía por el sobrepeso: llegaron a apuntalarlo con un caño por dentro. La **Batalla de Pradera
+del Ganso fue el 28 y 29 de mayo de 1982** y fue el primer gran combate terrestre de la guerra.
+
+**El nombre está mal y conviene decirlo:** disparaba **cohetes**, no misiles. Es un lanzacohetes
+sobre un tractor.
+
+> **🎁 Y hay un hermano todavía mejor, de la misma fuente:** en Goose Green hubo **otro** lanzacohetes
+> improvisado, **atado con un cajón de manzanas y soga arriba de un tobogán de plaza**, alimentado
+> por una **batería de auto de 12 V**. Si alguna vez entra uno solo de los dos al juego, el tobogán
+> dice más que el tractor.
+
+**⚠ LO QUE NO PUDE CORROBORAR** *(viene de un posteo de divulgación; ninguna fuente independiente lo
+confirma todavía)*:
+
+- **Los cuatro nombres** — Suboficial Mayor Juan Carlos Mansilla, Cabo 1º armero Luis Toloza, Cabo 1º
+  electricista Raúl Gonzáles, Cabo armero Juan Mansilla. **Son personas reales con nombre y apellido:
+  por la regla de atribución de arriba, no entran a ninguna placa sin una segunda fuente.**
+- **El modelo del tractor** (Ford 8000). Ninguna fuente menciona marca.
+- **«Más de 200 cohetes»** hasta agotarlos.
+- **La designación LAU-61.** Ojo acá: la **LAU-61 es de 19 tubos**, y en la foto el pod parece tener
+  bastantes menos — podría ser una **LAU-68 (7 tubos)**. El Pucará llevaba las dos. Hay que contar
+  tubos en una foto buena antes de escribir la sigla en ningún lado.
+- **El Capitán Rubén Grunert** y lo del padre tripulante del **Graf Spee**. La historia es verosímil
+  —hubo tripulantes del Graf Spee que quedaron en la Argentina después de 1939— pero es justo el tipo
+  de dato redondo que hay que confirmar antes de usarlo.
+
+**Lo que sí está confirmado del marco:** BAM Cóndor estaba en Goose Green; ahí se improvisó una base
+con Pucarás sobre una pista de turba de unos 400 m; y la **III Brigada Aérea de Reconquista (Santa
+Fe)** es efectivamente la unidad de Pucarás.
+
+> **CÓMO PODRÍA ENTRAR — no como mejora, como MUNDO.** Es un objeto de tierra, y el juego ya tiene
+> tierra y blancos terrestres. Candidato natural: **una silueta en el suelo en una misión sobre las
+> islas**, sin cartel y sin explicación — un tractor con un caño raro arriba, en el borde del camino.
+> El que sabe lo reconoce; el que no, ve un tractor. Y si alguna vez se quiere nombrar, es **placa
+> histórica**, no diálogo: el hecho con sus nombres, cuando estén verificados.
+
+**Fuentes:** [Mail on Sunday vía PressReader — las armas improvisadas argentinas (el tractor y el tobogán)](https://www.pressreader.com/uk/the-scottish-mail-on-sunday/20211212/282260963763418) ·
+[Battle of Goose Green — Wikipedia](https://en.wikipedia.org/wiki/Battle_of_Goose_Green) ·
+[HCDN — la Batalla de Pradera del Ganso, 28–29/5/1982 (PDF)](https://rest.hcdn.gob.ar/web/tramites-parlamentarios/render/adjunto/6a592a31a6b72.pdf) ·
+[Aire de Santa Fe — la III Brigada Aérea de Reconquista y el Pucará](https://www.airedesantafe.com.ar/el-domingo-la-iii-brigada-aerea-reconquista-realizara-una-jornada-abierta-despedir-al-pucara-n126477)
+
+---
+
 # CÓMO ENTRA AL JUEGO
 
 **El arco de las mejoras ahora tiene forma histórica**, y coincide con el arco emocional que

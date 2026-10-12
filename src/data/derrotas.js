@@ -48,6 +48,16 @@ export const DERROTAS = {
 const QUE_CHOQUE = ['que_choque', 'que_palos', 'que_aire'];
 export const esChoque = causa => !!DERROTAS[causa] && QUE_CHOQUE.includes(DERROTAS[causa].que);
 
+/** COMO SE CAE TU AVION, segun que lo bajo (12/10, el autor: "si es misil, explotar; si es bala o
+ *  antiaereo, prenderse fuego y caer"). Tres respuestas:
+ *    'misil'   revienta en el aire, en el acto
+ *    'bala'    la municion chica: se prende fuego, humea y cae — y en la caida te podes eyectar
+ *    'choque'  todo lo demas (mar, tierra, objetos, palos): revienta donde pego, como siempre */
+const MISIL = ['death_missile', 'death_seadart', 'death_seawolf', 'death_seacat', 'death_sidewinder',
+  'death_bomb', 'death_estallido'];
+const BALA = ['death_gunfire', 'death_aa', 'death_aden', 'death_popa', 'death_caza', 'death_onda'];
+export const tipoDerribo = causa => MISIL.includes(causa) ? 'misil' : BALA.includes(causa) ? 'bala' : 'choque';
+
 /** Lo que dice la pantalla para la causa `causa`. `veredicto` es el de la ultima bomba sobre el
  *  buque (blanco.res) y solo cuenta cuando se perdio por errar la suelta. Devuelve { que, hist }
  *  con CLAVES de strings (null = no hay). */

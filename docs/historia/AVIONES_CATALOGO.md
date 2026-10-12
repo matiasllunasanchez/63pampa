@@ -186,7 +186,9 @@ fierro, otra rutina.
 
 **Lo que fue.** El **Nesher** israelí —derivado del Mirage 5— vendido a la Argentina y
 rebautizado Dagger. **Fuerza Aérea**, Grupo 6 de Caza. Ala delta, mucho más rápido que el
-Skyhawk, dos cañones **DEFA de 30 mm** (contra los 20 mm del A-4). Y el dato que lo define:
+Skyhawk, dos cañones **DEFA de 30 mm** (contra los 20 mm del A-4) y, para el aire-aire, el
+**Shafrir 2** israelí — infrarrojo, de corto alcance. **Sin radar**, sin contramedidas y sin
+navegación inercial. Y el dato que lo define:
 **no tenía sonda de reabastecimiento en vuelo.** Salía del continente, tenía unos minutos
 sobre el objetivo y se volvía, sin nadie que lo esperara a mitad de camino. Sufrió bajas
 severas frente a los Sea Harrier.
@@ -222,6 +224,12 @@ ver PREGUNTAS_HISTORICAS.)*
 > interceptor) y el **IAI Dagger** — que es el Mirage 5 israelí y **ya está en este roster**.
 > El par que queda es el mejor que podía quedar: **el Dagger es el Mirage 5 que peleó; el
 > Mara es el Mirage 5 que llegó tarde.**
+>
+> **La misma confusión tiene una versión de armamento, y es la que hay que vigilar.** El **Matra
+> R.550 Magic I** —el misil que se ve en todas las fotos de "los Mirage argentinos"— era del
+> **Mirage IIIEA**, que **no está en este roster**. El Dagger usaba **Shafrir 2** israelí y el
+> Mara nunca disparó nada. Si alguna vez se dibuja o se modela el armamento de estos dos, **el
+> Magic no va en ninguno.** *(Verificado 9/10/2026 — ver PREGUNTAS_HISTORICAS.)*
 
 **Por qué ocupa el lugar del interceptor.** Porque es **el avión que la campaña regala**. La
 placa de M10 ya está escrita en el guion y es la que justifica todo:

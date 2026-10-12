@@ -22,7 +22,9 @@ import { audio } from '../systems/audio.js';
 
 // `brake` es el FRENO del mundo 3D —arena y pasada— (L2 en el mando, [G] en el teclado). Campo
 // propio y no `sink` para que frenar no mueva el paneo de la camara, que en 3D tambien mira.
-export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, brake: 0, fire: false, turbo: false, msl: false, tanq: false,
+// `eyect`: L1+R1 juntos en el mando — LA EYECCION durante la caida en llamas (game.js). En el teclado es
+// [Q]+[E] juntas, que game.js lee de `rollL`/`rollR`.
+export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, brake: 0, eyect: 0, fire: false, turbo: false, msl: false, tanq: false,
   // LA MIRA DE LA BOMBA (27/9): mantener [F] o el clic derecho apunta; con ella puesta, ESPACIO
   // (el cañon) tira la bomba en vez de disparar. Ver flight.js.
   apunta: false,
@@ -606,7 +608,7 @@ export function initInput(cv, a) {
     // PAUSA DE DIALOGO con el mando: ✕ / ◯ / Start aceptan, y el vuelo se SUELTA igual que en la
     // pausa — si no, al reanudar queda un eje clavado del cuadro en que se congelo.
     if (inGame && a.isDlgPausa && a.isDlgPausa()) {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'eyect', 'rollAx', 'camAx']) setPad(f, 0);
       if (hit(0) || hit(1) || hit(9)) a.dlgAceptar();
       btnPrev = pressed;
       requestAnimationFrame(pollGamepad);
@@ -614,14 +616,14 @@ export function initInput(cv, a) {
     }
     // la CHARLA EN VUELO con el mando: los mismos botones completan y pasan de linea
     if (inGame && a.isCharla && a.isCharla()) {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'eyect', 'rollAx', 'camAx']) setPad(f, 0);
       if (hit(0) || hit(1) || hit(9)) a.charlaTecla();
       btnPrev = pressed;
       requestAnimationFrame(pollGamepad);
       return;
     }
     if (inGame && a.isPaused()) {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'eyect', 'rollAx', 'camAx']) setPad(f, 0);
       const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;
       if (nu && !nav.u) a.pauseNav(-1);
       if (nd && !nav.d) a.pauseNav(1);
@@ -710,6 +712,7 @@ export function initInput(cv, a) {
       // sostenerlo tiene que valer una sola suelta, como una tecla que no repite.
       if (S.state === 'pulso' && (hit(4) || hit(2))) a.pulsoTap('Z');
       setPad('brake', down(6) ? 1 : 0);                        // L2 = freno (lo leen ARENA y PASADA)
+      setPad('eyect', down(4) && down(5) ? 1 : 0);             // L1+R1 juntos = eyectarse (solo en la caida)
 
       // ---- STICK DERECHO ----
       // X = GIRO LIBRE DEL HORIZONTE (lo que en teclado son [Q]/[E]).
@@ -731,7 +734,7 @@ export function initInput(cv, a) {
         for (const k in rNow) { if (rNow[k] && !rPrev[k]) dirTap(k); rPrev[k] = rNow[k]; }
       }
     } else {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'tanq', 'brake', 'rollAx', 'camAx']) setPad(f, 0);   // soltar el vuelo
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'tanq', 'brake', 'eyect', 'rollAx', 'camAx']) setPad(f, 0);   // soltar el vuelo
       padHeld.l1 = false; padSec = null;
       rPrev.L = rPrev.R = rPrev.U = rPrev.D = 0;   // volver a jugar con el stick sostenido = un toque nuevo
       // navegacion de menus por FLANCO (cruceta o stick)

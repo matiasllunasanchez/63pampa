@@ -2,6 +2,11 @@
 
 *4 de mayo de 1982 · mar abierto*
 
+
+> **⚠ 9/10/2026 — esta lectura describe la misión como está hoy en el código.** Lo decidido
+> después —la escalera de aprendizaje y los cambios de octubre— está en **`M4_CAMBIOS.md`** y en
+> **`ESCALERA_DE_APRENDIZAJE.md`**, y manda sobre lo que dice acá.
+
 ---
 
 ## Antes de empezar

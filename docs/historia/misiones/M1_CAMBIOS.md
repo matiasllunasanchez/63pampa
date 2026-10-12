@@ -650,3 +650,16 @@ corta en total, pero con la zona de radar adentro.
 ## 22 · Sin mejoras al terminar M1
 
 **Estado:** ✅ ya está así en `upgrades.js`.
+
+
+---
+
+## 23 · 🔵 ¿Se practica la bomba en M1? — 9/10
+
+**Estado:** 🔵 · *Del 9/10 — ver `ESCALERA_DE_APRENDIZAJE.md`, «Revisión del 9/10»*
+
+> *"Nos preparamos para tirar la bobma en la mision 1 quiza para practicar"*
+
+Dicho como posibilidad. **⚠ Choca con la tercera ronda:** la escalera del 4/10 dejó M1 y M2 sin
+bombas, y por eso en `DIALOGOS_EN_MISION.md` las lecciones de armas y espoleta de M1 quedaron
+marcadas para salir. **Si la bomba se practica en M1, esas dos lecciones se quedan.**

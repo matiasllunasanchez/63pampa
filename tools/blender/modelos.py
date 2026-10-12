@@ -202,13 +202,55 @@ def cargas(raiz, K, S):
     f = antes(piezas['pilon_centro']); pilon('pilon_centro', 0, yp + 0.03, yp - 0.15, zc + 0.05, 0.95, raiz, pi_); f()
     f = antes(piezas['tanque_centro']); tanque('tanque_centro', (0, yp - 0.15 - 0.19, zc), 0.19, 2.2, raiz, tq, tq_aleta); f()
     f = antes(piezas['bomba_centro']); bomba('bomba_centro', (0, yp - 0.15 - 0.16, zc + 0.07), 0.16, 1.45, raiz, cu, an, co); f()
+    if S.get('tren'): piezas['tren'] = tren(raiz, K, S)
     if K.get('controles'):
         reglas = {'pilon_ala': ('carga_ala', 'v == 0'), 'tanques_ala': ('carga_ala', 'v != 1'), 'bombas_ala': ('carga_ala', 'v != 2'),
                   'pilon_centro': ('carga_centro', 'v == 0'), 'tanque_centro': ('carga_centro', 'v != 1'), 'bomba_centro': ('carga_centro', 'v != 2')}
         for k, obs in piezas.items():
+            if k not in reglas: continue
             prop, expr = reglas[k]
             for o in obs: K['ocultar_si'](o, prop, expr)
     return piezas
+
+# ============================ EL TREN DE ATERRIZAJE ============================
+# (9/10, el autor: "las ruedas se ven feas, y en un tamaño feo"). Hasta hoy el tren era un dibujo a mano
+# en el canvas (render/plane.js drawGear: barras y cuadrados de 2 px, del mismo tamaño en cada avion).
+# Ahora es una CAPA horneada como la carga (hornear.py --capa tren, sheet base): las dos principales y
+# la de proa, cada una con su PATA, su RUEDA (vista de cola: el canto de la cubierta, con la llanta) y
+# la COMPUERTA abierta al costado, a la medida de cada avion — `S['tren']`, en unidades del modelo:
+#   x      la trocha /2 (donde bajan las principales)     nariz  z de la pata de proa
+#   suelo  y del piso con el avion apoyado                 r      radio de la rueda principal
+#   ancho  ancho de la cubierta                            ala    True: las principales cuelgan del
+#                                                                 ala (A-4, Pampa); False: de la panza
+TREN_PATA, TREN_GOMA, TREN_LLANTA, TREN_PUERTA = '#b4bcc1', '#1c1f21', '#8d979c', '#c9cfd2'
+# EXAGERADO PARA QUE SE LEA (como los miembros de los soldados): a la medida real, desde la camara de
+# cola —10° por arriba— las ruedas caian justo en el borde de abajo de la silueta y el sprite las tapaba
+# enteras; y una pata de 10 cm no llega a un pixel. Las patas bajan TREN_CAIDA mas, las ruedas crecen
+# TREN_RUEDA (el ancho de la cubierta, TREN_ANCHO) y la pata tiene un grosor que sobrevive a 84 px.
+TREN_CAIDA, TREN_RUEDA, TREN_ANCHO, TREN_GROSOR = 0.34, 1.35, 1.7, 0.10
+
+def tren(raiz, K, S):
+    T_ = S['tren']
+    pata, goma, llanta, puerta = (K['mat_cel']('tren_' + n, c) for n, c in
+                                  (('pata', TREN_PATA), ('goma', TREN_GOMA), ('llanta', TREN_LLANTA), ('puerta', TREN_PUERTA)))
+    obs = []
+    def rueda(x, z, r, ancho, y_arriba, puerta_lado):
+        r, ancho = r * TREN_RUEDA, ancho * TREN_ANCHO
+        yc = T_['suelo'] - TREN_CAIDA + r
+        largo = max(0.05, y_arriba - yc)
+        obs.append(caja('tren_pata', (x, yc + largo / 2, z), (TREN_GROSOR, largo, 0.10), raiz, pata))
+        obs.append(elipsoide('tren_rueda', (x, yc, z), (ancho / 2, r, r), raiz, goma, seg=16, anillos=10))
+        obs.append(elipsoide('tren_llanta', (x, yc, z), (ancho / 2 + 0.006, r * 0.5, r * 0.5), raiz, llanta, seg=12, anillos=8))
+        if puerta_lado:                          # la compuerta, abierta hacia afuera junto a la pata
+            obs.append(caja('tren_puerta', (x + puerta_lado * 0.13, y_arriba - largo * 0.30, z), (0.05, largo * 0.55, r * 2.0), raiz, puerta))
+    for sg in (-1, 1):
+        x = sg * T_['x']
+        y_arr = bajo_ala(S, T_['x'])[0] if T_.get('ala', True) else bajo_panza(S, T_.get('z', 0.3))
+        z = bajo_ala(S, T_['x'])[1] if T_.get('ala', True) else T_.get('z', 0.3)
+        rueda(x, z, T_['r'], T_['ancho'], y_arr + 0.02, sg)
+    zn = T_['nariz']
+    rueda(0, zn, T_['r'] * 0.78, T_['ancho'] * 0.85, bajo_panza(S, zn) + 0.03, 0)
+    return obs
 
 def _rgb(nt, K, hexs):
     n = nt.nodes.new('ShaderNodeRGB'); n.outputs[0].default_value = (*K['lin'](hexs), 1)
@@ -392,6 +434,9 @@ A4 = dict(
     tobera=dict(z0=2.80, z1=3.02, r=0.31, y=0.06),
     pintura=dict(arriba=[MARRON, VERDE], panza=PANZA, alterna=dict(arriba=[ARMADA], panza=ARMADA_PANZA)),
     carga=dict(ala_x=1.45, centro_z=0.25, tanque=PANZA),
+    # el A-4 se para ALTO (la panza a ~0,9 m, para colgar la carga del centro); las principales salen
+    # del ala, trocha de 2,4 m
+    tren=dict(x=0.66, nariz=-2.45, suelo=-0.90, r=0.17, ancho=0.10),
 )
 
 def _variante(base, **cambios):
@@ -425,6 +470,7 @@ DAGGER = dict(
     tobera=dict(z0=2.90, z1=3.12, r=0.31, y=0.05),
     pintura=dict(arriba=['#4e6136', '#c0ab5e'], corte=0.52, escala=0.28, panza='#93a3ae'),
     carga=dict(ala_x=1.50, centro_z=0.30, tanque='#a9b8c0'),
+    tren=dict(x=0.74, nariz=-2.15, suelo=-0.64, r=0.15, ancho=0.09),
 )
 MIRAGE = _variante(DAGGER,
     fuselaje=[(-4.40, 0.015, 0.015, 0.02), (-4.05, 0.08, 0.075, 0.025), (-3.55, 0.18, 0.17, 0.03), (-3.00, 0.26, 0.26, 0.035),
@@ -439,6 +485,7 @@ MIRAGE = _variante(DAGGER,
     tobera=dict(z0=2.95, z1=3.17, r=0.31, y=0.05),
     pintura=dict(arriba=['#a9b1b6', '#c4b796'], corte=0.55, escala=0.22, panza='#c9d0d4'),
     carga=dict(ala_x=1.50, centro_z=0.30, tanque='#8e979d'),
+    tren=dict(x=0.74, nariz=-2.20, suelo=-0.64, r=0.15, ancho=0.09),
 )
 SUPERE = dict(
     fuselaje=[(-4.40, 0.015, 0.015, -0.02), (-4.10, 0.10, 0.10, -0.02), (-3.60, 0.22, 0.22, -0.01), (-3.00, 0.31, 0.31, 0.0),
@@ -457,6 +504,7 @@ SUPERE = dict(
                  marcas=[dict(x=(-2.15, -0.55), z=(0.0, 0.9), color='#7b8a94', sim=False)]),
     metal='#2d353c',
     carga=dict(ala_x=1.50, centro_z=0.20, tanque='#3e4b56', aleta='#2f3a44'),
+    tren=dict(x=0.85, nariz=-2.30, suelo=-0.74, r=0.15, ancho=0.09),
 )
 NARANJA = '#e07030'
 PAMPA = dict(
@@ -477,6 +525,8 @@ PAMPA = dict(
                          dict(z=(-2.75, -2.30), color=NARANJA, arriba=False)]),          # la franja del morro
     pintura_deriva=dict(arriba=['#8e979e'], panza='#b8bec2', marcas=[dict(y=(1.34, 1.60), color=NARANJA, arriba=False)]),
     carga=dict(ala_x=1.40, centro_z=0.20, tanque='#b8bec2'),
+    # ala ALTA: las principales salen de la panza (los carenados del costado), no del ala
+    tren=dict(x=0.50, nariz=-2.30, suelo=-0.72, r=0.16, ancho=0.10, ala=False, z=0.15),
 )
 
 FICHAS = {

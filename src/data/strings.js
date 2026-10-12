@@ -81,6 +81,8 @@ export const STRINGS = {
     // LA EYECCION (PLAN_VUELTA_REAL V6): la mision se pierde igual; el piloto, depende de donde cayo
     death_eyecto_rescate: 'Te quedaste sin combustible. Te eyectaste cerca de la costa y te sacaron del agua',
     death_eyecto_mar: 'Te quedaste sin combustible. Te eyectaste en mar abierto y el Atlantico Sur no perdona',
+    // LA EYECCION A PEDIDO, en la caida en llamas (game.js)
+    eyec_aviso: 'EYECTATE', eyec_teclas: 'Q + E   ·   L1 + R1', eyec_salvo: 'PILOTO A SALVO',
     seco_radio: '{c}: ME ESTOY QUEDANDO SIN COMBUSTIBLE. ESTOY CON LA RESERVA, VUELVO.',
     sq_seco: '{c} EN RESERVA — VUELVE A LA BASE',
     // SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5)
@@ -1279,6 +1281,7 @@ export const STRINGS = {
     death_seco: 'You ran out of fuel',
     death_eyecto_rescate: 'You ran out of fuel. You ejected near the coast and they pulled you out of the water',
     death_eyecto_mar: 'You ran out of fuel. You ejected over open sea and the South Atlantic does not forgive',
+    eyec_aviso: 'EJECT', eyec_teclas: 'Q + E   ·   L1 + R1', eyec_salvo: 'PILOT SAVED',
     seco_radio: '{c}: I\'M RUNNING OUT OF FUEL. I\'M ON RESERVE, HEADING BACK.',
     sq_dmg_sub: 'DAMAGED, back to base',
     sq_seco: '{c} ON RESERVE — RETURNING TO BASE',

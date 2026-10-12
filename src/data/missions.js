@@ -211,6 +211,13 @@ export const MISSIONS = [
   {
     id: 'm3', name: 'EL INVENTO', date: 'primeros dias de mayo de 1982',
     despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'patrulla de reconocimiento costero' },
+    // LA PISTA OBLIGATORIA DE ESTA MISION (pedido del autor, 10/10/2026): ALAMBRE, desde que
+    // arranca. Es la unica mision que pide la suya; el resto de la campaña vuela con game.mp3.
+    // Va acá y no en systems/audio.js porque es una decision DE ESTA MISION: la cancion se llama
+    // como lo que el Pichon acaba de hacer en el hangar, y el objetivo de la mision es, textual,
+    // «probar el invento del Pichon». El nombre lo resuelve audio.js contra MUSIC_POOL — si
+    // alguna vez no coincide, la mision cae a la pista de campaña y no se queda muda.
+    musica: 'alambre',
     goal: { kind: 'distance', meters: 2400 },
     // LA MISION MAS LIVIANA DE LA CAMPAÑA, Y ES A PROPOSITO (GUION_3 M3): es donde el juego
     // ENSEÑA el sistema de mejoras. El Pichon le toca el avion a Esteban y el jugador tiene que

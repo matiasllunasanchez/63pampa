@@ -75,7 +75,7 @@ import { drawTirosPopa, drawCap } from './render/escape.js';
 import { stepRecibe } from './systems/recibe.js';
 import { drawRecibe } from './render/recibe.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
-import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A } from './data/tuning.js';
+import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A, CAIDA, EYECCION } from './data/tuning.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
 import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque, proximoPilon } from './core/nafta.js';
@@ -108,7 +108,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
          setRasante } from './systems/audio.js';
 import * as world3D from './legacy/three-world.js';
-import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino } from './render/ctx.js';
+import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
@@ -148,7 +148,7 @@ import * as squad from './systems/squad.js';
 import * as tramos from './systems/tramos.js';
 import * as fases from './systems/fases.js';
 import * as geografia from './systems/geografia.js';
-import { alturaBlanco } from './core/geografia.js';   // el piso de una estructura (PLAN_GEOGRAFIA G5)   // PLAN_GEOGRAFIA: el terreno por tramos
+import { alturaBlanco, alturaSuelo, esTierraEn } from './core/geografia.js';   // el piso de una estructura (PLAN_GEOGRAFIA G5)   // PLAN_GEOGRAFIA: el terreno por tramos
 import * as rutaSys from './systems/ruta.js';
 import * as naftaSys from './systems/nafta.js';
 import * as estrellas from './systems/estrellas.js';
@@ -158,7 +158,7 @@ import { EST_MAX } from './data/tuning.js';
 import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T, SENAS_COMP } from './data/senales.js';
 import { cartel, cartelSostenido, tickCarteles, limpiarCarteles } from './core/cartel.js';
 import { CARA_DE_RADIO } from './core/voz.js';
-import { derrota, esChoque } from './data/derrotas.js';
+import { derrota, esChoque, tipoDerribo } from './data/derrotas.js';
 import { DEV } from './core/dev.js';
 import { defensaDe } from './data/defensas.js';
 import { BOMBAS, bombaDe, bombaInfo } from './data/bombas.js';
@@ -1892,7 +1892,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
       // tras morir: ahi continua donde venia, sin corte.
-      setRunMusic(gameMode === 'campaign', curLevel, keepMusic, !!S.test);   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
+      // La mision puede pedir SU pista (`musica` en data/missions.js): hoy solo M3, con ALAMBRE.
+      // Se pasa el NOMBRE, no un indice: la lista del reproductor crece y se reordena, y un
+      // numero acá se volveria mentira sin que nada lo avise.
+      setRunMusic(gameMode === 'campaign', curLevel, keepMusic, !!S.test,
+        gameMode === 'campaign' ? (curMission() || {}).musica : null);   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
     }
 
     // ---------- OPCIONES: LA pantalla de configuración ----------
@@ -2602,6 +2606,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       charla.resetCharla(); charlaFin = false;   // ni la charla a medio decir de la corrida anterior
       estrellas.resetEstrellas();   // ni las estrellas de la corrida anterior: te buscan por lo que hiciste EN ESTA
       persec.resetPersec();   // PERSECUCION: idem con el lider
+      caida = null; eyecto = false;   // LA CAIDA EN LLAMAS del derribo anterior
       // …y en el MODO PERSECUCION se arma de entrada, con el roster de la corrida como pool de
       // lideres. No es una mecanica que aparece: es de lo que se trata la partida.
       // PERSECUCION: se arma por MODO (N2, infinito) o por DATO DE MISION (N3, `persec` en
@@ -3583,7 +3588,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // Separado del FIN DE PARTIDA (die) a proposito: el RELEVO del escuadron reusa este show
     // TAL CUAL — el companero que asume tiene que ver al lider romperse igual que lo veria el
     // jugador — pero la partida sigue, asi que nada de aca puede tocar la maquina de estados.
-    function crashFX() {
+    function crashFX(tipo) {
       sfxOne('exSmall');   // mi avion chocando (agua incluida, por ahora)
       explodeAt(plane.x, plane.y, PZ, true, true);   // noBall: la bola del derribo es la PIXEL de abajo
       // INERCIA DEL DESASTRE. Un avion a 300 km/h no frena y explota en el lugar: revienta Y
@@ -3594,7 +3599,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // BOLA DE FUEGO del derribo: version PIXEL (pix), por codigo y MAS CHICA que la hoja
       // frontal — la hoja tapaba justo lo que este momento tiene que mostrar: el avion
       // rompiendose en pedazos. La pixel revienta con huecos y viaja con los restos.
-      obstacles.push({ type: 'airboom', pix: true, x: plane.x, y: plane.y, z: PZ, boomT: 0, scale: 0.5, done: true, vz: spd0 * 0.5, vy2: plane.y > 3 ? -2 : 0, ph: Math.random() * 6 });
+      // (EL MISIL revienta mas grande: es la muerte que no deja nada — 12/10, "si es misil, explotar")
+      const misil = tipo === 'misil';
+      obstacles.push({ type: 'airboom', pix: true, x: plane.x, y: plane.y, z: PZ, boomT: 0, scale: misil ? 0.95 : 0.5, done: true, vz: spd0 * 0.5, vy2: plane.y > 3 ? -2 : 0, ph: Math.random() * 6 });
+      if (misil) { boom(0.3, true); run.shake = 9; }
       // PEDAZOS GRANDES en el MUNDO ('chunk'): el motor, media ala, la deriva... Vuelan hacia
       // adelante perdiendo velocidad, la gravedad los baja y rebotan cortos al tocar el suelo.
       // Van en coordenadas de mundo (no de pantalla) justamente para poder ALEJARSE: los `parts`
@@ -3608,7 +3616,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // 'plane' todavia no declara variantes, asi que el campo esta inerte. Es V5 (el derribo por
       // causa) el que tiene que hacerle llegar la causa real — y ahi el acta ya lo va a esperar.
       const oPlane = { type: 'plane', x: plane.x, y: plane.y, z: PZ };
-      despiece(oPlane, actaDe(oPlane, { vz: spd0 }, 'choque'));
+      despiece(oPlane, actaDe(oPlane, { vz: spd0 }, misil ? 'misil' : 'choque'));
       // la salpicadura del agua, solo si reventaste ABAJO: en el aire (un misil, un Harrier) no hay mar que salte
       const s = proj(plane.x, 0, PZ);
       if (plane.y < 3) for (let i = 0; i < 16; i++) parts.push({ x: s.x + (Math.random() - 0.5) * 24, y: s.y, vx: (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 60, life: 0.6, c: P.foam, r: 1.6 });
@@ -3685,7 +3693,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL ULTIMO AVION EXPLOTA (8/10, el autor: "si me queda un solo avion y me da un misil, debo explotar
       // antes de mostrar la pantalla de perder"): el averiado que vuelve a la base es para el que tiene
       // quien lo releve; el ultimo no vuelve — revienta, y recien despues la pantalla.
-      else crashFX();
+      // COMO CAE, SEGUN QUE LO BAJO (12/10, el autor): el misil revienta en el acto; la bala y el
+      // antiaereo lo PRENDEN FUEGO y cae — a la vista, en llamas, y en la caida te podes eyectar
+      // (empezarCaida). El choque revienta donde pego, como siempre.
+      else if (tipoDerribo(cause) === 'bala' && plane.y > 1.5) empezarCaida();
+      else crashFX(tipoDerribo(cause));
       // EL RECORD (S2): en las herramientas no se toca ni en memoria — si solo se salteara el
       // localStorage, el HUD mostraria un record que se evapora al cerrar el juego.
       //
@@ -3694,6 +3706,78 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // cualquier modo, una corrida de CICLO o del ARENA podia inflar el maximo que despues se veia
       // en otro lado. Un record que se hace en un modo y se luce en otro no es un record.
       if (gameMode === 'survival' && !sinRastro() && Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
+    }
+
+    // ---------------- LA CAIDA EN LLAMAS Y LA EYECCION (12/10) ----------------
+    // El autor: "si es bala o antiaereo, prenderse fuego y caer. Y deberia poder eyectarme si quiero:
+    // avisarme, y una combinacion de botones al mismo tiempo para salvar al piloto — eso da mas puntos
+    // en POR LA PATRIA. En las misiones, solo si la mision lo permite." Hasta aca el avion
+    // DESAPARECIA: el estado 'dead' deja de dibujarlo, y solo quedaban los pedazos.
+    //
+    // La caida es parte del 'dead' (el mundo sigue, la colision ya no corre): el avion sigue a la
+    // vista, rolando y en llamas, y revienta recien al tocar el agua o el suelo (crashFX). `deathT` se
+    // queda en cero mientras cae: el fundido y la pantalla de fin cuentan desde el impacto.
+    let caida = null;      // { t, vy, roll, dir } mientras el avion cae en llamas
+    let eyecto = false;    // ya salto el piloto en esta caida
+    /** ¿Se puede eyectar? En POR LA PATRIA siempre; en una mision, solo si la mision lo declara. */
+    const puedeEyectar = () => gameMode === 'survival' || !!(curMission() && curMission().eyeccion);
+    function empezarCaida() {
+      caida = { t: 0, vy: CAIDA.VY0, roll: 0, dir: Math.random() < 0.5 ? -1 : 1 };
+      eyecto = false;
+      // EL GOLPE: chapa, chispas y el primer humo — sin bola de fuego, que esa va al pegar abajo
+      sfxOne('exSmall'); boom(0.18, true); run.shake = 6;
+      const ps = proj(plane.x, plane.y, PZ);
+      for (let i = 0; i < 12; i++) {
+        const a = Math.random() * 6.283, v = 30 + Math.random() * 60;
+        parts.push({ x: ps.x, y: ps.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, life: 0.35 + Math.random() * 0.3,
+          c: Math.random() < 0.5 ? '#ffd27a' : '#ff8a3a', r: 1 + Math.random() });
+      }
+    }
+    function stepCaida(dt) {
+      caida.t += dt;
+      deathT = 0;   // el fundido y la pantalla de fin cuentan desde el IMPACTO, no desde el golpe
+      caida.vy = Math.max(CAIDA.VY_MAX, caida.vy - CAIDA.G * dt);
+      plane.y += caida.vy * dt;
+      plane.x += caida.dir * CAIDA.DERIVA * dt;
+      caida.roll += caida.dir * CAIDA.ROLL * dt;
+      run.mvRoll = caida.roll; plane.pitch = -1; plane.bank = 0;
+      // EL FUEGO Y EL HUMO: llamas cortas pegadas al avion y la columna negra que deja atras
+      const ps = proj(plane.x, plane.y, PZ);
+      for (let i = 0; i < 3; i++) parts.push({ x: ps.x + (Math.random() - 0.5) * ps.k * 1.2, y: ps.y + (Math.random() - 0.5) * ps.k * 0.6,
+        vx: (Math.random() - 0.5) * 14, vy: -8 - Math.random() * 18, life: 0.18 + Math.random() * 0.2,
+        c: ['#fff1b0', '#ffc24a', '#ff7a2a'][i], r: Math.max(1, ps.k * (0.35 - i * 0.07)) });
+      for (let i = 0; i < 2; i++) parts.push({ x: ps.x + (Math.random() - 0.5) * ps.k, y: ps.y,
+        vx: (Math.random() - 0.5) * 10, vy: -14 - Math.random() * 12, life: 0.9 + Math.random() * 0.5,
+        c: Math.random() < 0.6 ? '#2b2b28' : '#4a4a42', r: Math.max(1.4, ps.k * 0.5) });
+      // LA EYECCION: [Q]+[E] juntas, o L1+R1. Solo en la caida, y solo donde se puede
+      if (!eyecto && puedeEyectar() && ((inp.rollL && inp.rollR) || inp.eyect)) eyectarEnCaida();
+      const wz = run.dist + PZ;
+      const suelo = esTierraEn(plane.x, wz) ? alturaSuelo(plane.x, wz) + 0.5 : 1;
+      if (plane.y <= suelo || caida.t > CAIDA.MAX_T) {
+        plane.y = Math.max(plane.y, suelo);
+        caida = null; run.mvRoll = 0;
+        crashFX('choque');
+        deathT = 0;
+      }
+    }
+    function eyectarEnCaida() {
+      eyecto = true;
+      beep(900, 0.08, 'square', 0.05, -300); boom(0.06, true);
+      // el mismo paracaidas que la eyeccion sin nafta (eyectar): piloto ARGENTINO, fila 0 de la hoja
+      obstacles.push({
+        type: 'chunk', done: true, chunkT: 0, paraca: true,
+        x: plane.x, y: plane.y + 0.5, z: PZ + 4,
+        vx: -caida.dir * 2, vy: 9, vz: 4, spin: 0, vspin: 0, size: 0.95, hot: false,
+        c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: 6, ph: 0, parte: null, arg: true,
+      });
+      const ps = proj(plane.x, plane.y, PZ);
+      if (gameMode === 'survival') {
+        run.score += EYECCION.PTS;
+        popup(ps.x, ps.y - 26, T('eyec_salvo') + '  +' + EYECCION.PTS, P.accent, true);
+        // el record se escribio al morir: lo de la eyeccion tambien cuenta
+        if (!sinRastro() && Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
+        deadStars = starsFor(Math.floor(run.score), SURVIVAL_PAR);
+      } else popup(ps.x, ps.y - 26, T('eyec_salvo'), P.accent, true);
     }
 
     // EL EMBUDO DE LA MUERTE. Todas las señales { death } de los sistemas (colision, roce,
@@ -3726,7 +3810,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (relevoRompe() && esChoque(cause)) { die(cause); return; }
       if (canRelevo(run.lives)) {
         // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
-        if (relevoRompe()) dmgFX(); else crashFX();
+        if (relevoRompe()) dmgFX(); else crashFX(tipoDerribo(cause));
         golpesPopa = 0;                // el que entra trae la chapa sana
         squad.startRelevo(cause);      // la mision sigue: descuenta y prepara al companero
         setState('relevo');
@@ -4216,8 +4300,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // mundo corre a MUERTE_AVANCE de tu velocidad, tus restos y tu bola de fuego siguen con su
           // propia inercia (no los arrastra el mundo), los Harriers siguen volando su escena y los
           // misiles siguen de largo. Collision no corre: nada mas puede pasarte. Arriba, el fundido.
+          if (caida) stepCaida(dt);
           if (!erroSuelta(deathCause) && gameMode !== 'arena' && gameMode !== 'pasadas') {
-            const adv = run.spd * MUERTE_AVANCE * dt;
+            // (mientras cae en llamas el avion sigue volando: el mundo no frena hasta el impacto)
+            const adv = run.spd * (caida ? 0.9 : MUERTE_AVANCE) * dt;
             run.dist += adv;
             for (const o of obstacles) if (o.type !== 'chunk' && o.type !== 'airboom') o.z -= adv;
             for (const sd of soldiers) sd.z -= adv;
@@ -5343,7 +5429,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (hzW) ctx.restore();
       }
       if (!rasante.enCabina()
-        && (chase || (S.state !== 'dead' && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz() + turboDz());
+        && (chase || ((S.state !== 'dead' || caida) && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz() + turboDz());
       // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
       // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
       if (S.state === 'play' && blancoSys.escapando()) {
@@ -5632,6 +5718,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const u = Math.min(1, (deathT - MUERTE_NEGRO) / (DEATH_REVEAL - MUERTE_NEGRO));
         ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = u * u * (3 - 2 * u); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.restore();
+      }
+      // EL AVISO DE LA EYECCION, mientras cae en llamas y se puede: grande, al centro, titilando
+      if (S.state === 'dead' && caida && !eyecto && puedeEyectar()) {
+        const k = ctx.canvas.width / 320;
+        ctx.save(); ctx.setTransform(k, 0, 0, k, 0, 0); ctx.textAlign = 'center';
+        if (Math.floor(caida.t * 6) % 2 === 0) {
+          ctx.font = avisoFont(14); ctx.fillStyle = '#0a0e11'; ctx.fillText(T('eyec_aviso'), 161, 45);
+          ctx.fillStyle = P.warn; ctx.fillText(T('eyec_aviso'), 160, 44);
+        }
+        ctx.font = '7px monospace'; ctx.fillStyle = P.ink; ctx.fillText(T('eyec_teclas'), 160, 55);
         ctx.restore();
       }
       // DERRIBADO: esperar a que se vea el destrozo; despues la pantalla sube con un fade corto

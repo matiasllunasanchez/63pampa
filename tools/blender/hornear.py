@@ -35,7 +35,10 @@ CONTROLES = bool(GUARDAR)
 # `colorWrite = false`. Asi la capa sale recortada donde el ala la tapa, desde cada camara.
 CAPA = arg('--capa')
 PIEZAS_CAPA = {'tanques_ala': ('tanques_ala', 'pilon_ala'), 'bombas_ala': ('bombas_ala', 'pilon_ala'),
-               'tanque_centro': ('tanque_centro', 'pilon_centro'), 'bomba_centro': ('bomba_centro', 'pilon_centro')}
+               'tanque_centro': ('tanque_centro', 'pilon_centro'), 'bomba_centro': ('bomba_centro', 'pilon_centro'),
+               # EL TREN (9/10): sin oclusor — el juego lo dibuja DEBAJO del avion y lo sube al recogerlo,
+               # asi que tiene que estar entero (el sprite le tapa lo que el ala tapa)
+               'tren': ('tren',)}
 # `--sin-sonda`: hornea el avion SIN la sonda de reabastecimiento. La usa armar_juego.py para que la
 # columna nivelada se pueda simetrizar sin duplicar la sonda del A-4, que va de UN solo lado (ver ahi).
 SIN_SONDA = '--sin-sonda' in ARGS
@@ -502,6 +505,7 @@ if __name__ == '__main__':
                 if ob.type != 'MESH': continue
                 if ob.name in mias: continue
                 if ob.name in todas: ob.hide_render = True        # las otras cargas: afuera
+                elif CAPA == 'tren': ob.hide_render = True        # el tren va entero (ver PIEZAS_CAPA)
                 else: ob.is_holdout = True                        # el avion: tapa sin pintar
     if SIN_SONDA:
         for ob in raiz.children_recursive:

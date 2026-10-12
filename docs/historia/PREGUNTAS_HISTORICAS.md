@@ -186,6 +186,55 @@ radial de la época).
 
 ---
 
+## ✅ Los misiles aire-aire de los Mirage — VERIFICADO 2026-10-09
+
+**Pedido del autor, 9/10:** *"hay que agregar también que los Mirage usaban estos misiles"* (con
+una imagen de un **Matra Magic I** junto a un Mirage con escarapela argentina).
+
+**El dato es correcto — y arrastra una corrección que importa más que el dato.**
+
+**Mirage IIIEA** (Grupo 8 de Caza, desplegado a Río Gallegos y Comodoro Rivadavia): sí, **Matra
+R.550 Magic I**, infrarrojo de corto alcance. Lo llevaba junto al **Matra R.530** de medio
+alcance, que guiaba por **radar semiactivo** — obligaba a iluminar el blanco durante todo el vuelo
+del misil, y era inútil en combate cerrado. Un relato de la época describe la configuración
+*"Hotel"* del **1 de mayo de 1982** como dos tanques de 1.700 L, dos cañones **DEFA 552 de 30 mm**
+y **dos R.550 Magic I**, sin R.530 en esa salida.
+
+**⚠ EL DAGGER NO LLEVABA MAGIC.** Llevaba el **Shafrir 2** israelí (infrarrojo) y los mismos DEFA
+de 30 mm, y **no tenía radar** — tampoco contramedidas ni navegación inercial. De las once bajas
+en combate del Dagger, nueve fueron por AIM-9L de Sea Harrier.
+
+**Por qué esa corrección importa acá y no es un detalle de enciclopedia.** En el roster del juego
+el avión que se llama **"mirage"** es el **5P «Mara», que no combatió**; y el Mirage 5 que sí
+peleó es el **Dagger**, que es justamente el que **no** usaba Magic. Colgarle un Magic al Dagger
+sería cometer, por la puerta del armamento, exactamente la confusión que `AVIONES_CATALOGO.md`
+ya se cuida de no cometer. **El Magic I es del IIIEA, que no está en el roster.**
+
+**Qué queda abierto:**
+
+1. **La carga estándar del IIIEA no está resuelta.** Las fuentes se contradicen: 2×R.550 + 1×R.530;
+   2×R.530 + 2×R.550; o solo 2×R.550. Si alguna vez se dibuja o se modela un IIIEA armado, hay que
+   elegir una y dejarla anotada.
+2. **Cuándo llegaron los Magic.** Tres versiones distintas: entregados con la segunda serie en
+   1979, comprados poco antes de la guerra, o recibidos **durante** la guerra. Sin resolver.
+3. **⚠ "El único misil aire-aire argentino del conflicto".** Una fuente dice que el Shafrir II que
+   disparó el C-433 el 1/5/82 fue el único disparo aire-aire argentino de toda la guerra. Es **una
+   sola fuente**, y el dato choca con los relatos de Magic disparados por los IIIEA ese mismo día.
+   **No usarlo en el guion sin confirmar** — es del tipo de frase redonda que después no se sostiene.
+
+**Calidad de las fuentes:** las de armamento fino son reseñas de maquetismo y un registro de
+accidentes — sirven para orientarse, no para fijar canon. Las de "sin radar / sin contramedidas"
+son de análisis militar y periodismo especializado, y esas sí aguantan.
+
+**Fuentes:** [8th Air Brigade (Argentina) — Wikipedia](https://en.wikipedia.org/wiki/8th_Air_Brigade_(Argentina)) ·
+[Mirage IIIEA I-015 — Modeling Madness](https://modelingmadness.com/review/mod/fr/calm3e.htm) ·
+[Dagger C-433, 1/5/1982 — Aviation Safety Network](https://www.aviation-safety.net/wikibase/94307) ·
+[Dagger — Modeling Madness](https://modelingmadness.com/review/mod/fr/caldg.htm) ·
+[Superioridade aérea na guerra das Falklands/Malvinas (PDF)](https://velhogeneral.com.br/wp-content/uploads/2019/12/Superioridade-aerea-na-guerra-das-Falklands-Malvinas-v2024.pdf) ·
+[The War Zone — la FAA fue a la guerra con chaff hecho con máquina de fideos](https://www.twz.com/air/argentine-air-force-went-to-war-with-chaff-made-by-pasta-machine)
+
+---
+
 ## ⚠ La frase del post-créditos — atribución PENDIENTE (3.6)
 
 **Frase:** *"Nunca, nunca, nunca dudes del corazón de un argentino."* La dice la seño

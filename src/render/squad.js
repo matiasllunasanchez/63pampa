@@ -13,7 +13,7 @@ import { proj } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
-import { tobera, llama, PLANE_SCALE, drawGear, drawShadow } from './plane.js';
+import { tobera, llama, PLANE_SCALE, drawGear, drawTren, drawShadow } from './plane.js';
 import { drawBorde } from './borde.js';
 import { ANCLAS } from '../data/anclas.js';
 import { drawSquadPips } from './hud.js';
@@ -79,15 +79,19 @@ export function drawFormation({ selPlane, exit }) {
     //
     // Va ANTES del sprite por la misma razon que en el lider: la pata nace adentro del ala y
     // solo tiene que verse lo que asoma por debajo.
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    drawGear(run.gear, U * f);
-    ctx.restore();
+    // El TREN HORNEADO (drawTren, 9/10) con el mismo cuadro y rectangulo que el sprite; sin la capa,
+    // el dibujado de siempre.
     const hoja = hojaDe(pl, detras(run, 1 + i));
+    const col = (SHEET_NF - 1) / 2;                      // nivelados: la formacion no banquea
+    const row = plane.pitch > 0.33 ? 0 : 1;              // pero acompañan el cabeceo del lider
+    const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
+    if (!drawTren(pl, run.gear, col, row, s.x - w / 2, s.y - h / 2, w, h)) {
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      drawGear(run.gear, U * f);
+      ctx.restore();
+    }
     if (hoja) {
-      const col = (SHEET_NF - 1) / 2;                    // nivelados: la formacion no banquea
-      const row = plane.pitch > 0.33 ? 0 : 1;            // pero acompañan el cabeceo del lider
-      const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
       ctx.drawImage(hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH,
         s.x - w / 2, s.y - h / 2, w, h);
       // LOS MISMOS BRILLOS QUE EL TUYO (autor, 3/10): la luz de borde del contraluz y la tobera al

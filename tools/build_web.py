@@ -31,19 +31,21 @@ WEB_AUDIO = {
     'lobby.mp3': 'lobby.m4a',
     'game.mp3': 'game.m4a',
     'story.mp3': 'story.m4a',
-    'pmetal_himno.mp3': 'pmetal_himno.m4a',
-    'pmetal_sanmartin.mp3': 'pmetal_sanmartin.m4a',
 }
 WEB_DROP = [
-    # 'soy_hincha' SALE del pool web (26/7): el codigo del ARENA (el climax 3D de vuelo libre)
-    # dejo el bundle 800 bytes SOBRE el tope de 16 MB del Artifact. Con la pista afuera quedan
-    # ~2 MB de margen para lo que falta del arena. Prioridad declarada por el autor: Electron
-    # primero, la web pierde si hay que elegir (ver docs/PROMPT_ARENA_VUELO_LIBRE.md).
-    'pmetal_soy_hincha.mp3',
-    'pmetal_acero_blanco.mp3', 'pmetal_aundepie.mp3', 'pmetal_aurora.mp3',
-    'pmetal_malvinas.mp3', 'pmetal_malvinas_2triumph.mp3', 'pmetal_revolucion_mayo.mp3',
-    'pmetal_sangre_albiceleste.mp3', 'pmetal_soldado.mp3',
-    'soundtrack/Zona rasante.m4a',   # ZONA RASANTE: la de las pruebas, solo en Electron
+    # EL SOUNDTRACK NO ENTRA EN LA WEB (9/10/2026). Las tres pistas del reproductor pesan ~5 MB
+    # cada una y el tope del bundle web es 16 MB: solas se lo comen entero. Es la misma decision
+    # que ya se habia tomado con el pool viejo, y la misma prioridad declarada por el autor:
+    # Electron primero, la web pierde si hay que elegir (ver docs/PROMPT_ARENA_VUELO_LIBRE.md).
+    # En el build web el reproductor queda con TRACK 1 (game) sonando y las otras tres mudas.
+    'soundtrack/zona_rasante.m4a',
+    'soundtrack/nadie_vuela_solo_short.m4a',
+    'soundtrack/misty_malvinas.m4a',
+    # ALAMBRE cae con las demas AUNQUE M3 la pida como obligatoria (10/10): en el build web esa
+    # mision queda sin musica. Es el precio conocido de esta lista y no cambia la prioridad —
+    # Electron primero. Si algun dia la web importa, lo que hay que hacer NO es embeberla (6 MB
+    # de 16) sino que audio.js caiga a game.mp3 cuando la pista pedida quedo vacia.
+    'soundtrack/alambre.mp3',
 ]
 
 

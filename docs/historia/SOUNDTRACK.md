@@ -1101,7 +1101,7 @@ is wordless throughout. Completely original music.
 | Páginas del cuaderno M1–M8 | 04 La Birome |
 | Páginas del cuaderno M9–M13 | 05 La Birome rota |
 | Gameplay M1–M4 | 13 Rasante |
-| M3 El invento + pantallas de mejoras | 03 El invento |
+| M3 El invento + pantallas de mejoras | 03 El invento *(9/10: se evaluó ALAMBRE y **no va acá** — queda reservada para otra misión; ver `misiones/M3_CAMBIOS.md` · 7)* |
 | Gameplay M5–M13 | 14 Callejón de las Bombas |
 | Fase ARENA / boss | 15 El buque |
 | 🟩 Relevo de escuadrón (te bajaron, sube otro) | 09 El que sigue |

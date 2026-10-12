@@ -24,36 +24,58 @@ const musLobby = new Audio(MUSIC_LOBBY); musLobby.loop = true; musLobby.volume =
 const musGame = new Audio(MUSIC_GAME); musGame.loop = true; musGame.volume = 0.30;
 const MUSIC_STORY = '../assets/music/story.mp3';   // epic_himno — pantallas de HISTORIA
 const musStory = new Audio(MUSIC_STORY); musStory.loop = true; musStory.volume = 0.5;
-// pool ADRENALINA (supervivencia y ciclo de muerte): 11 pistas pmetal; al empezar cada run
-// suena UNA al azar. En el build web SOLO se re-embeben las 3 primeras (tienen m4a comprimida).
-const MUSIC_ADR = [
-  '../assets/music/pmetal_himno.mp3',            // web: comprimida
-  '../assets/music/pmetal_sanmartin.mp3',        // web: comprimida
-  '../assets/music/pmetal_soy_hincha.mp3',       // web: comprimida
-  '../assets/music/pmetal_acero_blanco.mp3',
-  '../assets/music/pmetal_aundepie.mp3',
-  '../assets/music/pmetal_aurora.mp3',
-  '../assets/music/pmetal_malvinas.mp3',
-  '../assets/music/pmetal_malvinas_2triumph.mp3',
-  '../assets/music/pmetal_revolucion_mayo.mp3',
-  '../assets/music/pmetal_sangre_albiceleste.mp3',
-  '../assets/music/pmetal_soldado.mp3',
+// EL SOUNDTRACK PROPIO (9/10/2026). Hasta hoy el reproductor llevaba un pool de once pistas
+// "pmetal" bajadas de afuera; el autor las BORRO del disco y dejo en `assets/music/soundtrack/`
+// las del soundtrack del juego. Esto es esa lista.
+//
+// SON .m4a Y NO .mp3, al reves que las tres de la base (lobby/game/story). No es inconsistencia:
+// las tres viejas tienen su gemela comprimida en `assets/music/web/` para el build web, y estas
+// ya vienen comprimidas de fabrica. El build web igual las descarta por tamaño — ver
+// tools/build_web.py, WEB_DROP: son 5 MB cada una y el tope del bundle web es 16 MB.
+//
+// CADA PISTA TIENE NOMBRE ademas de numero, porque una mision puede PEDIR la suya (`musica` en
+// data/missions.js, que llega aca por `setRunMusic`). Un indice crudo alla seria una bomba de
+// tiempo: agregar una cancion al principio de esta lista le cambiaria la musica a esa mision sin
+// que nada avise.
+//
+// ALAMBRE YA TIENE MISION (10/10/2026) y por eso entra. El 9/10 habia quedado RESERVADA afuera
+// —el autor la guardaba para una mision sin decir cual— con el criterio de que una pista
+// reservada no puede sonar suelta en la rueda antes de significar algo. La mision es M3, la del
+// invento del Pichon; ver el porque en setRunMusic. Ahora que suena donde tiene que sonar,
+// tambien puede elegirse a mano en los modos libres.
+//
+// NADIE VUELA SOLO: el autor movio la version larga a `soundtrack/opcionales/` y dejo la corta,
+// asi que el reproductor usa la que quedo (la larga ya no existe en esa ruta y la pista estaba
+// MUDA). `opcionales/` es el cajon de variantes del autor: el juego no lee nada de ahi.
+const MUSIC_POOL = [
+  ['zona', '../assets/music/soundtrack/zona_rasante.m4a'],
+  ['nadie', '../assets/music/soundtrack/nadie_vuela_solo_short.m4a'],
+  ['misty', '../assets/music/soundtrack/misty_malvinas.m4a'],
+  ['alambre', '../assets/music/soundtrack/alambre.mp3'],
 ];
-const musAdr = MUSIC_ADR.filter(Boolean)
-  .map(src => { const a = new Audio(src); a.loop = true; a.volume = 0.30; return a; });
+const musPool = MUSIC_POOL.map(([, src]) => { const a = new Audio(src); a.volume = 0.30; return a; });
+// ZONA RASANTE es la pista PRINCIPAL de las partidas de PRUEBAS (el autor, 4/10: "pone zona
+// rasante como track principal de las partidas de prueba"). Va en el reproductor como una mas —
+// en una prueba arranca ella, y ◄ ► siguen cambiando.
+const musZona = musPool[0];
 
-// ZONA RASANTE (soundtrack propio, 4/10): la pista PRINCIPAL de las partidas de PRUEBAS (el autor: "pone
-// zona rasante como track principal de las partidas de prueba"). Va en el reproductor como una mas —
-// en una prueba arranca ella, y ◄ ► siguen cambiando —. En el build web no entra (tools/build_web.py).
-const MUSIC_ZONA = '../assets/music/soundtrack/Zona rasante.m4a';
-const musZona = new Audio(MUSIC_ZONA); musZona.volume = 0.30;
-
-// PLAYLIST del REPRODUCTOR: la base del juego + el pool adrenalina, presentadas como TRACK 1..N.
+// PLAYLIST del REPRODUCTOR: la base del juego + el soundtrack, presentadas como TRACK 1..N.
 // Es la lista que se puede cambiar en vuelo (modos que NO son historia) y de la que la campaña
-// saca una pista por nivel. El lobby (musLobby) y las pantallas de historia (musStory) quedan
-// aparte: no entran en el reproductor.
-const PLAYLIST = [musGame, ...musAdr, musZona];
+// saca su pista. El lobby (musLobby) y las pantallas de historia (musStory) quedan aparte: no
+// entran en el reproductor.
+//
+// ⚠ musGame VA PRIMERA Y TIENE QUE SEGUIR PRIMERA: la campaña fija `scriptedIdx = 0` (ver
+// setRunMusic) y eso es un indice crudo en esta lista. Mover game.mp3 de lugar le cambia la
+// musica a la campaña entera sin que ningun error lo avise.
+const PLAYLIST = [musGame, ...musPool];
 const ZONA_IDX = PLAYLIST.indexOf(musZona);
+/** El indice en PLAYLIST de la pista que se llama asi. -1 si no existe (un nombre mal escrito en
+ *  data/missions.js): el que llama cae a la pista por defecto y la mision no se queda muda. */
+function idxDePista(nombre) {
+  if (!nombre) return -1;
+  const i = MUSIC_POOL.findIndex(([n]) => n === nombre);
+  return i < 0 ? -1 : PLAYLIST.indexOf(musPool[i]);
+}
 // Pista del REPRODUCTOR: la que suena en CICLO DE MUERTE y POR LA PATRIA. Se sortea al cargar y
 // desde ahi encadena sola (termina una, sigue la proxima; despues de la ultima vuelve a la primera).
 // No se re-sortea al reiniciar un nivel — asi la musica CONTINUA en vez de cortarse.
@@ -478,10 +500,20 @@ export function tickDuck(dt) { duckT = Math.max(0, duckT - dt); }
  *
  *  `keep` = REINTENTO tras morir: la pista NO se corta, sigue sonando desde donde venia. Es la
  *  UNICA excepcion; empezar un mapa por cualquier otra via arranca la musica de cero. */
-export function setRunMusic(isCampaign, level, keep, prueba) {
-  // HISTORIA: siempre game.mp3 (PLAYLIST[0]) durante el juego real — las cinematicas tienen la
-  // suya (musStory) y el lobby la propia. Antes la pista salia del numero de nivel.
-  scriptedIdx = isCampaign && !prueba ? 0 : null;
+export function setRunMusic(isCampaign, level, keep, prueba, pista) {
+  // HISTORIA: game.mp3 (PLAYLIST[0]) durante el juego real — las cinematicas tienen la suya
+  // (musStory) y el lobby la propia. Antes la pista salia del numero de nivel.
+  //
+  // SALVO QUE LA MISION PIDA LA SUYA (`musica` en data/missions.js). La primera es ALAMBRE en
+  // M3 — la mision cuyo objetivo es, textual, «probar el invento del Pichon», y la cancion se
+  // llama como lo que el pibe hace. Arranca CON la mision y no se puede cambiar: en campaña
+  // `gameTrack()` lee `scriptedIdx`, asi que ◄ ► mueven el numerito del reproductor y nada mas.
+  // Eso es lo que "obligatorio" quiere decir, y ya funcionaba asi — lo unico nuevo es CUAL.
+  //
+  // En PRUEBAS sigue mandando ZONA RASANTE aunque la prueba vuele esa misma mision: una prueba
+  // no es la campaña, y esa regla es anterior.
+  const pedida = isCampaign && !prueba ? idxDePista(pista) : -1;
+  scriptedIdx = isCampaign && !prueba ? (pedida >= 0 ? pedida : 0) : null;
   if (prueba && !keep && trackIdx !== ZONA_IDX) {
     const antes = gameTrack();
     if (!antes.paused) antes.pause();

@@ -216,7 +216,17 @@ export const DESPIECE = {
     bola: null, chispa: null, humo: 0,     // el derribo pone SU bola pixel aparte (ver die)
     // TU avion se rompe en las mismas piezas que los demas — tiene que ser asi: es el mismo avion,
     // y el derribo es la referencia de la que salio todo el despiece (D0).
-    partes: ['fuselaje', 'ala', 'cabina', 'cola', 'motor', 'deriva', 'tren', 'panel', 'morro'] },
+    partes: ['fuselaje', 'ala', 'cabina', 'cola', 'motor', 'deriva', 'tren', 'panel', 'morro'],
+    // EL MISIL NO DEJA NADA (12/10, el autor: "si es misil, explotar"): pedacitos en abanico ancho, como
+    // la desintegracion del jet. Sin `forma` a proposito: la forma es la que puede sortear un paracaidas,
+    // y el piloto que salta lo decide el jugador (la eyeccion de game.js), no un dado.
+    variantes: [
+      { id: 'desintegracion', peso: 1, cuando: a => a.killer === 'misil',
+        receta: { n: 13, size: [0.28, 0.8], up: 26, spread: 38, hot: 0.9 } },
+      // …Y TODO LO DEMAS, la receta de siempre. Tiene que estar escrita: sin una variante que le
+      // corresponda, elegirVariante sortea entre TODAS y el choque saldria desintegrado.
+      { id: 'entero', peso: 1, cuando: a => a.killer !== 'misil', receta: {} },
+    ] },
 };
 
 // LA RECETA POR DEFECTO. §4.6 del plan: `explodeAt` no se rompe y la migracion es tipo por tipo,

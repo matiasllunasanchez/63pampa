@@ -22,7 +22,7 @@ hace el jugador.
 |---|---|---|---|
 | **M1** | **Misión de diversión.** Distancia **más corta** | Volar en rasante · algunos controles · altímetros · **el radar y las estrellas**: subir para que te vean, juntar las cuatro, bajar y perderlas de a una | Momentum · turbo · Chancha · bombas · enemigos |
 | **M2** | **Misión de diversión 2, más lejos.** Sin objetivo | **Momentum · turbo · la Chancha** (y su control, que recién acá aparece) · **enemigos**: cada estrella trae un Harrier | Bombas · objetivo |
-| **M3** | **Primera misión con objetivo**, probablemente el puesto de una isla. Distancia **mucho más larga, "real"** | **Las bombas**: lanzar, errar, reintentar, oportunidad por oportunidad · con bombas **el avión va más lento** · al terminar, **la primera mejora** | — |
+| **M3** | **Primera misión con objetivo**, probablemente el puesto de una isla. Distancia **mucho más larga, "real"** | **La primera mejora, elegida al arrancar** —después de *El invento*, para el resto del juego y todos los aviones— · **las bombas**: lanzar, errar, reintentar · con bombas **el avión va más lento** | — |
 | **M4** | **Todo junto. Se ataca al buque** | Nada nuevo: se usa todo | — |
 | **M5 → M14** | Varían terreno, enemigos, cantidades, distancias y blancos | **Ninguna mecánica nueva** | — |
 
@@ -48,9 +48,74 @@ M3**, la primera misión con objetivo.
 bombas y **el avión es más lento.** *(Coincide con lo aprobado en `../../sistemas/PLAN_CARGA_Y_CHANCHA.md`:
 sin bombas el avión va más rápido.)*
 
-**Las mejoras.** **M1 y M2: ninguna.** Al terminar **M3** se gana **una, servida**: *"Pichón
-encontró una mejora para tu avión y Turco la aplicó."* **De M4 en adelante, al final de cada
-misión, se elige una entre dos.** *(El autor marcó: **REVISAR las mejoras** — queda pendiente.)*
+**Las mejoras.** **M1 y M2: ninguna.** La primera se elige **al arrancar M3**, apenas termina la
+escena *El invento*, y queda **para el resto del juego y para todos los aviones del escuadrón**
+*(cambió el 9/10: antes era servida al final de M3)*. Después, al final de cada misión, se elige
+una entre dos. 🔵 Falta confirmar si al final de M3 ya hay otra elección o la siguiente es al final
+de M4. *(El autor marcó: **REVISAR las mejoras** — queda pendiente.)*
+
+---
+
+## ⚠ REVISIÓN DEL 9/10 — M2 y M3 cambian de contenido
+
+**El autor rehízo M2 y M3 sobre lo que pasó el 1 de mayo de 1982.** Esto manda sobre la tabla de
+arriba en todo lo que toque a esas dos misiones.
+
+| | Qué es ahora | Radar y enemigos | Bombas |
+|---|---|---|---|
+| **M2** | Avisan que atacaron **Pradera del Ganso y Puerto Argentino**. Los mandan a **sobrevolar la isla** | Se ve el radar y se aprenden **sus límites**. **El radar no dispara**: es un radar general, no de un barco. **Sólo aparecen Sea Harriers** — cómo y cuántos, a definir | — |
+| **M3 · *El invento*** | Muchos aviones, varios escuadrones, a la **Bahía de la Anunciación** por un supuesto desembarco. **No es diversión.** Tierra y mar. Al llegar, Puma o Cóndor: *«¿Qué ven?»* — *«No hay nada.»* Y a volver, en sigilo | El radar aparece y **sólo manda Sea Harriers**, pero **más permisivo**. Más Harriers que en M2. Alguna **barcaza chica** en el agua. Todavía no hay soldados británicos | Se sale **preparado para tirar**, y **no se tira**: no hay a qué |
+
+**La bomba se practica en M1**, quizá — dicho por el autor como posibilidad.
+
+**Lo que pasó de verdad, y coincide** *(fuente: «Bautismo de Fuego», Horacio Rodríguez, Museo
+Nacional de Aeronáutica)*: la madrugada del **1 de mayo de 1982** un Vulcan bombardeó la pista de
+Puerto Argentino, y hacia las 08:30 los Sea Harrier atacaron la BAM Malvinas y la **BAM Cóndor, en
+Pradera del Ganso, con ocho muertos**. Después, la Fuerza Aérea Sur interpretó que venía **un
+desembarco** —en la costa sur de la Isla Soledad— y creyó que el segundo grupo de portaaviones
+estaba **frente a la Bahía de la Anunciación**, así que mandó la mayoría de sus aviones de combate
+a frenarlo. **Las dos misiones pasan el mismo día, el 1 de mayo**: M2 a la mañana, M3 a la tarde.
+
+**El pedido, textual y completo:**
+
+> *"Quiza podemos hacer la mision 2 que nos avisan qe atacaron pradera del ganso y puerto
+> argentinoy. nos mandan a sobrevolar la isla, es una mision donde veremos el radar pero solo
+> conoceremos los limites y quiza nos cruzamos sea harriers, pero el radar no dispara ni nada,
+> porqe el objetivo no es un barco, el radar es general no es de un barco, es general, asi qe solo
+> aparecen harriers en esta configurafcion y ya veremos como y cuantos*
+>
+> *m3 es el bautismo de fuego, la mision es qe mandan a MUCHIOS AVIONES ARGENTINOS varios
+> escuadrones a sobrevolar las islas por un supuesto desembarco en "Bahia de la anunciación" que al
+> final cuando llegan no hay nada y deben volver. No es una mision de diversion, el radar aparece,
+> manda sea harrier, pero es mas permisivo, solo manda harriers, debe haber TIERA y mar porqe se
+> sobrevuelan las islas, el objetivo adonde hay qe llegar es una bahia, al llegar, PUMA o CONDOR
+> debe decirnos "que ven" y nosotros decir "no hay nada" y volver, la vuelta tambien tratando de qe
+> sea en sigilo. Mas harriers y cada tanto en alguna parte de AGUA alguna barcaza chica, no hay
+> soldados britanicos todaiva.*
+>
+> *Nos preparamos para tirar la bobma en la mision 1 quiza para practicar, pero en la mision 3 la
+> idae es tirarla pero al final no la tiramos porqe no habia nada a que lanzarle porqe no hay
+> desembarco."*
+
+### ⚠ Lo que esto da vuelta de la escalera del 4/10
+
+- **Las bombas.** La escalera decía *M1 y M2 sin bombas; se aprenden en M3*. Ahora: **quizá se
+  practican en M1**, y en M3 **se llevan pero no se tiran**. Entonces **la primera bomba de verdad
+  es en M4**, contra el Sheffield.
+- **El puesto de la isla de M3 se cae:** el objetivo es una bahía vacía.
+- **Los Harriers de M2.** Había quedado *uno por estrella*; ahora *«ya veremos cómo y cuántos»*.
+- **Una regla nueva de campaña: el radar de tierra no dispara, sólo llama Harriers.** Lo que dispara
+  es el radar de un barco. Hoy el radar "normal" del código tira oleadas de misiles: en M2 y M3
+  eso no va.
+- **El sigilo en la vuelta de M3** confirma en parte que el silencio de radio arranca en M3 (C-06).
+
+### 🔵 Lo que hay que decidir
+
+1. ✅ **Los títulos:** M2 sigue siendo *El bautismo de fuego* y **M3 sigue siendo *El invento***
+   (autor, 9/10). ✅ **Las escenas se quedan donde están** (autor, 9/10).
+2. **La bomba en M1:** ¿se practica o no? Si no, la primera vez que el jugador suelta una bomba es
+   contra el Sheffield.
+3. **Lo que enseñaba M2** —Momentum, turbo y la Chancha—, ¿sigue en M2?
 
 ---
 

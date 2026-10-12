@@ -2360,6 +2360,17 @@ export const CAZA_SOBRE_TERRENO = 2.5;
 /** Rescate: a cuantos km de la costa propia (el continente) o de la Gran Malvina (el blanco) un
  *  piloto eyectado todavia llega a que lo saquen del agua. Mas lejos, el frio del Atlantico Sur. */
 export const EYEC_KM_CASA = 150, EYEC_KM_ISLA = 60;
+// LA CAIDA EN LLAMAS (12/10, el autor: "si es bala o antiaereo, prenderse fuego y caer"): el avion sigue
+// a la vista, ardiendo, cae y rola hasta pegar en el agua o el suelo, y RECIEN AHI revienta. VY0: con
+// cuanto empieza a caer; G: cuanto acelera la caida; VY_MAX: tope; ROLL: rad/s de rolido; DERIVA: u/s de
+// costado; MAX_T: si en este tiempo no toco nada, revienta igual (una caida desde el techo es larga).
+// VY0 es POSITIVO a proposito: el golpe lo ENCABRITA un instante antes de caer. En rasante (3-8 m) una
+// caida directa duraba un segundo y no daba tiempo de eyectarse; asi dura ~2 s desde el agua.
+export const CAIDA = { VY0: 5, G: 8, VY_MAX: -20, ROLL: 2.2, DERIVA: 5, MAX_T: 4.5 };
+// LA EYECCION A PEDIDO (12/10, el autor): durante la caida, [Q]+[E] juntas (los dos rolidos del teclado)
+// o L1+R1 en el mando. En POR LA PATRIA salvar al piloto suma PTS; en mision, solo si la mision lo
+// permite (`eyeccion: true` en data/missions.js).
+export const EYECCION = { PTS: 2500 };
 
 // ---------------- EL SEA WOLF (pedido del autor 28/9) ----------------
 // El misil de defensa CERCANA de las fragatas: corto alcance, muy rapido, guiado desde el buque y
