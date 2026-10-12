@@ -79,5 +79,12 @@ export function resetTempo() { on = false; meter = 0; dur = tempoNivel(0).dur; }
 if (typeof window !== 'undefined') {
   window.__tdbg = () => JSON.stringify({ on, meter: +meter.toFixed(3), scale: scale() });
   // `p` es la FRACCION de barra (1 = llena). Antes eran puntos; la sonda sigue llenando igual con 9999.
-  window.__tcharge = p => { meter = Math.min(1, meter + Math.max(0, p)); return meter; };
+  // SIN ARGUMENTO LA LLENA (12/10): la fila EL MOMENTUM CARGADO de PRUEBAS la llama asi, y
+  // `Math.max(0, undefined)` es NaN — la barra quedaba en NaN toda la corrida y la tecla 4 no
+  // respondia nunca. Cualquier cosa que no sea un numero cuenta como cero, nunca como NaN.
+  window.__tcharge = p => {
+    const n = p === undefined ? 1 : Number(p);
+    meter = Math.min(1, meter + Math.max(0, Number.isFinite(n) ? n : 0));
+    return meter;
+  };
 }
