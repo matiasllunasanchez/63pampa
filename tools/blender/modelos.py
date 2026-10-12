@@ -188,7 +188,8 @@ def cargas(raiz, K, S):
     tq_aleta = K['mat_cel']('tanque_aleta', C.get('aleta', '#8ea4b6'))
     cu, an, co = K['mat_cel']('bomba', BOMBA), K['mat_cel']('bomba_anillo', BOMBA_ANILLO), K['mat_cel']('bomba_cola', BOMBA_COLA)
     pi_ = K['mat_cel']('pilon', PILON)
-    piezas = {k: [] for k in ('pilon_ala', 'tanques_ala', 'bombas_ala', 'pilon_centro', 'tanque_centro', 'bomba_centro')}
+    piezas = {k: [] for k in ('pilon_ala', 'tanques_ala', 'bombas_ala', 'pilon_centro', 'tanque_centro', 'bomba_centro',
+                              'pilon_ext', 'bombas_ext')}
     def antes(lista):
         n0 = set(o.name for o in raiz.children)
         return lambda: lista.extend(o for o in raiz.children if o.name not in n0)
@@ -198,6 +199,15 @@ def cargas(raiz, K, S):
         f = antes(piezas['pilon_ala']); pilon('pilon_ala%d' % sg, x, yb + 0.03, yb - 0.14, zp, 0.85, raiz, pi_); f()
         f = antes(piezas['tanques_ala']); tanque('tanque_ala%d' % sg, (x, yb - 0.14 - 0.17, zp - 0.15), 0.17, 1.95, raiz, tq, tq_aleta); f()
         f = antes(piezas['bombas_ala']); bomba('bomba_ala%d' % sg, (x, yb - 0.14 - 0.15, zp - 0.05), 0.15, 1.35, raiz, cu, an, co); f()
+    # EL ALA MEDIA (12/10, la «configuracion India» del Dagger): un segundo par de pilones, un poco mas
+    # afuera que el de los tanques, con las bombas de 250 kg — tanque y bomba en el mismo ala, cada uno
+    # en su soporte. Solo la celula que declara `ext_x`; la capa es `bombas_ext` (data/cargas.js).
+    if C.get('ext_x'):
+        yb2, zp2 = bajo_ala(S, C['ext_x'])
+        for sg in (-1, 1):
+            x = sg * C['ext_x']
+            f = antes(piezas['pilon_ext']); pilon('pilon_ext%d' % sg, x, yb2 + 0.03, yb2 - 0.12, zp2, 0.75, raiz, pi_); f()
+            f = antes(piezas['bombas_ext']); bomba('bomba_ext%d' % sg, (x, yb2 - 0.12 - 0.14, zp2 - 0.05), 0.14, 1.30, raiz, cu, an, co); f()
     zc = C['centro_z']; yp = bajo_panza(S, zc)
     f = antes(piezas['pilon_centro']); pilon('pilon_centro', 0, yp + 0.03, yp - 0.15, zc + 0.05, 0.95, raiz, pi_); f()
     f = antes(piezas['tanque_centro']); tanque('tanque_centro', (0, yp - 0.15 - 0.19, zc), 0.19, 2.2, raiz, tq, tq_aleta); f()
@@ -469,7 +479,8 @@ DAGGER = dict(
     bandera=(1.46, 1.78),
     tobera=dict(z0=2.90, z1=3.12, r=0.31, y=0.05),
     pintura=dict(arriba=['#4e6136', '#c0ab5e'], corte=0.52, escala=0.28, panza='#93a3ae'),
-    carga=dict(ala_x=1.50, centro_z=0.30, tanque='#a9b8c0'),
+    # ext_x: el ala media de la «configuracion India» (las bombas al lado de los tanques, 12/10)
+    carga=dict(ala_x=1.50, centro_z=0.30, tanque='#a9b8c0', ext_x=2.05),
     tren=dict(x=0.74, nariz=-2.15, suelo=-0.64, r=0.15, ancho=0.09),
 )
 MIRAGE = _variante(DAGGER,

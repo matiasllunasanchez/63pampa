@@ -2582,6 +2582,23 @@ test('suelta: la carga siempre trae la bomba del centro, y el ala se respeta', a
   }
 });
 
+// LA «CONFIGURACION INDIA» DEL DAGGER (data/cargas.js, 12/10): tres tanques y dos bombas en el ala media
+test('india: tres tanques y dos bombas, solo el Dagger, y en la suelta sus bombas son las del buque', async () => {
+  const { conBombaCentral, cargaDe, bombasDe, tanquesDe, capasDe, cargaParaAvion, CARGA_BASE, CAPAS_EXTRA } = await import('../src/data/cargas.js');
+  const { capacidadKm } = await import('../src/core/nafta.js');
+  const { TANQUE_INTERNO_KM, TANQUE_EXTRA_KM } = await import('../src/data/tuning.js');
+  assert.equal(tanquesDe('india'), 3); assert.equal(bombasDe('india'), 2);
+  assert.equal(capacidadKm('india'), TANQUE_INTERNO_KM + 3 * TANQUE_EXTRA_KM);
+  assert.deepEqual(capasDe('india'), ['carga_tanques_ala', 'carga_bombas_ext', 'carga_tanque_centro']);
+  assert.ok(CAPAS_EXTRA.dagger.includes('carga_bombas_ext'), 'la capa del ala media se carga para el Dagger');
+  assert.equal(conBombaCentral('india'), 'india', 'no se le fuerza la bomba del centro: ya lleva las del buque');
+  assert.equal(cargaParaAvion(CARGA_BASE, 'dagger'), 'india', 'el Dagger sale con la suya');
+  assert.equal(cargaParaAvion('india', 'sky'), CARGA_BASE, 'otro avion no la puede colgar');
+  assert.equal(cargaParaAvion('tres_bombas', 'dagger'), 'tres_bombas', 'si se eligio otra, se respeta');
+  assert.equal(cargaParaAvion(CARGA_BASE, 'sky'), CARGA_BASE);
+  assert.equal(cargaDe('india').avion, 'dagger');
+});
+
 // ---------- LA NAFTA COMO ALCANCE (src/core/nafta.js, PLAN_NAFTA_ALCANCE N0) ----------
 test('nafta: la capacidad sale de los tanques de la carga', async () => {
   const { capacidadKm, tanqueInicial, kmQuedan } = await import('../src/core/nafta.js');

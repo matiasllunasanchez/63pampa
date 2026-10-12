@@ -21,7 +21,25 @@ export const CARGAS = [
   { id: 'dos_bombas',    ala: 'bomba',  centro: null,     es: '2 BOMBAS',          en: '2 BOMBS' },
   { id: 'bombas_tanque', ala: 'bomba',  centro: 'tanque', es: '2 BOMBAS + TANQUE', en: '2 BOMBS + TANK' },
   { id: 'tanque',        ala: null,     centro: 'tanque', es: '1 TANQUE',          en: '1 TANK' },
+  // LA «CONFIGURACION INDIA» DEL DAGGER (12/10, el autor: "llevaban 3 tanques y bombas en un mismo
+  // espacio"): los tanques en el ala interna y en la panza, y las dos bombas de 250 kg en el ala MEDIA,
+  // al lado de los tanques, cada una en su soporte. Es el TERCER punto (`ext`, el par del ala media),
+  // que solo tiene el Dagger: `avion` dice de quien es — otro avion no la puede colgar.
+  { id: 'india', ala: 'tanque', centro: 'tanque', ext: 'bomba', avion: 'dagger', es: 'INDIA: 3 TANQUES + 2 BOMBAS', en: 'INDIA: 3 TANKS + 2 BOMBS' },
 ];
+
+/** LA CARGA PROPIA DE CADA AVION, la que sale si nadie eligio otra (12/10). Fuera de la campaña no hay
+ *  hangar, y el Dagger volaba con la India: es la suya. (La campaña vuela A-4B.) */
+export const CARGA_PROPIA = { dagger: 'india' };
+
+/** La carga que cuelga de verdad el avion `key` si se pidio `id`: una carga de OTRO avion no se puede
+ *  colgar (vuelve la base), y la base se cambia por la propia del avion si tiene una. */
+export function cargaParaAvion(id, key) {
+  const c = cargaDe(id);
+  if (c.avion && c.avion !== key) return CARGA_BASE;
+  if (c.id === CARGA_BASE && CARGA_PROPIA[key]) return CARGA_PROPIA[key];
+  return c.id;
+}
 
 /** LA CARGA BASE, la que trae todo avion si nadie eligio nada. Palabra del autor: "la
  *  configuracion mas basica es 2 tanques y una bomba". */
@@ -39,6 +57,8 @@ export const CARGA_ELEGIBLE_DESDE = 2;
 /** Las cuatro capas horneadas, en el orden en que se pintan (primero lo del ala, despues lo del
  *  centro: el pilon central cuelga del fuselaje y queda por delante de las alas). */
 export const CAPAS_CARGA = ['carga_tanques_ala', 'carga_bombas_ala', 'carga_tanque_centro', 'carga_bomba_centro'];
+/** Las capas que solo hornea un avion (tools/blender/hornear_todo.py, CAPAS_EXTRA): el ala media del Dagger. */
+export const CAPAS_EXTRA = { dagger: ['carga_bombas_ext'] };
 
 export const cargaDe = id => CARGAS.find(c => c.id === id) || CARGAS.find(c => c.id === CARGA_BASE);
 
@@ -46,12 +66,13 @@ export const cargaDe = id => CARGAS.find(c => c.id === id) || CARGAS.find(c => c
 export function capasDe(id) {
   const c = cargaDe(id), out = [];
   if (c.ala) out.push(c.ala === 'tanque' ? 'carga_tanques_ala' : 'carga_bombas_ala');
+  if (c.ext === 'bomba') out.push('carga_bombas_ext');   // el ala media va despues del ala, antes del centro
   if (c.centro) out.push(c.centro === 'tanque' ? 'carga_tanque_centro' : 'carga_bomba_centro');
   return out;
 }
 
 /** Cuantas bombas lleva la carga `id`: el par de ala cuenta dos. */
-export const bombasDe = id => { const c = cargaDe(id); return (c.ala === 'bomba' ? 2 : 0) + (c.centro === 'bomba' ? 1 : 0); };
+export const bombasDe = id => { const c = cargaDe(id); return (c.ala === 'bomba' ? 2 : 0) + (c.ext === 'bomba' ? 2 : 0) + (c.centro === 'bomba' ? 1 : 0); };
 /** Cuantos tanques lleva la carga `id`. */
 export const tanquesDe = id => { const c = cargaDe(id); return (c.ala === 'tanque' ? 2 : 0) + (c.centro === 'tanque' ? 1 : 0); };
 
@@ -62,6 +83,8 @@ export const tanquesDe = id => { const c = cargaDe(id); return (c.ala === 'tanqu
 export function conBombaCentral(id) {
   const c = cargaDe(id);
   if (c.centro === 'bomba') return c.id;
+  // …LA INDIA YA LLEVA LAS DEL BUQUE: en el ala media (systems/blanco.js las cuenta como del centro)
+  if (c.ext === 'bomba') return c.id;
   const x = CARGAS.find(k => k.ala === c.ala && k.centro === 'bomba');
   return x ? x.id : CARGA_BASE;
 }

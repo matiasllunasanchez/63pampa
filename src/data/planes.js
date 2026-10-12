@@ -1,5 +1,5 @@
 // AVIONES jugables: datos y precarga de sus imagenes.
-import { CAPAS_CARGA } from './cargas.js';
+import { CAPAS_CARGA, CAPAS_EXTRA } from './cargas.js';
 import { HORNO_VIEJO } from './horno.js';
 //
 // Cada avion tiene DOS imagenes: `src` es la ilustracion grande del menu de seleccion, y
@@ -107,7 +107,7 @@ PLANES.forEach(pl => {
     // cargo, simplemente no se pinta: el avion vuela limpio, que es el fallback natural.
     const dir = pl.sheet.slice(0, pl.sheet.lastIndexOf('/') + 1);
     pl.capas = {};
-    for (const nom of CAPAS_CARGA) {
+    for (const nom of CAPAS_CARGA.concat(CAPAS_EXTRA[pl.key] || [])) {
       pl.capas[nom] = ['', '2', '3', '4'].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
     }
     // LAS VARIANTES DEL ESCUADRON (autor, 8/10: "todos tienen el mismo avion — deberian tener

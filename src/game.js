@@ -76,7 +76,7 @@ import { stepRecibe } from './systems/recibe.js';
 import { drawRecibe } from './render/recibe.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
 import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A, CAIDA, EYECCION } from './data/tuning.js';
-import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE } from './data/cargas.js';
+import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE, cargaParaAvion } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
 import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque, proximoPilon } from './core/nafta.js';
 import { trayectoria } from './core/balistica.js';
@@ -1888,6 +1888,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // M1 Y M2 SALEN CON LA CARGA BASE (PLAN_NAFTA_ALCANCE N7): el hangar abre en M3, y lo elegido
       // en otra partida no puede colarse en el tutorial.
       if (gameMode === 'campaign' && !S.test && curLevel < CARGA_ELEGIBLE_DESDE) cfg.carga = CARGA_BASE;
+      // LA CARGA ES DEL AVION (12/10, data/cargas.js): la India solo la cuelga el Dagger, y el Dagger sale
+      // con ella si nadie eligio otra (fuera de la campaña no hay hangar).
+      cfg.carga = cargaParaAvion(cfg.carga, PLANES[selPlane] && PLANES[selPlane].key);
       prepararCarga();
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar

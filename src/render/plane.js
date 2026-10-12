@@ -1073,6 +1073,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
       if (blanco.on) {
         if (nom === 'carga_bomba_centro' && blanco.centroN <= 0) continue;
         if (nom === 'carga_bombas_ala') { if (blanco.alaN <= 0) continue; if (blanco.alaN === 1) mitad = 1; }
+        // el ala media de la India: son las del buque (blanco.centroN cuenta dos), y salen de a una
+        if (nom === 'carga_bombas_ext') { if (blanco.centroN <= 0) continue; if (blanco.centroN === 1) mitad = 1; }
       }
       if (mitad) { ctx.save(); ctx.beginPath(); ctx.rect(0, -dH / 2, dW / 2, dH); ctx.clip(); }
       ctx.drawImage(im, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);

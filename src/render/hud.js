@@ -2002,7 +2002,10 @@ function drawEstante(h) {
   const ya = CUADROS_Y + 5, ala = r ? r.ala : c.ala;
   if (ala === 'tanque') {
     const cuelga = !run.tanque || (run.tanque.pilones || []).includes('ala');
-    fila(ya, 'tanque', cuelga ? 2 : 0, cuelga ? '#8d9a78' : VACIO);
+    // LA INDIA del Dagger (12/10): en la suelta el medio son las del buque, asi que el tanque del centro
+    // se cuenta aca arriba con los del ala — los tres tanques en una fila
+    const n = r && c.ext && c.centro === 'tanque' ? (run.tanque ? (run.tanque.pilones || []).length : 3) : cuelga ? 2 : 0;
+    fila(ya, 'tanque', n, n > 0 ? '#8d9a78' : VACIO);
   } else if (ala === 'bomba') {
     const n = r ? r.alaN : 2;
     fila(ya, 'bomba', n, n > 0 ? (verde ? SUELTA_COL : null) : VACIO, !(n > 0) || verde);

@@ -17,6 +17,9 @@ VISTAS = ('base', 'empinada', 'ras', 'cobra')
 if os.environ.get('VISTAS'): VISTAS = tuple(os.environ['VISTAS'].split(','))
 CAPAS = ('tanques_ala', 'bombas_ala', 'tanque_centro', 'bomba_centro')
 CELULAS = ('sky', 'a4q', 'dagger', 'supere', 'pampa', 'mirage')   # las que llevan capas de carga
+# LAS CAPAS PROPIAS DE UNA CELULA (12/10): el ala media de la «configuracion India», solo el Dagger
+CAPAS_EXTRA = {'dagger': ('bombas_ext',)}
+capas_de = lambda k: CAPAS + CAPAS_EXTRA.get(k, ())
 TODAS = CELULAS + ('skin_tero', 'skin_puma', 'skin_gitano', 'skin_pichon', 'skin_vasco')
 
 # LA SONDA DE UN LADO (autor, 8/10: "el avion tiene DOS varas en la trompa y deberia tener UNA SOLA").
@@ -34,7 +37,7 @@ def trabajos(claves):
             yield [k, v, None]
             if SONDA_LATERAL(k) and v in VISTAS_SIM: yield [k, v, SIN]
             if k in CELULAS:
-                for c in CAPAS: yield [k, v, c]
+                for c in capas_de(k): yield [k, v, c]
                 if v == 'base': yield [k, v, 'tren']     # EL TREN (9/10): solo en la vista base
 
 def hornear(t):

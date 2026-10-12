@@ -73,7 +73,9 @@ const SPD_SUAVE = 0.12;   // segundos de la media movil: corto, para que meter t
  *  siendo el total, que es lo que el resto del juego sabe leer. */
 function armar() {
   const c = cargaDe(cargaId);
-  blanco.ala = c.ala; blanco.alaN = c.ala === 'bomba' ? 2 : 0; blanco.centroN = 1;
+  // (LA INDIA del Dagger, 12/10: el centro lleva un tanque y las del buque son las DOS del ala media —
+  // se cuentan aca, como del centro: salen solo cerca del buque)
+  blanco.ala = c.ala; blanco.alaN = c.ala === 'bomba' ? 2 : 0; blanco.centroN = c.ext === 'bomba' ? 2 : 1;
   blanco.tuvoVentana = false;   // pasada nueva: la ventana de la anterior no cuenta
   blanco.perdidaT = -1;
   blanco.trabada = false;       // avion nuevo, pilon nuevo
