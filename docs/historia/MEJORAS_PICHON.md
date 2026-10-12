@@ -268,7 +268,10 @@ interceptación y radiolocalización **con procedimientos manuales y operadores 
 gesto que todo este catálogo y por eso vive acá: gente que agarró lo que tenía roto y lo hizo
 disparar.
 
-**Lo real, corroborado.** En **BAM Cóndor** (Pradera del Ganso / Goose Green) personal de la Fuerza
+**Lo que hay, y de dónde sale.** Dos fuentes de origen distinto —un posteo argentino de
+divulgación y un artículo británico de 2021 que resume un libro de Ricky D. Phillips— cuentan lo
+mismo, y eso es lo mejor que tiene este asiento: **no es confirmación sólida, son dos relatos que
+coinciden.** Ninguna es un registro militar ni trae foto del aparato en uso. En **BAM Cóndor** (Pradera del Ganso / Goose Green) personal de la Fuerza
 Aérea montó una **lanzadora de cohetes de un Pucará averiado sobre el techo de un tractor**, y la
 disparaba **con la batería del propio tractor**, accionada desde un interruptor en la cabina. El
 techo cedía por el sobrepeso: llegaron a apuntalarlo con un caño por dentro. La **Batalla de Pradera
@@ -277,10 +280,15 @@ del Ganso fue el 28 y 29 de mayo de 1982** y fue el primer gran combate terrestr
 **El nombre está mal y conviene decirlo:** disparaba **cohetes**, no misiles. Es un lanzacohetes
 sobre un tractor.
 
-> **🎁 Y hay un hermano todavía mejor, de la misma fuente:** en Goose Green hubo **otro** lanzacohetes
-> improvisado, **atado con un cajón de manzanas y soga arriba de un tobogán de plaza**, alimentado
-> por una **batería de auto de 12 V**. Si alguna vez entra uno solo de los dos al juego, el tobogán
-> dice más que el tractor.
+> **🔴 EL TOBOGÁN — NO USAR POR AHORA.** El mismo artículo británico menciona **otro** lanzacohetes
+> improvisado en Goose Green, atado con un cajón de manzanas y soga arriba de un **tobogán de plaza**,
+> con batería de auto de 12 V. Es la imagen más fuerte de todo este asiento y por eso mismo hay que
+> tratarla con pinzas: **es UNA línea, de UN artículo de tabloide, que resume UN libro de divulgación.**
+> Sin foto, sin registro, sin segunda fuente, y la fuente original no se puede leer (PressReader
+> devuelve 403). A diferencia del tractor, acá no hay dos relatos que coincidan: hay uno.
+>
+> Queda anotado porque si aparece una segunda fuente es oro. **Hasta entonces no entra a nada** — ni
+> mundo, ni placa, ni diálogo.
 
 **⚠ LO QUE NO PUDE CORROBORAR** *(viene de un posteo de divulgación; ninguna fuente independiente lo
 confirma todavía)*:
@@ -307,7 +315,7 @@ Fe)** es efectivamente la unidad de Pucarás.
 > El que sabe lo reconoce; el que no, ve un tractor. Y si alguna vez se quiere nombrar, es **placa
 > histórica**, no diálogo: el hecho con sus nombres, cuando estén verificados.
 
-**Fuentes:** [Mail on Sunday vía PressReader — las armas improvisadas argentinas (el tractor y el tobogán)](https://www.pressreader.com/uk/the-scottish-mail-on-sunday/20211212/282260963763418) ·
+**Fuentes:** [Mail on Sunday vía PressReader — las armas improvisadas argentinas (el tractor y el tobogán)](https://www.pressreader.com/uk/the-scottish-mail-on-sunday/20211212/282260963763418) *(⚠ no se pudo leer directo — 403; lo que sabemos de este artículo viene de resúmenes de buscador, y resume un libro de Ricky D. Phillips, divulgación popular sin respaldo académico localizado)* ·
 [Battle of Goose Green — Wikipedia](https://en.wikipedia.org/wiki/Battle_of_Goose_Green) ·
 [HCDN — la Batalla de Pradera del Ganso, 28–29/5/1982 (PDF)](https://rest.hcdn.gob.ar/web/tramites-parlamentarios/render/adjunto/6a592a31a6b72.pdf) ·
 [Aire de Santa Fe — la III Brigada Aérea de Reconquista y el Pucará](https://www.airedesantafe.com.ar/el-domingo-la-iii-brigada-aerea-reconquista-realizara-una-jornada-abierta-despedir-al-pucara-n126477)

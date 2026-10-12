@@ -8,6 +8,12 @@ const fs = require('fs');
 // en el menu); `yarn start --prod` -> el juego de verdad. Empaquetado es siempre el de verdad.
 const DEV = !app.isPackaged && !process.argv.includes('--prod');
 
+// EL ICONO DEL JUEGO (12/10, el autor: "quitar el icono de Electron"). El empaquetado lo toma de build/
+// (electron-builder: icon.icns / icon.ico / icon.png); esto es el de EJECUCION — la ventana en Windows y
+// Linux, y el Dock en macOS, que con `npm start` mostraba el atomo de Electron. Vive en assets/ui/ porque
+// esa carpeta va en el empaquetado y build/ no. Sale de assets/source/steam/rasante2.png.
+const ICONO = path.join(__dirname, '..', 'assets', 'ui', 'icono.png');
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -16,6 +22,7 @@ function createWindow() {
     minHeight: 360,
     backgroundColor: '#0d1216',   // igual al --bg del juego: sin flash blanco al abrir
     title: 'RASANTE',
+    icon: ICONO,
     show: false,          // se muestra recién cuando el contenido está listo (evita parpadeo)
     // A PANTALLA COMPLETA DE ENTRADA (autor, 4/10). Si el jugador eligio VENTANA en OPCIONES, la pagina
     // lo pide apenas carga (ver `pantalla-completa` abajo y la fila PANTALLA en src/game.js).
@@ -79,6 +86,8 @@ ipcMain.on('pantalla-completa', (e, v) => {
 });
 
 app.whenReady().then(() => {
+  // el Dock de macOS sin empaquetar: el .icns de build/ recien entra al empaquetar
+  if (process.platform === 'darwin' && app.dock) app.dock.setIcon(ICONO);
   createWindow();
   // macOS: reabrir ventana al clickear el dock si no hay ninguna
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

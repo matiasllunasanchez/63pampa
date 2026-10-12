@@ -323,3 +323,80 @@ conscriptos en Malvinas. A citar con fuente argentina si se usa en una aclaraci�
 Mateo por la Gran Malvina, misión por misión. Las cartas que hoy lo ponen cerca de Puerto Argentino
 se reescriben.
 
+---
+
+## 12 · ✅ Qué cree cada uno sobre los prisioneros
+
+> *"Tambien podemos anotar que el gitano es el paranoico con que lo agarren, es el asustado y el que
+> cree que a los prisioneros los matan y que se yo, todo por miedo y por creer pavadas. Y justametne
+> pichon era el qe estaba en duda , y cuando se eyecta a futuro luego al final tenai razon pichon en
+> dudar, mantenian vvivois a los priosioneros.*
+>
+> *El vasco no tiene miedo ni le interesa.*
+> *Puma le es completamente indiferente porqe la mision esta por encima de todo.*
+>
+> *Esteban es el jugador, esta de oyente."* *(12/10)*
+
+| Quién | Qué cree |
+|---|---|
+| **Gitano** | **el paranoico**: le aterra que lo agarren y **cree que a los prisioneros los matan**. Todo por miedo y por creer pavadas |
+| **Pichón** | **duda**. Y **al final tenía razón**: cuando cae, lo mantienen vivo y vuelve |
+| **Vasco** | **no tiene miedo y no le interesa** |
+| **Puma** | **le es indiferente**: la misión está por encima de todo |
+| **Esteban** | **escucha**. Es el jugador |
+
+**Se cruza con:** la voz que corre cuando cae el Pichón en M9 (*"a los prisioneros los matan apenas
+los agarran"*, como lo de los gurkas — `M14_CAMBIOS.md` · 5): el que la repite es el Gitano, el que
+duda es el Pichón. Y el final: **el Gitano, el que más miedo tenía de caer prisionero, muere en el
+aire sin que nadie lo agarre; el Pichón, el que dudaba, cae y vuelve.**
+
+**Y de ahí sale cómo vuela el Gitano (12/10):**
+
+> *"Justamente por eso gambetea ,por eso es agil, porque es cagon."*
+
+**Esquiva todo porque tiene miedo.** La agilidad, las piruetas y la gambeta no son coraje: son miedo
+a que lo agarren. Se une con su perfil de vuelo (`../../sistemas/PILOTOS_JUGABLES.md`).
+
+> *"El que cae con todos los chismes y los rumores es gitano"* *(12/10)*
+
+**El Gitano es el que trae todos los chismes y los rumores** a la escuadrilla. Así entra en el guion
+la voz de que matan a los prisioneros, y cualquier otro rumor de la guerra.
+
+> *"Y los cree igual que como cree todo lo de vasco, y tambien podemos hacer algun chiste de qe se crea
+> otras pavada.s"* *(12/10)*
+
+**Se cree los rumores igual que se cree todo lo que le cuenta el Vasco.** 💡 Y puede haber **chistes
+donde se cree otras pavadas**. Las líneas, si se escriben, se proponen antes de pegar.
+
+**El Gitano y el Vasco (12/10):**
+
+> *"El gitano lo bolduea al vasco en frente de todos, el vasco le hace creer cosas y lo boludea en
+> secreto (con mas presencia del jugador) por ser serio y decirle las cosas en serio."*
+
+| | Cómo lo hace |
+|---|---|
+| **El Gitano al Vasco** | lo carga **delante de todos** |
+| **El Vasco al Gitano** | lo carga **en secreto**: le hace creer cosas **diciéndoselas en serio**, porque es serio y el Gitano le cree. **El jugador está más presente** en esas: lo ve venir |
+
+Es una pareja: uno hace ruido, el otro la juega callado.
+
+> *"Se boludean mutuamente, uno por ser callado y serio, el otro por ser boludo y creerse todo. Algo
+> similar a una dinamica de pinky y cerebro."* *(12/10)*
+
+**Se cargan mutuamente**: el Vasco por callado y serio, el Gitano por crédulo. **La dinámica de
+referencia es la de Pinky y Cerebro** —como tipo de dupla, no como copia—.
+
+**De dónde le viene (12/10):**
+
+> *"Quiza la idea de gitano es qe la familia era una mierda y temrino escapando, quiza justamente en
+> algun intento de fajarlo el padre borracho o algo asi, lo marca la agilidad y el escape."*
+
+💡 **Su familia era un desastre y terminó escapándose**, quizá cuando el padre, borracho, quiso
+fajarlo. **De ahí le viene la agilidad y el escape.**
+
+**⚠ Ya está escrito, y encaja:** en M13 (`M13_ASADO2`, *«La única vez que el Gitano habla en
+serio»*) dice: *"Mi viejo pegaba. Fuerte... Seguido... A todos... Yo me crié adivinando de qué humor
+venía por cómo sonaba la puerta al llegar."* y *"no soy gracioso. Soy lo contrario de mi viejo."* **Lo
+nuevo es el escape**: el momento en que se fue, y que el cuerpo le quedó así —esquivar—. M13 cambia
+por la regla de la noche, pero esta escena es en tierra y puede quedar.
+

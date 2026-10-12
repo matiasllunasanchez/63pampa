@@ -41,6 +41,12 @@ De esos, los que no son opcionales porque **la imagen ES la escena**:
 | `M10_HUECO` `M10_TANDIL` `M10_NOTICIA` | toda M10 está sin cuadros |
 | `M4_NARWAL_*` `M5_NARWAL_*` | las charlas en vuelo no llevan placa por diseño: el fondo es el juego corriendo |
 
+**Efecto nuevo (12/10) — la explosión del Gitano en M14:**
+
+| qué | cómo |
+| --- | --- |
+| **Explosión en el aire, grande** (sprite o PNG, mejor animada por cuadros) | el A-4 del Gitano revienta con **los tanques y la bomba** en el aire, en vertical. Se ve **desde atrás, desde el avión de Tero**, y llega a ocupar **más de la mitad de la pantalla**; dos segundos después la pasamos por al lado. Detalle en `misiones/M14_CAMBIOS.md` · 5 |
+
 Los otros 45 son los `M1_3`, `M2_5`, `M4_EPI`… — el storyboard entero, que ya está listado en
 `PROMPTS_PLACAS.md` y `STORYBOARD_1.md`.
 

@@ -386,3 +386,53 @@ argentinas).
   la que corría sobre los gurkas. Es lo que Esteban cree cuando se entera de lo de Mateo.
 - ✅ **La elección del final se hace jugando**, no con un cartel.
 
+### La muerte del Gitano, coreografiada por el autor (12/10)
+
+> *"En la forma en qe muere gitano puede tirarse, dispararle al avion en la caida al piltoo del otro
+> avion es decir, van en vertical gitano con su avion, sale de la cabina dispara al avion qe viene
+> detras, el estandoa rriba, no mata al piloto y a la altura de SU AVION > EL OTRO AVION HARRIER = EL
+> A LA MISMA ALTURA, el dispara a su avion hacia arriba al tanque de combustible y lo agarra la
+> explosion a los 3, al harrierr, y a él, su avion es el qe explota todo.*
+> *TODO OCURRE EN VERTICALy posterior caida"*
+
+**Corrección del autor (12/10):**
+
+> *"2. Justamante, viene cayendo desde arriba porqe se eyecta hacia arriba, dispara pero no le pega,
+> no es bueno con punteria y menos en ese momento. Cayendo no le pega al piloto el cual sigue, y en
+> ese segundo itnenta otra cosa, disaprarle a su avion, a los tanques de combustible qe son mas
+> grandes, y ahi si, explota y vuela todo al demonio. Y metamos mas harriers para hacerlo mas epico,
+> mas cerca. Porque ademas explota el avion, los tanques Y TAMBIEN LA BOMBA en el aire."*
+
+**Plano por plano (corregido):**
+
+1. **Subida en vertical.** El Gitano adelante, **varios Sea Harrier** atrás, persiguiéndolo, **cerca**.
+2. **Se eyecta hacia arriba.** Desde arriba, **cayendo, le dispara al piloto del Harrier que viene
+   detrás. No le pega**: tiene mala puntería, y más en ese momento. El Harrier sigue.
+3. En ese segundo, **cambia de idea**: le dispara **a su propio avión, a los tanques de combustible**,
+   que son un blanco más grande. **Esta vez pega.**
+4. **Explota todo**: el A-4, **los tanques y la bomba que lleva, en el aire**. La explosión se lleva a
+   **los Harrier que estaban cerca y al Gitano**.
+5. **Todo en vertical**, y después **la caída**.
+
+**Cómo se ve (12/10):**
+
+> *"EL combustible explota y hace explotar la bomba todo en el aire, hay q conseguir un buen PNG o
+> sprite para una BUENA explosion en el aire qe abarque gran parte de la pantalla adelante nuestro qe
+> sea casi mas de la mitad de la pantalla  mientras nos acercamos y pasamos, vemos toda la secuencia
+> desde atras hasta q explota y de ahi pasamos por al lado esquivando la explosion qe sucedio
+> adelante nuestro hace 2 segundos"*
+
+- **El combustible explota y hace explotar la bomba**, todo en el aire.
+- **La cámara es la nuestra (Tero), desde atrás:** vemos toda la secuencia adelante —la subida, la
+  eyección, los tiros, la explosión—.
+- **La explosión ocupa más de la mitad de la pantalla**, adelante nuestro, mientras nos acercamos.
+- **Dos segundos después pasamos por al lado**, esquivándola.
+- **Arte:** hace falta **un buen sprite o PNG de explosión en el aire**, grande. Anotado en
+  `../IMAGENES_PENDIENTES.md`.
+
+**Es la burrada de M3 cumplida al pie de la letra:** en `M03_BURRADA` el Gitano dice *"Y mientras
+caés… LES DISPARÁS"* y *"le apuntás a tu propio avión, que viene bajando por el otro lado"*. Ahí lo
+dice para volver a meterse; acá le apunta para volarlo.
+
+✅ Reemplaza las dos formas de antes (lanzamisiles / cañón de tierra).
+

@@ -53,6 +53,8 @@ el rescate de los náufragos del Belgrano.
 
 **Todos los hechos reales, día por día, con dónde está cada uno:** **`CRONOLOGIA_1982.md`**.
 
+**Volar con cada uno de los Fieles** (Gitano, Vasco, Pichón, Puma, Esteban): **`../../sistemas/PILOTOS_JUGABLES.md`**.
+
 **Lo que cambia la campaña entera** (eyectados, prisioneros, la noche, el A-4B, el piloto de la
 Chancha, los blancos, Mateo y Puerto Yapeyú): **`CAMBIOS_DE_CAMPANA.md`**.
 

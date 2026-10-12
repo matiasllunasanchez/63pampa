@@ -187,7 +187,7 @@ tierra; Puma: «Entonces ellos tampoco»; mueren el Gitano y Puma; Tero le da a 
 se había postergado; el jugador elige quedarse o volver. Mateo muere como prisionero por el estado en
 que llegó, no porque lo maten.
 
-- [x] **12/10:** monte de Puerto Argentino · el Gitano hace lo de M3 (con algo, no necesariamente lanzamisiles) · el Pichón lo cuenta · la elección se juega · [ ] falta: con qué tira el Gitano, y dónde va el alabeo
+- [x] **12/10:** monte de Puerto Argentino · el Gitano hace lo de M3 (con algo, no necesariamente lanzamisiles) · el Pichón lo cuenta · la elección se juega · ✅ la muerte del Gitano, coreografiada (`M14_CAMBIOS.md` · 5) · [ ] falta: dónde va el alabeo
 
 > **Y una pieza que falta construir, sin decisión pendiente:** los dos finales (`epiM14A` y
 > `epiM14B`) están escritos y completos, pero **nadie elige cuál corre** — `missions.js` nombra una
