@@ -980,8 +980,8 @@ function promptAvanzar(w, d, last, caja) {
   // MUCHO MAS CHICOS: la caja quedo en ~39 px de alto y un icono de 13 se comia un tercio. A 8 px
   // sigue siendo legible como tecla y deja de competir con lo que hay que leer.
   const der = caja ? caja.bx + caja.bw : W - 6;
+  const izq = caja ? caja.bx : 6;
   const abajo = caja ? caja.by + caja.bh : H - 6;
-  const arriba = caja ? caja.by : H - 40;
 
   // AVANZAR: pegado a la esquina inferior derecha de la caja, con 4 px de aire. La palabra va A
   // SU IZQUIERDA —no a la derecha, que es lo que la sacaba del canvas— y solo en la ULTIMA
@@ -999,7 +999,9 @@ function promptAvanzar(w, d, last, caja) {
     dibujarTeclaFlecha(xIcono, yIcono, LADO_TECLA, 1);
     ctx.globalAlpha = 1;
   }
-  // VOLVER: arriba de la caja, sobre su borde derecho, a la izquierda de donde cae AVANZAR.
+  // VOLVER: en la esquina inferior IZQUIERDA, a la MISMA ALTURA que AVANZAR y en espejo — la tecla
+  // primero y la palabra despues (autor, 12/10: "el anterior ponerlo a la izquierda al mismo nivel
+  // del DESPEGAR"). Estaba arriba de la caja, sobre el borde derecho, y se leia como otra cosa.
   //
   // NO PARPADEA. La de avanzar titila porque APARECE: es una habilitacion, y el titileo avisa que
   // ya se puede. Volver esta disponible desde siempre y no cambia de estado, asi que un parpadeo
@@ -1007,12 +1009,12 @@ function promptAvanzar(w, d, last, caja) {
   //
   // No depende de `canAdvance`: el hold cierra AVANZAR, no VOLVER.
   if (d.li > 0 || d.si > 0) {
-    const xV = der - LADO_TECLA, yV = arriba - LADO_TECLA - 3;
+    const xV = izq + 4, yV = yIcono;
     ctx.globalAlpha = 0.5;
     dibujarTeclaFlecha(xV, yV, LADO_TECLA, -1);
-    ctx.font = '5px monospace'; ctx.fillStyle = P.accent; ctx.textAlign = 'right';
-    ctx.fillText(T('backPrompt'), xV - 3, yV + LADO_TECLA - 2);
-    ctx.globalAlpha = 1;
+    ctx.font = '5px monospace'; ctx.fillStyle = P.accent; ctx.textAlign = 'left';
+    ctx.fillText(T('backPrompt'), xV + LADO_TECLA + 3, yV + LADO_TECLA - 2);
+    ctx.textAlign = 'left'; ctx.globalAlpha = 1;
   }
 }
 

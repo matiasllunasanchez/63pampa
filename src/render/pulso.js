@@ -156,11 +156,12 @@ function drawCineMundo(Q, c, t, cab) {
     // ahi la ristra aparecia ya lanzada, de atras del tablero, y el playtest pidio verla SALIR.
     // Por eso la caja de la cabina se calcula antes de dibujar nada (momRender.cajaCabina).
     const chase = c.cam.modo === 'chase';
+    const nB = Q.bombas || PULSO_CINE.BOMBAS;   // la mision dice cuantos (el Sheffield: uno)
     const sp = chase ? proj(plane.x, plane.y, PZ)
       : { x: W / 2, y: (cab ? cab.vidrio : H) - 2 };
     // LA TRAYECTORIA de la bomba `i` en su avance `p`, para poder pedirsela tambien a la estela.
     const vuelo = (i, p) => {
-      const x0 = sp.x + (i - (PULSO_CINE.BOMBAS - 1) / 2) * 8;
+      const x0 = sp.x + (i - (nB - 1) / 2) * 8;
       return {
         x: x0 + (im.x - x0) * p,
         // parabola: la bomba sube un pelo al salir y despues cae sobre el blanco
@@ -170,7 +171,7 @@ function drawCineMundo(Q, c, t, cab) {
         s: Math.max(1, PULSO_CINE.BOMBA_R * (1 - p * 0.86)),
       };
     };
-    for (let i = 0; i < PULSO_CINE.BOMBAS; i++) {
+    for (let i = 0; i < nB; i++) {
       // el avance del tramo lo da el director (`fParte`): el render no necesita saber cuanto dura
       const p = Math.max(0, Math.min(1, c.fParte * 1.35 - i * 0.11));
       if (p <= 0) continue;

@@ -64,7 +64,10 @@ export function resetPulso() { Q = null; carry = null; cine.stop(); }
  *  juego (no hay [H] en OPCIONES): de ella salen el margen, el largo de la secuencia y el perdon. */
 export function setCfg(c) {
   carry = { t01: (c && c.t01) || 0, campaign: !!(c && c.campaign), owned: (c && c.owned) || [],
-            off: (c && c.off) || null, ship: (c && c.ship) || '', tries: 0, flak: 0 };
+            off: (c && c.off) || null, ship: (c && c.ship) || '', tries: 0, flak: 0,
+            // CUANTOS PROYECTILES SUELTA EL PREMIO: la mision lo dice (`pulsoBombas`); sin dato, los de
+            // siempre. El Super Etendard del Sheffield lanzo UN Exocet, no una ristra (autor, 12/10).
+            bombas: (c && c.bombas) || 0 };
 }
 
 /** EL BUQUE de esta corrida. Entra aparte de setCfg() y no dentro porque el orden de armado del
@@ -112,6 +115,7 @@ export function enter(desdePasillo, conf) {
     fase: 'prueba',                       // 'prueba' | 'exito' | 'fallo'
     faseT: 0,
     t01: carry.t01,                       // avance de campaña 0..1: la perilla de dificultad real
+    bombas: carry.bombas || PULSO_CINE.BOMBAS,   // lo que suelta el premio (lo dibuja render/pulso.js)
     bars: [],                             // la secuencia en curso (la del carril elegido)
     bi: 0,                                // compas en curso
     ti: 0,                                // token en curso DENTRO del compas

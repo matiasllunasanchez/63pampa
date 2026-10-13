@@ -2712,8 +2712,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // ACOTADO A 1: `curLevel` puede apuntar a una mision del BANCO DE PRUEBAS, que vive
         // despues de la campaña y daria una fraccion mayor que uno — o sea EL PULSO mas duro que
         // en la mision final. Un valor normalizado tiene que estar normalizado.
-        t01: MISSIONS.length > 1 ? Math.min(1, curLevel / (MISSIONS.length - 1)) : 0,
+        // …y LA MISION LO PUEDE DECIR (`pulsoT01`): las del LIBRO DE VUELO viven detras de todo y la
+        // cuenta de arriba les daba el PULSO de la ultima mision de la campaña.
+        t01: curMission() && curMission().pulsoT01 !== undefined ? curMission().pulsoT01
+          : MISSIONS.length > 1 ? Math.min(1, curLevel / (MISSIONS.length - 1)) : 0,
         campaign: conLibreta(), owned: pichon, off: cfg.movesOff,
+        bombas: curMission() && curMission().pulsoBombas,
       });
       // NORMA DE CAMPAÑA (3/8, GUION_2): con roster, el relevo es un AVERIADO que vuelve a la
       // base (nadie muere por gameplay); sin roster, el relevo arcade de siempre (PATRIA caido).
@@ -5635,7 +5639,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // "oscurece el tinte verde del radar de noche"): asi la misma noche lo apaga, y queda un verde
       // tenue en vez de una pantalla verde encendida en medio de lo negro.
       const tinteRadar = () => {
-        if (cfg.radarNet && cfg.radar !== 'voz' && rutaSys.enAlcance()) {
+        // NO EN EL PULSO, por lo mismo que la red (ver drawRadarNet): con ruta, el blanco siempre esta
+        // adentro del radar, y el velo cubria el buque de la cabina con una cupula palida (autor, 12/10:
+        // "se ve horrible el barco"). Se le habia sacado la red al Pulso y se le olvido el tinte.
+        if (cfg.radarNet && cfg.radar !== 'voz' && S.state !== 'pulso' && rutaSys.enAlcance()) {
           world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
           // EL ESCANEO al entrar a la zona: la linea que barre y el velo que deja (world.ESC_*)
           if (radarScanT >= 0) world.drawRadarEscaneo(run.t - radarScanT);

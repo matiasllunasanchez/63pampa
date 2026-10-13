@@ -34,6 +34,16 @@ export const PENDIENTE = '[ texto pendiente del OK del autor ]';
 
 const P = over => ({ ...CAMPAIGN_CFG, ...over });
 
+// EL LARGO DE LA IDA, en metros de juego (la vuelta mide lo mismo). Eran 6 km, el de IDA Y VUELTA
+// SMALL, y no alcanzaba (autor, 12/10: "¿por que es TAN RAPIDA la llegada al Sheffield?" y "¿por que
+// no recargamos con el Hercules antes del radar?"). Las dos eran la misma cuenta: el tramo entre la
+// cita con el Hercules y la linea del radar es ~12% de la ida, y con 6 km eso son ~700 m — once
+// segundos, contra los ~6 que tarda en llegar mas los ~11 que tarda en llenarte. Llegaba cuando ya
+// se estaba entrando al radar y se despedia. Con 20 km el tramo dura ~45 s y la ida, ~2:20.
+// (La NAFTA no cambia con el largo: con `ruta` se cobra en km reales, ver core/ruta.js.)
+const LARGO = 20000;
+const PAR = 13000;   // el de IDA Y VUELTA SMALL (4000 a 6 km), a escala
+
 // Lo que nace en la ida: en mar abierto, naturaleza; cerca del blanco, la defensa (mismo criterio y
 // mismas listas que el banco de pruebas, ver pruebas_misiones.js).
 const IDA_MAR = ['ola', 'birds'];
@@ -44,20 +54,28 @@ const IDA_DEFENSA = ['ola', 'birds', 'balloon', 'poles'];
  *  `vuelta` pisa la vuelta entera (los cazas, cuando los hubo); `grito`, solo su primer tramo (la
  *  cita de la Ardent: se dice UNA vez, cuando entran los Harrier). `blanco` es lo que pasa en el
  *  tramo del blanco (la cita de la Plymouth). */
-function fases({ defensa = true, vuelta = {}, blanco = {}, grito = {} } = {}) {
+function fases({ defensa = true, vuelta = {}, blanco = {}, grito = {}, casa = true } = {}) {
   const def = defensa ? IDA_DEFENSA : IDA_MAR;
-  return [
-    { tipo: 'transito', hasta: 0.07, solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'transito', hasta: 0.16, solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'descenso', hasta: 0.20, solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'rasante', hasta: 0.50, solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'rasante', hasta: 0.80, solo: def, bombs: 0, bidones: false },
-    { tipo: 'filo', hasta: 0.87, radar: 6, bombs: 0, bidones: false },
+  // EL TRANSITO ALTO ES UN CUARTO DE LA IDA (en t17 era 16%): es donde ocurre la cita con el Hercules,
+  // y tiene que alcanzar para que llegue, te enganche y te llene ANTES de la linea del radar (que se
+  // ancla al comienzo del descenso). Con 16% pasaba de largo (autor, 12/10).
+  const ida = [
+    { tipo: 'transito', hasta: 0.12, solo: IDA_MAR, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: 0.25, solo: IDA_MAR, bombs: 0, bidones: false },
+    { tipo: 'descenso', hasta: 0.30, solo: IDA_MAR, bombs: 0, bidones: false },
+    { tipo: 'rasante', hasta: 0.55, solo: IDA_MAR, bombs: 0, bidones: false },
+    { tipo: 'rasante', hasta: 0.82, solo: def, bombs: 0, bidones: false },
+    { tipo: 'filo', hasta: 0.88, radar: 6, bombs: 0, bidones: false },
     { tipo: 'blanco', hasta: 1, solo: def, bombs: 0, bidones: false, ...blanco },
+  ];
+  // SIN VUELTA (`casa: false`): el climax cierra la mision. Es el caso del PULSO — despues de la
+  // cinematica no hay pasillo de regreso que funcione (se volaba con el mar en negro, 12/10).
+  if (!casa) return ida;
+  return ida.concat([
     { tipo: 'vuelta', hasta: 1.30, bidones: false, ...vuelta, ...grito },
     { tipo: 'vuelta', hasta: 1.84, bidones: false, ...vuelta },
     { tipo: 'vuelta', hasta: 2.0, bidones: false, caza: 0 },
-  ];
+  ]);
 }
 
 // EL CFG DE LA SALIDA: el de IDA Y VUELTA SMALL (nafta prendida, mar variado, sin globos), con el
@@ -77,16 +95,23 @@ const r1 = {
   fecha: '4 DE MAYO DE 1982', hora: '11:04', horaQue: 'lanzamiento',
   desc: 'Dos Super Étendard de la Armada salen de Río Grande a buscar a la flota con un Exocet cada uno. Al ras del mar, con niebla, guiados por un Neptune.',
   despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'blanco: destructor clase 42' },
-  goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: 6000 },
+  goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: LARGO },
   climax: 'pulso',
   cfg: cfgReal({ sky: 'cloudy', fog: 1, fogLen: 1, squad: 2, caza: 0 }),
   chanchaMinT: 40,
   chanchaVeces: { ida: 1, vuelta: 0 },
   // KM APROXIMADOS (a confirmar): la cita con el Hercules fue en 50º30′S 65º30′O, a ~150 km de Rio
-  // Grande; el blanco, a unos 650.
-  ruta: { blancoKm: 650, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [520, 450] },
-  fases: fases({ defensa: false, vuelta: { caza: 0 } }),
-  par: 4000,
+  // Grande; el blanco, a unos 650. LA ZONA DE LA CITA NO ES LA HISTORICA: en el juego, a 150 km de la
+  // base el tanque todavia esta lleno y el Hercules te llenaba en dos segundos y se iba (medido: 98%).
+  // Se corre a la segunda mitad del transito, donde ya gastaste, y llega hasta el radar.
+  ruta: { blancoKm: 650, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [420, 200] },
+  // SIN VUELTA: el Pulso cierra la mision. La vuelta real (al ras hasta Rio Grande, 12:04) no tuvo
+  // nada que jugar, y la del juego despues del Pulso se volaba en negro (12/10).
+  fases: fases({ defensa: false, casa: false }),
+  // EL PREMIO SUELTA UN EXOCET, no cuatro: cada Super Etendard lanzo uno. Y la dificultad del Pulso
+  // es la de M4 (4 de mayo): la cuenta por indice de campaña le daba la de la ultima mision.
+  pulsoBombas: 1, pulsoT01: 3 / 13,
+  par: PAR,
   escuadrilla: '2ª ESCUADRILLA AERONAVAL DE CAZA Y ATAQUE',
   // LA CARGA REAL era un Exocet AM39 bajo el ala derecha y un tanque de 1.100 l bajo la izquierda.
   // El juego no tiene capa de Exocet: se cuelga UN TANQUE (`tanque`) y el rotulo dice la verdad.
@@ -109,7 +134,7 @@ const r2 = {
   fecha: '12 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
   desc: 'Dos escuadrillas de A-4B salen de Río Gallegos contra dos buques en el estrecho. Volás la segunda, ORO, contra la Glasgow.',
   despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'blanco: destructor clase 42' },
-  goal: { kind: 'ship', ship: 'HMS GLASGOW', dist: 6000 },
+  goal: { kind: 'ship', ship: 'HMS GLASGOW', dist: LARGO },
   climax: 'suelta',
   // LA MK-17 (la de las espoletas que fallaban en todo mayo) y el SEA WOLF: lo tiraba la Brilliant, que
   // escoltaba a la Glasgow, y fue lo que bajo a la escuadrilla CUÑA. El juego lo pone en el blanco.
@@ -118,9 +143,9 @@ const r2 = {
   chanchaMinT: 40,
   chanchaVeces: { ida: 1, vuelta: 1 },
   // KM APROXIMADOS (a confirmar): de Rio Gallegos al estrecho, unos 780.
-  ruta: { blancoKm: 780, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [560, 480], chanchaVuelta: [350, 420] },
+  ruta: { blancoKm: 780, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [500, 200], chanchaVuelta: [350, 420] },
   fases: fases(),
-  par: 4000,
+  par: PAR,
   escuadrilla: 'ESCUADRILLA ORO · V BRIGADA AÉREA',
   // MATRICULAS de ORO segun el prompt (C-239 la confirma Los Andes; C-248 la confirma ASN; C-225 y
   // C-244 a confirmar). La carga del A-4B: una MK-17 de 1.000 lb al centro y dos tanques (a
@@ -146,7 +171,7 @@ const r3 = {
   fecha: '21 DE MAYO DE 1982', hora: '14:10', horaQue: 'despegue',
   desc: 'Tres A-4Q de la Armada, sin Hércules: cada litro contado. El blanco asignado no está; el alternativo, los buques de San Carlos.',
   despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'blanco alternativo: bahía San Carlos' },
-  goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 6000 },
+  goal: { kind: 'ship', ship: 'HMS ARDENT', dist: LARGO },
   climax: 'suelta',
   // LA BRP-250 hasta que exista la MK-82 Snakeye: es la bomba con cola retardadora que el juego ya
   // tiene (la mas parecida en como cae). La Ardent tenia Sea Cat.
@@ -156,7 +181,7 @@ const r3 = {
   cfg: cfgReal({ sky: 'cloudy', squad: 3 }),
   ruta: { blancoKm: 750, radarKm: 180, niveladoKm: 120, potenciaKm: 50 },
   fases: fases({ vuelta: { caza: 2 }, grito: { radio: 'libro_r3_harrier' } }),
-  par: 4000,
+  par: PAR,
   escuadrilla: '3ª ESCUADRILLA AERONAVAL DE CAZA Y ATAQUE',
   // MATRICULAS segun ASN (baja confianza, a confirmar con la Armada). La carga real: cuatro MK-82
   // Snakeye y dos tanques. El juego cuelga una bomba al centro y dos tanques (`tanques_bomba`); la
@@ -183,7 +208,7 @@ const r4 = {
   fecha: '8 DE JUNIO DE 1982', hora: '≈13:00', horaQue: 'ataque',
   desc: 'Seis Dagger salen de Río Grande hacia Bahía Agradable. Al ras y muy rápidos, se pasan, y encuentran una fragata sola en el estrecho.',
   despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'rumbo: Bahía Agradable' },
-  goal: { kind: 'ship', ship: 'HMS PLYMOUTH', dist: 6000 },
+  goal: { kind: 'ship', ship: 'HMS PLYMOUTH', dist: LARGO },
   climax: 'suelta',
   // Bombas de 250 kg (la BRP-250 es la de 250 que el juego tiene; cual era exactamente, a confirmar).
   // La Plymouth (Tipo 12) tenia Sea Cat.
@@ -194,7 +219,7 @@ const r4 = {
   cfg: cfgReal({ sky: 'clear', squad: 5 }),
   ruta: { blancoKm: 750, radarKm: 180, niveladoKm: 120, potenciaKm: 50 },
   fases: fases({ blanco: { radio: 'libro_r4_buque' }, vuelta: { caza: 1 } }),
-  par: 4000,
+  par: PAR,
   escuadrilla: 'ESCUADRILLAS PERRO Y GATO · GRUPO 6 DE CAZA',
   // SIN MATRICULAS: no se encontro una fuente con los numeros de esa salida. Se elige la
   // escuadrilla. La carga es la INDIA (3 tanques + 2 bombas de 250 kg, la propia del Dagger); el
