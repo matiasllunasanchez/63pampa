@@ -15,7 +15,7 @@
 // jamas — no muere, no aborta, no colisiona. El eslabon debil de la cita sos vos.
 
 import { CH_CHARGE, CH_MIN_T, CH_ETA, CH_ALT, CH_BOX, CH_RATE, CH_WINDOW, CH_SPD_F,
-  CH_Z, CH_HOSE_X, CH_HOSE_Y, CH_HOSE_Z, CH_DERIVA, CH_DERIVA_V, CH_SALIDA, CH_ENGANCHE, CH_BAJADA_T, CH_BAJADA_H, CH_APARECE_Y } from '../data/tuning.js';
+  CH_Z, CH_HOSE_X, CH_HOSE_Y, CH_HOSE_Z, CH_DERIVA, CH_DERIVA_V, CH_SALIDA, CH_ENGANCHE, CH_RATE_TRABADO, CH_BAJADA_T, CH_BAJADA_H, CH_APARECE_Y } from '../data/tuning.js';
 
 // FASES: 'idle' (no pasa nada) · 'eta' (pedida, viniendo) · 'cita' (esta arriba) · 'yendo' (se va).
 // No hay estado de JUEGO nuevo: todo esto ocurre adentro de 'play' (RF-06).
@@ -33,6 +33,9 @@ let reserva = 1;
 let lastScore = -1;
 let etaT = 0, winT = 0, salT = 0, pedidoT = 0;
 let conn = false, connT = 0;
+// TRABADO: el enganche completo. El avion queda clavado a la canasta (lo clava el orquestador, que es el
+// dueño de `plane`) hasta que el jugador lo suelta con un toque de direccion o un golpe lo arranca.
+let trabado = false;
 let upa = false;   // ya aviso que te lleva a upa (una vez por cita)
 // LA QUE ESPERA (27/9, el autor: "la Chancha SIEMPRE debe aparecer a la ida y esperarnos antes de
 // entrar a la zona de radar"): una cita sin reloj. No se va sola por tiempo: se va cuando la
@@ -105,7 +108,7 @@ export function tick(dt, e) {
     // Salir del pasillo —muerte, relevo, climax, devcam— la DESPIDE. El poder queda gastado: se
     // pidio, vino, y el que no estaba fue el avion. La barra vuelve a cargar desde el score del
     // momento en que se vuelve, como en tempo.js.
-    if (fase !== 'idle') { fase = 'idle'; conn = false; espera = false; }
+    if (fase !== 'idle') { fase = 'idle'; conn = false; trabado = false; espera = false; }
     lastScore = -1;
     return out;
   }
@@ -154,16 +157,24 @@ export function tick(dt, e) {
   // que estar "detras de la canasta" no es algo que el jugador pueda equivocar — lo que tiene
   // que resolver es la puntada, que son dos ejes y no tres.
   const c = canasta();
-  const dentro = Math.abs(e.planeX - c.x) < CH_BOX && Math.abs(e.planeY - c.y) < CH_BOX;
   const golpe = !!e.golpe;
-  if (dentro && !golpe) {
+  // TRABADO, el avion esta en la canasta por definicion: no se mira la caja. Lo que lo suelta es el
+  // jugador (`e.suelta`, un toque de direccion) o un golpe.
+  if (trabado && (e.suelta || golpe)) {
+    trabado = false; conn = false; connT = 0;
+    out.sig = golpe ? 'golpe' : 'suelta';
+  }
+  const dentro = trabado || (Math.abs(e.planeX - c.x) < CH_BOX && Math.abs(e.planeY - c.y) < CH_BOX);
+  if (dentro && !golpe && out.sig !== 'suelta') {
     if (!conn) { conn = true; connT = 0; out.sig = 'conecta'; }
     connT += dt;
     // EL ENGANCHE (pedido del autor 24/9): meterse en la caja no alcanza — hay que SOSTENERSE ahi
     // CH_ENGANCHE segundos antes de que empiece a pasar nafta. Es lo que el HUD pinta en naranja
     // (enganchando) y despues en verde (cargando). Salirse antes vuelve a cero.
     if (connT < CH_ENGANCHE) return out;
-    out.carga = Math.min(CH_RATE * dt, 100 - e.fuel, reserva * 100);
+    // LA BARRITA LLENA TRABA (12/10): de aca en adelante el avion va colgado de la canasta
+    if (!trabado) { trabado = true; out.sig = 'traba'; }
+    out.carga = Math.min(CH_RATE_TRABADO * dt, 100 - e.fuel, reserva * 100);
     reserva = Math.max(0, reserva - out.carga / 100);
     bombaT -= dt;
     if (bombaT <= 0) { bombaT = 0.34; out.bomba = true; }        // la bomba de transferencia
@@ -186,7 +197,7 @@ export function tick(dt, e) {
 }
 
 /** Se va por arriba. Lo no cargado se perdio: no hay segunda cita (§8.5). */
-function irse() { fase = 'yendo'; salT = CH_SALIDA; conn = false; espera = false; }
+function irse() { fase = 'yendo'; salT = CH_SALIDA; conn = false; trabado = false; espera = false; }
 
 /** LA DESPEDIDA de la que espera: el orquestador la llama al cruzar la linea del radar (adentro no
  *  entra). Devuelve true si estaba (viniendo o en la cita) y se fue. */
@@ -203,6 +214,8 @@ export const avance = () => (conn ? CH_SPD_F : 1);
 
 export const activa = () => fase === 'cita' || fase === 'yendo';
 export const conectado = () => conn;
+/** ¿El avion va trabado a la canasta? (el orquestador lo clava ahi y la entrada de vuelo no manda) */
+export const estaTrabado = () => trabado;
 export const meterVal = () => meter;
 export const gastada = () => usada;
 /** Cuantas veces se la llamo en el tramo `m` (con ruta). */
@@ -217,7 +230,7 @@ export function snapshot() {
     bx: c.x, by: c.y, bz: c.z,
     conn, eta: etaT, win: winT, t: citaT, espera,
     // enganchado y ya pasando nafta (verde) o todavia sosteniendose (naranja), y lo que le queda a ella
-    cargando: conn && connT >= CH_ENGANCHE, enganche: conn ? Math.min(1, connT / CH_ENGANCHE) : 0, reserva,
+    cargando: conn && connT >= CH_ENGANCHE, enganche: conn ? Math.min(1, connT / CH_ENGANCHE) : 0, reserva, trabado,
   };
 }
 
@@ -230,14 +243,14 @@ export function cargar(p) { meter = Math.min(1, meter + (p === undefined ? CH_CH
  *  igual que resetTempo — por eso el "una vez por corrida" sobrevive al relevo. */
 export function resetChancha() {
   fase = 'idle'; meter = 0; usada = false; usos.ida = 0; usos.vuelta = 0; reserva = 1; lastScore = -1; espera = false;
-  etaT = 0; winT = 0; salT = 0; pedidoT = 0; conn = false; connT = 0; x = 0; citaT = 0;
+  etaT = 0; winT = 0; salT = 0; pedidoT = 0; conn = false; connT = 0; trabado = false; x = 0; citaT = 0;
   rumT = 0; bombaT = 0;
 }
 
 // ---------- SONDAS (QUITAR al cerrar el plan) ----------
 if (typeof window !== 'undefined') {
   window.__chadbg = () => JSON.stringify({
-    fase, meter: +meter.toFixed(3), usada, usos: { ...usos }, conn, reserva: +reserva.toFixed(3),
+    fase, meter: +meter.toFixed(3), usada, usos: { ...usos }, conn, trabado, reserva: +reserva.toFixed(3),
     eta: +etaT.toFixed(1), win: +winT.toFixed(1), connT: +connT.toFixed(1),
     x: +x.toFixed(1), bx: +canasta().x.toFixed(1), by: +canasta().y.toFixed(1), caja: CH_BOX,
   });

@@ -59,6 +59,43 @@ const musPool = MUSIC_POOL.map(([, src]) => { const a = new Audio(src); a.volume
 // en una prueba arranca ella, y ◄ ► siguen cambiando.
 const musZona = musPool[0];
 
+// LAS MISIONES, AL AZAR DE `music/original` (13/10/2026, el autor: "las musicas para las misiones van
+// a venir de forma ALEATORIA de music/original" — "me referi solo a libro de vuelo"). Las salidas
+// del LIBRO DE VUELO sortean una de estas al arrancar el mapa, y cuando termina sortean otra (nunca
+// la misma dos veces seguidas). No entran en el reproductor: ahi la musica no se elige. La CAMPAÑA
+// no las usa: cada mision va a tener su tema y su repertorio (hoy, `musica` en data/missions.js).
+// Rutas ENTERAS y literales a proposito: tools/build_web.py las vacia (WEB_DROP) y busca el texto
+// exacto. Vacias, el sorteo no tiene de donde sacar y la mision cae a game.mp3.
+const MUSIC_MISION = [
+  '../assets/music/original/balas_en_bandoneon1.mp3',
+  '../assets/music/original/balas_en_bandoneon2.mp3',
+  '../assets/music/original/bandoneon_de_acero1.mp3',
+  '../assets/music/original/bandoneon_de_acero2.mp3',
+  '../assets/music/original/bandoneon_de_guerra1.mp3',
+  '../assets/music/original/bandoneon_de_guerra2.mp3',
+  '../assets/music/original/last_aires1.mp3',
+  '../assets/music/original/last_aires2.mp3',
+  '../assets/music/original/lastoneon1.mp3',
+  '../assets/music/original/lastoneon2.mp3',
+  '../assets/music/original/rememberon1.mp3',
+  '../assets/music/original/rememberon2.mp3',
+  '../assets/music/original/wardoneon1.mp3',
+  '../assets/music/original/wardoneon2.mp3',
+].filter(Boolean);
+const musMision = new Audio(); musMision.volume = 0.30;
+let enMision = false, misionSrc = '';
+/** Carga en musMision una pista de MUSIC_MISION al azar, distinta de la anterior. */
+function sortearMision() {
+  if (!MUSIC_MISION.length) return false;
+  let src;
+  do src = MUSIC_MISION[(Math.random() * MUSIC_MISION.length) | 0];
+  while (MUSIC_MISION.length > 1 && src === misionSrc);
+  misionSrc = src; musMision.src = src;
+  return true;
+}
+// termina una: sale otra al azar, sin hueco
+musMision.addEventListener('ended', () => { if (enMision && sortearMision()) musMision.play().catch(() => { }); });
+
 // PLAYLIST del REPRODUCTOR: la base del juego + el soundtrack, presentadas como TRACK 1..N.
 // Es la lista que se puede cambiar en vuelo (modos que NO son historia) y de la que la campaña
 // saca su pista. El lobby (musLobby) y las pantallas de historia (musStory) quedan aparte: no
@@ -89,7 +126,7 @@ PLAYLIST.forEach(a2 => { a2.loop = false; });
 let scriptedIdx = null;  // campaña: la pista la fija el NIVEL (no el jugador); null en los demas modos
 
 /** La pista que suena en juego: en campaña la fija el nivel; en el resto, la que eligio el jugador. */
-function gameTrack() { return PLAYLIST[scriptedIdx != null ? scriptedIdx : trackIdx] || musGame; }
+function gameTrack() { return enMision ? musMision : PLAYLIST[scriptedIdx != null ? scriptedIdx : trackIdx] || musGame; }
 let muted = false, musicStarted = false;
 // que pista esta sonando AHORA. Sirve para detectar el CAMBIO de contexto (lobby <-> juego <->
 // historia): cuando cambia, la nueva arranca DE CERO en vez de retomar donde habia quedado.
@@ -302,9 +339,9 @@ export function updateMusic(state) {
   // pistas: HISTORIA (himno epico) / lobby / juego (la pista del reproductor o la del nivel)
   const gm = gameTrack();
   // EL ARRANQUE DEL FICHIN retiene la musica hasta que entra la ficha (ver `retenerMusica`)
-  if (musicaRetenida) { for (const m of [musLobby, musStory, ...PLAYLIST]) if (!m.paused) m.pause(); return; }
+  if (musicaRetenida) { for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (!m.paused) m.pause(); return; }
   const want = state === 'story' ? musStory : inLobby(state) ? musLobby : gm;
-  for (const m of [musLobby, musStory, ...PLAYLIST]) if (m !== want && !m.paused) m.pause();
+  for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (m !== want && !m.paused) m.pause();
   if (musicStarted && want.paused && (want !== musStory || MUSIC_STORY)) {
     // entrar al lobby, arrancar un mapa o pasar a una cinematica REINICIA la pista: se vuelve a
     // escuchar desde el principio, no desde donde quedo la vez anterior.
@@ -500,7 +537,7 @@ export function tickDuck(dt) { duckT = Math.max(0, duckT - dt); }
  *
  *  `keep` = REINTENTO tras morir: la pista NO se corta, sigue sonando desde donde venia. Es la
  *  UNICA excepcion; empezar un mapa por cualquier otra via arranca la musica de cero. */
-export function setRunMusic(isCampaign, level, keep, prueba, pista) {
+export function setRunMusic(isCampaign, level, keep, prueba, pista, mision) {
   // HISTORIA: game.mp3 (PLAYLIST[0]) durante el juego real — las cinematicas tienen la suya
   // (musStory) y el lobby la propia. Antes la pista salia del numero de nivel.
   //
@@ -514,6 +551,14 @@ export function setRunMusic(isCampaign, level, keep, prueba, pista) {
   // no es la campaña, y esa regla es anterior.
   const pedida = isCampaign && !prueba ? idxDePista(pista) : -1;
   scriptedIdx = isCampaign && !prueba ? (pedida >= 0 ? pedida : 0) : null;
+  // UNA SALIDA DEL LIBRO DE VUELO (`mision`; nunca una prueba): una de
+  // music/original al azar. En el REINTENTO (`keep`) no se re-sortea — sigue la que venia.
+  if (keep && enMision) { /* sigue la que sonaba */ }
+  else {
+    const antes = enMision;
+    enMision = !!mision && !prueba && pedida < 0 && sortearMision();
+    if (antes && !enMision && !musMision.paused) musMision.pause();
+  }
   if (prueba && !keep && trackIdx !== ZONA_IDX) {
     const antes = gameTrack();
     if (!antes.paused) antes.pause();

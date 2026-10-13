@@ -496,6 +496,16 @@ export const CH_ENGANCHE = 1.5;
 export const CH_ALT = 48;        // altura de la cita (sobre RADAR_ALT=20, bajo FLY_TOP=68)
 export const CH_BOX = 6;         // radio de la caja de conexion detras de la canasta
 export const CH_RATE = 9;        // % de tanque por segundo conectado (lleno en ~11 s limpios)
+// EL ENGANCHE TRABA (autor, 12/10: "la zona cuadrada que carga la barrita no debe CARGAR la nafta tan
+// rapido, debe servir para ENGANCHAR el avion al nivel exactamente donde esta el embudo; para
+// desengancharme presiono una tecla de direccion, y enganchado puedo SOLTAR el control y el avion se
+// mantiene volando cargando nafta"). Sostenerse en la caja CH_ENGANCHE segundos ya no empieza a cargar:
+// TRABA el avion a la canasta, y trabado la nafta pasa a este ritmo — mas lento, porque ya no cuesta
+// sostenerse. Un toque NUEVO de izquierda, derecha o abajo (no el gas: se lo viene apretando para
+// llegar) suelta la sonda.
+// 6 y no menos: sin ruta (POR LA PATRIA, la campaña) el avion quema ~3,2 %/s, y con 4 la carga apenas le
+// ganaba al consumo (el fixture de la Chancha lo vio bajar enganchado). Sigue mas lento que el 9 de antes.
+export const CH_RATE_TRABADO = 6;   // % de tanque por segundo trabado (lleno en ~17 s)
 export const CH_WINDOW = 30;     // s desde que aparece hasta que vira a casa
 export const CH_SPD_F = 0.75;    // factor del avance del mundo mientras estas conectado
 // GEOMETRIA DE LA CITA. No estan en el spec y hacen falta para dibujarla: el Hercules va

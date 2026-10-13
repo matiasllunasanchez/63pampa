@@ -143,13 +143,22 @@ app.whenReady().then(async () => {
   else bad(`enganchado la nafta no subio (${fa.toFixed(1)} → ${fb.toFixed(1)})`);
   await shot('ch_enganchado');
 
-  // ---------- 3. SALIRSE CORTA, VOLVER RETOMA ----------
-  console.log('\n3. el eslabon debil sos vos (paso 3):');
+  // ---------- 3. TRABADO; UN TOQUE SUELTA, VOLVER RETOMA ----------
+  // EL ENGANCHE TRABA (autor, 12/10): sostenido en la caja, el avion queda colgado de la canasta y ya no
+  // hace falta sostenerlo; lo suelta un toque de direccion. Antes un drift cortaba la transferencia.
+  console.log('\n3. trabado; un toque de direccion suelta (paso 3):');
+  if ((await CH()).trabado) ok('la barrita llena TRABA el avion a la canasta');
+  else bad('sostenido en la caja no se trabo');
+  win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'a' }); await sleep(80);
+  win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'a' }); await sleep(120);
+  const suelto = await CH();
+  if (!suelto.trabado) ok('un toque de izquierda suelta la sonda');
+  else bad('el toque de direccion no solto');
   const cSal = await CH();
   await sostener(cSal.bx + 30, cSal.by, 700);
   const fuera = await CH();
-  if (!fuera.conn) ok('un drift sostenido corta la transferencia');
-  else bad('salirse de la caja no desengancho');
+  if (!fuera.conn) ok('suelto y fuera de la caja, no hay transferencia');
+  else bad('suelto y fuera de la caja sigue conectado');
   const fc = await js('__chanafta()');
   // volver tambien pasa por el enganche: salirse lo reinicia
   for (let i = 0; i < 26; i++) { const c3 = await CH(); await js(`__seaclear(); __chacalma(); __chaput(${c3.bx}, ${c3.by})`); await sleep(110); }

@@ -31,6 +31,24 @@ Las citas reales van tal cual, por la radio: *«¡Harrier! ¡Harrier!»* al entr
 de la Ardent, y *«¡Buque enemigo a las tres!»* en el tramo del blanco de la Plymouth. Las dice
 «NUMERAL» (sin nombre).
 
+## Primer playtest (12-13/10) — lo que cambió
+
+- **Ida de 20 km** (eran 6) con el tránsito alto en un cuarto de la ida: la cita con el Hércules
+  pasa entera antes del radar, en la segunda mitad del tránsito (al principio el tanque estaba lleno).
+- **El enganche traba**: la barrita de la caja ya no carga, engancha — el avión queda colgado de la
+  canasta, se puede soltar el control, la nafta pasa al 4%/s (`CH_RATE_TRABADO`) y un toque de
+  izquierda, derecha o abajo suelta la sonda. Vale para todo el juego, no solo el libro.
+- **El Sheffield termina en el Pulso** (la vuelta después del Pulso se volaba en negro), suelta
+  **un** Exocet y su Pulso tiene la dificultad de M4.
+- **Geografía real y enemigos del lugar**: la Glasgow cruza la Gran Malvina, el estrecho y la Isla
+  Soledad, y vuelve por Pradera del Ganso con la **antiaérea propia**; la Ardent entra por la boca sur
+  con niebla y el estrecho entre acantilados hasta el desembarco en San Carlos; la Plymouth sube por
+  el estrecho pegada a la Gran Malvina; el Sheffield es mar abierto.
+- **La vuelta, tranquila y con bidones**; Ardent y Plymouth con sus km reales (640 y 610). Medido en
+  node: al ras y con turbo el 30% del tiempo llegan con 2% y 9% de tanque.
+- **Pendiente:** la cúpula pálida sobre el buque en el Pulso — también está en el Pulso de la campaña
+  (M4); no es el banco de niebla, ni el radar, ni el 3D. Sin encontrar todavía.
+
 ## ✅ Textos (aprobados por el autor, 12/10)
 
 Ya están en `libro_vuelo.js`. Un texto nuevo sigue el mismo camino: se propone acá y, hasta el OK,

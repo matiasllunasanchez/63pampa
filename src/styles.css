@@ -5,6 +5,13 @@
      Estan TODAS las candidatas declaradas a proposito, se usen o no: cual va en cada rol lo
      decide FONTS en render/ctx.js, asi probar una u otra es cambiar una palabra y no tocar el
      CSS, ni el build web, ni el empaquetado. Los archivos viven en assets/fonts/. */
+  /* LA TERCERA TANDA (13/10, assets/fonts/simple/others/): candidatas para el texto de detalle del menu. */
+  @font-face { font-family: 'Capsmall'; src: url('../assets/fonts/simple/others/Capsmall.ttf') format('truetype'); font-display: block; }
+  @font-face { font-family: 'CapsmallClean'; src: url('../assets/fonts/simple/others/Capsmall_clean.ttf') format('truetype'); font-display: block; }
+  @font-face { font-family: 'OperationNapalm'; src: url('../assets/fonts/simple/others/OperationNapalm-Regular.ttf') format('truetype'); font-display: block; }
+  @font-face { font-family: 'OperationNapalmItalic'; src: url('../assets/fonts/simple/others/OperationNapalm-Italic.ttf') format('truetype'); font-display: block; }
+  @font-face { font-family: 'USSRStencil'; src: url('../assets/fonts/simple/others/USSR STENCIL WEBFONT.ttf') format('truetype'); font-display: block; }
+
   /* LA TANDA DEL PANEL (12/10, assets/fonts/panel/ui_game/): candidatas para los NUMEROS de los
      relojes del tablero (ver NUMEROS en render/hud.js). */
   @font-face { font-family: 'CosmicSuperHuman'; src: url('../assets/fonts/panel/ui_game/CosmicSuperHumanRegular-Regular.otf') format('opentype'); font-display: block; }

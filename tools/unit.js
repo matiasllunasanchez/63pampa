@@ -2910,8 +2910,16 @@ test('chancha: hay que SOSTENERSE en la caja antes de cargar, y su reserva baja 
   o = ch.tick(0.5, e(s)); s = ch.snapshot();
   assert.ok(o.carga > 0, 'y ahora si pasa nafta');
   assert.ok(s.reserva < 1, 'y su reserva baja');
+  // EL ENGANCHE TRABA (12/10): sostenido, el avion queda colgado de la canasta. Trabado, la posicion
+  // ya no lo suelta (el orquestador lo clava ahi) — lo suelta el TOQUE de direccion (`suelta`).
+  assert.equal(s.trabado, true, 'la barrita llena traba');
+  const { CH_RATE_TRABADO } = await import('../src/data/tuning.js');
+  assert.ok(Math.abs(o.carga - CH_RATE_TRABADO * 0.5) < 1e-6, 'trabado pasa nafta al ritmo lento');
   ch.tick(0.1, { inPlay: true, score: 0, planeX: s.bx + 99, planeY: s.by, fuel: 10 }); s = ch.snapshot();
-  assert.equal(s.cargando, false, 'salirse corta el enganche');
+  assert.equal(s.trabado, true, 'trabado, irse de la caja no lo suelta');
+  o = ch.tick(0.1, { inPlay: true, score: 0, planeX: s.bx + 99, planeY: s.by, fuel: 10, suelta: true }); s = ch.snapshot();
+  assert.equal(o.sig, 'suelta'); assert.equal(s.trabado, false, 'el toque de direccion suelta');
+  assert.equal(s.cargando, false, 'y suelto, fuera de la caja, no carga');
   ch.resetChancha();
 });
 

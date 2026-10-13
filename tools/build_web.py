@@ -46,6 +46,22 @@ WEB_DROP = [
     # Electron primero. Si algun dia la web importa, lo que hay que hacer NO es embeberla (6 MB
     # de 16) sino que audio.js caiga a game.mp3 cuando la pista pedida quedo vacia.
     'soundtrack/alambre.mp3',
+    # LAS DE LAS MISIONES (13/10, `music/original`, catorce de 4-6 MB): tampoco entran. En la web la
+    # lista de audio.js queda vacia y la mision cae a game.mp3.
+    'original/balas_en_bandoneon1.mp3',
+    'original/balas_en_bandoneon2.mp3',
+    'original/bandoneon_de_acero1.mp3',
+    'original/bandoneon_de_acero2.mp3',
+    'original/bandoneon_de_guerra1.mp3',
+    'original/bandoneon_de_guerra2.mp3',
+    'original/last_aires1.mp3',
+    'original/last_aires2.mp3',
+    'original/lastoneon1.mp3',
+    'original/lastoneon2.mp3',
+    'original/rememberon1.mp3',
+    'original/rememberon2.mp3',
+    'original/wardoneon1.mp3',
+    'original/wardoneon2.mp3',
 ]
 
 

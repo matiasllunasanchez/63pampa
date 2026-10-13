@@ -158,7 +158,8 @@ export function panel() { ctx.fillStyle = '#0d1216cc'; ctx.fillRect(0, 0, W, H);
 export const FONT_BRAND = ['Kirana', 'OtflagSans', 'Gomarice', 'MalvinasSans', 'AirborneGP', 'JosefinSans'];
 export const FONT_SIMPLE = ['Opencare', 'Vegabond', 'Cochocib', 'Kabur', 'Mayorice'];
 // assets/fonts/simple/others/ — la tanda en prueba (ver DESC_TRY en render/menus.js)
-export const FONT_OTHERS = ['EmbolismSpark', 'GlimpRThin', 'GlimpRThinItalic', 'SmoothElegant'];
+export const FONT_OTHERS = ['EmbolismSpark', 'GlimpRThin', 'GlimpRThinItalic', 'SmoothElegant',
+  'Capsmall', 'CapsmallClean', 'OperationNapalm', 'OperationNapalmItalic', 'USSRStencil'];   // la tercera tanda (13/10)
 // assets/fonts/panel/ui_game/ — candidatas para los numeros de los relojes (12/10)
 export const FONT_PANEL = ['CosmicSuperHuman', 'CCSuperHuman', 'Wiltype', 'Thernaly', 'Unitblock'];
 const fontReady = {};
@@ -181,6 +182,10 @@ const FONTS = {
   desc: 'EmbolismSpark',// texto corrido del menu (probadas: Opencare, Vegabond, Cochocib,
                         // Kabur, Mayorice, GlimpR thin/italic, SmoothElegant)
   label: 'GlimpRThin',  // rotulos de seccion ("ELEGI MODO DE JUEGO")
+  // LA LINEA DE DETALLE DE CADA FILA de los menus (la de abajo del nombre: "BLOQUEADA · se habilita…",
+  // las fechas del LIBRO DE VUELO). Operation Napalm, mayusculas de maquina de escribir de expediente,
+  // elegida por el autor el 13/10 entre tres tandas; va mas chica y espaciada (ver FILA en menus.js).
+  fila: 'OperationNapalm',
   // LA BIROME DE MATEO: el unico texto del juego que no lo escribe una maquina sino una persona,
   // a mano, sobre un cuaderno (registro TIERRA — ver drawCuaderno en render/screens.js).
   //
@@ -224,6 +229,8 @@ export const menuFont = size => uiFont(FONTS.menu, size);
  *  titular, y la negrita sobre una proporcional chica empasta. Mismo cuidado que menuFont con
  *  la medicion: el resalte de la fila se mide con esta misma fuente. */
 export const descFont = size => uiFont(FONTS.desc, size, '');
+/** Fuente de la linea de detalle de las filas de menu (FONTS.fila), sin negrita. */
+export const filaFont = size => uiFont(FONTS.fila, size, '');
 /** Fuente de los ROTULOS de seccion. Sin negrita: la GlimpR es condensada y fina a proposito —
  *  el rotulo tiene que ordenar la lista, no competir con los nombres de los modos. */
 export const labelFont = size => uiFont(FONTS.label, size, '');

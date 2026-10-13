@@ -937,6 +937,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let chIdaLlena = false;
     // el relevo en curso viene de un CHOQUE CON EL BUQUE en el cruce: al terminar, re-encare
     let reencareTrasChoque = false;
+    /** El toque que suelta la sonda: un FLANCO de izquierda, derecha o abajo (ver chancha.tick). */
+    let tironAntes = false;
+    function tironSonda() {
+      const ahora = inp.l > 0.5 || inp.r > 0.5 || inp.d > 0.5;
+      const tiron = ahora && !tironAntes;
+      tironAntes = ahora;
+      return tiron;
+    }
     function chanchaRadio(sig) {
       // SIN CARTEL (pedido del autor, 12/9): el reloj de la Chancha se pone VERDE y parpadea lento
       // cuando esta lista (ver hud.js, verdeListo). Queda el beep, que es el aviso para el que no
@@ -948,6 +956,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // la que espera, cuando subiste: aparece de arriba (el aviso ya lo dio al pedirse)
       if (sig === 'baja') { beep(300, 0.18, 'sawtooth', 0.05, 60); chanchaDice('ch_aca'); return; }
       if (sig === 'conecta') { beep(720, 0.08, 'square', 0.05, 220); chanchaDice('ch_connect'); return; }
+      // TRABADO y SUELTO (12/10): el clac de la sonda que entra y el que sale. Sin linea de radio: la
+      // de 'conecta' ya hablo, y soltarse lo decidio uno.
+      if (sig === 'traba') { beep(980, 0.07, 'square', 0.05, 160); return; }
+      if (sig === 'suelta') { beep(420, 0.08, 'square', 0.05, -120); return; }
       if (sig === 'corta' || sig === 'golpe') {
         // el CHISPAZO: se ve donde estaba la punta de la sonda, no en el medio de la pantalla
         beep(110, 0.12, 'sawtooth', 0.06, -60);
@@ -1713,8 +1725,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       loadLevel(nivelLibro(k));
       initStory(m.contexto); setState('story');
     }
-    /** Termina el contexto: a elegir el avion. */
-    function libroElegir() { libroAvSel = 0; setState('libroavion'); }
+    /** Termina el contexto: a elegir el avion — SOLO SI HAY QUE ELEGIR (autor, 13/10: "si son todos
+     *  iguales no pongas nada; si son iguales pero tienen diferentes configuraciones quiza si; si podes
+     *  manejar entre Dagger o Skyhawk, ahi si"). Hay eleccion cuando la salida trae mas de un par
+     *  avion + carga distinto; si todos son el mismo avion con la misma carga, despega derecho con el
+     *  primero (las chapas siguen yendo al escuadron, ver libroRoster). */
+    function libroElegir() {
+      libroAvSel = 0;
+      const m = LIBRO_VUELO[libro.k];
+      const distintos = new Set(m.aviones.map(a => a.plane + '|' + a.carga)).size;
+      if (distintos > 1) setState('libroavion'); else libroDespegar();
+    }
     function libroAvNav(dir) {
       const n = LIBRO_VUELO[libro.k].aviones.length;
       libroAvSel = (libroAvSel + dir + n) % n;
@@ -1982,8 +2003,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // La mision puede pedir SU pista (`musica` en data/missions.js): hoy solo M3, con ALAMBRE.
       // Se pasa el NOMBRE, no un indice: la lista del reproductor crece y se reordena, y un
       // numero acá se volveria mentira sin que nada lo avise.
+      // …y una salida del LIBRO DE VUELO suena una de music/original al azar (autor, 13/10: "me
+      // referi solo a libro de vuelo"). La CAMPAÑA no: cada mision va a tener su tema y su repertorio.
       setRunMusic(gameMode === 'campaign', curLevel, keepMusic, !!S.test,
-        gameMode === 'campaign' ? (curMission() || {}).musica : null);   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
+        gameMode === 'campaign' ? (curMission() || {}).musica : null,   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
+        !!libro);
     }
 
     // ---------- OPCIONES: LA pantalla de configuración ----------
@@ -7076,6 +7100,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // un golpe corta la transferencia: la manguera no aguanta un avion sacudido
         golpe: run.scrapeVib > 0.1 || run.shake > 3,
         fuga: escapeSys.fugaOn(),   // con el tanque perforado la cita se vuelve remolque (V5)
+        // SOLTARSE (12/10): un toque NUEVO de izquierda, derecha o abajo. El gas no, que se viene
+        // apretando para llegar; y un toque, no tenerla apretada, para que la tecla con la que uno se
+        // acomodo en la caja no lo suelte apenas se traba.
+        suelta: tironSonda(),
       });
       // LA CHARLA EN VUELO va al lado de la CHANCHA y por lo mismo: con el dt del MUNDO. Mientras
       // SE HABLA no llega aca — la atiende la CONGELADA de arriba, con el reloj de pared.
@@ -7103,6 +7131,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (ch.sig) chanchaRadio(ch.sig);
       if (ch.sig === 'lleno' && run.dist < objectiveDist) chIdaLlena = true;   // la de la ida ya cumplio
       update(dt);
+      // TRABADO A LA CANASTA: despues del vuelo, el avion vuelve a donde esta el embudo. Se puede soltar
+      // el control — va colgado, cargando — hasta que un toque de direccion lo suelta (chancha.js).
+      if (chancha.estaTrabado() && S.state === 'play') {
+        const cs = chancha.snapshot();
+        if (cs) { plane.x = cs.bx; plane.y = cs.by; plane.vx = 0; plane.vy = 0; }
+      }
       // SONDA DE LO TRANSONICO (QUITAR): va ENTRE update y draw a proposito. Puesta antes, la
       // fisica se la lleva por delante en el mismo cuadro (speedTarget devuelve la velocidad
       // verdadera y `run.spd` vuelve sola) — medido: pedia 240 y el HUD marcaba 118.

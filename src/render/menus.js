@@ -3,7 +3,7 @@
 // Igual que las demas pantallas: reciben `w`, un snapshot chico de solo lectura. No leen estado
 // global ni lo modifican — la seleccion la maneja el input; aca solo se dibuja.
 import { DEV } from '../core/dev.js';
-import { ctx, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, wrapText, FONT_OTHERS } from './ctx.js';
+import { ctx, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, wrapText, FONT_OTHERS, filaFont } from './ctx.js';
 import { drawMira } from './miras.js';
 import { P } from '../data/palette.js';
 import { PLANES } from '../data/planes.js';
@@ -107,7 +107,9 @@ export function drawMenu(w) {
 // nombre de la siguiente.
 // …y 96 desde el LOGO (12/10, el autor: "mas abajo"): el marco del fichin tapa el borde de arriba y el
 // logo quedaba pegado al brillo del bisel. Hoy son CINCO filas (con MODO DEV): 96 + 4*29 + 20 = 232.
-export const MODE_ROWS = { y0: 96, rh: 29 };
+// …y 36 (13/10, el autor: "mas separacion entre los bloques resaltables"): el resalte mide 30 y con
+// paso 29 se tocaban. 96 + 4*36 + 18 = 258.
+export const MODE_ROWS = { y0: 96, rh: 36 };
 
 // EL LOGO (12/10, el autor): el SVG que diseño — RASANTE, la linea, las tres estrellas y las Malvinas —
 // reemplaza al texto en Kirana de la portada y del selector de modo. En el ambar de siempre (P.accent,
@@ -191,11 +193,17 @@ const rowFamily = i => DESC_TRY ? DESC_TRY[i % DESC_TRY.length] : null;
  *  ajusta al contenido, asi que si los dos lados no usan la misma, el recuadro deja de calzar. */
 const rowFont = i => {
   const f = rowFamily(i);
-  return f ? uiFont(f, TRY_PX[f] || 15, '') : descFont(DESC_PX);
+  return f ? uiFont(f, TRY_PX[f] || 15, '') : filaFont(FILA_PX);
 };
+// LA LINEA DE DETALLE en Operation Napalm (FONTS.fila), "mas chica y con mas espacio" (autor, 13/10):
+// cuerpo 12 en vez de 15 y aire entre letras. El espaciado entra en la MEDICION del resalte tambien,
+// por eso las dos cosas pasan por `ponFila` y se apagan despues con `sacaFila`.
+const FILA_PX = 10, FILA_ESPACIO = '1px';
+function ponFila(i) { ctx.font = rowFont(i); ctx.letterSpacing = DESC_TRY ? '0px' : FILA_ESPACIO; }
+function sacaFila() { ctx.letterSpacing = '0px'; }
 
 /** El logotipo del selector de modo, mas chico que en la portada (autor, 3/10: "mas chico"). */
-const MODE_TITULO_PX = 20;
+const MODE_TITULO_PX = 16;
 
 export function drawModeSelect(w) {
   panel();
@@ -249,12 +257,12 @@ export function drawModeSelect(w) {
       // el resalte se AJUSTA al contenido (no cruza la pantalla): se mide el texto mas ancho de la
       // fila y se le suma padding, para que no quede al ras de las letras.
       ctx.font = menuFont(12); const wn = ctx.measureText(opts[i].name).width;
-      ctx.font = rowFont(i); const wd = ctx.measureText(opts[i].desc).width;
+      ponFila(i); const wd = ctx.measureText(opts[i].desc).width; sacaFila();
       const boxW = Math.max(wn, wd) + PAD_X * 2;
       ctx.fillStyle = col; ctx.globalAlpha = 0.13;
-      ctx.fillRect(x - PAD_X, y - 13, boxW, 33); ctx.globalAlpha = 1;
+      ctx.fillRect(x - PAD_X, y - 12, boxW, 30); ctx.globalAlpha = 1;
       ctx.fillStyle = col; ctx.globalAlpha = 0.5;                 // filo izquierdo: ancla la fila
-      ctx.fillRect(x - PAD_X, y - 13, 2, 33); ctx.globalAlpha = 1;
+      ctx.fillRect(x - PAD_X, y - 12, 2, 30); ctx.globalAlpha = 1;
       ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = 'bold 10px monospace';
       ctx.fillText('>', x - PAD_X - 9, y);
     }
@@ -262,8 +270,9 @@ export function drawModeSelect(w) {
     ctx.fillStyle = col; ctx.font = menuFont(12);   // OtflagSans (la misma con la que se midio)
     ctx.fillText(opts[i].name, x, y);
     ctx.fillStyle = on ? P.ink : P.dim; ctx.globalAlpha = on ? 0.9 : 0.6;
-    ctx.font = rowFont(i);                     // la MISMA con la que se midio el resalte arriba
+    ponFila(i);                                // la MISMA con la que se midio el resalte arriba
     ctx.fillText(opts[i].desc, x, y + 14);
+    sacaFila();
     if (DESC_TRY) {                            // rotulo de la familia, para saber cual es cual
       const wd2 = ctx.measureText(opts[i].desc).width;
       ctx.globalAlpha = 0.45; ctx.fillStyle = P.accent; ctx.font = '6px monospace';
@@ -531,7 +540,7 @@ function drawMejCard(r) {
 // Mismo lenguaje que el selector de modos: coordenadas NATIVAS, filas a la izquierda con nombre
 // grande + descripcion, resalte ajustado al contenido. Los nombres de campaña son PROPIOS
 // (data/campaigns.js) y no se traducen.
-export const CAMP_ROWS = { y0: 96, rh: 34, headH: 22 };
+export const CAMP_ROWS = { y0: 96, rh: 37, headH: 22 };   // 37: aire entre resaltes (13/10)
 
 // texto de cada fila segun su id (los nombres de campaña son PROPIOS y no se traducen)
 function campText(r) {
@@ -539,13 +548,31 @@ function campText(r) {
   if (r.id === 'continue') return { name: T('campContinue'), desc: T('campContinueDesc') };
   if (r.id === 'c1') return { name: CAMPAIGNS[0].name, desc: r.disabled ? T('campBloqueada') : T('campC1Desc') };
   // UNA SALIDA DEL LIBRO DE VUELO: el nombre y, debajo, los tres datos por los que se la reconoce —
-  // el dia, la hora (y de que: despegue, lanzamiento, ataque) y el avion. La descripcion larga va al
-  // pie, solo de la fila marcada (drawCampMenu).
+  // el dia, la hora (y de que: despegue, lanzamiento, ataque) y el avion. La descripcion larga se
+  // ABRE debajo, solo en la fila marcada (`mas`, ver drawRowMenu).
   if (r.id === 'libro') {
     const m = LIBRO_VUELO[r.k], av = PLANES.find(p => p.key === m.aviones[0].plane);
-    return { name: m.name, desc: m.fecha + '  ·  ' + m.hora + ' ' + T('libroHora_' + m.horaQue) + '  ·  ' + (av ? av.name : '') };
+    return { name: m.name, desc: m.fecha + '  ·  ' + m.hora + ' ' + T('libroHora_' + m.horaQue) + '  ·  ' + (av ? av.name : ''),
+      mas: { sub: m.escuadrilla, texto: m.desc } };
   }
   return { name: CAMPAIGNS[1].name, desc: T('campC2Desc') + '  ·  ' + T('campSoon') };
+}
+
+// LA FILA ABIERTA (ver drawRowMenu): el texto largo va a cuerpo 10, en un ancho fijo, y su alto sale
+// de cuantas lineas ocupa de verdad (medidas con la misma fuente, descFont(MAS_PX)).
+const MAS_PX = 10, MAS_LH = 11, MAS_W = NW - 90;
+function masLineas(txt) {
+  const words = String(txt).split(' '); let line = '', n = 1;
+  for (const wd of words) {
+    if (ctx.measureText(line + wd).width > MAS_W && line) { n++; line = wd + ' '; } else line += wd + ' ';
+  }
+  return n;
+}
+/** Cuanto se estira una fila abierta: el renglon de la escuadrilla y las lineas del texto, con aire. */
+function masAlto(mas) {
+  const f = ctx.font; ctx.font = descFont(MAS_PX);          // se mide con la fuente con que se dibuja
+  const h = 14 + masLineas(mas.texto) * MAS_LH + 2;
+  ctx.font = f; return h;
 }
 
 /** LISTA DE FILAS de un submenu (HISTORIA, JUEGO RAPIDO). Es UNA sola funcion y no dos copiadas:
@@ -569,9 +596,27 @@ function drawRowMenu(w, titleKey, textOf, geo) {
   // desaparezca sin dejar el hueco.
   // VENTANA: con `view` la lista se desliza (el catalogo de PRUEBAS son 27 filas y en 270 px de
   // alto entran siete). Sin `view` se dibuja entera, que es lo que hacen HISTORIA y JUEGO RAPIDO.
-  const view = (geo && geo.view) || w.rows.length;
-  const i0 = view >= w.rows.length ? 0 : Math.max(0, Math.min(w.rows.length - view, w.sel - Math.floor(view / 2)));
-  const iN = Math.min(w.rows.length, i0 + view);
+  // …y LA FILA ABIERTA (13/10, el autor: "el detalle de la mision deberia empujar las misiones de
+  // abajo [...] abajo se pierde, no se relaciona con lo que esta resaltado"): una fila con `mas` se
+  // ABRE debajo cuando esta marcada —la escuadrilla y el texto largo, adentro del mismo resalte— y
+  // empuja a las de abajo. Por eso la ventana se arma con las ALTURAS de verdad y no por cantidad:
+  // arranca donde la marcada entra entera y sigue hasta donde da la pantalla.
+  const alto = i => {
+    const r = w.rows[i];
+    if (r.head) return headH;
+    const t = i === w.sel && textOf(r);
+    return rh + (t && t.mas ? masAlto(t.mas) : 0);
+  };
+  const cap = (geo && geo.view) || w.rows.length, TOPE = NH - 14;
+  let i0 = cap >= w.rows.length ? 0 : Math.max(0, Math.min(w.rows.length - cap, w.sel - Math.floor(cap / 2)));
+  const hasta = (a, b) => { let h = 0; for (let k = a; k <= b; k++) h += alto(k); return h; };
+  while (i0 < w.sel && y0 + hasta(i0, w.sel) - rh + 20 > TOPE) i0++;
+  let iN = i0, yy = y0;
+  while (iN < w.rows.length && iN - i0 < cap) {
+    const h = alto(iN);
+    if (iN > w.sel && yy + h - (w.rows[iN].head ? 0 : rh) + 20 > TOPE) break;
+    yy += h; iN++;
+  }
 
   let y = y0;
   for (let i = i0; i < iN; i++) {
@@ -592,14 +637,15 @@ function drawRowMenu(w, titleKey, textOf, geo) {
     // ATRAS usa los colores de SALIR del menu principal: las dos son la puerta de salida de su
     // pantalla, y que se pinten igual es lo que las hace reconocibles sin leerlas.
     const col = r.disabled ? '#5a666c' : r.back ? (on ? P.warn : '#7d6a63') : on ? P.accent : P.body;
+    const extra = on && t.mas ? masAlto(t.mas) : 0;
     if (on) {
       ctx.font = menuFont(12); const wn = ctx.measureText(t.name).width;
-      ctx.font = rowFont(i); const wd = ctx.measureText(t.desc).width;
-      const boxW = Math.max(wn, wd) + PAD_X * 2;
+      ponFila(i); const wd = ctx.measureText(t.desc).width; sacaFila();
+      const boxW = extra ? MAS_W + PAD_X * 2 : Math.max(wn, wd) + PAD_X * 2;
       ctx.fillStyle = col; ctx.globalAlpha = 0.13;
-      ctx.fillRect(x - PAD_X, y - 13, boxW, 33); ctx.globalAlpha = 1;
+      ctx.fillRect(x - PAD_X, y - 12, boxW, 30 + extra); ctx.globalAlpha = 1;
       ctx.fillStyle = col; ctx.globalAlpha = 0.5;
-      ctx.fillRect(x - PAD_X, y - 13, 2, 33); ctx.globalAlpha = 1;
+      ctx.fillRect(x - PAD_X, y - 12, 2, 30 + extra); ctx.globalAlpha = 1;
       ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = 'bold 10px monospace';
       ctx.fillText('>', x - PAD_X - 9, y);
     }
@@ -607,14 +653,21 @@ function drawRowMenu(w, titleKey, textOf, geo) {
     ctx.fillStyle = col; ctx.font = menuFont(12);
     ctx.fillText(t.name, x, y);
     ctx.fillStyle = r.disabled ? '#4a565c' : on ? P.ink : P.dim; ctx.globalAlpha = on ? 0.9 : 0.6;
-    // LA MISMA fuente de descripcion que el selector de modos (rowFont, hoy descFont): los
+    // LA MISMA fuente de descripcion que el selector de modos (rowFont, hoy filaFont): los
     // submenus se leian con la tipografia de rotulo y quedaban como otra pantalla de otro juego.
     // Se usa para MEDIR arriba y para DIBUJAR aca — si los dos lados no coinciden, el resalte
     // de la fila deja de calzar con el texto.
-    ctx.font = rowFont(i);
+    ponFila(i);
     ctx.fillText(t.desc, x, y + 14);
+    sacaFila();
     ctx.globalAlpha = 1;
-    y += rh;
+    if (extra) {                                 // LA FILA ABIERTA: la escuadrilla y el texto largo
+      ctx.font = labelFont(8); ctx.fillStyle = P.dim;
+      ctx.fillText(t.mas.sub, x, y + 30);
+      ctx.font = descFont(MAS_PX); ctx.fillStyle = P.foam;
+      wrapText(t.mas.texto, x, y + 42, MAS_W, MAS_LH);
+    }
+    y += rh + extra;
   }
 
   // SIGUE: las dos marcas que dicen que la lista no termina donde termina la pantalla. Sin esto
@@ -629,17 +682,11 @@ function drawRowMenu(w, titleKey, textOf, geo) {
 // pie va la descripcion de la salida marcada: no entran con el paso de 34. Mismo paso que PRUEBAS
 // (29) y ventana de SEIS, que es la cuenta de siempre — la sexta descripcion cierra en ~232 y el pie
 // arranca en 240.
-export const LIBRO_ROWS = { y0: 84, rh: 29, headH: 18, view: 6 };
+export const LIBRO_ROWS = { y0: 84, rh: 34, headH: 18, view: 8 };   // 34: aire entre resaltes (13/10); la fila abierta decide cuantas entran
 export function drawCampMenu(w) {
   const conLibro = w.rows.some(r => r.id === 'libro');
   drawRowMenu(w, 'campTitle', campText, conLibro ? LIBRO_ROWS : CAMP_ROWS);
-  const r = w.rows[w.sel];
-  if (!r || r.id !== 'libro') return;
-  const m = LIBRO_VUELO[r.k];
-  ctx.textAlign = 'left'; ctx.font = labelFont(8); ctx.fillStyle = P.dim;
-  ctx.fillText(m.escuadrilla, 40, NH - 30);
-  ctx.font = descFont(10); ctx.fillStyle = P.foam;
-  wrapText(m.desc, 40, NH - 18, NW - 80, 11);
+  // (la descripcion de la salida ya no va al pie: se abre adentro de su fila, ver drawRowMenu)
 }
 
 // ---------- ELEGI TU AVION (LIBRO DE VUELO) ----------
@@ -652,7 +699,7 @@ function libroAvText(m) {
     return { name: a.chapa + '  ·  ' + (pl ? pl.name : a.plane), desc: a.cargaTxt };
   };
 }
-export const LIBRO_AV_ROWS = { y0: 108, rh: 29, headH: 18 };
+export const LIBRO_AV_ROWS = { y0: 108, rh: 34, headH: 18 };
 export function drawLibroAvion(w) {
   const m = w.m, rows = m.aviones.map((a, i) => ({ i }));
   drawRowMenu({ sel: w.sel, rows, t: w.t }, 'libroElegir', libroAvText(m), LIBRO_AV_ROWS);
@@ -692,7 +739,7 @@ function quickText(r) {
 // 14 px mas abajo, se sale de los 270 de alto de la pantalla. Apretando a rh 29 y subiendo el
 // arranque, la sexta termina en 255 y el resalte cierra en 261. La campaña conserva su paso porque
 // sus filas llevan encabezados de seccion y ahi el aire hace falta.
-export const QUICK_ROWS = { y0: 92, rh: 29, headH: 20 };
+export const QUICK_ROWS = { y0: 92, rh: 36, headH: 20 };   // 36: aire entre resaltes (13/10)
 export function drawQuickMenu(w) { drawRowMenu(w, w.dev ? 'devTitle' : 'quickTitle', quickText, QUICK_ROWS); }
 
 // ---------- PRUEBAS (el catalogo de momentos, COMO_PROBAR §4) ----------
@@ -708,7 +755,7 @@ function pruebaText(r) {
 // pega al nombre de la siguiente — con rh 26 entraba una fila mas y se leia como un bloque solo.
 // La cuenta del peor caso, con un encabezado adentro de la ventana: 84 + 18 + 4×29 = 218 para la
 // sexta, su descripcion en 232 y el resalte cerrando en 238, dentro de los 270 de alto.
-export const PRUEBA_ROWS = { y0: 84, rh: 29, headH: 18, view: 6 };
+export const PRUEBA_ROWS = { y0: 84, rh: 34, headH: 18, view: 5 };
 export function drawPruebasMenu(w) { drawRowMenu(w, 'pruebasTitle', pruebaText, PRUEBA_ROWS); }
 
 // ---------- CINEMATICAS (el catalogo del DIRECTOR, PLAN_DIRECTOR_CINEMATICAS §5) ----------
@@ -796,7 +843,7 @@ function drawLoadout(i) {
 // sexta descripcion aterriza en 243 y el rotulo de la libreta arranca en 240 — se superponen, y
 // se ve (se vio: la fila 8 quedo escrita encima de "LIBRETA DEL PICHON"). Con cinco, la ultima
 // descripcion cierra en 214 y quedan 26 px de aire antes del pie.
-export const MIS_ROWS = { y0: 84, rh: 29, headH: 18, view: 5 };
+export const MIS_ROWS = { y0: 84, rh: 34, headH: 18, view: 5 };
 export function drawMisionesMenu(w) {
   drawRowMenu(w, 'misTitle', misionText, MIS_ROWS);
   // EL MODO DE APERTURA, al pie y siempre visible. Va afuera de drawRowMenu —y no como una fila
