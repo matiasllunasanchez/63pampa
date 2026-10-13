@@ -145,6 +145,7 @@ Todo lo que es "datos del juego" y no cambia en runtime. Ningún archivo de acá
 | `ships.js` | layouts de zonas del momentum por clase de buque |
 | `estructuras.js` | **los blancos que no son buques** (una base, un edificio): cada uno su `clase` —un perfil de 20 alturas en `PERFIL` de `blanco.js`— y sus `piezas` (qué se dibuja en cada tramo del perfil). La misión lo pide con `goal: { kind: 'estructura', nombre }`; se juega con la suelta, sobre la explanada de la geografía |
 | `missions.js` | las 6 misiones de campaña, tipos de objetivo |
+| `libro_vuelo.js` | **el LIBRO DE VUELO** (la demo): las cuatro salidas reales (Sheffield, Glasgow, Ardent, Plymouth) con su fecha, hora, aviones y cargas, sus escenas de contexto y de «lo que pasó», y `CAMPANA_BLOQUEADA`. Van al final de `NIVELES` en `game.js`, detrás de las pruebas. Ver [LIBRO_DE_VUELO.md](historia/misiones/LIBRO_DE_VUELO.md) · `npm run libro` |
 | `story.js` | **escenas del MODO HISTORIA** en el modelo nuevo (id de línea + `hold` + placa + cara). Hoy: el locker de m7. El resto del guion sigue como pantallas en `strings.js` |
 | `planes.js` | aviones seleccionables + sprite sheets horneados |
 | `sfx.js` | tabla de efectos de sonido |

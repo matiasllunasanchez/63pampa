@@ -248,6 +248,17 @@ export const STRINGS = {
     campC1Desc: 'Mayo 1982',
     campC2Desc: 'CAMPANA 2',
     campSoon: 'PROXIMAMENTE',
+    // HISTORIA EN LA DEMO (12/10): dos secciones — las campañas (la de Mateo, bloqueada) y el LIBRO DE
+    // VUELO con las salidas reales (data/libro_vuelo.js).
+    campSecCampanas: 'CAMPAÑAS', campSecLibro: 'LIBRO DE VUELO',
+    campBloqueada: 'BLOQUEADA · se habilita en el juego completo',
+    libroHora_lanzamiento: 'lanzamiento', libroHora_despegue: 'despegue', libroHora_ataque: 'ataque',
+    libroElegir: 'ELEGÍ TU AVIÓN',
+    libroPie: 'Volaron {n} aviones. El escuadrón de la salida es la escuadrilla real.',
+    // LAS CITAS REALES de las salidas: van palabra por palabra (PROMPT_DEMO_MISIONES_REALES.md). En
+    // ingles tambien: son lo que se dijo, y se dijo en castellano.
+    libro_r3_harrier: 'NUMERAL: ¡HARRIER! ¡HARRIER!',
+    libro_r4_buque: 'NUMERAL: ¡BUQUE ENEMIGO A LAS TRES!',
     thr: 'GAS', thr_dead: 'SIN GAS',
     hud_vida: 'SALUD',
     hud_squad: 'ESCUADRON',
@@ -1395,6 +1406,13 @@ export const STRINGS = {
     campC1Desc: 'CAMPAIGN 1 — MAY 1982',
     campC2Desc: 'CAMPAIGN 2',
     campSoon: 'COMING SOON',
+    campSecCampanas: 'CAMPAIGNS', campSecLibro: 'FLIGHT LOG',
+    campBloqueada: 'LOCKED · unlocks in the full game',
+    libroHora_lanzamiento: 'launch', libroHora_despegue: 'take-off', libroHora_ataque: 'attack',
+    libroElegir: 'CHOOSE YOUR AIRCRAFT',
+    libroPie: '{n} aircraft flew. The sortie squadron is the real flight.',
+    libro_r3_harrier: 'NUMERAL: ¡HARRIER! ¡HARRIER!',
+    libro_r4_buque: 'NUMERAL: ¡BUQUE ENEMIGO A LAS TRES!',
     thr: 'THR', thr_dead: 'NO THR',
     hud_vida: 'HEALTH',
     hud_squad: 'SQUADRON',

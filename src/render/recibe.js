@@ -12,7 +12,8 @@ import { luz } from './brillo.js';
 const COLA = 0.18;   // fraccion del recorrido que mide la cola
 
 export function drawRecibe() {
-  if (!recibe.tiros.length && !recibe.destellos.length) return;
+  // sin buque no hay de donde tirar: lo que quede en la lista es de otra corrida
+  if (!blanco.on || (!recibe.tiros.length && !recibe.destellos.length)) return;
   // LOS FOGONAZOS, sobre el buque: siguen al casco (la z es la del buque de este cuadro)
   for (const f of recibe.destellos) {
     const s = proj(f.x, f.y, blanco.z), k = Math.max(1, Math.min(3, s.k * 0.6));

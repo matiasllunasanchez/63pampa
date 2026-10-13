@@ -12,7 +12,9 @@
 
 /** Nombre de piloto (sin tildes) → prefijo de sus retratos. Un piloto que no esta aca (los
  *  indicativos PATRIA n de los modos rapidos) no tiene cuadro: no hay cara que mostrar. */
-export const CARA_PILOTO = { TERO: 'tero', PUMA: 'puma', GITANO: 'gitano', VASCO: 'vasco', PICHON: 'pichon' };
+// PILOTO es el de las salidas reales del LIBRO DE VUELO (data/libro_vuelo.js): no se nombra a nadie
+// real, y hasta que haya un retrato propio vuela con la cara de Esteban (autor, 12/10).
+export const CARA_PILOTO = { TERO: 'tero', PUMA: 'puma', GITANO: 'gitano', VASCO: 'vasco', PICHON: 'pichon', PILOTO: 'tero' };
 
 /** De MAS a MENOS urgente. Subir de gesto es inmediato; bajar espera `GESTO_SOSTEN`. */
 export const GESTOS = ['roto', 'preocupado', 'sonrisa', 'ceno', 'neutro'];

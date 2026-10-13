@@ -5,6 +5,7 @@ import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
+import { LIBRO_VUELO, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES } from './data/upgrades.js';
 import { DMG_MODES } from './core/damage.js';
@@ -73,6 +74,7 @@ import { drawAden, drawAvisoAden } from './render/aden.js';   // la rafaga de lo
 import * as escapeSys from './systems/escape.js';
 import { drawTirosPopa, drawCap } from './render/escape.js';
 import { stepRecibe } from './systems/recibe.js';
+import { resetRecibe } from './core/recibe.js';
 import { drawRecibe } from './render/recibe.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
 import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A, CAIDA, EYECCION } from './data/tuning.js';
@@ -416,6 +418,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let curCampaign = 0;             // indice en CAMPAIGNS (rotula las partidas guardadas)
     let campSel = 0;                 // cursor del submenu de historia
     let savesSel = 0;                // cursor de la lista de partidas (pantalla 'saves')
+    // EL LIBRO DE VUELO (data/libro_vuelo.js): la salida real que se esta jugando, o null. `k` es su
+    // lugar en LIBRO_VUELO y `av` el avion elegido (indice en su `aviones`; null mientras se lee el
+    // contexto). Mientras no es null, la corrida es ESA salida: su escuadrilla, su Chancha, y al
+    // terminar —salga como salga— lo que pasó, y de vuelta al libro.
+    let libro = null;
+    let libroAvSel = 0;              // cursor de la pantalla ELEGI TU AVION ('libroavion')
 
     // ---------- EL BANCO DEL PICHON (mejoras de campaña, GUION_2 §2c) ----------
     // `pichon` = ids de MOVES aprendidos EN ESTA CAMPAÑA. Entre mision y mision (estado
@@ -443,7 +451,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const sinSonda = () => !!(PLANES[selPlane] && PLANES[selPlane].sonda === false);
     // ¿LA CHANCHA EXISTE EN ESTA CORRIDA? La rotura del guion (la mision con `chancha: false`, en campaña,
     // el selector y PRUEBAS) o un avion sin sonda. UNA sola regla para el pedido, la ida y el HUD.
-    const chanchaViva = () => !((gameMode === 'campaign' || S.test) && curMission() && curMission().chancha === false) && !sinSonda();
+    const chanchaViva = () => !((gameMode === 'campaign' || S.test || libro) && curMission() && curMission().chancha === false) && !sinSonda();
     let upgOffer = [];               // la oferta de la pantalla actual (2 tarjetas)
     let cargaSel = 0, cargaT = 0;    // EL HANGAR (PLAN_NAFTA_ALCANCE N7): la tarjeta marcada y su reloj
     let upgSel = 0, upgT = 0;        // cursor y reloj propio de la pantalla
@@ -506,7 +514,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  preguntando a `MISSIONS` y no se entera de que hay nada mas. Lo unico que mira `NIVELES` es
      *  RESOLVER: dado un id o un indice, que mision es. Poner las de prueba AL FINAL es lo que
      *  hace que los indices de campaña no se muevan ni un lugar. */
-    const NIVELES = MISSIONS.concat(MISIONES_PRUEBA);
+    const NIVELES = MISSIONS.concat(MISIONES_PRUEBA, LIBRO_VUELO);
+    /** El indice en NIVELES de la salida `k` del LIBRO DE VUELO (van al final, detras de las pruebas). */
+    const nivelLibro = k => MISSIONS.length + MISIONES_PRUEBA.length + k;
     /** Carga la mision `i`. `keepCfg` NO pisa la config de mapa: lo usa MINUTOS SAGRADOS al
      *  cambiar de buque, para no perder el FONDO/AGUA que elegiste para mirarlo. */
     let cieloIda = null;   // el cielo de la ida, mientras la vuelta vuela con otro (V5)
@@ -1004,7 +1014,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // `seqFromScreens` siga probado. Cuando no quede ninguna, se va con el.
     function initStory(key) {
       const ids = SECUENCIAS[key];
-      const escenas = ids ? ids.map(id => SCENES[id]).filter(Boolean)
+      // las escenas del LIBRO DE VUELO viven en su propio archivo (data/libro_vuelo.js) y son de a una
+      const escenas = LIBRO_SCENES[key] ? [LIBRO_SCENES[key]]
+                    : ids ? ids.map(id => SCENES[id]).filter(Boolean)
                           : seqFromScreens(L()[key] || STRINGS.es[key] || [], key);
       dialogue.startSeq(escenas, getLang());
     }
@@ -1127,6 +1139,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
 
     function startCampaign() {
+      libro = null;
       gameMode = 'campaign'; curCampaign = 0; selPlane = CAMPAIGN_PLANE;
       pichon = [];                       // campaña nueva: el banco del Pichon arranca vacio
       resetDesgaste();                   // ...y celula nueva: sin parches (G-04)
@@ -1154,6 +1167,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     /** El epilogo de la mision que se acaba de volar. */
     function irAlEpilogo() {
+      // EL LIBRO DE VUELO cuenta lo que pasó SIEMPRE, y lo que pasó es de la salida en curso — no
+      // depende de que la corrida haya llegado a armar su recuento.
+      if (libro && curMission() && curMission().epi) { initStory(curMission().epi); setState('epilogue'); return; }
       const sinEpi = !lastRun || !lastRun.mission || !lastRun.mission.epi;
       // EN LAS HERRAMIENTAS EL RECUENTO ES EL FINAL. Una mision del banco de pruebas no lleva
       // `epi` a proposito (no hay nada que leer), y sin esta guarda caia en `advanceCampaign()`,
@@ -1243,6 +1259,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     //   avion    · pisa el avion fijo de campaña (indice en PLANES). Solo para PRUEBAS.
     function abrirMision(i, o) {
       o = o || {};
+      libro = null;   // una herramienta nunca es una salida del libro
       gameMode = o.modo || 'cycle';
       // EL AVION DE LA CAMPAÑA NO SE ELIGE. M1-M14 son las misiones de la campaña vengan por la
       // puerta que vengan, y la campaña vuela A-4B ("mismo modelo para todos"). Sin esto, el avion
@@ -1611,6 +1628,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // jugador, no un efecto colateral de irse)
         paused = false;
         if (S.test) salirTest();
+        else if (libro) volverAlLibro();
         else { setState('modeselect'); modeSel = 0; }
         beep(400, 0.09, 'square', 0.05);
       }
@@ -1642,11 +1660,22 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // partidas guardadas (pedido 10/8): una seccion vacia no explica nada que el jugador pueda
     // hacer — la primera vez que abris HISTORIA lo unico que hay es empezar.
     // `head` marca encabezado: el cursor no se para ahi (ver campNav).
-    const campRows = () => [
+    // LA DEMO (12/10): con la campaña BLOQUEADA (data/libro_vuelo.js) el menu son dos secciones —
+    // CAMPAÑAS, con la de Mateo en gris y su candado, y el LIBRO DE VUELO con las salidas reales—, y
+    // CONTINUAR no aparece: no hay partida que retomar de una campaña que no se juega.
+    const campRows = () => CAMPANA_BLOQUEADA ? [
+      { head: 'campSecCampanas' },
+      { id: 'c1', disabled: true },
+      { head: 'campSecLibro' },
+      ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k })),
+      { id: 'back', back: true },
+    ] : [
       ...(saves.listSaves().length ? [{ head: 'campSecContinue' }, { id: 'continue' }] : []),
       { head: 'campSecNew' },
       { id: 'c1' },
       // { id: 'c2', disabled: !CAMPAIGNS[1].enabled },
+      { head: 'campSecLibro' },
+      ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k })),
       { id: 'back', back: true },      // la salida de la pantalla, a la vista (ver quickRows)
     ];
     /** Mueve el cursor SALTEANDO encabezados (mismo criterio que OPCIONES). */
@@ -1669,9 +1698,64 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (r.id === 'back') { modeSel = MODES.indexOf('campaign'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
       if (r.id === 'continue') { savesSel = 0; setState('saves'); beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'c1') { startCampaign(); beep(700, 0.08, 'square', 0.05); }
+      else if (r.id === 'libro') { abrirLibro(r.k); beep(700, 0.08, 'square', 0.05); }
+    }
+
+    // ---------- EL LIBRO DE VUELO (data/libro_vuelo.js) ----------
+    // CONTEXTO → ELEGIR AVION → VOLAR → LO QUE PASÓ → de vuelta al libro. Se vuela como una mision
+    // suelta ('cycle': el embudo objetivo → recuento → epilogo ya existe) pero NO es herramienta:
+    // `S.test` queda apagado — no hay sello de PRUEBA, y lo que se juega cuenta.
+    function abrirLibro(k) {
+      const m = LIBRO_VUELO[k];
+      if (!m) return;
+      libro = { k, av: null };
+      gameMode = 'cycle'; S.test = false;
+      loadLevel(nivelLibro(k));
+      initStory(m.contexto); setState('story');
+    }
+    /** Termina el contexto: a elegir el avion. */
+    function libroElegir() { libroAvSel = 0; setState('libroavion'); }
+    function libroAvNav(dir) {
+      const n = LIBRO_VUELO[libro.k].aviones.length;
+      libroAvSel = (libroAvSel + dir + n) % n;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    /** Despega con el avion elegido. EL ESCUADRON ES LA ESCUADRILLA REAL: tantos aviones como volaron
+     *  (`cfg.squad` de la salida), todos PILOTO, y lo que los distingue es la chapa — la elegida al
+     *  mando y las demas detras, en el orden de la lista (ver el roster en `reset`). */
+    function libroDespegar() {
+      const m = LIBRO_VUELO[libro.k], av = m.aviones[libroAvSel];
+      if (!av) return;
+      libro.av = libroAvSel;
+      selPlane = Math.max(0, PLANES.findIndex(p => p.key === av.plane));
+      cfg.carga = av.carga;
+      reset(); setRunObjective();
+      run.t = 0; fadeT = 1.0; sfxOne('lv1');
+      setState(afterBrief());
+      beep(880, 0.12, 'square', 0.06);
+    }
+    /** El roster y las chapas de la salida en curso, con el avion elegido al mando. */
+    function libroRoster() {
+      const m = LIBRO_VUELO[libro.k], n = Math.max(1, cfg.squad | 0);
+      // la elegida al mando y despues las demas en el orden de la lista, dando la vuelta si volaron
+      // mas aviones que chapas (la PLYMOUTH: cinco Dagger y dos escuadrillas — se alternan, porque no
+      // se sabe de cual era el que volvio por el parabrisas)
+      const ch = m.aviones.map(a => a.chapa), i0 = libro.av || 0;
+      const orden = Array.from({ length: n }, (_, i) => ch[(i0 + i) % ch.length]);
+      return { roster: Array.from({ length: n }, () => 'PILOTO'), chapas: orden };
+    }
+    /** Sale del libro y vuelve a su menu, con el cursor sobre la salida que se acaba de volar. */
+    function volverAlLibro() {
+      const k = libro ? libro.k : 0;
+      libro = null; paused = false;
+      soltarMision();
+      const rows = campRows();
+      const i = rows.findIndex(r => r.id === 'libro' && r.k === k);
+      campSel = i < 0 ? campFirstSel() : i;
+      setState('campmenu');
     }
     /** Primera fila SELECCIONABLE del menu (la lista arranca con un encabezado). */
-    function campFirstSel() { return campRows().findIndex(r => !r.head); }
+    function campFirstSel() { return campRows().findIndex(r => !r.head && !r.disabled); }
     /** Retoma una partida guardada: la mision en curso arranca desde su principio, con el
      *  puntaje y los aviones que habia (el guardado es a nivel MISION, ver systems/saves.js). */
     function loadSave(rec) {
@@ -2384,7 +2468,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // fondo del lobby— pero si divergen, se nota: o el fondo se congela o la musica se corta.
     const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options'
       || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'pruebas' || S.state === 'cines'
-      || S.state === 'maniobras' || S.state === 'mvvars'
+      || S.state === 'maniobras' || S.state === 'mvvars' || S.state === 'libroavion'
       || S.state === 'misiones' || S.state === 'saves';
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
@@ -2603,6 +2687,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (rasanteProbe || ['t15', 't17', 't18', 't19', 't20', 't21'].includes(curMission().id)) rasante.cargar();   // arranca con la barra llena
       veilOut = 0; veilPrev = '';   // el telon del cordon, cerrado y sin reloj
       arena.resetArena();
+      // LAS TRAZADORAS DEL BUQUE de la corrida anterior (systems/recibe.js): las limpia su sistema
+      // cuando el blanco se apaga, pero ese sistema solo corre volando — y el render las dibuja desde
+      // el despegue. Saliendo de una suelta a mitad de la aproximacion, la corrida siguiente arrancaba
+      // dibujando balas contra un buque que no existe (NaN en el canvas, 12/10).
+      resetRecibe();
       pasada.resetPasada();
       pulso.resetPulso();
       caza.resetCaza();   // LA COLA: una corrida nueva no hereda el Harrier de la anterior
@@ -2632,7 +2721,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // …y en las HERRAMIENTAS (S.test: PRUEBAS y el SELECTOR DE MISIONES) tambien, que es la mitad
       // de "la mision suelta se juega como en campaña" (PLAN_MISIONES_FASES S0): sin el roster, el
       // relevo cambia de tono y probar la mision dejaria de parecerse a jugarla.
-      squad.setRoster(gameMode === 'campaign' || S.test ? (curMission().roster || FIELES) : null);
+      // EL LIBRO DE VUELO trae su escuadrilla: todos PILOTO, distinguidos por la chapa (ver libroRoster)
+      if (libro && libro.av !== null) { const lr = libroRoster(); squad.setRoster(lr.roster, lr.chapas); }
+      else squad.setRoster(gameMode === 'campaign' || S.test ? (curMission().roster || FIELES) : null);
       // EL LIDER, RECIEN AHORA: `startPersec` bautiza al lider con `pilotName(1)`, que lee el roster.
       // Armado antes de `setRoster` (como estaba), el tutorial le decia «PATRIA 2» a Puma — el
       // indicativo del arcade — hasta que algo lo rearmaba.
@@ -2772,6 +2863,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // en PRUEBAS la salida es el CATALOGO, no el menu principal: el modo es elegir momento
         // tras momento, y hacerte volver a entrar por la puerta cada vez lo vuelve inutilizable.
         if (S.test) { salirTest(); beep(400, 0.06, 'square', 0.05); return; }
+        // del LIBRO DE VUELO (contexto, eleccion de avion, derribado) se vuelve al libro
+        if (libro) { volverAlLibro(); beep(400, 0.06, 'square', 0.05); return; }
         // desde una herramienta del MODO DEV, ESC vuelve a su submenu y no al menu principal
         if (DEV_ROWS.some(r => r.id === S.state)) { volverADev(S.state); return; }
         const suelto = gameMode === 'cycle' || gameMode === 'survival' || gameMode === 'arena' || gameMode === 'pasadas';
@@ -2790,6 +2883,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       misNav: dir => misNav(dir),
       misConfirm: () => misConfirm(),
       misToggleHist: () => misToggleHist(),
+      libroAvNav: dir => libroAvNav(dir),
+      libroAvConfirm: () => libroDespegar(),
       // PAUSA (la logica vive arriba; el input solo enruta). isPaused es el predicado que
       // core/input.js usa para desviar el teclado/el mando al menu en vez de al vuelo.
       isPaused: () => paused,
@@ -4278,6 +4373,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             // puntas del guion seguidas es justamente lo que hay que poder leer de una sentada — y
             // el epilogo ya sabe volver al catalogo (ver su rama, `S.test`).
             else if (testCine) { verEpilogo(); }
+            // LIBRO DE VUELO: despues del contexto se elige el avion
+            else if (libro && libro.av === null) libroElegir();
             else trasBrief(1.4);
           }
         } else if (S.state === 'brief') {
@@ -4324,6 +4421,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             // los dos modos de climax suelto reintentan LO MISMO (mismo buque): no hay despegue al que volver
             if (gameMode === 'arena') startArenaBattle(false);
             else if (gameMode === 'pasadas') startPasadaBattle(false);
+            // LIBRO DE VUELO: no se reintenta — se cuenta lo que pasó de verdad, salga como salga la
+            // corrida (autor, 12/10). Volver a volarla es volver a elegirla en el libro.
+            else if (libro) { initStory(curMission().epi); setState('epilogue'); beep(500, 0.05, 'square', 0.04); }
             else { reset(); setRunObjective(true); setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
           }
         } else if (S.state === 'relevo') {
@@ -4469,6 +4569,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             // vino. Encadenar la siguiente es lo unico que el selector no puede hacer — para eso
             // esta la campaña.
             if (S.test) { salirTest(); beep(400, 0.06, 'square', 0.05); }
+            // LIBRO DE VUELO: lo que pasó ya se conto; se vuelve al libro
+            else if (libro) { volverAlLibro(); beep(400, 0.06, 'square', 0.05); }
             else if (gameMode === 'campaign') {
               // EL BANCO YA PASO (va despues del recuento, ver `trasResultados`). Lo que queda es
               // el corte al dia siguiente. La ultima mision no lo lleva: de ahi se va a victoria y
@@ -5761,6 +5863,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t });
+      if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: LIBRO_VUELO[libro.k], sel: libroAvSel, t: run.t });
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), dev: subMenu === 'dev', t: run.t });
       if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
       if (S.state === 'cines') menus.drawCinesMenu({ sel: cinSel, rows: cinRows(), t: run.t });
@@ -6182,6 +6285,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         return true;
       };
     }
+    // __librodbg: EL LIBRO DE VUELO por dentro — que salida, que avion, con que escuadrilla y que
+    // chapas, y que fila marca el menu. La usa tools/fixture_libro.js.
+    if (typeof window !== 'undefined') window.__librodbg = () => JSON.stringify({
+      state: S.state, libro, avSel: libroAvSel, modo: gameMode, test: S.test,
+      fila: (campRows()[campSel] || {}), filas: campRows().map(r => r.head || r.id + (r.k !== undefined ? r.k : '') + (r.disabled ? '-' : '')),
+      mision: curMission() && curMission().id, plane: PLANES[selPlane] && PLANES[selPlane].key, carga: cfg.carga,
+      squad: run.squad, lives: run.lives, climax: runClimax(), chancha: chanchaViva(),
+      pilotos: Array.from({ length: run.squad }, (_, i) => squad.pilotName(i)),
+      chapas: Array.from({ length: run.squad }, (_, i) => squad.planeName(i)),
+      escena: dialogue.scene() && dialogue.scene().id,
+    });
     if (typeof window !== 'undefined') window.__pausedbg = () => JSON.stringify({
       paused, dlg: dlgPausa, dlgT: +dlgT.toFixed(2), view: pauseView, sel: pauseSel, saveSel, state: S.state,
       // EL CURSOR DE LOS MENUS, para que el smoke deje de navegar a ciegas. Agregar una fila al

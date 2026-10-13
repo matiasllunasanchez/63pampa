@@ -262,6 +262,13 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
       return;
     }
+    if (S.state === 'libroavion') {                                      // LIBRO DE VUELO: elegir el avion
+      if (isUp(e.code) || isLeft(e.code)) { a.libroAvNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code) || isRight(e.code)) { a.libroAvNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.libroAvConfirm(); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      return;
+    }
     if (S.state === 'quickmenu') {                                       // submenu de JUEGO RAPIDO
       if (isUp(e.code)) { a.quickNav(-1); e.preventDefault(); return; }
       if (isDown(e.code)) { a.quickNav(1); e.preventDefault(); return; }
@@ -752,6 +759,11 @@ export function initInput(cv, a) {
         if (nd && !nav.d) a.campNav(1);
         if (confirm) a.campConfirm();
         if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
+      } else if (S.state === 'libroavion') {
+        if ((nu && !nav.u) || (nl && !nav.l)) a.libroAvNav(-1);
+        if ((nd && !nav.d) || (nr && !nav.r)) a.libroAvNav(1);
+        if (confirm) a.libroAvConfirm();
+        if (hit(1)) a.escToMenu();                             // B = volver al libro
       } else if (S.state === 'quickmenu') {
         if (nu && !nav.u) a.quickNav(-1);
         if (nd && !nav.d) a.quickNav(1);

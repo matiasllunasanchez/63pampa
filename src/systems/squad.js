@@ -33,15 +33,19 @@ let exitT = -1;     // reloj de la SALIDA DE PLANO de la formacion al CONTROL LI
 // una lista de nombres = campaña (los Fieles: el relevo es un AVERIADO que vuelve a la base).
 // Lo fija game.js en reset() segun el modo — un solo escritor, como todo el estado de aca.
 let roster = null;
+// LAS CHAPAS de la corrida, por numeral: el nombre del AVION cuando no sale de la tabla de los Fieles.
+// Las pone el LIBRO DE VUELO (la matricula real: 3-A-202, C-248…), donde todos los pilotos se llaman
+// PILOTO y lo que los distingue es el avion. null = la tabla de siempre (AVION de data/pilots.js).
+let chapas = null;
 
-export function setRoster(r) { roster = r; }
+export function setRoster(r, ch) { roster = r; chapas = r && ch ? ch : null; }
 export const rosterActive = () => !!roster;
 /** Nombre en radio del numeral `idx`: Fiel con nombre en campaña, PATRIA n en arcade.
  *  Mas alla de la lista (escuadron agrandado en pruebas), numerales CAUQUEN del guion. */
 export const pilotName = idx => roster ? (roster[idx] || 'CAUQUEN ' + (idx + 1)) : callsign(idx);
 /** El nombre PINTADO del avion del numeral `idx` (data/pilots.js AVION), o null: fuera de campaña
  *  no hay Fieles, y un CAUQUEN de pruebas no tiene chapa con nombre. */
-export const planeName = idx => roster ? (AVION[roster[idx]] || null) : null;
+export const planeName = idx => roster ? ((chapas && chapas[idx]) || AVION[roster[idx]] || null) : null;
 
 /** Cuanto dura la salida de plano tras el despegue (la formacion pasa detras de la camara). */
 export const EXIT_T = 0.9;

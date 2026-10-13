@@ -88,9 +88,16 @@ app.whenReady().then(async () => {
 
   // entrar a jugar: CAMPAÑA y saltear el guion a los teclazos
   console.log('\nentrando a jugar:');
-  // 36 teclazos: la campaña v0.0.1 abre con el guion largo de M1 (prologo + briefing,
-  // 11 pantallas, dos toques por pantalla) mas el submenu de HISTORIA en el camino
-  for (let i = 0; i < 36; i++) await tap(win, 'Return');
+  // HASTA ESTAR VOLANDO, no un numero de teclazos: eran 36 para atravesar el guion de M1, y desde
+  // la demo (12/10) HISTORIA abre el LIBRO DE VUELO — contexto, eleccion de avion y despegue —, asi
+  // que los teclazos que sobraban seguian de largo: el avion caia, se contaba LO QUE PASÓ y el smoke
+  // terminaba midiendo el menu quieto. Se pregunta el estado y se para en cuanto hay vuelo.
+  const estado = () => win.webContents.executeJavaScript('JSON.parse(__pausedbg()).state').catch(() => '');
+  for (let i = 0; i < 60; i++) {
+    const st = await estado();
+    if (st === 'takeoff' || st === 'play') break;
+    await tap(win, 'Return');
+  }
   await sleep(1500);
   // gas sostenido para no caer al agua mientras se mide
   const hold = setInterval(() => win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Up' }), 40);

@@ -77,4 +77,9 @@ export const SHIP_CLASS = {
   // FRAGATAS TIPO 21. El AVENGER era hermana de la ARDENT y la ANTELOPE: misma clase, misma hoja,
   // mismo perfil de casco. No hizo falta nada nuevo — la clase ya existia desde el primer dia.
   'HMS AVENGER': 't21',
+
+  // EL LIBRO DE VUELO (data/libro_vuelo.js). La GLASGOW era Tipo 42 como la Sheffield: su clase, sin
+  // aproximar. La PLYMOUTH era Tipo 12 (clase Rothesay) y no hay modelo: `t21` es la fragata jugable,
+  // con la misma nota que el Broadsword.
+  'HMS GLASGOW': 't42', 'HMS PLYMOUTH': 't21',
 };

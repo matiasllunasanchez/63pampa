@@ -10,6 +10,7 @@ import { PLANES } from '../data/planes.js';
 import { T, getLang } from '../core/i18n.js';
 import { CAMPAIGNS } from '../data/campaigns.js';
 import { MISSIONS, climaxOf } from '../data/missions.js';
+import { LIBRO_VUELO } from '../data/libro_vuelo.js';
 import { BANCO, loadoutAt } from '../data/upgrades.js';
 import { fmtDate } from '../systems/saves.js';
 
@@ -536,7 +537,14 @@ export const CAMP_ROWS = { y0: 96, rh: 34, headH: 22 };
 function campText(r) {
   if (r.back) return { name: T('menuBack'), desc: T('menuBackDesc') };
   if (r.id === 'continue') return { name: T('campContinue'), desc: T('campContinueDesc') };
-  if (r.id === 'c1') return { name: CAMPAIGNS[0].name, desc: T('campC1Desc') };
+  if (r.id === 'c1') return { name: CAMPAIGNS[0].name, desc: r.disabled ? T('campBloqueada') : T('campC1Desc') };
+  // UNA SALIDA DEL LIBRO DE VUELO: el nombre y, debajo, los tres datos por los que se la reconoce —
+  // el dia, la hora (y de que: despegue, lanzamiento, ataque) y el avion. La descripcion larga va al
+  // pie, solo de la fila marcada (drawCampMenu).
+  if (r.id === 'libro') {
+    const m = LIBRO_VUELO[r.k], av = PLANES.find(p => p.key === m.aviones[0].plane);
+    return { name: m.name, desc: m.fecha + '  ·  ' + m.hora + ' ' + T('libroHora_' + m.horaQue) + '  ·  ' + (av ? av.name : '') };
+  }
   return { name: CAMPAIGNS[1].name, desc: T('campC2Desc') + '  ·  ' + T('campSoon') };
 }
 
@@ -617,7 +625,51 @@ function drawRowMenu(w, titleKey, textOf, geo) {
   ctx.globalAlpha = 1; ctx.textAlign = 'left';
 }
 
-export function drawCampMenu(w) { drawRowMenu(w, 'campTitle', campText); }
+// CON EL LIBRO DE VUELO son ocho filas (dos encabezados, la campaña, cuatro salidas y ATRAS) y al
+// pie va la descripcion de la salida marcada: no entran con el paso de 34. Mismo paso que PRUEBAS
+// (29) y ventana de SEIS, que es la cuenta de siempre — la sexta descripcion cierra en ~232 y el pie
+// arranca en 240.
+export const LIBRO_ROWS = { y0: 84, rh: 29, headH: 18, view: 6 };
+export function drawCampMenu(w) {
+  const conLibro = w.rows.some(r => r.id === 'libro');
+  drawRowMenu(w, 'campTitle', campText, conLibro ? LIBRO_ROWS : CAMP_ROWS);
+  const r = w.rows[w.sel];
+  if (!r || r.id !== 'libro') return;
+  const m = LIBRO_VUELO[r.k];
+  ctx.textAlign = 'left'; ctx.font = labelFont(8); ctx.fillStyle = P.dim;
+  ctx.fillText(m.escuadrilla, 40, NH - 30);
+  ctx.font = descFont(10); ctx.fillStyle = P.foam;
+  wrapText(m.desc, 40, NH - 18, NW - 80, 11);
+}
+
+// ---------- ELEGI TU AVION (LIBRO DE VUELO) ----------
+// Despues del contexto: una fila por avion de los que volaron esa salida —su chapa y su tipo— con la
+// carga que llevaba debajo, y a la derecha el avion. No se elige carga aparte: la carga ES la de ese
+// dia (data/libro_vuelo.js), y si una salida tuvo dos, son dos filas.
+function libroAvText(m) {
+  return r => {
+    const a = m.aviones[r.i], pl = PLANES.find(p => p.key === a.plane);
+    return { name: a.chapa + '  ·  ' + (pl ? pl.name : a.plane), desc: a.cargaTxt };
+  };
+}
+export const LIBRO_AV_ROWS = { y0: 108, rh: 29, headH: 18 };
+export function drawLibroAvion(w) {
+  const m = w.m, rows = m.aviones.map((a, i) => ({ i }));
+  drawRowMenu({ sel: w.sel, rows, t: w.t }, 'libroElegir', libroAvText(m), LIBRO_AV_ROWS);
+  // LA SALIDA, arriba de la lista: nombre, dia y hora, y la escuadrilla
+  ctx.textAlign = 'left'; ctx.font = menuFont(11); ctx.fillStyle = P.foam;
+  ctx.fillText(m.name + '   ·   ' + m.fecha + '  ·  ' + m.hora, 40, LIBRO_AV_ROWS.y0 - 36);
+  // EL AVION, a la derecha: la misma ilustracion del selector de los modos sueltos
+  const a = m.aviones[w.sel], pl = a && PLANES.find(p => p.key === a.plane);
+  if (pl && pl.ready) {
+    const PW = 170, PH = Math.round(PW * pl.h / pl.w);
+    ctx.drawImage(pl.img, NW - PW - 24, Math.round(150 - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
+  }
+  ctx.font = labelFont(8); ctx.fillStyle = P.dim;
+  ctx.fillText(m.escuadrilla, 40, NH - 26);
+  ctx.font = descFont(9);
+  ctx.fillText(T('libroPie', { n: m.cfg.squad }), 40, NH - 14);
+}
 
 // ---------- JUEGO RAPIDO (submenu de los modos sueltos) ----------
 // Los cuatro modos que se juegan sin guion. PASADAS MORTALES es el banco de pruebas de la fase

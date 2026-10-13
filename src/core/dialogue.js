@@ -243,7 +243,7 @@ const STYLE_TIPO = { tierra: 'TIERRA', carta: 'CARTA' };
 // la pantalla y preguntarse por que no aparecian los retratos. Si se toca el generador, se
 // vuelve a correr `--ids` y se compara contra esta lista.
 const CARA_NEUTRA = {
-  'TERO': 'tero_neutro', 'ESTEBAN': 'tero_neutro',
+  'TERO': 'tero_neutro', 'ESTEBAN': 'tero_neutro', 'PILOTO': 'tero_neutro',
   'PUMA': 'puma_neutro',
   'GITANO': 'gitano_neutro',                                  // su neutro ES la sonrisa (celda 1)
   'VASCO': 'vasco_neutro',

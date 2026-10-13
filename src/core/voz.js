@@ -11,6 +11,7 @@ export const CARA_DE_RADIO = {
   PUMA: 'puma_neutro', GITANO: 'gitano_neutro', VASCO: 'vasco_neutro',
   PICHON: 'pichon_neutro', 'PICHÓN': 'pichon_neutro',
   TERO: 'tero_casco', ESTEBAN: 'tero_casco',   // en vuelo van con el casco puesto
+  PILOTO: 'tero_casco',   // el del LIBRO DE VUELO: la cara de Esteban hasta tener un retrato propio
   'EL TURCO': 'turco_neutro', TURCO: 'turco_neutro',
 };
 
