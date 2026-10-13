@@ -44,38 +44,46 @@ const P = over => ({ ...CAMPAIGN_CFG, ...over });
 const LARGO = 20000;
 const PAR = 13000;   // el de IDA Y VUELTA SMALL (4000 a 6 km), a escala
 
-// Lo que nace en la ida: en mar abierto, naturaleza; cerca del blanco, la defensa (mismo criterio y
-// mismas listas que el banco de pruebas, ver pruebas_misiones.js).
-const IDA_MAR = ['ola', 'birds'];
-const IDA_DEFENSA = ['ola', 'birds', 'balloon', 'poles'];
+// LO QUE NACE (el `solo` de cada fase). Lo de siempre es MUNDO: la ola, la bandada, el globo de
+// barrera, los postes. Lo que se agrega por salida es lo que habia ESE dia en ESE lugar — el 12 de mayo
+// las islas eran nuestras y sobre la tierra no hay antiaerea enemiga; el 21, en San Carlos, si.
+const MAR = ['ola', 'birds'];
+const DEFENSA = ['ola', 'birds', 'balloon', 'poles'];
+const FLOTA = ['ola', 'birds', 'helo'];                                     // los helicopteros de la flota
+const DESEMBARCO = ['ola', 'birds', 'helo', 'aa', 'manpad', 'lcu'];        // San Carlos, 21 de mayo
+const TIERRA_NUESTRA = ['birds', 'poles', 'tree', 'tower', 'flag'];         // las islas, antes del desembarco
 
 /** LAS FASES de una salida real: el molde de IDA Y VUELTA SMALL (t17) SIN SU RADIO — las lineas de
  *  fase de t17 son de Puma y Condor, personajes de la campaña, y aca no vuela nadie de la campaña.
- *  `vuelta` pisa la vuelta entera (los cazas, cuando los hubo); `grito`, solo su primer tramo (la
- *  cita de la Ardent: se dice UNA vez, cuando entran los Harrier). `blanco` es lo que pasa en el
- *  tramo del blanco (la cita de la Plymouth). */
-function fases({ defensa = true, vuelta = {}, blanco = {}, grito = {}, casa = true } = {}) {
-  const def = defensa ? IDA_DEFENSA : IDA_MAR;
+ *
+ *    lejos    lo que nace en la primera mitad del rasante (por defecto, mar)
+ *    cerca    lo que nace en la segunda mitad y en el blanco
+ *    blanco   claves extra del tramo del blanco (la cita de la Plymouth)
+ *    vuelta   la lista de tramos de la vuelta, `{ hasta, ...claves }`, de 1 a 2. Por defecto, una
+ *             vuelta TRANQUILA — el playtest (12/10): "la dificultad al pasar el barco es muy dificil,
+ *             y creo que se muere la nafta". El tipo `vuelta` sube solo la siembra al 160% y prende LA
+ *             COLA; aca se escribe a la baja, y con bidones.
+ *    grito    claves extra del PRIMER tramo de la vuelta (la cita de la Ardent: se dice una vez)
+ *    casa     false = sin vuelta: el climax cierra la mision (el Pulso del Sheffield)
+ */
+const VUELTA_TRANQUILA = [{ hasta: 1.5, obstacles: 0.7, caza: 0 }, { hasta: 2.0, obstacles: 0.5, caza: 0 }];
+function fases({ lejos = MAR, cerca = DEFENSA, blanco = {}, vuelta = VUELTA_TRANQUILA, grito = {}, casa = true } = {}) {
   // EL TRANSITO ALTO ES UN CUARTO DE LA IDA (en t17 era 16%): es donde ocurre la cita con el Hercules,
   // y tiene que alcanzar para que llegue, te enganche y te llene ANTES de la linea del radar (que se
   // ancla al comienzo del descenso). Con 16% pasaba de largo (autor, 12/10).
   const ida = [
-    { tipo: 'transito', hasta: 0.12, solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'transito', hasta: 0.25, solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'descenso', hasta: 0.30, solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'rasante', hasta: 0.55, solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'rasante', hasta: 0.82, solo: def, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: 0.12, solo: MAR, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: 0.25, solo: MAR, bombs: 0, bidones: false },
+    { tipo: 'descenso', hasta: 0.30, solo: MAR, bombs: 0, bidones: false },
+    { tipo: 'rasante', hasta: 0.55, solo: lejos, bombs: 0, bidones: false },
+    { tipo: 'rasante', hasta: 0.82, solo: cerca, bombs: 0, bidones: false },
     { tipo: 'filo', hasta: 0.88, radar: 6, bombs: 0, bidones: false },
-    { tipo: 'blanco', hasta: 1, solo: def, bombs: 0, bidones: false, ...blanco },
+    { tipo: 'blanco', hasta: 1, solo: cerca, bombs: 0, bidones: false, ...blanco },
   ];
   // SIN VUELTA (`casa: false`): el climax cierra la mision. Es el caso del PULSO — despues de la
   // cinematica no hay pasillo de regreso que funcione (se volaba con el mar en negro, 12/10).
   if (!casa) return ida;
-  return ida.concat([
-    { tipo: 'vuelta', hasta: 1.30, bidones: false, ...vuelta, ...grito },
-    { tipo: 'vuelta', hasta: 1.84, bidones: false, ...vuelta },
-    { tipo: 'vuelta', hasta: 2.0, bidones: false, caza: 0 },
-  ]);
+  return ida.concat(vuelta.map((v, i) => ({ tipo: 'vuelta', bombs: 0, bidones: true, ...v, ...(i === 0 ? grito : {}) })));
 }
 
 // EL CFG DE LA SALIDA: el de IDA Y VUELTA SMALL (nafta prendida, mar variado, sin globos), con el
@@ -107,7 +115,9 @@ const r1 = {
   ruta: { blancoKm: 650, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [420, 200] },
   // SIN VUELTA: el Pulso cierra la mision. La vuelta real (al ras hasta Rio Grande, 12:04) no tuvo
   // nada que jugar, y la del juego despues del Pulso se volaba en negro (12/10).
-  fases: fases({ defensa: false, casa: false }),
+  // MAR ABIERTO de punta a punta, que es lo real: el ataque fue sobre el Atlantico, a 20-30 millas de
+  // la flota. Cerca del blanco, los helicopteros de la flota. Sin `geografia`: todo es mar.
+  fases: fases({ cerca: FLOTA, casa: false }),
   // EL PREMIO SUELTA UN EXOCET, no cuatro: cada Super Etendard lanzo uno. Y la dificultad del Pulso
   // es la de M4 (4 de mayo): la cuenta por indice de campaña le daba la de la ultima mision.
   pulsoBombas: 1, pulsoT01: 3 / 13,
@@ -144,7 +154,33 @@ const r2 = {
   chanchaVeces: { ida: 1, vuelta: 1 },
   // KM APROXIMADOS (a confirmar): de Rio Gallegos al estrecho, unos 780.
   ruta: { blancoKm: 780, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [500, 200], chanchaVuelta: [350, 420] },
-  fases: fases(),
+  // LA RUTA: mar, la costa de la Gran Malvina, el estrecho, la Isla Soledad, y los buques frente a
+  // Puerto Argentino. Sobre las islas no hay antiaerea enemiga (eran nuestras). EN LA VUELTA, PRADERA
+  // DEL GANSO: tierra con ANTIAEREA PROPIA, en alerta roja — la que bajo a uno de ORO. Es el adicional
+  // del prompt: no todo lo que dispara es enemigo.
+  fases: fases({ lejos: MAR, cerca: FLOTA, vuelta: [
+    { hasta: 1.12, obstacles: 0.7, caza: 0 },
+    { hasta: 1.30, obstacles: 1.2, caza: 0, solo: ['aa', 'birds', 'poles'] },   // Pradera del Ganso
+    { hasta: 2.0, obstacles: 0.5, caza: 0 },
+  ] }),
+  geografia: {
+    ida: [
+      { km: 9, suelo: 'mar' },
+      { km: 2, suelo: 'costa', lado: 'izq' },               // la Gran Malvina
+      { km: 0.4, suelo: 'mar' },                            // (una isla se entra desde el agua)
+      { km: 0.8, suelo: 'isla', alto: 12 },                 // se la cruza
+      { km: 1.5, suelo: 'mar', paredes: 'ambos' },          // el estrecho de San Carlos
+      { km: 3, suelo: 'tierra', lomas: 4 },                 // la Isla Soledad
+      { suelo: 'mar' },                                     // los buques, frente a Puerto Argentino
+    ],
+    vuelta: [
+      { km: 2.4, suelo: 'mar' },
+      { km: 3.6, suelo: 'tierra', lomas: 2 },               // Pradera del Ganso (la antiaerea propia)
+      { km: 1.5, suelo: 'mar', paredes: 'ambos' },          // el estrecho
+      { km: 2, suelo: 'costa', lado: 'der' },               // la Gran Malvina, del otro lado
+      { suelo: 'mar' },
+    ],
+  },
   par: PAR,
   escuadrilla: 'ESCUADRILLA ORO · V BRIGADA AÉREA',
   // MATRICULAS de ORO segun el prompt (C-239 la confirma Los Andes; C-248 la confirma ASN; C-225 y
@@ -179,8 +215,31 @@ const r3 = {
   // SIN CHANCHA: los Hercules estaban en otras operaciones. La nafta es lo que se lleva.
   chancha: false,
   cfg: cfgReal({ sky: 'cloudy', squad: 3 }),
-  ruta: { blancoKm: 750, radarKm: 180, niveladoKm: 120, potenciaKm: 50 },
-  fases: fases({ vuelta: { caza: 2 }, grito: { radio: 'libro_r3_harrier' } }),
+  // KM: de Rio Grande a San Carlos hay ~640 en linea recta (estaba en 750, y sin Hercules sobraban)
+  ruta: { blancoKm: 640, radarKm: 180, niveladoKm: 120, potenciaKm: 50 },
+  // LA RUTA: mar, LA BOCA SUR DEL ESTRECHO con mal tiempo (niebla), el estrecho entre acantilados y la
+  // bahia San Carlos con el desembarco: antiaerea, misiles de hombro, lanchas y helicopteros. EN LA
+  // VUELTA, los dos Sea Harrier (LA COLA) y la cita real.
+  fases: fases({ lejos: MAR, cerca: DESEMBARCO, grito: { radio: 'libro_r3_harrier' }, vuelta: [
+    { hasta: 1.4, obstacles: 0.8, caza: 1 },
+    { hasta: 2.0, obstacles: 0.5, caza: 0 },
+  ] }),
+  geografia: {
+    ida: [
+      { km: 9, suelo: 'mar' },
+      { km: 2, suelo: 'mar', niebla: 1 },                   // la boca sur, con mal tiempo
+      { km: 2.5, suelo: 'mar', paredes: 'ambos' },          // el estrecho
+      { km: 0.8, suelo: 'isla', alto: 10, ancho: 0.6, x: -14 },   // por arriba o por el canal
+      { km: 2.5, suelo: 'mar', paredes: 'izq' },
+      { km: 1.5, suelo: 'costa', lado: 'der' },             // la costa de San Carlos
+      { suelo: 'mar' },                                     // la bahia, con la Ardent
+    ],
+    vuelta: [
+      { km: 3, suelo: 'mar', paredes: 'ambos' },            // el estrecho, con los Harrier detras
+      { km: 2, suelo: 'mar', niebla: 1 },
+      { suelo: 'mar' },
+    ],
+  },
   par: PAR,
   escuadrilla: '3ª ESCUADRILLA AERONAVAL DE CAZA Y ATAQUE',
   // MATRICULAS segun ASN (baja confianza, a confirmar con la Armada). La carga real: cuatro MK-82
@@ -217,8 +276,28 @@ const r4 = {
   // no reabastecio. Se escribe igual: la regla tiene que leerse en la mision, no deducirse del avion.
   chancha: false,
   cfg: cfgReal({ sky: 'clear', squad: 5 }),
-  ruta: { blancoKm: 750, radarKm: 180, niveladoKm: 120, potenciaKm: 50 },
-  fases: fases({ blanco: { radio: 'libro_r4_buque' }, vuelta: { caza: 1 } }),
+  // KM: de Rio Grande a Punta Chancho hay ~610 en linea recta
+  ruta: { blancoKm: 610, radarKm: 180, niveladoKm: 120, potenciaKm: 50 },
+  // LA RUTA: mar, la costa de la Gran Malvina, y el estrecho hacia el norte — donde aparece LA PLYMOUTH,
+  // sola, de costado. En la vuelta, los Sea Harrier que mando la Exeter (no los alcanzaron).
+  fases: fases({ lejos: MAR, cerca: DEFENSA, blanco: { radio: 'libro_r4_buque' }, vuelta: [
+    { hasta: 1.4, obstacles: 0.7, caza: 1 },
+    { hasta: 2.0, obstacles: 0.5, caza: 0 },
+  ] }),
+  geografia: {
+    ida: [
+      { km: 9, suelo: 'mar' },
+      { km: 3, suelo: 'costa', lado: 'izq' },               // la Gran Malvina
+      { km: 3, suelo: 'mar', paredes: 'izq' },              // el estrecho, pegado a la isla
+      { km: 1.5, suelo: 'mar', paredes: 'ambos' },
+      { suelo: 'mar' },                                     // cerca de Punta Chancho: la Plymouth
+    ],
+    vuelta: [
+      { km: 2, suelo: 'mar', paredes: 'ambos' },
+      { km: 3, suelo: 'costa', lado: 'der' },
+      { suelo: 'mar' },
+    ],
+  },
   par: PAR,
   escuadrilla: 'ESCUADRILLAS PERRO Y GATO · GRUPO 6 DE CAZA',
   // SIN MATRICULAS: no se encontro una fuente con los numeros de esa salida. Se elige la

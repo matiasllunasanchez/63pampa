@@ -206,6 +206,9 @@ const FONTS = {
   // Josefin Sans: geometrica y limpia, se lee a 12 px de mundo donde la de carrera se empasta.
   rotuloChico: 'JosefinSans',
 };
+/** Cambia la familia de un rol EN VIVO (sonda __fuente en game.js, para comparar candidatas sobre la
+ *  pantalla real). No persiste: al recargar vuelve a lo de FONTS. */
+export function probarFuente(rol, fam) { if (rol in FONTS) FONTS[rol] = fam; return FONTS[rol]; }
 /** Fuente de las lineas chicas del rotulo (Josefin Sans Bold: el archivo ya es la negrita). */
 export const rotuloChicoFont = size => uiFont(FONTS.rotuloChico, size, '');
 /** Fuente del rotulo que pasa volando (render/rotulo.js). Sin negrita: la display ya es gruesa. */

@@ -110,7 +110,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
          setRasante } from './systems/audio.js';
 import * as world3D from './legacy/three-world.js';
-import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont } from './render/ctx.js';
+import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, probarFuente } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
@@ -6134,6 +6134,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // salta el intersticial en curso y dispara lo que venia despues: sirve para recorrer la
       // cadena de posmision sin esperar los segundos de negro.
       window.__interYa = () => { const f = interNext; interNext = null; interDur = 0; if (f) f(); return S.state; };
+      // LA LETRA DE UN ROL (FONTS en render/ctx.js), en vivo: __fuente('desc', 'Mayorice'); y una
+      // PANTALLA de menu directo, para fotografiarla: __pantalla('campmenu')
+      window.__fuente = (rol, fam) => probarFuente(rol, fam);
+      window.__pantalla = st => { if (st === 'campmenu') campSel = campFirstSel(); setState(st); return S.state; };
       // LA LETRA DE LOS NUMEROS de los relojes, para comparar candidatas: __fuenteNum('Thernaly')
       window.__fuenteNum = f => { NUMEROS.fam = f; return f; };
       // LAS TRES METRALLAS en la corrida en curso (y la cinta), para capturas: __metralla(3, 2)
