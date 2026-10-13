@@ -25,6 +25,47 @@ desbloquea**.*
 
 ---
 
+## 🎮 PROPUESTA PARA LA DEMO / ACCESO ANTICIPADO (12/10)
+
+> ✅ **El modo de misiones reales se llama «LIBRO DE VUELO»** — *«Misiones reales · 1982»* (13/10).
+> Todas las misiones sueltas de este archivo que sean hechos reales van ahí.
+
+> *"me gustaria tener algunas misiones basicas para "demo" o "acceso anticipado". (...) armar alguans
+> misiones cortas literal sacadas de los acontecimietnos historicos, sin seleccion de aviones o quiza
+> con seleccion segun lo que haya pasado ese dia en esa mision (...) A medida que vamos avanzando en
+> la campaña vamos desbloqueando estas misiones "reales" qe sucedieron con todos los detalles
+> historicos mas exactos posibles con algun adicional para diversion de juego. Que misiones sugeris
+> como para tener variedad de aviones, y que tampoco sea un embole ni sea super complejo y largo,
+> segun lo que tenemos armado hoy."*
+
+**La idea:** la demo son **misiones reales cortas**, con el avión que voló ese día. Después, en el
+juego completo, **son las mismas misiones sueltas que la campaña desbloquea**. Nada se tira.
+
+**Propuesta: cuatro, una por avión, todo con lo que ya existe** (`data/planes.js`, `data/ships.js`):
+
+| # | Misión | Fecha | Avión | Blanco (clase en el juego) | Qué se juega | Se desbloquea en la campaña |
+|---|---|---|---|---|---|---|
+| 1 | **El Sheffield** (S-03) | 4 de mayo | **Super Étendard** (`supere`) | Tipo 42 (`t42`) ✓ | al ras, subir, **Pulso** para cargar el Exocet, soltar y escapar. Con niebla | después de M4 |
+| 2 | **La Glasgow** (S-06) | 12 de mayo | **A-4B** (`sky`) | Tipo 42 (`t42`) ✓ | pasillo clásico + la Chancha. La bomba la atraviesa y **no explota** | después de M4 |
+| 3 | **La Ardent** (nueva, del aviso de M5) | 21 de mayo | **A-4Q de la Armada** (`a4q`) | Tipo 21 (`t21`) ✓ | pasillo en el estrecho; la Ardent ya averiada; Snakeye | después de M5 |
+| 4 | **La Plymouth** | 8 de junio | **Dagger** (`dagger`, sin sonda) | fragata sola en el estrecho (Tipo 12: **no hay modelo**, usar `t21` provisorio) | **sin reabastecer**: la nafta es lo que llevás. *«¡Buque enemigo a las tres!»*. Vuelven todos | después de M11 |
+
+**Por qué éstas:**
+- **Cuatro aviones, tres maneras de jugar**: Pulso (Super Étendard), pasillo con Chancha (A-4B, A-4Q) y
+  pasillo sin Chancha (Dagger).
+- **Ninguna repite un blanco de la campaña**: la campaña juega el Coventry, el Antelope, Ajax, la
+  Galahad. Así la demo **no adelanta la historia de Mateo**.
+- **Un blanco cada una, cortas**, y con su aclaración real al final.
+- **Ya están casi todas anotadas** (S-03, S-06; la Ardent y la Plymouth en `M5_CAMBIOS.md` · 6 y
+  `M11_CAMBIOS.md` · 3).
+
+**Opcional, como cierre:** **el Invincible** (S-05, 30 de mayo). El portaaviones ya existe (`cv`) y es
+el más épico, pero es el más largo (Super Étendard + A-4C) y su resultado está discutido.
+
+**Lo que no entra:** el Mirage «Mara» (nunca combatió) y el Pampa (no existía en 1982).
+
+---
+
 ## S-01 · El rescate de los náufragos del Belgrano
 
 **Estado:** ⬜ idea · *Pedida por el autor el 9/10/2026* · ✅ **se desbloquea al terminar M4**

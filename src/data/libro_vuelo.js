@@ -16,10 +16,9 @@
 // LAS REGLAS QUE NO SE NEGOCIAN (autor, 12/10):
 //   · SIN NOMBRES DE PERSONAS REALES en pantalla. Van matriculas, indicativos de escuadrilla y
 //     «PILOTO». Fechas, horas, lugares, aviones, buques y cifras si, y exactos.
-//   · NO SE INVENTA TEXTO. Las unicas lineas escritas son las CITAS REALES (`CITA`) y los DATOS
-//     (fecha, hora, base). Todo lo que es prosa —el contexto, la descripcion de la fila, lo que
-//     pasó— espera el OK del autor y hasta entonces se ve como `PENDIENTE`. Los borradores estan en
-//     LIBRO_DE_VUELO.md, no aca: lo que esta en este archivo es lo que el juego muestra.
+//   · NO SE INVENTA TEXTO. La prosa —el contexto, la descripcion de la fila, lo que pasó— se
+//     propuso en LIBRO_DE_VUELO.md y el autor la aprobo el 12/10. Un texto nuevo sigue el mismo
+//     camino: se propone ahi, y hasta el OK va como `PENDIENTE`.
 //   · De dia. El avion es el del hecho. Lo que no existe en el juego (el Sea Wolf de la Brilliant,
 //     la antiaerea propia de Pradera del Ganso, la Snakeye) NO se finge: se anota como pendiente.
 import { CAMPAIGN_CFG } from './missions.js';
@@ -76,7 +75,7 @@ const cfgReal = over => P({ fuelOn: true, fuelScale: 0.065, globos: false, mar: 
 const r1 = {
   id: 'r1', name: 'EL SHEFFIELD',
   fecha: '4 DE MAYO DE 1982', hora: '11:04', horaQue: 'lanzamiento',
-  desc: PENDIENTE,
+  desc: 'Dos Super Étendard de la Armada salen de Río Grande a buscar a la flota con un Exocet cada uno. Al ras del mar, con niebla, guiados por un Neptune.',
   despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'blanco: destructor clase 42' },
   goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: 6000 },
   climax: 'pulso',
@@ -108,7 +107,7 @@ const r1 = {
 const r2 = {
   id: 'r2', name: 'LA GLASGOW',
   fecha: '12 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
-  desc: PENDIENTE,
+  desc: 'Dos escuadrillas de A-4B salen de Río Gallegos contra dos buques en el estrecho. Volás la segunda, ORO, contra la Glasgow.',
   despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'blanco: destructor clase 42' },
   goal: { kind: 'ship', ship: 'HMS GLASGOW', dist: 6000 },
   climax: 'suelta',
@@ -145,7 +144,7 @@ const r2 = {
 const r3 = {
   id: 'r3', name: 'LA ARDENT',
   fecha: '21 DE MAYO DE 1982', hora: '14:10', horaQue: 'despegue',
-  desc: PENDIENTE,
+  desc: 'Tres A-4Q de la Armada, sin Hércules: cada litro contado. El blanco asignado no está; el alternativo, los buques de San Carlos.',
   despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'blanco alternativo: bahía San Carlos' },
   goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 6000 },
   climax: 'suelta',
@@ -182,7 +181,7 @@ const r3 = {
 const r4 = {
   id: 'r4', name: 'LA PLYMOUTH',
   fecha: '8 DE JUNIO DE 1982', hora: '≈13:00', horaQue: 'ataque',
-  desc: PENDIENTE,
+  desc: 'Seis Dagger salen de Río Grande hacia Bahía Agradable. Al ras y muy rápidos, se pasan, y encuentran una fragata sola en el estrecho.',
   despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'rumbo: Bahía Agradable' },
   goal: { kind: 'ship', ship: 'HMS PLYMOUTH', dist: 6000 },
   climax: 'suelta',
@@ -213,9 +212,8 @@ export const LIBRO_VUELO = [r1, r2, r3, r4];
 // ---------------------------------------------------------------------------------------------
 // LAS ESCENAS (mismo formato que data/story.js; las lee core/dialogue.js).
 //
-// EL CONTEXTO es una TARJETA: el dato (fecha · hora · base) y, debajo, el texto que espera el OK.
-// LO QUE PASÓ es otra TARJETA con el mismo criterio. Cuando el autor apruebe los textos, se
-// reemplaza `PENDIENTE` por el texto y nada mas: el resto ya esta conectado.
+// EL CONTEXTO es una TARJETA: el dato (fecha · hora · base) y, debajo, el contexto. LO QUE PASÓ es
+// otra TARJETA. Una linea por frase larga: la tarjeta pasa de a una.
 const tarjeta = (id, titulo, lineas) => ({
   id, tipo: 'TARJETA', titulo,
   lineas: lineas.map((es, i) => ({ id: id + '_' + String((i + 1) * 10).padStart(3, '0'), personaje: null, cara: null, hold: 0, es, en: '' })),
@@ -223,12 +221,12 @@ const tarjeta = (id, titulo, lineas) => ({
 const dato = m => m.fecha + ' · ' + m.hora + ' · ' + m.despegue.desde;
 
 export const LIBRO_SCENES = {
-  R1_CONTEXTO: tarjeta('R1_CONTEXTO', r1.name, [dato(r1), PENDIENTE]),
-  R1_LO_QUE_PASO: tarjeta('R1_LO_QUE_PASO', 'LO QUE PASÓ · ' + r1.name, [PENDIENTE]),
-  R2_CONTEXTO: tarjeta('R2_CONTEXTO', r2.name, [dato(r2), PENDIENTE]),
-  R2_LO_QUE_PASO: tarjeta('R2_LO_QUE_PASO', 'LO QUE PASÓ · ' + r2.name, [PENDIENTE]),
-  R3_CONTEXTO: tarjeta('R3_CONTEXTO', r3.name, [dato(r3), PENDIENTE]),
-  R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', 'LO QUE PASÓ · ' + r3.name, [PENDIENTE]),
-  R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4), PENDIENTE]),
-  R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', 'LO QUE PASÓ · ' + r4.name, [PENDIENTE]),
+  R1_CONTEXTO: tarjeta('R1_CONTEXTO', r1.name, [dato(r1), 'Un Neptune de la Armada encontró a la flota esa mañana. Dos Super Étendard despegaron de Río Grande a las 09:45 y cargaron nafta de un Hércules en la ida.', 'Al ras del mar, sin radar, hasta la posición que pasó el Neptune. Para apuntar hay que subir y prender el radar: una sola vez.']),
+  R1_LO_QUE_PASO: tarjeta('R1_LO_QUE_PASO', 'LO QUE PASÓ · ' + r1.name, ['4 de mayo de 1982. A las 11:04 los dos Super Étendard lanzaron sus Exocet desde 20 a 30 millas, y volvieron al ras a Río Grande.', 'Uno alcanzó al HMS Sheffield. Murieron 20 tripulantes. Se hundió seis días después, mientras lo remolcaban.']),
+  R2_CONTEXTO: tarjeta('R2_CONTEXTO', r2.name, [dato(r2), 'Dos buques británicos bombardeaban las posiciones de Puerto Argentino. A las 12:20 salió la escuadrilla CUÑA contra la Brilliant; a las 12:30, ORO contra la Glasgow.', 'La Brilliant tiene Sea Wolf. Último día de niebla.']),
+  R2_LO_QUE_PASO: tarjeta('R2_LO_QUE_PASO', 'LO QUE PASÓ · ' + r2.name, ['12 de mayo de 1982. De ocho A-4B volvieron cuatro: los Sea Wolf de la Brilliant bajaron a tres de CUÑA.', 'Una bomba de ORO atravesó a la Glasgow de lado a lado y estalló en el agua: el destructor quedó fuera de combate el resto de la guerra.', 'Al volver, uno de ORO cruzó Pradera del Ganso y lo derribó la antiaérea propia.']),
+  R3_CONTEXTO: tarjeta('R3_CONTEXTO', r3.name, [dato(r3), '21 de mayo, el día del desembarco en San Carlos. La primera sección de la Tercera Escuadrilla despega de Río Grande a las 14:10, con cuatro bombas con cola retardadora cada uno.', 'No hay Hércules: la nafta es la que se lleva. Hay mal tiempo en la boca del estrecho.']),
+  R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', 'LO QUE PASÓ · ' + r3.name, ['21 de mayo de 1982. Los tres A-4Q le pegaron a la HMS Ardent; la segunda sección, ocho minutos después, también. La fragata se hundió.', 'A la salida, dos Sea Harrier derribaron a los tres: dos pilotos se eyectaron y sobrevivieron; el tercero no volvió.']),
+  R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4), '8 de junio. Dos escuadrillas de Dagger, PERRO y GATO, salen de Río Grande. Uno vuelve porque un pájaro le rompe el parabrisas: quedan cinco.', 'El Dagger no carga nafta en vuelo: lo que llevás es lo que hay.']),
+  R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', 'LO QUE PASÓ · ' + r4.name, ['8 de junio de 1982. Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.', 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.']),
 };

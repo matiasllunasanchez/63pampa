@@ -55,6 +55,11 @@ el rescate de los náufragos del Belgrano.
 
 **Volar con cada uno de los Fieles** (Gitano, Vasco, Pichón, Puma, Esteban): **`../../sistemas/PILOTOS_JUGABLES.md`**.
 
+**La demo / acceso anticipado** (cuatro misiones reales: Sheffield, Glasgow, Ardent, Plymouth):
+**`PROMPT_DEMO_MISIONES_REALES.md`**, listo para la sesión de código.
+
+**Borrador de la campaña nueva, las catorce de punta a punta:** **`CAMPANA_NUEVA_BORRADOR.md`** (13/10, sin aprobar).
+
 **Lo que cambia la campaña entera** (eyectados, prisioneros, la noche, el A-4B, el piloto de la
 Chancha, los blancos, Mateo y Puerto Yapeyú): **`CAMBIOS_DE_CAMPANA.md`**.
 
@@ -110,6 +115,7 @@ cada una, y lo que eso cambia, está en **`ESCALERA_DE_APRENDIZAJE.md`**.
 | **Los Fieles vuelan siempre A-4B.** Se puede cambiar el armamento o la velocidad, sin irrealidades. No se cambia de avión | ✅ decidido 12/10 · 🔵 ¿y el Mirage «Mara» de M10? | `CAMBIOS_DE_CAMPANA.md` · 4 |
 | **En las aclaraciones: los prisioneros** fueron bien tratados, curados, y casi todos volvieron al final | ⬜ | `CAMBIOS_DE_CAMPANA.md` · 2 |
 | **Realidad, no rivalidad.** Los británicos no son los buenos: nosotros no sabíamos muchas cosas, entre ellas qué pasaba con los prisioneros. Se muestra que se salvaron de los dos lados | ✅ principio del autor 12/10 | `M14_CAMBIOS.md` · 5 |
+| **Sin nombres de personas reales en el juego.** Indicativos o seudónimos; fechas, lugares, aviones, buques y cifras, exactos. *"Que se googleen los acontecimientos si les interesa"* | ✅ decidido 12/10 | `PROMPT_DEMO_MISIONES_REALES.md` |
 | **O tres bombas, o tanques.** El jugador elige la carga antes de salir; la Chancha se llama en la ida y en la vuelta; sin bombas el avión va más rápido | ✅ aprobado · backlog de sistemas | `../../sistemas/PLAN_CARGA_Y_CHANCHA.md` |
 
 ### Y una que está en el aire, y es grande

@@ -31,10 +31,10 @@ Las citas reales van tal cual, por la radio: *«¡Harrier! ¡Harrier!»* al entr
 de la Ardent, y *«¡Buque enemigo a las tres!»* en el tramo del blanco de la Plymouth. Las dice
 «NUMERAL» (sin nombre).
 
-## ⏳ Textos que esperan tu OK
+## ✅ Textos (aprobados por el autor, 12/10)
 
-En el juego se ven como `[ texto pendiente del OK del autor ]`. Aprobados, se reemplaza
-`PENDIENTE` por el texto en `libro_vuelo.js` y nada más. **Ninguno nombra personas.**
+Ya están en `libro_vuelo.js`. Un texto nuevo sigue el mismo camino: se propone acá y, hasta el OK,
+va como `PENDIENTE`. **Ninguno nombra personas.**
 
 ### El Sheffield
 - **Descripción (pie del libro):** *Dos Super Étendard de la Armada salen de Río Grande a buscar a la
