@@ -82,15 +82,19 @@ app.whenReady().then(async () => {
     if (!d || !d.libro || d.libro.k !== k) { bad('no abrio el contexto: ' + JSON.stringify(d)); continue; }
     ok(`contexto: ${d.escena} (${d.mision}, ${d.modo}, test=${d.test})`);
     if (k === 0) await shot('2_contexto');
-    d = await hasta(x => x.state === 'libroavion', 'Return', 20);
-    if (!d) { bad('el contexto no termino en ELEGI TU AVION'); continue; }
-    ok('ELEGI TU AVION');
-    // se elige el SEGUNDO avion (si hay): asi se ve que la elegida va al mando y no la primera
-    await tap('Down');
-    if (k === 1) await shot('3_avion');
-    await tap('Return');
-    d = await hasta(x => x.state === 'takeoff' || x.state === 'play', null, 8);
-    if (!d) { bad('no despego'); continue; }
+    // DOS PUERTAS (autor, 13/10): ELEGI TU AVION solo aparece si la salida trae mas de un par avion +
+    // carga distinto; si son todos iguales, el contexto despega derecho con el primero.
+    d = await hasta(x => x.state === 'libroavion' || x.state === 'takeoff' || x.state === 'play', 'Return', 20);
+    if (!d) { bad('el contexto no termino ni en ELEGI TU AVION ni en el despegue'); continue; }
+    if (d.state === 'libroavion') {
+      ok('ELEGI TU AVION');
+      // se elige el SEGUNDO avion: asi se ve que la elegida va al mando y no la primera
+      await tap('Down');
+      if (k === 1) await shot('3_avion');
+      await tap('Return');
+      d = await hasta(x => x.state === 'takeoff' || x.state === 'play', null, 8);
+      if (!d) { bad('no despego'); continue; }
+    } else ok('aviones iguales: despega derecho, sin elegir');
     const m = await js(`String(JSON.stringify((() => { const r = __librodbg(); return r; })()))`);
     ok(`despega: ${d.plane} · ${d.carga} · escuadron ${d.squad} · climax ${d.climax} · chancha ${d.chancha} · test=${d.test}`);
     if (d.test) bad('la salida real corre con el sello de PRUEBA');
@@ -112,8 +116,8 @@ app.whenReady().then(async () => {
   paso = 'derribado';
   d = await hasta(x => x.state === 'campmenu' && x.fila.id === 'libro' && x.fila.k === 3, 'Up');
   await tap('Return');
-  await hasta(x => x.state === 'libroavion', 'Return', 20);
-  await tap('Return');
+  d = await hasta(x => x.state === 'libroavion' || x.state === 'takeoff' || x.state === 'play', 'Return', 20);
+  if (d && d.state === 'libroavion') await tap('Return');
   await hasta(x => x.state === 'play', null, 12);
   await js('window.__sealives && window.__sealives(1)');
   await js('window.__crash ? window.__crash() : null');

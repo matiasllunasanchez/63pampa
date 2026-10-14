@@ -109,7 +109,8 @@ export function enter(desdePasillo, conf) {
   engineOff();                            // el motor se apaga: lo que se escucha es el corazon
   const c = conf || carry || {};
   carry = { t01: c.t01 || 0, campaign: !!c.campaign, owned: c.owned || [], off: c.off || null,
-            ship: c.ship || '', tries: (carry && carry.tries) || 0, flak: (carry && carry.flak) || 0 };
+            ship: c.ship || '', tries: (carry && carry.tries) || 0, flak: (carry && carry.flak) || 0,
+            bombas: c.bombas || 0 };   // (sin esta linea el `pulsoBombas` de la mision se perdia aca)
   Q = {
     t: 0,                                 // reloj REAL de la prueba
     fase: 'prueba',                       // 'prueba' | 'exito' | 'fallo'
@@ -536,7 +537,7 @@ if (typeof window !== 'undefined') window.__qdbg = () => {
   if (!Q) return JSON.stringify({ state: S.state, on: false, dist: Math.round(run.dist) });
   const b = barNow();
   return JSON.stringify({
-    state: S.state, on: true, fase: Q.fase, dist: Math.round(run.dist),
+    state: S.state, on: true, fase: Q.fase, dist: Math.round(run.dist), bombas: Q.bombas,
     t: +Q.t.toFixed(2), bar: Q.bi, bars: Q.bars.length,
     label: b ? b.label : null,
     esperado: b ? b.toks[Q.ti] : null,

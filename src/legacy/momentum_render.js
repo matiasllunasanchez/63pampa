@@ -58,8 +58,27 @@ const COCKPIT = {
 
 // arte de la cabina (marco del visor). Se precarga al importar; hasta que este listo se
 // dibuja el fallback vectorial de abajo, asi el primer momentum nunca aparece vacio.
-const COCKPIT_ASSET = { src: COCKPIT.src, img: new Image(), ready: false };
-COCKPIT_ASSET.img.onload = () => { COCKPIT_ASSET.ready = true; };
+const COCKPIT_ASSET = { src: COCKPIT.src, img: new Image(), ready: false, vista: null };
+// EL VIDRIO, MAS CLARO (autor, 12/10: "se ve horrible el barco"). El PNG trae el parabrisas como una
+// capa semitransparente palida, y desde la cabina era una cupula lechosa encima del buque — se lo
+// encontro apagando capas una por una: sin la cabina, el buque se ve nitido. No se toca el arte: al
+// cargar se arma una copia en la que todo pixel SEMITRANSPARENTE (el vidrio y sus reflejos) baja a
+// VIDRIO_ALFA de su opacidad; el marco y el tablero, que son opacos, quedan iguales. 1 = el PNG tal cual.
+const VIDRIO_ALFA = 0.15, VIDRIO_OPACO = 235;
+function vistaDeCabina(img) {
+  try {
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    if (VIDRIO_ALFA >= 1) return c;
+    const d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+    for (let i = 3; i < a.length; i += 4) if (a[i] > 0 && a[i] < VIDRIO_OPACO) a[i] = Math.round(a[i] * VIDRIO_ALFA);
+    g.putImageData(d, 0, 0);
+    return c;
+  } catch (e) { return null; }   // sin lectura de pixeles (canvas contaminado): el PNG tal cual
+}
+COCKPIT_ASSET.img.onload = () => { COCKPIT_ASSET.vista = vistaDeCabina(COCKPIT_ASSET.img); COCKPIT_ASSET.ready = true; };
 COCKPIT_ASSET.img.src = COCKPIT_ASSET.src;
 
 // ---- BARCAZA 2D (casco + superestructura) ----
@@ -436,7 +455,7 @@ export function drawCockpit(w) {
     // por ninguno de los dos bordes, y el ancho detras por la proporcion real del PNG. La cabina
     // no se deforma nunca y no se recorta nunca; si algun dia se re-exporta a otra proporcion,
     // esto la sigue solo.
-    ctx.drawImage(im, bx + (W - caja.dw) / 2, dibY, caja.dw, dibH);
+    ctx.drawImage(COCKPIT_ASSET.vista || im, bx + (W - caja.dw) / 2, dibY, caja.dw, dibH);
   } else {
     ctx.save();
     ctx.translate(bx, by);

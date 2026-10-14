@@ -130,7 +130,9 @@ app.whenReady().then(async () => {
   const fa = await js('__chanafta()');
   // 30 × 110 ms ≈ 3,3 s: el ENGANCHE (CH_ENGANCHE 1,5 s sostenido en la caja, pedido del autor 24/9)
   // y despues carga. Con los 14 de antes (1,5 s) se quedaba justo en el naranja.
-  for (let i = 0; i < 30; i++) {
+  // 45 × 110 ms ≈ 5 s desde el 12/10: trabado la nafta pasa MAS LENTO (CH_RATE_TRABADO, pedido del
+  // autor), y con 3,3 s la ganancia apenas le sacaba al consumo del vuelo.
+  for (let i = 0; i < 45; i++) {
     c2 = await CH();
     await js(`__seaclear(); __chacalma(); __chaput(${c2.bx}, ${c2.by})`);
     await sleep(110);
@@ -151,8 +153,8 @@ app.whenReady().then(async () => {
   else bad('sostenido en la caja no se trabo');
   win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'a' }); await sleep(80);
   win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'a' }); await sleep(120);
-  const suelto = await CH();
-  if (!suelto.trabado) ok('un toque de izquierda suelta la sonda');
+  const soltado = await CH();
+  if (!soltado.trabado) ok('un toque de izquierda suelta la sonda');
   else bad('el toque de direccion no solto');
   const cSal = await CH();
   await sostener(cSal.bx + 30, cSal.by, 700);
@@ -161,7 +163,7 @@ app.whenReady().then(async () => {
   else bad('suelto y fuera de la caja sigue conectado');
   const fc = await js('__chanafta()');
   // volver tambien pasa por el enganche: salirse lo reinicia
-  for (let i = 0; i < 26; i++) { const c3 = await CH(); await js(`__seaclear(); __chacalma(); __chaput(${c3.bx}, ${c3.by})`); await sleep(110); }
+  for (let i = 0; i < 45; i++) { const c3 = await CH(); await js(`__seaclear(); __chacalma(); __chaput(${c3.bx}, ${c3.by})`); await sleep(110); }
   const fd = await js('__chanafta()');
   if ((await CH()).conn && fd > fc) ok(`y volver RETOMA: ${fc.toFixed(1)} → ${fd.toFixed(1)}%`);
   else bad(`reconectar no retomo la carga (${fc.toFixed(1)} → ${fd.toFixed(1)})`);
