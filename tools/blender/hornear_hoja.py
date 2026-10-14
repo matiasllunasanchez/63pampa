@@ -25,7 +25,18 @@ def _cargar(nombre, archivo):
 H = _cargar('horno_bl', 'hornear.py')          # el horno de los aviones: escena, luz, materiales
 HOJAS = _cargar('hojas_bl', 'hojas.py').HOJAS
 HOJA = H.arg('--hoja')
-S = HOJAS[HOJA]
+# LAS TRES VISTAS (14/10, para comparar un modelo con sus fotos: "que sean fieles"): `--hoja
+# vistas:<modelo>[:dist]` arma al vuelo una hoja de 4 cuadros — de costado, de arriba, de frente y de
+# tres cuartos — con la camara de los enemigos. Solo para mirar: no se arma ni entra al juego.
+if HOJA.startswith('vistas:'):
+    _, _mod, *_d = HOJA.split(':')
+    S = dict(fw=200, fh=150, dist=float(_d[0]) if _d else 22, lookY=0.3, baseYaw=0, cols=4, cajas=False,
+             frames=[dict(modelo='bl:' + _mod, rots=[('Y', math.pi / 2)]),
+                     dict(modelo='bl:' + _mod, rots=[('X', math.pi / 2), ('Y', math.pi)]),
+                     dict(modelo='bl:' + _mod, rots=[('Y', math.pi)]),
+                     dict(modelo='bl:' + _mod, rots=[('X', 0.25), ('Y', math.pi * 0.72), ('Z', -0.15)])])
+else:
+    S = HOJAS[HOJA]
 OUT = os.path.join(AQUI, H.arg('--out', 'out/hojas/' + HOJA))
 GUARDAR = H.arg('--guardar')
 

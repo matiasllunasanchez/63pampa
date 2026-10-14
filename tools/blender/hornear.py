@@ -79,9 +79,21 @@ if VISTA == 'cobra':
 # Una sola pose —de cola, un poco desde arriba— a 130 px: el menu la dibuja a 130 unidades de
 # diseño (= 390 px reales), asi que tools/blender/armar_seleccion.py la agranda x3 con vecino mas cercano
 # y sale pixel art nitido a la MISMA densidad del juego (el metodo de Dead Cells: renderizar chico).
+# DE TRES CUARTOS (14/10, el autor: "que la imagen del avion se vea mejor, mejor diseñada"): de cola
+# se veia chato — un ala y una tobera — y a 130 px agrandado x3, en bloques. Ahora la camara gira en
+# polares hasta ver el avion de FRENTE y de costado, desde arriba (SEL_YAW, SEL_ELEV), con un leve
+# alabeo (SEL_ROLL) que lo pone en vuelo, a 195 px (x2 = los 390 del menu): el doble de detalle y la
+# silueta de cada uno — el lomo del A-4, el delta del Dagger, la trompa del Etendard. El sol gira con
+# la camara: sigue pegando del lado que se ve.
+SEL_YAW, SEL_ELEV, SEL_ROLL, SEL_ZOOM, SEL_Z = (float(os.environ.get(k, d)) for k, d in
+                                                (('SEL_YAW', '124'), ('SEL_ELEV', '21'), ('SEL_ROLL', '-12'), ('SEL_ZOOM', '0.93'), ('SEL_Z', '-0.45')))
 if VISTA == 'seleccion':
-    ANGLES, PITCHES = [0], [22]      # la trompa arriba: se ve el LOMO, el camuflaje y el ala entera
-    FW = FH = int(arg('--px', '130'))
+    ANGLES, PITCHES = [SEL_ROLL], [0]
+    FW = FH = int(arg('--px', '195'))
+    _d = math.hypot(CAM['pos'][1] - CAM['lookY'], CAM['pos'][2])
+    _e, _a = math.radians(SEL_ELEV), math.radians(SEL_YAW)
+    CAM = dict(CAM, pos=(_d * math.cos(_e) * math.sin(_a), CAM['lookY'] + _d * math.sin(_e), _d * math.cos(_e) * math.cos(_a)),
+               ref=CAM['ref'] / SEL_ZOOM, lookZ=SEL_Z)       # mira un poco hacia la trompa: el avion queda centrado
 if VISTA == 'ras':
     FW = FH = int(arg('--px', '168'))
     _d = math.hypot(CAM['pos'][1] - CAM['lookY'], CAM['pos'][2])
@@ -157,7 +169,7 @@ def camara(padre, cam=None, nombre='cam', activa=True):
     c = bpy.data.objects.new(nombre, cd)
     bpy.context.scene.collection.objects.link(c)
     c.parent = padre
-    c.matrix_basis = mirando(cam['pos'], (0, cam['lookY'], 0))
+    c.matrix_basis = mirando(cam['pos'], (0, cam['lookY'], cam.get('lookZ', 0)))
     if activa: bpy.context.scene.camera = c
     return c
 
@@ -166,6 +178,10 @@ def camara(padre, cam=None, nombre='cam', activa=True):
 # valga 1.0 en el ShaderToRGB, que es la escala en la que se cortan las bandas.
 SOL = (-3, 5, 4)
 CONTRALUZ = (2, 1, -4)          # el rojizo de atras: ese no es lampara, lo calcula el material
+if VISTA == 'seleccion':        # el sol y el contraluz giran con la camara del selector (ver SEL_YAW)
+    _gira = lambda v: (v[0] * math.cos(math.radians(SEL_YAW)) + v[2] * math.sin(math.radians(SEL_YAW)), v[1],
+                       -v[0] * math.sin(math.radians(SEL_YAW)) + v[2] * math.cos(math.radians(SEL_YAW)))
+    SOL, CONTRALUZ = _gira(SOL), _gira(CONTRALUZ)
 
 def sol(padre):
     ld = bpy.data.lights.new('sol', 'SUN')
@@ -496,7 +512,7 @@ if __name__ == '__main__':
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         K = dict(mat_cel=mat_cel, mat_cel_nodo=mat_cel_nodo, mat_emisivo=mat_emisivo, lin=lin,
                  perilla=perilla, mezcla=mezcla, ocultar_si=ocultar_si,
-                 cargas=bool(GUARDAR or CAPA), controles=CONTROLES)
+                 cargas=bool(GUARDAR or CAPA), controles=CONTROLES, insignias=VISTA == 'seleccion')
         raiz = mod.construir(MODELO, T, K) if MODELO in getattr(mod, 'FICHAS', {}) else getattr(mod, MODELO)(T, K)
         if CAPA:
             # LA CAPA: solo sus piezas (la carga y su pilon) se pintan; el avion queda de OCLUSOR

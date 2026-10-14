@@ -336,6 +336,20 @@ def mat_pintura(K, nombre, P, bandera=None):
                 vx = pos.outputs['X']
                 if M.get('sim', True):
                     ab = N.new('ShaderNodeMath'); ab.operation = 'ABSOLUTE'; L.new(vx, ab.inputs[0]); vx = ab.outputs[0]
+                if M.get('disco'):
+                    # UN DISCO (la escarapela): (x - cx)² + (z - cz)² < r², solo en las caras de arriba
+                    cx, cz, r = M['disco']
+                    cuad = []
+                    for v, c in ((vx, cx), (pos.outputs['Z'], cz)):
+                        d = N.new('ShaderNodeMath'); d.operation = 'SUBTRACT'; L.new(v, d.inputs[0]); d.inputs[1].default_value = c
+                        q = N.new('ShaderNodeMath'); q.operation = 'POWER'; L.new(d.outputs[0], q.inputs[0]); q.inputs[1].default_value = 2
+                        cuad.append(q.outputs[0])
+                    sm = N.new('ShaderNodeMath'); sm.operation = 'ADD'; L.new(cuad[0], sm.inputs[0]); L.new(cuad[1], sm.inputs[1])
+                    lt = N.new('ShaderNodeMath'); lt.operation = 'LESS_THAN'; L.new(sm.outputs[0], lt.inputs[0]); lt.inputs[1].default_value = r * r
+                    up = _rango(N, L, nor.outputs['Y'], 0.25, None)
+                    p = N.new('ShaderNodeMath'); p.operation = 'MULTIPLY'; L.new(lt.outputs[0], p.inputs[0]); L.new(up, p.inputs[1])
+                    col = _mezcla(N, L, col, _rgb(nt, K, M['color']), p.outputs[0])
+                    continue
                 masc = None
                 for v, r in ((vx, M.get('x')), (pos.outputs['Z'], M.get('z')), (pos.outputs['Y'], M.get('y'))):
                     if not r: continue
@@ -374,6 +388,13 @@ def jet(T, K, S):
     bpy.context.scene.collection.objects.link(raiz)
     raiz.parent = T
     P = S['pintura']
+    if K.get('insignias'):
+        # LAS ESCARAPELAS de la Fuerza Aerea (celeste, blanco, celeste) arriba de cada ala. Solo en la
+        # ilustracion del SELECTOR (hornear.py --vista seleccion): de cola, en juego, no llegan a un pixel.
+        ala = max(e[0] for e in S['ala'])
+        x = 0.62 * ala; z = bajo_ala(S, x)[1] + 0.05; r = 0.11 * ala
+        P = dict(P, marcas=list(P.get('marcas', [])) + [dict(disco=(x, z, r * f), color=c)
+                                                         for f, c in ((1.0, CELESTE), (0.66, BLANCO), (0.33, CELESTE))])
     piel = mat_pintura(K, 'pintura', P)
     deriva = mat_pintura(K, 'deriva', S.get('pintura_deriva', P), bandera=S.get('bandera'))
     vidrio = K['mat_cel']('vidrio', CANOPY, brillo=True)
@@ -384,7 +405,17 @@ def jet(T, K, S):
     _subdiv(loft('fuselaje', S['fuselaje'], raiz, piel, n=20, expo=S.get('expo', 2.3), cerrar=(True, True)), 2)
     if S.get('lomo'):
         _subdiv(loft('lomo', S['lomo'], raiz, piel, n=12, expo=2.0, cerrar=(True, True)), 1)
-    elipsoide('cabina', S['cabina'][0], S['cabina'][1], raiz, vidrio)
+    # LAS CABINAS: una, o dos en TANDEM (`cabina2`, la del instructor del Pampa, mas alta atras). Cada
+    # una con EL MARCO DEL PARABRISAS (14/10): el arco oscuro que separa el parabrisas de la burbuja —
+    # sin el, el canopy es una gota de vidrio apoyada.
+    for cab in (S['cabina'], S.get('cabina2')):
+        if not cab: continue
+        elipsoide('cabina', cab[0], cab[1], raiz, vidrio)
+        (cx, cy, cz), (rx, ry, rz) = cab
+        zm = cz - rz * 0.6
+        k = math.sqrt(max(0.0, 1 - 0.6 ** 2))
+        _subdiv(loft('marco', [(zm - 0.025, rx * k * 1.04, ry * k * 1.04, cy), (zm + 0.025, rx * k * 1.04, ry * k * 1.04, cy)],
+                     raiz, oscuro, n=16, expo=2.0, cerrar=(False, False), x0=cx), 0)
     # LAS TOMAS DE AIRE: "orejas" que nacen a la altura de la cabina y se funden atras. Las del
     # Dagger y el Mirage llevan el CONO de choque asomando por la boca.
     Tm = S['tomas']
@@ -434,7 +465,8 @@ A4 = dict(
               (2.00, 0.34, 0.34, 0.06), (2.50, 0.31, 0.30, 0.06), (2.86, 0.30, 0.28, 0.06)],
     lomo=[(-1.05, 0.10, 0.06, 0.48), (-0.70, 0.15, 0.10, 0.47), (0.20, 0.14, 0.10, 0.44), (1.20, 0.11, 0.08, 0.40), (2.10, 0.06, 0.05, 0.36)],
     cabina=((0, 0.49, -1.55), (0.27, 0.24, 0.66)),
-    tomas=dict(x0=0.42, yc=0.05, est=[(-1.30, 0.19, 0.23), (-0.95, 0.20, 0.24), (-0.35, 0.17, 0.20), (0.25, 0.11, 0.13), (0.70, 0.05, 0.06)]),
+    # las TOMAS en D, grandes, al costado de la cabina: lo que hace "Skyhawk" de frente y de costado
+    tomas=dict(x0=0.44, yc=0.06, est=[(-1.42, 0.22, 0.28), (-1.10, 0.24, 0.30), (-0.40, 0.20, 0.24), (0.25, 0.12, 0.14), (0.70, 0.05, 0.06)]),
     ala=[(0.00, -0.40, 2.50, 0.110, -0.16), (0.45, -0.14, 2.24, 0.105, -0.16 - 0.45 * CAIDA_A4),
          (1.50, 0.42, 1.60, 0.100, -0.16 - 1.50 * CAIDA_A4), (2.55, 1.05, 0.85, 0.120, -0.16 - 2.55 * CAIDA_A4)],
     deriva=[(0.20, 1.30, 1.50, 0.075, 0.0), (0.80, 1.78, 1.10, 0.075, 0.0), (1.70, 2.36, 0.62, 0.08, 0.0)],
@@ -498,23 +530,33 @@ MIRAGE = _variante(DAGGER,
     carga=dict(ala_x=1.50, centro_z=0.30, tanque='#8e979d'),
     tren=dict(x=0.74, nariz=-2.20, suelo=-0.64, r=0.15, ancho=0.09),
 )
+# EL SUPER ETENDARD, FIEL (14/10/2026, el autor: "tiene una trompita mas rara que la del Dagger, parece
+# un pato" — con fotos del 3-A-209). 14,31 m de largo y 9,60 de envergadura: 2 m por unidad. Lo que lo
+# hace el: el RADOMO corto y ROMO, oscuro; la cabina alta y adelante con el LOMO que corre hasta la
+# deriva; las tomas en SEMICIRCULO a los costados, bajo la cabina; el ala MEDIA en flecha de 45° con un
+# poco de anhedro; la deriva alta con la PUNTA CELESTE de la Armada, y el estabilizador montado EN la
+# deriva, por encima de la tobera. Gris oscuro parejo, la panza apenas mas clara.
 SUPERE = dict(
-    fuselaje=[(-4.40, 0.015, 0.015, -0.02), (-4.10, 0.10, 0.10, -0.02), (-3.60, 0.22, 0.22, -0.01), (-3.00, 0.31, 0.31, 0.0),
-              (-2.40, 0.37, 0.38, 0.02), (-1.90, 0.39, 0.43, 0.05), (-1.30, 0.40, 0.45, 0.06), (-0.60, 0.41, 0.44, 0.05),
-              (0.20, 0.41, 0.42, 0.04), (1.00, 0.39, 0.40, 0.03), (1.80, 0.36, 0.36, 0.03), (2.40, 0.33, 0.32, 0.03), (2.72, 0.32, 0.30, 0.03)],
-    lomo=[(-1.00, 0.10, 0.06, 0.46), (-0.60, 0.14, 0.09, 0.45), (0.40, 0.13, 0.09, 0.42), (1.40, 0.10, 0.07, 0.38), (2.20, 0.05, 0.04, 0.34)],
-    cabina=((0, 0.45, -1.60), (0.27, 0.25, 0.63)),
-    tomas=dict(x0=0.42, yc=0.12, color='#7b8a94', est=[(-1.25, 0.19, 0.22), (-0.90, 0.20, 0.23), (-0.30, 0.17, 0.19), (0.30, 0.10, 0.12), (0.75, 0.04, 0.05)]),
-    ala=[(0.0, -0.55, 2.20, 0.080, 0.02), (0.45, -0.28, 1.97, 0.080, 0.02), (1.5, 0.35, 1.42, 0.085, 0.02), (2.5, 0.95, 0.90, 0.100, 0.02)],
-    deriva=[(0.20, 1.55, 1.27, 0.07, 0.0), (0.90, 2.00, 0.90, 0.07, 0.0), (1.59, 2.45, 0.55, 0.08, 0.0)],
-    bandera=(1.22, 1.54),
-    estab=[(0.0, 1.70, 0.90, 0.08, 0.50), (1.2, 2.20, 0.45, 0.10, 0.50)],
-    sonda=dict(x0=0.0, est=[(-3.90, 0.02, 0.02, 0.37), (-3.80, 0.06, 0.06, 0.37), (-2.90, 0.06, 0.06, 0.35), (-2.70, 0.09, 0.07, 0.30)]),
-    tobera=dict(z0=2.66, z1=2.90, r=0.31, y=0.03),
-    pintura=dict(arriba=['#4d5b66', '#3e4b56'], corte=0.55, escala=0.25, panza='#c3cad0',
-                 marcas=[dict(x=(-2.15, -0.55), z=(0.0, 0.9), color='#7b8a94', sim=False)]),
+    fuselaje=[(-4.40, 0.02, 0.02, -0.02), (-4.34, 0.10, 0.10, -0.02), (-4.22, 0.16, 0.16, -0.02), (-4.02, 0.21, 0.21, -0.01),
+              (-3.72, 0.25, 0.25, 0.0), (-3.40, 0.28, 0.29, 0.01), (-3.00, 0.31, 0.33, 0.03), (-2.50, 0.34, 0.38, 0.05),
+              (-2.00, 0.36, 0.44, 0.07), (-1.40, 0.38, 0.47, 0.08), (-0.60, 0.39, 0.47, 0.08), (0.20, 0.39, 0.45, 0.07),
+              (1.00, 0.37, 0.41, 0.06), (1.80, 0.34, 0.36, 0.05), (2.40, 0.31, 0.32, 0.04), (2.75, 0.30, 0.29, 0.03)],
+    # el LOMO: sube detras de la cabina y corre hasta la deriva
+    lomo=[(-1.80, 0.10, 0.08, 0.48), (-1.20, 0.16, 0.13, 0.50), (0.30, 0.15, 0.13, 0.50), (1.40, 0.11, 0.09, 0.45), (2.20, 0.05, 0.04, 0.38)],
+    cabina=((0, 0.47, -2.30), (0.23, 0.27, 0.66)),
+    tomas=dict(x0=0.42, yc=0.02, est=[(-2.10, 0.21, 0.25), (-1.75, 0.23, 0.27), (-1.00, 0.20, 0.23), (-0.30, 0.12, 0.14), (0.30, 0.04, 0.05)]),
+    ala=[(0.0, -1.30, 2.40, 0.075, 0.0), (0.40, -0.95, 2.10, 0.075, -0.01), (1.40, 0.05, 1.25, 0.075, -0.05),
+         (2.00, 0.62, 0.85, 0.08, -0.07), (2.45, 1.05, 0.55, 0.10, -0.08)],
+    deriva=[(0.30, 0.65, 1.95, 0.07, 0.0), (0.80, 1.22, 1.45, 0.07, 0.0), (1.35, 1.88, 0.88, 0.08, 0.0), (1.72, 2.30, 0.50, 0.09, 0.0)],
+    estab=[(0.0, 1.95, 1.05, 0.08, 0.62), (1.15, 2.50, 0.42, 0.10, 0.66)],
+    sonda=dict(x0=0.0, est=[(-3.95, 0.02, 0.02, 0.36), (-3.85, 0.05, 0.05, 0.36), (-3.00, 0.05, 0.05, 0.34), (-2.80, 0.08, 0.07, 0.30)]),
+    tobera=dict(z0=2.70, z1=2.92, r=0.28, y=0.03),
+    pintura=dict(arriba=['#4f5a63', '#48535c'], corte=0.55, escala=0.25, panza='#606c75',
+                 marcas=[dict(z=(-4.6, -3.62), color='#22282d', arriba=False)]),           # el radomo
+    pintura_deriva=dict(arriba=['#4f5a63', '#48535c'], corte=0.55, escala=0.25, panza='#606c75',
+                        marcas=[dict(y=(1.48, 1.85), color='#6fc2e0', arriba=False)]),      # la punta celeste
     metal='#2d353c',
-    carga=dict(ala_x=1.50, centro_z=0.20, tanque='#3e4b56', aleta='#2f3a44'),
+    carga=dict(ala_x=1.50, centro_z=0.20, tanque='#4f5a63', aleta='#3a4550'),
     tren=dict(x=0.85, nariz=-2.30, suelo=-0.74, r=0.15, ancho=0.09),
 )
 NARANJA = '#e07030'
@@ -523,16 +565,20 @@ PAMPA = dict(
               (-2.10, 0.35, 0.38, 0.03), (-1.60, 0.37, 0.43, 0.05), (-1.00, 0.38, 0.45, 0.06), (-0.30, 0.39, 0.44, 0.05),
               (0.40, 0.38, 0.41, 0.04), (1.10, 0.36, 0.38, 0.03), (1.80, 0.33, 0.34, 0.03), (2.30, 0.30, 0.30, 0.03), (2.48, 0.29, 0.28, 0.03)],
     lomo=[(-0.20, 0.12, 0.07, 0.40), (0.60, 0.13, 0.08, 0.40), (1.50, 0.09, 0.06, 0.36), (2.10, 0.05, 0.04, 0.32)],
-    cabina=((0, 0.44, -1.20), (0.29, 0.27, 0.94)),
-    tomas=dict(x0=0.40, yc=0.18, est=[(-0.98, 0.17, 0.20), (-0.65, 0.18, 0.21), (-0.10, 0.15, 0.18), (0.45, 0.09, 0.11), (0.85, 0.04, 0.05)]),
-    ala=[(0.0, -0.33, 1.35, 0.13, 0.30), (1.3, -0.25, 1.18, 0.13, 0.30), (2.65, -0.17, 1.00, 0.13, 0.30)],
-    deriva=[(0.20, 1.42, 1.12, 0.08, 0.0), (0.80, 1.74, 0.88, 0.08, 0.0), (1.44, 2.075, 0.60, 0.09, 0.0)],
+    # EL PAMPA FIEL (14/10): biplaza en TANDEM — la cabina del instructor atras y MAS ALTA —, el ala
+    # RECTA montada ARRIBA del fuselaje, las tomas bajo la raiz del ala, la deriva en flecha y el
+    # estabilizador BAJO, sobre el cono de cola.
+    cabina=((0, 0.43, -1.70), (0.25, 0.25, 0.52)),
+    cabina2=((0, 0.52, -0.90), (0.25, 0.27, 0.52)),
+    tomas=dict(x0=0.38, yc=0.06, est=[(-0.70, 0.16, 0.20), (-0.40, 0.18, 0.21), (0.10, 0.15, 0.18), (0.60, 0.09, 0.11), (0.95, 0.04, 0.05)]),
+    ala=[(0.0, -0.45, 1.45, 0.13, 0.42), (1.3, -0.33, 1.22, 0.13, 0.41), (2.65, -0.20, 0.95, 0.13, 0.39)],
+    deriva=[(0.25, 1.15, 1.35, 0.08, 0.0), (0.80, 1.58, 1.02, 0.08, 0.0), (1.44, 2.05, 0.62, 0.09, 0.0)],
     bandera=(1.02, 1.32),
-    estab=[(0.0, 1.575, 0.85, 0.10, 0.36), (1.2, 1.875, 0.55, 0.11, 0.36)],
+    estab=[(0.0, 1.62, 0.85, 0.10, 0.10), (1.2, 1.95, 0.50, 0.11, 0.12)],
     tobera=dict(z0=2.42, z1=2.64, r=0.27, y=0.03),
     pintura=dict(arriba=['#8e979e', '#55663d'], corte=0.5, panza='#b8bec2',
                  marcas=[dict(x=(1.85, 2.75), z=(-0.5, 1.2), color=NARANJA),          # puntas de ala (escuela)
-                         dict(x=(0.75, 1.30), z=(1.4, 2.6), y=(0.2, 0.6), color=NARANJA),  # puntas del estabilizador
+                         dict(x=(0.75, 1.30), z=(1.4, 2.6), y=(-0.1, 0.3), color=NARANJA),  # puntas del estabilizador
                          dict(z=(-2.75, -2.30), color=NARANJA, arriba=False)]),          # la franja del morro
     pintura_deriva=dict(arriba=['#8e979e'], panza='#b8bec2', marcas=[dict(y=(1.34, 1.60), color=NARANJA, arriba=False)]),
     carga=dict(ala_x=1.40, centro_z=0.20, tanque='#b8bec2'),

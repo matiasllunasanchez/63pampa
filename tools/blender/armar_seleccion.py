@@ -6,7 +6,7 @@
 #     tools/blender/hornear.py -- --modelo $k --vista seleccion --out out/aviones/$k/seleccion; done
 #   .venv-art/bin/python3 tools/blender/armar_seleccion.py
 #
-# Toma el cuadro de 130 px, le pone EL CONTORNO DE PIXEL de las hojas (armar_hoja.py), lo agranda x3 con
+# Toma el cuadro de 195 px (antes 130), le pone EL CONTORNO DE PIXEL de las hojas (armar_hoja.py), lo agranda x2 con
 # vecino mas cercano (390 = el ancho real del menu: render/menus.js lo detecta y no suaviza) y recorta el
 # alto a lo que ocupa el avion. Escribe assets/planes/<carpeta>/seleccion.png; los dibujos viejos
 # (preview.*) quedan donde estaban.
@@ -20,7 +20,7 @@ import armar_hoja as A
 
 CARPETA = {'sky': 'a4-skyhawk', 'dagger': 'iai-dagger', 'supere': 'super-etendard', 'a4q': 'a4q',
            'mirage': 'mirage-5p', 'pampa': 'pampa-63'}
-X = 3          # 130 → 390
+X = 2          # 195 → 390 (14/10: de tres cuartos y al doble de detalle; antes 130 x3, de cola)
 AIRE = 4       # px (antes de agrandar) de aire arriba y abajo del avion
 
 for clave, carpeta in CARPETA.items():

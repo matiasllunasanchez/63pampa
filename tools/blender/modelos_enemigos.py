@@ -36,26 +36,41 @@ def _fuego(raiz, K, x, y, z, r):
 # donde va el Pegasus), las TOMAS como dos barriles tan anchos como el fuselaje, las CUATRO TOBERAS,
 # el ala ALTA y ANHEDRA (las puntas caen), los BALANCINES colgando casi en la punta y la burbuja alta
 # adelante de las tomas. Gris oscuro de mar, panza un punto mas clara, la escarapela azul.
-def harrier(T, K, atras=None):
-    raiz = _raiz(T, 'Sea Harrier')
-    P = dict(arriba=['#535d60', '#4a5457'], corte=0.5, escala=0.45, panza='#626d70',
-             marcas=[dict(x=(0.42, 0.66), z=(1.30, 1.62), y=(0.02, 0.34), color='#2c4a7a', arriba=False)])
+def harrier(T, K, atras=None, version='sea'):
+    """El Sea Harrier FRS.1 de la Armada britanica, o (`version='gr3'`) el Harrier GR.3 de la RAF: la
+    misma celula con la trompa LARGA del telemetro laser (la "nariz de Snoopy", con su ventana), la cabina
+    mas BAJA y el camuflaje verde y gris de la RAF con la panza clara."""
+    gr3 = version == 'gr3'
+    raiz = _raiz(T, 'Harrier GR.3' if gr3 else 'Sea Harrier')
+    P = (dict(arriba=['#4b5a3e', '#4d5559'], corte=0.5, escala=0.42, panza='#9aa3a6',
+              marcas=[dict(z=(-4.4, -3.75), y=(-0.12, 0.10), color='#20262a', arriba=False)])   # la ventana del laser
+         if gr3 else
+         dict(arriba=['#535d60', '#4a5457'], corte=0.5, escala=0.45, panza='#626d70',
+              marcas=[dict(x=(0.42, 0.66), z=(1.30, 1.62), y=(0.02, 0.34), color='#2c4a7a', arriba=False)]))
     piel = mat_pintura(K, 'pintura', P)
     oscuro = K['mat_cel']('metal', '#333b3e')
     negro = K['mat_emisivo']('boca', '#14191b')
     vidrio = K['mat_cel']('vidrio', CANOPY, brillo=True)
-    # EL FUSELAJE: radomo corto y romo, se ENSANCHA hasta la cintura y de ahi se afina a la cola
-    _subdiv(loft('fuselaje', [(-3.55, 0.02, 0.02, 0.07), (-3.30, 0.17, 0.16, 0.07), (-2.90, 0.30, 0.29, 0.06),
-                              (-2.40, 0.39, 0.40, 0.05), (-1.90, 0.45, 0.48, 0.04), (-1.20, 0.51, 0.54, 0.03),
-                              (-0.40, 0.56, 0.58, 0.01), (0.50, 0.57, 0.56, -0.01), (1.30, 0.49, 0.48, 0.0),
-                              (2.10, 0.39, 0.38, 0.0), (2.80, 0.29, 0.28, 0.01), (3.20, 0.18, 0.18, 0.02),
-                              (3.60, 0.09, 0.09, 0.02), (4.10, 0.05, 0.05, 0.02)],
+    # EL FUSELAJE (14/10, "que sean fieles"): el perfil del FRS.1 — el radomo del Blue Fox cae en punta
+    # adelante, la trompa SUBE hasta la cabina ELEVADA (la del Sea Harrier va mas alta que la del GR.3:
+    # es lo que lo hace reconocible de costado), se ensancha en la cintura de las tomas y se afina hasta
+    # el aguijon de la cola.
+    trompa = ([(-4.45, 0.02, 0.02, -0.02), (-4.30, 0.09, 0.08, -0.01), (-3.95, 0.15, 0.13, 0.0), (-3.55, 0.20, 0.18, 0.03),
+               (-3.20, 0.25, 0.24, 0.06)] if gr3 else
+              [(-3.70, 0.02, 0.02, 0.00), (-3.55, 0.08, 0.08, 0.02), (-3.25, 0.20, 0.20, 0.05)])
+    _subdiv(loft('fuselaje', trompa + [
+                              (-2.85, 0.30, 0.30, 0.10), (-2.40, 0.38, 0.40, 0.15), (-1.90, 0.44, 0.50, 0.17),
+                              (-1.40, 0.52, 0.56, 0.12), (-0.60, 0.57, 0.58, 0.04), (0.40, 0.58, 0.56, 0.0),
+                              (1.30, 0.50, 0.48, 0.0), (2.10, 0.40, 0.38, 0.02), (2.80, 0.29, 0.28, 0.04),
+                              (3.30, 0.17, 0.17, 0.06), (3.80, 0.08, 0.08, 0.06), (4.20, 0.04, 0.04, 0.06)],
                  raiz, piel, n=20, expo=2.3, cerrar=(True, True)), 2)
-    # el espinazo detras de la cabina, hasta la deriva
-    _subdiv(loft('lomo', [(-1.70, 0.10, 0.05, 0.50), (-1.10, 0.20, 0.13, 0.52), (0.10, 0.19, 0.12, 0.52),
-                          (1.40, 0.11, 0.08, 0.42), (2.40, 0.05, 0.04, 0.30)], raiz, piel, n=12, expo=2.0, cerrar=(True, True)), 1)
-    # LA BURBUJA, alta y adelantada: nariz, piloto, tomas
-    elipsoide('cabina', (0, 0.52, -2.0), (0.26, 0.31, 0.52), raiz, vidrio)
+    # el LOMO: nace alto detras de la cabina y BAJA hasta la deriva
+    dy = -0.14 if gr3 else 0.0            # el GR.3: la cabina y el lomo mas BAJOS que en el Sea Harrier
+    _subdiv(loft('lomo', [(-1.55, 0.14, 0.10, 0.66 + dy), (-1.00, 0.22, 0.16, 0.62 + dy), (0.10, 0.20, 0.13, 0.56 + dy * 0.5),
+                          (1.40, 0.12, 0.08, 0.44), (2.40, 0.05, 0.04, 0.32)], raiz, piel, n=12, expo=2.0, cerrar=(True, True)), 1)
+    # LA BURBUJA, adelantada, con el arco del parabrisas
+    elipsoide('cabina', (0, 0.78 + dy, -1.95), (0.25, 0.30, 0.55), raiz, vidrio)
+    _subdiv(loft('marco', [(-2.29, 0.21, 0.25, 0.78 + dy), (-2.24, 0.21, 0.25, 0.78 + dy)], raiz, oscuro, n=16, expo=2.0, cerrar=(False, False)), 0)
     # LAS TOMAS: dos barriles pegados al fuselaje, la boca negra y ovalada adelante
     for sg in (-1, 1):
         x0 = sg * 0.64
@@ -76,30 +91,18 @@ def harrier(T, K, atras=None):
         disco('boca_cal%d' % sg, (sg * 0.74, -0.24, 1.505), 0.16, raiz, negro)
         if atras: _fuego(raiz, K, sg * 0.74, -0.24, 1.515, 0.16)
     # LA COLA: deriva en flecha con el carenado del RWR, estabilizador tambien caido, el aguijon
-    superficie('deriva', [(0.30, 2.00, 1.50, 0.08, 0.0), (1.60, 3.05, 0.55, 0.09, 0.0)], raiz, piel, eje='y')
-    elipsoide('rwr', (0, 1.58, 3.20), (0.07, 0.07, 0.32), raiz, oscuro, seg=10, anillos=6)
+    superficie('deriva', [(0.30, 1.85, 1.70, 0.08, 0.0), (1.80, 3.15, 0.60, 0.09, 0.0)], raiz, piel, eje='y')
+    elipsoide('rwr', (0, 1.78, 3.30), (0.07, 0.07, 0.32), raiz, oscuro, seg=10, anillos=6)
     superficie('estab', [(0.0, 2.425, 0.95, 0.09, 0.11), (1.10, 3.125, 0.42, 0.10, 0.11 - 1.10 * td(13))], raiz, piel, eje='x', espejo=True)
     return raiz
 
-# ============================ EL CAZA GENERICO DEL PASILLO ============================
-# modelJet de tools/models/enemies.js: punto por punto lo contrario del Harrier — fuselaje FINO, ala al
-# medio con DIEDRO (puntas arriba), tomas chatas, UNA tobera atras. Gris neutro, sin bandera.
+# ============================ EL CAZA DEL PASILLO: EL HARRIER GR.3 ============================
+# (14/10/2026, el autor: "hacelo Harrier GR.3"). Hasta hoy era un caza GENERICO — "punto por punto lo
+# contrario del Harrier" para distinguirlos —, un avion que no existio. Ahora es el GR.3 de la RAF que
+# volo en Malvinas: la misma celula que el Sea Harrier, con la nariz larga del laser, la cabina baja y
+# el camuflaje verde y gris. Se lo distingue del Sea Harrier por el color y la trompa.
 def caza(T, K):
-    S = dict(
-        fuselaje=[(-3.95, 0.015, 0.015, 0.0), (-3.60, 0.08, 0.08, 0.0), (-3.00, 0.18, 0.18, 0.0), (-2.30, 0.28, 0.29, 0.0),
-                  (-1.50, 0.32, 0.34, 0.0), (-0.50, 0.33, 0.34, 0.0), (0.80, 0.33, 0.33, 0.0), (1.80, 0.31, 0.31, 0.0),
-                  (2.70, 0.29, 0.28, 0.0)],
-        lomo=[(-1.20, 0.08, 0.05, 0.30), (-0.70, 0.12, 0.08, 0.30), (0.60, 0.10, 0.07, 0.29), (1.80, 0.05, 0.04, 0.26)],
-        cabina=((0, 0.31, -1.65), (0.23, 0.25, 0.57)),
-        tomas=dict(x0=0.38, yc=0.02, est=[(-1.65, 0.15, 0.18), (-1.30, 0.16, 0.19), (-0.60, 0.13, 0.16), (0.10, 0.07, 0.09), (0.50, 0.03, 0.04)]),
-        ala=[(0.0, -0.25, 2.00, 0.07, 0.09), (0.45, 0.07, 1.77, 0.07, 0.09 + 0.45 * td(4)), (2.80, 1.75, 0.55, 0.09, 0.09 + 2.80 * td(4))],
-        deriva=[(0.16, 1.55, 1.30, 0.07, 0.0), (1.66, 2.55, 0.45, 0.08, 0.0)],
-        estab=[(0.0, 1.925, 0.85, 0.08, 0.09), (1.10, 2.675, 0.40, 0.09, 0.09 + 1.10 * td(4))],
-        tobera=dict(z0=2.65, z1=3.10, r=0.28, y=0.0),
-        pintura=dict(arriba=['#6a7570', '#5f6a65'], corte=0.5, escala=0.4, panza='#9aa5a0'),
-        metal='#454f4b', de_frente=True,
-    )
-    return M.jet(T, K, S)
+    return harrier(T, K, version='gr3')
 
 # ============================ KC-130 HERCULES — LA CHANCHA ============================
 # modelHercules de tools/models/enemies.js, con las mismas medidas (los motores en CH_MOT: es un

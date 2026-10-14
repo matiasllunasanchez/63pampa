@@ -1473,3 +1473,19 @@ cinco, **bandas amarillas** de identificación en las alas (tools/blender/modelo
    del número de cola?
 
 **Decisión del autor:** pendiente; el juego ya lleva las variantes.
+
+
+---
+
+## LAS ESCARAPELAS EN LAS ALAS _(14/10/2026)_
+
+**Contexto:** las ilustraciones nuevas del selector de avión llevan la escarapela celeste-blanca-celeste
+arriba de cada ala, en los seis aviones (tools/blender/modelos.py, `insignias`).
+
+**A verificar:**
+1. ¿Los A-4B/C, Dagger y Mirage de la Fuerza Aérea llevaban escarapelas arriba de las alas en 1982, o
+   solo en el fuselaje o la deriva?
+2. ¿El Super Étendard y el A-4Q de la Armada llevaban la escarapela de la Armada (¿con ancla?) y la
+   leyenda ARMADA, y dónde?
+
+**Decisión del autor:** pendiente.

@@ -107,7 +107,7 @@ HOJAS = {
                        frames=[dict(modelo='bl:restoBldg:%d' % n) for n in range(3)]),
     'resto_tent': dict(contorno=False, fw=48, fh=48, dist=12, lookY=0.25, quarter=0.35, cols=1, frames=[dict(modelo='bl:restoTent')]),
     'resto_helo': dict(contorno=False, fw=64, fh=48, dist=16.5, lookY=1.15, quarter=0.4, cols=1, frames=[dict(modelo='bl:restoHelo')]),
-    'resto_jet': dict(contorno=False, fw=64, fh=48, dist=16, lookY=0.6, quarter=0.35, cols=1, frames=[dict(modelo='bl:restoJet')]),
+    'resto_jet': dict(contorno=False, fw=64, fh=48, dist=19, lookY=0.6, quarter=0.35, cols=1, frames=[dict(modelo='bl:restoJet')]),
     'resto_lcu': dict(fw=72, fh=48, dist=17, lookY=0.5, quarter=-0.55, cols=2,
                       frames=[dict(modelo='bl:restoLcu:%d' % n) for n in range(2)]),
     'resto_balloon': dict(fw=48, fh=48, dist=13, lookY=-0.6, quarter=0.4, cols=1, frames=[dict(modelo='bl:restoBalloon')]),
@@ -168,7 +168,7 @@ HOJAS = {
     # para el cuadro cuadrado de 84 → 40.81° verticales), los MISMOS 9 alabeos (-60..+60) y los cabeceos
     # de las dos hojas del jugador en una sola: filas 0-2 = +14, 0, -14 (sheet.png) y 3-4 = +32, -32
     # (sheet2.png, las piruetas). La pose como en hornear.py: cabeceo en X y alabeo en Z, sin volteo.
-    'harrier_cola': dict(fw=84, fh=84, pos=(0, 2.4, 12.5), fov=40.8078, lookY=0.15, cols=9,
+    'harrier_cola': dict(fw=84, fh=84, pos=(0, 2.4, 12.5), fov=40.8078, lookY=0.15, cols=9, nueva=True,
                          frames=[dict(modelo='bl:harrier:atras', rots=[('X', p * R), ('Z', a * R)])
                                  for p in (14, 0, -14, 32, -32) for a in (-60, -45, -30, -15, 0, 15, 30, 45, 60)]),
     # ---------------- FASE 6: LOS SOLDADOS Y LA EYECCION (4/10/2026, tools/blender/modelos_soldados.py) ----------------
