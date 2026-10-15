@@ -28,6 +28,7 @@ M = _cargar('modelos_bl_cab', 'modelos.py')
 B = _cargar('modelos_bl_buques_cab', 'modelos_buques.py')
 caja, elipsoide, loft = M.caja, M.elipsoide, M.loft
 bloque, pieza = B.bloque, B.pieza
+hueso = _cargar('modelos_bl_tierra_cab', 'modelos_tierra.py').hueso
 OUT = os.path.join(AQUI, H.arg('--out', 'out/cabina'))
 
 # LA PROYECCION DEL JUEGO (render/ctx.js): W x H, foco F, horizonte HOR
@@ -111,6 +112,33 @@ def tecla(raiz, m, x, y, z):
     cilindro_z('base_t', raiz, m['goma'], (x, y, z), 0.009, 0.006, seg=8)
     tubo('palanquita', raiz, m['metal'], [(x, y, z + 0.003), (x, y + 0.016, z + 0.012)], 0.0028)
 
+# LAS MANOS (el autor, 15/10): guantes de cuero marron sobre la palanca y el acelerador, con la manga
+# del mameluco verde oliva que se va hacia el piloto. Puño cerrado: la palma, cuatro dedos que abrazan
+# la empuñadura por delante y el pulgar arriba.
+GUANTE, GUANTE_SOMBRA, MANGA, PUÑO = '#5a4331', '#47352a', '#5d6040', '#3e3f2b'
+
+def mano(raiz, mg, palma, dedos_c, dedos_eje, pulgar, muñeca, codo):
+    elipsoide('palma', palma[0], palma[1], raiz, mg['guante'], seg=12, anillos=8)
+    for i in range(4):
+        c = tuple(dedos_c[k] + dedos_eje[k] * (i - 1.5) for k in range(3))
+        elipsoide('dedo', c, (0.016, 0.014, 0.017), raiz, mg['guante'] if i % 2 == 0 else mg['sombra'], seg=8, anillos=6)
+    elipsoide('pulgar', pulgar[0], pulgar[1], raiz, mg['guante'], seg=8, anillos=6)
+    hueso('puño_guante', raiz, mg['puño'], muñeca, tuple(muñeca[k] + (codo[k] - muñeca[k]) * 0.12 for k in range(3)), 0.034, 0.036, seg=10)
+    hueso('manga', raiz, mg['manga'], tuple(muñeca[k] + (codo[k] - muñeca[k]) * 0.1 for k in range(3)), codo, 0.040, 0.055, seg=10)
+
+def manos(raiz, K):
+    mg = {n: K['mat_cel']('mano_' + n, c) for n, c in (('guante', GUANTE), ('sombra', GUANTE_SOMBRA), ('manga', MANGA), ('puño', PUÑO))}
+    # LA DERECHA en la palanca (empuñadura en (0, -0.40, -0.40)): dedos por delante, pulgar arriba
+    mano(raiz, mg, ((0.018, -0.41, -0.383), (0.040, 0.050, 0.035)),
+         (0.0, -0.407, -0.427), (0.0, -0.018, 0.0),
+         ((-0.006, -0.353, -0.40), (0.014, 0.022, 0.016)),
+         (0.034, -0.435, -0.355), (0.16, -0.70, 0.0))
+    # LA IZQUIERDA en el acelerador (mango en (-0.34, -0.235, -0.335)): palma arriba, dedos por delante
+    mano(raiz, mg, ((-0.34, -0.208, -0.322), (0.046, 0.030, 0.042)),
+         (-0.34, -0.236, -0.362), (0.018, 0.0, 0.0),
+         ((-0.300, -0.214, -0.330), (0.016, 0.014, 0.022)),
+         (-0.345, -0.225, -0.280), (-0.30, -0.45, 0.02))
+
 def cabina(T, K):
     raiz = bpy.data.objects.new('cabina', None)
     bpy.context.scene.collection.objects.link(raiz); raiz.parent = T
@@ -166,9 +194,10 @@ def cabina(T, K):
     bloque('mango', raiz, m['goma'], (-0.34, -0.235, -0.335), (0.07, 0.035, 0.05), bisel=0.012)
     pieza('rotulo_flap', raiz, m['amarillo'], (0.05, 0.016, 0.004), (-0.40, -0.32, -0.46))
     # LA PALANCA: el fuste gris, la empuñadura negra y el gatillo rojo
-    tubo('palanca', raiz, m['metal'], [(0, -0.95, -0.24), (0, -0.50, -0.33)], 0.018)
-    bloque('empuñadura', raiz, m['goma'], (0, -0.445, -0.335), (0.05, 0.11, 0.045), bisel=0.018)
-    pieza('gatillo', raiz, m['rojo'], (0.022, 0.03, 0.014), (0, -0.48, -0.36))
+    tubo('palanca', raiz, m['metal'], [(0, -0.95, -0.30), (0, -0.46, -0.40)], 0.018)
+    bloque('empuñadura', raiz, m['goma'], (0, -0.40, -0.40), (0.05, 0.11, 0.045), bisel=0.018)
+    pieza('gatillo', raiz, m['rojo'], (0.022, 0.03, 0.014), (0, -0.435, -0.424))
+    manos(raiz, K)
     # EL PISO entre las piernas, al fondo
     pieza('piso', raiz, m['piso'], (0.40, 0.01, 0.40), (0, -0.70, -0.45))
     return raiz
