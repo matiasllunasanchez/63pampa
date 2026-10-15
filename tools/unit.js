@@ -2367,14 +2367,15 @@ test('aguante: el sector nuevo se corre del anterior y nunca se sale de la barra
 // medirse en el horneado (src/data/anclas.js). Lo que sigue cuida el contrato: la forma del dato,
 // que las dos hojas lo tengan, y que nadie vuelva a pegar una tabla a mano al lado.
 
-test('anclas: las dos hojas traen la grilla entera medida', async () => {
+test('anclas: las hojas traen la grilla entera medida', async () => {
   const { ANCLAS } = await import('../src/data/anclas.js');
-  for (const hoja of ['base', 'ras']) {
+  // la base: 9 alabeos x 3 cabeceos; el poder (desde el 15/10) 13 x 3; la FINA, 13 x 5
+  for (const [hoja, filas, cols] of [['base', 3, 9], ['ras', 3, 13], ['fino', 5, 13]]) {
     const A = ANCLAS[hoja];
     assert.ok(A, `falta la hoja '${hoja}'`);
     for (const campo of ['tips', 'tob', 'box']) {
-      assert.equal(A[campo].length, 3, `'${hoja}.${campo}' tiene que tener 3 filas de cabeceo`);
-      for (const fila of A[campo]) assert.equal(fila.length, 9, `'${hoja}.${campo}' tiene que tener 9 alabeos`);
+      assert.equal(A[campo].length, filas, `'${hoja}.${campo}' tiene que tener ${filas} filas de cabeceo`);
+      for (const fila of A[campo]) assert.equal(fila.length, cols, `'${hoja}.${campo}' tiene que tener ${cols} alabeos`);
     }
     assert.ok(A.alto > 0.05 && A.alto < 0.95, `'${hoja}.alto' fuera de rango: ${A.alto}`);
     // la caja tiene que estar ordenada: arriba antes que abajo, o el tope de los parches se da vuelta

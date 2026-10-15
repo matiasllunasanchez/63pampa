@@ -24,6 +24,7 @@ import { NOCHE } from '../data/noche.js';
 import { drawBorde } from './borde.js';
 import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
+import { HORNO_VIEJO } from '../data/horno.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH, SHEET4_FW, SHEET4_FH, SHEET4_K } from '../data/planes.js';
 import { ANCLAS } from '../data/anclas.js';
 import { capasDe } from '../data/cargas.js';
@@ -927,8 +928,16 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   const enMortalF = run.mvMortal > 20 && run.mvMortal < 350;
   const fino = !!(FINO_ON && useSheet && imgFino && ANCLAS.fino && !rasHoja && !run.mvSteep
     && !(run.mvCobra > 0.05) && !enMortalF && run.mv !== 'derrape');
-  const NF = fino ? FINO_NF : SHEET_NF;
-  const AN = fino ? ANCLAS.fino : rasHoja ? ANCLAS.ras : ANCLAS.base;
+  // …Y LAS PIRUETAS (15/10, "pasa las 13 x 5 poses tambien a las piruetas"): la hoja 2 (las empinadas)
+  // y la 4 (cobra, mortal, derrape) se hornean tambien con 13 alabeos. Se resuelve aca si la que se va a
+  // dibujar es una de esas, porque la columna, el giro residual y las anclas dependen del ancho.
+  const hoja2D = skFino ? skFino.sheet2Img : (pl.sheet2Ok ? pl.sheet2Img : null);
+  const hoja4D = skFino ? skFino.sheet4Img : (pl.sheet4Ok ? pl.sheet4Img : null);
+  const pir13 = !HORNO_VIEJO && useSheet && (((enMortalF || run.mvCobra > 0.05) && !!(hoja4D || hoja2D)) || !!(run.mvSteep && hoja2D));
+  const ancho13 = fino || pir13;
+  // (la hoja 3, la del poder RASANTE, tambien va con 13 alabeos desde el 15/10; sus tres cabeceos, los de siempre)
+  const NF = ancho13 || (rasHoja && !HORNO_VIEJO) ? FINO_NF : SHEET_NF;
+  const AN = ancho13 ? ANCLAS.fino : rasHoja ? ANCLAS.ras : ANCLAS.base;
   // EL GIRO TOTAL DEL SPRITE, resuelto en UN SOLO LUGAR.
   //
   // Antes cada rama llamaba a `ctx.rotate` por su cuenta y el angulo se perdia ahi adentro. La
@@ -946,13 +955,13 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   if (filaSost === 1) { if (pcPose > FILA_ENTRA) filaSost = 0; else if (pcPose < -FILA_ENTRA) filaSost = 2; }
   else if (filaSost === 0 ? pcPose < FILA_SALE : pcPose > -FILA_SALE) filaSost = Math.abs(pcPose) > FILA_ENTRA ? (pcPose > 0 ? 0 : 2) : 1;
   const ahoraS = performance.now() / 1000;
-  if (fino) {
+  if (ancho13) {
     // el angulo que pide el cabeceo, y la fila mas cercana; se cambia recien pasado 1/4 de paso de mas
     const ang = 14 * Math.max(-1, Math.min(1, pcPose / FINO_TOPE));
     if (Math.abs(ang - FINO_GRADOS[finoFila]) > 3.5 + 1.75) finoFila = FINO_GRADOS.reduce((m, g, i) => Math.abs(g - ang) < Math.abs(FINO_GRADOS[m] - ang) ? i : m, 0);
     if (finoFila !== finoPrev) { finoAnt = finoPrev; finoCambioT = ahoraS; finoPrev = finoFila; }
   }
-  const rowPose = fino ? finoFila : filaSost;
+  const rowPose = ancho13 ? finoFila : filaSost;
   if (filaSost !== filaPrevCuadro) { filaAnt = filaPrevCuadro; filaCambioT = ahoraS; filaPrevCuadro = filaSost; }
   const fundeFila = fino ? (finoCambioT >= 0 ? 1 - (ahoraS - finoCambioT) / FILA_FUNDE : 0)
     : filaCambioT >= 0 ? 1 - (ahoraS - filaCambioT) / FILA_FUNDE : 0;   // 1 → 0
@@ -1069,7 +1078,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
     // EL FUNDIDO DE FILA: el cabeceo de recien se apaga ENCIMA del nuevo (solo entre filas de la
     // misma hoja; las poses de pirueta y la cobra cambian de hoja y ahi manda la maniobra)
-    if (fundeFila > 0 && !hoja4 && row === rowPose && filaFundida !== row) {
+    if (fundeFila > 0 && !hoja4 && img !== hoja2 && row === rowPose && filaFundida !== row) {
       const a0 = ctx.globalAlpha;
       ctx.globalAlpha = a0 * fundeFila;
       ctx.drawImage(img, sx4, filaFundida * FH4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);

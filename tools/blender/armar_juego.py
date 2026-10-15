@@ -59,7 +59,7 @@ VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     # se arma donde se horneo: sheet5.png, sus capas de carga, su tren (tren5.png) y sus anclas.
     'fino': (5, 84, '5', True),
 }
-COLS_DE = {'fino': 13}               # las demas vistas: 9 columnas
+COLS_DE = {'fino': 13, 'empinada': 13, 'cobra': 13, 'ras': 13}   # (piruetas y poder desde el 15/10); la base: 9
 # `VISTAS=cobra .venv-art/bin/python3 armar_juego.py`: arma SOLO esas vistas (las anclas de las otras
 # se leen de lo que ya escribio la ultima armada completa — ver escribir_anclas)
 if os.environ.get('VISTAS'): VISTAS = {k: v for k, v in VISTAS.items() if k in os.environ['VISTAS'].split(',')}

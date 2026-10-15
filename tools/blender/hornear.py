@@ -60,6 +60,10 @@ VISTA = arg('--vista', 'base')
 RAS_YAW, RAS_ELEV, RAS_PITCH, RAS_ROLL = 35.5, -10, 20, -8
 if VISTA == 'empinada':
     PITCHES = [32, -32]            # la HOJA 2 (sheet2.png): los cabeceos de las piruetas
+# LAS PIRUETAS CON 13 ALABEOS (15/10): la hoja 2 y la 4 (cobra, mortal, derrape), como la fina; y la 3
+# (el poder RASANTE), con sus tres cabeceos de siempre
+if VISTA in ('empinada', 'cobra', 'ras'):
+    ANGLES = list(range(-60, 61, 10))
 # `--vista fino` (14/10, el autor: "rehornear mas secuencias del avion para que se vea mas fluido"): la
 # hoja base con MAS POSES — un alabeo cada 10° (13 columnas, contra 9 de 15°) y cinco cabeceos en el
 # mismo rango (±14° de a 7°, contra tres). Misma camara y mismo cuadro: sheet5.png.
