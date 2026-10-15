@@ -232,10 +232,19 @@ def wessex(T, K, ph='0'):
 def seaLynx(T, K, ph='0'):
     ph = int(ph)
     raiz = _raiz(T, 'Sea Lynx')
+    # (15/10, "mas fiel") el PARABRISAS partido por sus parantes, las ventanas grandes de las PUERTAS de
+    # la cabina, el RADOMO del Sea Spray bajo la trompa, y la ventana de la cabina de carga
+    OSC_L = '#262d36'
     piel = mat_pintura(K, 'pintura', dict(arriba=['#4d6280'], panza='#3e5069',
-                                          marcas=[dict(z=(-2.00, -1.35), y=(-0.05, 0.62), color=CANOPY, arriba=False),
-                                                  dict(z=(-0.75, -0.25), y=(0.05, 0.45), x=(0.55, 1.0), color=VIDRIO_OSC, arriba=False)]))
-    oscuro = K['mat_cel']('oscuro', '#262d36')
+                                          marcas=[dict(z=(-2.00, -1.35), y=(0.02, 0.62), color=CANOPY, arriba=False),
+                                                  dict(z=(-1.35, -0.85), y=(0.05, 0.55), x=(0.50, 1.0), color=CANOPY, arriba=False),
+                                                  dict(z=(-0.70, -0.25), y=(0.05, 0.45), x=(0.55, 1.0), color=VIDRIO_OSC, arriba=False),
+                                                  dict(z=(-2.10, -1.70), y=(-0.60, -0.08), color='#36475e', arriba=False),
+                                                  dict(z=(-2.00, -0.85), y=(0.02, 0.62), x=(-0.025, 0.025), sim=False, color=OSC_L, arriba=False),
+                                                  dict(z=(-2.00, -1.35), y=(0.02, 0.62), x=(0.42, 0.47), color=OSC_L, arriba=False),
+                                                  dict(z=(-1.38, -1.32), y=(0.02, 0.62), x=(0.45, 1.0), color=OSC_L, arriba=False),
+                                                  dict(z=(-2.00, -0.85), y=(-0.02, 0.03), color=OSC_L, arriba=False)]))
+    oscuro = K['mat_cel']('oscuro', OSC_L)
     _subdiv(loft('fuselaje', [(-2.08, 0.08, 0.08, -0.32), (-1.88, 0.36, 0.30, -0.26), (-1.50, 0.58, 0.52, -0.12),
                               (-1.00, 0.72, 0.72, 0.03), (-0.30, 0.75, 0.76, 0.07), (0.40, 0.70, 0.70, 0.09),
                               (0.90, 0.50, 0.48, 0.22), (1.40, 0.30, 0.28, 0.35), (2.45, 0.20, 0.18, 0.40),
@@ -243,13 +252,18 @@ def seaLynx(T, K, ph='0'):
     _subdiv(loft('motores', [(-0.65, 0.05, 0.05, 0.74), (-0.45, 0.42, 0.20, 0.80), (0.40, 0.40, 0.20, 0.80),
                              (0.75, 0.06, 0.06, 0.74)], raiz, piel, n=14, expo=2.4, cerrar=(True, True)), 1)
     deriva(raiz, piel, 0.35, 1.50, 2.70, 0.70, 2.95, 0.42, 0.14)
-    superficie('estab', [(0.0, 2.95, 0.36, 0.12, 1.22), (0.55, 3.02, 0.26, 0.12, 1.22)], raiz, piel, eje='x', espejo=True)
+    # el estabilizador va de UN solo lado, a estribor (el rotor de cola, a babor)
+    superficie('estab', [(0.10, 2.95, 0.36, 0.12, 1.22), (0.65, 3.02, 0.26, 0.12, 1.22)], raiz, piel, eje='x')
     rotor_cola(raiz, K, 0.48, 4, 0.15, 1.05, 3.10, ph)
     rueda(raiz, K, 0, -0.78, -1.25, 0.15, 0.11)
     _pieza('pata_nariz', raiz, oscuro, (0.06, 0.40, 0.06), (0, -0.55, -1.25))
     for sg in (-1, 1):
-        rueda(raiz, K, sg * 0.72, -0.78, 0.25, 0.19, 0.13)
-        _pieza('pata', raiz, oscuro, (0.06, 0.35, 0.30), (sg * 0.66, -0.55, 0.25))
+        # el tren principal en sus MUÑONES, abiertos hacia afuera, y los escapes de los motores arriba
+        _subdiv(loft('munon', [(-0.05, 0.05, 0.05, -0.50), (0.10, 0.16, 0.12, -0.52), (0.45, 0.16, 0.12, -0.52), (0.60, 0.05, 0.05, -0.50)],
+                     raiz, piel, n=10, expo=2.4, cerrar=(True, True), x0=sg * 0.78), 1)
+        rueda(raiz, K, sg * 0.86, -0.78, 0.25, 0.19, 0.13)
+        _pieza('pata', raiz, oscuro, (0.06, 0.30, 0.06), (sg * 0.84, -0.62, 0.25), (0, 0, sg * 0.30))
+        elipsoide('escape', (sg * 0.30, 0.86, 0.62), (0.08, 0.07, 0.14), raiz, oscuro, seg=10, anillos=6)
     escarapela(raiz, K, 0.745, 0.15, 0.10, 0.23)
     rotor(raiz, K, 2.03, 4, 1.2, -0.3, ph, cuerda=0.15)
     return raiz
