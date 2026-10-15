@@ -3229,7 +3229,7 @@ export function drawVeil(d) {
 // MARCADOR de objetivo: una cuña roja sobre el horizonte que apunta a la columna del buque, para
 // saber "hacia donde vamos" desde el arranque (mucho antes de que la barcaza asome). Si el objetivo
 // quedo fuera de pantalla por el paneo, se pega al borde apuntando hacia el lado correcto.
-export function drawObjectiveMarker(objectiveDist) {
+export function drawObjectiveMarker(objectiveDist, info) {
   if (objectiveDist <= 0) return;
   // EL PULSO dibuja el MISMO buque que venia creciendo en el pasillo: la prueba pasa delante de
   // el, sin cambiar de escena. Si este estado no estuviera, el climax se quedaria sin blanco.
@@ -3260,6 +3260,9 @@ export function drawObjectiveMarker(objectiveDist) {
     ctx.save(); ctx.globalAlpha = (1 - k) * 0.9; ctx.strokeStyle = '#bfe2ff'; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.ellipse(mx, HOR - 1, 3 + k * 16, (3 + k * 16) * 0.42, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
+  // CON RADAR, EL CONTACTO SE ROTULA (15/10, el autor: "el radar debe marcarme a distancia donde esta el
+  // enemigo con flechitas azules y nombres arriba, en este caso el del objetivo final")
+  if (conRadar) { ctx.restore(); marcaRadar(mx, off, info && info.nombre, info && info.km != null ? info.km + ' KM' : null, fade); return; }
   if (off === 0) {
     const bob = Math.sin(run.t * 2) * 1.2, ty = HOR - 14 + bob;
     ctx.beginPath();                                    // cuña apuntando hacia abajo, al horizonte
@@ -3275,6 +3278,45 @@ export function drawObjectiveMarker(objectiveDist) {
 }
 
 
+
+/** UN CONTACTO DEL RADAR PROPIO: la flechita azul que apunta al horizonte (o al borde, si quedo afuera)
+ *  y arriba el NOMBRE, con la distancia debajo. Sirve para cualquier contacto — hoy el blanco final. */
+const RADAR_AZ = '#5ab4ff', RADAR_AZ_CLARO = '#d6ecff', RADAR_AZ_BORDE = '#08162b';
+function marcaRadar(mx, off, nombre, sub, a) {
+  const late = Math.floor(performance.now() / 300) % 2 === 0;
+  ctx.save();
+  ctx.globalAlpha = a;
+  const bob = Math.round(Math.sin(run.t * 2) * 1.2);
+  let lx = mx, ly;
+  ctx.lineJoin = 'round';
+  if (off === 0) {
+    const ty = HOR - 13 + bob;                          // la punta queda a 3 del horizonte
+    ctx.beginPath(); ctx.moveTo(mx, ty + 9); ctx.lineTo(mx - 5, ty + 2); ctx.lineTo(mx - 2, ty + 2); ctx.lineTo(mx - 2, ty - 2);
+    ctx.lineTo(mx + 2, ty - 2); ctx.lineTo(mx + 2, ty + 2); ctx.lineTo(mx + 5, ty + 2); ctx.closePath();
+    ctx.strokeStyle = RADAR_AZ_BORDE; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = late ? RADAR_AZ : '#3f8fe0'; ctx.fill();
+    ly = ty - 5;
+  } else {                                              // pegada al borde, apuntando hacia el blanco
+    const ay = HOR - 9 + bob, dir = off;
+    ctx.beginPath(); ctx.moveTo(mx + dir * 6, ay); ctx.lineTo(mx - dir * 3, ay - 6); ctx.lineTo(mx - dir * 3, ay + 6); ctx.closePath();
+    ctx.strokeStyle = RADAR_AZ_BORDE; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = RADAR_AZ; ctx.fill();
+    lx = mx - dir * 4; ly = ay - 9;
+  }
+  // EL NOMBRE y la distancia, con contorno oscuro: se leen sobre el cielo claro y sobre la bruma
+  ctx.textAlign = off < 0 ? 'left' : off > 0 ? 'right' : 'center';
+  const tx = off < 0 ? 2 : off > 0 ? W - 2 : lx;
+  ctx.lineWidth = 2.5; ctx.strokeStyle = RADAR_AZ_BORDE;
+  if (nombre) {
+    ctx.font = 'bold 7px monospace';
+    ctx.strokeText(nombre, tx, ly - (sub ? 7 : 0)); ctx.fillStyle = RADAR_AZ_CLARO; ctx.fillText(nombre, tx, ly - (sub ? 7 : 0));
+  }
+  if (sub) {
+    ctx.font = '6px monospace';
+    ctx.strokeText(sub, tx, ly); ctx.fillStyle = RADAR_AZ; ctx.fillText(sub, tx, ly);
+  }
+  ctx.restore();
+}
 
 // ---------- OVERLAY DE HITBOXES (cfg.hitboxes, menu [M]) ----------
 // Pinta en VERDE FLUOR la zona que realmente colisiona. Las medidas NO se copian: salen de

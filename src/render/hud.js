@@ -1811,12 +1811,14 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   // alarma: una vez que te estan buscando, en que parte del mapa esta el horizonte de radar dejo
   // de ser la pregunta. Por eso se va con la misma cortina con la que ellas entran (`alertaK`) y
   // no hay un cuadro en que se pisen.
+  // LA PLACA SE ESTIRA HASTA QUE ENTRE EL TEXTO (15/10, el autor: "este texto se ve chico" — no entraba:
+  // tomaba el ancho del indicativo, y FUERA DE RADAR le comia la letra de cada punta). El borde verde de
+  // la zona usa este MISMO ancho (`wTot`), o la placa asomaba por fuera del marco.
+  ctx.font = avisoFont(9);
+  const wz = Math.max(w - RADAR_W + 1, ...['hud_detectando', 'hud_fuera_radar', 'hud_zona_radar']
+    .map(k => Math.ceil(ctx.measureText(T(k)).width) + 10));
+  const wTot = RADAR_W - 1 + wz;
   if (alertaK < 1) {
-    // LA PLACA SE ESTIRA HASTA QUE ENTRE EL TEXTO (15/10, el autor: "este texto se ve chico" — no entraba:
-    // tomaba el ancho del indicativo, y FUERA DE RADAR le comia la letra de cada punta)
-    ctx.font = avisoFont(9);
-    const wz = Math.max(w - RADAR_W + 1, ...['hud_detectando', 'hud_fuera_radar', 'hud_zona_radar']
-      .map(k => Math.ceil(ctx.measureText(T(k)).width) + 10));
     plate(x + RADAR_W - 1, y, wz, ALERTA_H);
     // TRES COSAS QUE PUEDE DECIR, y las tres son el mismo dato en tres momentos:
     //   FUERA DE RADAR   gris tranquilo: no hay sistema. Es informacion, no alarma.
@@ -1843,7 +1845,8 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   }
   if (alertaK > 0) {
     // (8/10, el autor: "achica el ancho de las alarmas, que tengan el espacio suficiente")
-    const wa = Math.min(w, ANCHO_ALARMAS);
+    // (y SIEMPRE ese ancho, 15/10: con `min(w, …)` un indicativo corto —ESPOLA— la achicaba y cortaba la cuarta)
+    const wa = ANCHO_ALARMAS;
     // entra rapido y frena al llegar, recortada al canto del radar: sale DE ATRAS de el
     const e = 1 - Math.pow(1 - alertaK, 3), dx = Math.round(-(1 - e) * (wa - RADAR_W + 1));
     ctx.save(); ctx.beginPath(); ctx.rect(x + RADAR_W - 1, y - 3, W, ALERTA_H + 6); ctx.clip();
@@ -1865,7 +1868,7 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   // apagado en el bajo. En la zona a secas queda fijo — lo que parpadea es lo que esta pasando.
   if (!fuera && alertaK < 1 && (!detectando || latido)) {
     ctx.save(); ctx.globalAlpha = 1 - alertaK;
-    bordePlaca(x, y, w, ALERTA_H, detectando ? RADAR_VERDE.punta : RADAR_VERDE.eje);
+    bordePlaca(x, y, wTot, ALERTA_H, detectando ? RADAR_VERDE.punta : RADAR_VERDE.eje);
     ctx.restore();
   }
 }

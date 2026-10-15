@@ -5348,7 +5348,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       drawBarreras();   // cruza el pasillo entero: va DESPUES de las laderas y antes de lo que vuela
       // cuña roja en el horizonte: hacia donde vamos. En LA SUELTA no: el buque ya esta en el mundo y
       // lleva su propia flecha de cerca — dos marcas para lo mismo eran "muchas flechas" (23/9).
-      if (runClimax() !== 'suelta') world.drawObjectiveMarker(objectiveDist);
+      if (runClimax() !== 'suelta') world.drawObjectiveMarker(objectiveDist, { nombre: objectiveShip, km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null });
       world.drawWake();
       // EL REFLEJO DE LA LUNA, con el agua y debajo de lo que vuela (render/noche.js, 4/10)
       drawReflejoLuna(nocheDe(cfg.sky), solPant);
@@ -6612,6 +6612,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // guardian del catalogo (PR4). Es la misma puerta que aprieta el jugador —prbConfirm—, no un
     // atajo: si el menu se rompe, la sonda se rompe con el.
     // SONDA del radar propio (15/10): el store y lo que resolveria el orquestador
+    if (typeof window !== 'undefined') window.__rpset = o => { Object.assign(radarP, o || {}); return window.__rpdbg(); };
     if (typeof window !== 'undefined') window.__rpdbg = () => JSON.stringify({ tiene: radarP.tiene, on: radarP.on,
       carga: +radarP.carga.toFixed(2), ve: radarP.ve, marca: +radarP.marcaT.toFixed(1), ondas: radarP.ondas.length,
       alt: +plane.y.toFixed(1), km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null, det: +run.detection.toFixed(2), st: S.state, avion: PLANES[selPlane].key });
