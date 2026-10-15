@@ -553,6 +553,19 @@ referencia: una pintura de un **Huey** con el piloto colgado sobre el mar.
 **Otro avión nuevo, otra mecánica:** se vuela un helicóptero, y el objetivo es llegar a tiempo y
 traerlo vivo. Es pariente del rescate del Belgrano (S-01).
 
+**🔜 Futuro (autor, 15/10):** *"me gustaria hacer pero hay que armar fisica para el soldado que esta
+agarrado, armar un helicoptero, armar un movimiento diferente, quiza esa mision deberia ser del estilo
+'arena' para llegar a la costa, hay que ver."* Queda para después de la demo. Lo que pide:
+- **un vehículo nuevo**: el UH-1H del Ejército, horneado como los aviones (hojas de vuelo y de
+  selector), con su propio vuelo — un helicóptero no se maneja como un avión: se queda quieto, sube y
+  baja sin avanzar, y se inclina para ir;
+- **la física del colgado**: un cuerpo de péndulo atado al patín, que se balancea con la inercia
+  del helicóptero y se suelta si el tirón pasa un límite (se frena y se gira con cuidado, o se pierde);
+- **la forma de la misión**: probablemente **vuelo libre tipo ARENA** (ir, encontrarlo en el agua,
+  levantarlo y llevarlo a la costa), no el pasillo — está por decidir;
+- **los datos**: el rescatado de la Ardent fue el piloto del 3-A-312; el helicóptero, un UH-1H del
+  Ejército (Boletín del Centro Naval 817). Sin nombres en pantalla.
+
 ## S-12 · Tres Dagger sobre Puerto San Carlos
 
 **Estado:** 💡 **idea** · *Pedida por el autor el 10/10/2026* · **se desbloquea después de M6** (24 de mayo)
