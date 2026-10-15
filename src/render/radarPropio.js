@@ -67,3 +67,29 @@ export function drawRadarOndas() {
     ctx.restore();
   }
 }
+
+/** LOS HARRIER EN EL RADAR (15/10): la misma flechita azul de la marca del blanco, encima de cada caza que
+ *  tenes adelante, con SEA HARRIER arriba. `cazas` es el snapshot de la flota que pasa el orquestador
+ *  (el render no importa sistemas): x, y, z en el marco de la camara de persecucion (`zv`, como
+ *  render/caza.js), y `enCola` para los que ya te pasaron. */
+const AZ = '#5ab4ff', AZ_CLARO = '#d6ecff', AZ_BORDE = '#08162b';
+export function drawRadarCazas(cazas, zv) {
+  if (!radarP.tiene || radarP.aereoT <= 0 || !cazas || !cazas.length) return;
+  const a = Math.min(1, radarP.aereoT / 2);
+  const late = Math.floor(performance.now() / 300) % 2 === 0;
+  ctx.save();
+  ctx.globalAlpha = a; ctx.lineJoin = 'round'; ctx.textAlign = 'center';
+  for (const h of cazas) {
+    if (h.enCola || h.z <= PZ + 2) continue;
+    const s = proj(h.x, h.y, zv(h.z));
+    if (!(s.k > 0)) continue;
+    const x = Math.round(s.x), punta = Math.round(s.y - Math.max(6, 4 * s.k) - 3);
+    ctx.beginPath(); ctx.moveTo(x, punta); ctx.lineTo(x - 4, punta - 5); ctx.lineTo(x - 1.5, punta - 5); ctx.lineTo(x - 1.5, punta - 8);
+    ctx.lineTo(x + 1.5, punta - 8); ctx.lineTo(x + 1.5, punta - 5); ctx.lineTo(x + 4, punta - 5); ctx.closePath();
+    ctx.strokeStyle = AZ_BORDE; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = late ? AZ : '#3f8fe0'; ctx.fill();
+    ctx.font = 'bold 6px monospace'; ctx.lineWidth = 2.5;
+    ctx.strokeText('SEA HARRIER', x, punta - 10); ctx.fillStyle = AZ_CLARO; ctx.fillText('SEA HARRIER', x, punta - 10);
+  }
+  ctx.restore();
+}

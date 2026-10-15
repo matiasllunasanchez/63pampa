@@ -20,8 +20,8 @@ export function toggle() {
 }
 
 /** Un cuadro. `e` = { enVuelo, alt, aTiro } — `aTiro` = el blanco dentro del alcance (lo resuelve el
- *  orquestador con la ruta o con los metros). Devuelve { sig }: 'eco' el cuadro en que una onda
- *  marca el blanco, 'sinCarga' cuando se apaga solo, 'bajo' (una vez por prendida) si barre al ras
+ *  orquestador con la ruta o con los metros) y `aereos` = cuantos Harrier hay adelante. Devuelve { sig }:
+ *  'eco' el cuadro en que una onda marca el blanco, 'ecoAereo' el que marca los Harrier, 'sinCarga' cuando se apaga solo, 'bajo' (una vez por prendida) si barre al ras
  *  con el blanco a tiro pero el horizonte lo tapa. */
 let dijoBajo = false;
 export function tick(dt, e) {
@@ -30,6 +30,7 @@ export function tick(dt, e) {
   for (const o of radarP.ondas) o.t += dt;
   while (radarP.ondas.length && radarP.ondas[0].t > R.ONDA_VIDA) radarP.ondas.shift();
   if (radarP.marcaT > 0) radarP.marcaT = Math.max(0, radarP.marcaT - dt);
+  if (radarP.aereoT > 0) radarP.aereoT = Math.max(0, radarP.aereoT - dt);
   if (radarP.ecoT >= 0) radarP.ecoT += dt;
   if (!e.enVuelo) { radarP.on = false; radarP.ve = false; return out; }
   if (!radarP.on) { radarP.carga = Math.min(1, radarP.carga + R.RECARGA * dt); radarP.ve = false; dijoBajo = false; return out; }
@@ -44,6 +45,9 @@ export function tick(dt, e) {
     // render al llegar la onda al horizonte, que es donde esta el buque lejano)
     if (radarP.ve) { const nuevo = radarP.marcaT <= 0; radarP.marcaT = R.MARCA_T; radarP.ecoT = 0; if (nuevo) out.sig = 'eco'; }
     else if (e.aTiro && !dijoBajo) { dijoBajo = true; out.sig = 'bajo'; }
+    // LOS CONTACTOS AEREOS (15/10, el autor: "que marque tambien los Harrier"): los que tenes ADELANTE —el
+    // Agave mira hacia la nariz—, y a cualquier altura: en el aire no los tapa el horizonte
+    if (e.aereos > 0) { const nuevo = radarP.aereoT <= 0; radarP.aereoT = R.MARCA_T; if (nuevo && !out.sig) out.sig = 'ecoAereo'; }
   }
   return out;
 }

@@ -20,7 +20,7 @@ import { CABINA } from '../core/cabina.js';
 // EN PRIMERA PERSONA (core/cabina.js) el ojo se mete en el avion, pero LA COLA sigue pensada con el
 // avion a 14 m de la camara (CAZA_Z_COLA = 6 es "8 m detras tuyo"): se dibuja corrida lo que se
 // acerco el ojo, asi el que te persigue queda DETRAS (fuera del cuadro) y no adelante del parabrisas.
-const zv = z => z - (CABINA.PZ_AFUERA - PZ);
+export const zv = z => z - (CABINA.PZ_AFUERA - PZ);   // (lo usa tambien la marca del radar propio)
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import * as enemyArt from './enemies.js';

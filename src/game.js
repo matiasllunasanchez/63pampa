@@ -33,7 +33,7 @@ import * as rasante from './systems/rasante.js';
 import * as radarSys from './systems/radarPropio.js';   // el radar propio del Super Etendard (15/10)
 import { radarP } from './core/radarPropio.js';
 import { RADAR_PROPIO } from './data/radar_propio.js';
-import { drawRadarOndas } from './render/radarPropio.js';
+import { drawRadarOndas, drawRadarCazas } from './render/radarPropio.js';
 import * as chancha from './systems/chancha.js';
 import { desgaste, misionCumplida, resetDesgaste } from './core/desgaste.js';
 // ---- GANCHOS DE MOTOR (docs/historia/PLAN_4_PENDIENTES.md) ----------------------------------
@@ -98,7 +98,7 @@ import { spawnSystem } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
 import * as caza from './systems/caza.js';
 import * as persec from './systems/persec.js';
-import { drawCaza } from './render/caza.js';
+import { drawCaza, zv as zvCaza } from './render/caza.js';
 import { drawPersec, drawCinta, cintaRect } from './render/persec.js';
 import { drawChancha } from './render/chancha.js';
 import { inp, mouse, pointer, flags, padInfo, initInput } from './core/input.js';
@@ -5651,6 +5651,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // cruzandote. Va DESPUES del sprite porque efectivamente esta entre vos y la camara:
       // dibujarlo antes lo dejaria por detras del ala.
       drawCaza(false);
+      // LOS HARRIER MARCADOS POR EL RADAR PROPIO (15/10): la flechita azul y el nombre, encima de todo el mundo
+      if (S.state === 'play') drawRadarCazas(caza.snapshot(), zvCaza);
       // …Y EL SIDEWINDER QUE TE TIRO, por la misma razon: viene de atras, entre la camara y vos,
       // y se te pone en la cola por ENCIMA del avion (render/aim9.js)
       for (const m of missiles) if (m.tipo === 'aim9' && m.z < PZ) drawAim9(m);
@@ -6614,7 +6616,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // SONDA del radar propio (15/10): el store y lo que resolveria el orquestador
     if (typeof window !== 'undefined') window.__rpset = o => { Object.assign(radarP, o || {}); return window.__rpdbg(); };
     if (typeof window !== 'undefined') window.__rpdbg = () => JSON.stringify({ tiene: radarP.tiene, on: radarP.on,
-      carga: +radarP.carga.toFixed(2), ve: radarP.ve, marca: +radarP.marcaT.toFixed(1), ondas: radarP.ondas.length,
+      carga: +radarP.carga.toFixed(2), ve: radarP.ve, marca: +radarP.marcaT.toFixed(1), aereo: +radarP.aereoT.toFixed(1), ondas: radarP.ondas.length,
       alt: +plane.y.toFixed(1), km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null, det: +run.detection.toFixed(2), st: S.state, avion: PLANES[selPlane].key });
     if (typeof window !== 'undefined') window.__prb = id => {
       if (id === undefined) return JSON.stringify(prbRows().filter(r => r.id && !r.back).map(r => r.id));
@@ -7216,9 +7218,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL RADAR PROPIO (15/10, data/radar_propio.js): "a tiro" lo resuelve el orquestador —con la ruta en
       // km o con los metros de pasillo— y los avisos los pone el, como con cualquier otra señal
       { const rp = radarSys.tick(dt, { enVuelo: S.state === 'play' && !cfg.devcam, alt: plane.y,
+          aereos: caza.snapshot().filter(h => !h.enCola && h.z > PZ + 2).length,
           aTiro: objectiveDist > 0 && run.dist < objectiveDist
             && (rutaSys.hay() ? rutaSys.alBlanco() <= RADAR_PROPIO.ALCANCE_KM : objectiveDist - run.dist <= RADAR_PROPIO.ALCANCE_M) });
         if (rp.sig === 'eco') { beep(1250, 0.08, 'sine', 0.05, 300); cartel(T('radar_eco'), '#5ab4ff', null, { alerta: true }); }
+        else if (rp.sig === 'ecoAereo') { beep(1100, 0.08, 'sine', 0.05, 250); cartel(T('radar_eco_aereo'), '#5ab4ff', null, { alerta: true }); }
         else if (rp.sig === 'sinCarga') { beep(220, 0.1, 'square', 0.04, -60); cartel(T('radar_sin'), P.dim); }
         else if (rp.sig === 'bajo') cartel(T('radar_bajo'), '#5ab4ff', T('radar_bajo_sub')); }
       if (ch.carga > 0) run.fuel = Math.min(100, run.fuel + ch.carga);
