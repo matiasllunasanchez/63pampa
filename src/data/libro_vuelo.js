@@ -73,7 +73,11 @@ function fases({ lejos = MAR, cerca = DEFENSA, blanco = {}, vuelta = VUELTA_TRAN
   // ancla al comienzo del descenso). Con 16% pasaba de largo (autor, 12/10).
   const ida = [
     { tipo: 'transito', hasta: 0.12, solo: MAR, bombs: 0, bidones: false },
-    { tipo: 'transito', hasta: 0.25, solo: MAR, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: 0.19, solo: MAR, bombs: 0, bidones: false },
+    // EL SILENCIO DE RADIO (autor, 14/10): unos km antes de la linea del radar (~110 reales, 7-8 s de
+    // vuelo: la linea es larga y tiene que poder leerse entera ANTES de entrar; al 0.22 eran 4 s) el amigo lo
+    // dice. Si ya no queda ningun amigo en el aire, la linea no suena (ver radioTramo en game.js).
+    { tipo: 'transito', hasta: 0.25, solo: MAR, bombs: 0, bidones: false, radio: 'libro_radar_silencio' },
     { tipo: 'descenso', hasta: 0.30, solo: MAR, bombs: 0, bidones: false },
     { tipo: 'rasante', hasta: 0.55, solo: lejos, bombs: 0, bidones: false },
     { tipo: 'rasante', hasta: 0.82, solo: cerca, bombs: 0, bidones: false },

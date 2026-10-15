@@ -577,6 +577,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  lineas y leerla ES la escena. 58 es la franja que ya usa el aviso de la Chancha lista:
      *  debajo del rotulo del objetivo y arriba del horizonte. */
     function radioTramo(key) {
+      // EL PILOTO AMIGO (PATRIA 2, el libro de vuelo) habla SOLO SI HAY AMIGO: volando solo —se cayeron
+      // los demas— esa voz no existe y la linea se calla (autor, 14/10: "siempre que haya al menos uno").
+      if (String(T(key)).startsWith('PATRIA 2:') && run.lives < 2) return;
       beep(430, 0.06, 'square', 0.04);
       decirRadio(T(key), n => CARA_DE_RADIO[n] || null);
     }

@@ -257,8 +257,11 @@ export const STRINGS = {
     libroPie: 'Volaron {n} aviones. El escuadrón de la salida es la escuadrilla real.',
     // LAS CITAS REALES de las salidas: van palabra por palabra (PROMPT_DEMO_MISIONES_REALES.md). En
     // ingles tambien: son lo que se dijo, y se dijo en castellano.
-    libro_r3_harrier: 'NUMERAL: ¡HARRIER! ¡HARRIER!',
-    libro_r4_buque: 'NUMERAL: ¡BUQUE ENEMIGO A LAS TRES!',
+    // EL PILOTO AMIGO es PATRIA 2 (autor, 14/10), con silueta hasta que tenga retrato.
+    libro_r3_harrier: 'PATRIA 2: ¡HARRIER! ¡HARRIER!',
+    libro_r4_buque: 'PATRIA 2: ¡BUQUE ENEMIGO A LAS TRES!',
+    // (texto del autor, 14/10)
+    libro_radar_silencio: 'PATRIA 2: ESTAMOS POR ENTRAR A LA ZONA DE RADAR. DESDE AHORA, SILENCIO DE RADIO. EVITEMOS EMITIR SEÑALES ELECTROMAGNÉTICAS Y AVIVAR RADARES.',
     thr: 'GAS', thr_dead: 'SIN GAS',
     hud_vida: 'SALUD',
     hud_squad: 'ESCUADRON',
@@ -1411,8 +1414,9 @@ export const STRINGS = {
     libroHora_lanzamiento: 'launch', libroHora_despegue: 'take-off', libroHora_ataque: 'attack',
     libroElegir: 'CHOOSE YOUR AIRCRAFT',
     libroPie: '{n} aircraft flew. The sortie squadron is the real flight.',
-    libro_r3_harrier: 'NUMERAL: ¡HARRIER! ¡HARRIER!',
-    libro_r4_buque: 'NUMERAL: ¡BUQUE ENEMIGO A LAS TRES!',
+    libro_r3_harrier: 'PATRIA 2: ¡HARRIER! ¡HARRIER!',
+    libro_r4_buque: 'PATRIA 2: ¡BUQUE ENEMIGO A LAS TRES!',
+    libro_radar_silencio: 'PATRIA 2: WE ARE ABOUT TO ENTER RADAR COVERAGE. RADIO SILENCE FROM NOW ON. NO EMISSIONS: LET\'S NOT WAKE UP THEIR RADARS.',
     thr: 'THR', thr_dead: 'NO THR',
     hud_vida: 'HEALTH',
     hud_squad: 'SQUADRON',
