@@ -16,6 +16,11 @@
 // linea: los dos pueden aparecer en el mismo cuadro y se distinguen sin leyenda.
 
 import { ctx, px, PZ } from './ctx.js';
+import { CABINA } from '../core/cabina.js';
+// EN PRIMERA PERSONA (core/cabina.js) el ojo se mete en el avion, pero LA COLA sigue pensada con el
+// avion a 14 m de la camara (CAZA_Z_COLA = 6 es "8 m detras tuyo"): se dibuja corrida lo que se
+// acerco el ojo, asi el que te persigue queda DETRAS (fuera del cuadro) y no adelante del parabrisas.
+const zv = z => z - (CABINA.PZ_AFUERA - PZ);
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import * as enemyArt from './enemies.js';
@@ -24,7 +29,7 @@ import { snapshot } from '../systems/caza.js';
 const PH_DARK = 0.5, PH_SQUASH = 0.74;
 
 function drawHumo(f) {
-  const s = proj(f.x, f.y, f.z);
+  const s = proj(f.x, f.y, zv(f.z));
   const edad = 1 - Math.min(1, f.life / 2.2);
   const w = Math.max(1, s.k * f.r * (0.5 + edad * 1.6));
   ctx.globalAlpha = Math.min(0.55, f.life * 0.4);
@@ -39,7 +44,7 @@ function drawHumo(f) {
 const EST = [P.foam, P.crest, '#8d8f92'];
 
 function drawEstela(f) {
-  const s = proj(f.x, f.y, f.z);
+  const s = proj(f.x, f.y, zv(f.z));
   const edad = 1 - Math.min(1, f.life / (f.vida0 || 1.3));
   const w = Math.max(1, s.k * f.r * (0.5 + edad * 1.7));
   ctx.globalAlpha = Math.min(0.5, f.life * 0.6) * (1 - edad * 0.6);
@@ -89,7 +94,7 @@ function resplandor(sx, sy, k, H) {
 }
 
 function drawCazaSprite(H) {
-  const s = proj(H.x, H.y, H.z);
+  const s = proj(H.x, H.y, zv(H.z));
   const k = s.k;
   // QUIEN DECIDE ESTO ES EL SISTEMA (convencion 4): `deFrente` sale del snapshot. Aca no se
   // adivina por fase ni por z — asi no vuelve a darse vuelta el sprite justo antes del horizonte.
@@ -152,7 +157,7 @@ function drawCazaSprite(H) {
  *  el avion); `!lejos` = la que va DESPUES del avion. */
 export function drawCaza(lejos) {
   const fleet = snapshot();
-  const corte = PZ;
+  const corte = CABINA.PZ_AFUERA;   // las z de la flota estan en el marco de la camara de persecucion (zv)
   for (const H of fleet) {
     for (const f of H.fx) {
       if ((f.z > corte) !== !!lejos) continue;

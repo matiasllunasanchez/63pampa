@@ -22,6 +22,11 @@ import { boom, duck } from '../systems/audio.js';
 /** Proyeccion pseudo-3D: mundo (x,y,z) → pantalla. Devuelve tambien `k` (escala en esa z).
  *  Es la primitiva mas usada del juego (~40 sitios): la lee todo el render y las colisiones. */
 export function proj(x, y, z) {
+  // DETRAS DEL OJO no hay pantalla. Con la camara de persecucion nada llega aca (el avion va 14 m
+  // adelante); en PRIMERA PERSONA (core/cabina.js) el ojo esta en el avion y lo que ya paso —la
+  // formacion, la cola, una pieza que vuela para atras— cae a z <= 0: se manda afuera del cuadro y
+  // sin tamaño en vez de dividir por cero.
+  if (z < 0.25) return { x: -1e5, y: -1e5, k: 1e-4 };
   const k = F / z;
   // EL ZIGZAG (PLAN_PASILLO_ZIGZAG Z1) entra ACA y en ningun lado mas del vuelo: a la
   // profundidad `z` el carril esta corrido de costado por lo que doblo el trazado entre la

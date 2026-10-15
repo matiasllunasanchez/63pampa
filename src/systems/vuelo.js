@@ -16,6 +16,7 @@
 // literalmente estas lineas— asi que el avion de una cinematica es EL MISMO avion del pasillo.
 // Si algun dia el vuelo cambia de peso, las cinematicas cambian con el sin tocarlas.
 import { plane, cam } from '../core/state.js';
+import { enCabina, CABINA } from '../core/cabina.js';
 import { run } from '../core/run.js';
 import { wake, parts, prune } from '../core/world.js';
 import { proj } from '../core/fx.js';
@@ -126,6 +127,8 @@ export function stepVuelo(dt, o) {
   cam.y += (plane.y + camLift - cam.y) * Math.min(1, dt * 3.2);
   const piso = o.ras ? o.ras.piso : 3.4;
   if (cam.y < piso) cam.y = piso;
+  // PRIMERA PERSONA (core/cabina.js): el ojo en el avion — sin retardo, sin piso, sin paneo
+  if (enCabina()) { cam.x = plane.x; cam.y = plane.y + CABINA.OJO; }
 
   // ---- ACTITUDES CON PESO: el alabeo y el cabeceo no saltan a su objetivo, llegan.
   // Durante una PIRUETA no se tocan: ahi los clava movesSystem (son las poses de la maniobra), y

@@ -17,7 +17,10 @@
 export const W = 480, H = 270;
 export const HOR = 96;   // fila del horizonte, en coordenadas de mundo
 export const F = 135;    // distancia focal de la proyeccion (ver proj())
-export const PZ = 14;    // profundidad a la que vuela el avion
+export let PZ = 14;      // profundidad a la que vuela el avion
+// …salvo en PRIMERA PERSONA (core/cabina.js): ahi el avion queda pegado al ojo. Es la unica escritura,
+// la hace game.js una vez por cuadro; todo lo demas lo LEE (live binding del modulo).
+export function setPZ(z) { PZ = z; }
 export const SC = 2;     // buffer 2x
 
 // GRILLA DE DISEÑO del HUD, las pantallas y los menus. Esas capas son texto y cajas en

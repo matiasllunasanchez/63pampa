@@ -29,6 +29,7 @@ import { run } from './run.js';
 // NUCLEO y no del sistema porque core no puede importar systems — y ademas la formula tiene que
 // ser una sola, la misma que lee la sonda.
 import { tilt as zzTilt } from './zigzag.js';
+import { enCabina } from './cabina.js';
 
 export const HZ_FIX = 0, HZ_MOVES = 1, HZ_ALL = 2, HZ_FREE = 3;
 export const HZ_N = 4;
@@ -132,7 +133,11 @@ export const hzMode = () => S.state === 'play' || S.state === 'pulso' ? cfg.hori
 
 /** Angulo del MUNDO este cuadro. Lo consultan draw() y viewMouse() — sin parametros, para que
  *  no puedan discrepar. */
-export const hzWorld = () => horizonRoll(hzMode(), spriteRoll(), plane.bank, run.freeRoll, zzTilt());
+export const hzWorld = () => enCabina()
+  // EN CABINA (core/cabina.js) la camara ES el avion: el mundo rola ENTERO con el —el alabeo pleno,
+  // la pirueta y el giro libre de ALT/Q/E—, sin importar el modo de horizonte elegido
+  ? (-(spriteRoll() + Math.max(-1, Math.min(1, plane.bank)) * BANK_FULL + run.freeRoll + zzTilt()) || 0)
+  : horizonRoll(hzMode(), spriteRoll(), plane.bank, run.freeRoll, zzTilt());
 
 /** Cuanto hay que SUMARLE a la rotacion del sprite para cancelar la que el mundo ya absorbio.
  *  Si no, el avion giraria dos veces (una por el mundo, otra por si mismo) y el efecto se

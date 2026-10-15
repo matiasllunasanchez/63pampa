@@ -9,6 +9,8 @@
 // otras pantallas (render/screens.js, render/menus.js).
 
 import { ctx, px, DW as W, DH as H, PZ, U, SC, avisoFont, uiFont } from './ctx.js';
+import { enCabina } from '../core/cabina.js';
+import { CABINA_ANCLAS } from '../data/cabina_anclas.js';
 import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
 import { cargaDe } from '../data/cargas.js';
@@ -384,7 +386,8 @@ const amarilla = () => dmgShown() ? Math.max(0, Math.min(1, run.escudo)) : marge
  *
  *  EN ESCUADRON NO HAY CHAPA: un golpe te baja (la vida es el escuadron, arriba a la izquierda). Ahi
  *  el reloj lleva solo la escala de abajo — una aguja de chapa siempre entera seria una mentira. */
-function relojSalud(x, y) {
+function relojSalud(x, y) { return alTablero(x, y, () => relojSaludFila(x, y), 13); }
+function relojSaludFila(x, y) {
   plate(x, y, CUADRO, CUADRO);
   const cx = x + 13, cy = y + 13, r = 10;
   const total = dmgShown() ? Math.max(0, Math.min(1, run.integ / 100)) : null;
@@ -457,6 +460,7 @@ export function placasHud() {
   return cajaPiloto ? placas.concat([{ x: cajaPiloto.x, y: cajaPiloto.y, w: cajaPiloto.lado, h: cajaPiloto.alto }]) : placas;
 }
 function plate(x, y, w, h) {
+  if (enTablero) return;            // en el tablero de la cabina el reloj va hundido, sin chapa (ver alTablero)
   placas.push({ x, y, w, h });
   ctx.fillStyle = '#0a0e11bb'; ctx.fillRect(x, y, w, h);
   ctx.fillStyle = '#2e3c45';
@@ -1008,6 +1012,7 @@ const IMPACTO = [7, 7];
 const PUNTA_IZQ = [5, 3, 3, 1, 1];      // filas de arriba: cuanto se come desde la izquierda
 const PUNTA_DER = [1, 2, 2, 4, 5];      // filas de abajo: cuanto se come desde la derecha
 function plateRota(x, y, w, h) {
+  if (enTablero) return;
   placas.push({ x, y, w, h });
   const izq = j => (j < PUNTA_IZQ.length ? PUNTA_IZQ[j] : 0);
   const der = j => (j >= h - PUNTA_DER.length ? w - 1 - PUNTA_DER[j - (h - PUNTA_DER.length)] : w - 1);
@@ -1131,6 +1136,12 @@ function conApertura(t, cx, y, px0) {
 }
 
 function bordePlaca(x, y, w, h, col) {
+  // en el tablero de la cabina el reloj es REDONDO: el aviso es un aro, no un cuadro
+  if (enTablero) {
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x + w / 2, y + tableroCy, 12, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 1;
+    return;
+  }
   ctx.fillStyle = col;
   ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + h - 1, w, 1);
   ctx.fillRect(x, y, 1, h); ctx.fillRect(x + w - 1, y, 1, h);
@@ -1235,7 +1246,40 @@ export const NUMEROS = { fam: 'CCSuperHuman' };   // elegida por el autor el 12/
  *  roto: el vidrio va rajado (ver vidrioRoto), metal: 'plata' | 'oro' la terminacion de metal (ver
  *  arriba), tiembla: radianes que se le suman a la aguja este cuadro, aguja: false no la dibuja }
  *  `ico` puede ser una FUNCION (x, y, pal) que dibuja su propio icono — la de las balas del cañon. */
-function reloj(x, y, o) {
+// LOS RELOJES AL TABLERO (PRIMERA PERSONA, F3 — docs/sistemas/PLAN_PRIMERA_PERSONA.md). En cabina
+// cada reloj de la fila de abajo se dibuja con su MISMO codigo y sus mismos valores, pero llevado a su
+// lugar del tablero horneado (data/cabina_anclas.js): un traslado y una escala, nada mas. El que no
+// tiene lugar en el tablero (la Chancha, el rack) se queda en la fila. `cy` es donde cae el centro de
+// la esfera dentro del cuadro de 26 (16 en los relojes, 13 en el horizonte).
+let idDeX = null, enTablero = false, tableroCy = 16;
+function alTablero(x, y, fn, cy = 16) {
+  if (!idDeX) idDeX = { [X_SALUD]: 'salud', [X_NAFTA]: 'nafta', [X_MACH]: 'mach', [xVuelo(0)]: 'velocidad',
+    [xVuelo(1)]: 'adi', [xVuelo(2)]: 'altitud', [xVuelo(3)]: 'gas', [X_CANON]: 'canon',
+    [X_CHANCHA]: 'chancha', [X_RACK]: 'rack' };
+  // (ya adentro de un reloj llevado al tablero —el del cañon llama a `reloj`— no se lleva dos veces)
+  const a = !enTablero && enCabina() && y === CUADROS_Y ? CABINA_ANCLAS[idDeX[x]] : null;
+  if (!a) return fn();
+  ctx.save();
+  if (a.length === 4) {                          // EL ESTANTE: en su recuadro hundido, SIN deformar
+    const k = Math.min((a[2] - a[0]) / U / RACK_W, (a[3] - a[1]) / U / CUADRO);
+    ctx.translate((a[0] + a[2]) / 2 / U, (a[1] + a[3]) / 2 / U);
+    ctx.scale(k, k);
+    ctx.translate(-(x + RACK_W / 2), -(y + CUADRO / 2));
+  } else {
+    ctx.translate(a[0] / U, a[1] / U);
+    const k = (a[2] / U) / 12.5;                 // la esfera (r 10 + el aro) adentro del hueco del bisel
+    ctx.scale(k, k);
+    ctx.translate(-(x + 13), -(y + cy));
+  }
+  enTablero = true; tableroCy = cy;
+  const r = fn();
+  enTablero = false;
+  ctx.restore();
+  return r;
+}
+
+function reloj(x, y, o) { return alTablero(x, y, () => relojFila(x, y, o)); }
+function relojFila(x, y, o) {
   if (o.roto) plateRota(x, y, CUADRO, CUADRO); else plate(x, y, CUADRO, CUADRO);
   const cx = x + 13, cy = y + 16, r = 10;
   const ang = f => Math.PI + Math.PI * Math.max(0, Math.min(1, f));
@@ -1325,7 +1369,8 @@ function balas(x, y, met) {
   const pal = met || tonos(P.dim);       // sin metal: los tonos del gris de los iconos (render/iconos.js)
   for (let k = 0; k < 3; k++) pintaFino(x + 3, y + 17 + k * 7 * FINO, CANON_METAL.bala, pal);
 }
-function relojCanon(x, y, metralla) {
+function relojCanon(x, y, metralla) { return alTablero(x, y, () => relojCanonFila(x, y, metralla)); }
+function relojCanonFila(x, y, metralla) {
   const met = METRALLAS[metralla] || METRALLAS[1];
   // MIENTRAS CALIENTA (autor, 9/10: "que la aguja tiemble"): el segundo en que los caños de la de ORO
   // giran sin tirar todavia (`calienta` en METRALLAS, run.giro), la aguja salta contra el tope —cada vez
@@ -2279,7 +2324,7 @@ export function drawHUD(h) {
   }
 
   // horizonte artificial, en el centro del grupo del vuelo (ver ADI)
-  drawADI();
+  alTablero(xVuelo(1), CUADROS_Y, drawADI, 13);
 
   // LA FILA de cuadrados de abajo, en los tres grupos de la cabina (ver CUADRO / X_* arriba).
 
@@ -2486,7 +2531,7 @@ export function drawHUD(h) {
   // el centro). La del centro es LA DEL BUQUE: va enmarcada en rojo —el color del blanco— y, lejos
   // del buque, apagada (bloqueada). Las de ala pueden ser bombas o tanques. Cuando es el momento de
   // soltar, lo que se puede soltar titila en verde con el mismo latido que la cinta y el altimetro.
-  drawEstante(h);
+  alTablero(X_RACK, CUADROS_Y, () => drawEstante(h));
 
   // (LA PALANCA DE GAS del borde derecho se fue al reloj de GAS, en el centro de la fila: 11/9.)
 }

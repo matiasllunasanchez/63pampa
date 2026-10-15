@@ -18,6 +18,7 @@ import { dlg, seqFromScreens, TYPE_CPS } from './core/dialogue.js';
 import { SCENES, SECUENCIAS } from './data/story.js';
 import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats, CTRL_DIRECT, CTRL_BANK } from './core/state.js';
 import { hzWorld, stepHorizon } from './core/horizon.js';
+import { cabina, enCabina, CABINA } from './core/cabina.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts, estallidos,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
@@ -110,7 +111,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
          setRasante } from './systems/audio.js';
 import * as world3D from './legacy/three-world.js';
-import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, probarFuente } from './render/ctx.js';
+import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, probarFuente, setPZ } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
@@ -129,6 +130,8 @@ import { lanzarCola } from './core/aim9.js';
 import { humo as humoHorneado } from './render/fuego.js';
 import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
+import { drawMira } from './render/miras.js';
+import { drawCabina } from './render/cabina.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { BOMBA_CARGA_T, BOMBA_CARGA_VZ } from './data/tuning.js';
@@ -3065,6 +3068,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // toggle EN VIVO, no una opcion de menu)
         if (S.state === 'arena') { arena.toggleView(); return; }
         if (S.state === 'pasada') { pasada.toggleView(); return; }
+        // EN EL PASILLO, la PRIMERA PERSONA (core/cabina.js, espiga F0 del 14/10): tercera ↔ cabina
+        if (S.state === 'play' || S.state === 'takeoff') {
+          cabina.on = !cabina.on;
+          beep(cabina.on ? 660 : 440, 0.05, 'square', 0.04);
+          cartel(cabina.on ? 'CABINA' : 'TERCERA', P.accent);
+          return;
+        }
         camMode = (camMode + 1) % CAM_ZOOMS.length;
         beep(440 + camMode * 120, 0.05, 'square', 0.04);
         if (S.state === 'play' || S.state === 'takeoff') cartel(camMode ? 'CAM ' + CAM_ZOOMS[camMode] + '×' : 'CAM 1×', P.accent);
@@ -4075,6 +4085,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // Un sistema devuelve true cuando disparo una transicion (objetivo cumplido o muerte):
     // ahi el frame se corta, igual que hacia el `return` suelto de la version monolitica.
     function update(dt) {
+      // PRIMERA PERSONA (core/cabina.js): el PZ de la vista vigente, antes de que nada lo lea
+      setPZ(enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA);
       // EL PULSO: el mundo corre CASI DETENIDO (PULSO.SLOW) pero el reloj de la prueba es de
       // pared — la mano del jugador compite contra el cronometro, no contra el mundo. Se escala
       // ACA, antes de que `dt` toque nada, para que TODO lo de atras del vidrio (el reloj de las
@@ -5094,6 +5106,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const MARCO_STATES = ['play', 'takeoff', 'landing', 'dead', 'relevo', 'pulso'];
 
     function draw() {
+      setPZ(enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA);
       setNiebla(fogFade());   // el brillo del filo se apaga en la niebla (render/borde.js)
       inicioLuz();   // la capa de luz del resplandor arranca vacia (ver render/brillo.js)
       ctx.setTransform(SC, 0, 0, SC, 0, 0);   // buffer 2×: todo el dibujo sigue en coords 320×180
@@ -5136,10 +5149,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // camara de tercera compense el rolido del sprite) las dos cuentas darian el mismo giro y
       // el mundo giraria el doble.
       const hzW = S.state === 'pulso' ? pulso.camRoll() : hzWorld();
-      if (hzW) {
+      // EN CABINA el CABECEO corre el mundo (el falso horizonte de la espiga, core/cabina.js): trompa
+      // arriba = el horizonte baja en el parabrisas
+      const hzP = enCabina() ? plane.pitch * CABINA.CABECEO_PX : 0;
+      const mundoGira = !!(hzW || hzP);
+      if (mundoGira) {
         ctx.save();
         const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y;
-        ctx.translate(hcx, hcy); ctx.rotate(hzW); ctx.translate(-hcx, -hcy);
+        ctx.translate(hcx, hcy); ctx.rotate(hzW); ctx.translate(0, hzP); ctx.translate(-hcx, -hcy);
       }
       // MUNDO 3D (three.js) del fallback: en el ARENA VIEJO (momentum.js) el fondo completo
       // (cielo+mar+BARCO, flag MOM3D.on); en PASILLO sobre mar abierto solo cielo+mar (flag
@@ -5270,7 +5287,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // igual de visible, solo que de otro color. Ahora el mundo se sigue dibujando por debajo del
       // borde (ver UNDER en render/world.js) y pinta ENCIMA de este piso; el piso queda para lo que
       // el raster 2D no cubre — el momentum, y el mar puesto por three.
-      if (S.state === 'momentum' || hzW) px(-70, H, W + 140, 150, cfg.terrain === 'land' ? theme.land.near : theme.water.base2);
+      if (S.state === 'momentum' || mundoGira) px(-70, H, W + 140, 150, cfg.terrain === 'land' ? theme.land.near : theme.water.base2);
       if (!world3D.isSea()) world.drawSea();   // el mar 2D solo cuando three no lo esta poniendo
       // la barcaza objetivo creciendo en el horizonte. El tercer parametro es lo que EL PULSO le
       // esta haciendo en la cinematica del premio (crecer, escorar, hundirse) — null el resto del
@@ -5523,7 +5540,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
       // fin del HORIZONTE GIRATORIO: de aca en adelante todo va NIVELADO — el avion, su mira, la
       // formacion y los popups son el lado "cabina", igual que en el momentum.
-      if (hzW) ctx.restore();
+      if (mundoGira) ctx.restore();
 
       // EL POLVO Y LOS TERRONES (las particulas `fondo`: los piques en tierra y el polvo que levanta el
       // avion al ras) van DETRAS del avion y al 60% (pedido del autor 3/10: "estan POR ENCIMA del
@@ -5590,7 +5607,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         else if (run.apuntaTanque) drawTrayectoria(trayectoria(Object.assign(tanquesSalen('centro', 1)[0], { x: plane.x }), run.spd, suelo), hayTanque);
         if (hzW) ctx.restore();
       }
-      if (!rasante.enCabina()
+      if (!rasante.enCabina() && !enCabina()
         && (chase || ((S.state !== 'dead' || caida) && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz() + turboDz());
       // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
       // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
@@ -5644,11 +5661,21 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       ctx.globalAlpha = 1;
 
+
       // en momentum/arena, particulas y popups los dibuja su propio render (nivelados, sobre el
       // barco); dibujarlos tambien aca dejaria una copia fantasma
       if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') {
         for (const p of parts) { if (p.fondo) continue; ctx.globalAlpha = Math.min(1, p.life * 2); pxFino(p.x, p.y, p.r, p.r, p.c); }
         ctx.globalAlpha = 1;
+        // (la cabina va DESPUES de las particulas —el rocio es de afuera— y antes de los carteles)
+        // LA CABINA (PRIMERA PERSONA — core/cabina.js, render/cabina.js): la horneada en Blender con la
+        // proyeccion del juego, clavada a la pantalla (la cabina es el avion; lo que rola y cabecea es el
+        // mundo de atras), y la MIRA en el colimador, donde van las balas.
+        if (enCabina()) {
+          drawCabina();
+          const apunta = proj(plane.x, plane.y + plane.pitch * 5, 70);   // la mira va SOBRE el vidrio
+          drawMira(cfg.mira, W / 2 + cm.x, apunta.y + (hzP || 0) + cm.y, 17, 0.9);
+        }
 
         ctx.textAlign = 'center';
         for (const p of popups) {

@@ -64,6 +64,16 @@ mirar 90° a los costados, y esto no lo permite (ver §5).
 Cada fase termina con algo jugable y una decisión del autor antes de seguir.
 
 ### F0 · Espiga: “¿se siente?” (1-2 días)
+**Hecha (14/10/2026), para probar.** Decisiones del autor: una cabina general para todos los aviones;
+en las piruetas grandes se queda en primera persona.
+- **Cómo:** `PZ` dejó de ser constante (`render/ctx.js` `setPZ`). En cabina vale 1,6 m (`core/cabina.js`)
+  y la cámara se clava en el avión (`systems/vuelo.js`). Colisiones, disparos y suelta siguen solos
+  porque miden contra `PZ`. El mundo rola entero con el avión (`core/horizon.js`) y el cabeceo lo
+  corre unos píxeles. La cabina es la del PULSO, con la mira en el colimador y el HUD encima.
+- **Uso:** [V] o el botón de cámara del mando alterna tercera/cabina en vuelo; `?cabina` arranca
+  adentro.
+- **Pendiente, conocido:** la COLA (el Harrier que se pone atrás) queda delante del ojo; la formación
+  del despegue va en tercera.
 - Ojo en el avión con lo mínimo: `cam.x = plane.x`, `cam.y = plane.y + 0,6` y la profundidad
   re-basada en el proyector.
 - `cockpitv4.png` encima, sin relojes.
@@ -85,6 +95,11 @@ Cada fase termina con algo jugable y una decisión del autor antes de seguir.
 - **Selector de vista:** tercera / cabina, con `V` y el botón 13 del mando (`cycleCamera` ya existe).
 
 ### F2 · La cabina en Blender (empezar por el A-4)
+**Primera versión hecha (14/10/2026).** `tools/blender/hornear_cabina.py` modela una cabina general y
+la hornea con la proyección del juego (F = 135, horizonte en la fila 96) a 960×540. Sale
+`assets/planes/cabina.png` y las anclas `src/data/cabina_anclas.js`. La dibuja `render/cabina.js`.
+Tiene tablero, visera, colimador, parantes y arco del parabrisas, zócalos, consolas, palanca y
+acelerador. Falta: manos, detalle, luz por misión, palanca que siga al mando.
 - Modelo del interior del A-4B: tablero con los mismos instrumentos que el HUD (salud, nafta,
   velocidad, Mach, altímetro, gas, ADI, cañón, carga), consolas, palanca, acelerador, el colimador y
   el canopy.
@@ -93,6 +108,9 @@ Cada fase termina con algo jugable y una decisión del autor antes de seguir.
   noche con los relojes iluminados).
 
 ### F3 · Los relojes en el tablero
+**Hecha (14/10/2026).** En cabina, cada reloj de la fila se dibuja con su mismo código, llevado a su
+ancla del tablero con un traslado y una escala (`alTablero` en render/hud.js). La Chancha y el rack
+se quedan en la fila.
 - **hud.js se parte en dos:** los **valores** (hoy calculados adentro de `drawHUD`) en una función
   propia, y cada reloj dibujable en `(x, y, escala)`.
 - El tablero los pone en sus anclas. El HUD de tercera persona sigue igual, con el mismo código.
