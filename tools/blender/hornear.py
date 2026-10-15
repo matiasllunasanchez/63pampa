@@ -60,6 +60,12 @@ VISTA = arg('--vista', 'base')
 RAS_YAW, RAS_ELEV, RAS_PITCH, RAS_ROLL = 35.5, -10, 20, -8
 if VISTA == 'empinada':
     PITCHES = [32, -32]            # la HOJA 2 (sheet2.png): los cabeceos de las piruetas
+# `--vista fino` (14/10, el autor: "rehornear mas secuencias del avion para que se vea mas fluido"): la
+# hoja base con MAS POSES — un alabeo cada 10° (13 columnas, contra 9 de 15°) y cinco cabeceos en el
+# mismo rango (±14° de a 7°, contra tres). Misma camara y mismo cuadro: sheet5.png.
+if VISTA == 'fino':
+    ANGLES = list(range(-60, 61, 10))
+    PITCHES = [14, 7, 0, -7, -14]
 # `--vista cobra`: LA HOJA 4 (sheet4.png), la de LA COBRA (el freno, pedido del autor 4/10/2026): la
 # trompa sube hasta pasar la vertical — 40°, 75° y 100° (un poco hacia atras, como en la foto que
 # mando). Vertical, el avion mide su LARGO en el cuadro y no su envergadura, y no entra en 84: el
@@ -367,9 +373,28 @@ def al_cuadro(p_mundo):
     c = world_to_camera_view(sc, sc.camera, p_mundo)
     return [round(c.x - 0.5, 3), round(0.5 - c.y, 3)]
 
+# LA PROFUNDIDAD de cada pose (14/10, el autor: "hay lineas donde se pierden los contornos de las alas"):
+# banqueado, el ala de adelante pasa por delante del fuselaje o de la otra ala, del MISMO color, y el
+# borde entre las dos se pierde — el contorno solo rodeaba la silueta. Cada pose se hornea dos veces: la
+# de siempre y una en grises con la DISTANCIA a la camara (f_<f>_<c>_z.png, cerca = oscuro). Con eso
+# armar_hoja.py traza la linea donde una pieza pasa por delante de otra. No en las capas ni el selector.
+PROFUNDIDAD = not CAPA and VISTA != 'seleccion' and not GUARDAR
+Z_CERCA, Z_LEJOS = 6.0, 20.0
+def mat_profundidad():
+    m = bpy.data.materials.new('profundidad'); m.use_nodes = True
+    N, Lk = m.node_tree.nodes, m.node_tree.links
+    for n in list(N): N.remove(n)
+    cam = N.new('ShaderNodeCameraData')
+    mr = N.new('ShaderNodeMapRange'); mr.inputs['From Min'].default_value = Z_CERCA; mr.inputs['From Max'].default_value = Z_LEJOS
+    Lk.new(cam.outputs['View Z Depth'], mr.inputs['Value'])
+    em = N.new('ShaderNodeEmission'); Lk.new(mr.outputs['Result'], em.inputs['Color'])
+    out = N.new('ShaderNodeOutputMaterial'); Lk.new(em.outputs['Emission'], out.inputs['Surface'])
+    return m
+
 def hornear(raiz):
     sc = bpy.context.scene
     os.makedirs(OUT, exist_ok=True)
+    mz = mat_profundidad() if PROFUNDIDAD else None
     L, R = puntas(raiz) if not CAPA else (Vector((0, 0, 0)), Vector((0, 0, 0)))
     tips = []
     for row, pa in enumerate(PITCHES):
@@ -383,6 +408,12 @@ def hornear(raiz):
             tips[-1].append(al_cuadro(mw @ L) + al_cuadro(mw @ R))
             sc.render.filepath = os.path.join(OUT, 'f_%d_%d.png' % (row, col))
             bpy.ops.render.render(write_still=True)
+            if mz:
+                vl = bpy.context.view_layer
+                vl.material_override = mz
+                sc.render.filepath = os.path.join(OUT, 'f_%d_%d_z.png' % (row, col))
+                bpy.ops.render.render(write_still=True)
+                vl.material_override = None
     json.dump({'tips': tips}, open(os.path.join(OUT, 'tips.json'), 'w'))
 
 # ============================ EL .blend PARA MIRARLO ============================

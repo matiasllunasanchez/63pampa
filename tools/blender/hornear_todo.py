@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 BLENDER = '/Applications/Blender.app/Contents/MacOS/Blender'
-VISTAS = ('base', 'empinada', 'ras', 'cobra')
+VISTAS = ('base', 'empinada', 'ras', 'cobra', 'fino')   # + la FINA (14/10): 13 alabeos x 5 cabeceos
 # `VISTAS=cobra python3 hornear_todo.py`: hornea SOLO esas vistas (la cobra se sumo el 4/10 y no hacia
 # falta rehornear las otras tres para estrenarla)
 if os.environ.get('VISTAS'): VISTAS = tuple(os.environ['VISTAS'].split(','))
@@ -27,7 +27,7 @@ TODAS = CELULAS + ('skin_tero', 'skin_puma', 'skin_gitano', 'skin_pichon', 'skin
 # (armar_juego.py) la copiaban al otro lado. Esas claves se hornean ademas SIN sonda: se simetriza la
 # version sin sonda y despues se le pega la sonda de la de verdad.
 SONDA_LATERAL = lambda k: k in ('sky', 'a4q') or k.startswith(('skin_', 'var_sky_', 'var_a4q_'))
-VISTAS_SIM = ('base', 'empinada', 'cobra')
+VISTAS_SIM = ('base', 'empinada', 'cobra', 'fino')
 SIN = 'sinsonda'
 
 def trabajos(claves):
@@ -38,7 +38,7 @@ def trabajos(claves):
             if SONDA_LATERAL(k) and v in VISTAS_SIM: yield [k, v, SIN]
             if k in CELULAS:
                 for c in capas_de(k): yield [k, v, c]
-                if v == 'base': yield [k, v, 'tren']     # EL TREN (9/10): solo en la vista base
+                if v in ('base', 'fino'): yield [k, v, 'tren']     # EL TREN (9/10): la vista base (y la fina)
 
 def hornear(t):
     k, v, c = t

@@ -59,6 +59,14 @@ let boostSc = 1;   // factor animado del achique por turbo
 const ALABEO_RAD = 1.05;                       // el alabeo a fondo que traen los frames (~60°, ver muzzles)
 const FILA_ENTRA = 0.36, FILA_SALE = 0.26, FILA_FUNDE = 0.11;
 let filaSost = 1, filaAnt = 1, filaCambioT = -1, filaPrevCuadro = 1;
+// LA HOJA FINA (14/10, probada en el A-4 y pasada a todos: "rehornear mas secuencias para que se vea mas fluido"):
+// sheet5.png, 13 alabeos (uno cada 10°) x 5 cabeceos (±14° de a 7°), con sus anclas (ANCLAS.fino), sus
+// cargas (capas[...][4]) y su tren (tren5.png). Se usa en lugar de la base cuando esta y se vuela
+// derecho (las piruetas, el poder y la cobra tienen sus hojas). `?fino=0` vuelve a la de siempre, para
+// comparar. Las filas van por el ANGULO que pide el cabeceo, con histeresis de un cuarto de paso.
+const FINO_ON = !(typeof location !== 'undefined' && /[?&]fino=0\b/.test(location.search));
+const FINO_NF = 13, FINO_GRADOS = [14, 7, 0, -7, -14], FINO_TOPE = 0.7;   // pitch 0,7 = 14°
+let finoFila = 2, finoAnt = 2, finoCambioT = -1, finoPrev = 2;
 
 const BOB_Y  = 1.5;    // amplitud del bob vertical (px)
 const BOB_X  = 0.75;    // amplitud de la deriva horizontal (px) — desfasada del bob → flota en "8"
@@ -621,8 +629,8 @@ export function drawGear(g, u) {
  *  TREN_SUBE del cuadro —lo que asoma bajo el ala— y el sprite la va tapando; el ultimo tramo se apaga.
  *  Devuelve false si la capa no esta (build web, horno viejo): quien llama cae a drawGear. */
 const TREN_SUBE = 0.13;
-export function drawTren(pl, g, col, row, x, y, w, h) {
-  const im = pl && pl.tren;
+export function drawTren(pl, g, col, row, x, y, w, h, fino) {
+  const im = pl && (fino ? pl.tren5 : pl.tren);
   if (!(im && im.complete && im.naturalWidth)) return false;
   if (g <= 0) return true;
   const a0 = ctx.globalAlpha;
@@ -913,7 +921,14 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // La pirueta empinada gana sobre el poder (ver la rama de dibujo), asi que no cuenta.
   const skRas = ras && rosterActive() ? skinOf(pilotName(alMando(run)), pl) : null;
   const rasHoja = !!(ras && useSheet && !run.mvSteep && (skRas ? skRas.sheet3Img : pl.sheet3Ok));
-  const AN = rasHoja ? ANCLAS.ras : ANCLAS.base;
+  // ¿LA HOJA FINA? (ver FINO_ON) — de la skin del que vuela, o la del avion; solo volando derecho
+  const skFino = rosterActive() ? skinOf(pilotName(alMando(run)), pl) : null;
+  const imgFino = skFino ? skFino.sheet5Img : (pl.sheet5Ok ? pl.sheet5Img : null);
+  const enMortalF = run.mvMortal > 20 && run.mvMortal < 350;
+  const fino = !!(FINO_ON && useSheet && imgFino && ANCLAS.fino && !rasHoja && !run.mvSteep
+    && !(run.mvCobra > 0.05) && !enMortalF && run.mv !== 'derrape');
+  const NF = fino ? FINO_NF : SHEET_NF;
+  const AN = fino ? ANCLAS.fino : rasHoja ? ANCLAS.ras : ANCLAS.base;
   // EL GIRO TOTAL DEL SPRITE, resuelto en UN SOLO LUGAR.
   //
   // Antes cada rama llamaba a `ctx.rotate` por su cuenta y el angulo se perdia ahi adentro. La
@@ -925,17 +940,25 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   //   · con hoja  solo micro-wobble: el alabeo REAL lo traen los frames, no una rotacion
   // LA POSE, resuelta aca arriba por el mismo motivo: la estela lee TIPS[fila][columna] y tiene
   // que ser LA MISMA pose que el sprite dibuja, no una copia de la formula que pueda quedar vieja.
-  const colPose = rolling ? (SHEET_NF - 1) / 2 : Math.round((1 - bank) / 2 * (SHEET_NF - 1));
+  const colPose = rolling ? (NF - 1) / 2 : Math.round((1 - bank) / 2 * (NF - 1));
   const pcPose = run.senalT > 0 && run.senalPitch ? run.senalPitch : Math.max(-1, Math.min(1, plane.pitch));
   // la fila con HISTERESIS: para cambiar hay que pasar FILA_ENTRA; para volver a nivel, bajar de FILA_SALE
   if (filaSost === 1) { if (pcPose > FILA_ENTRA) filaSost = 0; else if (pcPose < -FILA_ENTRA) filaSost = 2; }
   else if (filaSost === 0 ? pcPose < FILA_SALE : pcPose > -FILA_SALE) filaSost = Math.abs(pcPose) > FILA_ENTRA ? (pcPose > 0 ? 0 : 2) : 1;
-  const rowPose = filaSost;
   const ahoraS = performance.now() / 1000;
-  if (rowPose !== filaPrevCuadro) { filaAnt = filaPrevCuadro; filaCambioT = ahoraS; filaPrevCuadro = rowPose; }
-  const fundeFila = filaCambioT >= 0 ? 1 - (ahoraS - filaCambioT) / FILA_FUNDE : 0;   // 1 → 0
+  if (fino) {
+    // el angulo que pide el cabeceo, y la fila mas cercana; se cambia recien pasado 1/4 de paso de mas
+    const ang = 14 * Math.max(-1, Math.min(1, pcPose / FINO_TOPE));
+    if (Math.abs(ang - FINO_GRADOS[finoFila]) > 3.5 + 1.75) finoFila = FINO_GRADOS.reduce((m, g, i) => Math.abs(g - ang) < Math.abs(FINO_GRADOS[m] - ang) ? i : m, 0);
+    if (finoFila !== finoPrev) { finoAnt = finoPrev; finoCambioT = ahoraS; finoPrev = finoFila; }
+  }
+  const rowPose = fino ? finoFila : filaSost;
+  if (filaSost !== filaPrevCuadro) { filaAnt = filaPrevCuadro; filaCambioT = ahoraS; filaPrevCuadro = filaSost; }
+  const fundeFila = fino ? (finoCambioT >= 0 ? 1 - (ahoraS - finoCambioT) / FILA_FUNDE : 0)
+    : filaCambioT >= 0 ? 1 - (ahoraS - filaCambioT) / FILA_FUNDE : 0;   // 1 → 0
+  const filaFundida = fino ? finoAnt : filaAnt;
   // lo que el alabeo pide mas alla de la columna elegida (±media columna), en radianes de pantalla
-  const resto = rolling ? 0 : (bank - (1 - 2 * colPose / (SHEET_NF - 1))) * ALABEO_RAD;
+  const resto = rolling ? 0 : (bank - (1 - 2 * colPose / (NF - 1))) * ALABEO_RAD;
   const prRoll = rolling ? Math.min(1, run.mvT / MOVES.tonel.dur) : 0;   // 0→1 durante el tonel
   // EL SPRITE DEL PODER NO SE GIRA, Y SE PROBO AL REVES. Un rato existio aca una rotacion que
   // alineaba el avion con el punto de fuga del carril — geometricamente impecable: toda recta
@@ -985,7 +1008,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // Es la unica señal en pantalla de que ya no estas volando tu avion. Fuera de campaña no
     // hay roster y `sk` es null, asi que se usa la hoja generica de siempre.
     const sk = rosterActive() ? skinOf(pilotName(alMando(run)), pl) : null;
-    let img = sk ? sk.sheetImg : pl.sheetImg;
+    let img = fino ? imgFino : sk ? sk.sheetImg : pl.sheetImg;
     const hoja2 = sk ? sk.sheet2Img : (pl.sheet2Ok ? pl.sheet2Img : null);
     // LA HOJA DEL PODER RASANTE. Durante el poder la camara se corre 10 unidades al costado y el
     // avion sigue clavado en z = 14: lo mira desde 35,5° de tres cuartos, y la hoja base esta
@@ -1042,14 +1065,14 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma. El tren horneado va
     // con la hoja BASE (y las skins, misma celula); con las otras hojas, o sin la capa, el dibujado
     const conBase = !F3 && !hoja4 && img !== hoja2;
-    if (!(conBase && drawTren(pl, run.gear, col, row, -dW / 2, -dH / 2, dW, dH))) drawGear(run.gear, 1);
+    if (!(conBase && drawTren(pl, run.gear, col, row, -dW / 2, -dH / 2, dW, dH, fino))) drawGear(run.gear, 1);
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
     // EL FUNDIDO DE FILA: el cabeceo de recien se apaga ENCIMA del nuevo (solo entre filas de la
     // misma hoja; las poses de pirueta y la cobra cambian de hoja y ahi manda la maniobra)
-    if (fundeFila > 0 && !hoja4 && row === rowPose && filaAnt !== row) {
+    if (fundeFila > 0 && !hoja4 && row === rowPose && filaFundida !== row) {
       const a0 = ctx.globalAlpha;
       ctx.globalAlpha = a0 * fundeFila;
-      ctx.drawImage(img, sx4, filaAnt * FH4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
+      ctx.drawImage(img, sx4, filaFundida * FH4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
       ctx.globalAlpha = a0;
     }
     drawBorde(ctx, img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);   // a contraluz (render/borde.js)
@@ -1057,7 +1080,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // pose de la hoja que se esta dibujando, y el avion ya le recorto de fabrica lo que el ala le
     // tapa (ver hornearCapas en tools/bake_planes.html). Por eso no hay ancla ni offset: si el
     // frame es el mismo, calza.
-    const vista = hoja4 ? 3 : F3 ? 2 : img === hoja2 ? 1 : 0;
+    const vista = hoja4 ? 3 : F3 ? 2 : img === hoja2 ? 1 : fino ? 4 : 0;
     for (const nom of capasDe(cfg.carga)) {
       const im = pl.capas && pl.capas[nom] && pl.capas[nom][vista];
       if (!(im && im.complete && im.naturalWidth)) continue;

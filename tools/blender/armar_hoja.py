@@ -26,23 +26,53 @@ def hoja(carpeta):
     for r in range(FILAS):
         for c in range(COLS):
             s.paste(Image.open(os.path.join(carpeta, 'f_%d_%d.png' % (r, c))).convert('RGBA'), (c * FW, r * FW))
+    s.prof = hoja_z(carpeta)
     return s
 
-def simetriza(s):
-    """La columna nivelada, simetrica: la mitad derecha espejada sobre la izquierda (como el horno)."""
-    px = s.load()
+def hoja_z(carpeta):
+    """LA PROFUNDIDAD de la hoja (hornear.py, `f_<f>_<c>_z.png`: cerca = oscuro), o None si no se horneo."""
+    if not os.path.exists(os.path.join(carpeta, 'f_0_0_z.png')): return None
+    z = Image.new('L', (FW * COLS, FW * FILAS), 255)
     for r in range(FILAS):
-        x0, y0 = 4 * FW, r * FW
-        for y in range(FW):
-            for x in range(FW // 2):
-                px[x0 + x, y0 + y] = px[x0 + FW - 1 - x, y0 + y]
+        for c in range(COLS):
+            z.paste(Image.open(os.path.join(carpeta, 'f_%d_%d_z.png' % (r, c))).convert('L'), (c * FW, r * FW))
+    return z
+
+def simetriza(s):
+    """La columna nivelada, simetrica: la mitad derecha espejada sobre la izquierda (como el horno).
+    La profundidad (`s.prof`), igual."""
+    for im in (s, getattr(s, 'prof', None)):
+        if im is None: continue
+        px = im.load()
+        for r in range(FILAS):
+            x0, y0 = (COLS // 2) * FW, r * FW
+            for y in range(FW):
+                for x in range(FW // 2):
+                    px[x0 + x, y0 + y] = px[x0 + FW - 1 - x, y0 + y]
     return s
 
 def oscurecer(c, k):
     return (int(c[0] * k), int(c[1] * k), int(c[2] * k), 255)
 
-def contorno(s, lineas=False):
+# EL SALTO DE PROFUNDIDAD que hace linea (niveles de gris de la `_z`: 14 unidades en 255, ~0,05 por nivel):
+# 6 niveles (de MAS sobre la pendiente) = 0,3 unidades, mas que el espesor de un ala y menos que lo que hay entre ala y fuselaje
+SALTO_Z = 6
+
+def contorno(s, lineas=False, prof=None):
+    """EL CONTORNO DE PIXEL: el borde de la silueta se oscurece con su propio color; con `lineas`,
+    tambien donde la luz salta entre dos piezas; y con `prof` (la profundidad horneada, 14/10) donde
+    una pieza pasa POR DELANTE de otra aunque sean del mismo color — el ala delante del fuselaje
+    banqueado: se marca el pixel de ADELANTE, como el borde de la silueta."""
+    pz = prof.load() if prof is not None else None
     px = s.load(); W, H = s.size
+    def salto(x, y, dx, dy):
+        """Cuanto se aleja el vecino MAS de lo que ya venia alejandose la superficie: una superficie que
+        se va de canto (el fuselaje visto de cola) cambia de profundidad de a poco y parejo — eso no es
+        borde; una pieza por delante de otra es un escalon que la pendiente no explica."""
+        if not op(x + dx, y + dy): return 0
+        j = pz[x + dx, y + dy] - pz[x, y]
+        prev = pz[x, y] - pz[x - dx, y - dy] if op(x - dx, y - dy) else 0
+        return j - max(0, prev)
     fh = FH or FW
     orig = s.copy().load()
     op = lambda x, y: 0 <= x < W and 0 <= y < H and orig[x, y][3] > 8 and (x // FW == cx and y // fh == cy)
@@ -56,6 +86,8 @@ def contorno(s, lineas=False):
             borde = not all(op(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
             if borde:
                 px[x, y] = oscurecer(c, 0.45)[:3] + (c[3],)   # el alfa se respeta (el barrido del rotor)
+            elif pz is not None and any(salto(x, y, dx, dy) > SALTO_Z for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                px[x, y] = oscurecer(c, 0.42)[:3] + (c[3],)
             elif lineas:
                 # una linea INTERIOR donde la luz salta de golpe entre vecinos (dos piezas): se marca
                 # el pixel MAS OSCURO del par, que es el que esta "detras"

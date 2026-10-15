@@ -108,7 +108,8 @@ PLANES.forEach(pl => {
     const dir = pl.sheet.slice(0, pl.sheet.lastIndexOf('/') + 1);
     pl.capas = {};
     for (const nom of CAPAS_CARGA.concat(CAPAS_EXTRA[pl.key] || [])) {
-      pl.capas[nom] = ['', '2', '3', '4'].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
+      // (la '5' es la de la HOJA FINA; el horno viejo no la tiene)
+      pl.capas[nom] = ['', '2', '3', '4', ...(!HORNO_VIEJO ? ['5'] : [])].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
     }
     // LAS VARIANTES DEL ESCUADRON (autor, 8/10: "todos tienen el mismo avion — deberian tener
     // variantes"): cuatro hojas base por avion, una por numeral — otro reparto y tono del camuflaje,
@@ -119,6 +120,15 @@ PLANES.forEach(pl => {
     // drawTren). Sin ella —build web, horno viejo— el tren se dibuja como antes.
     pl.tren = null;
     if (!HORNO_VIEJO) { pl.tren = new Image(); pl.tren.src = dir + 'tren.png'; }
+    // LA HOJA FINA (14/10, probada en el A-4 y pasada a todos): 13 alabeos x 5 cabeceos — sheet5.png y su
+    // tren. La usa render/plane.js en lugar de la base cuando cargo (`?fino=0` para comparar).
+    pl.sheet5Ok = false; pl.tren5 = null;
+    if (!HORNO_VIEJO) {
+      pl.sheet5Img = new Image();
+      pl.sheet5Img.onload = () => { pl.sheet5Ok = true; };
+      pl.sheet5Img.src = dir + 'sheet5.png';
+      pl.tren5 = new Image(); pl.tren5.src = dir + 'tren5.png';
+    }
     pl.variantes = HORNO_VIEJO ? [] : [1, 2, 3, 4].map(n => { const im = new Image(); im.src = dir + 'variante' + n + '.png'; return im; });
   }
 });

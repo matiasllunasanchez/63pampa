@@ -55,13 +55,17 @@ VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     # LA COBRA (4/10): 40/75/100° de cabeceo, cuadro de 126 (x1,5: vertical, el avion mide su largo);
     # desde el MORTAL sigue la vuelta entera: 130…335° (once filas, ver hornear.py)
     'cobra': (12, 126, '4', True),   # + la fila 11: 25°, la del DERRAPE
+    # LA HOJA FINA (14/10, todos los aviones): 13 alabeos x 5 cabeceos (hornear.py --vista fino). Solo
+    # se arma donde se horneo: sheet5.png, sus capas de carga, su tren (tren5.png) y sus anclas.
+    'fino': (5, 84, '5', True),
 }
+COLS_DE = {'fino': 13}               # las demas vistas: 9 columnas
 # `VISTAS=cobra .venv-art/bin/python3 armar_juego.py`: arma SOLO esas vistas (las anclas de las otras
 # se leen de lo que ya escribio la ultima armada completa — ver escribir_anclas)
 if os.environ.get('VISTAS'): VISTAS = {k: v for k, v in VISTAS.items() if k in os.environ['VISTAS'].split(',')}
 
-def hoja(carpeta, filas, fw, sim):
-    A.FW, A.FILAS = fw, filas
+def hoja(carpeta, filas, fw, sim, cols=9):
+    A.FW, A.FILAS, A.COLS = fw, filas, cols
     h = A.hoja(carpeta)
     if not sim: return h
     # LA SONDA DE UN LADO (8/10): si esta vista se horneo tambien SIN sonda (hornear_todo.py,
@@ -70,19 +74,24 @@ def hoja(carpeta, filas, fw, sim):
     sin = carpeta.rstrip('/') + '_sinsonda'
     if not os.path.isdir(sin): return A.simetriza(h)
     crudo_sin = A.hoja(sin)
-    s = A.simetriza(crudo_sin.copy())
+    s = crudo_sin.copy()
+    s.prof = crudo_sin.prof.copy() if crudo_sin.prof is not None else None    # (copy() no lleva la profundidad)
+    s = A.simetriza(s)
     pc, pn, ps = h.load(), crudo_sin.load(), s.load()
+    zc, zs = (h.prof.load(), s.prof.load()) if h.prof is not None and s.prof is not None else (None, None)
     for r in range(filas):
-        x0, y0 = 4 * fw, r * fw
+        x0, y0 = (cols // 2) * fw, r * fw
         for y in range(fw):
             for x in range(fw):
                 c, n = pc[x0 + x, y0 + y], pn[x0 + x, y0 + y]
-                if c != n: ps[x0 + x, y0 + y] = c
+                if c != n:
+                    ps[x0 + x, y0 + y] = c
+                    if zc: zs[x0 + x, y0 + y] = zc[x0 + x, y0 + y]
     return s
 
 def con_contorno(h, filas, fw):
     A.FW, A.FILAS = fw, filas
-    return A.contorno(h.copy(), lineas=True)
+    return A.contorno(h.copy(), lineas=True, prof=getattr(h, 'prof', None))
 
 # ---------------- no se tira nada: lo de three.js a three/ ----------------
 def archivar_three():
@@ -108,7 +117,7 @@ def archivar_three():
     if movidos: print('archivado en three/:', movidos, 'archivos')
 
 # ---------------- las anclas (port de anclasDe, tools/bake_planes.html) ----------------
-def anclas(h, fw, filas, tips):
+def anclas(h, fw, filas, tips, cols=9, nivel=1):
     fh = fw
     px = h.load()
     a = lambda x, y: px[x, y][3] > 8
@@ -116,7 +125,7 @@ def anclas(h, fw, filas, tips):
     f = lambda v: round(v, 3)
     for row in range(filas):
         fo, fb = [], []
-        for col in range(9):
+        for col in range(cols):
             x0, y0 = col * fw, row * fh
             ox = oy = on = 0
             by0, by1 = 10 ** 9, -1
@@ -130,7 +139,7 @@ def anclas(h, fw, filas, tips):
             fo.append([f((ox / on - fw / 2) / fw), f((oy / on - fh / 2) / fh)] if on else None)
             fb.append([0, 0] if by1 < 0 else [f((by0 - fh / 2) / fh), f((by1 - fh / 2) / fh)])
         tob.append(fo); box.append(fb)
-    cx, cy = 4 * fw, 1 * fh
+    cx, cy = (cols // 2) * fw, nivel * fh       # la pose NIVELADA: fila 1 (la 2 en la hoja fina)
     y0, y1 = 10 ** 9, -1
     for y in range(fh):
         for x in range(fw):
@@ -151,14 +160,14 @@ def anclas_previas():
     import re
     src = open(os.path.join(RAIZ, 'src', 'data', 'anclas_horno.js')).read()
     out = {}
-    for vista in ('base', 'ras', 'cobra'):
+    for vista in ('base', 'ras', 'cobra', 'fino'):
         m = re.search(r'\n  %s: *\{ tips: (\[.*?\]), tob: (\[.*?\]), box: (\[.*?\]), perfil: (\[.*?\]), alto: ([0-9.]+) \},' % vista, src, re.S)
         if m:
             j = lambda t: json.loads(re.sub(r',\s*\]', ']', t))
             out[vista] = dict(tips=j(m.group(1)), tob=j(m.group(2)), box=j(m.group(3)), perfil=j(m.group(4)), alto=float(m.group(5)))
     return out
 
-def escribir_anclas(B, R, C=None):
+def escribir_anclas(B, R, C=None, Fi=None):
     js = lambda v: json.dumps(v, separators=(',', ':'))
     tabla = lambda t: '[\n' + ''.join('  ' + js(f) + ',\n' for f in t) + ']'
     linea = lambda M: '{ tips: %s, tob: %s, box: %s, perfil: %s, alto: %s }' % (tabla(M['tips']), tabla(M['tob']), tabla(M['box']), js(M['perfil']), M['alto'])
@@ -182,7 +191,7 @@ export const HORNO = {
   base: %s,
   ras:  %s,%s
 };
-""" % (linea(B), linea(R), ('\n  cobra: %s,' % linea(C)) if C else ''))
+""" % (linea(B), linea(R), (('\n  cobra: %s,' % linea(C)) if C else '') + (('\n  fino: %s,' % linea(Fi)) if Fi else '')))
 
 if __name__ == '__main__':
     archivar_three()
@@ -191,21 +200,25 @@ if __name__ == '__main__':
         dest = os.path.join(PLANES, carpeta)
         for vista, (filas, fw, suf, sim) in VISTAS.items():
             if SOLO_BASE(clave) and vista != 'base': continue
-            h = hoja(os.path.join(OUT, clave, vista), filas, fw, sim)
+            cols = COLS_DE.get(vista, 9)
+            if vista in COLS_DE and not os.path.isdir(os.path.join(OUT, clave, vista)): continue   # no se horneo
+            h = hoja(os.path.join(OUT, clave, vista), filas, fw, sim, cols)
             con_contorno(h, filas, fw).save(os.path.join(dest, '%s%s.png' % (base, suf)))
-            if clave in CELULAS and vista == 'base' and os.path.isdir(os.path.join(OUT, clave, 'capas', 'tren_base')):
+            if clave in CELULAS and vista in ('base', 'fino') and os.path.isdir(os.path.join(OUT, clave, 'capas', 'tren_' + vista)):
                 # EL TREN DE ATERRIZAJE (9/10): la capa que el juego dibuja debajo del avion al despegar
                 # y al aterrizar (render/plane.js drawTren)
-                t = hoja(os.path.join(OUT, clave, 'capas', 'tren_base'), filas, fw, sim)
-                con_contorno(t, filas, fw).save(os.path.join(dest, 'tren.png'))
+                t = hoja(os.path.join(OUT, clave, 'capas', 'tren_' + vista), filas, fw, sim, cols)
+                con_contorno(t, filas, fw).save(os.path.join(dest, 'tren%s.png' % suf))
             if clave in CELULAS:
                 for capa in CAPAS + CAPAS_EXTRA.get(clave, ()):
-                    c = hoja(os.path.join(OUT, clave, 'capas', '%s_%s' % (capa, vista)), filas, fw, sim and capa not in ASIMETRICAS)
+                    cdir = os.path.join(OUT, clave, 'capas', '%s_%s' % (capa, vista))
+                    if vista in COLS_DE and not os.path.isdir(cdir): continue
+                    c = hoja(cdir, filas, fw, sim and capa not in ASIMETRICAS, cols)
                     con_contorno(c, filas, fw).save(os.path.join(dest, 'carga_%s%s.png' % (capa, suf)))
-            if clave == 'sky' and vista in ('base', 'ras', 'cobra'):
+            if clave == 'sky' and vista in ('base', 'ras', 'cobra', 'fino'):
                 tips = json.load(open(os.path.join(OUT, clave, vista, 'tips.json')))['tips']
-                medidas[vista] = anclas(h, fw, filas, tips)
+                medidas[vista] = anclas(h, fw, filas, tips, cols, nivel=2 if vista == 'fino' else 1)
         print('OK', clave)
     if 'sky' not in DESTINO: sys.exit(0)            # no se re-midio nada: las anclas quedan como estan
-    escribir_anclas(medidas['base'], medidas['ras'], medidas.get('cobra'))
+    escribir_anclas(medidas['base'], medidas['ras'], medidas.get('cobra'), medidas.get('fino'))
     print('ANCLAS -> src/data/anclas_horno.js  (base alto %s · ras alto %s)' % (medidas['base']['alto'], medidas['ras']['alto']))
