@@ -113,12 +113,23 @@ def seaKing(T, K, ph='0', verde=False, roto=False):
         P = dict(arriba=['#5b6d55'], panza='#46543f')
     else:
         P = dict(arriba=['#56626d'], panza='#454f58')        # liso: la Armada no camuflaba
-    P['marcas'] = [dict(z=(-3.02, -2.62), y=(0.10, 0.62), color=CANOPY, arriba=False),          # el parabrisas
-                   dict(z=(-2.55, -2.15), y=(0.30, 0.62), x=(0.55, 1.2), color=CANOPY, arriba=False),  # las ventanillas de cabina
-                   dict(z=(-1.35, -1.05), y=(0.08, 0.40), x=(0.6, 1.2), color=VIDRIO_OSC, arriba=False),
-                   dict(z=(-0.55, -0.25), y=(0.08, 0.40), x=(0.6, 1.2), color=VIDRIO_OSC, arriba=False)]
+    # LAS VENTANAS de la cabina de carga: la FILA de ventanillas cuadradas a los dos costados (15/10)
+    P['marcas'] = [dict(z=(z0, z0 + 0.26), y=(0.12, 0.40), x=(0.6, 1.2), color=VIDRIO_OSC, arriba=False)
+                   for z0 in (-1.55, -1.05, -0.55, -0.05, 0.45)]
+    # EL PARABRISAS pintado sobre la pendiente ALTA de la trompa (la trompa maciza queda abajo), con sus
+    # PARANTES: el del medio y dos a los costados — cuatro paños, como el de verdad
+    P['marcas'] = [dict(z=(-3.10, -2.38), y=(0.36, 0.95), color=CANOPY, arriba=False)] + P['marcas'] + [
+        dict(z=(-3.10, -2.38), y=(0.36, 0.95), x=(-0.025, 0.025), sim=False, color='#2f363c', arriba=False),
+        dict(z=(-3.10, -2.38), y=(0.36, 0.95), x=(0.40, 0.44), color='#2f363c', arriba=False),
+        dict(z=(-3.10, -2.38), y=(0.34, 0.38), color='#2f363c', arriba=False)]
     piel = mat_pintura(K, 'pintura', P)
     oscuro = K['mat_cel']('oscuro', '#2f363c')
+    vidrio = K['mat_cel']('vidrio', CANOPY, brillo=True)
+    # EL FRENTE (15/10, "mas fiel"): el parabrisas va pintado en la trompa (ver las marcas, arriba) y aca
+    # las VENTANILLAS de los pilotos, enmarcadas, a los costados de la cabina
+    for sg in (-1, 1):
+        _pieza('ventanilla', raiz, vidrio, (0.03, 0.34, 0.50), (sg * 0.955, 0.42, -2.42))
+        _pieza('marco_vt', raiz, oscuro, (0.035, 0.36, 0.04), (sg * 0.96, 0.42, -2.42))
     # EL CASCO: seccion cuadrada (expo alto), la nariz redonda, el lomo alto, y la cola que se afina
     # SUBIENDO hacia el botalon (la quilla del bote es la linea de abajo)
     est = [(-3.20, 0.10, 0.10, -0.08), (-3.05, 0.48, 0.44, -0.04), (-2.75, 0.76, 0.70, 0.02),
@@ -132,6 +143,8 @@ def seaKing(T, K, ph='0', verde=False, roto=False):
                              (0.40, 0.30, 0.18, 1.00), (0.70, 0.05, 0.05, 0.98)], raiz, piel, n=14, expo=2.4, cerrar=(True, True)), 1)
     for sg in (-1, 1):
         elipsoide('escape', (sg * 0.45, 1.05, 0.38), (0.10, 0.09, 0.18), raiz, oscuro, seg=10, anillos=6)
+        # las TOMAS de los motores, al frente del carenado (15/10)
+        elipsoide('toma', (sg * 0.26, 1.02, -1.86), (0.14, 0.13, 0.06), raiz, oscuro, seg=12, anillos=6)
     # EL RADOMO del radar Sea Searcher (14/10, "mas fieles"): la JOROBA grande y chata detras del rotor,
     # la firma del HAS.5 — antes era un botoncito
     # (solo el HAS.5 antisubmarino: el HC.4 verde de los comandos no lleva radar)
