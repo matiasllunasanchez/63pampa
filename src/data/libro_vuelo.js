@@ -331,7 +331,7 @@ const r4 = {
 const r5 = {
   id: 'r5', name: 'EL INVINCIBLE',
   fecha: '30 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
-  desc: PENDIENTE,
+  desc: 'Dos Super Étendard con el último Exocet y cuatro A-4C salen juntos de Río Grande a buscar al portaaviones. Primero lanzás el misil; después, lo escoltás.',
   despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'blanco: el grupo de portaaviones' },
   goal: { kind: 'ship', ship: 'HMS INVINCIBLE', dist: LARGO * 1.2 },
   climax: 'pulso',
@@ -385,7 +385,6 @@ export const LIBRO_SCENES = {
   R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', 'LO QUE PASÓ · ' + r3.name, ['21 de mayo de 1982. Los tres A-4Q le pegaron a la HMS Ardent; la segunda sección, ocho minutos después, también. La fragata se hundió.', 'A la salida, dos Sea Harrier derribaron a los tres: dos pilotos se eyectaron y sobrevivieron; el tercero no volvió.']),
   R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4), 'El Dagger era la versión israelí del Mirage 5, de la Fuerza Aérea: más rápido que el Skyhawk, pero sin sonda para cargar nafta en vuelo.', 'Por eso volaba con tres tanques y dos bombas de 250 kg: el alcance justo para ir, atacar y volver.', '8 de junio. Dos escuadrillas de Dagger, PERRO y GATO, salen de Río Grande. Uno vuelve porque un pájaro le rompe el parabrisas: quedan cinco.', 'El Dagger no carga nafta en vuelo: lo que llevás es lo que hay.']),
   R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', 'LO QUE PASÓ · ' + r4.name, ['8 de junio de 1982. Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.', 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.']),
-  // EL INVINCIBLE: el dato, y el resto PENDIENTE hasta el OK del autor
-  R5_CONTEXTO: tarjeta('R5_CONTEXTO', r5.name, [dato(r5), PENDIENTE]),
-  R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', 'LO QUE PASÓ · ' + r5.name, [PENDIENTE]),
+  R5_CONTEXTO: tarjeta('R5_CONTEXTO', r5.name, [dato(r5), 'Era el último Exocet: de los cinco que llegaron de Francia quedaba uno. Esta vez salía acompañado por cuatro A-4C de la Fuerza Aérea.', 'El Super Étendard lanza de lejos y se vuelve. El A-4C no lleva misiles: su trabajo es que el Exocet llegue.', '30 de mayo. Salen de Río Grande y cargan de dos KC-130 en la ida. Entran al ras por el sur del grupo de portaaviones.']),
+  R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', 'LO QUE PASÓ · ' + r5.name, ['30 de mayo de 1982. Según la Argentina, el Exocet y las bombas alcanzaron al HMS Invincible. Según los británicos, el misil cayó al mar y los A-4C atacaron a la fragata Avenger sin acertar.', 'Dos de los cuatro A-4C fueron derribados; sus pilotos no volvieron.']),
 };
