@@ -134,7 +134,7 @@ import { drawMira } from './render/miras.js';
 import { drawCabina } from './render/cabina.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
-import { BOMBA_CARGA_T, BOMBA_CARGA_VZ } from './data/tuning.js';
+import { BOMBA_CARGA_T, BOMBA_CARGA_VZ, CH_VAIVEN } from './data/tuning.js';
 import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA, CHAPITAS, BORDE_DESTELLO } from './data/tuning.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
@@ -7191,7 +7191,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el control — va colgado, cargando — hasta que un toque de direccion lo suelta (chancha.js).
       if (chancha.estaTrabado() && S.state === 'play') {
         const cs = chancha.snapshot();
-        if (cs) { plane.x = cs.bx; plane.y = cs.by; plane.vx = 0; plane.vy = 0; }
+        if (cs) {
+          // …Y COLGADO SE MUEVE (CH_VAIVEN, data/tuning.js): no queda clavado como una foto
+          const V = CH_VAIVEN, t = run.t;
+          const sx = Math.sin(t * 1.3) * 0.55 + Math.sin(t * 2.9 + 1.1) * 0.3 + Math.sin(t * 6.1 + 2.3) * 0.15;
+          const sy = Math.sin(t * 1.7 + 0.4) * 0.5 + Math.sin(t * 3.7 + 2.0) * 0.32 + Math.sin(t * 7.3) * 0.18;
+          const fase = (t % V.TIRON_CADA) / V.TIRON_CADA;            // el tiron de la manguera: un golpe que se apaga
+          const tiron = fase < 0.12 ? Math.sin(fase / 0.12 * Math.PI) : 0;
+          plane.x = cs.bx + sx * V.X; plane.y = cs.by + sy * V.Y - tiron * V.TIRON * 0.4;
+          plane.vx = 0; plane.vy = 0;
+          plane.bank = (Math.sin(t * 1.9 + 0.7) * 0.6 + Math.sin(t * 4.3) * 0.4) * V.BANK + sx * V.BANK * 0.5;
+          plane.pitch = (Math.sin(t * 2.3 + 1.5) * 0.7 + Math.sin(t * 5.2) * 0.3) * V.PITCH - tiron * V.PITCH;
+        }
       }
       // SONDA DE LO TRANSONICO (QUITAR): va ENTRE update y draw a proposito. Puesta antes, la
       // fisica se la lleva por delante en el mismo cuadro (speedTarget devuelve la velocidad

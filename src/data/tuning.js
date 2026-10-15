@@ -506,6 +506,12 @@ export const CH_RATE = 9;        // % de tanque por segundo conectado (lleno en 
 // 6 y no menos: sin ruta (POR LA PATRIA, la campaña) el avion quema ~3,2 %/s, y con 4 la carga apenas le
 // ganaba al consumo (el fixture de la Chancha lo vio bajar enganchado). Sigue mas lento que el 9 de antes.
 export const CH_RATE_TRABADO = 6;   // % de tanque por segundo trabado (lleno en ~17 s)
+// EL VAIVEN COLGADO DE LA CANASTA (15/10, el autor: "cuando esta enganchado desde el Hercules, el avion
+// debe generar pequeñas oscilaciones y movimientos, para acercarnos a la realidad"): la estela del
+// Hercules sacude, la manguera tira y afloja, el piloto corrige. Amplitudes en unidades de mundo (X, Y)
+// y de pose (alabeo y cabeceo, -1..1); tres senos desparejos por eje para que no se lea como un vaiven
+// de reloj, y un TIRON de la manguera cada tanto (TIRON_CADA s).
+export const CH_VAIVEN = { X: 0.28, Y: 0.16, BANK: 0.09, PITCH: 0.06, TIRON: 0.35, TIRON_CADA: 4.2 };
 export const CH_WINDOW = 30;     // s desde que aparece hasta que vira a casa
 export const CH_SPD_F = 0.75;    // factor del avance del mundo mientras estas conectado
 // GEOMETRIA DE LA CITA. No estan en el spec y hacen falta para dibujarla: el Hercules va

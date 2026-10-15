@@ -7,7 +7,7 @@
 // MISMA REGLA DEL LIMITE que todos los sistemas: `step()` devuelve señal —'hundido', 'reencare' o
 // { fallo }— y game.js decide. `golpe()` y `corta()` los llama collision.js, que es quien ya mueve
 // las bombas: aca solo se juzga lo que la bomba hizo.
-import { plane } from '../core/state.js';
+import { plane, cfg } from '../core/state.js';
 import { run } from '../core/run.js';
 import { pmissiles, missiles, obstacles } from '../core/world.js';
 import { popup, explodeAt, columnaBomba, proj, onda, estallido } from '../core/fx.js';
@@ -86,6 +86,8 @@ function armar() {
  *  DESBLOQUEA la bomba del centro. */
 // (HUNDIDO TAMBIEN, 29/9: si el que lo hundio se estrello en el cruce, el siguiente de la fila
 // vuelve a encarar el mismo buque —ardiendo— y cada bomba que le pega suma puntos)
+// lo que el Exocet le saca de ventaja al avion, en promedio, hasta el buque (systems/collision.js EXOCET)
+const EXOCET_REL = 120;
 const aTiro = () => blanco.on && blanco.z > PZ && blanco.z < BL.VISIBLE_Z && blanco.negroT < 0
   && blanco.perdidaT < 0 && !blanco.escapando;
 
@@ -459,6 +461,16 @@ export function step(dt) {
     : 0;
   // VERDE = en la ventana de distancia, a buena altura, y una suelta ahora pega de verdad
   blanco.listo = blanco.enDist && blanco.buenaAlt && blanco.extra !== null;
+  // EL EXOCET (14/10) no cae: prende el motor y va rozando el agua DERECHO al buque, asi que la altura no
+  // cuenta y la ventana es de LINEA, no de distancia: verde si el misil, con la deriva que hereda,
+  // cruza el casco dentro de su eslora; la previa, desde que el buque esta a la vista y el avion no.
+  if (cargaDe(cfg.carga).exocet && blanco.centroN > 0) {
+    const llega = (blanco.z - PZ) / EXOCET_REL;
+    const enLinea = puede && altoEn(plane.x + vxB * llega) >= 0;
+    blanco.enDist = enLinea; blanco.buenaAlt = true; blanco.extra = 0;
+    blanco.previa = puede && !enLinea;
+    blanco.listo = enLinea;
+  }
   if (blanco.enDist) blanco.tuvoVentana = true;
   // TE ACERCASTE DEMASIADO (pedido del autor, 26/9): "si la ventana verde se pierde porque me
   // acerque demasiado, se mete FADE, se quita la UI y queda solo el avion volando". Es la unica

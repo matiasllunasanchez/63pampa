@@ -125,8 +125,10 @@ def hercules(T, K):
     gondola = mat_pintura(K, 'gondola', dict(arriba=['#5a684e'], panza=GRIS_D))
     gris = K['mat_cel']('gris', GRIS)
     negro = K['mat_cel']('negro', NEG)
-    _subdiv(loft('fuselaje', [(-7.72, 0.10, 0.10, -0.18), (-7.55, 0.60, 0.58, -0.12), (-7.25, 0.95, 0.92, -0.06),
-                              (-6.80, 1.18, 1.15, -0.02), (-6.10, 1.29, 1.28, 0.0), (-4.50, 1.31, 1.30, 0.0),
+    # LA TROMPA ROMA (14/10, "mas fieles"): el radomo redondo del C-130 abajo y la cabina encima — antes
+    # terminaba en punta, como un caza
+    _subdiv(loft('fuselaje', [(-7.78, 0.20, 0.18, -0.30), (-7.64, 0.66, 0.60, -0.22), (-7.38, 1.00, 0.94, -0.12),
+                              (-6.92, 1.20, 1.16, -0.04), (-6.10, 1.29, 1.28, 0.0), (-4.50, 1.31, 1.30, 0.0),
                               (2.50, 1.31, 1.30, 0.0), (4.00, 1.29, 1.24, 0.06), (5.40, 1.10, 0.95, 0.38),
                               (6.80, 0.82, 0.64, 0.70), (8.00, 0.48, 0.36, 0.96), (8.70, 0.18, 0.16, 1.06)],
                  raiz, piel, n=24, expo=2.2, cerrar=(True, True)), 2)
