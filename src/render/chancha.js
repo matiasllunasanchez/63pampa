@@ -38,6 +38,44 @@ export function drawChancha() {
   const deriva = Math.cos(c.t * CH_DERIVA_V);          // > 0: se va hacia +x (la derecha)
   const bank = deriva > 0.25 ? 0 : deriva < -0.25 ? 2 : 1;
   const hoja = enemyArt.ready('chancha');
+  // LAS HELICES VAN SIEMPRE POR CODIGO, con hoja o sin ella: un disco horneado se ve MUERTO, y lo
+  // que dice que este avion esta volando —y no pegado en el cielo— es que las cuatro giren.
+  // VAN DETRAS DEL AVION (14/10, el autor: "ponelas DETRAS del avion"): estan al frente de cada gondola,
+  // del lado de alla, asi que se pintan ANTES de la hoja y el avion les tapa lo que les tiene que tapar.
+  //
+  // DONDE VAN LO DICE EL HORNO. Con la hoja puesta, la posicion de cada disco sale de `anclaje()`:
+  // el horneador proyecta el cono de cada helice del modelo con la MISMA camara con la que horneo
+  // y escribe el pixel en src/data/cajas.js. Sin hoja, se cae a las fracciones de siempre.
+  //
+  // (14/10, el autor: "hay rectangulos debajo de las turbinas que parpadean"; despues, del disco solo:
+  // "no entiendo que es eso"). La Chancha se ve DE ATRAS: el disco queda casi de frente, y lo que lo
+  // hace leer como helice son LAS PALAS — cuatro, como la Hamilton Standard del C-130 —, finas y
+  // girando a una velocidad que el ojo sigue, con el barrido apenas insinuado y el cubo al centro.
+  const HEL_D = 2.64;                                  // diametro del disco, en unidades de mundo
+  for (let i = 0; i < 4; i++) {
+    const a = hoja ? enemyArt.anclaje('chancha', i, s.x, { centerY: s.y }, k) : null;
+    const f = [-0.34, -0.19, 0.19, 0.34][i];
+    const hx = a ? a.x : s.x + w * f;
+    const hy = a ? a.y : bodyY - h * 0.62;
+    const r = Math.max(1.5, HEL_D * k / 2);
+    ctx.save();
+    ctx.globalAlpha = 0.07;
+    ctx.fillStyle = '#c9d2cf';
+    ctx.beginPath(); ctx.ellipse(hx, hy, r, r * 0.85, 0, 0, Math.PI * 2); ctx.fill();
+    const giro = run.t * 6 * (i < 2 ? 1 : -1) + i * 0.7;   // las de cada ala giran para su lado
+    ctx.globalAlpha = 0.55; ctx.strokeStyle = '#2b302d'; ctx.lineWidth = Math.max(1, r * 0.12); ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let p = 0; p < 4; p++) {
+      const ang = giro + p * Math.PI / 2;
+      ctx.moveTo(hx + Math.cos(ang) * r * 0.15, hy + Math.sin(ang) * r * 0.85 * 0.15);
+      ctx.lineTo(hx + Math.cos(ang) * r * 0.95, hy + Math.sin(ang) * r * 0.85 * 0.95);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 0.9; ctx.fillStyle = '#1e2420';
+    ctx.beginPath(); ctx.arc(hx, hy, Math.max(1, r * 0.13), 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
   if (hoja) {
     enemyArt.drawFrame(ctx, 'chancha', bank, 0, s.x, { centerY: s.y }, k, false, false, 0);
   } else {
@@ -54,36 +92,6 @@ export function drawChancha() {
     // los dos pods de manguera, afuera de los motores externos
     for (const f of [-0.37, 0.37]) px(s.x + w * f - Math.max(1, w * 0.02), bodyY, Math.max(2, w * 0.04), Math.max(1, h * 0.3), '#8e9a95');
   }
-  // LAS HELICES VAN SIEMPRE POR CODIGO, con hoja o sin ella: un disco horneado se ve MUERTO, y lo
-  // que dice que este avion esta volando —y no pegado en el cielo— es que las cuatro giren.
-  //
-  // DONDE VAN LO DICE EL HORNO. Con la hoja puesta, la posicion de cada disco sale de `anclaje()`:
-  // el horneador proyecta el cono de cada helice del modelo con la MISMA camara con la que horneo
-  // y escribe el pixel en src/data/cajas.js. Antes eran cuatro fracciones del ancho puestas a ojo
-  // —±0.19 y ±0.34—, y estaban atadas a que los motores del modelo no se movieran nunca: cuando se
-  // corrigieron a su posicion real (estaban un 50 % afuera) las cuatro helices habrian quedado
-  // flotando al lado de sus gondolas, y no hay error de runtime que avise de eso.
-  // Sin hoja, se cae a las fracciones de siempre, que es lo que el dibujo procedural necesita.
-  //
-  // EL DISCO SE VE DE CANTO. La hoja se hornea desde 12° por debajo, asi que el circulo de 4,1 m de
-  // la helice se proyecta casi de perfil: ancho entero, alto una fraccion. Dibujarlo redondo la
-  // haria parecer de frente. La proporcion exacta seria sen(12°) = 0,21 —tres pixeles, o sea nada—
-  // y va en 0,30: una helice girando se ve como una banda BORROSA, mas gorda que el plano
-  // geometrico que barre. Es de las pocas veces que el dibujo le gana a la cuenta.
-  const HEL_D = 2.64;                                  // diametro del disco, en unidades de mundo
-  for (let i = 0; i < 4; i++) {
-    const a = hoja ? enemyArt.anclaje('chancha', i, s.x, { centerY: s.y }, k) : null;
-    const f = [-0.34, -0.19, 0.19, 0.34][i];
-    const hx = a ? a.x : s.x + w * f;
-    const hy = a ? a.y : bodyY - h * 0.62;
-    const dw = Math.max(2, HEL_D * k), dh = Math.max(1, dw * 0.30);
-    ctx.globalAlpha = 0.30 + 0.22 * Math.sin(run.t * 30 + i * 2.2);
-    px(hx - dw / 2, hy - dh / 2, dw, dh, P.dim);
-    ctx.globalAlpha = 0.5;
-    px(hx - dw / 2, hy - dh / 2, dw, Math.max(1, dh * 0.22), P.dim);   // el filo del disco
-    ctx.globalAlpha = 1;
-  }
-
   // LAS DOS MANGUERAS (8/10, el autor: "la manguera la veo pero tiene que ser mas visible, quiza
   // naranja"). Salen de la BOCA DE CADA POD —afuera del motor externo, como en el KC-130 de verdad—,
   // cuelgan y terminan en su canasta. La de estribor es la de la cita (la canasta de systems/chancha.js);

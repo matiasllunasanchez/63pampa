@@ -190,16 +190,22 @@ def camion(raiz, K, verde, verde2, cabina, ejes, largo_caja=4.6, z_caja=0.2):
         for sg in (-1, 1):
             rueda(raiz, K, sg * 1.08, R, z, R, 0.38)
             bloque('guardabarros', raiz, mv2, (sg * 1.08, R * 2 + 0.06, z), (0.46, 0.06, 1.15), bisel=0.02)
-    # LA CABINA: el cuerpo, el capot corto adelante y el parabrisas inclinado
-    zc = -2.55
-    bloque('cabina', raiz, mc, (0, Y + 0.95, zc + 0.15), (2.3, 1.25, 1.25), bisel=0.08)
-    bloque('capot', raiz, mc, (0, Y + 0.62, zc - 0.62), (2.0, 0.60, 0.55), bisel=0.08)
-    pieza('parabrisas', raiz, K['mat_cel']('vidrio', VIDRIO), (2.0, 0.55, 0.03), (0, Y + 1.25, zc - 0.47), (-0.25, 0, 0))
+    # LA CABINA DEL BEDFORD MK (15/10, "mas fieles"): el camion de 4 t del ejercito britanico en Malvinas
+    # es de CABINA AVANZADA — sin capot: el frente PLANO y alto sobre el motor, el parabrisas partido en
+    # dos con el parante al medio, la parrilla oscura abajo y los faros en el paragolpes
+    zc = -2.45
+    bloque('cabina', raiz, mc, (0, Y + 1.10, zc), (2.35, 1.60, 1.50), bisel=0.07)
+    bloque('techo', raiz, mv2, (0, Y + 1.93, zc + 0.05), (2.25, 0.07, 1.40), bisel=0.02)
+    vid = K['mat_cel']('vidrio', VIDRIO)
     for sg in (-1, 1):
-        pieza('ventanilla', raiz, K['mat_cel']('vidrio', VIDRIO), (0.02, 0.42, 0.62), (sg * 1.16, Y + 1.22, zc + 0.10))
-        elipsoide('faro', (sg * 0.75, Y + 0.65, zc - 0.90), (0.10, 0.10, 0.04), raiz, K['mat_cel']('faro', '#c9c2a0'), seg=10, anillos=6)
-    bloque('paragolpes', raiz, oscuro, (0, Y + 0.25, zc - 0.95), (2.3, 0.18, 0.14), bisel=0.02)
-    bloque('techo', raiz, mv2, (0, Y + 1.60, zc + 0.15), (2.2, 0.06, 1.15), bisel=0.02)
+        pieza('parabrisas', raiz, vid, (1.00, 0.58, 0.03), (sg * 0.55, Y + 1.50, zc - 0.76), (-0.06, 0, 0))
+        pieza('ventanilla', raiz, vid, (0.02, 0.50, 0.70), (sg * 1.18, Y + 1.48, zc + 0.10))
+        pieza('puerta', raiz, oscuro, (0.02, 0.02, 0.80), (sg * 1.185, Y + 0.95, zc + 0.10))
+        elipsoide('faro', (sg * 0.85, Y + 0.35, zc - 0.82), (0.11, 0.11, 0.04), raiz, K['mat_cel']('faro', '#c9c2a0'), seg=10, anillos=6)
+        pieza('escalon', raiz, oscuro, (0.30, 0.05, 0.40), (sg * 1.05, Y + 0.30, zc + 0.10))
+    pieza('parante', raiz, mc, (0.08, 0.60, 0.04), (0, Y + 1.50, zc - 0.77))
+    pieza('parrilla', raiz, K['mat_cel']('parrilla', '#23261f'), (1.50, 0.45, 0.03), (0, Y + 0.80, zc - 0.76))
+    bloque('paragolpes', raiz, oscuro, (0, Y + 0.30, zc - 0.85), (2.4, 0.22, 0.16), bisel=0.02)
     # la CAJA: el piso y las barandas rebatibles
     piso = Y + 0.55
     bloque('piso', raiz, mv, (0, piso - 0.06, z_caja), (2.5, 0.14, largo_caja), bisel=0.02)

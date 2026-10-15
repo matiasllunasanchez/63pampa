@@ -1545,3 +1545,30 @@ Malvinas— con un lanzador Rapier en la caja (tools/blender/modelos_tierra.py, 
    abastecimiento (sin lanzador)?
 
 **Decisión del autor:** pendiente; el juego sigue con el camión AA.
+
+
+---
+
+## EL ARMAMENTO DE CADA BUQUE: ¿QUÉ TENÍA ARRIBA EN 1982? _(15/10/2026 — docs/sistemas/PLAN_DEFENSAS_BUQUE.md)_
+
+**Contexto:** el blanco final pasa a tener SISTEMAS que se pueden cañonear (lanzadores, directores,
+radares, cañones, montajes AA), y el autor pidió que cada buque tenga el armamento real. La tabla
+provisoria está en PLAN_DEFENSAS_BUQUE.md §4. Lo firme (Sea Dart y 4,5" Mk 8 en los Tipo 42, Sea Cat
+y 4,5" en los Tipo 21, Sea Wolf en los Tipo 22) ya entra al juego; esto es lo que queda a confirmar.
+
+**A verificar:**
+1. **Montajes de 20 mm Oerlikon y 40 mm Bofors agregados para la campaña:** ¿cuántos llevaban la
+   Glasgow, la Plymouth y la Glamorgan? ¿El Broadsword tenía Bofors de 40 mm?
+2. **Los LSL (Sir Galahad, Sir Tristram):** ¿llevaban Bofors de 40 mm el 8 de junio, o solo
+   ametralladoras?
+3. **La Ardent el 21/5:** ¿las primeras bombas (Dagger, ~14:00) destruyeron el lanzador del Sea Cat
+   en el techo del hangar, antes del ataque de los A-4Q de la Armada? Si es así, la misión r3 arranca
+   con el Sea Cat ya fuera.
+4. **La Glasgow el 12/5:** ¿el cañón de 4,5" estaba operativo durante el ataque de ORO? ¿El Sea Wolf
+   de la Brilliant falló contra ORO por los aviones cruzándose (lo que dicen las fuentes británicas)?
+5. **La Plymouth el 8/6:** ¿alcanzó a tirar Sea Cat? ¿Los Dagger la cañonearon con los DEFA de 30 mm
+   además de las bombas?
+6. **Las armas de los aviones:** A-4B/C/Q con dos Colt Mk 12 de 20 mm; Dagger y Super Étendard con
+   dos DEFA de 30 mm. ¿Correcto para los aviones de cada salida?
+
+**Decisión del autor:** pendiente; el juego sigue con la tabla provisoria.

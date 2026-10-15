@@ -17,7 +17,7 @@
 // tamaño en pantalla lo decide un humano.
 export const CAJAS = {
   aa: { fw: 48, fh: 48, cols: 2, rows: 1, box: { x0: 6, y0: 4, x1: 39, y1: 35 }, margen: 4 },
-  aatruck: { fw: 56, fh: 48, cols: 3, rows: 1, box: { x0: 13, y0: 8, x1: 50, y1: 34 }, margen: 5 },
+  aatruck: { fw: 56, fh: 48, cols: 3, rows: 1, box: { x0: 13, y0: 8, x1: 49, y1: 34 }, margen: 6 },
   balloon: { fw: 48, fh: 48, cols: 3, rows: 1, box: { x0: 8, y0: 10, x1: 37, y1: 36 }, margen: 8 },
   base_costera: { fw: 240, fh: 72, cols: 1, rows: 1, box: { x0: 22, y0: 6, x1: 217, y1: 69 }, margen: 2 },
   bldg: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 16, y0: 9, x1: 49, y1: 36 }, margen: 9 },
@@ -62,7 +62,7 @@ export const CAJAS = {
   resto_jet: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 10, y0: 3, x1: 54, y1: 41 }, margen: 3 },
   resto_lcu: { fw: 72, fh: 48, cols: 2, rows: 1, box: { x0: 10, y0: 8, x1: 54, y1: 41 }, margen: 6 },
   resto_manpad: { fw: 48, fh: 48, cols: 1, rows: 1, box: { x0: 4, y0: 19, x1: 39, y1: 30 }, margen: 4 },
-  resto_radar: { fw: 48, fh: 48, cols: 1, rows: 1, box: { x0: 6, y0: 13, x1: 43, y1: 31 }, margen: 4 },
+  resto_radar: { fw: 48, fh: 48, cols: 1, rows: 1, box: { x0: 6, y0: 13, x1: 42, y1: 31 }, margen: 5 },
   resto_tent: { fw: 48, fh: 48, cols: 1, rows: 1, box: { x0: 9, y0: 21, x1: 40, y1: 29 }, margen: 7 },
   roca_alta: { fw: 96, fh: 64, cols: 4, rows: 2, box: { x0: 22, y0: 14, x1: 70, y1: 58 }, margen: 5 },
   roca_baja: { fw: 96, fh: 64, cols: 4, rows: 2, box: { x0: 12, y0: 33, x1: 83, y1: 55 }, margen: 8 },
