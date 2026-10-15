@@ -483,6 +483,14 @@ function plantar(desde) {
 }
 
 /** UN SEA SLUG que va a pegar en (`xFin`, `z`): nace alto y de costado, y pica hasta ahi. */
+/** UNA AMENAZA AL EXOCET (libro r5, EL INVINCIBLE): un helicoptero o un caza que nace EN LA LINEA DEL
+ *  MISIL, a su altura, y viene de frente. Quieto en su carril y sin `home` — no te busca a vos: esta
+ *  ahi para chocar al misil, y la escolta existe para tirarle antes. */
+export function sembrarAmenaza(x, y) {
+  const tipo = Math.random() < 0.65 ? 'helo' : 'jet';
+  obstacles.push({ type: tipo, x, y, z: SPAWN_Z, ...hpOf(tipo), xa: x, amenaza: true, done: false, ph: Math.random() * 6.283 });
+}
+
 export function tirarSlug(xFin, z) {
   const lado = Math.random() < 0.5 ? -1 : 1, vx = lado * (9 + Math.random() * 7), T = 2.2;
   obstacles.push({

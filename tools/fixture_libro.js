@@ -58,8 +58,8 @@ app.whenReady().then(async () => {
   console.log('1. el menu HISTORIA:');
   let d = await hasta(x => x.state === 'campmenu');
   if (!d) { bad('no se llego al menu HISTORIA'); return fin(); }
-  const esperado = ['campSecCampanas', 'c1-', 'campSecLibro', 'libro0', 'libro1', 'libro2', 'libro3', 'back'];
-  if (JSON.stringify(d.filas) === JSON.stringify(esperado)) ok('CAMPAÑAS (Mateo bloqueada) + LIBRO DE VUELO con cuatro salidas, sin CONTINUAR');
+  const esperado = ['campSecCampanas', 'c1-', 'campSecLibro', 'libro0', 'libro1', 'libro2', 'libro3', 'libro4', 'back'];
+  if (JSON.stringify(d.filas) === JSON.stringify(esperado)) ok('CAMPAÑAS (Mateo bloqueada) + LIBRO DE VUELO con cinco salidas, sin CONTINUAR');
   else bad('filas: ' + JSON.stringify(d.filas));
   if (d.fila.id === 'libro' && d.fila.k === 0) ok('el cursor arranca en la primera salida, no en la campaña bloqueada');
   else bad('el cursor arranca en ' + JSON.stringify(d.fila));
@@ -72,7 +72,7 @@ app.whenReady().then(async () => {
   else bad(`la campaña bloqueada: fila ${JSON.stringify(d.fila)} → estado ${d2.state}`);
   await tap('Down');
 
-  for (let k = 0; k < 4; k++) {
+  for (let k = 0; k < 5; k++) {
     console.log(`\n${k + 2}. salida ${k + 1}:`);
     paso = 'salida ' + (k + 1);
     d = await hasta(x => x.state === 'campmenu' && x.fila.id === 'libro' && x.fila.k === k, 'Down');
@@ -112,9 +112,9 @@ app.whenReady().then(async () => {
   }
 
   // UN DERRIBO TAMBIEN TERMINA EN LO QUE PASÓ (no se reintenta)
-  console.log('\n6. derribado:');
+  console.log('\n7. derribado:');
   paso = 'derribado';
-  d = await hasta(x => x.state === 'campmenu' && x.fila.id === 'libro' && x.fila.k === 3, 'Up');
+  d = await hasta(x => x.state === 'campmenu' && x.fila.id === 'libro' && x.fila.k === 4, 'Up');
   await tap('Return');
   d = await hasta(x => x.state === 'libroavion' || x.state === 'takeoff' || x.state === 'play', 'Return', 20);
   if (d && d.state === 'libroavion') await tap('Return');

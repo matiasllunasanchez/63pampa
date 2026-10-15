@@ -84,6 +84,8 @@ export const STRINGS = {
     death_aa: 'La defensa de la barcaza te derribo',
     death_fuel: 'Te quedaste sin combustible sobre el blanco',
     death_seco: 'Te quedaste sin combustible',
+    death_exocet: 'Derribaron el Exocet',
+    esc_amenaza: '¡ALGO SE LE CRUZA AL EXOCET!',
     // LA EYECCION (PLAN_VUELTA_REAL V6): la mision se pierde igual; el piloto, depende de donde cayo
     death_eyecto_rescate: 'Te quedaste sin combustible. Te eyectaste cerca de la costa y te sacaron del agua',
     death_eyecto_mar: 'Te quedaste sin combustible. Te eyectaste en mar abierto y el Atlantico Sur no perdona',
@@ -1303,6 +1305,8 @@ export const STRINGS = {
     death_aa: 'The barge defenses shot you down',
     death_fuel: 'You ran out of fuel over the target',
     death_seco: 'You ran out of fuel',
+    death_exocet: 'The Exocet was shot down',
+    esc_amenaza: 'SOMETHING IS CROSSING THE EXOCET!',
     death_eyecto_rescate: 'You ran out of fuel. You ejected near the coast and they pulled you out of the water',
     death_eyecto_mar: 'You ran out of fuel. You ejected over open sea and the South Atlantic does not forgive',
     eyec_aviso: 'EJECT', eyec_teclas: 'Q + E   ·   L1 + R1', eyec_salvo: 'PILOT SAVED',

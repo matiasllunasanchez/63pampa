@@ -3090,6 +3090,8 @@ export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
     const tope = fx.largo / 0.82, rod = tope * ENC_RODILLA;
     if (sc > rod) sc = tope - (tope - rod) * Math.exp(-(sc - rod) / (tope - rod));
   }
+  // DE LEJOS (el Pulso del Super Etendard del Invincible): el encuadre entero, achicado
+  if (fx && fx.lejos) sc *= fx.lejos;
   const uh = SHIP_UH * sc, hullH = uh * 1.5;
   const bx = bargeCol(ph === 0 ? f : 1) + Math.sin(run.t * 0.8) * 9 * sc;
   // FLOTACION CLAVADA EN EL HORIZONTE (playtest 7/8: "el barco aparece por debajo del

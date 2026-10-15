@@ -94,7 +94,7 @@ import { drawBlanco, drawBlancoHud } from './render/blanco.js';
 import { drawRotuloVuelo, ROTULO, ROTULO_T, ROTULO_NOMBRE, ROTULO_ESCAPE, ROTULO_FALLO } from './render/rotulo.js';
 import { tarjetaPiloto, TARJETA_LADO, tarjetaLugar, NUMEROS } from './render/hud.js';
 import { PULSO } from './data/pulso.js';
-import { spawnSystem } from './systems/spawn.js';
+import { spawnSystem, sembrarAmenaza } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
 import * as caza from './systems/caza.js';
 import * as persec from './systems/persec.js';
@@ -1757,7 +1757,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function libroDespegar() {
       const m = LIBRO_VUELO[libro.k], av = m.aviones[libroAvSel];
       if (!av) return;
-      libro.av = libroAvSel;
+      libro.av = libroAvSel; libro.tramo = null;
       selPlane = Math.max(0, PLANES.findIndex(p => p.key === av.plane));
       cfg.carga = av.carga;
       reset(); setRunObjective();
@@ -1774,6 +1774,107 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const ch = m.aviones.map(a => a.chapa), i0 = libro.av || 0;
       const orden = Array.from({ length: n }, (_, i) => ch[(i0 + i) % ch.length]);
       return { roster: Array.from({ length: n }, () => 'PILOTO'), chapas: orden };
+    }
+    /** EN QUE TRAMO va una salida de DOS AVIONES (`escolta` en libro_vuelo.js, hoy EL INVINCIBLE):
+     *  'super' antes del Pulso, 'escolta' despues. null en las salidas de un solo avion. */
+    /** EL BUQUE DE LEJOS en el Pulso del Super Etendard (`pulsoLejos`): el Exocet se suelta a 20-30
+     *  millas, y en el parabrisas el blanco tiene que verse chico. */
+    function fxLejos(fx) {
+      const k = libroEnTramo() === 'super' && curMission().pulsoLejos;
+      if (fx && k) fx.lejos = k;
+      return fx;
+    }
+    function libroEnTramo() {
+      const m = libro && LIBRO_VUELO[libro.k];
+      return m && m.escolta ? libro.tramo || 'super' : null;
+    }
+    /** EL CAMBIO (PLAN_INVINCIBLE I2): el Exocet ya salio; el Super Etendard se va y el jugador pasa a
+     *  ser un A-4C de la escuadrilla, SIN CORTAR LA MISION — mismo pasillo, misma distancia. El misil
+     *  vuela adelante como lider de PERSECUCION y hay que llevarlo hasta el portaaviones. */
+    function cambioAEscolta() {
+      const m = LIBRO_VUELO[libro.k], e = m.escolta;
+      libro.tramo = 'escolta';
+      selPlane = Math.max(0, PLANES.findIndex(p => p.key === e.plane));
+      cfg.carga = e.carga;
+      prepararCarga();   // el A-4C tambien cargo de los KC-130: sale con su tanque
+      run.squad = run.lives = e.squad;
+      squad.setRoster(Array.from({ length: e.squad }, () => 'PILOTO'), e.chapas);
+      squad.resetFila(); squad.resetSquad();
+      persec.resetPersec();
+      // CERCA, a 25-40: el misil va en el medio de la formacion y se tiene que ver la escuadrilla
+      // alrededor. A la distancia de la persecucion de siempre (60-140) los compañeros eran puntos.
+      persec.startPersec({ nombre: 'EXOCET', tipo: 'exocet', banda: [25, 40] });
+      escolta.amenazaT = ESCOLTA_GRACIA; escolta.cayeron = 0; escolta.final = 0;
+      // el corte, como el de la vuelta: negro, y del otro lado ya volando el otro avion
+      setState('play'); fadeT = 2.2;
+      plane.y = Math.max(plane.y, 10); plane.vy = 0;
+      run.nextSpawn = 320; run.nextBomb = 260; run.nextSoldier = 60;
+      beep(560, 0.12, 'square', 0.05);
+    }
+    // ---------- LA ESCOLTA DEL EXOCET (PLAN_INVINCIBLE I4-I6) ----------
+    // Cada ESCOLTA_AMENAZA segundos algo se le cruza al misil en su linea; si lo toca, el misil cae y la
+    // mision se pierde. Los compañeros caen en ESCOLTA_CAIDAS (fracciones de la escolta) hasta que el
+    // jugador queda solo con el misil — la licencia de juego del plan: en 1982 cayeron dos de cuatro.
+    const ESCOLTA_AMENAZA = [3.5, 5.5];          // segundos entre amenazas (min, max)
+    const ESCOLTA_GRACIA = 5;                     // la primera, recien a los cinco segundos del cambio
+    const ESCOLTA_CAIDAS = [0.3, 0.55, 0.8];
+    const ESCOLTA_CHOQUE = { x: 4.5, y: 6, z: 7 };   // la caja del misil contra lo que se le cruza
+    const ESCOLTA_VUELAN = ['helo', 'jet', 'balloon', 'birds'];
+    const escolta = { amenazaT: 0, cayeron: 0, final: 0 };
+    const ESCOLTA_FINAL = 1.3;   // segundos que vuela solo el misil hasta estallar en el portaaviones
+    let escoltaSinAmenazas = false;   // sonda (__escSin): para recorrer la escolta entera en una captura
+    /** Un cuadro de la escolta. Devuelve true si el misil cayo (el cuadro se corta: ya se murio). */
+    function pasoEscolta(dt) {
+      const s = persec.snapshot();
+      if (!s) return false;
+      // EL TRAMO FINAL: el misil se fue al buque; cuando estalla, se cierra la mision
+      if (escolta.final > 0) {
+        escolta.final -= dt;
+        if (escolta.final <= 0) { impactoExocet(); finishObjective(); return true; }
+        return false;
+      }
+      // los compañeros que quedan vuelan alrededor del misil (el jugador no cuenta: vuela solo)
+      persec.setEscoltas(Math.min(3, run.lives - 1));
+      // LAS AMENAZAS, en la linea del misil
+      escolta.amenazaT -= dt;
+      if (escolta.amenazaT <= 0) {
+        escolta.amenazaT = ESCOLTA_AMENAZA[0] + Math.random() * (ESCOLTA_AMENAZA[1] - ESCOLTA_AMENAZA[0]);
+        if (!escoltaSinAmenazas) {
+          sembrarAmenaza(s.x + (Math.random() - 0.5) * 3, s.y);
+          cartel(T('esc_amenaza'), P.warn);
+        }
+      }
+      // …y si una lo alcanza, el misil cae
+      for (const o of obstacles) {
+        // LO QUE VUELA es lo que lo puede chocar (la ola y lo de tierra quedan abajo del misil)
+        if (o.done || (o.hp !== undefined && o.hp <= 0) || !(o.amenaza || ESCOLTA_VUELAN.includes(o.type))) continue;
+        if (Math.abs(o.z - s.z) > ESCOLTA_CHOQUE.z || Math.abs(o.x - s.x) > ESCOLTA_CHOQUE.x) continue;
+        if (o.y !== undefined && Math.abs(o.y - s.y) > ESCOLTA_CHOQUE.y) continue;
+        explodeAt(s.x, s.y, s.z, true);
+        boom(0.9);
+        persec.resetPersec();
+        die('death_exocet');
+        return true;
+      }
+      // LOS COMPAÑEROS QUE CAEN: el ultimo puesto de la formacion, con su estallido
+      const lz = curMission().lanzamiento || 0;
+      const fr = (run.dist / objectiveDist - lz) / Math.max(0.01, 1 - lz);
+      if (escolta.cayeron < ESCOLTA_CAIDAS.length && fr >= ESCOLTA_CAIDAS[escolta.cayeron] && run.lives > 1) {
+        const pts = persec.puestosEscolta(), p = pts[pts.length - 1];
+        if (p) explodeAt(p.x, p.y, p.z, true);
+        boom(0.6);
+        run.lives -= 1;
+        squad.resetFila();
+        escolta.cayeron++;
+      }
+      return false;
+    }
+    /** EL EXOCET LLEGA AL PORTAAVIONES: el estallido donde va el misil, que es donde esta el buque. */
+    function impactoExocet() {
+      const s = persec.snapshot();
+      if (s) explodeAt(s.x, s.y, s.z, true);
+      boom(1);
+      persec.resetPersec();
     }
     /** Sale del libro y vuelve a su menu, con el cursor sobre la salida que se acaba de volar. */
     function volverAlLibro() {
@@ -4412,7 +4513,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           const sig = pulso.update(dtReal, dt);
           // EL PREMIO entra al recuento como una fila mas (freezeRun lo suma al total, y de ahi
           // salen las estrellas de la mision): el climax no tiene una moneda propia.
-          if (sig === 'objective') { cobrarPulso(); finishObjective(); }
+          // EL INVINCIBLE: el Pulso del Super Etendard no cierra la mision — la sigue el A-4C (el cambio)
+          if (sig === 'objective' && libroEnTramo() === 'super') { cobrarPulso(); cambioAEscolta(); }
+          else if (sig === 'objective') { cobrarPulso(); finishObjective(); }
           // 2º FALLO: cuesta un avion del escuadron (mismo camino que la pasada gastada — no te
           // derribaron, se te fue la pasada). Volando solo no hay avion que cobrar: se sigue.
           else if (sig && sig.spent) { if (canRelevo(run.lives)) onPassSpent(sig); else pulso.reencarar(); }
@@ -4855,7 +4958,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       moves.stepCobraCam(dt);
       frenoAntes = !!inp.brake;
       const fuelAntes = run.fuel;
-      const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist, needsMomentum, climax: runClimax() });
+      // EL INVINCIBLE (libro r5): el Super Etendard entra al Pulso en `lanzamiento` y no en el blanco, y
+      // en la escolta del A-4C no hay climax — llegar al portaaviones con el misil ES el objetivo.
+      const lr = libroEnTramo();
+      const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist,
+        needsMomentum: lr === 'escolta' ? false : needsMomentum, climax: runClimax(),
+        climaxDist: lr === 'super' ? objectiveDist * curMission().lanzamiento : objectiveDist });
       squad.gastoLider(fuelAntes - run.fuel);
       damage.humoAveria(dt);   // el avion roto larga humo (por debajo de AVERIA_HUMO de integridad)
       // EL ROTULO QUE PASA VOLANDO (render/rotulo.js): en el cuadro en que el poder RASANTE se
@@ -4875,7 +4983,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // sigas arriba te vuelven a hablar — quien espacia los avisos es `cada`, no un gate aparte.
       if (run.radarVisto && curMission() && curMission().avisos) avisar(curMission().avisos, 'radar');
       stepLecciones();
-      if (fs === 'objective') { finishObjective(); return; }
+      if (fs === 'objective') {
+        // EL EXOCET LLEGA (libro r5): se adelanta solo hasta el portaaviones y estalla alla; la mision se
+        // cierra cuando estalla (pasoEscolta), no en este cuadro
+        if (libroEnTramo() === 'escolta') { if (!(escolta.final > 0)) { escolta.final = ESCOLTA_FINAL; persec.alBlanco(); } }
+        else { finishObjective(); return; }
+      }
       if (fs && fs.death) { onDeath(fs.death); return; }
       // SECO (V6, rehecho 25/9): relevo con "me quede sin combustible", o eyeccion si era el ultimo
       if (cfg.fuelOn && run.fuel <= 0) { sinCombustible(); return; }
@@ -5074,6 +5187,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // N1 le puso la banda: si lo perdes o lo chocas, la muerte entra por el embudo de siempre.
       const ps = persec.persecSystem(dt);
       if (ps && ps.death) { onDeath(ps.death); return; }
+      // LA ESCOLTA DEL EXOCET (libro r5): amenazas al misil, compañeros que caen, y el misil derribado
+      if (libroEnTramo() === 'escolta' && pasoEscolta(dt)) return;
       // EL GUION SE LLEVO AL LIDER (LA REGLA DEL AMIGO, systems/persec.js). No es tu muerte: es la
       // de el, y el pasillo sigue. Se anuncia y nada mas — si el guion quiere que ademas te cueste
       // algo, es el guion el que lo escribe.
@@ -5331,7 +5446,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA SUELTA: el buque es MUNDO (render/blanco.js) y reemplaza al de la aproximacion pintada.
       if (runClimax() === 'suelta') { drawBlanco(); drawRecibe(); const sws = seawolfSys.snapshot(PZ); drawHumoSW(sws); drawZonaSW(sws, PZ); }
       else world.drawApproachBarge(objectiveDist, objectiveShip,
-        S.state === 'pulso' ? pulso.shipFx(pulsoRender.ventana(cine.state(), run.t)) : null,
+        S.state === 'pulso' ? fxLejos(pulso.shipFx(pulsoRender.ventana(cine.state(), run.t))) : null,
         runClimax() === 'pasada' && S.state !== 'pulso');
       // LAS PAREDES DEL CALLEJON (zigzag Z3) van DESPUES del buque de aproximacion, y esto es
       // orden de profundidad, no capricho: el buque objetivo esta a UN KILOMETRO y las laderas
@@ -6213,6 +6328,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el telon puesto, la pared de bruma lo tapaba hasta los ultimos 300 m (playtest 23/9:
       // "aparece cuando ya estas demasiado cerca").
       if (runClimax() === 'suelta') return 0;
+      // …y LA ESCOLTA DEL EXOCET (libro r5) tampoco: no hay corte de escena que tapar, y lo que hay al
+      // final es el portaaviones y el estallido — lo que se vino a ver.
+      if (libroEnTramo() === 'escolta') return 0;
       if (S.state !== 'play' && S.state !== 'dead' && S.state !== 'relevo') return 0;
       const t = Math.max(0, Math.min(1, (run.dist / objectiveDist - VEIL_IN) / (VEIL_FULL - VEIL_IN)));
       // CUADRATICA: acompaña la disipacion de la niebla desde media aproximacion sin molestar
@@ -6407,6 +6525,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     // __librodbg: EL LIBRO DE VUELO por dentro — que salida, que avion, con que escuadrilla y que
     // chapas, y que fila marca el menu. La usa tools/fixture_libro.js.
+    if (typeof window !== 'undefined') window.__escSin = v => { escoltaSinAmenazas = v !== 0; return escoltaSinAmenazas; };
     if (typeof window !== 'undefined') window.__librodbg = () => JSON.stringify({
       state: S.state, libro, avSel: libroAvSel, modo: gameMode, test: S.test,
       fila: (campRows()[campSel] || {}), filas: campRows().map(r => r.head || r.id + (r.k !== undefined ? r.k : '') + (r.disabled ? '-' : '')),
@@ -6415,6 +6534,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       pilotos: Array.from({ length: run.squad }, (_, i) => squad.pilotName(i)),
       chapas: Array.from({ length: run.squad }, (_, i) => squad.planeName(i)),
       escena: dialogue.scene() && dialogue.scene().id,
+      causa: S.state === 'dead' ? deathCause : null, tramo: libroEnTramo(), cayeron: escolta.cayeron, persec: persec.active() ? JSON.parse(persec.dbgPersec()) : null,
     });
     if (typeof window !== 'undefined') window.__pausedbg = () => JSON.stringify({
       paused, dlg: dlgPausa, dlgT: +dlgT.toFixed(2), view: pauseView, sel: pauseSel, saveSel, state: S.state,

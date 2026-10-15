@@ -21,7 +21,57 @@ import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { PURS_WASH_D, PURS_F_MIN } from '../data/tuning.js';
 import { PLANE_SCALE } from './plane.js';
 import { drawBorde } from './borde.js';
-import { snapshot } from '../systems/persec.js';
+import { snapshot, puestosEscolta } from '../systems/persec.js';
+import * as muni from './municion.js';
+import { run } from '../core/run.js';
+import { luz } from './brillo.js';
+
+// LA ESTELA DEL EXOCET (autor, 15/10: "el Exocet debe volar marcando estela bien potente"). Va ANCLADA
+// AL MAR y no a la pantalla: cada bocanada queda donde el misil paso (su posicion en el recorrido), asi
+// que el mundo la trae hacia la camara y se ve el rastro entero entre vos y el misil, abriendose y
+// apagandose con la edad. Es estado de DIBUJO (como los regueros del Pulso), no de juego.
+const ESTELA = [];
+// HUMO, NO BURBUJAS (autor, 15/10: "mas humo y menos burbujas"): bocanadas SEGUIDAS y tenues que se
+// pisan entre si — cada una con su tamaño y su temblor, gris que se ensucia con la edad — para que
+// juntas se lean como una columna continua y no como cuentas en un hilo.
+const ESTELA_PASO = 0.9, ESTELA_VIDA = 3.2;
+function estelaExocet(L) {
+  const pos = run.dist + (L.z - PZ), ult = ESTELA[ESTELA.length - 1];
+  if (ult && (pos < ult.pos - 60 || L.t < ult.t)) ESTELA.length = 0;   // un salto no es un vuelo
+  if (!ult || pos - ult.pos >= ESTELA_PASO)
+    ESTELA.push({ pos, x: L.x, y: L.y, t: L.t, s: 0.7 + Math.random() * 0.6, dx: (Math.random() - 0.5) * 0.8, dy: Math.random() * 0.6 });
+  while (ESTELA.length && (ESTELA[0].pos - run.dist < 2 || L.t - ESTELA[0].t > ESTELA_VIDA)) ESTELA.shift();
+  for (const e of ESTELA) {
+    const edad = L.t - e.t, a = Math.max(0, 1 - edad / ESTELA_VIDA);
+    // el humo se ABRE y SUBE un poco con la edad, y deriva: no se queda en la linea exacta del misil
+    const q = proj(e.x + e.dx * edad * 2, e.y + e.dy * edad * 1.5, PZ + (e.pos - run.dist));
+    const r = Math.max(0.8, Math.min(8, (0.9 + edad * 2.6) * e.s * q.k * 0.42));
+    const g = Math.round(236 - 70 * (1 - a));               // de blanco a gris sucio
+    ctx.globalAlpha = 0.22 * a * a + 0.06;
+    ctx.fillStyle = `rgb(${g},${g + 3},${g + 5})`;
+    ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+/** EL MOTOR DEL EXOCET (autor, 15/10: "el fuego de atras como los destellos de turbina"): la misma
+ *  receta que la tobera del avion (render/plane.js `tobera`) — dos resplandores sin borde, amarillo
+ *  adentro y naranja afuera, con el mismo pulso rapido, y la luz que derrama en el aire. */
+function motorExocet(x, y, u) {
+  const p = 0.86 + 0.10 * Math.sin(run.t * 30) + Math.random() * 0.04;
+  const R = u * 4.5 * p;
+  const g = ctx.createRadialGradient(x, y, 0, x, y, R);
+  g.addColorStop(0, 'rgba(255,170,90,0.55)');
+  g.addColorStop(0.45, 'rgba(224,110,36,0.32)');
+  g.addColorStop(1, 'rgba(180,70,22,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, R, R * 0.72, 0, 0, 6.2832); ctx.fill();
+  const r2 = R * 0.38;
+  const g2 = ctx.createRadialGradient(x, y, 0, x, y, r2);
+  g2.addColorStop(0, 'rgba(255,245,170,0.95)');
+  g2.addColorStop(0.5, 'rgba(255,180,60,0.6)');
+  g2.addColorStop(1, 'rgba(240,120,30,0)');
+  ctx.fillStyle = g2; ctx.beginPath(); ctx.ellipse(x, y, r2, r2 * 0.72, 0, 0, 6.2832); ctx.fill();
+  luz(ctx, x, y, R * 2.6, [255, 150, 70], 0.7);
+}
 
 /** Un cuadro del lider. Va en la capa del MUNDO (antes del avion del jugador): siempre esta mas
  *  lejos que vos — es la definicion del modo — asi que no hace falta el reparto en dos pasadas
@@ -63,6 +113,31 @@ export function drawPersec(selPlane) {
     ctx.globalAlpha = 1;
   }
 
+  // EL EXOCET (libro r5, EL INVINCIBLE): el lider es el misil, visto de cola, con el motor encendido.
+  // Mas chico que un avion pero con piso, por lo mismo que el avion: hay que poder verlo en el fondo
+  // de la banda — es lo que se esta escoltando.
+  if (L.tipo === 'exocet') {
+    estelaExocet(L);
+    // LOS COMPAÑEROS, alrededor del misil en los puestos del despegue: del mas lejano al mas cercano,
+    // para que el de adelante tape al de atras. Mismo avion que el tuyo, de cola y nivelado.
+    const pts = puestosEscolta().slice().sort((a, b) => b.z - a.z);
+    if (pl.sheetOk) {
+      const sm0 = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+      const col = (SHEET_NF - 1) / 2;
+      for (const p of pts) {
+        const q = proj(p.x, p.y, p.z), fq = Math.max(PURS_F_MIN, q.k / kRef);
+        const w = SHEET_FW * PLANE_SCALE * fq, h = SHEET_FH * PLANE_SCALE * fq;
+        ctx.drawImage(pl.sheetImg, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, q.x - w / 2, q.y - h / 2, w, h);
+      }
+      ctx.imageSmoothingEnabled = sm0;
+    }
+    const caja = Math.max(6, 16 * f);
+    motorExocet(s.x, s.y, Math.max(0.6, f));
+    if (!muni.dibujar(muni.MISIL, 0, s.x, s.y, caja)) {
+      px(s.x - 1, s.y - 3 * f, 2, 6 * f, '#d7dde0');   // respaldo sin hoja: un huso claro
+    }
+    return;
+  }
   const smooth = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
   if (pl.sheetOk) {

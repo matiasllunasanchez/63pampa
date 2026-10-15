@@ -314,8 +314,55 @@ const r4 = {
   contexto: 'R4_CONTEXTO', epi: 'R4_LO_QUE_PASO',
 };
 
-/** Las cuatro, en orden de fecha: es el orden del LIBRO DE VUELO. */
-export const LIBRO_VUELO = [r1, r2, r3, r4];
+// ---------------------------------------------------------------------------------------------
+// r5 · EL INVINCIBLE — 30 de mayo de 1982. Plan entero en docs/historia/misiones/PLAN_INVINCIBLE.md.
+// Fuentes: Conclusion; Canal 26; RNA; ASN (C-301). Dos Super Etendard (uno con el ULTIMO Exocet, el
+// otro de apoyo con su radar) y cuatro A-4C de la Fuerza Aerea, todos de Rio Grande (los A-4C a las
+// 12:30), reabastecidos por dos KC-130 en la ida. Version argentina: el Exocet y las bombas alcanzaron
+// al Invincible. Version britanica: el Exocet cayo al mar, dos A-4C derribados (Sea Dart) y los otros
+// dos atacaron a la HMS Avenger sin acertar.
+//
+// SE JUEGAN LOS DOS AVIONES, UNO DETRAS DEL OTRO, SIN CORTAR LA MISION (autor, 15/10):
+//   1. el SUPER ETENDARD vuela la ida con el Hercules y, en `lanzamiento` (una fraccion de la ida, y no
+//      en el blanco: el Exocet se suelta LEJOS), juega EL PULSO con el buque chico (`pulsoLejos`);
+//   2. EL CAMBIO: el jugador pasa a ser un A-4C de la escuadrilla (`escolta`) y la mision SIGUE: el
+//      Exocet vuela adelante y hay que custodiarlo — tirarle a todo lo que se le cruce — hasta el
+//      portaaviones. El A-4C no suelta nada: su trabajo es que el misil llegue.
+const r5 = {
+  id: 'r5', name: 'EL INVINCIBLE',
+  fecha: '30 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
+  desc: PENDIENTE,
+  despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'blanco: el grupo de portaaviones' },
+  goal: { kind: 'ship', ship: 'HMS INVINCIBLE', dist: LARGO * 1.2 },
+  climax: 'pulso',
+  // DONDE SE LANZA EL EXOCET: a esta fraccion de la ida, no en el blanco. Lo que queda de ahi al
+  // portaaviones es la escolta del A-4C (~45% de la ida, ~1:30 de vuelo).
+  lanzamiento: 0.55,
+  pulsoLejos: 0.45,           // el buque, de lejos: el encuadre del Pulso multiplicado por esto
+  pulsoBombas: 1, pulsoT01: 1,   // el ultimo Exocet; el Pulso de fines de mayo
+  cfg: cfgReal({ sky: 'cloudy', squad: 2 }),
+  chanchaMinT: 40,
+  chanchaVeces: { ida: 1, vuelta: 0 },
+  // KM APROXIMADOS (a confirmar): el grupo de portaaviones estaba al este de las islas, mas lejos que
+  // el Sheffield.
+  ruta: { blancoKm: 850, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [620, 400] },
+  fases: fases({ cerca: FLOTA, casa: false }),
+  par: Math.round(PAR * 1.2),
+  escuadrilla: '2ª ESCUADRILLA AERONAVAL Y GRUPO 4 DE CAZA',
+  aviones: [
+    { chapa: 'SUPER ÉTENDARD', plane: 'supere', carga: 'exocet', cargaTxt: 'EL ÚLTIMO EXOCET + 1 TANQUE' },
+  ],
+  // EL SEGUNDO AVION DE LA SALIDA: lo que pasa a volar el jugador despues del Pulso. Cuatro A-4C
+  // (`squad`), todos PILOTO, con el indicativo de escuadrilla de ASN («Zonda», a confirmar) en la placa.
+  escolta: {
+    plane: 'sky', carga: 'tanques', squad: 4,
+    chapas: ['ZONDA 1', 'ZONDA 2', 'ZONDA 3', 'ZONDA 4'],
+  },
+  contexto: 'R5_CONTEXTO', epi: 'R5_LO_QUE_PASO',
+};
+
+/** Las salidas, en orden de fecha: es el orden del LIBRO DE VUELO. */
+export const LIBRO_VUELO = [r1, r2, r3, r5, r4];
 
 // ---------------------------------------------------------------------------------------------
 // LAS ESCENAS (mismo formato que data/story.js; las lee core/dialogue.js).
@@ -338,4 +385,7 @@ export const LIBRO_SCENES = {
   R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', 'LO QUE PASÓ · ' + r3.name, ['21 de mayo de 1982. Los tres A-4Q le pegaron a la HMS Ardent; la segunda sección, ocho minutos después, también. La fragata se hundió.', 'A la salida, dos Sea Harrier derribaron a los tres: dos pilotos se eyectaron y sobrevivieron; el tercero no volvió.']),
   R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4), 'El Dagger era la versión israelí del Mirage 5, de la Fuerza Aérea: más rápido que el Skyhawk, pero sin sonda para cargar nafta en vuelo.', 'Por eso volaba con tres tanques y dos bombas de 250 kg: el alcance justo para ir, atacar y volver.', '8 de junio. Dos escuadrillas de Dagger, PERRO y GATO, salen de Río Grande. Uno vuelve porque un pájaro le rompe el parabrisas: quedan cinco.', 'El Dagger no carga nafta en vuelo: lo que llevás es lo que hay.']),
   R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', 'LO QUE PASÓ · ' + r4.name, ['8 de junio de 1982. Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.', 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.']),
+  // EL INVINCIBLE: el dato, y el resto PENDIENTE hasta el OK del autor
+  R5_CONTEXTO: tarjeta('R5_CONTEXTO', r5.name, [dato(r5), PENDIENTE]),
+  R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', 'LO QUE PASÓ · ' + r5.name, [PENDIENTE]),
 };

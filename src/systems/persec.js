@@ -60,7 +60,7 @@ import { beep, duck } from './audio.js';
 import { multOf } from '../core/util.js';
 import { speedTarget } from '../core/physics.js';
 import { pilotName } from './squad.js';
-import { alMando } from '../core/squad.js';
+import { alMando, formationSlots } from '../core/squad.js';
 import { FLY_X, FLY_TOP } from '../data/tuning.js';
 import {
   PURS_D, PURS_D0, PURS_V_F, PURS_V_AMP, PURS_V_T, PURS_V_INERCIA,
@@ -88,6 +88,9 @@ export function startPersec(opts = {}) {
     // arcade un numeral PATRIA. El indice arranca en 1 porque el 0 sos vos.
     lidIdx: 1,
     nombre: opts.nombre || pilotName(1),
+    // QUE ES EL LIDER: 'avion' (un numeral) o 'exocet' (EL INVINCIBLE, libro r5: el misil que el A-4C
+    // escolta). Solo cambia como se dibuja; la banda y el vuelo son los mismos.
+    tipo: opts.tipo || 'avion',
     // INFINITO = el modo de menu (N2): la banda se aprieta y el lider se releva con la distancia.
     // En CAMPAÑA (N3) esto va APAGADO — ahi el tramo tiene largo conocido y una intencion escrita,
     // y una dificultad que trepa sola convertiria un tutorial en una prueba de resistencia.
@@ -100,7 +103,7 @@ export function startPersec(opts = {}) {
     ty: Math.max(6, plane.y),   // que la curva siga siendo curva — misma idea que rv.x2 del relevo)
     bank: 0,
     // --- N1: la banda ---
-    lo: PURS_D[0], hi: PURS_D[1],   // la banda de esta corrida (N2 la va angostando; aca es fija)
+    lo: (opts.banda || PURS_D)[0], hi: (opts.banda || PURS_D)[1],   // la banda (N2 la va angostando; el Exocet trae la suya)
     fuera: 0,                   // segundos ACUMULADOS fuera de banda. Llega a PURS_GRACE y lo perdes.
     avisoT: 0,                  // reloj del proximo grito de radio
     enBanda: true,              // el estado del cuadro anterior: sirve para avisar en el FLANCO
@@ -226,7 +229,7 @@ export function persecSystem(dt) {
     const m = L.guion; L = null;
     return { guion: m };
   }
-  stepTiron(dt);
+  if (L.tipo !== 'exocet') stepTiron(dt);   // el misil no tironea: vuela parejo
   // LA DISTANCIA ES LA DIFERENCIA DE VELOCIDADES, y no hay mas modelo que ese. Si el lider va mas
   // rapido se aleja; si vos vas mas rapido, se acerca. Es lo que hace que el modo se juegue con el
   // acelerador y no con el timon — el §4 lo dice con todas las letras.
@@ -242,9 +245,20 @@ export function persecSystem(dt) {
   L.cierre += ((run.spd - v) - L.cierre) * Math.min(1, dt * PURS_CIERRE_S);
   // techo y piso duros de la metrica: mas alla de esto el lider deja de ser un avion en pantalla y
   // pasa a ser un punto o un choque, y las dos cosas las resuelve N1 (la gracia y el jet wash)
-  L.d = Math.max(2, Math.min(PURS_D[1] * 3, L.d));
+  L.d = Math.max(2, Math.min(L.alBlanco ? 2000 : PURS_D[1] * 3, L.d));
+  // EL EXOCET TE ESPERA (libro r5): en la escolta la tarea no es la distancia sino protegerlo, asi que
+  // el misil va siempre ADENTRO de la banda — se adelanta hasta el borde de lejos y no mas, y no se
+  // deja alcanzar. Sin esto, recien salido del Pulso se iba a 300 y "lo perdias" en dos segundos.
+  // …y AL FINAL SE VA SOLO (`alBlanco`): los ultimos metros hasta el portaaviones los hace el misil,
+  // acelerando lejos de la escuadrilla, y estalla alla — no al lado tuyo.
+  if (L.tipo === 'exocet' && L.alBlanco) L.d += EXOCET_FINAL * dt;
+  else if (L.tipo === 'exocet') L.d = Math.max(L.lo, Math.min(L.hi, L.d));
   L.z = PZ + L.d;
-  esquivar(dt);
+  // EL EXOCET NO ESQUIVA: va derecho al blanco. Lo que se le cruce lo choca — para eso esta la escolta.
+  if (L.tipo !== 'exocet') esquivar(dt);
+  // …Y VA A RAS: el Exocet es un rozaolas. Nace donde estabas vos (arriba, si venias del Pulso) y baja
+  // a su altura de crucero — no copia la tuya.
+  else L.ty = EXOCET_ALT;
   // seguimiento suave hacia el ancla: PURS_AGIL es todo lo agil que es este avion
   const k = Math.min(1, PURS_AGIL * dt);
   const nx = L.x + (L.tx - L.x) * k;
@@ -308,6 +322,9 @@ function infinito() {
  *
  *  Devuelve señal como todos: `{ death }` y game.js decide si es relevo o derrota. */
 function banda(dt) {
+  // EL EXOCET no te derriba ni se pierde: va clavado en la banda (ver arriba). Lo que la escolta cobra
+  // es otra cosa — que algo lo alcance (game.js). Aca solo suma el tiempo de escolta.
+  if (L.tipo === 'exocet') { L.banda += dt; return null; }
   const dentro = L.d >= L.lo && L.d <= L.hi;
   if (dentro) {
     L.banda += dt;
@@ -382,6 +399,24 @@ export function carrilLibre(x) {
  *
  *  La señal `{ guion }` NO es una muerte tuya: game.js la cuenta como fin de la persecucion. Si el
  *  guion ademas quiere que eso te cueste algo, es el guion el que lo escribe. */
+/** LA ESCOLTA DEL EXOCET (libro r5): cuantos A-4C vuelan alrededor del misil (los compañeros vivos;
+ *  el jugador no cuenta — vuela solo). La pone game.js cada cuadro. */
+export function setEscoltas(n) { if (L) L.escoltas = Math.max(0, n | 0); }
+/** Donde va cada compañero: LOS PUESTOS DEL DESPEGUE (autor, 15/10: "la formacion seria la misma que el
+ *  despegue"), alrededor del misil y abiertos ESCOLTA_K para que se lean a esa distancia. Lo leen el
+ *  dibujo y la explosion de cuando cae uno: una sola cuenta. */
+const ESCOLTA_K = 1.8;
+const EXOCET_ALT = 4;   // la altura de crucero del misil (rozaolas)
+const EXOCET_FINAL = 220;   // u/s a las que se adelanta en el tramo final, hacia el buque
+/** El tramo final del Exocet: deja la escolta y se va al blanco (game.js lo pide al llegar). */
+export function alBlanco() { if (L && L.tipo === 'exocet') { L.alBlanco = true; L.tx = 0; } }   // al centro del buque
+export function puestosEscolta() {
+  if (!L || L.tipo !== 'exocet') return [];
+  return formationSlots(4).slice(0, L.escoltas || 0).map(p => ({
+    x: L.x + p.dx * ESCOLTA_K, y: L.y + 1.5 + p.dy * ESCOLTA_K, z: L.z + p.dz * ESCOLTA_K * 3,
+  }));
+}
+
 export function caerLider(motivo) {
   if (!L) return false;
   L.guion = motivo || 'purs_caido';
@@ -392,7 +427,7 @@ export function caerLider(motivo) {
 export function snapshot() {
   if (!L) return null;
   return {
-    nombre: L.nombre, d: L.d, x: L.x, y: L.y, z: L.z, bank: L.bank, t: L.t,
+    nombre: L.nombre, tipo: L.tipo, d: L.d, x: L.x, y: L.y, z: L.z, bank: L.bank, t: L.t,
     lo: L.lo, hi: L.hi, fuera: L.fuera, gracia: PURS_GRACE, banda: L.banda,
     // N5: `tir` es la fase del tiron (1 = avisado, 2 = quemando) y `cierre` la lectura anticipada
     tir: L.tirF, cierre: L.cierre, cmax: PURS_CIERRE_MAX,

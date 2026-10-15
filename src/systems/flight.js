@@ -260,7 +260,8 @@ export function flightSystem(dt, deps) {
       // entrar. El buque es un objeto del mundo y quien cierra la mision es su propio sistema.
       if (deps.climax === 'suelta') { /* nada: ver systems/blanco.js */ }
       else if (deps.climax === 'pulso' && pulso.available()) {
-        if (pulso.readyToEnter(run.dist, deps.objectiveDist)) { pulso.enter(true); return 'pulso'; }
+        // `climaxDist`: donde se entra, si no es el blanco (el Exocet del Invincible se lanza lejos)
+        if (pulso.readyToEnter(run.dist, deps.climaxDist || deps.objectiveDist)) { pulso.enter(true); return 'pulso'; }
       } else if (deps.climax === 'pasada' && pasada.available()) {
         if (pasada.readyToEnter(run.dist, deps.objectiveDist)) { pasada.enter(true); return 'pasada'; }
       } else if (arena.available()) {
