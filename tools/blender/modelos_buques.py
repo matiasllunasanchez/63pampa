@@ -176,12 +176,12 @@ def columna(nombre, raiz, mat, x, z, est, expo=3.0, inclina=0.0):
     me.shade_smooth(); me.set_sharp_from_angle(angle=math.radians(40))
     return _obj(nombre, me, raiz, mat)
 
-def chimenea(raiz, K, x, y, z, w, d, alto, sombrero=True):
+def chimenea(raiz, K, x, y, z, w, d, alto, sombrero=True, inclina=0.12):
     sup = K['mat_cel']('chimenea', GRIS_SUP)
-    columna('chimenea', raiz, sup, x, z, [(y, w, d), (y + alto * 0.7, w * 0.96, d * 0.92), (y + alto, w * 0.9, d * 0.85)], inclina=0.12)
+    columna('chimenea', raiz, sup, x, z, [(y, w, d), (y + alto * 0.7, w * 0.96, d * 0.92), (y + alto, w * 0.9, d * 0.85)], inclina=inclina)
     if sombrero:
-        columna('sombrerete', raiz, K['mat_cel']('negro', METAL), x, z + alto * 0.12,
-                [(y + alto - 0.02, w * 0.93, d * 0.88), (y + alto + 0.10, w * 0.9, d * 0.84)], inclina=0.12)
+        columna('sombrerete', raiz, K['mat_cel']('negro', METAL), x, z + alto * inclina,
+                [(y + alto - 0.02, w * 0.93, d * 0.88), (y + alto + 0.10, w * 0.9, d * 0.84)], inclina=inclina)
 
 def ventanal(raiz, K, x, y, z, ancho, alto=0.07):
     """Los ventanales del puente, ENCENDIDOS: la luz calida del atardecer adentro."""
@@ -240,7 +240,8 @@ def t42(T, K, padre=None):
     balsas(raiz, K, manga * 0.40, franco + 0.40, L * 0.02, L * 0.12, 4)
     elipsoide('radomo909', (0, franco + 1.05, -L * 0.135), (0.17, 0.15, 0.17), raiz, K['mat_cel']('radomo', RADOMO), seg=16, anillos=10)
     mastil(raiz, K, 0, franco + 0.94, -L * 0.075, 1.25, 'somier')
-    chimenea(raiz, K, 0, franco + 0.34, L * 0.09, manga * 0.20, 0.42, 0.55)
+    # LA CHIMENEA GRANDE de los Sheffield (14/10, "mas fieles"): ancha, alta, con el sombrerete negro
+    chimenea(raiz, K, 0, franco + 0.34, L * 0.09, manga * 0.24, 0.58, 0.86, inclina=0.08)
     mastil(raiz, K, 0, franco + 0.34, L * 0.17, 0.85, 'barra')
     # EL HANGAR y la CUBIERTA DE VUELO (la pinta el casco: es lo que mira para arriba)
     bloque('hangar', raiz, sup, (0, franco + 0.21, L * 0.26), (manga * 0.66, 0.42, L * 0.16))
@@ -269,7 +270,8 @@ def t21(T, K, padre=None):
     balsas(raiz, K, manga * 0.40, franco + 0.52, -L * 0.04, L * 0.04, 3)
     mastil(raiz, K, 0, franco + 0.80, -L * 0.115, 1.25, 'barra')
     pieza('radar992', raiz, K['mat_cel']('metal', METAL), (0.38, 0.12, 0.06), (0, franco + 2.12, -L * 0.115))
-    chimenea(raiz, K, 0, franco + 0.46, L * 0.01, manga * 0.17, 0.30, 0.40)
+    # LA CHIMENEA de los Amazon (14/10): larga, alta e INCLINADA hacia popa — la firma del Tipo 21
+    chimenea(raiz, K, 0, franco + 0.46, L * 0.01, manga * 0.22, 0.52, 0.72, inclina=0.45)
     bloque('hangar', raiz, sup, (0, franco + 0.15, L * 0.11), (manga * 0.56, 0.30, L * 0.10))
     costado(raiz, K, manga * 0.28 + 0.006, franco + 0.14, L * 0.07, L * 0.15, 2, alto=0.16)
     bloque('seacat', raiz, K['mat_cel']('metal', METAL), (0, franco + 0.37, L * 0.11), (manga * 0.24, 0.14, 0.26), bisel=0.02)
@@ -317,14 +319,18 @@ def cv(T, K, padre=None):
     cuna('rampa', raiz, cub, -manga * 0.50, manga * 0.50, -L * 0.29, -L * 0.475, franco + 0.09, 0.42)
     sup = K['mat_cel']('sup', GRIS_SUP)
     ix, iy = manga * 0.42, franco + 0.10
-    for w, h, lg, dy in ((0.40, 0.44, L * 0.24, 0), (0.32, 0.34, L * 0.17, 0.44), (0.24, 0.24, L * 0.11, 0.78)):
+    # LA ISLA del Invincible (14/10, "mas fieles"): LARGA y ALTA sobre la banda de estribor, con DOS
+    # chimeneas grandes y el radar 1022 en el palo de proa
+    for w, h, lg, dy in ((0.42, 0.50, L * 0.32, 0), (0.34, 0.40, L * 0.24, 0.50), (0.26, 0.30, L * 0.13, 0.90)):
         bloque('isla', raiz, sup, (ix, iy + dy + h / 2, L * 0.10), (manga * w, h, lg))
     ventanal(raiz, K, ix, iy + 0.62, L * 0.10 - L * 0.085 - 0.01, manga * 0.24)
     costado(raiz, K, ix + manga * 0.20 + 0.006, iy + 0.22, L * 0.0, L * 0.21, 5)
     costado(raiz, K, ix - manga * 0.20 - 0.006, iy + 0.22, L * 0.0, L * 0.21, 0)
-    chimenea(raiz, K, ix, iy + 0.44, L * 0.02, manga * 0.09, 0.22, 0.42)
-    chimenea(raiz, K, ix, iy + 0.44, L * 0.18, manga * 0.09, 0.22, 0.38)
-    mastil(raiz, K, ix, iy + 1.02, L * 0.10, 1.25, 'radomos')
+    chimenea(raiz, K, ix, iy + 0.50, L * 0.00, manga * 0.12, 0.40, 0.78, inclina=0.05)
+    chimenea(raiz, K, ix, iy + 0.50, L * 0.21, manga * 0.12, 0.38, 0.70, inclina=0.05)
+    mastil(raiz, K, ix, iy + 1.20, L * 0.10, 1.25, 'radomos')
+    poste('palo_proa', raiz, K['mat_cel']('metal', METAL), ix, iy + 0.90, iy + 1.95, -L * 0.04, 0.035, 0.025, seg=6)
+    pieza('radar1022', raiz, K['mat_cel']('metal', METAL), (0.10, 0.32, 0.70), (ix, iy + 1.95, -L * 0.04))
     bloque('seadart', raiz, sup, (0, franco - 0.08, -L * 0.43), (manga * 0.26, 0.16, 0.36), bisel=0.02)
     return raiz
 

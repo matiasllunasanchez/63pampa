@@ -194,16 +194,17 @@ export const BL = {
 // Si se re-hornea un buque, se re-mide esto: alfa > 40 por columna, del borde de abajo al pixel
 // mas alto, en el frame 0 de la hoja.
 // RE-MEDIDO el 12/10/2026 contra las hojas de Blender (los buques se re-hornearon el 4/10 y estos
-// numeros seguian siendo los de three.js): `npx electron tools/perfil_buques.js --check`.
+// numeros seguian siendo los de three.js), y otra vez el 14/10 (las chimeneas del Tipo 42 y el Tipo 21
+// y la isla del portaaviones, mas fieles): `npx electron tools/perfil_buques.js --check`.
 export const PERFIL = {
-  t21: [0.097, 0.132, 0.111, 0.111, 0.118, 0.181, 0.243, 0.361, 0.174, 0.194, 0.194, 0.188, 0.118, 0.118, 0.097, 0.056, 0.056, 0.049, 0.049, 0.049],
-  t42: [0.095, 0.089, 0.121, 0.100, 0.079, 0.126, 0.137, 0.316, 0.316, 0.316, 0.111, 0.163, 0.158, 0.179, 0.121, 0.100, 0.095, 0.053, 0.047, 0.047],
+  t21: [0.097, 0.132, 0.111, 0.111, 0.118, 0.181, 0.243, 0.361, 0.174, 0.215, 0.236, 0.229, 0.229, 0.118, 0.097, 0.056, 0.056, 0.049, 0.049, 0.049],
+  t42: [0.095, 0.089, 0.121, 0.100, 0.079, 0.126, 0.137, 0.316, 0.316, 0.316, 0.168, 0.195, 0.189, 0.179, 0.121, 0.100, 0.095, 0.053, 0.047, 0.047],
   log: [0.132, 0.253, 0.247, 0.237, 0.221, 0.163, 0.163, 0.242, 0.232, 0.221, 0.205, 0.153, 0.153, 0.153, 0.184, 0.237, 0.300, 0.263, 0.089, 0.084],
   // PORTAAVIONES: se lee distinto a los tres de arriba y el perfil lo dice solo — una meseta
   // pareja y BAJA de punta a punta (la cubierta corrida) con UN pico tardio, que es la isla
   // corrida a popa. Los otros tienen el pico al medio o adelante. Medido con
   // `npx electron tools/perfil_buques.js`, que reproduce exacto los tres de arriba.
-  cv: [0.153, 0.147, 0.132, 0.121, 0.105, 0.100, 0.100, 0.095, 0.095, 0.137, 0.184, 0.321, 0.311, 0.189, 0.174, 0.079, 0.079, 0.079, 0.074, 0.074],
+  cv: [0.153, 0.147, 0.132, 0.121, 0.105, 0.100, 0.100, 0.095, 0.305, 0.305, 0.226, 0.337, 0.332, 0.216, 0.211, 0.132, 0.079, 0.079, 0.074, 0.074],
   // LAS ESTRUCTURAS EN TIERRA (data/estructuras.js). Las alturas son sobre el piso de la explanada, no
   // sobre el agua. La BASE COSTERA esta horneada desde el 12/10/2026 (assets/world/enemies/
   // base_costera.png) y su perfil se mide de la hoja como el de los buques (`npx electron
