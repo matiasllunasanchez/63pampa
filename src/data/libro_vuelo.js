@@ -123,11 +123,11 @@ const r1 = {
   pulsoBombas: 1, pulsoT01: 3 / 13,
   par: PAR,
   escuadrilla: '2ª ESCUADRILLA AERONAVAL DE CAZA Y ATAQUE',
-  // LA CARGA REAL era un Exocet AM39 bajo el ala derecha y un tanque de 1.100 l bajo la izquierda.
-  // El juego no tiene capa de Exocet: se cuelga UN TANQUE (`tanque`) y el rotulo dice la verdad.
+  // LA CARGA REAL: un Exocet AM39 bajo el ala derecha y un tanque de 1.100 l bajo la izquierda — desde
+  // el 14/10 horneada y colgada (data/cargas.js `exocet`).
   aviones: [
-    { chapa: '3-A-202', plane: 'supere', carga: 'tanque', cargaTxt: 'EXOCET AM39 + 1 TANQUE' },
-    { chapa: '3-A-203', plane: 'supere', carga: 'tanque', cargaTxt: 'EXOCET AM39 + 1 TANQUE' },
+    { chapa: '3-A-202', plane: 'supere', carga: 'exocet', cargaTxt: 'EXOCET AM39 + 1 TANQUE' },
+    { chapa: '3-A-203', plane: 'supere', carga: 'exocet', cargaTxt: 'EXOCET AM39 + 1 TANQUE' },
   ],
   contexto: 'R1_CONTEXTO', epi: 'R1_LO_QUE_PASO',
 };

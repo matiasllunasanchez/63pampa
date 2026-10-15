@@ -46,7 +46,10 @@ if os.environ.get('CLAVES'):
     _q = os.environ['CLAVES'].split(',')
     DESTINO = {k: v for k, v in DESTINO.items() if k in _q}
 CAPAS = ('tanques_ala', 'bombas_ala', 'tanque_centro', 'bomba_centro')
-CAPAS_EXTRA = {'dagger': ('bombas_ext',)}   # el ala media de la «configuracion India» (12/10)
+CAPAS_EXTRA = {'dagger': ('bombas_ext',),   # el ala media de la «configuracion India» (12/10)
+               'supere': ('exocet', 'tanque_babor')}   # el Exocet y el tanque del 4 de mayo (14/10)
+# las capas de UN SOLO LADO no se simetrizan: la simetria copiaria el Exocet bajo el ala izquierda
+ASIMETRICAS = ('exocet', 'tanque_babor')
 VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     'base': (3, 84, '', True), 'empinada': (2, 84, '2', True), 'ras': (3, 168, '3', False),
     # LA COBRA (4/10): 40/75/100° de cabeceo, cuadro de 126 (x1,5: vertical, el avion mide su largo);
@@ -197,7 +200,7 @@ if __name__ == '__main__':
                 con_contorno(t, filas, fw).save(os.path.join(dest, 'tren.png'))
             if clave in CELULAS:
                 for capa in CAPAS + CAPAS_EXTRA.get(clave, ()):
-                    c = hoja(os.path.join(OUT, clave, 'capas', '%s_%s' % (capa, vista)), filas, fw, sim)
+                    c = hoja(os.path.join(OUT, clave, 'capas', '%s_%s' % (capa, vista)), filas, fw, sim and capa not in ASIMETRICAS)
                     con_contorno(c, filas, fw).save(os.path.join(dest, 'carga_%s%s.png' % (capa, suf)))
             if clave == 'sky' and vista in ('base', 'ras', 'cobra'):
                 tips = json.load(open(os.path.join(OUT, clave, vista, 'tips.json')))['tips']

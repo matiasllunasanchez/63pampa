@@ -132,7 +132,13 @@ def seaKing(T, K, ph='0', verde=False, roto=False):
                              (0.40, 0.30, 0.18, 1.00), (0.70, 0.05, 0.05, 0.98)], raiz, piel, n=14, expo=2.4, cerrar=(True, True)), 1)
     for sg in (-1, 1):
         elipsoide('escape', (sg * 0.45, 1.05, 0.38), (0.10, 0.09, 0.18), raiz, oscuro, seg=10, anillos=6)
-    elipsoide('radomo', (0, 1.12, 0.70), (0.45, 0.24, 0.45), raiz, K['mat_cel']('radomo', '#8f979e'), seg=18, anillos=8)
+    # EL RADOMO del radar Sea Searcher (14/10, "mas fieles"): la JOROBA grande y chata detras del rotor,
+    # la firma del HAS.5 — antes era un botoncito
+    # (solo el HAS.5 antisubmarino: el HC.4 verde de los comandos no lleva radar)
+    if not verde:
+        _subdiv(loft('base_radomo', [(0.30, 0.30, 0.10, 1.04), (0.55, 0.36, 0.12, 1.06), (1.05, 0.34, 0.11, 1.02), (1.30, 0.10, 0.05, 0.98)],
+                     raiz, piel, n=12, expo=2.4, cerrar=(True, True)), 1)
+        elipsoide('radomo', (0, 1.22, 0.80), (0.62, 0.32, 0.66), raiz, K['mat_cel']('radomo', '#8f979e'), seg=20, anillos=10)
     # LOS SPONSONS de flotacion, con la rueda abajo
     for sg in (-1, 1):
         _subdiv(loft('sponson', [(-0.90, 0.04, 0.04, -0.36), (-0.70, 0.22, 0.16, -0.38), (0.25, 0.24, 0.17, -0.38),
@@ -144,8 +150,9 @@ def seaKing(T, K, ph='0', verde=False, roto=False):
     deriva(raiz, piel, 0.60, 1.85, 3.55, 0.85, 3.95, 0.48, 0.14)
     superficie('estab', [(0.10, 3.70, 0.40, 0.12, 1.20), (0.75, 3.80, 0.30, 0.12, 1.22)], raiz, piel, eje='x')
     rotor_cola(raiz, K, 0.62, 5, 0.18, 1.45, 4.00, ph)
-    _pieza('pata_cola', raiz, oscuro, (0.07, 0.75, 0.07), (0, 0.15 - 0.62, 3.10))
-    rueda(raiz, K, 0, -0.55, 3.10, 0.16, 0.12)
+    # la rueda de cola, bajo el arranque del botalon (antes colgaba en el aire, lejos de la cola)
+    _pieza('pata_cola', raiz, oscuro, (0.07, 0.80, 0.07), (0, -0.15, 2.10))
+    rueda(raiz, K, 0, -0.55, 2.10, 0.16, 0.12)
     rotor(raiz, K, 3.0, 5, 1.6, -0.6, ph)
     return exterior
 
@@ -172,7 +179,7 @@ def wessex(T, K, ph='0'):
     # LA CABINA TREPADA: una joroba sobre la nariz, con el parabrisas
     _subdiv(loft('cabina', [(-1.65, 0.08, 0.05, 0.45), (-1.40, 0.50, 0.32, 0.58), (-0.80, 0.56, 0.42, 0.72),
                             (-0.20, 0.46, 0.36, 0.84), (0.25, 0.15, 0.12, 0.92)], raiz, piel, n=14, expo=2.4, cerrar=(True, True)), 1)
-    elipsoide('parabrisas', (0, 0.80, -1.18), (0.50, 0.30, 0.34), raiz, vidrio, seg=18, anillos=10)
+    elipsoide('parabrisas', (0, 0.78, -1.30), (0.54, 0.34, 0.44), raiz, vidrio, seg=18, anillos=10)   # el vidriado de la cabina trepada, que se vea de costado
     for sg in (-1, 1):
         elipsoide('escape', (sg * 0.60, -0.10, -1.25), (0.10, 0.11, 0.26), raiz, oscuro, seg=10, anillos=6)
         _pieza('pata', raiz, oscuro, (0.07, 0.55, 0.07), (sg * 0.80, -0.68, -0.40), (0, 0, sg * 0.25))

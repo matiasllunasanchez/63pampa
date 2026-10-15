@@ -1068,6 +1068,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
       // …Y LOS TANQUES SOLTADOS TAMPOCO (PLAN_NAFTA_ALCANCE N5): el tanque de la corrida anota de que
       // pilon cuelga cada externo, y lo que ya no esta en la lista cayo al mar.
       if (run.tanque && nom === 'carga_tanques_ala' && !run.tanque.pilones.includes('ala')) continue;
+      if (run.tanque && nom === 'carga_tanque_babor' && !run.tanque.pilones.includes('babor')) continue;
+      if (nom === 'carga_exocet' && blanco.on && blanco.centroN <= 0) continue;   // el Exocet ya salio
       if (run.tanque && nom === 'carga_tanque_centro' && !run.tanque.pilones.includes('centro')) continue;
       let mitad = 0;
       if (blanco.on) {

@@ -168,7 +168,7 @@ export function golpe(pm, z0) {
   // por lo que lleva. Lleno vale una bomba y revienta; vacio vale media y no enciende nada — el PAR
   // vacio al centro es lo que lo hunde.
   const f = pm.tanque ? buqueTanque(pm.tanque) : 1;
-  if (!pm.tanque && (pm.t || 0) < blanco.armaT) {
+  if (!pm.tanque && !pm.exocet && (pm.t || 0) < blanco.armaT) {   // (el Exocet llega armado)
     // LA BOMBA QUE NO DESPERTO: pega, rebota en la chapa y no pasa nada. Chispas y un golpe seco —
     // el sonido de haber hecho todo bien menos la altura.
     veredicto('dormida', pm.x, pm.y, blanco.z, P.warn);

@@ -38,6 +38,8 @@ PIEZAS_CAPA = {'tanques_ala': ('tanques_ala', 'pilon_ala'), 'bombas_ala': ('bomb
                'tanque_centro': ('tanque_centro', 'pilon_centro'), 'bomba_centro': ('bomba_centro', 'pilon_centro'),
                # EL ALA MEDIA del Dagger (12/10, «configuracion India»): las bombas al lado de los tanques
                'bombas_ext': ('bombas_ext', 'pilon_ext'),
+               # LA CARGA DEL 4 DE MAYO del Super Etendard (14/10): el Exocet a estribor, el tanque a babor
+               'exocet': ('exocet', 'pilon_exocet'), 'tanque_babor': ('tanque_babor', 'pilon_babor'),
                # EL TREN (9/10): sin oclusor — el juego lo dibuja DEBAJO del avion y lo sube al recogerlo,
                # asi que tiene que estar entero (el sprite le tapa lo que el ala tapa)
                'tren': ('tren',)}

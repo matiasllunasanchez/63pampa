@@ -157,6 +157,20 @@ def bomba(nombre, c, r, largo, padre, cuerpo, anillo, cola):
         f.location = (x, y, z0 + 0.90 * largo)
     return ob
 
+def exocet(nombre, c, r, largo, padre, cuerpo, aleta):
+    """EL EXOCET AM39 (14/10): el cuerpo largo y fino con la ojiva, las CUATRO alas en cruz a media
+    eslora (deltas cortas) y las cuatro aletas de cola. Crema claro, como los de la Armada."""
+    x, y, z0 = c[0], c[1], c[2] - largo / 2
+    perfil_ = [(0.00, 0.08), (0.06, 0.55), (0.16, 0.92), (0.24, 1.0), (0.94, 1.0), (1.00, 0.82)]
+    ob = loft(nombre, [(z0 + f * largo, r * k, r * k, y) for f, k in perfil_], padre, cuerpo, n=14, expo=2.0, cerrar=(True, True), x0=x)
+    _subdiv(ob, 1)
+    for a in (math.pi / 4, -math.pi / 4):
+        for zf, lg, an in ((0.42, 0.22, 3.6), (0.86, 0.14, 3.0)):    # las alas en cruz y las aletas de cola
+            f = caja(nombre + '_ala', (0, 0, 0), (r * an, 0.022, largo * lg), padre, aleta)
+            f.rotation_euler = (0, 0, a)
+            f.location = (x, y, z0 + zf * largo)
+    return ob
+
 def pilon(nombre, x, y_arriba, y_abajo, z, largo, padre, mat):
     return caja(nombre, (x, (y_arriba + y_abajo) / 2, z), (0.07, y_arriba - y_abajo, largo), padre, mat)
 
@@ -189,6 +203,7 @@ def cargas(raiz, K, S):
     cu, an, co = K['mat_cel']('bomba', BOMBA), K['mat_cel']('bomba_anillo', BOMBA_ANILLO), K['mat_cel']('bomba_cola', BOMBA_COLA)
     pi_ = K['mat_cel']('pilon', PILON)
     piezas = {k: [] for k in ('pilon_ala', 'tanques_ala', 'bombas_ala', 'pilon_centro', 'tanque_centro', 'bomba_centro',
+                              'pilon_exocet', 'exocet', 'pilon_babor', 'tanque_babor',
                               'pilon_ext', 'bombas_ext')}
     def antes(lista):
         n0 = set(o.name for o in raiz.children)
@@ -202,6 +217,16 @@ def cargas(raiz, K, S):
     # EL ALA MEDIA (12/10, la «configuracion India» del Dagger): un segundo par de pilones, un poco mas
     # afuera que el de los tanques, con las bombas de 250 kg — tanque y bomba en el mismo ala, cada uno
     # en su soporte. Solo la celula que declara `ext_x`; la capa es `bombas_ext` (data/cargas.js).
+    # LA CARGA DEL 4 DE MAYO (Super Etendard, `exocet_x`): el Exocet AM39 bajo el ala DERECHA (+x es
+    # estribor: el avion mira a -z) y un tanque de 1.100 l bajo la IZQUIERDA. Asimetrica: dos capas
+    # propias (`exocet` y `tanque_babor`), que armar_juego.py NO simetriza.
+    if C.get('exocet_x'):
+        xe = C['exocet_x']; ye, ze = bajo_ala(S, xe)
+        crema, aleta_e = K['mat_cel']('exocet', '#d9d8cc'), K['mat_cel']('exocet_aleta', '#c4c3b6')
+        f = antes(piezas['pilon_exocet']); pilon('pilon_exocet', xe, ye + 0.03, ye - 0.13, ze, 0.95, raiz, pi_); f()
+        f = antes(piezas['exocet']); exocet('exocet', (xe, ye - 0.13 - 0.10, ze - 0.10), 0.10, 2.30, raiz, crema, aleta_e); f()
+        f = antes(piezas['pilon_babor']); pilon('pilon_babor', -xe, ye + 0.03, ye - 0.14, ze, 0.85, raiz, pi_); f()
+        f = antes(piezas['tanque_babor']); tanque('tanque_babor', (-xe, ye - 0.14 - 0.17, ze - 0.15), 0.17, 1.95, raiz, tq, tq_aleta); f()
     if C.get('ext_x'):
         yb2, zp2 = bajo_ala(S, C['ext_x'])
         for sg in (-1, 1):
@@ -556,7 +581,7 @@ SUPERE = dict(
     pintura_deriva=dict(arriba=['#4f5a63', '#48535c'], corte=0.55, escala=0.25, panza='#606c75',
                         marcas=[dict(y=(1.48, 1.85), color='#6fc2e0', arriba=False)]),      # la punta celeste
     metal='#2d353c',
-    carga=dict(ala_x=1.50, centro_z=0.20, tanque='#4f5a63', aleta='#3a4550'),
+    carga=dict(ala_x=1.50, centro_z=0.20, tanque='#4f5a63', aleta='#3a4550', exocet_x=1.20),
     tren=dict(x=0.85, nariz=-2.30, suelo=-0.74, r=0.15, ancho=0.09),
 )
 NARANJA = '#e07030'

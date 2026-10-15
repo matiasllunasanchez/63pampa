@@ -36,7 +36,8 @@ export function tanqueInicial(id) {
   // primero, el del centro despues. Es lo que decide que se suelta junto (N5: el par de ala sale
   // de a dos, el del centro solo) y que capa deja de dibujarse.
   const c = cargaDe(id);
-  const pilones = [].concat(c.ala === 'tanque' ? ['ala', 'ala'] : [], c.centro === 'tanque' ? ['centro'] : []);
+  // ('babor': el tanque solo bajo el ala izquierda del Super Etendard, data/cargas.js `exocet`)
+  const pilones = [].concat(c.ala === 'tanque' ? ['ala', 'ala'] : [], c.babor === 'tanque' ? ['babor'] : [], c.centro === 'tanque' ? ['centro'] : []);
   return { tanques: pilones.map(() => TANQUE_EXTRA_KM), pilones, interno: TANQUE_INTERNO_KM };
 }
 
@@ -58,7 +59,7 @@ export function soltar(t, pilon) {
 
 /** Que se suelta con la proxima pulsada: el par de ala si sigue colgado, si no el del centro, si no
  *  nada (null). El ala primero porque es lo que mas arrastra y lo que primero se vacia parejo. */
-export const proximoPilon = t => ((t.pilones || []).includes('ala') ? 'ala' : (t.pilones || []).includes('centro') ? 'centro' : null);
+export const proximoPilon = t => { const p = t.pilones || []; return p.includes('ala') ? 'ala' : p.includes('babor') ? 'babor' : p.includes('centro') ? 'centro' : null; };
 
 /** Todo lo que queda, externos mas interno, en km de crucero. */
 export const kmQuedan = t => t.tanques.reduce((s, k) => s + k, 0) + t.interno;

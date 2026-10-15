@@ -731,6 +731,9 @@ export function collisionSystem(dt) {
   }
   prune(bullets, b => b.z < 240);
 
+  // EL EXOCET: CAE este rato antes de prender el motor, despues acelera (ACEL, u/s²) hasta REL por encima
+  // de tu velocidad, a RAS de altura; el humo dura HUMO_T
+  const EXOCET = { CAE: 0.45, ACEL: 260, REL: 170, RAS: 2.0, HUMO_T: 0.9 };
   // MISILES DEL JUGADOR — viajan hacia el horizonte y destruyen blancos aéreos.
   // IMPORTANTE: nunca se chequean contra el hitbox del avión (no pueden causar la muerte del jugador).
   for (const pm of pmissiles) {
@@ -742,10 +745,23 @@ export function collisionSystem(dt) {
     // EL TECHO SE MUEVE CON EL ENVION DE LA HOLGURA (`pm.extra`, solo en la suelta sobre el buque).
     // Sin esto el integrador le recorta justo lo que la holgura le dio y la bomba se queda corta —
     // y la luz verde, que se calcula con el mismo techo corrido en core/blanco.js, mentiria.
-    const rel = Math.min(BOMBA_REL_MAX + (pm.extra || 0), pm.vz - run.spd);
-    pm.z += rel * dt;
-    pm.t = (pm.t || 0) + dt;                                                  // el planeo: la gravedad entra de a poco
-    pm.vy -= BOMBA_G * Math.min(1, pm.t / BOMBA_PLANEO) * dt; pm.y += pm.vy * dt;                                // la caida
+    pm.t = (pm.t || 0) + dt;
+    if (pm.exocet && pm.t > EXOCET.CAE) {
+      // EL EXOCET CON EL MOTOR PRENDIDO (14/10): acelera, baja a rozar el agua (EXOCET.RAS) y va DERECHO
+      // a la linea en que lo soltaste — sin guiado lateral: se apunta con el avion. Sin el techo de
+      // la bomba: un misil no se queda atras.
+      pm.motor = true;
+      pm.vz = Math.min(run.spd + EXOCET.REL, pm.vz + EXOCET.ACEL * dt);
+      pm.vy += ((EXOCET.RAS - pm.y) * 3 - pm.vy) * Math.min(1, dt * 4); pm.y += pm.vy * dt;
+      pm.z += (pm.vz - run.spd) * dt;
+      pm.humoT = (pm.humoT || 0) + dt;
+      if (pm.humoT > 0.04) { pm.humoT = 0; (pm.humo = pm.humo || []).push({ x: pm.x, y: pm.y, wz: run.dist + pm.z, t: 0 }); }
+    } else {
+      const rel = Math.min(BOMBA_REL_MAX + (pm.extra || 0), pm.vz - run.spd);
+      pm.z += rel * dt;
+      pm.vy -= BOMBA_G * Math.min(1, pm.t / BOMBA_PLANEO) * dt; pm.y += pm.vy * dt;                              // la caida (el planeo: la gravedad entra de a poco)
+    }
+    if (pm.humo) { for (const h of pm.humo) h.t += dt; while (pm.humo.length && pm.humo[0].t > EXOCET.HUMO_T) pm.humo.shift(); }
     pm.x += (pm.vx || 0) * dt;                                                // la deriva heredada
     // impacto con obstáculos aéreos (hitbox amplio, one-shot)
     for (const o of obstacles) {

@@ -3652,6 +3652,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // como desde la altura perfecta — systems/blanco.js `vySuelta`
         vy: runClimax() === 'suelta' ? blancoSys.vySuelta() : plane.vy,
         vx: plane.vx * BOMBA_DERIVA,                     // la inercia de venir cruzado, no un guiado
+        // EL EXOCET (14/10, la carga del Super Etendard): cae, prende el motor y se va rozando el agua
+        // contra el buque — systems/collision.js; se dibuja como misil, con su llama y su humo
+        exocet: !!cargaDe(cfg.carga).exocet,
       };
     }
     /** ¿Saldria una bomba si se soltara ahora? Decide la LUZ de la mira: entera si sale, media si no
@@ -5428,6 +5431,32 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           px(-tw / 2, -L / 2, tw, Math.max(1, L * 0.18), '#4a4f45');
           px(-tw, L / 2 - Math.max(1, L * 0.15), tw * 2, Math.max(1, L * 0.15), '#5d6258');
           ctx.restore();
+          continue;
+        }
+        // EL EXOCET (14/10): el reguero de humo que deja desde que prende el motor, el misil (la fila
+        // MISIL de la hoja de municion, de cola si va derecho) y la llama del motor atras.
+        if (pm.exocet) {
+          for (const h of pm.humo || []) {
+            const hz = h.wz - run.dist;
+            if (hz <= 3) continue;
+            const hs = proj(h.x, h.y, hz), u = h.t / 0.9;
+            ctx.globalAlpha = 0.45 * (1 - u);
+            const hr = Math.max(1, hs.k * (0.5 + u * 1.6));
+            ctx.fillStyle = '#c9ccc8'; ctx.beginPath(); ctx.arc(hs.x, hs.y, hr, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+          const relE = Math.max(5, pm.vz - run.spd);
+          const vE = Math.min(1, Math.atan2(Math.abs(pm.vy), relE * 0.12) / (Math.PI / 2));
+          const cajaE = Math.max(6, k * 3.2);
+          if (!muni.dibujar(muni.MISIL, vE, Math.round(s.x), Math.round(s.y), cajaE)) {
+            px(s.x - Math.max(1, k * 0.35), s.y - Math.max(1, k * 0.35), Math.max(2, k * 0.7), Math.max(2, k * 0.7), '#d9d8cc');
+          }
+          if (pm.motor) {                                         // la llama, titilando
+            const fr = Math.max(1, k * (0.35 + 0.12 * Math.sin(run.t * 47)));
+            ctx.fillStyle = '#ffe6a8'; ctx.beginPath(); ctx.arc(s.x, s.y, fr, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 0.6; ctx.fillStyle = '#f07a22'; ctx.beginPath(); ctx.arc(s.x, s.y, fr * 1.9, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+          }
           continue;
         }
         // LA VISTA sale de la trayectoria: alejandose derecho se la ve de cola; cayendo, de costado.
