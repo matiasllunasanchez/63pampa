@@ -589,6 +589,16 @@ const COL = i => MARGEN + i * (CUADRO + AIRE);
 // misiles que les hizo lugar.
 const SALTO_COL = '#ffd479';        // LA SUELTA: la altura que hay que saltar para pasar el buque
 const SUELTA_COL = '#7fe07a';        // LA SUELTA: el verde de "es el momento de soltar"
+// LA CARGA DE LA CHANCHA en el reloj de nafta (ver drawHUD): desde cuanto, hasta cuanto, cuando se solto
+let cargaDesde = null, cargaHasta = 0, cargaFinT = 0;
+const CARGA_FUNDE = 1.6;   // s: lo que tarda en apagarse el verde al desconectarse
+const hexRgb = c => { const n = parseInt(c.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const alfaCol = (c, a) => 'rgba(' + hexRgb(c).join(',') + ',' + a.toFixed(3) + ')';
+const mezclaCol = (a, b, t) => {
+  if (a[0] !== '#' || b[0] !== '#') return t > 0.5 ? b : a;
+  const A = hexRgb(a), B = hexRgb(b);
+  return 'rgb(' + A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',') + ')';
+};
 /** El titileo de "SOLTA AHORA": todo lo que se prende en verde lo hace con este mismo reloj, asi
  *  la cinta, el altimetro y el estante laten juntos y se leen como UNA señal. */
 const titilaSuelta = () => Math.floor(performance.now() / 160) % 2 === 0;   // reloj de pared: late igual en camara lenta
@@ -1313,7 +1323,7 @@ function relojFila(x, y, o) {
   for (let k = 0; k <= 96; k++) {
     const f = k / 96, z = (o.franjas || []).find(([d, h]) => f >= d && f <= h);
     if (!z) continue;
-    ctx.globalAlpha = z[3] === false ? 0.35 : 1;
+    ctx.globalAlpha = z[3] === false ? 0.35 : typeof z[3] === 'number' ? z[3] : 1;   // (un numero: su alfa)
     marcaFina(cx, cy, ang(f), r - 4.3, r - 2.9, 2, z[2]);
   }
   ctx.globalAlpha = 1;
@@ -2343,14 +2353,26 @@ export function drawHUD(h) {
   // …Y MIENTRAS LA CHANCHA PASA NAFTA (pedido del autor 24/9): borde y aguja en verde. Es el mismo
   // verde de la caja de conexion, asi que los dos lugares dicen lo mismo a la vez.
   const chS = chSnap(), cargando = !!chS && !!chS.cargando;
+  // LO QUE ENTRO (15/10, el autor: "marcar la diferencia entre lo que estaba y lo que llenaste, y una vez
+  // desconectado ese verde se desvanece"): al empezar a cargar se anota la nafta que habia; mientras
+  // carga, una FRANJA verde va de esa marca a la de ahora. Al soltarse, el verde (borde, aguja y franja)
+  // se apaga en CARGA_FUNDE segundos y el reloj vuelve a ser el de siempre.
+  const ahoraC = performance.now() / 1000;
+  if (cargando) { if (cargaDesde === null) cargaDesde = run.fuel; cargaHasta = run.fuel; cargaFinT = ahoraC; }
+  const verdeC = cargaDesde === null ? 0 : cargando ? 1 : Math.max(0, 1 - (ahoraC - cargaFinT) / CARGA_FUNDE);
+  if (!cargando && cargaDesde !== null && verdeC <= 0) cargaDesde = null;
   // LA ZONA DE GASTO va ADENTRO del cuadrado, como flechas (27/9, el autor): dos rojas para arriba
   // = mayor gasto, un guion = normal, dos verdes para abajo = ahorro. Antes era el NOMBRE de la zona
   // escrito arriba del reloj ("GASTO MEDIO"): una palabra mas que leer en el tablero.
-  if (pide(run.fuel < 60 || (nf && nf.km < nf.bingo * 1.3), 'nafta')) { reloj(xNafta, CUADROS_Y, {
+  if (pide(run.fuel < 60 || (nf && nf.km < nf.bingo * 1.3) || verdeC > 0, 'nafta')) {
+    const colAguja = bajo ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : nf && h.zonaGasto ? GASTO_COL[h.zonaGasto] : P.foam;
+    reloj(xNafta, CUADROS_Y, {
     val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25], critico: bajo && !cargando,
-    marcas: nf ? [[Math.min(1, nf.bingo / nf.cap), P.warn]] : undefined,
-    borde: cargando ? SUELTA_COL : null,
-    col: cargando ? SUELTA_COL : bajo ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : nf && h.zonaGasto ? GASTO_COL[h.zonaGasto] : P.foam,
+    // (y una marca larga verde donde estaba la aguja al engancharse: desde ahi se cuenta lo que entro)
+    marcas: [...(nf ? [[Math.min(1, nf.bingo / nf.cap), P.warn]] : []), ...(verdeC > 0 ? [[cargaDesde / 100, alfaCol(SUELTA_COL, verdeC)]] : [])],
+    franjas: verdeC > 0 && cargaHasta > cargaDesde ? [[cargaDesde / 100, cargaHasta / 100, SUELTA_COL, verdeC]] : undefined,
+    borde: verdeC > 0 ? alfaCol(SUELTA_COL, verdeC) : null,
+    col: verdeC > 0 ? mezclaCol(colAguja, SUELTA_COL, verdeC) : colAguja,
     uni: nf ? 'km' : undefined,
     txt: nf ? String(Math.round(nf.km)) : Math.round(run.fuel) + '%', txtCol: bajo ? P.warn : P.dim });
     if (nf && h.zonaGasto) flechasGasto(xNafta + CUADRO - 6, CUADROS_Y + 3, h.zonaGasto);

@@ -111,7 +111,8 @@ export function drawChancha() {
   //   afuera        las cuatro esquinas en cresta, tenues: la ayuda de punteria de siempre;
   //   NARANJA       adentro pero todavia sin pasar nafta: titila rapido mientras dura el enganche
   //                 (CH_ENGANCHE) — "aguanta ahi";
-  //   VERDE         enganchado y cargando: el recuadro entero LATE, lento, mientras entra la nafta.
+  //   CARGANDO      ya no se dibuja (15/10, el autor: "el cuadrado verde quitar"): enganchado, el verde
+  //                 pasa al RELOJ DE NAFTA (borde, aguja y lo que va entrando — render/hud.js).
   if (c.fase === 'cita') {
     const c0 = proj(c.bx - CH_BOX, c.by + CH_BOX, c.bz), c1 = proj(c.bx + CH_BOX, c.by - CH_BOX, c.bz);
     const bw2 = c1.x - c0.x, bh2 = c1.y - c0.y;
@@ -120,7 +121,7 @@ export function drawChancha() {
       const esq = Math.max(2, bw2 * 0.22);
       for (const [ex, ey] of [[c0.x, c0.y], [c1.x - esq, c0.y], [c0.x, c1.y - 1], [c1.x - esq, c1.y - 1]]) px(ex, ey, esq, 1, P.crest);
       for (const [ex, ey] of [[c0.x, c0.y], [c1.x - 1, c0.y], [c0.x, c1.y - esq], [c1.x - 1, c1.y - esq]]) px(ex, ey, 1, esq, P.crest);
-    } else {
+    } else if (!c.cargando) {
       const col = c.cargando ? CAJA_VERDE : P.accent;
       ctx.globalAlpha = c.cargando ? 0.55 + 0.35 * Math.sin(run.t * 4) : (Math.sin(run.t * 18) > 0 ? 0.95 : 0.25);
       const g = c.cargando ? 2 : 1;
