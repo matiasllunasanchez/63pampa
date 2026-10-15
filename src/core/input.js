@@ -367,6 +367,8 @@ export function initInput(cv, a) {
     // tecla estaba libre y es la inicial de TREN, que en un juego en español es la mnemotecnia
     // buena; el resto del vuelo la accion se ignora sola.
     if (e.code === 'KeyT' && !e.repeat) a.gearToggle();
+    // EL RADAR PROPIO [Y] (15/10): la tecla estaba libre; R ya es la camara. Solo lo usan los aviones con radar.
+    if (e.code === 'KeyY' && !e.repeat && a.radarToggle) a.radarToggle();
     // [Z] / TAB = EL SECUNDARIO ELEGIDO (9/10, el autor: "1 tanque, 2 bomba, 3 chafitas", y la ruedita):
     // en el pasillo suelta lo que este elegido. Los TANQUES se portan como la [B] (mantener apunta,
     // soltar tira), la BOMBA como siempre y las CHAFITAS salen al apretar. Fuera del pasillo (arena,

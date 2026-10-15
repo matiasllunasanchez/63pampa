@@ -30,6 +30,10 @@ import { machNow, conoAmt, cruzo } from './core/mach.js';
 import * as momentum from './legacy/momentum.js';
 import * as tempo from './systems/tempo.js';
 import * as rasante from './systems/rasante.js';
+import * as radarSys from './systems/radarPropio.js';   // el radar propio del Super Etendard (15/10)
+import { radarP } from './core/radarPropio.js';
+import { RADAR_PROPIO } from './data/radar_propio.js';
+import { drawRadarOndas } from './render/radarPropio.js';
 import * as chancha from './systems/chancha.js';
 import { desgaste, misionCumplida, resetDesgaste } from './core/desgaste.js';
 // ---- GANCHOS DE MOTOR (docs/historia/PLAN_4_PENDIENTES.md) ----------------------------------
@@ -1819,7 +1823,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // adentro del estado.
     let interTxt = '', interT = 0, interDur = 0, interNext = null;
     const INTER_TIT = 2.2;    // el titulo de la mision
-    const INTER_DIA = 1.8;    // «DIA SIGUIENTE» — mas corto: es un corte, no una portada
+    const INTER_DIA = 1.8;
+    const CORTE_FASE_S = 2.6;  // el negro de una FASE con `corte` (la trepada, la bajada): se lee y sigue    // «DIA SIGUIENTE» — mas corto: es un corte, no una portada
 
     /** Arma el intersticial y devuelve el estado, para poder hacer `setState(armarInter(...))`. */
     function armarInter(txt, seg, next) {
@@ -1890,6 +1895,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // Y MODOS desde el 30/9 (lo que cuelga pesa y se suelta igual en cualquiera); la cuenta en km,
       // solo con ruta.
       naftaSys.preparar(cfg.carga, rutaSys.hay());
+      radarSys.preparar(PLANES[selPlane] && PLANES[selPlane].key);   // el radar propio: solo si el avion lo lleva
       // LAS CHAPITAS (CHAPITAS en data/tuning.js): cargas llenas, nada en el aire. EN CAMPAÑA las cargas
       // son las cartas de CHAFITAS que se ganaron en el banco del Pichon (0 a 4, data/upgrades.js);
       // en los demas modos, CHAPITAS.CARGAS
@@ -3142,6 +3148,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
        *  despegar) y darle una tecla ahi seria ofrecer un boton que no hace nada el 95% del vuelo.
        *  `landGearT` anota CUANDO se mando por primera vez, que es lo que despues se califica —
        *  sacarlo encima de la pista cuenta como no haberlo sacado. */
+      // EL RADAR PROPIO [Y] (15/10): prender y apagar el de busqueda. Solo en vuelo y en los aviones que lo llevan
+      radarToggle: () => {
+        if (S.state !== 'play') return;
+        const r = radarSys.toggle();
+        if (r === 'on') { beep(980, 0.07, 'sine', 0.05, 200); cartel(T('radar_on'), '#5ab4ff', T('radar_on_sub')); }
+        else if (r === 'off') beep(520, 0.06, 'sine', 0.04, -150);
+        else if (r === 'vacio') { beep(180, 0.08, 'square', 0.04); cartel(T('radar_sin'), P.dim); }
+      },
       gearToggle: () => {
         if (S.state !== 'landing') return;
         landDown = !landDown;
@@ -4748,7 +4762,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // DATA, no la mision: aca no hay un solo id escrito, y ningun sistema sabe que existen las
       // pausas. Es el flanco exacto que pide el pedido —congelar antes de que el dialogo arranque—
       // y el cuadro en curso termina de correr, que son 16 ms invisibles.
-      if (fss && fss.radio) { if (fss.pausa) dlgFreeze(fss.radio); else radioTramo(fss.radio); }
+      // EL CRUCERO SE CUENTA, NO SE VUELA (15/10, el autor: "¿deberiamos poder ascender a la altura a la que
+      // subian?" — no: a 9.000 m el mar es un plano y no queda nada que jugar). La fase que trae `corte`
+      // abre con un negro de una linea —el intersticial de la campaña— y su radio sale al volver.
+      const decirFase = f => { if (f && f.radio) { if (f.pausa) dlgFreeze(f.radio); else radioTramo(f.radio); } };
+      if (fss && fss.corte) {
+        setState(armarInter(T(fss.corte), CORTE_FASE_S, () => { setState('play'); fadeT = 0.55; decirFase(fss); }));
+        return;
+      }
+      decirFase(fss);
       // LAS ESTRELLAS DE BUSQUEDA (PLAN_ESTRELLAS_BUSQUEDA §3). Dos mitades:
       //   · el RELOJ DEL ESCONDITE, contra el techo de la FASE y no contra la constante —
       //     esconderse en un FILO es mucho mas dificil que en mar abierto, y eso es correcto:
@@ -5594,6 +5616,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA MIRA DE BOMBARDEO (27/9), DETRAS DEL AVION (8/10, el autor: "la linea blanca por detras
       // del avion, el png del avion por encima"): con la tecla de la bomba o la de los tanques apretada, el camino
       // hasta donde cae (core/balistica.js). Adentro del giro del horizonte: es mundo.
+      // LA ONDA AZUL DEL RADAR PROPIO (15/10), detras del avion: sale de el
+      if (S.state === 'play') drawRadarOndas();
       if (S.state === 'play' && (run.apuntaBomba || run.apuntaTanque)) {
         const suelo = cfg.terrain === 'land' || cfg.terrain === 'coast' ? 0.3 : 1.0;
         if (hzW) { ctx.save(); const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y; ctx.translate(hcx, hcy); ctx.rotate(hzW); ctx.translate(-hcx, -hcy); }
@@ -6587,6 +6611,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // MODO PRUEBAS (COMO_PROBAR §4): elegir un momento POR ID, que es como lo va a recorrer el
     // guardian del catalogo (PR4). Es la misma puerta que aprieta el jugador —prbConfirm—, no un
     // atajo: si el menu se rompe, la sonda se rompe con el.
+    // SONDA del radar propio (15/10): el store y lo que resolveria el orquestador
+    if (typeof window !== 'undefined') window.__rpdbg = () => JSON.stringify({ tiene: radarP.tiene, on: radarP.on,
+      carga: +radarP.carga.toFixed(2), ve: radarP.ve, marca: +radarP.marcaT.toFixed(1), ondas: radarP.ondas.length,
+      alt: +plane.y.toFixed(1), km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null, det: +run.detection.toFixed(2), st: S.state, avion: PLANES[selPlane].key });
     if (typeof window !== 'undefined') window.__prb = id => {
       if (id === undefined) return JSON.stringify(prbRows().filter(r => r.id && !r.back).map(r => r.id));
       const i = prbRows().findIndex(r => r.id === id);
@@ -7184,6 +7212,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // porque las DOS mitades del audio lo necesitan (la musica y las capas de ambiente) y
       // pasarlo dos veces era pedir que se desincronicen.
       setRasante(rasante.active());
+      // EL RADAR PROPIO (15/10, data/radar_propio.js): "a tiro" lo resuelve el orquestador —con la ruta en
+      // km o con los metros de pasillo— y los avisos los pone el, como con cualquier otra señal
+      { const rp = radarSys.tick(dt, { enVuelo: S.state === 'play' && !cfg.devcam, alt: plane.y,
+          aTiro: objectiveDist > 0 && run.dist < objectiveDist
+            && (rutaSys.hay() ? rutaSys.alBlanco() <= RADAR_PROPIO.ALCANCE_KM : objectiveDist - run.dist <= RADAR_PROPIO.ALCANCE_M) });
+        if (rp.sig === 'eco') { beep(1250, 0.08, 'sine', 0.05, 300); cartel(T('radar_eco'), '#5ab4ff', null, { alerta: true }); }
+        else if (rp.sig === 'sinCarga') { beep(220, 0.1, 'square', 0.04, -60); cartel(T('radar_sin'), P.dim); }
+        else if (rp.sig === 'bajo') cartel(T('radar_bajo'), '#5ab4ff', T('radar_bajo_sub')); }
       if (ch.carga > 0) run.fuel = Math.min(100, run.fuel + ch.carga);
       if (ch.rum) beep(58, 0.3, 'sawtooth', 0.028);                    // los motores del Hercules
       if (ch.bomba) beep(190, 0.05, 'square', 0.03, 40);               // la bomba de transferencia

@@ -24,7 +24,7 @@ import { FASE_MAX_HASTA } from '../data/tuning.js';
 /** Las claves que una fase puede traer. Cualquier otra es error de DATOS y el validador la
  *  rechaza: una clave mal escrita (`radares` por `radar`) no hace nada y no avisa — la fase
  *  simplemente se comporta como si no la trajera, que es la peor forma de fallar. */
-export const CLAVES = ['tipo', 'hasta', 'obstacles', 'caza', 'bombs', 'bidones', 'solo', 'chancha', 'radar', 'agua', 'voces', 'nafta', 'pinta', 'radio', 'pausa', 'viento'];
+export const CLAVES = ['tipo', 'hasta', 'obstacles', 'caza', 'bombs', 'bidones', 'solo', 'chancha', 'radar', 'agua', 'voces', 'nafta', 'pinta', 'radio', 'pausa', 'viento', 'corte'];   // corte: el negro de una linea que abre la fase (15/10)
 
 /** Como se valida cada clave. `tipo` y `hasta` van aparte: son las dos obligatorias. */
 const TIPOS_DE_CLAVE = {

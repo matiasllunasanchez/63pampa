@@ -1489,3 +1489,59 @@ arriba de cada ala, en los seis aviones (tools/blender/modelos.py, `insignias`).
    leyenda ARMADA, y dónde?
 
 **Decisión del autor:** pendiente.
+
+
+---
+
+## EL CRUCERO ALTO: ¿A QUÉ ALTURA SUBÍAN Y DÓNDE BAJABAN? _(15/10/2026)_
+
+**Contexto:** el autor preguntó si el avión debería poder subir a la altura a la que volaban cuando no
+iban en rasante. En el juego las alturas están comprimidas unas 10 veces (radar a 20, techo del carril
+a 68; la MK-17 real se soltaba a 150–200 m y la banda de suelta es 8–18). Se decidió **contar** la
+trepada y la bajada con un corte a negro de una línea (fases con `corte:` en
+src/data/pruebas_misiones.js) en vez de volarlas. Los textos dicen hoy «9.000 METROS» y «A 200 KM DEL
+BLANCO».
+
+**A verificar:**
+1. ¿A qué altura cruzaban desde el continente los A-4B/C, los Dagger y los Super Étendard? (Se sabe en
+   general un perfil alto-bajo-alto, con crucero entre 7.000 y 10.000 m, sin confirmar por avión.)
+2. ¿A cuántos km del blanco empezaba el descenso al ras? ¿Variaba según el avión o el blanco (flota
+   al norte de la isla, San Carlos, Bahía Agradable)?
+3. ¿A la vuelta, a qué distancia volvían a subir? ¿Dependía de la nafta que les quedaba o de la
+   amenaza de los Harrier?
+
+**Decisión del autor:** pendiente.
+
+
+---
+
+## EL RADAR AGAVE DEL SUPER ÉTENDARD _(15/10/2026 — src/data/radar_propio.js)_
+
+**Contexto:** el radar propio se prende y apaga con [Y], solo en el Super Étendard. Gasta carga, te
+delata (suma a la barra del radar enemigo) y solo marca el blanco por encima del radar enemigo y a
+menos de 90 km.
+
+**A verificar:**
+1. ¿A qué distancia enganchaba el Agave a un destructor Tipo 42? (Se usó ~50 millas, sin fuente.)
+2. ¿A qué altura subieron los Super Étendard el 4 de mayo para prenderlo, y cuántos segundos lo tuvieron
+   prendido?
+3. ¿El Mirage 5P Mara tenía algún radar utilizable para buscar buques, o solo un telémetro?
+
+**Decisión del autor:** pendiente.
+
+
+---
+
+## EL CAMIÓN ANTIAÉREO: ¿HUBO RAPIER SOBRE CAMIÓN? _(15/10/2026)_
+
+**Contexto:** el camión del juego (`aatruck`) es un Bedford MK —el 4 t del ejército británico en
+Malvinas— con un lanzador Rapier en la caja (tools/blender/modelos_tierra.py, `camion_aa`).
+
+**A verificar:**
+1. Los Rapier de la T Battery (12th Air Defence Regiment) en San Carlos, ¿iban emplazados en tierra y
+   remolcados por Land Rover, o hubo alguno montado sobre camión? El Tracked Rapier (sobre M548)
+   existía en 1982, ¿se llevó a las islas?
+2. Si no hubo, ¿el blanco pasa a ser un Rapier remolcado con su Land Rover, o un Bedford de
+   abastecimiento (sin lanzador)?
+
+**Decisión del autor:** pendiente; el juego sigue con el camión AA.

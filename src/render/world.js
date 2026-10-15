@@ -13,6 +13,7 @@ import { cam, cfg, S, plane } from '../core/state.js';
 import { run } from '../core/run.js';
 import { wake, obstacles, soldiers } from '../core/world.js';
 import { proj, piques } from '../core/fx.js';
+import { radarP } from '../core/radarPropio.js';   // el radar propio: la cuña solo con eco (15/10)
 import { hzWorld, tiltFade } from '../core/horizon.js';
 import { bendW, paredH } from '../core/zigzag.js';
 import { techoLadera, mez } from './paredes.js';
@@ -3233,10 +3234,18 @@ export function drawObjectiveMarker(objectiveDist) {
   // EL PULSO dibuja el MISMO buque que venia creciendo en el pasillo: la prueba pasa delante de
   // el, sin cambiar de escena. Si este estado no estuviera, el climax se quedaria sin blanco.
   if (S.state !== 'play' && S.state !== 'takeoff' && S.state !== 'pulso') return;
+  // EN LOS AVIONES CON RADAR, LA CUÑA ES EL ECO (15/10, el autor: "la flecha que me marca el objetivo
+  // apareceria unicamente cuando yo tiro el radar"): sin marca no hay cuña; con marca, azul, latiendo
+  // mas fuerte el instante del eco y apagandose el ultimo par de segundos.
+  const conRadar = radarP.tiene;
+  if (conRadar && radarP.marcaT <= 0) return;
   const p = run.dist / objectiveDist;
   // se desvanece apenas la barcaza empieza a ser clara (~0.55): a partir de ahi el propio barco
   // es la referencia y el marcador solo taparia el puente.
-  const fade = p < 0.55 ? 1 : Math.max(0, 1 - (p - 0.55) / 0.12);
+  // (con radar la marca NO se apaga al acercarse: es la que te dice donde esta el blanco en la bruma —
+  // se va recien encima del buque, donde ya no hace falta)
+  const fade = conRadar ? Math.min(1, radarP.marcaT / 2) * (p < 0.97 ? 1 : 0)
+    : p < 0.55 ? 1 : Math.max(0, 1 - (p - 0.55) / 0.12);
   if (fade <= 0) return;
   const tx = bargeCol(approachF(p));                    // misma columna que la barcaza objetivo
   const mx = Math.max(9, Math.min(W - 9, tx));          // pegado al borde si quedo afuera
@@ -3244,7 +3253,13 @@ export function drawObjectiveMarker(objectiveDist) {
   const pulse = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(run.t * 4));
   ctx.save();
   ctx.globalAlpha = fade * pulse;
-  ctx.fillStyle = P.warn;
+  ctx.fillStyle = conRadar ? '#5ab4ff' : P.warn;
+  // EL ECO: un destello azul que se abre en la columna del blanco, sobre el horizonte
+  if (conRadar && radarP.ecoT >= 0 && radarP.ecoT < 0.6) {
+    const k = radarP.ecoT / 0.6;
+    ctx.save(); ctx.globalAlpha = (1 - k) * 0.9; ctx.strokeStyle = '#bfe2ff'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(mx, HOR - 1, 3 + k * 16, (3 + k * 16) * 0.42, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
   if (off === 0) {
     const bob = Math.sin(run.t * 2) * 1.2, ty = HOR - 14 + bob;
     ctx.beginPath();                                    // cuña apuntando hacia abajo, al horizonte

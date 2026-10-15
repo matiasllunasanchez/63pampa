@@ -36,6 +36,7 @@ import { ICONO_BUQUE, ICONO_BUQUE_NOMBRE, CANON_METAL } from '../data/iconos.js'
 import { SHIP_CLASS } from '../data/ships.js';
 import { CARA_PILOTO, GESTOS, GESTO_SOSTEN, SONRISA_PTS, SONRISA_T } from '../data/gestos.js';
 import { radio, visible as radioVisible } from '../core/radioVN.js';
+import { radarP } from '../core/radarPropio.js';
 
 // LAS SILUETAS DE LA RUTA (puerto, buque, avion, bandera) viven en la tabla de iconos
 // (data/iconos.js), dibujadas en pixeles; un PNG las reemplaza igual que a cualquier otro icono.
@@ -622,7 +623,10 @@ const TOPE = [false, true].map(b => speedTarget({ t: 1e5, rasLevel: 4, mult: 10,
 const X_SALUD = COL(0), X_NAFTA = COL(1), X_MACH = COL(2);      // el grupo lento, bajo la cara
 const X_CARGA = W - MARGEN - (2 * CUADRO + RACK_W + 2 * AIRE);  // el grupo que se carga, al borde
 const X_CHANCHA = X_CARGA, X_CANON = X_CARGA + (CUADRO + AIRE), X_RACK = X_CANON + (CUADRO + AIRE);
-const X_VUELO = Math.round((COL(2) + CUADRO + X_CARGA - (4 * CUADRO + 3 * AIRE)) / 2);
+// (corrido 6 a la izquierda, 15/10, el autor: "corre un poco los elementos del medio a la izquierda" — para que
+// el radar propio entre en el hueco de la derecha, entre el vuelo y lo que se carga)
+const X_VUELO = Math.round((COL(2) + CUADRO + X_CARGA - (4 * CUADRO + 3 * AIRE)) / 2) - 6;
+const FIN_VUELO = X_VUELO + 4 * CUADRO + 3 * AIRE;
 const xVuelo = i => X_VUELO + i * (CUADRO + AIRE);              // VELOCIDAD, horizonte, ALTITUD, GAS
 
 /** LO MAS ALTO QUE PINTA EL TABLERO DE VUELO: el canto de los cuadrados. Fue el de la fila de placas
@@ -1660,6 +1664,40 @@ function radarAlerta(x, y, visto, activo, fuera, fuerte) {
   if (activo && on && !(run.chapitasOnda > 0)) px(x + 6, y + 2, 1, 1, visto ? P.warn : '#7d2f1e');
 }
 
+// EL RADAR PROPIO EN EL TABLERO (15/10): la MISMA pantallita del radar de arriba a la izquierda —el
+// mismo aro, el mismo barrido—, en AZUL y con TU AVION en el medio, porque este radar es tuyo y no
+// el que te busca. APAGADO: gris, quieto, sin barrido (el efecto de pantalla apagada). PRENDIDO: titila
+// y el barrido gira POR ENCIMA de la silueta, como gira el verde. Se prende a mano, con [Y].
+// Con el blanco marcado, su eco titila arriba (hacia adelante). La carga es la rayita de abajo.
+const RADAR_AZUL = { aro: '#3a7fc4', onda: '#24548a', lejos: '#1d4470', cerca: '#3f8fe0', punta: '#a8d8ff', eje: '#6fb6ff' };
+const RADAR_AZUL_BAJO = { aro: '#2c6299', onda: '#1c406a', lejos: '#173658', cerca: '#2f6cab', punta: '#7fb6e6', eje: '#4f8fcc' };
+function radarPropio(x, y) {
+  plate(x, y, RADAR_W, ALERTA_H);
+  const on = radarP.on, late = Math.floor(performance.now() / 250) % 2 === 0;
+  const V = !on ? RADAR_GRIS : late ? RADAR_AZUL : RADAR_AZUL_BAJO;
+  const ox = x + 3, oy = y + 3, cx = ox + 4, cy = oy + 4;
+  for (const [f, a, b] of RADAR_ARO) px(ox + a, oy + f, b - a + 1, 1, V.aro);
+  // TU AVION, visto desde arriba y apuntando hacia adelante: la nariz, las alas y la cola
+  const av = !on ? '#46545e' : late ? '#d8ecff' : '#9cc4ea';
+  px(cx, cy - 2, 1, 1, av); px(cx, cy - 1, 1, 3, av); px(cx - 2, cy, 5, 1, av); px(cx - 1, cy + 2, 3, 1, av);
+  if (on) {
+    // EL BARRIDO, ENCIMA del avion
+    const ang = performance.now() / 1000 * RADAR_GIRO * 1.6;
+    const rayo = (d, r0, col) => {
+      for (let r = r0; r <= 3; r++) px(cx + Math.round(Math.cos(ang + d) * r), cy + Math.round(Math.sin(ang + d) * r), 1, 1, col);
+    };
+    rayo(-0.9, 1, V.lejos); rayo(-0.45, 1, V.cerca); rayo(0, 1, V.punta);
+  }
+  // EL ECO del blanco: arriba, titilando mientras dure la marca
+  if (radarP.marcaT > 0 && Math.floor(performance.now() / 180) % 2 === 0) px(cx + 1, oy + 1, 1, 1, '#ffffff');
+  // LA CARGA: una rayita en el canto de abajo de la placa
+  const bw = RADAR_W - 4;
+  px(x + 2, y + ALERTA_H - 2, bw, 1, '#1b2329');
+  px(x + 2, y + ALERTA_H - 2, Math.round(bw * radarP.carga), 1, radarP.carga < 0.15 ? P.warn : on ? '#6fb6ff' : '#46545e');
+  // prendido, el borde titila con la pantalla (y en rojo si se esta quedando sin carga)
+  if (on && late) bordePlaca(x, y, RADAR_W, ALERTA_H, radarP.carga < 0.25 ? P.warn : '#5ab4ff');
+}
+
 // LA MANCHA DE LAS CHAPITAS EN EL RADAR (el autor, 8/10: "en el radar se genera una onda grande
 // alrededor del avion, lo que confunde y pareciera que exploto, cuando en realidad esta debajo").
 // Desde el contacto —donde estabas— sale un estallido de eco: un destello blanco que llena la
@@ -1774,7 +1812,12 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   // de ser la pregunta. Por eso se va con la misma cortina con la que ellas entran (`alertaK`) y
   // no hay un cuadro en que se pisen.
   if (alertaK < 1) {
-    plate(x + RADAR_W - 1, y, w - RADAR_W + 1, ALERTA_H);
+    // LA PLACA SE ESTIRA HASTA QUE ENTRE EL TEXTO (15/10, el autor: "este texto se ve chico" — no entraba:
+    // tomaba el ancho del indicativo, y FUERA DE RADAR le comia la letra de cada punta)
+    ctx.font = avisoFont(9);
+    const wz = Math.max(w - RADAR_W + 1, ...['hud_detectando', 'hud_fuera_radar', 'hud_zona_radar']
+      .map(k => Math.ceil(ctx.measureText(T(k)).width) + 10));
+    plate(x + RADAR_W - 1, y, wz, ALERTA_H);
     // TRES COSAS QUE PUEDE DECIR, y las tres son el mismo dato en tres momentos:
     //   FUERA DE RADAR   gris tranquilo: no hay sistema. Es informacion, no alarma.
     //   DETECTANDO...    asomado sobre el techo, con la barra cargando: verde fuerte y
@@ -1794,7 +1837,7 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
     ctx.fillStyle = detectando ? (latido ? RADAR_VERDE.punta : RADAR_VERDE.cerca)
       : fuera ? P.foam : RADAR_VERDE.eje;
     ctx.fillText(T(detectando ? 'hud_detectando' : fuera ? 'hud_fuera_radar' : 'hud_zona_radar'),
-      x + RADAR_W - 1 + Math.round((w - RADAR_W + 1) / 2), y + 11);
+      x + RADAR_W - 1 + Math.round(wz / 2), y + 11);
     ctx.restore();
     ctx.textAlign = 'left';
   }
@@ -2407,6 +2450,13 @@ export function drawHUD(h) {
         : h.chIdaLista ? T('ch_lista') : Math.round(cv * 100) + '%',
       txtCol: lista ? verde : ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim });
   }
+
+  // ---- EL RADAR PROPIO (15/10, data/radar_propio.js): solo en los aviones que lo llevan ------------
+  // (el autor: "no es un cuadrado asi: un cuadrado como el radar de arriba a la izquierda, pero azul y con
+  // la silueta del avion en el medio, arriba de las armas a la derecha")
+  // (…y despues: "o ponelo entre medio de los elementos de abajo, en esos espacios": en el hueco entre el
+  // grupo del vuelo y el de lo que se carga, centrado en la fila)
+  if (radarP.tiene) radarPropio(FIN_VUELO + Math.round((X_CARGA - FIN_VUELO - RADAR_W) / 2), CUADROS_Y + Math.round((CUADRO - ALERTA_H) / 2));
 
   // ---- SALUD (izquierda, bajo la cara) y el CAÑON (derecha, con lo que se carga) ----------------
   // SALUD en la esquina, pegada a la cara del piloto (pedido del autor). El cañon no se gasta: se

@@ -474,7 +474,8 @@ export function interstitial(txt, p, t) {
   // titulos largos del guion —«EL DIA QUE SANGRO EL MAR»— se salen de los 320 de ancho del
   // espacio de DISEÑO y quedan cortados contra los bordes. El bloque se centra de verdad: con dos
   // renglones, uno queda arriba y otro abajo del medio, no los dos por debajo.
-  const ls = wrapChars(String(txt).toUpperCase(), 32);
+  // (y respeta los saltos de linea del texto: los cortes de fase traen dos renglones, 15/10)
+  const ls = String(txt).toUpperCase().split('\n').flatMap(r => wrapChars(r, 32));
   const y0 = H / 2 + 4 - (ls.length - 1) * 7;
   ls.forEach((t2, i) => ctx.fillText(t2, W / 2, y0 + i * 14));
   ctx.globalAlpha = 1; ctx.textAlign = 'left';

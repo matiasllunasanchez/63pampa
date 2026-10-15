@@ -58,6 +58,8 @@ import { avance as chAvance } from '../systems/chancha.js';
 // esa velocidad se ANOTA en el odometro.
 import { avance as cvAvance } from '../systems/charla.js';
 import * as rasante from '../systems/rasante.js';
+import { radarP } from '../core/radarPropio.js';
+import { RADAR_PROPIO } from '../data/radar_propio.js';
 import * as agu from './aguante.js';
 import { AGU } from '../core/aguante.js';
 // BOOST_LIFT y CAM_PAN se mudaron a systems/vuelo.js con la camara que los usa.
@@ -629,6 +631,8 @@ export function flightSystem(dt, deps) {
   if (cfg.radar === 'voz') run.detection = 0;
   else {
     if (run.radarVisto) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
+    // EL RADAR PROPIO TE DELATA (15/10): prendido, los buques escuchan la emision — aunque vueles al ras
+    if (radarP.on) run.detection += dt * (RADAR_PROPIO.DELATA + (run.radarVisto ? 0 : 1 / 0.9));
     run.detection = Math.max(0, Math.min(1, run.detection));
   }
   // TE PINTARON (§11.3). Solo puede pasar en una mision con fases: sin ellas `pinta` no existe y

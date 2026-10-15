@@ -153,7 +153,9 @@ export function stepFases() {
   if (i === ultima) return null;
   ultima = i;
   if (!f) return null;
-  return { idx: i, tipo: f.tipo, radio: f.val('radio', null), pausa: !!f.val('pausa', false) };
+  // `corte` (15/10): la fase ABRE con un corte a negro de una linea — lo que no se vuela se cuenta
+  // (la trepada al crucero alto, la bajada al ras). Lo arma game.js con el intersticial.
+  return { idx: i, tipo: f.tipo, radio: f.val('radio', null), pausa: !!f.val('pausa', false), corte: f.val('corte', null) };
 }
 
 /** Foto del estado para la sonda `__fsdbg`. Los valores son los RESUELTOS: lo que los lectores van

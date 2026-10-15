@@ -158,7 +158,9 @@ const t15 = {
     // la nota de arriba ya dice que la intencion es "que se marquen las etapas del mapa con
     // dialogos, seguramente sera asi todo". Esta solo en la PRIMERA fase: agregarle la palabra a
     // las otras once las pausa igual, y borrarla de aca apaga el ensayo sin tocar codigo.
-    { tipo: 'transito', hasta: 0.05, radio: 'fase_salida', pausa: true, solo: IDA_MAR, bombs: 0, bidones: false },
+    // `corte` (15/10): la trepada y la bajada del crucero alto se CUENTAN con un negro de una linea —el
+    // perfil real era alto-bajo-alto, a 7.000-10.000 m, y eso no se vuela en este carril—
+    { tipo: 'transito', hasta: 0.05, radio: 'fase_salida', pausa: true, corte: 'corte_trepada', solo: IDA_MAR, bombs: 0, bidones: false },
     // EL PRIMER FILO SE FUE (pedido del autor, 23/9). Con la ruta (PLAN_NAFTA_ALCANCE N2) este
     // tramo cae a ~260 km del blanco, fuera del horizonte de radar: el techo no mordia y la radio
     // decia "el radar esta cerca" en mitad del crucero. Queda como transito para no correr la zona
@@ -168,7 +170,7 @@ const t15 = {
     // corrieron para que Condor la ANUNCIE un poco antes de cada zona, y ella asoma al entrar.
     { tipo: 'transito', hasta: 0.07, radio: 'fase_crucero', solo: IDA_MAR, bombs: 0, bidones: false },
     { tipo: 'transito', hasta: 0.16, radio: 'fase_chancha_ida', solo: IDA_MAR, bombs: 0, bidones: false },
-    { tipo: 'descenso', hasta: 0.20, radio: 'fase_descenso', solo: IDA_MAR, bombs: 0, bidones: false },
+    { tipo: 'descenso', hasta: 0.20, radio: 'fase_descenso', corte: 'corte_bajada', solo: IDA_MAR, bombs: 0, bidones: false },
     { tipo: 'rasante', hasta: 0.50, radio: 'fase_rasante', solo: IDA_MAR, bombs: 0, bidones: false },
     // LA MITAD: de aca en adelante el mundo esta DEFENDIDO. Es el primer globo del vuelo, y su
     // aparicion es informacion — "hay algo cerca que vale la pena proteger".

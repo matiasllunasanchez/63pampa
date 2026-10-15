@@ -36,6 +36,12 @@ export const STRINGS = {
     fase_crucero: 'PUMA: ARRIBA Y FUERA DE RADAR. ACA EL AVION GASTA MENOS: A CUIDAR LA NAFTA.',
     fase_libre: 'PUMA: ESTAMOS LIMPIOS. PODES SUBIR A RESPIRAR.',
     fase_descenso: 'PUMA: BAJAMOS. DE ACA EN ADELANTE NO SE HABLA.',
+    // los cortes a negro de la trepada y la bajada (15/10)
+    corte_trepada: 'TREPANDO A CRUCERO\n9.000 METROS, FUERA DE RADAR',
+    corte_bajada: 'A 200 KM DEL BLANCO\nBAJAMOS AL RAS DEL AGUA',
+    // el radar propio (15/10)
+    radar_on: 'RADAR PRENDIDO', radar_on_sub: 'TE ESTAN ESCUCHANDO', radar_eco: '¡BLANCO EN PANTALLA!',
+    radar_sin: 'RADAR SIN CARGA', radar_bajo: 'EL HORIZONTE LO TAPA', radar_bajo_sub: 'SUBI PARA VERLO',
     fase_rasante: 'CONDOR: PLATA FIEL, TE SIGO YO. NO CONTESTES.',
     fase_filo2: 'CONDOR: OTRO CORDON ADELANTE. ABAJO, Y NO RESPIRES.',
     fase_blanco: 'CONDOR: AHI LO TENES. ES TUYO.',
@@ -1263,6 +1269,10 @@ export const STRINGS = {
     fase_crucero: 'PUMA: HIGH AND OUT OF RADAR. SHE BURNS LESS UP HERE: MIND THE FUEL.',
     fase_libre: 'PUMA: WE ARE CLEAR. CLIMB AND BREATHE.',
     fase_descenso: 'PUMA: GOING DOWN. NOBODY TALKS FROM HERE.',
+    corte_trepada: 'CLIMBING TO CRUISE\n30,000 FEET, OUT OF RADAR',
+    corte_bajada: '120 MILES FROM THE TARGET\nDOWN TO THE WAVES',
+    radar_on: 'RADAR ON', radar_on_sub: 'THEY CAN HEAR YOU', radar_eco: 'TARGET ON SCOPE!',
+    radar_sin: 'RADAR DRAINED', radar_bajo: 'BELOW THE HORIZON', radar_bajo_sub: 'CLIMB TO SEE IT',
     fase_rasante: 'CONDOR: PLATA FLIGHT, I HAVE YOU. DO NOT ANSWER.',
     fase_filo2: 'CONDOR: ANOTHER PICKET AHEAD. DOWN, AND HOLD YOUR BREATH.',
     fase_blanco: 'CONDOR: THERE IT IS. IT IS YOURS.',
