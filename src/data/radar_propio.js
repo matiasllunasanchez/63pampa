@@ -34,4 +34,13 @@ export const RADAR_PROPIO = {
   // EL ECO: cuando una onda llega con el blanco a tiro, el blanco queda MARCADO estos segundos.
   MARCA_T: 12,
   COLOR: [90, 180, 255],
+  // LOS OTROS BUQUES DEL PASILLO (15/10, el autor: "que marque tambien los otros buques, sin texto, solo
+  // flechitas azules: son puntos nomas"): la fragata del mastil y la barcaza. Estan cerca —no los tapa el
+  // horizonte—, asi que se marcan a cualquier altura, como los Harrier.
+  BUQUES: ['mast', 'lcu'],
+  // EL TAMAÑO DEL ECO (15/10, el autor: "la flecha tiene tamaño segun lo que sea el eco, grande o chico"):
+  // la escala de la flechita por contacto. El blanco final (render/world.js `marcaRadar`) es el 1.
+  ECO: { lcu: 0.55, mast: 0.8, harrier: 0.6 },
 };
+/** ¿Este obstaculo es un buque que el radar marca? Vivo y adelante tuyo (`pz` = la profundidad del avion). */
+export const buqueRadar = (o, pz) => RADAR_PROPIO.BUQUES.includes(o.type) && o.z > pz + 2 && !o.dead && !(o.hp <= 0);

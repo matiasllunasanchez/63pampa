@@ -10,7 +10,8 @@ import { PZ, HOR } from './ctx.js';
 import { plane } from '../core/state.js';
 import { proj } from '../core/fx.js';
 import { radarP } from '../core/radarPropio.js';
-import { RADAR_PROPIO as R } from '../data/radar_propio.js';
+import { obstacles } from '../core/world.js';
+import { RADAR_PROPIO as R, buqueRadar } from '../data/radar_propio.js';
 
 // LA BURBUJA (15/10, el autor: "una onda expansiva que arranca en el centro de la cabina y sale hacia
 // adelante y alrededor, como una burbuja creciendo desde la cabina, con el mismo efecto de velo del radar
@@ -83,13 +84,40 @@ export function drawRadarCazas(cazas, zv) {
     if (h.enCola || h.z <= PZ + 2) continue;
     const s = proj(h.x, h.y, zv(h.z));
     if (!(s.k > 0)) continue;
-    const x = Math.round(s.x), punta = Math.round(s.y - Math.max(6, 4 * s.k) - 3);
-    ctx.beginPath(); ctx.moveTo(x, punta); ctx.lineTo(x - 4, punta - 5); ctx.lineTo(x - 1.5, punta - 5); ctx.lineTo(x - 1.5, punta - 8);
-    ctx.lineTo(x + 1.5, punta - 8); ctx.lineTo(x + 1.5, punta - 5); ctx.lineTo(x + 4, punta - 5); ctx.closePath();
+    const x = Math.round(s.x), punta = Math.round(s.y - Math.max(6, 4 * s.k) - 3), e = R.ECO.harrier;
+    flecha(x, punta, e);
     ctx.strokeStyle = AZ_BORDE; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = late ? AZ : '#3f8fe0'; ctx.fill();
     ctx.font = 'bold 6px monospace'; ctx.lineWidth = 2.5;
-    ctx.strokeText('SEA HARRIER', x, punta - 10); ctx.fillStyle = AZ_CLARO; ctx.fillText('SEA HARRIER', x, punta - 10);
+    ctx.strokeText('SEA HARRIER', x, punta - 9 * e - 2); ctx.fillStyle = AZ_CLARO; ctx.fillText('SEA HARRIER', x, punta - 9 * e - 2);
   }
   ctx.restore();
+}
+
+/** LOS OTROS BUQUES EN EL RADAR (15/10): solo la flechita azul, SIN TEXTO — "son puntos nomas". Encima de
+ *  cada fragata y barcaza viva que tenes adelante, a la altura de su mastil. */
+export function drawRadarBuques() {
+  if (!radarP.tiene || radarP.buquesT <= 0) return;
+  const a = Math.min(1, radarP.buquesT / 2);
+  const late = Math.floor(performance.now() / 300) % 2 === 0;
+  ctx.save();
+  ctx.globalAlpha = a; ctx.lineJoin = 'round';
+  for (const o of obstacles) {
+    if (!buqueRadar(o, PZ)) continue;
+    const s = proj(o.x, (o.y || 0) + (o.h || 4) + 1, o.z);
+    if (!(s.k > 0)) continue;
+    const x = Math.round(s.x), punta = Math.round(s.y - 2), e = R.ECO[o.type] || 0.8;
+    flecha(x, punta, e);
+    ctx.strokeStyle = AZ_BORDE; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = late ? AZ : '#3f8fe0'; ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** LA FLECHITA de un contacto, apuntando abajo con la punta en (x, punta). `e` = el tamaño del eco
+ *  (R.ECO): 1 es la del blanco final. Deja el trazo armado; quien llama la rellena. */
+function flecha(x, punta, e) {
+  const w = 5 * e, h = 9 * e, c = Math.max(1, 2 * e);   // c: medio ancho del tallo
+  ctx.beginPath(); ctx.moveTo(x, punta); ctx.lineTo(x - w, punta - h * 0.55); ctx.lineTo(x - c, punta - h * 0.55);
+  ctx.lineTo(x - c, punta - h); ctx.lineTo(x + c, punta - h); ctx.lineTo(x + c, punta - h * 0.55); ctx.lineTo(x + w, punta - h * 0.55); ctx.closePath();
 }

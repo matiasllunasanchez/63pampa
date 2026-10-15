@@ -31,6 +31,7 @@ export function tick(dt, e) {
   while (radarP.ondas.length && radarP.ondas[0].t > R.ONDA_VIDA) radarP.ondas.shift();
   if (radarP.marcaT > 0) radarP.marcaT = Math.max(0, radarP.marcaT - dt);
   if (radarP.aereoT > 0) radarP.aereoT = Math.max(0, radarP.aereoT - dt);
+  if (radarP.buquesT > 0) radarP.buquesT = Math.max(0, radarP.buquesT - dt);
   if (radarP.ecoT >= 0) radarP.ecoT += dt;
   if (!e.enVuelo) { radarP.on = false; radarP.ve = false; return out; }
   if (!radarP.on) { radarP.carga = Math.min(1, radarP.carga + R.RECARGA * dt); radarP.ve = false; dijoBajo = false; return out; }
@@ -48,6 +49,8 @@ export function tick(dt, e) {
     // LOS CONTACTOS AEREOS (15/10, el autor: "que marque tambien los Harrier"): los que tenes ADELANTE —el
     // Agave mira hacia la nariz—, y a cualquier altura: en el aire no los tapa el horizonte
     if (e.aereos > 0) { const nuevo = radarP.aereoT <= 0; radarP.aereoT = R.MARCA_T; if (nuevo && !out.sig) out.sig = 'ecoAereo'; }
+    // …y los otros buques del pasillo: solo puntos, sin aviso — no son el blanco
+    if (e.buques > 0) radarP.buquesT = R.MARCA_T;
   }
   return out;
 }
