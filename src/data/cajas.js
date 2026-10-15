@@ -39,7 +39,7 @@ export const CAJAS = {
   helo_scout: { fw: 128, fh: 96, cols: 8, rows: 2, box: { x0: 28, y0: 39, x1: 84, y1: 60 }, margen: 28 },
   helo_seaking: { fw: 128, fh: 96, cols: 8, rows: 2, box: { x0: 9, y0: 27, x1: 107, y1: 64 }, margen: 9 },
   helo_sealynx: { fw: 128, fh: 96, cols: 8, rows: 2, box: { x0: 21, y0: 33, x1: 91, y1: 64 }, margen: 21 },
-  helo_wessex: { fw: 128, fh: 96, cols: 8, rows: 2, box: { x0: 13, y0: 29, x1: 97, y1: 66 }, margen: 13 },
+  helo_wessex: { fw: 128, fh: 96, cols: 8, rows: 2, box: { x0: 12, y0: 28, x1: 99, y1: 71 }, margen: 12 },
   hundido_cv: { fw: 240, fh: 72, cols: 2, rows: 1, box: { x0: 54, y0: 15, x1: 189, y1: 64 }, margen: 7 },
   hundido_log: { fw: 240, fh: 72, cols: 2, rows: 1, box: { x0: 52, y0: 14, x1: 189, y1: 64 }, margen: 7 },
   hundido_t21: { fw: 240, fh: 72, cols: 2, rows: 1, box: { x0: 70, y0: 15, x1: 173, y1: 64 }, margen: 7 },

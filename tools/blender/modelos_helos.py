@@ -164,40 +164,53 @@ def seaKingVerde(T, K, ph='0'):
 # LA NARIZ CAIDA: el motor va adelante, en una trompa larga que baja, y la cabina de los pilotos
 # queda TREPADA arriba y atras — un perro olfateando. Verde oscuro de los comandos.
 def wessex(T, K, ph='0'):
+    """EL WESSEX HU.5, REHECHO DE FOTO (15/10/2026, el autor, con una foto de tres cuartos y el perfil
+    de Italeri del 874 NAS en Malvinas): la TROMPA ROMA y baja con su tapa oscura adelante —ahi va el
+    motor—, desde donde la linea de arriba TREPA empinada hasta la CABINA ALTA de techo plano con el
+    parabrisas de varios paños enmarcados; el fuselaje de CAJON con la panza plana, los ESCAPES redondos
+    a los costados de la trompa, el tren principal ADELANTE en V y la rueda de cola, el botalon que SUBE
+    hasta el pilon de cola con el rotor arriba a babor y el estabilizador a estribor. Verde oliva."""
     ph = int(ph)
     raiz = _raiz(T, 'Wessex')
-    piel = mat_pintura(K, 'pintura', dict(arriba=['#3f5b3f'], panza='#304630',
-                                          marcas=[dict(z=(-0.25, 0.15), y=(0.05, 0.45), x=(0.7, 1.2), color=VIDRIO_OSC, arriba=False),
-                                                  dict(z=(0.45, 0.85), y=(0.05, 0.45), x=(0.7, 1.2), color=VIDRIO_OSC, arriba=False),
-                                                  # (15/10) la REJILLA de la toma del motor, al frente de la trompa larga
-                                                  dict(z=(-2.62, -2.28), y=(-0.55, -0.18), color='#1c241c', arriba=False)]))
+    piel = mat_pintura(K, 'pintura', dict(arriba=['#4a5a36'], panza='#3c4a2c',
+                                          marcas=[dict(z=(-0.25, 0.15), y=(-0.25, 0.20), x=(0.8, 1.2), color=VIDRIO_OSC, arriba=False),
+                                                  dict(z=(0.45, 0.85), y=(-0.25, 0.20), x=(0.8, 1.2), color=VIDRIO_OSC, arriba=False),
+                                                  dict(z=(-2.80, -2.46), color='#262c22', arriba=False)]))   # la tapa oscura de la trompa
     vidrio = K['mat_cel']('vidrio', CANOPY, brillo=True)
     oscuro = K['mat_cel']('oscuro', '#20251f')
-    _subdiv(loft('fuselaje', [(-2.60, 0.10, 0.10, -0.50), (-2.45, 0.40, 0.36, -0.46), (-2.05, 0.60, 0.54, -0.36),
-                              (-1.55, 0.72, 0.68, -0.20), (-1.00, 0.86, 0.86, -0.02), (-0.40, 0.95, 0.98, 0.12),
-                              (0.60, 0.95, 0.96, 0.14), (1.35, 0.80, 0.78, 0.22), (1.90, 0.52, 0.48, 0.40),
-                              (2.60, 0.32, 0.28, 0.56), (3.55, 0.22, 0.20, 0.70), (3.90, 0.18, 0.18, 0.72)],
-                 raiz, piel, n=20, expo=2.6, cerrar=(True, True)), 2)
-    # LA CABINA TREPADA: una joroba sobre la nariz, con el parabrisas
-    _subdiv(loft('cabina', [(-1.65, 0.08, 0.05, 0.45), (-1.40, 0.50, 0.32, 0.58), (-0.80, 0.56, 0.42, 0.72),
-                            (-0.20, 0.46, 0.36, 0.84), (0.25, 0.15, 0.12, 0.92)], raiz, piel, n=14, expo=2.4, cerrar=(True, True)), 1)
-    # EL VIDRIADO de la cabina trepada (15/10, "mas fiel"): no una burbuja sino el PARABRISAS inclinado
-    # de dos paños, con su parante al medio, y las ventanas laterales de los pilotos
-    pb = elipsoide('parabrisas', (0, 0, 0), (0.54, 0.34, 0.24), raiz, vidrio, seg=18, anillos=10)
-    pb.rotation_euler = (0.70, 0, 0); pb.location = (0, 0.80, -1.40)
-    _pieza('parante', raiz, oscuro, (0.04, 0.46, 0.05), (0, 0.82, -1.50), (0.70, 0, 0))
+    # EL FUSELAJE de perfil (arriba, abajo) -> estaciones (z, medio ancho, medio alto, centro)
+    perfil = [(-2.68, 0.20, -0.36, -0.68), (-2.52, 0.48, -0.10, -0.86), (-2.22, 0.70, 0.15, -0.93), (-1.86, 0.85, 0.38, -0.96),
+              (-1.50, 0.92, 0.55, -0.98), (-1.00, 0.97, 0.60, -0.99), (0.00, 0.98, 0.62, -0.99), (0.80, 0.92, 0.60, -0.93),
+              (1.40, 0.78, 0.52, -0.70), (2.00, 0.50, 0.48, -0.30), (2.80, 0.30, 0.55, 0.05), (3.55, 0.22, 0.70, 0.35), (3.90, 0.18, 0.76, 0.48)]
+    _subdiv(loft('fuselaje', [(z, w, (a - b) / 2, (a + b) / 2) for z, w, a, b in perfil], raiz, piel, n=20, expo=3.2, cerrar=(True, True)), 2)
+    # LA CABINA ALTA de techo plano y el carenado del motor detras, hasta el rotor
+    # (nace ANCHA y a ras del lomo: la trompa sube y se funde con el FRENTE INCLINADO de la cabina)
+    _subdiv(loft('cabina', [(-1.58, 0.70, 0.03, 0.54), (-1.28, 0.72, 0.26, 0.78), (-1.05, 0.74, 0.32, 0.86), (-0.60, 0.74, 0.32, 0.88),
+                            (0.10, 0.66, 0.28, 0.86), (0.70, 0.46, 0.18, 0.76), (1.20, 0.10, 0.05, 0.64)],
+                 raiz, piel, n=16, expo=3.6, cerrar=(True, True)), 1)
+    # EL PARABRISAS: el paño inclinado del frente de la cabina con TRES parantes, y las ventanas laterales
+    _pieza('parabrisas', raiz, vidrio, (1.26, 0.46, 0.03), (0, 0.80, -1.46), (0.78, 0, 0))
+    for x in (-0.40, 0.0, 0.40):
+        _pieza('parante', raiz, oscuro, (0.045, 0.48, 0.05), (x, 0.80, -1.475), (0.78, 0, 0))
+    _pieza('marco_sup', raiz, oscuro, (1.28, 0.05, 0.05), (0, 0.99, -1.30))
     for sg in (-1, 1):
-        _pieza('ventana', raiz, vidrio, (0.02, 0.26, 0.42), (sg * 0.52, 0.80, -1.02))
-    for sg in (-1, 1):
-        elipsoide('escape', (sg * 0.60, -0.10, -1.25), (0.10, 0.11, 0.26), raiz, oscuro, seg=10, anillos=6)
-        _pieza('pata', raiz, oscuro, (0.07, 0.55, 0.07), (sg * 0.80, -0.68, -0.40), (0, 0, sg * 0.25))
-        rueda(raiz, K, sg * 0.86, -0.95, -0.40, 0.22, 0.16)
-    deriva(raiz, piel, 0.55, 1.60, 3.30, 0.75, 3.62, 0.42, 0.14)
-    rotor_cola(raiz, K, 0.55, 4, 0.16, 1.30, 3.70, ph)
-    _pieza('pata_cola', raiz, oscuro, (0.08, 0.80, 0.08), (0, 0.05, 3.30))
-    rueda(raiz, K, 0, -0.35, 3.30, 0.14, 0.10)
-    escarapela(raiz, K, 0.955, 0.25, 0.40, 0.27)
-    rotor(raiz, K, 2.7, 4, 1.4, -0.25, ph)
+        _pieza('ventana', raiz, vidrio, (0.03, 0.26, 0.58), (sg * 0.74, 0.90, -1.02))
+        _pieza('marco_v', raiz, oscuro, (0.035, 0.28, 0.04), (sg * 0.745, 0.90, -1.02))
+        # los ESCAPES redondos a los costados de la trompa, y su aro
+        elipsoide('escape', (sg * 0.80, -0.28, -1.62), (0.10, 0.20, 0.20), raiz, oscuro, seg=14, anillos=8)
+        # EL TREN PRINCIPAL adelante: la rueda y su V de patas al costado del fuselaje
+        rueda(raiz, K, sg * 0.95, -1.30, -0.85, 0.24, 0.18)
+        _pieza('pata', raiz, oscuro, (0.06, 0.62, 0.06), (sg * 0.86, -1.02, -0.98), (0.35, 0, sg * 0.30))
+        _pieza('pata', raiz, oscuro, (0.06, 0.62, 0.06), (sg * 0.86, -1.02, -0.70), (-0.35, 0, sg * 0.30))
+    # LA RUEDA DE COLA, bajo el arranque del botalon
+    _pieza('pata_cola', raiz, oscuro, (0.07, 0.95, 0.07), (0, -0.78, 2.25), (0.25, 0, 0))
+    rueda(raiz, K, 0, -1.30, 2.35, 0.14, 0.10)
+    # EL PILON DE COLA con el rotor arriba (babor) y el estabilizador (estribor)
+    deriva(raiz, piel, 0.55, 1.70, 3.30, 0.75, 3.70, 0.40, 0.14)
+    rotor_cola(raiz, K, 0.55, 4, 0.16, 1.40, 3.78, ph)
+    _pieza('estabilizador', raiz, piel, (0.62, 0.04, 0.24), (0.36, 1.00, 3.55))
+    escarapela(raiz, K, 0.975, -0.10, 0.40, 0.30)
+    rotor(raiz, K, 2.7, 4, 1.45, -0.25, ph)
     return raiz
 
 # ============================ SEA LYNX ============================
