@@ -168,7 +168,9 @@ def wessex(T, K, ph='0'):
     raiz = _raiz(T, 'Wessex')
     piel = mat_pintura(K, 'pintura', dict(arriba=['#3f5b3f'], panza='#304630',
                                           marcas=[dict(z=(-0.25, 0.15), y=(0.05, 0.45), x=(0.7, 1.2), color=VIDRIO_OSC, arriba=False),
-                                                  dict(z=(0.45, 0.85), y=(0.05, 0.45), x=(0.7, 1.2), color=VIDRIO_OSC, arriba=False)]))
+                                                  dict(z=(0.45, 0.85), y=(0.05, 0.45), x=(0.7, 1.2), color=VIDRIO_OSC, arriba=False),
+                                                  # (15/10) la REJILLA de la toma del motor, al frente de la trompa larga
+                                                  dict(z=(-2.62, -2.28), y=(-0.55, -0.18), color='#1c241c', arriba=False)]))
     vidrio = K['mat_cel']('vidrio', CANOPY, brillo=True)
     oscuro = K['mat_cel']('oscuro', '#20251f')
     _subdiv(loft('fuselaje', [(-2.60, 0.10, 0.10, -0.50), (-2.45, 0.40, 0.36, -0.46), (-2.05, 0.60, 0.54, -0.36),
@@ -179,7 +181,13 @@ def wessex(T, K, ph='0'):
     # LA CABINA TREPADA: una joroba sobre la nariz, con el parabrisas
     _subdiv(loft('cabina', [(-1.65, 0.08, 0.05, 0.45), (-1.40, 0.50, 0.32, 0.58), (-0.80, 0.56, 0.42, 0.72),
                             (-0.20, 0.46, 0.36, 0.84), (0.25, 0.15, 0.12, 0.92)], raiz, piel, n=14, expo=2.4, cerrar=(True, True)), 1)
-    elipsoide('parabrisas', (0, 0.78, -1.30), (0.54, 0.34, 0.44), raiz, vidrio, seg=18, anillos=10)   # el vidriado de la cabina trepada, que se vea de costado
+    # EL VIDRIADO de la cabina trepada (15/10, "mas fiel"): no una burbuja sino el PARABRISAS inclinado
+    # de dos paños, con su parante al medio, y las ventanas laterales de los pilotos
+    pb = elipsoide('parabrisas', (0, 0, 0), (0.54, 0.34, 0.24), raiz, vidrio, seg=18, anillos=10)
+    pb.rotation_euler = (0.70, 0, 0); pb.location = (0, 0.80, -1.40)
+    _pieza('parante', raiz, oscuro, (0.04, 0.46, 0.05), (0, 0.82, -1.50), (0.70, 0, 0))
+    for sg in (-1, 1):
+        _pieza('ventana', raiz, vidrio, (0.02, 0.26, 0.42), (sg * 0.52, 0.80, -1.02))
     for sg in (-1, 1):
         elipsoide('escape', (sg * 0.60, -0.10, -1.25), (0.10, 0.11, 0.26), raiz, oscuro, seg=10, anillos=6)
         _pieza('pata', raiz, oscuro, (0.07, 0.55, 0.07), (sg * 0.80, -0.68, -0.40), (0, 0, sg * 0.25))
