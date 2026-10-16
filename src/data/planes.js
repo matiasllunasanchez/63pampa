@@ -71,6 +71,81 @@ export const PLANES = [
     ficha: { es: 'Diez Mirage 5P que mandó el Perú. Salieron de La Joya, hicieron escala en Jujuy y aterrizaron en Tandil el 5 de junio de 1982, con la escarapela argentina ya pintada. Los pilotos peruanos volvieron a su país ese mismo día. Nunca entraron en combate. Acá, sí.',
       en: 'Ten Mirage 5Ps sent by Peru. They left La Joya, stopped in Jujuy and landed at Tandil on 5 June 1982, already wearing the Argentine roundel. The Peruvian pilots flew home that same day. They never saw combat. Here, they do.' },
     name: 'MIRAGE 5P MARA', src: '../assets/planes/mirage-5p/seleccion.png', sheet: '../assets/planes/mirage-5p/sheet.png', sheet2: '../assets/planes/mirage-5p/sheet2.png', sheet3: '../assets/planes/mirage-5p/sheet3.png', desc: { es: 'El regalo del Peru - rapido, con poca autonomia', en: 'Peru\'s gift - fast, short legs' } },
+
+  // LOS AVIONES DE LAS MISIONES SECUNDARIAS (16/10, el autor: "nos faltan los aviones de vuelos de diversion
+  // para elegir… hagamos todos los que falten, seleccionables al menos para CICLO DE MUERTE y POR LA PATRIA").
+  // Salen de docs/historia/misiones/MISIONES_SUELTAS.md; los modelos, de tools/blender/modelos_aviones.py.
+  // Todos argentinos (FAA, Armada o civiles del Fenix con la bandera). Los que no tenian armas llevan un
+  // cañon liviano DE LICENCIA (`canon`), como el Hercules; las bombas de la tecla son las de todos.
+  // Y EL PAMPA, que vuelve al roster con su placa honesta: no existia en 1982.
+  { key: 'pampa', nombre: { es: 'FMA IA-63 PAMPA', en: 'FMA IA-63 PAMPA' },
+    ficha: { es: 'Entrenador a reacción diseñado en Córdoba por la Fábrica Militar de Aviones, con Dornier. Voló por primera vez en octubre de 1984, dos años después de la guerra: no estuvo en Malvinas. Acá, sí.',
+      en: 'Jet trainer designed in Córdoba by the Fábrica Militar de Aviones, with Dornier. It first flew in October 1984, two years after the war: it was never in the Falklands. Here, it is.' },
+    name: 'PAMPA 63', sonda: false,
+    src: '../assets/planes/pampa-63/seleccion.png', sheet: '../assets/planes/pampa-63/sheet.png', sheet2: '../assets/planes/pampa-63/sheet2.png', sheet3: '../assets/planes/pampa-63/sheet3.png',
+    desc: { es: 'Entrenador biplaza IA-63 - no llegó a la guerra', en: 'IA-63 two-seat trainer - too late for the war' } },
+  { key: 'pucara', nombre: { es: 'FMA IA-58 PUCARÁ', en: 'FMA IA-58 PUCARÁ' },
+    ficha: { es: 'Avión de ataque a tierra diseñado y fabricado en Córdoba por la Fábrica Militar de Aviones. Biplaza en tándem, dos turbohélices, dos cañones de 20 mm y cuatro ametralladoras. Fuerza Aérea, Grupo 3 de Ataque: operó desde las islas, en Pradera del Ganso (BAM Cóndor) y Puerto Argentino, en pistas cortas y de pasto. Muchos se perdieron en tierra y en combate.',
+      en: 'Ground-attack aircraft designed and built in Córdoba by the Fábrica Militar de Aviones. Tandem two-seater, two turboprops, two 20 mm guns and four machine guns. Air Force, 3rd Attack Group: it flew from the islands themselves, at Goose Green (BAM Cóndor) and Stanley, off short grass strips. Many were lost on the ground and in combat.' },
+    name: 'IA-58 PUCARA', sonda: false, sinTobera: true, sinVariantes: true, vuelo: { vel: 0.72, acel: 0.6, turbo: 0.55 },
+    src: '../assets/planes/ia58-pucara/seleccion.png', sheet: '../assets/planes/ia58-pucara/sheet.png', sheet2: '../assets/planes/ia58-pucara/sheet2.png', sheet3: '../assets/planes/ia58-pucara/sheet3.png',
+    desc: { es: 'Ataque a tierra argentino - lento, duro y con cañones', en: 'Argentine ground attack - slow, tough, heavy guns' } },
+  { key: 'mb339', nombre: { es: 'AERMACCHI MB-339A', en: 'AERMACCHI MB-339A' },
+    ficha: { es: 'Entrenador y ataque liviano italiano de la Armada, 1ª Escuadrilla de Ataque, desde Puerto Argentino. En abril cambió el blanco y rojo de escuela por camuflaje arena y verde. El 21 de mayo el teniente Owen Crippa, en el 4-A-115, se encontró solo con el desembarco en San Carlos, atacó con cohetes y cañones y volvió a contar lo que había visto.',
+      en: 'Italian trainer and light attack jet of the Navy, 1st Attack Squadron, from Stanley. In April its red-and-white trainer paint gave way to tan and green camouflage. On 21 May Lt. Owen Crippa, in 4-A-115, came across the San Carlos landing alone, attacked with rockets and guns and flew back to report what he had seen.' },
+    name: 'MB-339A', sonda: false, sinVariantes: true, vuelo: { vel: 0.85, acel: 0.75, turbo: 0.8 },
+    src: '../assets/planes/mb-339a/seleccion.png', sheet: '../assets/planes/mb-339a/sheet.png', sheet2: '../assets/planes/mb-339a/sheet2.png', sheet3: '../assets/planes/mb-339a/sheet3.png',
+    desc: { es: 'Entrenador de la Armada - liviano, cohetes y cañones', en: 'Navy trainer - light, rockets and guns' } },
+  { key: 'neptune', nombre: { es: 'LOCKHEED SP-2H NEPTUNE', en: 'LOCKHEED SP-2H NEPTUNE' },
+    ficha: { es: 'El patrullero marítimo de la Armada, Escuadrilla Aeronaval de Exploración: dos motores a pistón, dos turbinas de apoyo y el radar bajo la panza. Buscó a la flota británica para guiar a los Super Étendard, y buscó en el mar a los náufragos del General Belgrano. Gastados y sin repuestos por el embargo, se retiraron a mediados de mayo. No llevaba armas: el cañón liviano es licencia del juego.',
+      en: 'The Navy maritime patrol aircraft, Naval Reconnaissance Squadron: two piston engines, two boost jets and the radar under the belly. It hunted the British fleet to guide the Super Étendards, and searched the sea for the General Belgrano survivors. Worn out and short of spares under the embargo, they were retired in mid-May. It carried no weapons: the light gun is a game licence.' },
+    name: 'SP-2H NEPTUNE', sonda: false, sinTobera: true, sinVariantes: true, sinPiruetas: true, escala: 1.8, px: 2,
+    vuelo: { vel: 0.6, acel: 0.35, turbo: 0.4, carga: false }, canon: { cad: 4, dano: 1, vel: 300, gordo: 1.2 },
+    src: '../assets/planes/sp2h-neptune/seleccion.png', sheet: '../assets/planes/sp2h-neptune/sheet.png', sheet2: '../assets/planes/sp2h-neptune/sheet2.png', sheet3: '../assets/planes/sp2h-neptune/sheet3.png',
+    desc: { es: 'Patrullero de la Armada - enorme, lento, radar', en: 'Navy patrol plane - huge, slow, radar' } },
+  { key: 'learjet', nombre: { es: 'LEARJET 35A', en: 'LEARJET 35A' },
+    ficha: { es: 'Escuadrón Fénix: pilotos civiles y militares que volaban aviones ejecutivos —muchos prestados por empresas privadas— para la Fuerza Aérea. Iban hacia las islas para que el radar británico los viera y lanzara a los Sea Harrier detrás de ellos, guiaban a las escuadrillas de ataque y hacían de puente de radio para que los A-4 volaran callados. El Learjet 35A era de la Fuerza Aérea (Grupo 1 Aerofotográfico). El 7 de junio, en una misión de fotografía a gran altura, el T-24 fue derribado por un Sea Dart de la HMS Exeter; murieron sus cinco tripulantes, entre ellos el vicecomodoro Rodolfo de la Colina. No llevaba armas: el cañón liviano es licencia del juego.',
+      en: 'Escuadrón Fénix: civilian and military pilots flying business aircraft —many lent by private companies— for the Air Force. They flew toward the islands so British radar would see them and send the Sea Harriers after them, guided the attack flights and relayed radio so the A-4s could fly silent. The Learjet 35A belonged to the Air Force (1st Aerial Photography Group). On 7 June, on a high-altitude photo mission, T-24 was shot down by a Sea Dart from HMS Exeter; its five crew died, among them Vice-Commodore Rodolfo de la Colina. It carried no weapons: the light gun is a game licence.' },
+    name: 'LEARJET 35A', sonda: false, sinTobera: true, sinVariantes: true, vuelo: { vel: 0.92, acel: 0.7, turbo: 0.7 }, canon: { cad: 4, dano: 1, vel: 300, gordo: 1.2 },
+    src: '../assets/planes/learjet-35a/seleccion.png', sheet: '../assets/planes/learjet-35a/sheet.png', sheet2: '../assets/planes/learjet-35a/sheet2.png', sheet3: '../assets/planes/learjet-35a/sheet3.png',
+    desc: { es: 'Escuadrón Fénix - rápido, sin armas de verdad', en: 'Fénix Squadron - fast, no real weapons' } },
+  { key: 'citation', nombre: { es: 'CESSNA CITATION', en: 'CESSNA CITATION' },
+    ficha: { es: 'Escuadrón Fénix: pilotos civiles y militares que volaban aviones ejecutivos —muchos prestados por empresas privadas— para la Fuerza Aérea. Iban hacia las islas para que el radar británico los viera y lanzara a los Sea Harrier detrás de ellos, guiaban a las escuadrillas de ataque y hacían de puente de radio para que los A-4 volaran callados. El Citation, un jet ejecutivo civil prestado por su empresa. No llevaba armas: el cañón liviano es licencia del juego.',
+      en: 'Escuadrón Fénix: civilian and military pilots flying business aircraft —many lent by private companies— for the Air Force. They flew toward the islands so British radar would see them and send the Sea Harriers after them, guided the attack flights and relayed radio so the A-4s could fly silent. The Citation, a civilian business jet lent by its company. It carried no weapons: the light gun is a game licence.' },
+    name: 'CITATION', sonda: false, sinTobera: true, sinVariantes: true, vuelo: { vel: 0.85, acel: 0.65, turbo: 0.65 }, canon: { cad: 4, dano: 1, vel: 300, gordo: 1.2 },
+    src: '../assets/planes/cessna-citation/seleccion.png', sheet: '../assets/planes/cessna-citation/sheet.png', sheet2: '../assets/planes/cessna-citation/sheet2.png', sheet3: '../assets/planes/cessna-citation/sheet3.png',
+    desc: { es: 'Escuadrón Fénix - jet ejecutivo civil', en: 'Fénix Squadron - civilian business jet' } },
+  { key: 'merlin', nombre: { es: 'SWEARINGEN MERLIN', en: 'SWEARINGEN MERLIN' },
+    ficha: { es: 'Escuadrón Fénix: pilotos civiles y militares que volaban aviones ejecutivos —muchos prestados por empresas privadas— para la Fuerza Aérea. Iban hacia las islas para que el radar británico los viera y lanzara a los Sea Harrier detrás de ellos, guiaban a las escuadrillas de ataque y hacían de puente de radio para que los A-4 volaran callados. El Merlin, un turbohélice ejecutivo civil. No llevaba armas: el cañón liviano es licencia del juego.',
+      en: 'Escuadrón Fénix: civilian and military pilots flying business aircraft —many lent by private companies— for the Air Force. They flew toward the islands so British radar would see them and send the Sea Harriers after them, guided the attack flights and relayed radio so the A-4s could fly silent. The Merlin, a civilian turboprop. It carried no weapons: the light gun is a game licence.' },
+    name: 'MERLIN', sonda: false, sinTobera: true, sinVariantes: true, vuelo: { vel: 0.72, acel: 0.55, turbo: 0.5 }, canon: { cad: 4, dano: 1, vel: 300, gordo: 1.2 },
+    src: '../assets/planes/swearingen-merlin/seleccion.png', sheet: '../assets/planes/swearingen-merlin/sheet.png', sheet2: '../assets/planes/swearingen-merlin/sheet2.png', sheet3: '../assets/planes/swearingen-merlin/sheet3.png',
+    desc: { es: 'Escuadrón Fénix - turbohélice civil', en: 'Fénix Squadron - civilian turboprop' } },
+  { key: 'mu2', nombre: { es: 'MITSUBISHI MU-2', en: 'MITSUBISHI MU-2' },
+    ficha: { es: 'Escuadrón Fénix: pilotos civiles y militares que volaban aviones ejecutivos —muchos prestados por empresas privadas— para la Fuerza Aérea. Iban hacia las islas para que el radar británico los viera y lanzara a los Sea Harrier detrás de ellos, guiaban a las escuadrillas de ataque y hacían de puente de radio para que los A-4 volaran callados. El MU-2, un turbohélice japonés de ala alta. No llevaba armas: el cañón liviano es licencia del juego.',
+      en: 'Escuadrón Fénix: civilian and military pilots flying business aircraft —many lent by private companies— for the Air Force. They flew toward the islands so British radar would see them and send the Sea Harriers after them, guided the attack flights and relayed radio so the A-4s could fly silent. The MU-2, a high-wing Japanese turboprop. It carried no weapons: the light gun is a game licence.' },
+    name: 'MU-2', sonda: false, sinTobera: true, sinVariantes: true, vuelo: { vel: 0.74, acel: 0.6, turbo: 0.5 }, canon: { cad: 4, dano: 1, vel: 300, gordo: 1.2 },
+    src: '../assets/planes/mitsubishi-mu2/seleccion.png', sheet: '../assets/planes/mitsubishi-mu2/sheet.png', sheet2: '../assets/planes/mitsubishi-mu2/sheet2.png', sheet3: '../assets/planes/mitsubishi-mu2/sheet3.png',
+    desc: { es: 'Escuadrón Fénix - turbohélice de ala alta', en: 'Fénix Squadron - high-wing turboprop' } },
+  { key: 'aerostar', nombre: { es: 'AEROSTAR 601', en: 'AEROSTAR 601' },
+    ficha: { es: 'Escuadrón Fénix: pilotos civiles y militares que volaban aviones ejecutivos —muchos prestados por empresas privadas— para la Fuerza Aérea. Iban hacia las islas para que el radar británico los viera y lanzara a los Sea Harrier detrás de ellos, guiaban a las escuadrillas de ataque y hacían de puente de radio para que los A-4 volaran callados. El Aerostar, un bimotor a pistón chico y rápido. No llevaba armas: el cañón liviano es licencia del juego.',
+      en: 'Escuadrón Fénix: civilian and military pilots flying business aircraft —many lent by private companies— for the Air Force. They flew toward the islands so British radar would see them and send the Sea Harriers after them, guided the attack flights and relayed radio so the A-4s could fly silent. The Aerostar, a small, fast piston twin. It carried no weapons: the light gun is a game licence.' },
+    name: 'AEROSTAR', sonda: false, sinTobera: true, sinVariantes: true, vuelo: { vel: 0.7, acel: 0.65, turbo: 0.5 }, canon: { cad: 4, dano: 1, vel: 300, gordo: 1.2 },
+    src: '../assets/planes/aerostar-601/seleccion.png', sheet: '../assets/planes/aerostar-601/sheet.png', sheet2: '../assets/planes/aerostar-601/sheet2.png', sheet3: '../assets/planes/aerostar-601/sheet3.png',
+    desc: { es: 'Escuadrón Fénix - bimotor chico', en: 'Fénix Squadron - small piston twin' } },
+  { key: 'commander', nombre: { es: 'ROCKWELL TURBO COMMANDER', en: 'ROCKWELL TURBO COMMANDER' },
+    ficha: { es: 'Escuadrón Fénix: pilotos civiles y militares que volaban aviones ejecutivos —muchos prestados por empresas privadas— para la Fuerza Aérea. Iban hacia las islas para que el radar británico los viera y lanzara a los Sea Harrier detrás de ellos, guiaban a las escuadrillas de ataque y hacían de puente de radio para que los A-4 volaran callados. El Commander, un turbohélice ejecutivo de ala alta. No llevaba armas: el cañón liviano es licencia del juego.',
+      en: 'Escuadrón Fénix: civilian and military pilots flying business aircraft —many lent by private companies— for the Air Force. They flew toward the islands so British radar would see them and send the Sea Harriers after them, guided the attack flights and relayed radio so the A-4s could fly silent. The Commander, a high-wing business turboprop. It carried no weapons: the light gun is a game licence.' },
+    name: 'COMMANDER', sonda: false, sinTobera: true, sinVariantes: true, vuelo: { vel: 0.72, acel: 0.55, turbo: 0.5 }, canon: { cad: 4, dano: 1, vel: 300, gordo: 1.2 },
+    src: '../assets/planes/turbo-commander/seleccion.png', sheet: '../assets/planes/turbo-commander/sheet.png', sheet2: '../assets/planes/turbo-commander/sheet2.png', sheet3: '../assets/planes/turbo-commander/sheet3.png',
+    desc: { es: 'Escuadrón Fénix - turbohélice ejecutivo', en: 'Fénix Squadron - business turboprop' } },
+  { key: 'guarani', nombre: { es: 'FMA IA-50 GUARANÍ II', en: 'FMA IA-50 GUARANÍ II' },
+    ficha: { es: 'Transporte liviano diseñado y fabricado en Córdoba por la Fábrica Militar de Aviones, de la Fuerza Aérea. Figura en la flota del Escuadrón Fénix, que volaba hacia las islas para distraer al radar británico, guiar a las escuadrillas y hacer de puente de radio. No llevaba armas: el cañón liviano es licencia del juego.',
+      en: 'Light transport designed and built in Córdoba by the Fábrica Militar de Aviones, flown by the Air Force. It appears in the Fénix Squadron fleet, which flew toward the islands to decoy British radar, guide the attack flights and relay radio. It carried no weapons: the light gun is a game licence.' },
+    name: 'GUARANI II', sonda: false, sinTobera: true, sinVariantes: true, escala: 1.3, px: 2, sinPiruetas: true,
+    vuelo: { vel: 0.66, acel: 0.45, turbo: 0.45, carga: false }, canon: { cad: 4, dano: 1, vel: 300, gordo: 1.2 },
+    src: '../assets/planes/ia50-guarani/seleccion.png', sheet: '../assets/planes/ia50-guarani/sheet.png', sheet2: '../assets/planes/ia50-guarani/sheet2.png', sheet3: '../assets/planes/ia50-guarani/sheet3.png',
+    desc: { es: 'Escuadrón Fénix - transporte hecho en Córdoba', en: 'Fénix Squadron - transport made in Córdoba' } },
 ];
 // 84x48 por cuadro (antes 56x32): se re-hornearon a 1.5x al subir la grilla del juego a 480x270.
 // Con el buffer 2x del juego, el sprite cae a 2x EXACTO en pantalla — pixel art nitido.
@@ -168,16 +243,8 @@ PLANES.forEach(pl => {
       pl.sheet5Img.src = dir + 'sheet5.png';
       pl.tren5 = new Image(); pl.tren5.src = dir + 'tren5.png';
     }
-    // EL SELECTOR ANIMADO (16/10, el autor: "mejorar la calidad del avion que vuela en el selector, y
-    // agregarle movimientos"): dos hojas horneadas con la camara del selector a 336 px nativos — el VAIVEN
-    // (15 alabeos x 5 cabeceos) y el TONEL (24 cuadros de la vuelta) —, tools/blender/armar_seleccion.py.
-    // Las recorre render/menus.js; si no cargan (build web, horno viejo) queda la ilustracion quieta.
-    pl.selAnim = pl.selTonel = null;
-    if (!HORNO_VIEJO && pl.src.startsWith('../')) {
-      const dirSel = pl.src.slice(0, pl.src.lastIndexOf('/') + 1);
-      pl.selAnim = new Image(); pl.selAnim.src = dirSel + 'seleccion_anim.png';
-      pl.selTonel = new Image(); pl.selTonel.src = dirSel + 'seleccion_tonel.png';
-    }
+    // (EL SELECTOR ANIMADO, 16/10: las hojas seleccion_anim / seleccion_tonel siguen en cada carpeta, pero el
+    // menu dibuja la ilustracion quieta — "deja de moverlos, que floten nomas" — y ya no se piden)
     pl.variantes = HORNO_VIEJO || pl.sinVariantes ? [] : [1, 2, 3, 4].map(n => { const im = new Image(); im.src = dir + 'variante' + n + '.png'; return im; });
   }
 });

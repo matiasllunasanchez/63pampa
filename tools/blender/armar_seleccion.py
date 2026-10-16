@@ -19,7 +19,10 @@ sys.path.insert(0, AQUI)
 import armar_hoja as A
 
 CARPETA = {'sky': 'a4-skyhawk', 'dagger': 'iai-dagger', 'supere': 'super-etendard', 'a4q': 'a4q',
-           'mirage': 'mirage-5p', 'pampa': 'pampa-63', 'herc': 'hercules-bombardero'}
+           'mirage': 'mirage-5p', 'pampa': 'pampa-63', 'herc': 'hercules-bombardero',
+           'learjet': 'learjet-35a', 'citation': 'cessna-citation', 'merlin': 'swearingen-merlin', 'mu2': 'mitsubishi-mu2',
+           'aerostar': 'aerostar-601', 'commander': 'turbo-commander', 'guarani': 'ia50-guarani', 'pucara': 'ia58-pucara',
+           'mb339': 'mb-339a', 'neptune': 'sp2h-neptune'}
 X = 2          # 195 → 390 (14/10: de tres cuartos y al doble de detalle; antes 130 x3, de cola)
 AIRE = 4       # px (antes de agrandar) de aire arriba y abajo del avion
 
@@ -69,3 +72,20 @@ for clave, carpeta in CARPETA.items():
             hoja.paste(im.crop((0, y0, fw, y0 + fh)), ((i % cols) * fw, (i // cols) * fh))
         hoja.save(os.path.join(RAIZ, 'assets', 'planes', carpeta, nombre + '.png'), optimize=True)
         print('OK ANIM', clave, nombre, hoja.size)
+
+# LA ILUSTRACION GRANDE de la pantalla del avion (seleccion_grande.png, la que dibuja render/menus.js a 1:1):
+# horneada directo a su tamaño (hornear.py --vista seleccion --px 495, o 540 los grandes) en
+# out/aviones/<clave>/seleccion_g/. Solo la arman los aviones de las misiones secundarias y el Pampa (16/10):
+# las de los demas ya estan hechas.
+GRANDES = ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'pucara', 'mb339', 'neptune', 'pampa')
+for clave in GRANDES:
+    f = os.path.join(AQUI, 'out', 'aviones', clave, 'seleccion_g', 'f_0_0.png')
+    if not os.path.exists(f):
+        print('FALTA GRANDE', clave); continue
+    im = Image.open(f).convert('RGBA')
+    A.FW, A.FILAS, A.FH = im.size[0], 1, im.size[1]
+    im = A.contorno(im, lineas=True)
+    x0, y0, x1, y1 = im.getbbox()
+    im = im.crop((0, max(0, y0 - AIRE * 2), im.size[0], min(im.size[1], y1 + AIRE * 2)))
+    im.save(os.path.join(RAIZ, 'assets', 'planes', CARPETA[clave], 'seleccion_grande.png'))
+    print('OK GRANDE', clave, im.size)

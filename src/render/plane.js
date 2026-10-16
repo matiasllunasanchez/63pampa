@@ -1081,7 +1081,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // del ala tambien con la hoja del poder RASANTE.
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
     // (el Hercules tira con UN cañon, desde el centro: una sola estrella, grande, bajo la panza)
-    if (fogonOn() && !hoja4) { if (run.canon) estrellaFogon(0, spH * 0.08, spW / 84 * 1.6); else fogonazos(spW, spH, AN.tips[rowPose][colPose]); }
+    if (fogonOn() && !hoja4) { if (run.canon) estrellaFogon(0, spH * 0.08, spW / 84 * 0.7 * (run.canon.gordo || 1)); else fogonazos(spW, spH, AN.tips[rowPose][colPose]); }
     // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma. El tren horneado va
     // con la hoja BASE (y las skins, misma celula); con las otras hojas, o sin la capa, el dibujado
     const conBase = !F3 && !hoja4 && img !== hoja2;

@@ -1620,3 +1620,22 @@ segunda carga), qué bomba exacta llevó contra el *British Wye* (29/5) y el *He
 central** del juego tiene algún asidero: es licencia de juego (el TC-68 no llevaba armas propias).
 
 **Decisión del autor:** pendiente; no bloquea nada.
+
+## LOS AVIONES DE LAS MISIONES SECUNDARIAS, JUGABLES _(16/10/2026 — tools/blender/modelos_aviones.py, src/data/planes.js)_
+
+**Contexto:** el autor pidió que todos los aviones de las secundarias (MISIONES_SUELTAS.md) se puedan elegir
+en POR LA PATRIA y CICLO DE MUERTE: Learjet 35A, Cessna Citation, Swearingen Merlin, Mitsubishi MU-2,
+Aerostar, Rockwell Turbo Commander y FMA Guaraní II (Escuadrón Fénix), Lockheed SP-2H Neptune, FMA IA-58
+Pucará, Aermacchi MB-339A, y vuelve el Pampa (con su placa: voló en 1984). Medidas reales; pinturas:
+- **MB-339A:** arena oscuro y verde arriba, panza blanca, desde abril de 1982 (modelersite; las calcas del
+  4-A-115 citan FS34258, FS33564 y FS17925). Coincide con lo que se sabe; falta una fuente argentina.
+- **Neptune:** gris claro arriba y blanco abajo. **Sin fuente**: el 2-P-112 está en el Museo de la Aviación
+  Naval (Comandante Espora), y AirHistory lo da como P-2E, no SP-2H.
+- **Learjet 35A (T-24):** blanco con franja azul. **Sin fuente** del esquema de 1982.
+- **Los civiles del Fénix:** blanco con una franja de empresa (marrón, azul o roja) — inventadas.
+
+**A verificar:** el esquema real del Learjet T-24 y de los Neptune; si el **Guaraní II** voló de verdad con el
+Fénix (figura en la referencia que mandó el autor); que el Neptune guió a los Super Étendard el 4 de mayo.
+**Licencia del juego:** los del Fénix y el Neptune no llevaban armas — en el juego tienen un cañón liviano.
+
+**Decisión del autor:** pendiente; no bloquea nada.

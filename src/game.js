@@ -2308,7 +2308,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const avSel = PLANES[selPlane];
       run.vuelo = (avSel && avSel.vuelo) || null;
       run.canon = (avSel && avSel.canon) || null;
-      run.mslMax = avSel && avSel.vuelo && runClimax() !== 'suelta' ? bombasDe(cfg.carga) : 0;
+      run.mslMax = avSel && cargaDe(cfg.carga).bombasN && runClimax() !== 'suelta' ? bombasDe(cfg.carga) : 0;
       if (run.mslMax) run.msl = run.mslMax;
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar

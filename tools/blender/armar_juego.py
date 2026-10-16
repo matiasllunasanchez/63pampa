@@ -33,6 +33,11 @@ DESTINO = {
     'skin_gitano': ('a4-skyhawk', 'skin_gitano'), 'skin_vasco': ('a4-skyhawk', 'skin_vasco'),
     'skin_pichon': ('a4-skyhawk', 'skin_pichon'),
     'herc': ('hercules-bombardero', 'sheet'),     # EL HERCULES BOMBARDERO (16/10): sin variantes
+    # LOS DE LAS MISIONES SECUNDARIAS (16/10, modelos_aviones.py): sin variantes
+    'learjet': ('learjet-35a', 'sheet'), 'citation': ('cessna-citation', 'sheet'), 'merlin': ('swearingen-merlin', 'sheet'),
+    'mu2': ('mitsubishi-mu2', 'sheet'), 'aerostar': ('aerostar-601', 'sheet'), 'commander': ('turbo-commander', 'sheet'),
+    'guarani': ('ia50-guarani', 'sheet'), 'pucara': ('ia58-pucara', 'sheet'), 'mb339': ('mb-339a', 'sheet'),
+    'neptune': ('sp2h-neptune', 'sheet'),
 }
 CELULAS = ('sky', 'a4q', 'dagger', 'supere', 'pampa', 'mirage')
 # LAS VARIANTES DEL ESCUADRON (modelos.py, 8/10): var_<celula>_<n> -> <carpeta>/variante<n>.png. Solo
@@ -51,9 +56,12 @@ CAPAS_EXTRA = {'dagger': ('bombas_ext',),   # el ala media de la «configuracion
                'supere': ('exocet', 'tanque_babor')}   # el Exocet y el tanque del 4 de mayo (14/10)
 # las capas de UN SOLO LADO no se simetrizan: la simetria copiaria el Exocet bajo el ala izquierda
 ASIMETRICAS = ('exocet', 'tanque_babor')
-NUEVAS = ('hercules-bombardero',)
-PX = {'herc': 2}                     # las claves horneadas al doble de resolucion (hornear_todo.py)   # las que nacieron en Blender: three.js nunca las horneo, no hay que archivar
+NUEVAS = ('hercules-bombardero', 'learjet-35a', 'cessna-citation', 'swearingen-merlin', 'mitsubishi-mu2', 'aerostar-601',
+          'turbo-commander', 'ia50-guarani', 'ia58-pucara', 'mb-339a', 'sp2h-neptune')
+PX = {'herc': 2, 'neptune': 2, 'guarani': 2}   # las claves horneadas al doble de resolucion (hornear_todo.py)   # las que nacieron en Blender: three.js nunca las horneo, no hay que archivar
 CAPAS_SOLO = {'herc': ('herc_250', 'herc_500')}   # las cargas propias del Hercules (hornear_todo.py)
+for _k in ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'neptune'): CAPAS_SOLO[_k] = ()   # los que no cuelgan nada
+CAPAS_ESTANDAR = ('pucara', 'mb339')   # los de las secundarias con las cuatro capas de siempre
 VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     'base': (3, 84, '', True), 'empinada': (2, 84, '2', True), 'ras': (3, 168, '3', False),
     # LA COBRA (4/10): 40/75/100° de cabeceo, cuadro de 126 (x1,5: vertical, el avion mide su largo);
@@ -200,7 +208,7 @@ export const HORNO = {
 # LAS ANCLAS PROPIAS (16/10): la tabla de arriba es UNA para todo el roster porque los cazas tienen el
 # mismo tamaño en el cuadro. El HERCULES BOMBARDERO no: el ala alta y el doble de envergadura ponen las
 # puntas en otro lado, y no tiene tobera. Sus anclas se miden en su hoja y van a anclas_aviones.js.
-ANCLAS_PROPIAS = ('herc',)
+ANCLAS_PROPIAS = ('herc', 'learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'pucara', 'mb339', 'neptune')
 
 def escribir_propias(propias):
     ruta = os.path.join(RAIZ, 'src', 'data', 'anclas_aviones.js')
@@ -228,13 +236,13 @@ if __name__ == '__main__':
             fw = VISTAS[vista][1] * PX.get(clave, 1)     # (el Hercules: hojas al doble, hornear_todo.py PX)
             h = hoja(os.path.join(OUT, clave, vista), filas, fw, sim, cols)
             con_contorno(h, filas, fw).save(os.path.join(dest, '%s%s.png' % (base, suf)))
-            if (clave in CELULAS or clave in CAPAS_SOLO) and vista in ('base', 'fino') and os.path.isdir(os.path.join(OUT, clave, 'capas', 'tren_' + vista)):
+            if (clave in CELULAS or clave in CAPAS_SOLO or clave in CAPAS_ESTANDAR) and vista in ('base', 'fino') and os.path.isdir(os.path.join(OUT, clave, 'capas', 'tren_' + vista)):
                 # EL TREN DE ATERRIZAJE (9/10): la capa que el juego dibuja debajo del avion al despegar
                 # y al aterrizar (render/plane.js drawTren)
                 t = hoja(os.path.join(OUT, clave, 'capas', 'tren_' + vista), filas, fw, sim, cols)
                 con_contorno(t, filas, fw).save(os.path.join(dest, 'tren%s.png' % suf))
-            if clave in CELULAS or clave in CAPAS_SOLO:
-                for capa in CAPAS_SOLO.get(clave) or CAPAS + CAPAS_EXTRA.get(clave, ()):
+            if clave in CELULAS or clave in CAPAS_SOLO or clave in CAPAS_ESTANDAR:
+                for capa in CAPAS_SOLO[clave] if clave in CAPAS_SOLO else CAPAS + CAPAS_EXTRA.get(clave, ()):
                     cdir = os.path.join(OUT, clave, 'capas', '%s_%s' % (capa, vista))
                     if vista in COLS_DE and not os.path.isdir(cdir): continue
                     c = hoja(cdir, filas, fw, sim and capa not in ASIMETRICAS, cols)

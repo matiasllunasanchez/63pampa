@@ -102,7 +102,7 @@ if VISTA == 'cobra':
 SEL_YAW, SEL_ELEV, SEL_ROLL, SEL_ZOOM, SEL_Z = (float(os.environ.get(k, d)) for k, d in
                                                 (('SEL_YAW', '124'), ('SEL_ELEV', '21'), ('SEL_ROLL', '-12'), ('SEL_ZOOM', '0.93'), ('SEL_Z', '-0.45')))
 # (el HERCULES BOMBARDERO, 16/10, abre el doble que un caza: su encuadre se abre en la misma proporcion)
-if MODELO in ('herc', 'hercules_bombardero') and 'SEL_ZOOM' not in os.environ: SEL_ZOOM = 0.86
+if MODELO in ('herc', 'hercules_bombardero', 'neptune', 'guarani', 'citation', 'commander', 'merlin') and 'SEL_ZOOM' not in os.environ: SEL_ZOOM = 0.86
 # EL SELECTOR ANIMADO (16/10, el autor: "mejorar la calidad del avion que vuela en el selector, y agregarle
 # movimientos — hornear alabeos y demas con esa camara y una resolucion mayor"). La misma camara, a 336 px
 # nativos (render/menus.js lo dibuja a 112 de diseño = 336 reales: 1:1, sin agrandar), en dos hojas:

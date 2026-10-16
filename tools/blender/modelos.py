@@ -699,3 +699,14 @@ def hercules_bombardero(T, K):
     mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
     return mod.hercules_bombardero(T, K)
 herc = hercules_bombardero        # la clave del juego (hornear_todo.py hornea por clave)
+
+# LOS AVIONES DE LAS MISIONES SECUNDARIAS (16/10): viven en modelos_aviones.py; hornear.py los pide por su
+# clave (getattr), y el modulo los resuelve aca
+AVIONES_SECUNDARIAS = ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'pucara', 'mb339', 'neptune')
+def __getattr__(nombre):
+    if nombre in AVIONES_SECUNDARIAS:
+        import importlib.util, os
+        spec = importlib.util.spec_from_file_location('modelos_aviones', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modelos_aviones.py'))
+        mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+        return lambda T, K: mod.construir(nombre, T, K)
+    raise AttributeError(nombre)

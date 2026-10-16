@@ -23,10 +23,14 @@ CAPAS_EXTRA = {'dagger': ('bombas_ext',), 'supere': ('exocet', 'tanque_babor')} 
 # fuselaje, 12 bombas de 250 kg o 6 de 500) y no lleva variantes ni sonda
 CAPAS_SOLO = {'herc': ('herc_250', 'herc_500')}
 CELULAS = CELULAS + ('herc',)
+# LOS DE LAS MISIONES SECUNDARIAS (16/10, tools/blender/modelos_aviones.py): el Pucara y el MB-339 cuelgan las
+# cuatro capas de siempre; los del Fenix y el Neptune no cuelgan nada (solo el tren)
+for _k in ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'neptune'): CAPAS_SOLO[_k] = ()
+CELULAS = CELULAS + ('pucara', 'mb339') + ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'neptune')
 # …y se hornea al DOBLE de resolucion (el juego lo dibuja al doble que un caza: data/planes.js `escala`/`px`)
-PX = {'herc': 2}
+PX = {'herc': 2, 'neptune': 2, 'guarani': 2}
 PX_VISTA = {'base': 84, 'empinada': 84, 'fino': 84, 'ras': 168, 'cobra': 126}
-capas_de = lambda k: CAPAS_SOLO.get(k) or CAPAS + CAPAS_EXTRA.get(k, ())
+capas_de = lambda k: CAPAS_SOLO[k] if k in CAPAS_SOLO else CAPAS + CAPAS_EXTRA.get(k, ())
 TODAS = CELULAS + ('skin_tero', 'skin_puma', 'skin_gitano', 'skin_pichon', 'skin_vasco')
 
 # LA SONDA DE UN LADO (autor, 8/10: "el avion tiene DOS varas en la trompa y deberia tener UNA SOLA").
