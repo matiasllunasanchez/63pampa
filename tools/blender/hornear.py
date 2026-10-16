@@ -195,6 +195,10 @@ def camara(padre, cam=None, nombre='cam', activa=True):
     bpy.context.scene.collection.objects.link(c)
     c.parent = padre
     c.matrix_basis = mirando(cam['pos'], (0, cam['lookY'], cam.get('lookZ', 0)))
+    # `SEL_ORTO=<ancho>` (16/10): camara ORTOGRAFICA de ese ancho, para comparar un modelo con un plano de
+    # tres vistas (con SEL_YAW/SEL_ELEV: 90/0 de costado, 0/89 de arriba, 180/0 de frente)
+    if os.environ.get('SEL_ORTO'):
+        cd.type = 'ORTHO'; cd.ortho_scale = float(os.environ['SEL_ORTO'])
     if activa: bpy.context.scene.camera = c
     return c
 

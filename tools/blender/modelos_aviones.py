@@ -62,6 +62,7 @@ def _km(F):
     S['extras'] = [dict(e, centro=v(e['centro']), radios=v(e['radios'])) if e['tipo'] == 'elipsoide'
                    else dict(e, est=s4(e['est'])) for e in F.get('extras', [])]
     S['tomas'] = [dict(t, est=s4(t['est']), x0=t['x0'] * k) for t in F.get('tomas', [])]
+    S['aletas'] = [dict(a, x=a['x'] * k, est=s5([(y, z, c, t, 0.0) for (y, z, c, t) in a['est']])) for a in F.get('aletas', [])]
     if F.get('tren'):
         S['tren'] = {q: (w * k if isinstance(w, float) else w) for q, w in F['tren'].items()}
     if F.get('carga'):
@@ -123,6 +124,13 @@ def avion(T, K, F):
     if S.get('estab'): superficie('estab', S['estab'], raiz, alas, eje='x', espejo=True)
     superficie('deriva', S['deriva'], raiz, deriva, eje='y')
     if S.get('dorsal'): superficie('dorsal', S['dorsal'], raiz, deriva, eje='y')
+    # LAS ALETAS chicas (16/10, "mas fieles"): las dos ventrales bajo la cola del Learjet, las de los
+    # tanques de punta. Verticales, en ±x; `est` = (y, z del borde de ataque, cuerda, espesor)
+    for a in S['aletas']:
+        for sg in ((-1, 1) if a['x'] else (1,)):
+            est = [(e, z, c, t, sg * a['x']) for (e, z, c, t, _) in a['est']]
+            if est[0][0] > est[-1][0]: est = est[::-1]
+            superficie('aleta', est, raiz, alas, eje='y')
     for t in S['tomas']:                            # tomas de aire al costado (el MB-339)
         for sg in (-1, 1):
             _subdiv(loft('toma', t['est'], raiz, piel, n=14, expo=2.0, cerrar=(False, True), x0=sg * t['x0']), 1)
@@ -160,6 +168,29 @@ def avion(T, K, F):
             elipsoide(e.get('nombre', 'extra'), e['centro'], e['radios'], raiz, mat, seg=18, anillos=10)
         else:
             _subdiv(loft(e.get('nombre', 'extra'), e['est'], raiz, mat, n=16, expo=2.0, cerrar=(True, True)), 1)
+    # LAS LETRAS de la FAA y la escarapela del fuselaje, de los dos lados (las letras: modelos_hercules._texto,
+    # que las pasa a malla; `x` = el costado del fuselaje en esa estacion)
+    if F.get('letras') or F.get('escarapela_fus'):
+        import importlib.util as _iu
+        _sp = _iu.spec_from_file_location('modelos_herc_letras', os.path.join(AQUI, 'modelos_hercules.py'))
+        H = _iu.module_from_spec(_sp); _sp.loader.exec_module(H)
+        k = S['k']
+        def costado(z, y):
+            for a, b in zip(S['fuselaje'], S['fuselaje'][1:]):
+                if a[0] <= z <= b[0]:
+                    f = (z - a[0]) / ((b[0] - a[0]) or 1); w = a[1] + (b[1] - a[1]) * f; h = a[2] + (b[2] - a[2]) * f
+                    yc = a[3] + (b[3] - a[3]) * f; q = min(0.99, abs((y - yc) / h)) ** F.get('expo', 2.2)
+                    return w * (1 - q) ** (1 / F.get('expo', 2.2))
+            return 0.1
+        for sg in (-1, 1):
+            for texto, z, y, alto in F.get('letras', []):
+                z, y, alto = z * k, y * k, alto * k
+                H._texto(texto, raiz, K, sg, z=z, y=y, alto=alto, x=costado(z, y) + 0.008)
+            if F.get('escarapela_fus'):
+                z, y, rr = (w * k for w in F['escarapela_fus'])
+                for f, c in ((1.0, M.CELESTE), (0.66, M.BLANCO), (0.33, M.CELESTE)):
+                    elipsoide('escarapela', (sg * (costado(z, y) + 0.004 + 0.008 * (1 - f) * 3), y, z), (0.012, rr * f, rr * f), raiz,
+                              K['mat_cel']('escarapela_' + c, c), seg=18, anillos=8)
     if F.get('fuego'):                              # LA TOBERA ENCENDIDA (el MB-339): de aca mide el juego la llama
         y, z, r = (w * S['k'] for w in F['fuego'])
         for i, (c, f) in enumerate(zip(('#b8341a', '#f07a22', '#ffe6a8'), (1.0, 0.62, 0.30))):
@@ -170,10 +201,10 @@ def avion(T, K, F):
     return raiz
 
 # ---------------- las pinturas ----------------
-def ventanillas(z0, z1, n, y0, y1, x=(0.3, 9.0)):
+def ventanillas(z0, z1, n, y0, y1, x=(0.3, 9.0), ancho=0.42):
     """Una fila de ventanillas pintadas a los dos costados: `n` rectangulos entre z0 y z1."""
     paso = (z1 - z0) / n
-    return [dict(x=x, z=(z0 + i * paso, z0 + i * paso + paso * 0.55), y=(y0, y1), color=VIDRIO, arriba=False) for i in range(n)]
+    return [dict(x=x, z=(z0 + i * paso, z0 + i * paso + paso * ancho), y=(y0, y1), color=VIDRIO, arriba=False) for i in range(n)]
 
 def civil(franja, y_franja, parabrisas, ventanas, extra=()):
     """La pintura de un ejecutivo civil o de la FAA: blanco arriba, gris claro abajo, la FRANJA de color a
@@ -192,33 +223,40 @@ FICHAS = {}
 # TANQUES DE PUNTA, cola en T y los dos turbofan TFE731 en pods a los costados de la cola.
 FICHAS['learjet'] = dict(
     nombre='Learjet 35A', k=k_de(12.04), expo=2.1,
-    fuselaje=[(-7.60, 0.02, 0.02, -0.10), (-7.35, 0.28, 0.26, -0.08), (-6.80, 0.52, 0.50, -0.02), (-6.00, 0.72, 0.72, 0.05),
-              (-5.00, 0.82, 0.86, 0.10), (-3.00, 0.85, 0.90, 0.10), (1.20, 0.85, 0.90, 0.10), (3.00, 0.76, 0.80, 0.16),
-              (4.60, 0.56, 0.62, 0.30), (6.10, 0.34, 0.40, 0.48), (7.23, 0.12, 0.15, 0.58)],
+    # (16/10, "mas fieles", con la foto: la trompa larga y CAIDA, los motores ALTOS a los costados de la cola, las
+    # dos aletas ventrales bajo la cola y la aletita al pie de cada tanque de punta)
+    fuselaje=[(-7.60, 0.02, 0.02, -0.24), (-7.35, 0.24, 0.20, -0.22), (-6.85, 0.46, 0.42, -0.14), (-6.10, 0.68, 0.68, -0.03),
+              (-5.20, 0.80, 0.84, 0.07), (-3.00, 0.84, 0.88, 0.10), (1.60, 0.84, 0.88, 0.10), (3.20, 0.74, 0.79, 0.17),
+              (4.80, 0.52, 0.60, 0.33), (6.20, 0.30, 0.36, 0.50), (7.23, 0.12, 0.14, 0.58)],
+    aletas=[dict(x=0.30, est=[(0.0, 5.05, 1.10, 0.08), (-0.45, 5.50, 0.55, 0.08)]),
+            dict(x=5.55, est=[(-0.45, 0.70, 0.80, 0.08), (-0.85, 1.00, 0.45, 0.08)])],
     ala=[(0.0, -1.55, 3.20, 0.13, -0.55), (0.85, -1.40, 3.00, 0.13, -0.52), (5.35, -0.10, 1.35, 0.10, -0.32)],
     tanques=[dict(x=5.55, y=-0.30, z=-0.35, largo=3.40, r=0.32)],
     deriva=[(0.70, 3.70, 2.70, 0.10, 0.0), (2.55, 5.55, 1.50, 0.10, 0.0)],
     estab=[(0.0, 5.25, 1.45, 0.10, 2.58), (2.25, 6.05, 0.80, 0.10, 2.62)],
-    motores=[dict(tipo='jet', x=1.20, y=0.55, z0=2.55, z1=5.35, r=0.46, pilon_x=0.55, pintada=True)],
-    pintura=civil('#1f3f7a', (0.05, 0.22), dict(z=(-6.10, -5.15), y=(0.25, 0.92), color=VIDRIO, arriba=False),
-                  ventanillas(-4.4, 1.0, 5, 0.32, 0.58)),
+    motores=[dict(tipo='jet', x=1.18, y=0.68, z0=2.35, z1=5.05, r=0.44, pilon_x=0.55, pintada=True)],
+    pintura=civil('#1f3f7a', (0.02, 0.18), dict(z=(-6.20, -5.30), y=(0.20, 0.80), color=VIDRIO, arriba=False),
+                  ventanillas(-4.5, 0.9, 6, 0.30, 0.56, ancho=0.40)),
     bandera=(2.05, 2.50), escarapelas=(3.6, -0.5, 0.55),
+    letras=[('FUERZA AEREA ARGENTINA', -1.80, 0.68, 0.20), ('T-24', -5.80, -0.32, 0.30)],
+    escarapela_fus=(1.55, 0.10, 0.28),
     tren=dict(x=1.30, nariz=-5.70, suelo=-1.45, r=0.30, ancho=0.18),
 )
 # ---- CESSNA CITATION II (civil, del Fenix). 14,39 m de largo, 15,90 de envergadura, 4,57 de alto. Ala baja
 # RECTA, el estabilizador con mucho diedro sobre el cono de cola, la deriva en flecha y dos pods en la cola.
 FICHAS['citation'] = dict(
     nombre='Cessna Citation II', k=k_de(15.90), expo=2.1,
-    fuselaje=[(-7.20, 0.02, 0.02, -0.12), (-6.95, 0.30, 0.28, -0.10), (-6.30, 0.58, 0.56, -0.02), (-5.40, 0.78, 0.80, 0.06),
-              (-4.40, 0.84, 0.90, 0.10), (1.00, 0.84, 0.90, 0.10), (2.80, 0.74, 0.80, 0.16), (4.60, 0.50, 0.58, 0.32),
-              (6.30, 0.28, 0.34, 0.50), (7.19, 0.10, 0.12, 0.58)],
+    # (16/10, "mas fieles": la trompa ROMA y redonda, el fuselaje mas alto, los motores arriba en la cola)
+    fuselaje=[(-7.20, 0.06, 0.06, -0.12), (-7.05, 0.34, 0.30, -0.12), (-6.55, 0.62, 0.58, -0.08), (-5.70, 0.84, 0.86, 0.02),
+              (-4.60, 0.92, 1.00, 0.10), (1.00, 0.92, 1.00, 0.10), (2.80, 0.80, 0.88, 0.18), (4.60, 0.54, 0.62, 0.36),
+              (6.30, 0.28, 0.34, 0.54), (7.19, 0.10, 0.12, 0.62)],
     ala=[(0.0, -1.35, 2.70, 0.14, -0.55), (0.85, -1.30, 2.55, 0.14, -0.52), (7.95, -0.70, 1.10, 0.11, -0.55 + 7.95 * td(4))],
     deriva=[(0.75, 3.80, 2.70, 0.10, 0.0), (2.80, 5.70, 1.40, 0.10, 0.0)],
     dorsal=[(0.70, 2.60, 1.60, 0.06, 0.0), (1.10, 3.70, 0.60, 0.20, 0.0)],
     estab=[(0.0, 5.20, 1.60, 0.10, 0.40), (3.05, 5.85, 0.90, 0.10, 0.40 + 3.05 * td(9))],
-    motores=[dict(tipo='jet', x=1.25, y=0.45, z0=2.40, z1=5.00, r=0.44, pilon_x=0.55, pintada=True)],
-    pintura=civil('#8a5a2b', (0.05, 0.20), dict(z=(-5.70, -4.85), y=(0.25, 0.92), color=VIDRIO, arriba=False),
-                  ventanillas(-4.2, 0.8, 6, 0.32, 0.58)),
+    motores=[dict(tipo='jet', x=1.32, y=0.70, z0=2.30, z1=4.90, r=0.46, pilon_x=0.60, pintada=True)],
+    pintura=civil('#8a5a2b', (0.02, 0.18), dict(z=(-6.00, -5.10), y=(0.25, 0.95), color=VIDRIO, arriba=False),
+                  ventanillas(-4.2, 0.9, 7, 0.32, 0.62, ancho=0.45)),
     bandera=(2.20, 2.70),
     tren=dict(x=1.95, nariz=-5.40, suelo=-1.40, r=0.30, ancho=0.18),
 )
@@ -227,14 +265,17 @@ FICHAS['citation'] = dict(
 # estabilizador a media deriva).
 FICHAS['merlin'] = dict(
     nombre='Swearingen Merlin III', k=k_de(14.10), expo=2.1,
-    fuselaje=[(-6.30, 0.02, 0.02, -0.15), (-6.00, 0.24, 0.22, -0.12), (-5.20, 0.52, 0.50, -0.04), (-4.20, 0.72, 0.76, 0.04),
-              (-3.40, 0.80, 0.84, 0.08), (1.20, 0.80, 0.84, 0.08), (3.00, 0.66, 0.70, 0.16), (5.00, 0.38, 0.44, 0.34),
-              (6.55, 0.12, 0.14, 0.46)],
+    # (16/10, "mas fieles": la trompa LARGA y fina que cae, el filete dorsal, las gondolas colgadas bajo el ala y
+    # largas hacia atras)
+    fuselaje=[(-6.55, 0.02, 0.02, -0.28), (-6.25, 0.20, 0.18, -0.24), (-5.40, 0.44, 0.42, -0.12), (-4.40, 0.68, 0.72, 0.0),
+              (-3.50, 0.78, 0.84, 0.08), (1.20, 0.78, 0.84, 0.08), (3.00, 0.64, 0.70, 0.16), (5.00, 0.36, 0.42, 0.34),
+              (6.30, 0.12, 0.14, 0.46)],
+    dorsal=[(0.70, 1.90, 1.80, 0.06, 0.0), (1.30, 3.30, 0.50, 0.18, 0.0)],
     ala=[(0.0, -1.10, 2.40, 0.15, -0.50), (0.80, -1.08, 2.30, 0.15, -0.48), (7.05, -0.55, 1.05, 0.12, -0.50 + 7.05 * td(5))],
     deriva=[(0.70, 3.40, 2.70, 0.10, 0.0), (3.40, 5.50, 1.20, 0.10, 0.0)],
     estab=[(0.0, 4.55, 1.50, 0.10, 1.85), (2.90, 5.20, 0.85, 0.10, 1.90)],
-    motores=[dict(tipo='helice', x=2.55, y=-0.25, z0=-2.95, z1=1.10, r=0.46, helice=1.30, palas=3)],
-    pintura=civil('#2a5aa8', (-0.05, 0.12), dict(z=(-4.60, -3.85), y=(0.20, 0.82), color=VIDRIO, arriba=False),
+    motores=[dict(tipo='helice', x=2.55, y=-0.45, z0=-2.95, z1=2.10, r=0.46, helice=1.30, palas=3)],
+    pintura=civil('#2a5aa8', (-0.05, 0.12), dict(z=(-4.80, -3.95), y=(0.20, 0.82), color=VIDRIO, arriba=False),
                   ventanillas(-3.3, 1.3, 6, 0.25, 0.50)),
     bandera=(2.80, 3.30),
     tren=dict(x=2.55, nariz=-4.60, suelo=-1.45, r=0.30, ancho=0.18),
@@ -242,7 +283,7 @@ FICHAS['merlin'] = dict(
 # ---- MITSUBISHI MU-2B (civil, del Fenix). 12,02 m de largo, 11,94 de envergadura con los tanques, 4,17 de
 # alto. ALA ALTA y corta con los tanques de punta, dos turbohelices Garrett, tren en carenados del fuselaje.
 FICHAS['mu2'] = dict(
-    nombre='Mitsubishi MU-2', k=k_de(11.94), expo=2.2,
+    nombre='Mitsubishi MU-2', k=k_de(11.94), expo=2.8,      # (los costados RECTOS, la panza plana)
     fuselaje=[(-6.00, 0.02, 0.02, -0.12), (-5.75, 0.26, 0.24, -0.10), (-5.10, 0.52, 0.52, -0.02), (-4.10, 0.72, 0.78, 0.05),
               (-3.30, 0.78, 0.84, 0.08), (1.30, 0.78, 0.84, 0.08), (3.00, 0.64, 0.70, 0.15), (4.80, 0.36, 0.42, 0.32),
               (6.02, 0.12, 0.14, 0.42)],
@@ -250,7 +291,7 @@ FICHAS['mu2'] = dict(
     tanques=[dict(x=5.75, y=0.78, z=-0.30, largo=2.90, r=0.34)],
     deriva=[(0.70, 3.30, 2.40, 0.10, 0.0), (2.80, 5.00, 1.20, 0.10, 0.0)],
     estab=[(0.0, 4.40, 1.40, 0.10, 0.30), (2.60, 4.95, 0.85, 0.10, 0.35)],
-    motores=[dict(tipo='helice', x=2.10, y=0.55, z0=-2.70, z1=0.60, r=0.42, helice=1.20, palas=3)],
+    motores=[dict(tipo='helice', x=2.10, y=0.92, z0=-2.70, z1=0.80, r=0.42, helice=1.20, palas=3)],   # ARRIBA del ala
     extras=[dict(tipo='loft', nombre='carenado_tren', est=[(-1.40, 0.10, 0.10, -0.62), (-0.90, 1.00, 0.36, -0.58),
                                                           (0.90, 1.00, 0.36, -0.58), (1.40, 0.10, 0.10, -0.62)])],
     pintura=civil('#b0302a', (-0.05, 0.12), dict(z=(-4.50, -3.75), y=(0.20, 0.82), color=VIDRIO, arriba=False),
@@ -262,11 +303,11 @@ FICHAS['mu2'] = dict(
 # y bajo, ALA MEDIA, dos motores a piston en gondolas largas, la deriva muy en flecha y el estabilizador bajo.
 FICHAS['aerostar'] = dict(
     nombre='Aerostar 601P', k=k_de(11.18), expo=2.1,
-    fuselaje=[(-5.10, 0.02, 0.02, -0.05), (-4.85, 0.22, 0.20, -0.04), (-4.20, 0.46, 0.44, 0.0), (-3.20, 0.62, 0.66, 0.06),
+    fuselaje=[(-5.30, 0.02, 0.02, -0.12), (-5.00, 0.18, 0.16, -0.10), (-4.30, 0.42, 0.40, -0.03), (-3.20, 0.62, 0.66, 0.06),
               (-2.40, 0.66, 0.70, 0.08), (0.80, 0.64, 0.68, 0.08), (2.60, 0.48, 0.52, 0.16), (4.40, 0.26, 0.30, 0.28),
               (5.50, 0.10, 0.12, 0.34)],
     ala=[(0.0, -0.95, 1.95, 0.14, -0.05), (5.59, -0.55, 1.05, 0.12, -0.05 + 5.59 * td(2))],
-    deriva=[(0.40, 2.80, 2.30, 0.10, 0.0), (2.40, 4.70, 1.00, 0.10, 0.0)],
+    deriva=[(0.40, 2.60, 2.50, 0.10, 0.0), (2.70, 5.00, 0.95, 0.10, 0.0)],      # (alta y MUY en flecha)
     estab=[(0.0, 4.10, 1.25, 0.10, 0.28), (2.20, 4.50, 0.75, 0.10, 0.28)],
     motores=[dict(tipo='helice', x=1.85, y=0.00, z0=-2.55, z1=1.20, r=0.38, helice=0.95, palas=3)],
     pintura=civil('#b0302a', (-0.02, 0.12), dict(z=(-3.60, -2.85), y=(0.18, 0.72), color=VIDRIO, arriba=False),
@@ -277,14 +318,14 @@ FICHAS['aerostar'] = dict(
 # ---- ROCKWELL TURBO COMMANDER 690 (civil, del Fenix). 13,52 m de largo, 14,22 de envergadura, 4,56 de alto.
 # ALA ALTA, fuselaje ancho y bajo con muchas ventanillas, dos turbohelices y la deriva muy en flecha.
 FICHAS['commander'] = dict(
-    nombre='Rockwell Turbo Commander 690', k=k_de(14.22), expo=2.4,
+    nombre='Rockwell Turbo Commander 690', k=k_de(14.22), expo=2.7,   # (panza plana, costados rectos)
     fuselaje=[(-6.60, 0.02, 0.02, -0.15), (-6.35, 0.30, 0.26, -0.12), (-5.60, 0.62, 0.58, -0.04), (-4.60, 0.82, 0.84, 0.04),
               (-3.60, 0.88, 0.90, 0.08), (1.40, 0.88, 0.90, 0.08), (3.20, 0.70, 0.74, 0.16), (5.40, 0.36, 0.42, 0.36),
               (6.92, 0.10, 0.12, 0.48)],
     ala=[(0.0, -1.05, 2.40, 0.15, 0.90), (7.11, -0.75, 1.20, 0.12, 0.90 + 7.11 * td(2))],
     deriva=[(0.75, 3.50, 2.80, 0.10, 0.0), (3.20, 5.80, 1.10, 0.10, 0.0)],
     estab=[(0.0, 4.80, 1.55, 0.10, 0.35), (3.00, 5.40, 0.85, 0.10, 0.40)],
-    motores=[dict(tipo='helice', x=2.35, y=0.62, z0=-2.95, z1=0.90, r=0.45, helice=1.30, palas=3)],
+    motores=[dict(tipo='helice', x=2.35, y=0.50, z0=-2.95, z1=1.30, r=0.45, helice=1.30, palas=3)],   # colgadas del ala alta
     pintura=civil('#2a5aa8', (-0.05, 0.12), dict(z=(-4.95, -4.15), y=(0.20, 0.86), color=VIDRIO, arriba=False),
                   ventanillas(-3.6, 1.6, 7, 0.20, 0.50)),
     bandera=(2.55, 3.05),
@@ -299,11 +340,14 @@ FICHAS['guarani'] = dict(
               (7.90, 0.12, 0.14, 0.56)],
     ala=[(0.0, -1.35, 2.90, 0.16, -0.60), (9.76, -0.85, 1.30, 0.12, -0.60 + 9.76 * td(4))],
     deriva=[(0.90, 3.90, 3.40, 0.10, 0.0), (4.10, 6.80, 1.40, 0.10, 0.0)],
+    dorsal=[(0.90, 2.40, 2.00, 0.06, 0.0), (1.60, 3.90, 0.60, 0.18, 0.0)],
     estab=[(0.0, 5.60, 1.80, 0.10, 0.30), (3.60, 6.30, 1.00, 0.10, 0.35)],
     motores=[dict(tipo='helice', x=3.10, y=-0.20, z0=-3.40, z1=1.20, r=0.52, helice=1.30, palas=3)],
     pintura=civil('#1f3f7a', (-0.05, 0.14), dict(z=(-5.55, -4.75), y=(0.25, 1.00), color=VIDRIO, arriba=False),
-                  ventanillas(-3.9, 2.2, 6, 0.22, 0.55)),
-    bandera=(4.00, 5.40), escarapelas=(6.5, -0.6, 0.80),
+                  ventanillas(-3.9, 2.2, 6, 0.22, 0.55), [dict(z=(-7.50, -6.75), color='#15191b', arriba=False)]),   # el radomo negro
+    bandera=(2.60, 3.50), escarapelas=(6.5, -0.6, 0.80),
+    letras=[('FUERZA AEREA ARGENTINA', -1.60, 0.80, 0.26)],
+    escarapela_fus=(1.10, 0.05, 0.42),
     tren=dict(x=3.10, nariz=-5.50, suelo=-1.70, r=0.36, ancho=0.22),
 )
 # ---- FMA IA-58 PUCARA (FAA, Grupo 3 de Ataque; S-07, S-13, S-14). 14,25 m de largo, 14,50 de envergadura,
