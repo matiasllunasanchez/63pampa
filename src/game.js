@@ -1303,7 +1303,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function confirmMode() {
       const m = MODES[modeSel];
       // HISTORIA ya no arranca directo: pasa por su submenu (CONTINUAR / campañas)
-      if (m === 'campaign') { campSel = campFirstSel(); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
+      if (m === 'campaign') { campIr('raiz'); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'quick' || m === 'dev') { subMenu = m; quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
@@ -1758,21 +1758,41 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // LA DEMO (12/10): con la campaña BLOQUEADA (data/libro_vuelo.js) el menu son dos secciones —
     // CAMPAÑAS, con la de Mateo en gris y su candado, y el LIBRO DE VUELO con las salidas reales—, y
     // CONTINUAR no aparece: no hay partida que retomar de una campaña que no se juega.
-    const campRows = () => CAMPANA_BLOQUEADA ? [
-      { head: 'campSecCampanas' },
+    // …Y EN DOS NIVELES (16/10, el autor: "campañas y libro de vuelo son dos puntos de menu que describen
+    // lo que son, y DENTRO de estos el listado de cada cosa, no en la misma pantalla"). `campVista`:
+    // 'raiz' (las dos puertas), 'campanas' (continuar + las campañas) o 'libro' (las salidas). El ATRAS
+    // de adentro vuelve a la raiz, con el cursor sobre la puerta de la que se vino.
+    let campVista = 'raiz';
+    const campRows = () => campVista === 'campanas' ? (CAMPANA_BLOQUEADA ? [
       { id: 'c1', disabled: true },
-      { head: 'campSecLibro' },
-      ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k })),
-      { id: 'back', back: true },
+      { id: 'back', back: true, sub: true },
     ] : [
       ...(saves.listSaves().length ? [{ head: 'campSecContinue' }, { id: 'continue' }] : []),
       { head: 'campSecNew' },
       { id: 'c1' },
       // { id: 'c2', disabled: !CAMPAIGNS[1].enabled },
-      { head: 'campSecLibro' },
+      { id: 'back', back: true, sub: true },
+    ]) : campVista === 'libro' ? [
       ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k })),
+      { id: 'back', back: true, sub: true },
+    ] : [
+      { id: 'secCampanas' },
+      { id: 'secLibro' },
       { id: 'back', back: true },      // la salida de la pantalla, a la vista (ver quickRows)
     ];
+    /** Cambia de nivel en HISTORIA y deja el cursor sobre `fila` (o en la primera elegible). */
+    function campIr(vista, fila) {
+      campVista = vista;
+      // con la campaña BLOQUEADA (la demo) la raiz arranca sobre el LIBRO DE VUELO: es lo que se juega
+      if (!fila && vista === 'raiz' && CAMPANA_BLOQUEADA) fila = r => r.id === 'secLibro';
+      const rows = campRows(), i = fila ? rows.findIndex(fila) : -1;
+      campSel = i >= 0 ? i : campFirstSel();
+    }
+    /** Sube un nivel en HISTORIA (ATRAS o ESC adentro de una seccion). */
+    function campAtras() {
+      const de = campVista === 'libro' ? 'secLibro' : 'secCampanas';
+      campIr('raiz', r => r.id === de); beep(400, 0.06, 'square', 0.05);
+    }
     /** Mueve el cursor SALTEANDO encabezados (mismo criterio que OPCIONES). */
     function campNav(dir) {
       const rows = campRows();
@@ -1790,7 +1810,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (r.disabled) { beep(140, 0.09, 'square', 0.05); return; }
       // ATRAS deja el cursor del menu principal SOBRE la fila de la que se vino: volver no puede
       // costar volver a buscar donde estabas.
+      // el ATRAS de adentro de una seccion vuelve a la raiz de HISTORIA, sobre la seccion
+      if (r.id === 'back' && r.sub) { campAtras(); return; }
       if (r.id === 'back') { modeSel = MODES.indexOf('campaign'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
+      if (r.id === 'secCampanas') { campIr('campanas'); beep(600, 0.06, 'square', 0.05); return; }
+      if (r.id === 'secLibro') { campIr('libro'); beep(600, 0.06, 'square', 0.05); return; }
       if (r.id === 'continue') { savesSel = 0; setState('saves'); beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'c1') { startCampaign(); beep(700, 0.08, 'square', 0.05); }
       else if (r.id === 'libro') { abrirLibro(r.k); beep(700, 0.08, 'square', 0.05); }
@@ -1994,9 +2018,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const k = libro ? libro.k : 0;
       libro = null; paused = false;
       soltarMision();
-      const rows = campRows();
-      const i = rows.findIndex(r => r.id === 'libro' && r.k === k);
-      campSel = i < 0 ? campFirstSel() : i;
+      campIr('libro', r => r.id === 'libro' && r.k === k);
       setState('campmenu');
     }
     /** Primera fila SELECCIONABLE del menu (la lista arranca con un encabezado). */
@@ -3137,8 +3159,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el tap y el menu estan los dos en coordenadas de MUNDO (480x270), asi que no hay
       // conversion. La geometria sale de menus.MODE_ROWS, la misma que usa el dibujo.
       modeSelect: py => {
-        const { y0, rh } = menus.MODE_ROWS;
-        const row = Math.floor((py - (y0 - rh / 2)) / rh);
+        // (16/10: las filas son compactas y la marcada se despliega — el rango de cada una lo anota el dibujo)
+        const row = menus.MODE_HIT.findIndex(h => py >= h.a && py < h.b);
         if (row >= 0 && row < MODES.length) { modeSel = row; confirmMode(); }
       },
       // VOLVER: desde la eleccion de avion de un modo suelto se vuelve a JUEGO RAPIDO, que es de
@@ -3150,6 +3172,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (S.test) { salirTest(); beep(400, 0.06, 'square', 0.05); return; }
         // del LIBRO DE VUELO (contexto, eleccion de avion, derribado) se vuelve al libro
         if (libro) { volverAlLibro(); beep(400, 0.06, 'square', 0.05); return; }
+        // adentro de una seccion de HISTORIA, ESC sube un nivel (a CAMPAÑAS / LIBRO DE VUELO)
+        if (S.state === 'campmenu' && campVista !== 'raiz') { campAtras(); return; }
         // desde una herramienta del MODO DEV, ESC vuelve a su submenu y no al menu principal
         if (DEV_ROWS.some(r => r.id === S.state)) { volverADev(S.state); return; }
         const suelto = gameMode === 'cycle' || gameMode === 'survival' || gameMode === 'arena' || gameMode === 'pasadas';
@@ -6279,7 +6303,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state === 'title') menus.drawTitle({ t: run.t });
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
-      if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t });
+      if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t, vista: campVista });
       if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: LIBRO_VUELO[libro.k], sel: libroAvSel, t: run.t });
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), dev: subMenu === 'dev', t: run.t });
       if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
@@ -6552,7 +6576,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA LETRA DE UN ROL (FONTS en render/ctx.js), en vivo: __fuente('desc', 'Mayorice'); y una
       // PANTALLA de menu directo, para fotografiarla: __pantalla('campmenu')
       window.__fuente = (rol, fam) => probarFuente(rol, fam);
-      window.__pantalla = st => { if (st === 'campmenu') campSel = campFirstSel(); setState(st); return S.state; };
+      window.__pantalla = st => { if (st === 'campmenu') campIr('raiz'); setState(st); return S.state; };
       // LA LETRA DE LOS NUMEROS de los relojes, para comparar candidatas: __fuenteNum('Thernaly')
       window.__fuenteNum = f => { NUMEROS.fam = f; return f; };
       // LAS TRES METRALLAS en la corrida en curso (y la cinta), para capturas: __metralla(3, 2)

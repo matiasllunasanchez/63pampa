@@ -22,6 +22,8 @@
 //  16/10/2026  el autor la destraba ("activar los sonidos del juego en modo completo o produccion"),
 //              con los sonidos nuevos de las pantallas (booting, tarjeta de mision, carga)
 //  16/10/2026  y la vuelve a bloquear ("mutea el juego ahora mientras lo levantes")
+//  16/10/2026  y la vuelve a destrabar ("activa sonido")
+//  16/10/2026  y la vuelve a bloquear ("mutea el juego")
 //
 // ES TEMPORAL Y VUELVE: el dia que el autor lo pida, esto va a `false` y el smoke se adapta solo —
 // con `true` exige que el juego este MUDO, con `false` exige que SUENE. No hay nada mas que tocar.

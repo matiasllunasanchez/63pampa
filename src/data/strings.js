@@ -261,6 +261,8 @@ export const STRINGS = {
     // HISTORIA EN LA DEMO (12/10): dos secciones — las campañas (la de Mateo, bloqueada) y el LIBRO DE
     // VUELO con las salidas reales (data/libro_vuelo.js).
     campSecCampanas: 'CAMPAÑAS', campSecLibro: 'LIBRO DE VUELO',
+    campAtrasDesc: 'VOLVER A HISTORIA',
+    campCampanasDesc: 'LA HISTORIA CONTADA, MISION POR MISION', campLibroDesc: 'SALIDAS REALES DE LA GUERRA, UNA POR UNA',
     campBloqueada: 'BLOQUEADA · se habilita en el juego completo',
     libroHora_lanzamiento: 'lanzamiento', libroHora_despegue: 'despegue', libroHora_ataque: 'ataque',
     libroElegir: 'ELEGÍ TU AVIÓN',
@@ -441,7 +443,7 @@ export const STRINGS = {
     // partida suelta) y la eleccion del modo suelto vive un nivel adentro.
     // ATRAS: la salida de un submenu, VISIBLE. ESC y el boton B ya volvian, pero eso hay que saberlo
     menuBack: 'ATRAS', menuBackDesc: 'Volver al menu principal',
-    modeQuick: 'JUEGO RAPIDO', modeQuickDesc: 'Partidas sueltas, sin guion',
+    modeQuick: 'JUEGO RAPIDO', modeQuickDesc: 'Modo arcade, sin guion',
     quickTitle: 'JUEGO RAPIDO',
     modeDev: 'MODO DEV', modeDevDesc: 'Pruebas, cinematicas, maniobras y misiones sueltas', devTitle: 'MODO DEV',
     // MODO PRUEBAS (docs/proyecto/COMO_PROBAR.md §4): el catalogo de MOMENTOS. Los titulos de cada
@@ -1435,6 +1437,8 @@ export const STRINGS = {
     campC2Desc: 'CAMPAIGN 2',
     campSoon: 'COMING SOON',
     campSecCampanas: 'CAMPAIGNS', campSecLibro: 'FLIGHT LOG',
+    campAtrasDesc: 'BACK TO STORY',
+    campCampanasDesc: 'THE STORY, MISSION BY MISSION', campLibroDesc: 'REAL SORTIES OF THE WAR, ONE BY ONE',
     campBloqueada: 'LOCKED · unlocks in the full game',
     libroHora_lanzamiento: 'launch', libroHora_despegue: 'take-off', libroHora_ataque: 'attack',
     libroElegir: 'CHOOSE YOUR AIRCRAFT',
@@ -1577,7 +1581,7 @@ export const STRINGS = {
     modeCycleDesc: 'Random objectives, rising difficulty',
     modeArena: 'SACRED MINUTES', modeArenaDesc: 'Random battles',
     menuBack: 'BACK', menuBackDesc: 'Back to the main menu',
-    modeQuick: 'QUICK GAME', modeQuickDesc: 'Single runs, no story',
+    modeQuick: 'QUICK GAME', modeQuickDesc: 'Arcade mode, no story',
     quickTitle: 'QUICK GAME',
     modeDev: 'DEV MODE', modeDevDesc: 'Test bench, cutscenes, manoeuvres and single missions', devTitle: 'DEV MODE',
     modePruebas: 'TEST BENCH', modePruebasDesc: 'The catalogue of moments, no grinding to get there',

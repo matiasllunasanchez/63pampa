@@ -58,19 +58,31 @@ app.whenReady().then(async () => {
   console.log('1. el menu HISTORIA:');
   let d = await hasta(x => x.state === 'campmenu');
   if (!d) { bad('no se llego al menu HISTORIA'); return fin(); }
-  const esperado = ['campSecCampanas', 'c1-', 'campSecLibro', 'libro0', 'libro1', 'libro2', 'libro3', 'libro4', 'back'];
-  if (JSON.stringify(d.filas) === JSON.stringify(esperado)) ok('CAMPAÑAS (Mateo bloqueada) + LIBRO DE VUELO con cinco salidas, sin CONTINUAR');
-  else bad('filas: ' + JSON.stringify(d.filas));
-  if (d.fila.id === 'libro' && d.fila.k === 0) ok('el cursor arranca en la primera salida, no en la campaña bloqueada');
-  else bad('el cursor arranca en ' + JSON.stringify(d.fila));
-  await shot('1_historia');
-  await tap('Up');                                          // a la campaña bloqueada
+  // DOS NIVELES (16/10): la raiz son las dos puertas, y cada listado esta adentro de la suya
+  if (JSON.stringify(d.filas) === JSON.stringify(['secCampanas', 'secLibro', 'back'])) ok('HISTORIA: CAMPAÑAS y LIBRO DE VUELO, cada una con su puerta');
+  else bad('filas de la raiz: ' + JSON.stringify(d.filas));
+  if (d.fila.id === 'secLibro') ok('con la campaña bloqueada, el cursor arranca en LIBRO DE VUELO'); else bad('la raiz arranca en ' + JSON.stringify(d.fila));
+  await tap('Up'); await tap('Return');                     // a CAMPAÑAS
   d = await L();
+  if (JSON.stringify(d.filas) === JSON.stringify(['c1-', 'back'])) ok('adentro de CAMPAÑAS: la de Mateo bloqueada, sin CONTINUAR');
+  else bad('filas de CAMPAÑAS: ' + JSON.stringify(d.filas));
+  await tap('Up');                                          // a la campaña bloqueada
+  const d1 = await L();
   await tap('Return');
   const d2 = await L();
-  if (d.fila.id === 'c1' && d2.state === 'campmenu') ok('confirmar la campaña bloqueada no hace nada');
-  else bad(`la campaña bloqueada: fila ${JSON.stringify(d.fila)} → estado ${d2.state}`);
-  await tap('Down');
+  if (d1.fila.id === 'c1' && d2.state === 'campmenu' && JSON.stringify(d2.filas) === JSON.stringify(d1.filas)) ok('confirmar la campaña bloqueada no hace nada');
+  else bad(`la campaña bloqueada: fila ${JSON.stringify(d1.fila)} → estado ${d2.state}`);
+  await tap('Escape');                                      // ESC sube a la raiz, sobre CAMPAÑAS
+  d = await L();
+  if (d.fila.id === 'secCampanas') ok('ESC vuelve a la raiz, sobre CAMPAÑAS'); else bad('ESC desde CAMPAÑAS: ' + JSON.stringify(d.fila));
+  await tap('Down'); await tap('Return');                   // a LIBRO DE VUELO
+  d = await L();
+  const esperado = ['libro0', 'libro1', 'libro2', 'libro3', 'libro4', 'back'];
+  if (JSON.stringify(d.filas) === JSON.stringify(esperado)) ok('adentro del LIBRO DE VUELO: las cinco salidas y ATRAS');
+  else bad('filas del libro: ' + JSON.stringify(d.filas));
+  if (d.fila.id === 'libro' && d.fila.k === 0) ok('el cursor arranca en la primera salida');
+  else bad('el cursor arranca en ' + JSON.stringify(d.fila));
+  await shot('1_historia');
 
   for (let k = 0; k < 5; k++) {
     console.log(`\n${k + 2}. salida ${k + 1}:`);

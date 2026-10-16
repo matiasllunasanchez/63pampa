@@ -38,6 +38,8 @@ async function hasta(f, k, seg = 12) {
 /** Desde el menu HISTORIA hasta volar EL SHEFFIELD, con el avion nivelado y sin nafta que se acabe. */
 async function despegar() {
   await hasta(s => s === 'campmenu', 'Escape', 10);
+  // HISTORIA va en dos niveles (16/10): si se esta en la raiz, se entra al LIBRO DE VUELO
+  for (let i = 0; i < 6; i++) { const d = await L(); if (d.filas.includes('libro0')) break; if (d.fila.id === 'secLibro') await tap('Return'); else await tap('Down'); }
   for (let i = 0; i < 12; i++) { const d = await L(); if (d.fila.id === 'libro' && d.fila.k === 0) break; await tap('Up'); }
   await tap('Return');
   if (!await hasta(s => s === 'play', 'Return', 30)) return false;
