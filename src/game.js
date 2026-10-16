@@ -4,7 +4,7 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
-import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA } from './data/modos_sueltos.js';
+import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA } from './data/modos_sueltos.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
@@ -279,9 +279,20 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const suelto = () => (gameMode === 'survival' || gameMode === 'cycle') && !S.test && !libro && !FIJO;
     // arranca en FACIL cada vez que se abre el juego (autor, 16/10): no se guarda la ultima elegida
     let dificultad = DIF_DEFAULT;
+    // la pantalla de la DIFICULTAD (despues del avion): el cursor recorre las cuatro y ATRAS
+    let difSel = DIF_DEFAULT;
+    let fichaScroll = 0;   // cuantos renglones bajo la ficha del avion (las flechas arriba/abajo)
     function difNav(dir) {
-      dificultad = (dificultad + dir + DIFICULTADES.length) % DIFICULTADES.length;
+      const n = DIFICULTADES.length + 1;
+      difSel = (difSel + dir + n) % n;
       beep(520, 0.05, 'square', 0.04);
+    }
+    /** Arranca la corrida de un modo suelto (o de la mision del ciclo) desde el menu. */
+    function arrancarSuelto() {
+      reset(); setRunObjective();
+      // los dos modos sueltos salen derecho al despegue: el CICLO es POR LA PATRIA con blancos
+      // (16/10), y la tarjeta del blanco la dice la cinta de arriba
+      setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
     }
     let kmPrevios = 0;        // CICLO: los km de los blancos anteriores de esta corrida (la rampa los cuenta)
     let startCiclo = null;    // CICLO: el arranque elegido en OPCIONES, mientras los blancos encadenados salen en vuelo
@@ -300,11 +311,49 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       cfg.fog = Math.random() < ENTORNO.niebla ? 1 : 0;
       cfg.wind = Math.random() < ENTORNO.viento;
       for (const k in PERILLAS) cfg[k] = PERILLAS[k].base * DIFICULTADES[dificultad].k;
+      climaKm = CLIMA.cadaKm[0] + Math.random() * (CLIMA.cadaKm[1] - CLIMA.cadaKm[0]);
       applyCfg();
     }
+    /** EL MAPA AL AZAR (16/10): una geografia sorteada (data/modos_sueltos.js MAPA) que va cambiando el
+     *  suelo y los accidentes mientras se vuela — mar, costas, tierra con lomas, islas, acantilados, bancos
+     *  de niebla. `objM`: los metros contra los que se escribe (el blanco del ciclo, o el largo de POR LA
+     *  PATRIA); `buque`: con un buque de blanco, alrededor del objetivo siempre hay mar (lo exige el validador).
+     *  El primer tramo es el terreno del arranque, asi el despegue no cambia. */
+    function sortearGeografia(objM, buque) {
+      const largo = objM > 0 ? objM : MAPA.largoKm * 1000, az = ([a, b]) => a + Math.random() * (b - a);
+      const lista = [], finMar = buque ? 0.86 : 1;
+      let d = 0, prev = null, lado = 'izq';
+      while (d / largo < finMar) {
+        let suelo = prev === null ? (cfg.terrain === 'land' ? 'tierra' : cfg.terrain === 'coast' ? 'costa' : 'mar') : pesado(MAPA.suelos);
+        if (suelo === 'isla' && prev !== 'mar') suelo = 'mar';            // una isla va entre mar
+        if (prev === 'isla') suelo = 'mar';
+        const t = { suelo };
+        if (suelo === 'costa') { if (prev !== 'costa') lado = Math.random() < 0.5 ? 'izq' : 'der'; t.lado = lado; }
+        if (suelo === 'tierra') t.lomas = Math.round(az(MAPA.lomas));
+        if (suelo === 'mar' && prev !== null && Math.random() < MAPA.paredes) t.paredes = ['izq', 'der', 'ambos'][(Math.random() * 3) | 0];
+        if (prev !== null && Math.random() < MAPA.niebla) t.niebla = 1;
+        d += (suelo === 'isla' ? 0.5 : az(MAPA.tramoKm)) * 1000;
+        t.hasta = Math.min(finMar, d / largo);
+        if (lista.length && t.hasta <= lista[lista.length - 1].hasta) break;
+        lista.push(t); prev = suelo;
+      }
+      // el cierre: mar hasta el final (el buque, o lo que quede del camino)
+      if (!lista.length || lista[lista.length - 1].hasta < 2) {
+        if (prev === 'mar' && lista.length) lista[lista.length - 1].hasta = 2;
+        else lista.push({ suelo: 'mar', hasta: 2 });
+      }
+      return { lista, obj: largo };
+    }
+    let climaKm = Infinity;   // el km en que se vuelve a sortear el clima (lluvia y viento)
     /** LA PRESION, cuadro a cuadro: dificultad × rampa de km × alarma, sobre la base de cada perilla. */
     function aplicarPresion() {
       const km = kmPrevios + Math.max(0, run.dist) / 1000, est = run.estrellas | 0;
+      // EL CLIMA CAMBIA mientras se vuela (16/10): lluvia y viento, re-sorteados cada tantos km. El cielo no.
+      if (km >= climaKm) {
+        cfg.rain = cfg.sky === 'storm' || Math.random() < CLIMA.lluvia ? 1 : 0;
+        cfg.wind = Math.random() < CLIMA.viento;
+        climaKm = km + CLIMA.cadaKm[0] + Math.random() * (CLIMA.cadaKm[1] - CLIMA.cadaKm[0]);
+      }
       const alarma = est > 0 ? ALARMA.golpe * (1 + ALARMA.porEstrella * (est - 1)) : 1;
       const p = DIFICULTADES[dificultad].k * Math.min(RAMPA.max, 1 + RAMPA.porKm * km) * alarma;
       for (const k in PERILLAS) cfg[k] = Math.min(PERILLAS[k].techo, PERILLAS[k].base * p);
@@ -2225,6 +2274,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // escrita en kilometros (PLAN_GEOGRAFIA G5)
       geografia.cargar(objectiveDist > 0 && curMission() ? curMission().geografia : null, objectiveDist,
         objectiveDist > 0 && curMission() ? goalOf(curMission()).dist(curMission().goal) : 0);
+      // LOS MODOS SUELTOS: un mapa al azar que cambia mientras se vuela (16/10). Sin blanco (POR LA PATRIA),
+      // escrito contra un largo enorme; con blanco (el ciclo), contra el blanco y con mar alrededor del buque.
+      if (suelto()) {
+        const g = sortearGeografia(objectiveDist, objectiveDist > 0 && objectiveKind !== 'distance');
+        geografia.cargar(g.lista, g.obj, g.obj);
+      }
       // LA RUTA (PLAN_NAFTA_ALCANCE N1): los km REALES de la mision, anclados a sus fases. Va pegada
       // a las fases porque se ancla a ellas; sin `ruta` (todas las de hoy) queda apagada.
       rutaSys.setRuta(objectiveDist > 0 && curMission() ? curMission().ruta : null,
@@ -2753,7 +2808,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options'
       || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'pruebas' || S.state === 'cines'
       || S.state === 'maniobras' || S.state === 'mvvars' || S.state === 'libroavion'
-      || S.state === 'misiones' || S.state === 'saves';
+      || S.state === 'misiones' || S.state === 'saves' || S.state === 'dificultad';   // (la dificultad: el mismo fondo que el avion, 16/10)
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
     // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
@@ -3064,7 +3119,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const canPickMusic = () => gameMode === 'survival'
       && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options'
       && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'pruebas' && S.state !== 'cines' && S.state !== 'misiones' && S.state !== 'saves' && S.state !== 'story'
-      && S.state !== 'epilogue';
+      && S.state !== 'epilogue' && S.state !== 'dificultad';
 
     // ---------- input ----------
     // CAMARAS (tecla V, cicla): 4 niveles de zoom anclados al sprite del avion.
@@ -3172,6 +3227,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (S.test) { salirTest(); beep(400, 0.06, 'square', 0.05); return; }
         // del LIBRO DE VUELO (contexto, eleccion de avion, derribado) se vuelve al libro
         if (libro) { volverAlLibro(); beep(400, 0.06, 'square', 0.05); return; }
+        // de la DIFICULTAD, ESC vuelve a elegir avion
+        if (S.state === 'dificultad') { setState('menu'); beep(400, 0.06, 'square', 0.05); return; }
         // adentro de una seccion de HISTORIA, ESC sube un nivel (a CAMPAÑAS / LIBRO DE VUELO)
         if (S.state === 'campmenu' && campVista !== 'raiz') { campAtras(); return; }
         // desde una herramienta del MODO DEV, ESC vuelve a su submenu y no al menu principal
@@ -3232,8 +3289,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       mejChange: dir => { mejChange(dir); beep(560, 0.05, 'square', 0.04); },
       mejBack,
       startTitle: () => { if (S.state !== 'title') return; modeSel = 0; setState('modeselect'); beep(620, 0.07, 'square', 0.05); },
-      difNav: dir => { if (gameMode === 'survival' || gameMode === 'cycle') difNav(dir); },
-      planeNav: dir => { selPlane = (selPlane + dir + PLANES.length) % PLANES.length; beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04); },
+      difNav: dir => { if (S.state === 'dificultad') difNav(dir); },
+      // ARRIBA/ABAJO en la pantalla del avion: desplazan el texto de la FICHA (16/10)
+      fichaNav: dir => { const n = Math.max(0, Math.min(menus.FICHA_INFO.max, fichaScroll + dir)); if (n !== fichaScroll) { fichaScroll = n; beep(500, 0.03, 'square', 0.03); } },
+      planeNav: dir => { fichaScroll = 0; selPlane = (selPlane + dir + PLANES.length) % PLANES.length; beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04); },
       roll: dir => startRoll(dir),
       // COMBO: la SECUENCIA llega cruda ('lll', 'drul'...) desde dirTap (core/input.js), que ya
       // probo de la mas larga a la mas corta. Aca se resuelve QUE maniobra es.
@@ -3281,6 +3340,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // AVERIAS: en el escalon CRITICO no salen piruetas. El avion queda en "lo basico" —
         // volar y disparar— que es exactamente lo que pidio el modelo de daño progresivo.
         if (!damage.fx().moves) return false;
+        // EL HERCULES NO HACE PIRUETAS (16/10, el autor): un transporte de 70 toneladas no rola (`sinPiruetas`)
+        if (PLANES[selPlane] && PLANES[selPlane].sinPiruetas) return false;
         const mvOk = id => moveAllowed(id,
           { campaign: conLibreta(), owned: pichon, off: cfg.movesOff });
         switch (seq) {
@@ -4476,7 +4537,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // FOGONAZO (D3): se apaga solo, rapido. Va acá y no en un sistema porque tiene que correr en
       // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
       run.flash = Math.max(0, run.flash - dt / FLASH_T);
-      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, metralla: run.metralla, soldiers, alarmaBuque: blancoSys.alarma() });   // loops con fade
+      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, metralla: run.metralla, canon: !!run.canon, soldiers, alarmaBuque: blancoSys.alarma() });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
       const camZt = 1;   // ver CAM_ZOOMS: el zoom por raster quedo desactivado
@@ -4758,13 +4819,20 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             // MINUTOS SAGRADOS / PASADAS MORTALES: derecho al climax, con el buque elegido en OPCIONES
             if (gameMode === 'arena') startArenaBattle(false);
             else if (gameMode === 'pasadas') startPasadaBattle(false);
-            else {
-              reset(); setRunObjective();
-              // los dos modos sueltos salen derecho al despegue: el CICLO es POR LA PATRIA con blancos
-              // (16/10), y la tarjeta del blanco la dice la cinta de arriba
-              setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
+            // LOS MODOS SUELTOS pasan antes por la DIFICULTAD, en su propia pantalla (16/10)
+            else if ((gameMode === 'survival' || gameMode === 'cycle') && !S.test) {
+              difSel = dificultad; setState('dificultad'); beep(600, 0.06, 'square', 0.05);
             }
+            else arrancarSuelto();
           }
+          flags.startReq = false;
+        } else if (S.state === 'dificultad') {
+          // LA DIFICULTAD: ENTER arranca con la marcada; la ultima fila (ATRAS) vuelve al avion
+          if (flags.startReq) {
+            if (difSel >= DIFICULTADES.length) { setState('menu'); beep(400, 0.06, 'square', 0.05); }
+            else { dificultad = difSel; arrancarSuelto(); }
+          }
+          flags.startReq = false;
         } else if (S.state === 'dead') {
           // EL MUNDO NO SE DETIENE CUANDO REVENTAS (8/10, el autor: "se detiene todo el mundo y el Harrier;
           // el Harrier y demas cosas deben seguir, y meter fade negro"). Mismo criterio que el relevo: el
@@ -6264,8 +6332,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       });
       if (S.state === 'relevo' && squad.relevo()) squadRender.drawRelevo(squad.relevo());
       if (S.state === 'menu') {
-        menus.drawMenu({ selPlane, gameMode, t: run.t,
-          dif: gameMode === 'survival' || gameMode === 'cycle' ? DIFICULTADES[dificultad] : null });
+        menus.drawMenu({ selPlane, gameMode, t: run.t, scroll: fichaScroll });
         // ahora se hace aca, antes de dibujar
       }
       // EL DERRIBO SE FUNDE A NEGRO mientras el mundo sigue (8/10, el autor: "meter fade negro"): de
@@ -6305,6 +6372,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t, vista: campVista });
       if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: LIBRO_VUELO[libro.k], sel: libroAvSel, t: run.t });
+      if (S.state === 'dificultad') menus.drawDificultad({ sel: difSel, difs: DIFICULTADES, t: run.t });
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), dev: subMenu === 'dev', t: run.t });
       if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
       if (S.state === 'cines') menus.drawCinesMenu({ sel: cinSel, rows: cinRows(), t: run.t });

@@ -248,10 +248,18 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
       if (isLeft(e.code)) { a.planeNav(-1); e.preventDefault(); return; }
       if (isRight(e.code)) { a.planeNav(1); e.preventDefault(); return; }
-      // arriba/abajo: la DIFICULTAD (POR LA PATRIA y CICLO, 16/10; en los demas modos no hace nada)
-      if (isUp(e.code)) { if (a.difNav) a.difNav(-1); e.preventDefault(); return; }
-      if (isDown(e.code)) { if (a.difNav) a.difNav(1); e.preventDefault(); return; }
+      // arriba/abajo: el texto de la FICHA del avion (16/10)
+      if (isUp(e.code)) { if (a.fichaNav) a.fichaNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { if (a.fichaNav) a.fichaNav(1); e.preventDefault(); return; }
       if (isConfirm(e.code)) { flags.startReq = true; e.preventDefault(); return; }
+    }
+    // LA DIFICULTAD (POR LA PATRIA y CICLO, 16/10): su pantalla, despues del avion
+    if (S.state === 'dificultad') {
+      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      if (isUp(e.code)) { a.difNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.difNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { flags.startReq = true; e.preventDefault(); return; }
+      return;
     }
     if (S.state === 'story') {                                           // HISTORIA: Esc vuelve al menu
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
@@ -810,11 +818,16 @@ export function initInput(cv, a) {
         if ((nu && !nav.u) || (nl && !nav.l)) a.upgNav(-1);
         if ((nd && !nav.d) || (nr && !nav.r)) a.upgNav(1);
         if (confirm) a.upgConfirm();
+      } else if (S.state === 'dificultad') {                  // la dificultad (16/10)
+        if (nu && !nav.u) a.difNav(-1);
+        if (nd && !nav.d) a.difNav(1);
+        if (confirm) flags.startReq = true;
+        if (hit(1)) a.escToMenu();
       } else if (S.state === 'menu') {
+        if (nu && !nav.u && a.fichaNav) a.fichaNav(-1);   // la ficha (16/10)
+        if (nd && !nav.d && a.fichaNav) a.fichaNav(1);
         if (nl && !nav.l) a.planeNav(-1);
         if (nr && !nav.r) a.planeNav(1);
-        if (nu && !nav.u && a.difNav) a.difNav(-1);              // la dificultad (16/10)
-        if (nd && !nav.d && a.difNav) a.difNav(1);
         if (confirm) flags.startReq = true;
         if (hit(1)) a.escToMenu();                             // B = volver
       } else if (S.state === 'options') {

@@ -3,7 +3,7 @@
 // Igual que las demas pantallas: reciben `w`, un snapshot chico de solo lectura. No leen estado
 // global ni lo modifican — la seleccion la maneja el input; aca solo se dibuja.
 import { DEV } from '../core/dev.js';
-import { ctx, U, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, wrapText, FONT_OTHERS, filaFont } from './ctx.js';
+import { ctx, U, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, wrapText, FONT_OTHERS, filaFont, rotuloChicoFont } from './ctx.js';
 import { drawMira } from './miras.js';
 import { P } from '../data/palette.js';
 import { PLANES } from '../data/planes.js';
@@ -38,89 +38,115 @@ export function drawMenu(w) {
   ctx.beginPath(); ctx.moveTo(L.x, L.modoY + 6.5); ctx.lineTo(W - L.x, L.modoY + 6.5); ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // EL AVION, en el centro de la columna izquierda, con leve cabeceo. EL SUAVIZADO depende de cuanto hay
-  // que achicar: ancho del asset multiplo exacto de los px reales → vecino mas cercano; si no, suavizado.
+  // EL AVION, quieto y FLOTANDO (16/10, el autor: "deja de moverlos, que floten nomas" — las hojas
+  // animadas no salian bien). La ilustracion de siempre a 1:1 (390 px = 130 de diseño, sin suavizar); el
+  // HERCULES, mas grande, con su ilustracion horneada a 588 (196 de diseño, tambien 1:1): se tiene que
+  // notar que es otro tamaño de avion, y estirado se pixelaba.
   const pl = PLANES[w.selPlane];
   const cx = L.colX + L.colW / 2;
-  const lista = im => im && im.complete && im.naturalWidth;
-  if (lista(pl.selAnim) && lista(pl.selTonel)) {
-    // EL AVION VUELA (16/10, el autor: "mejorar la calidad del avion que vuela y agregarle movimientos"):
-    // un VAIVEN de SEL_CICLO s —alabea a un lado y al otro, y cabecea al doble de ritmo— que empieza y
-    // termina nivelado, y ahi un TONEL de SEL_TONEL s. Las hojas (data/planes.js `selAnim`) estan horneadas
-    // a los px reales del avion (L.avionW x 3): se dibujan 1:1, sin suavizar.
-    const SEL_CICLO = 9, SEL_TONEL = 1.4;
-    const u = w.t % (SEL_CICLO + SEL_TONEL);
-    let img, col, row, cols, filas;
-    if (u < SEL_CICLO) {
-      const f = u / SEL_CICLO;
-      const alabeo = 18 * Math.sin(2 * Math.PI * f), cabeceo = 5 * Math.sin(4 * Math.PI * f);
-      img = pl.selAnim; cols = 15; filas = 5;
-      col = Math.max(0, Math.min(14, Math.round((alabeo + 35) / 5))); row = Math.max(0, Math.min(4, Math.round((8 - cabeceo) / 4)));
-    } else {
-      const f = (u - SEL_CICLO) / SEL_TONEL, suave = f * f * (3 - 2 * f);
-      img = pl.selTonel; cols = 24; filas = 1; col = Math.floor(suave * 24) % 24; row = 0;
-    }
-    const fw = img.naturalWidth / cols, fh = img.naturalHeight / filas;
-    const PW = L.avionW, PH = PW * fh / fw;
+  // LA GRANDE (16/10, el autor: "aprovechar el espacio y agrandar los aviones"): todos tienen su ilustracion
+  // horneada a 495 px (165 de diseño a 1:1; el Hercules a 540, 180) — mas grandes sin estirar nada
+  const img = selGrande(pl);
+  const ilus = img && img.complete && img.naturalWidth ? img : pl.ready ? pl.img : null;
+  if (ilus) {
+    const PW = ilus.naturalWidth / 3, PH = ilus.naturalHeight / 3;
     const smooth = ctx.imageSmoothingEnabled;
-    ctx.imageSmoothingEnabled = fw % (PW * 3) !== 0;
-    ctx.drawImage(img, col * fw, row * fh, fw, fh, Math.round(cx - PW / 2), Math.round(L.avionY - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
-    ctx.imageSmoothingEnabled = smooth;
-  } else if (pl.ready) {
-    const PW = L.avionW, PX_REAL = PW * 3, PH = Math.round(PW * pl.h / pl.w);
-    const smooth = ctx.imageSmoothingEnabled;
-    ctx.imageSmoothingEnabled = !(pl.w % PX_REAL === 0);
-    ctx.drawImage(pl.img, Math.round(cx - PW / 2), Math.round(L.avionY - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(ilus, cx - PW / 2, L.avionY - PH / 2 + Math.sin(w.t * 1.3) * 1.5, PW, PH);
     ctx.imageSmoothingEnabled = smooth;
   }
   // flechas de seleccion (parpadean), a los costados del avion
   ctx.textAlign = 'center';
   ctx.fillStyle = Math.sin(w.t * 6) > 0 ? P.ink : P.dim; ctx.font = 'bold 13px monospace';
   ctx.fillText('<', L.colX + 4, L.avionY + 4); ctx.fillText('>', L.colX + L.colW - 4, L.avionY + 4);
-  // nombre + su linea (la manuscrita de las cartas de los soldados, ver docs/REFERENCIAS.md)
-  ctx.fillStyle = P.accent; ctx.font = menuFont(12);
-  ctx.fillText(pl.name, cx, L.nombreY);
-  ctx.fillStyle = P.dim; ctx.font = descFont(9);
-  wrapText(pl.desc[getLang()] || pl.desc.es, cx, L.nombreY + 12, L.colW, 10);
-
-  // LA DIFICULTAD (POR LA PATRIA y CICLO DE MUERTE): el nombre con sus flechas arriba/abajo, y el
-  // ESCUADRON dibujado — un avioncito por vida — en vez de "8 AVIONES" escrito
-  if (w.dif) {
-    const y = L.difY, x = L.x;
-    ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(6);
-    ctx.fillText(T('difTitulo'), x, y - 9);
-    const nom = w.dif[getLang()] || w.dif.es;
-    const col = w.dif.id === 'gloria' ? P.warn : P.accent;
-    ctx.fillStyle = col; ctx.font = menuFont(9);
-    const wn = ctx.measureText(nom).width;
-    ctx.beginPath(); ctx.moveTo(x, y - 1.5); ctx.lineTo(x + 4, y - 1.5); ctx.lineTo(x + 2, y - 5); ctx.fill();
-    ctx.fillText(nom, x + 7, y);
-    ctx.beginPath(); ctx.moveTo(x + 9 + wn, y - 5); ctx.lineTo(x + 13 + wn, y - 5); ctx.lineTo(x + 11 + wn, y - 1.5); ctx.fill();
-    // el escuadron: avioncitos en fila, el primero (el que vuela) en acento
-    const ax = x + 22 + wn;
-    for (let i = 0; i < w.dif.aviones; i++) avioncito(ax + i * 9, y - 3, i === 0 ? col : P.ink, i === 0 ? 1 : 0.7);
-    ctx.fillStyle = P.dim; ctx.font = labelFont(5);
-    ctx.fillText(w.dif.aviones === 1 ? T('difAvion') : T('difAviones', { n: w.dif.aviones }), ax + w.dif.aviones * 9 + 3, y);
-  }
 
   // LA FICHA DEL AVION (a la derecha): el marco y su rotulo. El contenido —cifras, historia, carga— llega
   // con su propio item; hoy el lugar queda armado y con la linea del avion de respaldo.
   const F = L.ficha;
   ctx.fillStyle = '#0a0f12'; ctx.globalAlpha = 0.55; ctx.fillRect(F.x, F.y, F.w, F.h); ctx.globalAlpha = 1;
   ctx.strokeStyle = '#3a464c'; ctx.lineWidth = 0.6; ctx.strokeRect(F.x + 0.5, F.y + 0.5, F.w - 1, F.h - 1); ctx.lineWidth = 1;
-  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(6);
-  ctx.fillText(T('fichaAvion'), F.x + 6, F.y + 10);
-  ctx.fillStyle = P.accent; ctx.font = menuFont(9);
-  ctx.fillText(pl.name, F.x + 6, F.y + 22);
+  // EL NOMBRE COMPLETO encabeza la ficha (16/10, el autor: "el nombre donde esta FICHA DEL AVION")
+  const nombre = (pl.nombre && (pl.nombre[getLang()] || pl.nombre.es)) || pl.name;
+  ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.font = menuFont(9);
+  ctx.fillText(nombre, F.x + 6, F.y + 11, F.w - 12);
+  // la linea corta del avion (lo que es en el juego) y abajo SU HISTORIA: de donde salio, que se le hizo y
+  // como se uso en la guerra (`ficha` en data/planes.js; si un avion no la trae, queda la linea sola)
+  ctx.fillStyle = P.dim; ctx.font = labelFont(6);
+  ctx.fillText((pl.desc[getLang()] || pl.desc.es).toUpperCase(), F.x + 6, F.y + 21, F.w - 12);
+  const ficha = pl.ficha && (pl.ficha[getLang()] || pl.ficha.es);
+  FICHA_INFO.max = 0;
+  if (ficha) {
+    // en JOSEFIN SANS (16/10, el autor: "otra font mas comoda de leer"): la de esténcil en mayusculas no se leia
+    ctx.fillStyle = P.foam; ctx.font = rotuloChicoFont(7);
+    // SE DESPLAZA (16/10, el autor: "las flechas arriba/abajo van en el texto de la derecha; si es largo, una
+    // flecha arriba o abajo tipo barra para leerlo completo"): se parte en renglones, se ven los que entran y
+    // `w.scroll` (las flechas, en game.js) dice desde cual. Si no entra entero, la barra a la derecha.
+    const LH = 8.5, y0 = F.y + 32, anchoT = F.w - 18;
+    const lineas = renglones(ficha, anchoT);
+    const caben = Math.floor((F.y + F.h - 6 - y0) / LH) + 1;
+    FICHA_INFO.max = Math.max(0, lineas.length - caben);
+    const desde = Math.max(0, Math.min(FICHA_INFO.max, w.scroll | 0));
+    for (let i = 0; i < caben && desde + i < lineas.length; i++) ctx.fillText(lineas[desde + i], F.x + 6, y0 + i * LH);
+    if (FICHA_INFO.max > 0) {
+      const bx = F.x + F.w - 6, top = F.y + 30, bot = F.y + F.h - 6;
+      ctx.fillStyle = '#2e3c45'; ctx.fillRect(bx - 0.5, top + 6, 1, bot - top - 12);   // el riel
+      const alto = (bot - top - 12) * caben / lineas.length, pos = (bot - top - 12 - alto) * desde / FICHA_INFO.max;
+      ctx.fillStyle = P.accent; ctx.fillRect(bx - 1, top + 6 + pos, 2, alto);       // la barra
+      const fl = (y, abajo, on) => { ctx.fillStyle = on ? P.accent : '#3a464c'; ctx.beginPath();
+        if (abajo) { ctx.moveTo(bx - 2.5, y - 2); ctx.lineTo(bx + 2.5, y - 2); ctx.lineTo(bx, y + 1.5); }
+        else { ctx.moveTo(bx - 2.5, y + 2); ctx.lineTo(bx + 2.5, y + 2); ctx.lineTo(bx, y - 1.5); }
+        ctx.fill(); };
+      fl(top + 2, false, desde > 0); fl(bot - 1, true, desde < FICHA_INFO.max);
+    }
+  }
 
   // PIE: una sola linea de teclas (mitad de cuerpo: es ayuda, no contenido)
   ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(4.5);
   ctx.fillText(T('selKeys'), W / 2, H - 6);
 }
+/** Hasta donde se puede desplazar la ficha que se dibujo (renglones de mas): game.js acota las flechas con esto. */
+export const FICHA_INFO = { max: 0 };
+/** Parte `txt` en renglones que entran en `ancho` con la fuente activa. */
+function renglones(txt, ancho) {
+  const out = []; let linea = '';
+  for (const p of String(txt).split(' ')) {
+    if (linea && ctx.measureText(linea + ' ' + p).width > ancho) { out.push(linea); linea = p; }
+    else linea = linea ? linea + ' ' + p : p;
+  }
+  if (linea) out.push(linea);
+  return out;
+}
+/** La ilustracion GRANDE del avion que se dibuja al doble (el Hercules): seleccion_grande.png, al lado de
+ *  la de siempre. Se pide la primera vez y queda en cache; mientras no carga, la normal. */
+const SEL_GRANDE = new Map();
+function selGrande(pl) {
+  let im = SEL_GRANDE.get(pl.key);
+  if (!im) { im = new Image(); im.src = pl.src.slice(0, pl.src.lastIndexOf('/') + 1) + 'seleccion_grande.png'; SEL_GRANDE.set(pl.key, im); }
+  return im;
+}
+// ---------- LA DIFICULTAD (POR LA PATRIA y CICLO DE MUERTE, 16/10) ----------
+// Una pantalla propia, DESPUES de elegir el avion (el autor: "una pantalla dedicada a la dificultad y
+// listo"): las cuatro en lista, con la misma fila compacta que se despliega del resto de los menus, y la
+// marcada muestra su escuadron DIBUJADO —un avioncito por vida— debajo de la lista.
+export const DIF_ROWS = { y0: 92, rh: 34, headH: 18 };
+export function drawDificultad(w) {
+  const rows = [...w.difs.map((d, i) => ({ i })), { back: true }];
+  const lang = getLang();
+  drawRowMenu({ sel: w.sel, rows, t: w.t }, 'difElegir', r => r.back ? { name: T('menuBack'), desc: T('difAtras') }
+    : { name: w.difs[r.i][lang] || w.difs[r.i].es, desc: w.difs[r.i].aviones === 1 ? T('difAvion') : T('difAviones', { n: w.difs[r.i].aviones }) }, DIF_ROWS);
+  const d = w.difs[w.sel];
+  if (!d) return;
+  // EL ESCUADRON de la marcada, abajo: uno por vida, el que vuela en dorado
+  const col = d.id === 'gloria' ? P.warn : P.accent, y = NH - 34;
+  ctx.save(); ctx.scale(U, U);
+  for (let i = 0; i < d.aviones; i++) avioncito(28 + i * 11, y / U, i === 0 ? col : P.ink, i === 0 ? 1 : 0.7);
+  ctx.restore();
+}
+
 /** LA GEOMETRIA de la pantalla del avion (grilla de diseño 320x180). */
 const AVION_UI = {
   x: 16, modoY: 26,
-  colX: 12, colW: 168, avionY: 74, avionW: 112, nombreY: 112,
+  colX: 2, colW: 184, avionY: 100, avionW: 112, grande: 2.1, nombreY: 112,
   difY: 160,
   ficha: { x: 190, y: 40, w: 114, h: 126 },
 };

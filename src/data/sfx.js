@@ -131,6 +131,8 @@ export const SFX_DEF = {
   radarDetectando: { f: ['radars/detecting_2.mp3'], v: 0.45, m: 1 },
   // EL BUQUE LANZA (autor, 16/10): cada vez que la barra del radar llega al tope y sale la tanda de Sea
   // Dart, bajito, uno de los dos al azar. Traen ~0,15 s de silencio adelante.
+  // EL CAÑON DEL HERCULES (autor, 16/10): cada tiro, una explosion chica (no el loop de la metralla)
+  herCanon: { f: ['explosions/small_explosion1.wav'], v: 0.7 },
   // EL EXOCET QUE SALE (autor, 16/10): el motor del misil al lanzarlo, en las dos cinematicas (pega y errado)
   exocetSale: { f: ['ammo/exocet_sound.mp3'], v: 0.75, m: 1, offset: 0.14, fo: 0.4 },
   lanzaMisil: { f: ['ammo/lauching_missil.mp3', 'ammo/lauching_missil_2.mp3'], v: 0.3, m: 1, offset: 0.14 },

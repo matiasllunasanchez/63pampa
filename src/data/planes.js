@@ -13,13 +13,29 @@ import { HORNO_VIEJO } from './horno.js';
 // `src`: LA ILUSTRACION DEL SELECTOR (CICLO DE MUERTE / POR LA PATRIA). Desde el 4/10 sale del horno de
 // Blender (tools/blender/armar_seleccion.py): el mismo modelo y el mismo contorno que las hojas, a 390 px
 // de ancho — el menu la dibuja sin suavizar. Los dibujos viejos (preview.*) quedan en su carpeta.
+// `nombre` (16/10): el nombre COMPLETO, el que va en la pantalla del avion (`name` sigue siendo el corto del
+// HUD y los carteles). `ficha`: de donde salio, que se le hizo y como se uso en la guerra — la FICHA DEL
+// AVION de esa pantalla. Sale de docs/historia/AVIONES_CATALOGO.md (lo verificado); el TC-68, de su nota
+// de abajo. Un dato nuevo se verifica antes de entrar aca (PREGUNTAS_HISTORICAS).
 export const PLANES = [
-  { key: 'sky', name: 'A-4 SKYHAWK', src: '../assets/planes/a4-skyhawk/seleccion.png', sheet: '../assets/planes/a4-skyhawk/sheet.png', sheet2: '../assets/planes/a4-skyhawk/sheet2.png', sheet3: '../assets/planes/a4-skyhawk/sheet3.png', desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
+  { key: 'sky', nombre: { es: 'DOUGLAS A-4B SKYHAWK', en: 'DOUGLAS A-4B SKYHAWK' },
+    ficha: { es: 'Fuerza Aérea, Grupo 5 de Caza, desde Río Gallegos. Diseño norteamericano de los años 50: sin radar, sin contramedidas y sin misiles aire-aire — bombas y dos cañones de 20 mm que se trababan. El chaff era casero, cortado con una máquina de hacer fideos. Se reabastecía en vuelo del KC-130. Fue el caballo de tiro de la guerra y pagó con bajas altas.',
+      en: 'Air Force, 5th Fighter Group, from Río Gallegos. A 1950s American design: no radar, no countermeasures and no air-to-air missiles — bombs and two 20 mm guns that jammed. The chaff was homemade, cut with a pasta machine. It refuelled in flight from the KC-130. The workhorse of the war, and it paid with heavy losses.' },
+    name: 'A-4 SKYHAWK', src: '../assets/planes/a4-skyhawk/seleccion.png', sheet: '../assets/planes/a4-skyhawk/sheet.png', sheet2: '../assets/planes/a4-skyhawk/sheet2.png', sheet3: '../assets/planes/a4-skyhawk/sheet3.png', desc: { es: 'Equilibrado - protagonista de la campaña', en: 'Balanced - the campaign workhorse' } },
   // `sonda: false` (12/10, el autor: "no tenian reabastecimiento los Dagger"): sin sonda no hay Chancha —
   // el alcance es solo lo que lleva colgado (por eso volaban con tres tanques). Sin el campo, tiene sonda.
-  { key: 'dagger', sonda: false, name: 'IAI DAGGER', src: '../assets/planes/iai-dagger/seleccion.png', sheet: '../assets/planes/iai-dagger/sheet.png', sheet2: '../assets/planes/iai-dagger/sheet2.png', sheet3: '../assets/planes/iai-dagger/sheet3.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
-  { key: 'supere', name: 'SUPER ETENDARD', src: '../assets/planes/super-etendard/seleccion.png', sheet: '../assets/planes/super-etendard/sheet.png', sheet2: '../assets/planes/super-etendard/sheet2.png', sheet3: '../assets/planes/super-etendard/sheet3.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
-  { key: 'a4q', name: 'A-4Q', src: '../assets/planes/a4q/seleccion.png', sheet: '../assets/planes/a4q/sheet.png', sheet2: '../assets/planes/a4q/sheet2.png', sheet3: '../assets/planes/a4q/sheet3.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
+  { key: 'dagger', nombre: { es: 'IAI DAGGER (NESHER)', en: 'IAI DAGGER (NESHER)' },
+    ficha: { es: 'El Nesher israelí, derivado del Mirage 5, comprado por la Argentina y rebautizado Dagger. Fuerza Aérea, Grupo 6 de Caza. Mucho más rápido que el Skyhawk, con dos cañones DEFA de 30 mm y misiles Shafrir 2. Sin radar ni contramedidas, y sin sonda: salía del continente con pocos minutos sobre el blanco. Sufrió bajas severas frente a los Sea Harrier.',
+      en: 'The Israeli Nesher, derived from the Mirage 5, bought by Argentina and renamed Dagger. Air Force, 6th Fighter Group. Much faster than the Skyhawk, with two 30 mm DEFA guns and Shafrir 2 missiles. No radar, no countermeasures and no refuelling probe: it left the mainland with a few minutes over the target. It took severe losses against the Sea Harriers.' },
+    sonda: false, name: 'IAI DAGGER', src: '../assets/planes/iai-dagger/seleccion.png', sheet: '../assets/planes/iai-dagger/sheet.png', sheet2: '../assets/planes/iai-dagger/sheet2.png', sheet3: '../assets/planes/iai-dagger/sheet3.png', desc: { es: 'Mas rapido y con mas fuego - dificil de controlar', en: 'Faster, harder-hitting - tricky to control' } },
+  { key: 'supere', nombre: { es: 'DASSAULT SUPER ÉTENDARD', en: 'DASSAULT SUPER ÉTENDARD' },
+    ficha: { es: 'Armada, 2ª Escuadrilla Aeronaval de Caza y Ataque, desde Río Grande. Se habían encargado catorce; llegaron cinco antes de que Francia cortara la entrega, y con ellos cinco Exocet AM39. Volaba al ras con el radar apagado y lo prendía unos segundos para marcar el blanco. Hundió el HMS Sheffield y el Atlantic Conveyor. No se perdió ninguno.',
+      en: 'Navy, 2nd Naval Fighter and Attack Squadron, from Río Grande. Fourteen had been ordered; five arrived before France cut the delivery, along with five AM39 Exocets. It flew at wave height with its radar off and switched it on for a few seconds to mark the target. It sank HMS Sheffield and the Atlantic Conveyor. None was lost.' },
+    name: 'SUPER ETENDARD', src: '../assets/planes/super-etendard/seleccion.png', sheet: '../assets/planes/super-etendard/sheet.png', sheet2: '../assets/planes/super-etendard/sheet2.png', sheet3: '../assets/planes/super-etendard/sheet3.png', desc: { es: 'Misiones especiales - misiles Exocet', en: 'Special missions - Exocet missiles' } },
+  { key: 'a4q', nombre: { es: 'DOUGLAS A-4Q SKYHAWK', en: 'DOUGLAS A-4Q SKYHAWK' },
+    ficha: { es: 'La versión de la Armada: 3ª Escuadrilla Aeronaval de Caza y Ataque. Embarcada en el portaaviones ARA 25 de Mayo; cuando el portaaviones volvió a puerto, la escuadrilla siguió operando desde tierra, en Río Grande. Participó de los ataques que hundieron la HMS Ardent el 21 de mayo.',
+      en: 'The Navy version: 3rd Naval Fighter and Attack Squadron. Embarked on the carrier ARA 25 de Mayo; when the carrier returned to port, the squadron kept flying from land, at Río Grande. It took part in the attacks that sank HMS Ardent on 21 May.' },
+    name: 'A-4Q', src: '../assets/planes/a4q/seleccion.png', sheet: '../assets/planes/a4q/sheet.png', sheet2: '../assets/planes/a4q/sheet2.png', sheet3: '../assets/planes/a4q/sheet3.png', desc: { es: 'Variante naval - similar al A-4B/C', en: 'Naval variant - similar to the A-4B/C' } },
   // PAMPA 63 — FUERA DE SELECCION POR AHORA (no borrar: los assets estan horneados y el
   // modelo vive en tools/bake_planes.html).
   // El FMA IA-63 Pampa volo por primera vez en OCTUBRE DE 1984, dos años despues de la
@@ -43,12 +59,18 @@ export const PLANES = [
   //   sinTobera  turbohelice: no hay llama de turbina · sinVariantes: el escuadron vuela la misma hoja
   //   escala / px  se dibuja al DOBLE que un caza ("tiene que ser mas grande"), con las hojas horneadas al
   //           doble de resolucion (cuadro de 168): las proporciones son las del C-130 de verdad
-  { key: 'herc', name: 'HERCULES BOMBARDERO', sonda: false, sinTobera: true, sinVariantes: true, escala: 2, px: 2,
+  { key: 'herc', sinPiruetas: true, nombre: { es: 'LOCKHEED C-130H HERCULES (TC-68)', en: 'LOCKHEED C-130H HERCULES (TC-68)' },
+    ficha: { es: 'El TC-68: un C-130H de transporte de la Fuerza Aérea al que le colgaron dos afustes bajo la raíz del ala, con seis bombas cada uno. Un carguero convertido en bombardero. Atacó al buque británico British Wye el 29 de mayo y al petrolero Hercules el 8 de junio.',
+      en: 'The TC-68: an Air Force C-130H transport fitted with two racks under the wing roots, six bombs each. A cargo plane turned bomber. It attacked the British ship British Wye on 29 May and the tanker Hercules on 8 June.' },
+    name: 'HERCULES BOMBARDERO', sonda: false, sinTobera: true, sinVariantes: true, escala: 2, px: 2,
     vuelo: { vel: 0.66, acel: 0.35, turbo: 0.4, carga: false },
     canon: { cad: 2.4, dano: 4, vel: 230, gordo: 2.4 },
     src: '../assets/planes/hercules-bombardero/seleccion.png', sheet: '../assets/planes/hercules-bombardero/sheet.png', sheet2: '../assets/planes/hercules-bombardero/sheet2.png', sheet3: '../assets/planes/hercules-bombardero/sheet3.png',
     desc: { es: 'TC-68 - 12 bombas, lento y pesado, cañon central', en: 'TC-68 - 12 bombs, slow and heavy, centre gun' } },
-  { key: 'mirage', name: 'MIRAGE 5P MARA', src: '../assets/planes/mirage-5p/seleccion.png', sheet: '../assets/planes/mirage-5p/sheet.png', sheet2: '../assets/planes/mirage-5p/sheet2.png', sheet3: '../assets/planes/mirage-5p/sheet3.png', desc: { es: 'El regalo del Peru - rapido, con poca autonomia', en: 'Peru\'s gift - fast, short legs' } },
+  { key: 'mirage', nombre: { es: 'DASSAULT MIRAGE 5P «MARA»', en: 'DASSAULT MIRAGE 5P «MARA»' },
+    ficha: { es: 'Diez Mirage 5P que mandó el Perú. Salieron de La Joya, hicieron escala en Jujuy y aterrizaron en Tandil el 5 de junio de 1982, con la escarapela argentina ya pintada. Los pilotos peruanos volvieron a su país ese mismo día. Nunca entraron en combate. Acá, sí.',
+      en: 'Ten Mirage 5Ps sent by Peru. They left La Joya, stopped in Jujuy and landed at Tandil on 5 June 1982, already wearing the Argentine roundel. The Peruvian pilots flew home that same day. They never saw combat. Here, they do.' },
+    name: 'MIRAGE 5P MARA', src: '../assets/planes/mirage-5p/seleccion.png', sheet: '../assets/planes/mirage-5p/sheet.png', sheet2: '../assets/planes/mirage-5p/sheet2.png', sheet3: '../assets/planes/mirage-5p/sheet3.png', desc: { es: 'El regalo del Peru - rapido, con poca autonomia', en: 'Peru\'s gift - fast, short legs' } },
 ];
 // 84x48 por cuadro (antes 56x32): se re-hornearon a 1.5x al subir la grilla del juego a 480x270.
 // Con el buffer 2x del juego, el sprite cae a 2x EXACTO en pantalla — pixel art nitido.

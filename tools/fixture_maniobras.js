@@ -179,7 +179,8 @@ app.whenReady().then(async () => {
   await tap('Return'); await tap('Down'); await tap('Return');
   await tap('Down'); await tap('Return'); await tap('Return');
   let volando = false;
-  for (let i = 0; i < 60 && !volando; i++) { volando = await estado() === 'play'; if (!volando) await sleep(200); }
+  // (16/10: los modos sueltos pasan por la pantalla de DIFICULTAD despues del avion — un ENTER mas)
+  for (let i = 0; i < 60 && !volando; i++) { const st = await estado(); volando = st === 'play'; if (st === 'dificultad') await tap('Return'); else if (!volando) await sleep(200); }
   if (!volando) { console.error('   ✗ no se llego a volar'); app.exit(1); return; }
   // el primer cuadro de vuelo trae la resaca del despegue (tren, formacion saliendo, un dt largo
   // por la carga): medir una pirueta ahi adentro es medir eso. Con el gas puesto, ademas, el avion

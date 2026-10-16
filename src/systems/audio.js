@@ -260,7 +260,8 @@ export function updateSfx(dt, w) {
       // apaga: motor y agua. Que el agua SUBA mientras todo lo demas baja es lo que hace que el
       // silencio no se lea como que se rompio el sonido — se lee como que te acercaste al mar.
       if (w.state === 'play' && w.plane.y <= BANDA_ALT) sfxTgt.waterNear = SFX_DEF.waterNear.v * (rasOn ? RAS_AGUA : 1);
-      const tirando = w.state === 'play' && w.firing && !w.overheat;
+      // (el Hercules no tiene metralla: su cañon suena tiro a tiro en flight.js — `canon`)
+      const tirando = w.state === 'play' && w.firing && !w.overheat && !w.canon;
       // cual de las tres metrallas suena (METRALLAS en data/tuning.js): si cambia entre corridas, la
       // que sonaba se apaga sola por el fundido de los loops
       const gk = (METRALLAS[w.metralla] || METRALLAS[1]).sfx, gd = SFX_DEF[gk];
@@ -333,7 +334,7 @@ function inLobby(state) {
   // musica del lobby para arrancar la del juego, sin que hubiera juego todavia.
   return state === 'title' || state === 'modeselect' || state === 'options' || state === 'menu'
     || state === 'campmenu' || state === 'quickmenu' || state === 'pruebas' || state === 'misiones'
-    || state === 'mejoras' || state === 'saves' || state === 'libroavion';
+    || state === 'mejoras' || state === 'saves' || state === 'libroavion' || state === 'dificultad';
 }
 export function updateMusic(state) {
   lastState = state;

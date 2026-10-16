@@ -52,6 +52,20 @@ export const ENTORNO = {
   viento: 0.7,       // probabilidad de viento
 };
 
+/** EL MAPA QUE CAMBIA MIENTRAS SE VUELA (16/10, el autor: "debe variar TODO y debe ir cambiando a medida
+ *  que pasa el juego, salvo el fondo"). Una GEOGRAFIA al azar (docs/sistemas/PLAN_GEOGRAFIA.md): tramos de
+ *  `tramoKm` con suelo y accidentes sorteados por estos pesos. El cielo no cambia: es el fondo. */
+export const MAPA = {
+  largoKm: 400,                       // POR LA PATRIA no tiene fin: la geografia cubre hasta aca
+  tramoKm: [1.4, 3.2],                // largo de cada tramo
+  suelos: [['mar', 5], ['costa', 2], ['tierra', 2], ['isla', 1]],
+  niebla: 0.18,                       // probabilidad de que un tramo tenga un banco de niebla
+  paredes: 0.15,                      // probabilidad de acantilados a los costados (sobre mar)
+  lomas: [0, 6],                      // relieve de la tierra, metros
+};
+/** EL CLIMA QUE CAMBIA: cada `cadaKm` (al azar en el rango) se re-sortea la lluvia y el viento. */
+export const CLIMA = { cadaKm: [2, 4], lluvia: 0.3, viento: 0.7 };
+
 /** LA NAFTA de los modos sueltos (`cfg.fuelScale`): la del tutorial. Con la escala de siempre (1) el tanque
  *  se vaciaba en ~30 s y el avion se iba a reserva sin que se entendiera por que (16/10). Asi dura ~2 min,
  *  y los bidones y la Chancha la reponen. */
