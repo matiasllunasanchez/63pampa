@@ -76,6 +76,8 @@ function armar() {
   // (LA INDIA del Dagger, 12/10: el centro lleva un tanque y las del buque son las DOS del ala media —
   // se cuentan aca, como del centro: salen solo cerca del buque)
   blanco.ala = c.ala; blanco.alaN = c.ala === 'bomba' ? 2 : 0; blanco.centroN = c.ext === 'bomba' ? 2 : 1;
+  // (EL HERCULES BOMBARDERO, 16/10: sus racks cuentan `buqueN` como del centro y el resto como del ala)
+  if (c.bombasN) { blanco.ala = 'bomba'; blanco.alaN = c.bombasN - c.buqueN; blanco.centroN = c.buqueN; }
   blanco.tuvoVentana = false;   // pasada nueva: la ventana de la anterior no cuenta
   blanco.perdidaT = -1;
   blanco.trabada = false;       // avion nuevo, pilon nuevo

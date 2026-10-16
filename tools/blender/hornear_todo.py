@@ -19,7 +19,14 @@ CAPAS = ('tanques_ala', 'bombas_ala', 'tanque_centro', 'bomba_centro')
 CELULAS = ('sky', 'a4q', 'dagger', 'supere', 'pampa', 'mirage')   # las que llevan capas de carga
 # LAS CAPAS PROPIAS DE UNA CELULA (12/10): el ala media de la «configuracion India», solo el Dagger
 CAPAS_EXTRA = {'dagger': ('bombas_ext',), 'supere': ('exocet', 'tanque_babor')}   # + el Exocet (14/10)
-capas_de = lambda k: CAPAS + CAPAS_EXTRA.get(k, ())
+# EL HERCULES BOMBARDERO (16/10) no tiene los pilones de los cazas: sus dos cargas son SUYAS (los racks del
+# fuselaje, 12 bombas de 250 kg o 6 de 500) y no lleva variantes ni sonda
+CAPAS_SOLO = {'herc': ('herc_250', 'herc_500')}
+CELULAS = CELULAS + ('herc',)
+# …y se hornea al DOBLE de resolucion (el juego lo dibuja al doble que un caza: data/planes.js `escala`/`px`)
+PX = {'herc': 2}
+PX_VISTA = {'base': 84, 'empinada': 84, 'fino': 84, 'ras': 168, 'cobra': 126}
+capas_de = lambda k: CAPAS_SOLO.get(k) or CAPAS + CAPAS_EXTRA.get(k, ())
 TODAS = CELULAS + ('skin_tero', 'skin_puma', 'skin_gitano', 'skin_pichon', 'skin_vasco')
 
 # LA SONDA DE UN LADO (autor, 8/10: "el avion tiene DOS varas en la trompa y deberia tener UNA SOLA").
@@ -45,6 +52,7 @@ def hornear(t):
     out = ('out/aviones/%s/%s' % (k, v) if not c else 'out/aviones/%s/%s_%s' % (k, v, SIN) if c == SIN
            else 'out/aviones/%s/capas/%s_%s' % (k, c, v))
     args = [BLENDER, '--background', '--factory-startup', '--python', 'hornear.py', '--', '--modelo', k, '--vista', v, '--out', out]
+    if k in PX: args += ['--px', str(PX_VISTA[v] * PX[k])]
     if c == SIN: args += ['--sin-sonda']
     elif c: args += ['--capa', c]
     r = subprocess.run(args, cwd=AQUI, capture_output=True, text=True)

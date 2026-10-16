@@ -665,7 +665,7 @@ export function collisionSystem(dt) {
   // balas
   for (const b of bullets) {
     const z0 = b.z;
-    b.z += 300 * dt;
+    b.z += (b.vel || 300) * dt;   // (el cañon del Hercules tira mas lento: `vel`)
     if (b.path) {
       // balistica recta (mira con mouse): interpola desde el AVION hacia el punto apuntado
       // en funcion del avance en z; pasa exacto por la mira a z=110 y sigue derecho
@@ -686,7 +686,7 @@ export function collisionSystem(dt) {
       if (o.z < z0 - 2 || o.z > b.z + 2) continue;
       const oy = o.y, air = o.type === 'helo' || o.type === 'jet';
       if (Math.abs(b.x - o.x) < (air ? 5.6 : 3) && Math.abs(b.y - oy) < (air ? 3 : 2.4)) {
-        o.hp--; o.hitT = run.t; b.z = 999; stats.hits++;   // hitT: lo lee el fogonazo del render
+        o.hp -= b.dano || 1; o.hitT = run.t; b.z = 999; stats.hits++;   // hitT: lo lee el fogonazo del render
         if (o.hp <= 0) {
           const pts = o.type === 'helo' ? 300 : o.type === 'jet' ? 250
             : o.type === 'aa' || o.type === 'aatruck' ? 350 : o.type === 'manpad' ? 220 : o.type === 'radar' ? 300

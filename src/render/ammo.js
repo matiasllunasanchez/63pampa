@@ -39,7 +39,7 @@ export function drawBullet(b) {
     const z = b.z - (i / TAIL_N) * TAIL_Z;
     if (z <= PZ + 1) continue;                       // ese tramo todavia no salio del cañon
     const q = at(b, z), p = proj(q.x, q.y, z);
-    const w = Math.max(1, Math.round(p.k * 0.15));
+    const w = Math.max(1, Math.round(p.k * 0.15 * (b.gordo || 1)));
     ctx.globalAlpha = 0.7 * (1 - i / (TAIL_N + 1));
     px(p.x - w / 2, p.y - w / 2, w, w, HOT[Math.min(HOT.length - 1, i)]);
   }
@@ -48,7 +48,7 @@ export function drawBullet(b) {
   // CABEZA: el proyectil encendido. Halo tibio + nucleo blanco. El halo va a alpha bajo y un
   // pixel mas grande: sin el, la bala lejana es un pixel suelto que se pierde contra el cielo.
   const s = proj(b.x, b.y, b.z);
-  const w = Math.max(1, Math.round(s.k * 0.19));
+  const w = Math.max(1, Math.round(s.k * 0.19 * (b.gordo || 1)));   // (`gordo`: el cañon del Hercules)
   ctx.globalAlpha = 0.28;
   px(s.x - w / 2 - 1, s.y - w / 2 - 1, w + 2, w + 2, HOT[2]);
   ctx.globalAlpha = 1;

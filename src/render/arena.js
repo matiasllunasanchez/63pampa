@@ -66,7 +66,7 @@ export function drawThirdPlane(A, selPlane) {
   if (!p.vis) return;
   const bx = p.x + Math.sin(A.t * 1.6) * 1.5;
   const by = p.y + Math.sin(A.t * 2.3) * 1.5;
-  ctx.drawImage(pl.sheetImg, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH,
+  ctx.drawImage(pl.sheetImg, col * SHEET_FW * (pl.px || 1), row * SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1),
     Math.round(bx - spW / 2), Math.round(by - spH / 2), spW, spH);
 }
 

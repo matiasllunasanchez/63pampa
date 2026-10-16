@@ -469,7 +469,7 @@ function stepTiro() {
     if (b.z >= 999) continue;
     if (Math.abs(b.z - C.z) > 6) continue;
     if (Math.abs(b.x - C.x) > CAZA_HIT_RX || Math.abs(b.y - C.y) > CAZA_HIT_RY) continue;
-    b.z = 999; C.hp++; stats.hits++;
+    b.z = 999; C.hp += b.dano || 1; stats.hits++;
     chispazo(C.x, C.y, C.z, 'metal');
     beep(300, 0.05, 'triangle', 0.05);
     if (CAZA_KILLABLE && C.hp >= CAZA_HP.derribo) { derribar(); return; }

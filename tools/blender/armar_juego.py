@@ -32,6 +32,7 @@ DESTINO = {
     'skin_tero': ('a4-skyhawk', 'skin_tero'), 'skin_puma': ('a4-skyhawk', 'skin_puma'),
     'skin_gitano': ('a4-skyhawk', 'skin_gitano'), 'skin_vasco': ('a4-skyhawk', 'skin_vasco'),
     'skin_pichon': ('a4-skyhawk', 'skin_pichon'),
+    'herc': ('hercules-bombardero', 'sheet'),     # EL HERCULES BOMBARDERO (16/10): sin variantes
 }
 CELULAS = ('sky', 'a4q', 'dagger', 'supere', 'pampa', 'mirage')
 # LAS VARIANTES DEL ESCUADRON (modelos.py, 8/10): var_<celula>_<n> -> <carpeta>/variante<n>.png. Solo
@@ -50,6 +51,9 @@ CAPAS_EXTRA = {'dagger': ('bombas_ext',),   # el ala media de la «configuracion
                'supere': ('exocet', 'tanque_babor')}   # el Exocet y el tanque del 4 de mayo (14/10)
 # las capas de UN SOLO LADO no se simetrizan: la simetria copiaria el Exocet bajo el ala izquierda
 ASIMETRICAS = ('exocet', 'tanque_babor')
+NUEVAS = ('hercules-bombardero',)
+PX = {'herc': 2}                     # las claves horneadas al doble de resolucion (hornear_todo.py)   # las que nacieron en Blender: three.js nunca las horneo, no hay que archivar
+CAPAS_SOLO = {'herc': ('herc_250', 'herc_500')}   # las cargas propias del Hercules (hornear_todo.py)
 VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     'base': (3, 84, '', True), 'empinada': (2, 84, '2', True), 'ras': (3, 168, '3', False),
     # LA COBRA (4/10): 40/75/100° de cabeceo, cuadro de 126 (x1,5: vertical, el avion mide su largo);
@@ -101,7 +105,7 @@ def archivar_three():
     for carpeta in sorted(set(d for d, _ in DESTINO.values())):
         base = os.path.join(PLANES, carpeta)
         tres = os.path.join(base, 'three')
-        if os.path.isdir(tres): continue
+        if os.path.isdir(tres) or carpeta in NUEVAS: continue
         os.makedirs(tres)
         for f in sorted(os.listdir(base)):
             if f.endswith('.png') and (f.startswith('sheet') or f.startswith('carga_') or f.startswith('skin_')):
@@ -193,32 +197,56 @@ export const HORNO = {
 };
 """ % (linea(B), linea(R), (('\n  cobra: %s,' % linea(C)) if C else '') + (('\n  fino: %s,' % linea(Fi)) if Fi else '')))
 
+# LAS ANCLAS PROPIAS (16/10): la tabla de arriba es UNA para todo el roster porque los cazas tienen el
+# mismo tamaño en el cuadro. El HERCULES BOMBARDERO no: el ala alta y el doble de envergadura ponen las
+# puntas en otro lado, y no tiene tobera. Sus anclas se miden en su hoja y van a anclas_aviones.js.
+ANCLAS_PROPIAS = ('herc',)
+
+def escribir_propias(propias):
+    ruta = os.path.join(RAIZ, 'src', 'data', 'anclas_aviones.js')
+    previas = {}
+    if os.path.exists(ruta):
+        txt = open(ruta).read()
+        previas = json.loads(txt[txt.index('= ') + 2:txt.rindex(';')])
+    for k, v in propias.items(): previas.setdefault(k, {}).update(v)
+    open(ruta, 'w').write("""// LAS ANCLAS DE LOS AVIONES QUE NO SON DEL TAMAÑO DEL A-4 — GENERADO, NO EDITAR A MANO.
+// Lo escribe tools/blender/armar_juego.py (ANCLAS_PROPIAS) midiendo la hoja de cada uno, con el mismo
+// formato que anclas_horno.js. render/plane.js las usa en lugar de las del A-4 para ese avion.
+export const ANCLAS_AVION = """ + json.dumps(previas, separators=(',', ':')) + ';\n')
+    print('ANCLAS PROPIAS -> src/data/anclas_aviones.js', sorted(propias))
+
 if __name__ == '__main__':
     archivar_three()
     medidas = anclas_previas()
+    propias = {}
     for clave, (carpeta, base) in DESTINO.items():
         dest = os.path.join(PLANES, carpeta)
         for vista, (filas, fw, suf, sim) in VISTAS.items():
             if SOLO_BASE(clave) and vista != 'base': continue
             cols = COLS_DE.get(vista, 9)
             if vista in COLS_DE and not os.path.isdir(os.path.join(OUT, clave, vista)): continue   # no se horneo
+            fw = VISTAS[vista][1] * PX.get(clave, 1)     # (el Hercules: hojas al doble, hornear_todo.py PX)
             h = hoja(os.path.join(OUT, clave, vista), filas, fw, sim, cols)
             con_contorno(h, filas, fw).save(os.path.join(dest, '%s%s.png' % (base, suf)))
-            if clave in CELULAS and vista in ('base', 'fino') and os.path.isdir(os.path.join(OUT, clave, 'capas', 'tren_' + vista)):
+            if (clave in CELULAS or clave in CAPAS_SOLO) and vista in ('base', 'fino') and os.path.isdir(os.path.join(OUT, clave, 'capas', 'tren_' + vista)):
                 # EL TREN DE ATERRIZAJE (9/10): la capa que el juego dibuja debajo del avion al despegar
                 # y al aterrizar (render/plane.js drawTren)
                 t = hoja(os.path.join(OUT, clave, 'capas', 'tren_' + vista), filas, fw, sim, cols)
                 con_contorno(t, filas, fw).save(os.path.join(dest, 'tren%s.png' % suf))
-            if clave in CELULAS:
-                for capa in CAPAS + CAPAS_EXTRA.get(clave, ()):
+            if clave in CELULAS or clave in CAPAS_SOLO:
+                for capa in CAPAS_SOLO.get(clave) or CAPAS + CAPAS_EXTRA.get(clave, ()):
                     cdir = os.path.join(OUT, clave, 'capas', '%s_%s' % (capa, vista))
                     if vista in COLS_DE and not os.path.isdir(cdir): continue
                     c = hoja(cdir, filas, fw, sim and capa not in ASIMETRICAS, cols)
                     con_contorno(c, filas, fw).save(os.path.join(dest, 'carga_%s%s.png' % (capa, suf)))
+            if clave in ANCLAS_PROPIAS and vista in ('base', 'ras', 'cobra', 'fino'):
+                tips = json.load(open(os.path.join(OUT, clave, vista, 'tips.json')))['tips']
+                propias.setdefault(clave, {})[vista] = anclas(h, fw, filas, tips, cols, nivel=2 if vista == 'fino' else 1)
             if clave == 'sky' and vista in ('base', 'ras', 'cobra', 'fino'):
                 tips = json.load(open(os.path.join(OUT, clave, vista, 'tips.json')))['tips']
                 medidas[vista] = anclas(h, fw, filas, tips, cols, nivel=2 if vista == 'fino' else 1)
         print('OK', clave)
+    if propias: escribir_propias(propias)
     if 'sky' not in DESTINO: sys.exit(0)            # no se re-midio nada: las anclas quedan como estan
     escribir_anclas(medidas['base'], medidas['ras'], medidas.get('cobra'), medidas.get('fino'))
     print('ANCLAS -> src/data/anclas_horno.js  (base alto %s · ras alto %s)' % (medidas['base']['alto'], medidas['ras']['alto']))

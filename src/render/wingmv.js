@@ -58,8 +58,8 @@ export function drawActores(selPlane, lista) {
         : Math.round((1 - Math.max(-1, Math.min(1, B.bank))) / 2 * (SHEET_NF - 1));
       const pc = Math.max(-1, Math.min(1, B.pitch));
       const row = pc > 0.33 ? 0 : pc < -0.33 ? 2 : 1;
-      const w = SHEET_FW / U * PLANE_SCALE, h = SHEET_FH / U * PLANE_SCALE;
-      ctx.drawImage(hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH, -w / 2, -h / 2, w, h);
+      const w = SHEET_FW / U * PLANE_SCALE * (pl.escala || 1), h = SHEET_FH / U * PLANE_SCALE * (pl.escala || 1);
+      ctx.drawImage(hoja, col * SHEET_FW * (pl.px || 1), row * SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), -w / 2, -h / 2, w, h);
     } else if (pl.ready) {
       const w = 76 / U * PLANE_SCALE, h = w * pl.h / pl.w;
       ctx.drawImage(pl.img, -w / 2, -h / 2, w, h);

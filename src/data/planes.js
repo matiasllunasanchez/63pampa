@@ -1,5 +1,5 @@
 // AVIONES jugables: datos y precarga de sus imagenes.
-import { CAPAS_CARGA, CAPAS_EXTRA } from './cargas.js';
+import { capasAvion } from './cargas.js';
 import { HORNO_VIEJO } from './horno.js';
 //
 // Cada avion tiene DOS imagenes: `src` es la ilustracion grande del menu de seleccion, y
@@ -31,6 +31,23 @@ export const PLANES = [
   // escarapela argentina ya pintada y NUNCA entraron en combate (GUION_3 M10, verificado).
   // Por eso su lugar en el juego es el desbloqueo de M10, con la placa que lo dice de frente:
   // "Nunca llegaron a combatir. Aca, si." Ver docs/historia/AVIONES_CATALOGO.md.
+  // EL HERCULES BOMBARDERO (16/10, el autor: "quiero agregar al Hercules como jugable en POR LA PATRIA y
+  // CICLO DE MUERTE… este Hercules modificado"): el TC-68, el C-130H de la FAA al que le colgaron dos afustes
+  // bajo la raiz del ala (un MER de 6 bombas cada uno) y bombardeo el British Wye (29/5) y el Hercules (8/6). OTRO modelo que la
+  // Chancha (tools/blender/modelos_hercules.py), que queda como esta.
+  //   vuelo   `vel` multiplica la velocidad objetivo, `acel` lo rapido que llega a ella, `turbo` cuanto
+  //           del turbo le queda ("vuela mas lento, levanta mucha menos velocidad"); `carga: false`: lo
+  //           que cuelga no lo frena (12 bombas de 250 kg son el 4% de lo que levanta)
+  //   canon   un solo cañon DESDE EL CENTRO, lento y potente: `cad` tiros/s, `dano` golpes por tiro,
+  //           `vel` de la bala (300 la de siempre), `gordo` el tamaño de la trazadora
+  //   sinTobera  turbohelice: no hay llama de turbina · sinVariantes: el escuadron vuela la misma hoja
+  //   escala / px  se dibuja al DOBLE que un caza ("tiene que ser mas grande"), con las hojas horneadas al
+  //           doble de resolucion (cuadro de 168): las proporciones son las del C-130 de verdad
+  { key: 'herc', name: 'HERCULES BOMBARDERO', sonda: false, sinTobera: true, sinVariantes: true, escala: 2, px: 2,
+    vuelo: { vel: 0.66, acel: 0.35, turbo: 0.4, carga: false },
+    canon: { cad: 2.4, dano: 4, vel: 230, gordo: 2.4 },
+    src: '../assets/planes/hercules-bombardero/seleccion.png', sheet: '../assets/planes/hercules-bombardero/sheet.png', sheet2: '../assets/planes/hercules-bombardero/sheet2.png', sheet3: '../assets/planes/hercules-bombardero/sheet3.png',
+    desc: { es: 'TC-68 - 12 bombas, lento y pesado, cañon central', en: 'TC-68 - 12 bombs, slow and heavy, centre gun' } },
   { key: 'mirage', name: 'MIRAGE 5P MARA', src: '../assets/planes/mirage-5p/seleccion.png', sheet: '../assets/planes/mirage-5p/sheet.png', sheet2: '../assets/planes/mirage-5p/sheet2.png', sheet3: '../assets/planes/mirage-5p/sheet3.png', desc: { es: 'El regalo del Peru - rapido, con poca autonomia', en: 'Peru\'s gift - fast, short legs' } },
 ];
 // 84x48 por cuadro (antes 56x32): se re-hornearon a 1.5x al subir la grilla del juego a 480x270.
@@ -107,7 +124,7 @@ PLANES.forEach(pl => {
     // cargo, simplemente no se pinta: el avion vuela limpio, que es el fallback natural.
     const dir = pl.sheet.slice(0, pl.sheet.lastIndexOf('/') + 1);
     pl.capas = {};
-    for (const nom of CAPAS_CARGA.concat(CAPAS_EXTRA[pl.key] || [])) {
+    for (const nom of capasAvion(pl.key)) {
       // (la '5' es la de la HOJA FINA; el horno viejo no la tiene)
       pl.capas[nom] = ['', '2', '3', '4', ...(!HORNO_VIEJO ? ['5'] : [])].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
     }
@@ -129,6 +146,6 @@ PLANES.forEach(pl => {
       pl.sheet5Img.src = dir + 'sheet5.png';
       pl.tren5 = new Image(); pl.tren5.src = dir + 'tren5.png';
     }
-    pl.variantes = HORNO_VIEJO ? [] : [1, 2, 3, 4].map(n => { const im = new Image(); im.src = dir + 'variante' + n + '.png'; return im; });
+    pl.variantes = HORNO_VIEJO || pl.sinVariantes ? [] : [1, 2, 3, 4].map(n => { const im = new Image(); im.src = dir + 'variante' + n + '.png'; return im; });
   }
 });

@@ -2110,6 +2110,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // con ella si nadie eligio otra (fuera de la campaña no hay hangar).
       cfg.carga = cargaParaAvion(cfg.carga, PLANES[selPlane] && PLANES[selPlane].key);
       prepararCarga();
+      // EL AVION ELEGIDO VUELA DISTINTO (16/10, el Hercules bombardero, data/planes.js): su velocidad, su
+      // cañon y su bodega. Se escribe en CADA corrida (resetRun no conoce estos campos): sin avion propio,
+      // null y la de siempre. La bodega solo fuera de LA SUELTA, que arma sus bombas por pasada.
+      const avSel = PLANES[selPlane];
+      run.vuelo = (avSel && avSel.vuelo) || null;
+      run.canon = (avSel && avSel.canon) || null;
+      run.mslMax = avSel && avSel.vuelo && runClimax() !== 'suelta' ? bombasDe(cfg.carga) : 0;
+      if (run.mslMax) run.msl = run.mslMax;
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
       // tras morir: ahi continua donde venia, sin corte.
@@ -6573,6 +6581,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (n != null) selPlane = ((n | 0) % PLANES.length + PLANES.length) % PLANES.length;
       return PLANES[selPlane].key;
     };
+    // sonda: POR LA PATRIA ya volando, con el avion elegido (__avion antes). Para mirar un avion en juego
+    // sin pasar por los menues: __avion(4); __patria()
+    if (typeof window !== 'undefined') window.__patria = () => { pruebasApi().patria({}); return PLANES[selPlane].key; };
     if (typeof window !== 'undefined') window.__mision = (id, o) => {
       const i = misIdx(id === undefined ? 0 : id);
       if (i < 0) return null;

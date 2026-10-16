@@ -321,6 +321,9 @@ export const GEAR_T = 0.9;
 // tuneado contra un dibujo.
 export const MOM_AX = 240, MOM_AY = 135;
 export const MSL_MAX = 3;                 // misiles por pasada
+// EL HERCULES BOMBARDERO (16/10): su bodega (12 de 250 o 6 de 500, data/cargas.js) se repone de a una
+// cada tantos segundos en POR LA PATRIA y el CICLO — "bombas a rolete"
+export const MSL_REGEN_HERC = 2.5;
 
 // GEOMETRIA DE LA BARCAZA, en pixeles de PANTALLA (grilla de mundo 480x270). Estos dos numeros
 // estaban repetidos en tres lados — momShipGeom (systems/momentum.js), la aproximacion en vuelo

@@ -1572,3 +1572,19 @@ y 4,5" en los Tipo 21, Sea Wolf en los Tipo 22) ya entra al juego; esto es lo qu
    dos DEFA de 30 mm. ¿Correcto para los aviones de cada salida?
 
 **Decisión del autor:** pendiente; el juego sigue con la tabla provisoria.
+
+## EL HERCULES BOMBARDERO (TC-68): QUE COLGABA Y DE DONDE _(16/10/2026 — tools/blender/modelos_hercules.py, src/data/cargas.js)_
+
+**Contexto:** el autor lo pidió jugable con "hasta 12 bombas de 250 kg o 6 de 500 kg". Lo que se encontró:
+- Aviacionline: el TC-68 se modificó en Córdoba con **dos afustes subalares**, un mecanismo de lanzamiento en
+  la bodega y la mira de un Canberra.
+- the48ers.com (piezas para modelismo): un adaptador para un **MER de seis bombas de 250 kg** (Expal) en cada
+  pilón — 12 en total —, instalado en siete días.
+- Las fotos que mandó el autor muestran el pilón bajo la raíz del ala, pegado al fuselaje, con bombas grises
+  de anillo amarillo (y en otra, rojas de práctica).
+
+**A verificar:** si alguna vez voló con **6 de 500 kg** (ninguna fuente lo dice; el juego la ofrece como
+segunda carga), qué bomba exacta llevó contra el *British Wye* (29/5) y el *Hercules* (8/6), y si el **cañón
+central** del juego tiene algún asidero: es licencia de juego (el TC-68 no llevaba armas propias).
+
+**Decisión del autor:** pendiente; no bloquea nada.

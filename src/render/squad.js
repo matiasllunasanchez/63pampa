@@ -84,7 +84,7 @@ export function drawFormation({ selPlane, exit }) {
     const hoja = hojaDe(pl, detras(run, 1 + i));
     const col = (SHEET_NF - 1) / 2;                      // nivelados: la formacion no banquea
     const row = plane.pitch > 0.33 ? 0 : 1;              // pero acompañan el cabeceo del lider
-    const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
+    const w = SHEET_FW * PLANE_SCALE * f * (pl.escala || 1), h = SHEET_FH * PLANE_SCALE * f * (pl.escala || 1);
     if (!drawTren(pl, run.gear, col, row, s.x - w / 2, s.y - h / 2, w, h)) {
       ctx.save();
       ctx.translate(s.x, s.y);
@@ -92,14 +92,14 @@ export function drawFormation({ selPlane, exit }) {
       ctx.restore();
     }
     if (hoja) {
-      ctx.drawImage(hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH,
+      ctx.drawImage(hoja, col * SHEET_FW * (pl.px || 1), row * SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1),
         s.x - w / 2, s.y - h / 2, w, h);
       // LOS MISMOS BRILLOS QUE EL TUYO (autor, 3/10): la luz de borde del contraluz y la tobera al
       // rojo. Son las funciones del lider, no copias — con la escala de ESTE compañero y con la
       // intensidad de tu tobera, porque despegan a la par. Se van con la formacion al CONTROL LIBRE.
-      drawBorde(ctx, hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2, s.y - h / 2, w, h);
+      drawBorde(ctx, hoja, col * SHEET_FW * (pl.px || 1), row * SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), s.x - w / 2, s.y - h / 2, w, h);
       const tb = ANCLAS.base.tob[row] && ANCLAS.base.tob[row][col];
-      if (tb) { ctx.save(); ctx.translate(s.x, s.y); tobera(tb[0] * w, tb[1] * h, llama(), w / 84 * 2.4); ctx.restore(); }
+      if (tb && !pl.sinTobera) { ctx.save(); ctx.translate(s.x, s.y); tobera(tb[0] * w, tb[1] * h, llama(), w / 84 * 2.4); ctx.restore(); }
     } else if (pl.ready) {
       const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
       ctx.drawImage(pl.img, s.x - w / 2, s.y - h / 2, w, h);
@@ -133,11 +133,11 @@ export function drawFallen({ selPlane, rv }) {
     // en el CAMBIO va NIVELADO: frena y queda atras, no vira (un banqueo se leia como un viraje)
     const col = rv.cambio ? mid : Math.max(0, Math.min(SHEET_NF - 1, mid - rv.side * 2 + wob));
     const jx = rv.cambio ? 0 : Math.sin(rv.t * 31) * f * 0.7, jy = rv.cambio ? 0 : Math.cos(rv.t * 27) * f * 0.6;
-    const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
-    ctx.drawImage(hoja, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2 + jx, s.y - h / 2 + jy, w, h);
+    const w = SHEET_FW * PLANE_SCALE * f * (pl.escala || 1), h = SHEET_FH * PLANE_SCALE * f * (pl.escala || 1);
+    ctx.drawImage(hoja, col * SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), s.x - w / 2 + jx, s.y - h / 2 + jy, w, h);
     // LA LUZ DE BORDE, como cualquier avion en este cielo (autor, 3/10). La tobera NO: solo brilla con
     // poscombustion (regla del 18/8), y el que se retira —roto o cediendo el puesto— no la lleva.
-    drawBorde(ctx, hoja, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2 + jx, s.y - h / 2 + jy, w, h);
+    drawBorde(ctx, hoja, col * SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), s.x - w / 2 + jx, s.y - h / 2 + jy, w, h);
   } else if (pl.ready) {
     const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
     ctx.drawImage(pl.img, s.x - w / 2, s.y - h / 2, w, h);
@@ -229,12 +229,12 @@ export function drawSenas(sn, selPlane) {
   if (hoja) {
     const col = Math.round((1 - Math.max(-1, Math.min(1, p.bank))) / 2 * (SHEET_NF - 1));
     const row = p.pitch > 0.33 ? 0 : p.pitch < -0.33 ? 2 : 1;
-    const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
+    const w = SHEET_FW * PLANE_SCALE * f * (pl.escala || 1), h = SHEET_FH * PLANE_SCALE * f * (pl.escala || 1);
     ctx.save(); ctx.translate(s.x, s.y); if (p.rot) ctx.rotate(p.rot);
-    ctx.drawImage(hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH, -w / 2, -h / 2, w, h);
+    ctx.drawImage(hoja, col * SHEET_FW * (pl.px || 1), row * SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), -w / 2, -h / 2, w, h);
     // la luz de borde tambien aca: va adentro del giro, asi que el filo encendido sigue mirando al
     // cielo cuando el compañero se inclina para irse
-    drawBorde(ctx, hoja, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH, -w / 2, -h / 2, w, h);
+    drawBorde(ctx, hoja, col * SHEET_FW * (pl.px || 1), row * SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), -w / 2, -h / 2, w, h);
     ctx.restore();
   }
   ctx.imageSmoothingEnabled = smooth;

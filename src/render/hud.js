@@ -2070,6 +2070,13 @@ const DIG = {
 };
 function digito(x, y, n, col) {
   const d = DIG[Math.max(0, Math.min(4, n | 0))];
+  // MAS DE 4 (la bodega del Hercules bombardero, 16/10: hasta 12): la tabla de pixeles llega a 4, asi
+  // que el numero va en la letra chica del estante
+  if ((n | 0) > 4) {
+    ctx.font = 'bold 5px monospace'; ctx.textAlign = 'left'; ctx.fillStyle = col;
+    ctx.fillText(String(n | 0), x, y + 5);
+    return;
+  }
   ctx.fillStyle = col;
   const x0 = x + FINO;                                   // 7 de 9: centrado en la celda de 3
   for (let j = 0; j < d.length; j++) {
@@ -2094,7 +2101,7 @@ function drawEstante(h) {
   const r = h.rack, verde = !!(r && h.sueltaYa && titilaSuelta());
   const c = cargaDe(cfg.carga);
   const hayAla = !!(r ? r.ala : c.ala);
-  if (!r && !hayAla && !(run.chapitasMax > 0) && !pide(run.msl < MSL_MAX)) return;
+  if (!r && !hayAla && !(run.chapitasMax > 0) && !pide(run.msl < (run.mslMax || MSL_MAX))) return;
   plate(X_RACK, CUADROS_Y, RACK_W, CUADRO);
   const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1;
   const VACIO = '#2e3c45';

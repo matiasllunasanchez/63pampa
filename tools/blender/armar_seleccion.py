@@ -19,7 +19,7 @@ sys.path.insert(0, AQUI)
 import armar_hoja as A
 
 CARPETA = {'sky': 'a4-skyhawk', 'dagger': 'iai-dagger', 'supere': 'super-etendard', 'a4q': 'a4q',
-           'mirage': 'mirage-5p', 'pampa': 'pampa-63'}
+           'mirage': 'mirage-5p', 'pampa': 'pampa-63', 'herc': 'hercules-bombardero'}
 X = 2          # 195 → 390 (14/10: de tres cuartos y al doble de detalle; antes 130 x3, de cola)
 AIRE = 4       # px (antes de agrandar) de aire arriba y abajo del avion
 
@@ -32,7 +32,8 @@ for clave, carpeta in CARPETA.items():
     im = A.contorno(im, lineas=True)
     x0, y0, x1, y1 = im.getbbox()
     im = im.crop((0, max(0, y0 - AIRE), im.size[0], min(im.size[1], y1 + AIRE)))
-    im = im.resize((im.size[0] * X, im.size[1] * X), Image.NEAREST)
+    x = 390 // im.size[0] or 1       # (el Hercules se hornea directo a 390: hornear.py --px 390)
+    im = im.resize((im.size[0] * x, im.size[1] * x), Image.NEAREST)
     out = os.path.join(RAIZ, 'assets', 'planes', carpeta, 'seleccion.png')
     im.save(out)
     print('OK', clave, im.size)

@@ -92,7 +92,7 @@ function ficha() {
 function fichaDe(i) {
   const f = run.flota[i];
   const gasto = RELEVO_AHORRO * (run.gastoLider - (f ? f.gastoRef : 0));
-  if (!f) return { fuel: Math.max(0, 100 - gasto), tanque: null, integ: 100, escudo: 1, escudoT: 0, msl: MSL_MAX, chapitas: run.chapitasMax };
+  if (!f) return { fuel: Math.max(0, 100 - gasto), tanque: null, integ: 100, escudo: 1, escudoT: 0, msl: run.mslMax || MSL_MAX, chapitas: run.chapitasMax };
   return { ...f, fuel: Math.max(0, f.fuel - gasto) };
 }
 

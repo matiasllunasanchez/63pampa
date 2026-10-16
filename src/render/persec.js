@@ -126,8 +126,8 @@ export function drawPersec(selPlane) {
       const col = (SHEET_NF - 1) / 2;
       for (const p of pts) {
         const q = proj(p.x, p.y, p.z), fq = Math.max(PURS_F_MIN, q.k / kRef);
-        const w = SHEET_FW * PLANE_SCALE * fq, h = SHEET_FH * PLANE_SCALE * fq;
-        ctx.drawImage(pl.sheetImg, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, q.x - w / 2, q.y - h / 2, w, h);
+        const w = SHEET_FW * PLANE_SCALE * fq * (pl.escala || 1), h = SHEET_FH * PLANE_SCALE * fq * (pl.escala || 1);
+        ctx.drawImage(pl.sheetImg, col * SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), q.x - w / 2, q.y - h / 2, w, h);
       }
       ctx.imageSmoothingEnabled = sm0;
     }
@@ -145,11 +145,11 @@ export function drawPersec(selPlane) {
     // avion, y tiene que ser la misma: si el lider banqueara distinto que vos, copiarle la linea
     // dejaria de enseñar nada.
     const col = Math.round((1 - Math.max(-1, Math.min(1, L.bank))) / 2 * (SHEET_NF - 1));
-    const w = SHEET_FW * PLANE_SCALE * f, h = SHEET_FH * PLANE_SCALE * f;
-    ctx.drawImage(pl.sheetImg, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH,
+    const w = SHEET_FW * PLANE_SCALE * f * (pl.escala || 1), h = SHEET_FH * PLANE_SCALE * f * (pl.escala || 1);
+    ctx.drawImage(pl.sheetImg, col * SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1),
       s.x - w / 2, s.y - h / 2, w, h);
     // la luz de borde, igual que tu avion y el escuadron: es el mismo A-4 y tiene que verse igual
-    drawBorde(ctx, pl.sheetImg, col * SHEET_FW, SHEET_FH, SHEET_FW, SHEET_FH, s.x - w / 2, s.y - h / 2, w, h);
+    drawBorde(ctx, pl.sheetImg, col * SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), s.x - w / 2, s.y - h / 2, w, h);
   } else if (pl.ready) {
     const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
     ctx.drawImage(pl.img, s.x - w / 2, s.y - h / 2, w, h);

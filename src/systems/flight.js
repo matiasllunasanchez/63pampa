@@ -26,7 +26,7 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { TURBO } from '../data/tuning.js';
-import { MSL_MAX, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE, GEO_ISLA_IMPACTO,
+import { MSL_MAX, MSL_REGEN_HERC, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE, GEO_ISLA_IMPACTO,
          METRALLAS, calorTiro, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
          FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
@@ -178,21 +178,25 @@ export function flightSystem(dt, deps) {
   // MODOS, con o sin ruta; en la nafta pesa solo con ruta (la cuenta en km). null sin carga: x1.
   const colgado = naftaSys.colgadoAhora(deps.climax === 'suelta' ? run.msl : bombasDe(cfg.carga),
     bombaInfo(blanco.bomba).kg);
-  const velC = colgado ? naftaSys.velCarga(colgado) : 1;
+  const velC = colgado && !(run.vuelo && run.vuelo.carga === false) ? naftaSys.velCarga(colgado) : 1;
+  // EL AVION (data/planes.js `vuelo`, el Hercules bombardero): su velocidad y lo que le queda del turbo
+  const avV = run.vuelo ? run.vuelo.vel : 1, avT = run.vuelo ? run.vuelo.turbo : 1;
   // LA COBRA (el freno, systems/moves.js) tambien baja el OBJETIVO mientras la panza esta plantada:
   // el freno de la maniobra solo era una fuerza, y con el arrastre rapido (sin ENERGIA) el crucero se
   // la comia en el acto — medido, frenaba 13%. Con el objetivo abajo frena igual con los dos modelos.
   // (y EL DERRAPE, el freno de costado: cada maniobra de freno escribe `mvFreno` ya con su corte)
   const cobraF = run.mv ? 1 - run.mvFreno : 1;
-  const spdTarget = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier }) * av.spd * velC * cobraF;
+  const spdLleno = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier });
+  const spdSin = avT === 1 ? spdLleno : speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: false, afterTier: 0 });
+  const spdTarget = (spdSin + (spdLleno - spdSin) * avT) * avV * av.spd * velC * cobraF;
   // lo que la carga y las averias le sacan a tu velocidad, a la vista de la PERSECUCION: el lider
   // vuela en el mismo cielo con la misma carga, y sin esto con bombas colgadas lo perdias siempre
-  run.factorVel = av.spd * velC;
+  run.factorVel = av.spd * velC * avV;
   // CUANTO ACELERA EL TURBO (PLAN_NAFTA_ALCANCE §3.2): la velocidad con turbo contra la misma sin
   // turbo ni after. Es lo que la nafta cobra — 1.5 el turbo de siempre, mas con el after apilado —
   // y solo eso: la velocidad que sube sola con la racha no se paga.
   const turboR = run.boost
-    ? spdTarget / Math.max(1e-6, speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: false, afterTier: 0 }) * av.spd * velC)
+    ? spdTarget / Math.max(1e-6, speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: false, afterTier: 0 }) * av.spd * velC * avV)
     : 1;
   // INTERCAMBIO DE ENERGIA (cfg.energy): la ALTURA es energia almacenada — picar la convierte
   // en velocidad, trepar la gasta. Es lo que arma el pendulo (bajar rapido → rasar → trepar).
@@ -202,7 +206,9 @@ export function flightSystem(dt, deps) {
   // con el intercambio puesto, la trepada se comia contra el piso de SPD_MIN y la bajada devolvia de
   // mas: salia a 120 de una maniobra de freno.
   const vyEnergia = run.mv === 'mortal' || run.mv === 'cobrainv' ? 0 : plane.vy;
-  run.spd = cfg.energy ? applyEnergy(run.spd, spdTarget, vyEnergia, dt) : applyDrag(run.spd, spdTarget, dt);
+  // (el Hercules LLEGA mas despacio a su velocidad: `vuelo.acel` frena el arrastre hacia el objetivo)
+  const dtA = run.vuelo ? dt * run.vuelo.acel : dt;
+  run.spd = cfg.energy ? applyEnergy(run.spd, spdTarget, vyEnergia, dtA) : applyDrag(run.spd, spdTarget, dtA);
   // turbulencia: el viento sacude el avión
   let windRock = 0;   // con CONTROL POR ALABEO la rafaga va a las ALAS, no a vx (ver mas abajo)
   if (run.windF < 0.97) {
@@ -707,10 +713,13 @@ export function flightSystem(dt, deps) {
   // primer tiro — lo mismo que tarda su sonido en empezar a disparar. Soltar o recalentar los para, y
   // el sonido vuelve a arrancar del giro (systems/audio.js).
   run.giro = gatillo && !run.overheat ? run.giro + dt : 0;
-  if (gatillo && !run.overheat && run.giro >= met.calienta && run.fireT <= 0 && mvAllowsFire()) {
+  // EL CAÑON DEL AVION (data/planes.js `canon`, el Hercules): uno solo, desde el centro, lento y potente
+  const cn = run.canon;
+  const cad = cn ? cn.cad : met.cad;
+  if (gatillo && !run.overheat && run.giro >= (cn ? 0 : met.calienta) && run.fireT <= 0 && mvAllowsFire()) {
     // la cadencia ARRASTRA el resto, de a lo sumo un cuadro: con `fireT = 1 / cad` cada tiro esperaba
     // el cuadro entero que sobraba, y a 60 fps la de 18 tiros/s tiraba 15
-    run.fireT = Math.max(run.fireT, -dt) + 1 / met.cad; run.tiroT = 0;
+    run.fireT = Math.max(run.fireT, -dt) + 1 / cad; run.tiroT = 0;
     stats.shots++;   // denominador de la PRECISION del recuento
     const vm = deps.viewMouse();
     // DOS CAÑONES, uno por lado, TURNANDOSE. Antes salia todo de un punto en el centro del avion.
@@ -718,7 +727,7 @@ export function flightSystem(dt, deps) {
     // PRECISION del recuento (hits/shots) quedan exactamente iguales que antes — lo unico que
     // cambia es de donde sale cada trazadora. Con cualquier metralla se ven los dos chorros.
     gunSide = -gunSide;
-    const bx = plane.x + gunSide * GUN_X;
+    const bx = cn ? plane.x : plane.x + gunSide * GUN_X;
     // Las dos lineas CONVERGEN en el punto apuntado, como un armamento reglado de verdad: salen
     // separadas del avion y se juntan alla adelante.
     let tx, ty;
@@ -739,8 +748,12 @@ export function flightSystem(dt, deps) {
         if (d < td) { td = d; ty = o.y; }
       }
     }
-    bullets.push({ x: bx, y: plane.y, z: PZ + 3, x0: bx, y0: plane.y, z0: PZ + 3, tx, ty, path: true });
-    run.heat += calorTiro(run.metralla, run.cinta);   // la CINTA dice cuanto aguanta la rafaga
+    const bala = { x: bx, y: plane.y, z: PZ + 3, x0: bx, y0: plane.y, z0: PZ + 3, tx, ty, path: true };
+    if (cn) Object.assign(bala, { dano: cn.dano, vel: cn.vel, gordo: cn.gordo });
+    bullets.push(bala);
+    // (el cañon lento calienta lo mismo POR SEGUNDO que la metralla: cada tiro pesa lo que pesan los que no tira)
+    run.heat += calorTiro(run.metralla, run.cinta) * (cn ? met.cad / cn.cad : 1);
+    if (cn) beep(150 + Math.random() * 30, 0.09, 'sawtooth', 0.05);   // la CINTA dice cuanto aguanta la rafaga
     if (run.heat >= 1) { run.overheat = true; beep(140, 0.3, 'sawtooth', 0.05); }
     else if (!sfxSrc(met.sfx)) beep(1100 + Math.random() * 300, 0.04, 'square', 0.028);   // web: beep; escritorio: loop de metralla
   }
@@ -749,7 +762,10 @@ export function flightSystem(dt, deps) {
   run.mslCd -= dt;
   // …salvo en LA SUELTA: ahi las bombas son POR PASADA (data/blanco.js) y las repone el re-encare.
   // Con la recarga de siempre aparecia una tercera bomba a mitad de la aproximacion.
-  if (run.msl < MSL_MAX && deps.climax !== 'suelta') { run.mslRegen += dt; if (run.mslRegen >= 7) { run.mslRegen = 0; run.msl++; } }
+  // (EL HERCULES, 16/10: "en los ciclos bombas a rolete" — su bodega es la carga entera, `run.mslMax`, y
+  // se repone de a una cada MSL_REGEN_HERC s)
+  const mslTope = run.mslMax || MSL_MAX, mslCada = run.mslMax ? MSL_REGEN_HERC : 7;
+  if (run.msl < mslTope && deps.climax !== 'suelta') { run.mslRegen += dt; if (run.mslRegen >= mslCada) { run.mslRegen = 0; run.msl++; } }
   // MANTENER APUNTA, SOLTAR TIRA (27/9): con la tecla apretada se ve la trayectoria (la mira de
   // render/trayectoria.js) y la bomba sale al LEVANTARLA. Antes salia al apretar, y mantenida
   // repetia cada medio segundo.

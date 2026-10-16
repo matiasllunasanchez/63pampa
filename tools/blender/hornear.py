@@ -42,7 +42,9 @@ PIEZAS_CAPA = {'tanques_ala': ('tanques_ala', 'pilon_ala'), 'bombas_ala': ('bomb
                'exocet': ('exocet', 'pilon_exocet'), 'tanque_babor': ('tanque_babor', 'pilon_babor'),
                # EL TREN (9/10): sin oclusor — el juego lo dibuja DEBAJO del avion y lo sube al recogerlo,
                # asi que tiene que estar entero (el sprite le tapa lo que el ala tapa)
-               'tren': ('tren',)}
+               'tren': ('tren',),
+               # EL HERCULES BOMBARDERO (16/10): las 12 de 250 kg o las 6 de 500, en los racks del fuselaje
+               'herc_250': ('herc_250',), 'herc_500': ('herc_500',)}
 # `--sin-sonda`: hornea el avion SIN la sonda de reabastecimiento. La usa armar_juego.py para que la
 # columna nivelada se pueda simetrizar sin duplicar la sonda del A-4, que va de UN solo lado (ver ahi).
 SIN_SONDA = '--sin-sonda' in ARGS
@@ -99,6 +101,8 @@ if VISTA == 'cobra':
 # la camara: sigue pegando del lado que se ve.
 SEL_YAW, SEL_ELEV, SEL_ROLL, SEL_ZOOM, SEL_Z = (float(os.environ.get(k, d)) for k, d in
                                                 (('SEL_YAW', '124'), ('SEL_ELEV', '21'), ('SEL_ROLL', '-12'), ('SEL_ZOOM', '0.93'), ('SEL_Z', '-0.45')))
+# (el HERCULES BOMBARDERO, 16/10, abre el doble que un caza: su encuadre se abre en la misma proporcion)
+if MODELO in ('herc', 'hercules_bombardero') and 'SEL_ZOOM' not in os.environ: SEL_ZOOM = 0.86
 if VISTA == 'seleccion':
     ANGLES, PITCHES = [SEL_ROLL], [0]
     FW = FH = int(arg('--px', '195'))

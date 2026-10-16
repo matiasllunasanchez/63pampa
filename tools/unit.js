@@ -2406,7 +2406,10 @@ test('anclas: el render las USA y no volvio a una tabla a mano', () => {
   // geometria de ala, hay que volver a medir esta tabla". Esa nota describe un dato que se pudre
   // solo. Si alguien vuelve a pegar los numeros aca, esto lo dice.
   const src = readFileSync(new URL('../src/render/plane.js', import.meta.url), 'utf8');
-  assert.ok(src.includes("import { ANCLAS } from '../data/anclas.js'"), 'plane.js dejo de leer las anclas medidas');
+  // (desde el 16/10 entra con alias: las del A-4 son la tabla de los cazas, y un avion de otro tamaño —el
+  // Hercules bombardero— trae las suyas, medidas igual, en data/anclas_aviones.js)
+  assert.ok(/import \{ ANCLAS( as ANCLAS_A4)? \} from '\.\.\/data\/anclas\.js'/.test(src), 'plane.js dejo de leer las anclas medidas');
+  assert.ok(src.includes("import { ANCLAS_AVION } from '../data/anclas_aviones.js'"), 'plane.js dejo de leer las anclas propias');
   assert.ok(src.includes('const TIPS = ANCLAS.base.tips'), 'volvio a haber una tabla de puntas a mano');
   assert.ok(/AN\.tob\[rowPose\]\[colPose\]/.test(src), 'la tobera volvio a un ancla fija');
   // y el TOPE de los parches, que es lo que impide que una chapa quede flotando en el cielo.

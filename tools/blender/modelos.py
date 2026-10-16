@@ -335,6 +335,18 @@ def mat_pintura(K, nombre, P, bandera=None):
         nor = N.new('ShaderNodeSeparateXYZ'); L.new(vt.outputs['Vector'], nor.inputs['Vector'])
         abajo = N.new('ShaderNodeMath'); abajo.operation = 'LESS_THAN'; abajo.inputs[1].default_value = P.get('umbral_panza', -0.28)
         L.new(nor.outputs['Y'], abajo.inputs[0])
+        if P.get('ola'):
+            # LA PANZA ONDULADA (16/10, el Hercules bombardero: "hace la panza ondulada"): la panza no la
+            # decide la normal sino una LINEA a la altura y0 que ondula a lo largo del fuselaje —
+            # y < y0 + amp * sin(2 pi z / periodo) —, como el borde festoneado del gris del TC-68
+            y0, amp, per = P['ola']
+            fz = N.new('ShaderNodeMath'); fz.operation = 'MULTIPLY'; fz.inputs[1].default_value = 2 * math.pi / per
+            L.new(pos.outputs['Z'], fz.inputs[0])
+            sn = N.new('ShaderNodeMath'); sn.operation = 'SINE'; L.new(fz.outputs[0], sn.inputs[0])
+            ln = N.new('ShaderNodeMath'); ln.operation = 'MULTIPLY_ADD'; L.new(sn.outputs[0], ln.inputs[0])
+            ln.inputs[1].default_value = amp; ln.inputs[2].default_value = y0
+            abajo = N.new('ShaderNodeMath'); abajo.operation = 'LESS_THAN'
+            L.new(pos.outputs['Y'], abajo.inputs[0]); L.new(ln.outputs[0], abajo.inputs[1])
         def capa(Q):
             arr = Q['arriba']
             if len(arr) == 1:
@@ -678,3 +690,12 @@ def construir(clave, T, K):
 # el nombre del experimento, que sigue andando (el A-4 de la FAA)
 def a4nuevo(T, K):
     return construir('sky', T, K)
+
+# EL HERCULES BOMBARDERO (16/10): el TC-68 jugable, OTRO modelo hecho a partir de la Chancha. Vive en
+# modelos_hercules.py; se importa aca adentro porque ese modulo importa a este.
+def hercules_bombardero(T, K):
+    import importlib.util, os
+    spec = importlib.util.spec_from_file_location('modelos_hercules', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modelos_hercules.py'))
+    mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+    return mod.hercules_bombardero(T, K)
+herc = hercules_bombardero        # la clave del juego (hornear_todo.py hornea por clave)

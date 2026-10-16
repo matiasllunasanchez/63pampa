@@ -26,7 +26,11 @@ import { drawMira } from './miras.js';
 import { anchorSpray, drawSpray } from './rain.js';
 import { HORNO_VIEJO } from '../data/horno.js';
 import { PLANES, SHEET_NF, SHEET_FW, SHEET_FH, SHEET_BODY_H, SHEET3_FW, SHEET3_FH, SHEET4_FW, SHEET4_FH, SHEET4_K } from '../data/planes.js';
-import { ANCLAS } from '../data/anclas.js';
+import { ANCLAS as ANCLAS_A4 } from '../data/anclas.js';
+import { ANCLAS_AVION } from '../data/anclas_aviones.js';
+// LAS ANCLAS DEL AVION QUE SE ESTA DIBUJANDO: las del A-4 (una tabla para todos los cazas) o las propias
+// de un avion de otro tamaño (el Hercules bombardero, 16/10). Las cambia drawPlane al empezar.
+let ANCLAS = ANCLAS_A4;
 import { capasDe } from '../data/cargas.js';
 import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
          CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT,
@@ -636,7 +640,8 @@ export function drawTren(pl, g, col, row, x, y, w, h, fino) {
   if (g <= 0) return true;
   const a0 = ctx.globalAlpha;
   ctx.globalAlpha = a0 * Math.min(1, g * 5);
-  ctx.drawImage(im, col * SHEET_FW, row * SHEET_FH, SHEET_FW, SHEET_FH, x, y - (1 - g) * TREN_SUBE * h, w, h);
+  const k = pl.px || 1;
+  ctx.drawImage(im, col * SHEET_FW * k, row * SHEET_FH * k, SHEET_FW * k, SHEET_FH * k, x, y - (1 - g) * TREN_SUBE * h, w, h);
   ctx.globalAlpha = a0;
   return true;
 }
@@ -905,6 +910,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // …salvo durante una SEÑA del pack (data/senales.js): la pose la manda el gesto
   const bank = run.senalT > 0 ? run.senalBank : Math.max(-1, Math.min(1, plane.bank));
   const pl = PLANES[selPlane];
+  ANCLAS = ANCLAS_AVION[pl.key] || ANCLAS_A4;
   const useSheet = pl.sheetOk;   // sprite HORNEADO: el alabeo lo traen los frames
   // EL TONEL, ahora una entrada del catalogo como cualquier otra (data/moves.js). Se lo sigue
   // preguntando aparte porque es la unica pirueta que gira el sprite ENTERO 360°: pose centrada y
@@ -995,7 +1001,11 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   boostSc += ((run.boost ? 0.92 : 1) - boostSc) * 0.08;
   const ff = stepFlame();   // una sola vez por cuadro: las tres ramas de dibujo la comparten
   const sc = PLANE_SCALE * boostSc * (camScale || 1);
-  const spW = SHEET_FW / U * sc, spH = SHEET_FH / U * sc;
+  // UN AVION DE OTRO TAMAÑO (el Hercules bombardero, 16/10: "no puede tener el mismo tamaño que el resto"):
+  // `escala` lo dibuja mas grande y `px` dice que sus hojas estan horneadas a esa resolucion (el cuadro de
+  // fuente mide 84 x px), asi que agrandado sigue en pixel art nitido. Los cazas: 1 y 1.
+  const PX = pl.px || 1;
+  const spW = SHEET_FW / U * sc * (pl.escala || 1), spH = SHEET_FH / U * sc * (pl.escala || 1);
   // EL CONO TRANSONICO (PLAN_TRANSONICO V2), DETRAS del sprite: es aire condensado alrededor del
   // avion, asi que el avion va adentro de la nube y no tapado por ella. Va aca —antes de las tres
   // ramas de dibujo— para que salga igual con hoja, con sprite viejo o con el fallback de rects.
@@ -1052,7 +1062,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     else if (run.mvSteep && hoja2) { img = hoja2; row = run.mvSteep > 0 ? 0 : 1; }
     else if (run.mvSteep) row = run.mvSteep > 0 ? 0 : 2;
     else if (hoja3) { img = hoja3; F3 = SHEET3_FW; }
-    const FW4 = F3 || SHEET_FW, FH4 = hoja4 ? SHEET4_FH : F3 ? SHEET3_FH : SHEET_FH;
+    const FW4 = (F3 || SHEET_FW) * PX, FH4 = (hoja4 ? SHEET4_FH : F3 ? SHEET3_FH : SHEET_FH) * PX;
     const sx4 = col * FW4, sy4 = row * FH4;
     const dW = spW * K4, dH = spH * K4;           // lo que se dibuja (x1,5 con la hoja de la cobra)
     // fantasmas de la pirueta: 2 copias retrasadas en el giro, translucidas
@@ -1070,7 +1080,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // del ala. Son ESTRELLAS en las raices medidas de la hoja (ver `fogonazos`), asi que asoman alrededor
     // del ala tambien con la hoja del poder RASANTE.
     // La LLAMA del turbo va ENCIMA: sale de la tobera, que apunta a la camara.
-    if (fogonOn() && !hoja4) fogonazos(spW, spH, AN.tips[rowPose][colPose]);
+    // (el Hercules tira con UN cañon, desde el centro: una sola estrella, grande, bajo la panza)
+    if (fogonOn() && !hoja4) { if (run.canon) estrellaFogon(0, spH * 0.08, spW / 84 * 1.6); else fogonazos(spW, spH, AN.tips[rowPose][colPose]); }
     // DEBAJO del sprite: la pata nace dentro del ala y solo se ve lo que asoma. El tren horneado va
     // con la hoja BASE (y las skins, misma celula); con las otras hojas, o sin la capa, el dibujado
     const conBase = !F3 && !hoja4 && img !== hoja2;
@@ -1140,11 +1151,11 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
       const AC = ANCLAS.cobra;
       const tc = AC && (AC.tob[row][col] || [0, AC.box[row][col][1] * 0.92]);
       // en el MORTAL la llama va normal: a fondo (la de la cobra) tapaba al avion toda la vuelta
-      if (tc) tobera(tc[0] * dW, tc[1] * dH, enMortal ? ff : Math.max(ff, 1.6) * run.mvCobra, spW / 84 * (enMortal ? 2.4 : 3.2), !enMortal);
+      if (tc && !pl.sinTobera) tobera(tc[0] * dW, tc[1] * dH, enMortal ? ff : Math.max(ff, 1.6) * run.mvCobra, spW / 84 * (enMortal ? 2.4 : 3.2), !enMortal);
     } else {
       parches(spW, spH, AN.tips[rowPose][colPose], nivel(), AN);
       const tb = AN.tob[rowPose][colPose];
-      if (tb) tobera(tb[0] * spW, tb[1] * spH, ff, spW / 84 * 2.4);
+      if (tb && !pl.sinTobera) tobera(tb[0] * spW, tb[1] * spH, ff, spW / 84 * 2.4);
     }
   } else if (pl.ready) {
     const PW = 54, PH = Math.round(PW * pl.h / pl.w);

@@ -30,17 +30,24 @@ export const CARGAS = [
   // no tiene puesto el Exocet debajo del ala"): el Exocet AM39 bajo el ala DERECHA y un tanque de 1.100 l
   // bajo la IZQUIERDA (`babor`), cada uno en su capa horneada. El tanque se suelta como los otros.
   { id: 'exocet', ala: null, centro: null, exocet: true, babor: 'tanque', avion: 'supere', es: 'EXOCET AM39 + 1 TANQUE', en: 'EXOCET AM39 + 1 TANK' },
+  // EL HERCULES BOMBARDERO (16/10, el autor: "llevaba hasta 12 bombas de 250 kg o 6 de 500 kg"): los
+  // dos afustes bajo la raiz del ala, con un MER de seis bombas cada uno; cada carga en su capa horneada (`herc`: 'carga_herc_<herc>').
+  // `bombasN` cuantas cuelgan; `buqueN` cuantas de esas son DEL BUQUE (salen solo con el buque a tiro,
+  // como la del centro de los cazas) — el resto se tira donde sea, como las del ala.
+  { id: 'herc_250', ala: null, centro: null, herc: '250', bombasN: 12, buqueN: 4, avion: 'herc', es: '12 BOMBAS DE 250 KG', en: '12 x 250 KG BOMBS' },
+  { id: 'herc_500', ala: null, centro: null, herc: '500', bombasN: 6, buqueN: 2, avion: 'herc', es: '6 BOMBAS DE 500 KG', en: '6 x 500 KG BOMBS' },
 ];
 
 /** LA CARGA PROPIA DE CADA AVION, la que sale si nadie eligio otra (12/10). Fuera de la campaña no hay
  *  hangar, y el Dagger volaba con la India: es la suya. (La campaña vuela A-4B.) */
-export const CARGA_PROPIA = { dagger: 'india', supere: 'exocet' };
+export const CARGA_PROPIA = { dagger: 'india', supere: 'exocet', herc: 'herc_250' };
 
 /** La carga que cuelga de verdad el avion `key` si se pidio `id`: una carga de OTRO avion no se puede
  *  colgar (vuelve la base), y la base se cambia por la propia del avion si tiene una. */
 export function cargaParaAvion(id, key) {
   const c = cargaDe(id);
-  if (c.avion && c.avion !== key) return CARGA_BASE;
+  if (c.avion && c.avion !== key) return CAPAS_SOLO[key] ? CARGA_PROPIA[key] : CARGA_BASE;
+  if (CAPAS_SOLO[key] && c.avion !== key) return CARGA_PROPIA[key];   // el Hercules no tiene pilones de caza
   if (c.id === CARGA_BASE && CARGA_PROPIA[key]) return CARGA_PROPIA[key];
   return c.id;
 }
@@ -63,6 +70,10 @@ export const CARGA_ELEGIBLE_DESDE = 2;
 export const CAPAS_CARGA = ['carga_tanques_ala', 'carga_bombas_ala', 'carga_tanque_centro', 'carga_bomba_centro'];
 /** Las capas que solo hornea un avion (tools/blender/hornear_todo.py, CAPAS_EXTRA): el ala media del Dagger. */
 export const CAPAS_EXTRA = { dagger: ['carga_bombas_ext'], supere: ['carga_tanque_babor', 'carga_exocet'] };
+/** Los aviones que NO tienen los pilones de los cazas: solo cuelgan sus capas propias (el Hercules). */
+export const CAPAS_SOLO = { herc: ['carga_herc_250', 'carga_herc_500'] };
+/** Las capas que se cargan para el avion `key`. */
+export const capasAvion = key => CAPAS_SOLO[key] || CAPAS_CARGA.concat(CAPAS_EXTRA[key] || []);
 
 export const cargaDe = id => CARGAS.find(c => c.id === id) || CARGAS.find(c => c.id === CARGA_BASE);
 
@@ -73,12 +84,13 @@ export function capasDe(id) {
   if (c.ext === 'bomba') out.push('carga_bombas_ext');   // el ala media va despues del ala, antes del centro
   if (c.babor === 'tanque') out.push('carga_tanque_babor');   // la carga del Super Etendard (un ala cada una)
   if (c.exocet) out.push('carga_exocet');
+  if (c.herc) out.push('carga_herc_' + c.herc);
   if (c.centro) out.push(c.centro === 'tanque' ? 'carga_tanque_centro' : 'carga_bomba_centro');
   return out;
 }
 
 /** Cuantas bombas lleva la carga `id`: el par de ala cuenta dos. */
-export const bombasDe = id => { const c = cargaDe(id); return (c.ala === 'bomba' ? 2 : 0) + (c.ext === 'bomba' ? 2 : 0) + (c.centro === 'bomba' ? 1 : 0); };
+export const bombasDe = id => { const c = cargaDe(id); if (c.bombasN) return c.bombasN; return (c.ala === 'bomba' ? 2 : 0) + (c.ext === 'bomba' ? 2 : 0) + (c.centro === 'bomba' ? 1 : 0); };
 /** Cuantos tanques lleva la carga `id`. */
 export const tanquesDe = id => { const c = cargaDe(id); return (c.ala === 'tanque' ? 2 : 0) + (c.babor === 'tanque' ? 1 : 0) + (c.centro === 'tanque' ? 1 : 0); };
 
@@ -94,6 +106,8 @@ export function conBombaCentral(id) {
   // …Y EL SUPER ETENDARD LLEVA SU EXOCET: es su arma contra el buque (systems/blanco.js lo cuenta como
   // la del centro, y al soltarlo deja de dibujarse — render/plane.js)
   if (c.exocet) return c.id;
+  // …Y EL HERCULES lleva las del buque en sus racks (`buqueN`)
+  if (c.herc) return c.id;
   const x = CARGAS.find(k => k.ala === c.ala && k.centro === 'bomba');
   return x ? x.id : CARGA_BASE;
 }
