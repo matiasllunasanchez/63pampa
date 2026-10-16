@@ -78,6 +78,28 @@ export function drawMenu(w) {
     ctx.fillStyle = i === w.selPlane ? P.accent : '#3a464c';
     ctx.fillRect(Math.round(W / 2 - totW / 2 + i * gap) - 1, 134, 3, 3);
   }
+  // LA DIFICULTAD (POR LA PATRIA y CICLO DE MUERTE, 16/10): debajo del avion, con las flechas
+  // arriba/abajo. El escuadron que trae va al lado — en estos modos ES la cantidad de vidas.
+  if (w.dif) {
+    // CHICO (autor, 16/10): una sola linea — DIFICULTAD ▲ FACIL ▼ · 8 AVIONES
+    const lang = getLang(), nom = w.dif[lang] || w.dif.es;
+    const av = w.dif.aviones === 1 ? T('difAvion') : T('difAviones', { n: w.dif.aviones });
+    ctx.font = labelFont(5);
+    const rot = T('difTitulo') + '  ', wr = ctx.measureText(rot).width;
+    ctx.font = menuFont(7); const wn = ctx.measureText(nom).width;
+    ctx.font = labelFont(5); const cola = '   ·  ' + av, wc = ctx.measureText(cola).width;
+    const flecha = 6, total = wr + flecha + wn + flecha + wc;
+    let x = W / 2 - total / 2; const y = 150;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = P.dim; ctx.fillText(rot, x, y); x += wr;
+    const col = w.dif.id === 'gloria' ? P.warn : P.accent;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.moveTo(x, y - 1); ctx.lineTo(x + 4, y - 1); ctx.lineTo(x + 2, y - 4.5); ctx.fill(); x += flecha;
+    ctx.font = menuFont(7); ctx.fillText(nom, x, y); x += wn + 2;
+    ctx.beginPath(); ctx.moveTo(x, y - 4.5); ctx.lineTo(x + 4, y - 4.5); ctx.lineTo(x + 2, y - 1); ctx.fill(); x += flecha - 2;
+    ctx.font = labelFont(5); ctx.fillStyle = P.dim; ctx.fillText(cola, x, y);
+    ctx.textAlign = 'center';
+  }
   // PIE: una sola linea de teclas, en la misma fuente que el rotulo "ELEGI TU AVION" (GlimpRThin)
   // para que se lean como parte del mismo sistema. Salieron de aca el prompt amarillo que
   // parpadeaba (lo dice la fila [ENTER]), el idioma (vive en OPCIONES) y el homenaje (subio a la
@@ -109,7 +131,12 @@ export function drawMenu(w) {
 // logo quedaba pegado al brillo del bisel. Hoy son CINCO filas (con MODO DEV): 96 + 4*29 + 20 = 232.
 // …y 36 (13/10, el autor: "mas separacion entre los bloques resaltables"): el resalte mide 30 y con
 // paso 29 se tocaban. 96 + 4*36 + 18 = 258.
-export const MODE_ROWS = { y0: 96, rh: 36 };
+// …y SIN MODO DEV LA LISTA BAJA UNA FILA (16/10, el autor, mirando el juego de verdad: "mira donde
+// esta el rojo"). Las cuentas de arriba son con CINCO filas; el juego empaquetado tiene CUATRO (MODO
+// DEV es solo de desarrollo) y SALIR quedaba con un hueco vacio abajo. Bajando una fila, la ultima cae
+// donde cae en dev (96 + 4*36 = 132 + 3*36) y el logo se reacomoda solo en el hueco de arriba.
+// …y SIN EL ROTULO «MODOS DE JUEGO» (16/10, el autor: "se explican solos") la lista sube 16.
+export const MODE_ROWS = { y0: (DEV ? 96 : 96 + 36) - 16, rh: 36 };
 
 // EL LOGO (12/10, el autor): el SVG que diseño — RASANTE, la linea, las tres estrellas y las Malvinas —
 // reemplaza al texto en Kirana de la portada y del selector de modo. En el ambar de siempre (P.accent,
@@ -211,8 +238,9 @@ export function drawModeSelect(w) {
   // EL MISMO AIRE ARRIBA Y ABAJO DEL LOGO (autor, 3/10): del borde de arriba a RASANTE, lo mismo
   // que de RASANTE a "ELEGI MODO DE JUEGO". Se mide con la fuente cargada —las alturas de Kirana y
   // GlimpR no son las del monospace de respaldo— y el logo se acomoda en el medio del hueco.
-  ctx.font = labelFont(13);
-  const topeRotulo = yLista - 20 - ctx.measureText(T('modePrompt')).actualBoundingBoxAscent;
+  // (el tope ya no es el rotulo «MODOS DE JUEGO», que se fue el 16/10: es el del primer nombre de la lista)
+  ctx.font = menuFont(12);
+  const topeRotulo = yLista - 14 - ctx.measureText(T('modeCampaign')).actualBoundingBoxAscent;
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(MODE_TITULO_PX);   // mismo logotipo que la portada
   if (logoListo()) {
@@ -242,13 +270,7 @@ export function drawModeSelect(w) {
   ];
   const { y0, rh } = MODE_ROWS, x = 40, PAD_X = 9;   // x deja lugar al cursor '>' fuera del recuadro
 
-  // el "ELEGI MODO DE JUEGO" encabeza la LISTA (no cuelga del titulo): asi se lee como el rotulo
-  // de la seccion y no como un subtitulo suelto
-  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);   // GlimpRThin
-  ctx.fillText(T('modePrompt'), x, y0 - 20);
-  ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
-  ctx.beginPath(); ctx.moveTo(x, y0 - 15.5); ctx.lineTo(NW - 30, y0 - 15.5); ctx.stroke();
-  ctx.globalAlpha = 1;
+  // (el rotulo «MODOS DE JUEGO» y su raya se fueron el 16/10: las filas se explican solas)
 
   for (let i = 0; i < opts.length; i++) {
     const y = y0 + i * rh, on = i === w.modeSel;
@@ -256,13 +278,19 @@ export function drawModeSelect(w) {
     if (on) {
       // el resalte se AJUSTA al contenido (no cruza la pantalla): se mide el texto mas ancho de la
       // fila y se le suma padding, para que no quede al ras de las letras.
-      ctx.font = menuFont(12); const wn = ctx.measureText(opts[i].name).width;
-      ponFila(i); const wd = ctx.measureText(opts[i].desc).width; sacaFila();
+      ctx.font = menuFont(12); const mn = ctx.measureText(opts[i].name), wn = mn.width;
+      ponFila(i); const md = ctx.measureText(opts[i].desc), wd = md.width; sacaFila();
       const boxW = Math.max(wn, wd) + PAD_X * 2;
+      // EL MISMO AIRE ARRIBA Y ABAJO (autor, 16/10: "fijate la altura del amarillo"): el recuadro
+      // iba clavado de y-12 a y+18 y, con estas fuentes, sobraba arriba del nombre y quedaba justo
+      // debajo de la descripcion. Ahora se calza a lo que miden las letras: del tope del nombre al
+      // pie de la descripcion, con AIRE de cada lado.
+      const AIRE = 4, arriba = y - mn.actualBoundingBoxAscent - AIRE;
+      const altoBox = (y + 14 + md.actualBoundingBoxDescent + AIRE) - arriba;
       ctx.fillStyle = col; ctx.globalAlpha = 0.13;
-      ctx.fillRect(x - PAD_X, y - 12, boxW, 30); ctx.globalAlpha = 1;
+      ctx.fillRect(x - PAD_X, arriba, boxW, altoBox); ctx.globalAlpha = 1;
       ctx.fillStyle = col; ctx.globalAlpha = 0.5;                 // filo izquierdo: ancla la fila
-      ctx.fillRect(x - PAD_X, y - 12, 2, 30); ctx.globalAlpha = 1;
+      ctx.fillRect(x - PAD_X, arriba, 2, altoBox); ctx.globalAlpha = 1;
       ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = 'bold 10px monospace';
       ctx.fillText('>', x - PAD_X - 9, y);
     }

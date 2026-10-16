@@ -111,7 +111,7 @@ app.whenReady().then(async () => {
     else bad('no volvio al libro: ' + JSON.stringify(d && { st: d.state, fila: d.fila, libro: d.libro }));
   }
 
-  // UN DERRIBO TAMBIEN TERMINA EN LO QUE PASÓ (no se reintenta)
+  // UN DERRIBO NO SE REINTENTA NI CUENTA LO QUE PASÓ: vuelve al libro
   console.log('\n7. derribado:');
   paso = 'derribado';
   d = await hasta(x => x.state === 'campmenu' && x.fila.id === 'libro' && x.fila.k === 4, 'Up');
@@ -126,9 +126,12 @@ app.whenReady().then(async () => {
     // sin sonda de choque: el avion sin gas se cae solo al mar
     await hasta(x => x.state === 'dead', null, 25);
   }
-  d = await hasta(x => x.state === 'epilogue', 'Return', 20);
-  if (d) ok('derribado → lo que pasó (' + d.escena + ')');
-  else bad('el derribo no termino en lo que pasó: ' + (await L()).state);
+  // (16/10, el autor: LO QUE PASÓ es solo si ganaste; perdida, la pantalla de derribo —con la explicacion
+  // y la nota historica— y la tecla vuelve al libro, sobre la misma salida)
+  d = await hasta(x => x.state === 'dead' || x.state === 'campmenu', null, 25);
+  d = await hasta(x => x.state === 'campmenu', 'Return', 20);
+  if (d && d.fila.id === 'libro' && d.fila.k === 4) ok('derribado → vuelve al libro, sin lo que pasó');
+  else bad('el derribo no volvio al libro: ' + (await L()).state);
 
   fin();
 });

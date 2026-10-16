@@ -133,6 +133,30 @@ function retrasoAccion(ln) {
   return a ? a / TYPE_CPS + ACC_PAUSA : 0;
 }
 
+// LA TARJETA DE MISION SE ARMA EN ORDEN (autor, 16/10): primero el titulo, DE A UNA PALABRA (cada
+// una con su beep, en game.js), y recien despues se tipea la linea blanca de abajo. Es la misma idea
+// que la acotacion: el reloj del texto arranca despues. Vale solo para la PRIMERA linea de la tarjeta
+// —el titulo se arma una vez— y un toque lo completa todo de golpe, como siempre (RF-02).
+export const TARJETA_ESPERA = 0.35;   // pantalla quieta antes de la primera palabra
+export const TARJETA_PALABRA = 0.28;  // entre palabra y palabra
+export const TARJETA_PAUSA = 0.5;     // titulo completo → primera letra de abajo
+/** Las palabras del titulo de una escena TARJETA ([] si no es tarjeta o no tiene titulo). */
+export function palabrasTitulo(sc) {
+  return sc && sc.tipo === 'TARJETA' && sc.titulo ? String(sc.titulo).split(/\s+/).filter(Boolean) : [];
+}
+/** Segundos que tarda en armarse el titulo de la tarjeta antes de que se tipee la linea. */
+function retrasoTitulo() {
+  const n = palabrasTitulo(scene()).length;
+  return n && dlg.li === 0 ? TARJETA_ESPERA + (n - 1) * TARJETA_PALABRA + TARJETA_PAUSA : 0;
+}
+/** Cuantas palabras del titulo se ven ya. Todas si no es la primera linea o si ya se completo. */
+export function palabrasVisibles() {
+  const n = palabrasTitulo(scene()).length;
+  if (!n || dlg.li > 0 || dlg.done || dlg.typed > 0) return n;
+  if (dlg.t < TARJETA_ESPERA) return 0;
+  return Math.min(n, 1 + Math.floor((dlg.t - TARJETA_ESPERA) / TARJETA_PALABRA));
+}
+
 function startLine() {
   const ln = line(), txt = txtOf(ln);
   dlg.t = 0; dlg.tDone = 0; dlg.typed = 0; dlg.accTyped = 0;
@@ -146,7 +170,7 @@ function startLine() {
 export function stepDialogue(dt) {
   dlg.seqT += dt; dlg.t += dt; dlg.sceneT += dt;
   const ln = line(), n = txtOf(ln).length;
-  const na = accionDe(ln).length, retraso = retrasoAccion(ln);
+  const na = accionDe(ln).length, retraso = retrasoAccion(ln) + retrasoTitulo();
   dlg.accTyped = Math.min(na, Math.floor(dlg.t * TYPE_CPS));
   if (!dlg.done) {
     // el reloj del dialogo arranca DESPUES de la acotacion y de su pausa

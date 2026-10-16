@@ -20,10 +20,10 @@ let AC = null, eng = null;
 // ver tools/build_web.py (mapea cada mp3 a su m4a, o descarta las que no entran).
 const MUSIC_LOBBY = '../assets/music/lobby.mp3';   // the_weight_of_honor — lobby en loop
 const MUSIC_GAME = '../assets/music/game.mp3';    // weight_of_honor_v2 — fondo del juego, volumen bajo
-const musLobby = new Audio(MUSIC_LOBBY); musLobby.loop = true; musLobby.volume = 0.55;
-const musGame = new Audio(MUSIC_GAME); musGame.loop = true; musGame.volume = 0.30;
+const musLobby = new Audio(MUSIC_LOBBY); musLobby.loop = true; musLobby.volume = 0.42;
+const musGame = new Audio(MUSIC_GAME); musGame.loop = true; musGame.volume = 0.22;
 const MUSIC_STORY = '../assets/music/story.mp3';   // epic_himno — pantallas de HISTORIA
-const musStory = new Audio(MUSIC_STORY); musStory.loop = true; musStory.volume = 0.5;
+const musStory = new Audio(MUSIC_STORY); musStory.loop = true; musStory.volume = 0.38;
 // EL SOUNDTRACK PROPIO (9/10/2026). Hasta hoy el reproductor llevaba un pool de once pistas
 // "pmetal" bajadas de afuera; el autor las BORRO del disco y dejo en `assets/music/soundtrack/`
 // las del soundtrack del juego. Esto es esa lista.
@@ -53,7 +53,7 @@ const MUSIC_POOL = [
   ['misty', '../assets/music/soundtrack/misty_malvinas.m4a'],
   ['alambre', '../assets/music/soundtrack/alambre.mp3'],
 ];
-const musPool = MUSIC_POOL.map(([, src]) => { const a = new Audio(src); a.volume = 0.30; return a; });
+const musPool = MUSIC_POOL.map(([, src]) => { const a = new Audio(src); a.volume = 0.22; return a; });
 // ZONA RASANTE es la pista PRINCIPAL de las partidas de PRUEBAS (el autor, 4/10: "pone zona
 // rasante como track principal de las partidas de prueba"). Va en el reproductor como una mas —
 // en una prueba arranca ella, y ◄ ► siguen cambiando.
@@ -82,7 +82,7 @@ const MUSIC_MISION = [
   '../assets/music/original/wardoneon1.mp3',
   '../assets/music/original/wardoneon2.mp3',
 ].filter(Boolean);
-const musMision = new Audio(); musMision.volume = 0.30;
+const musMision = new Audio(); musMision.volume = 0.22;
 let enMision = false, misionSrc = '';
 /** Carga en musMision una pista de MUSIC_MISION al azar, distinta de la anterior. */
 function sortearMision() {
@@ -245,6 +245,7 @@ let tirabaPrev = false;
 export function updateSfx(dt, w) {
   for (const k of SFX_LOOP_KEYS) sfxTgt[k] = 0;
   const flying = w.state === 'play' || w.state === 'takeoff';
+  if (!flying || muted) postcombustion(dt, false);
   if (!flying) tirabaPrev = false;   // fuera de vuelo no hay rafaga que soltar (la descarga no suena al volver)
   if (!muted) {
     if (flying && w.plane) {
@@ -254,6 +255,7 @@ export function updateSfx(dt, w) {
       sfxTgt.engN = SFX_DEF.engN.v * (1 - mixB * 0.85);
       sfxTgt.engN2 = SFX_DEF.engN2.v * (0.15 + mixB * 0.85);
       if (w.boost) sfxTgt.turbo = SFX_DEF.turbo.v;                        // turbo en loop con fade
+      postcombustion(dt, !!w.boost);                                      // …y la poscombustion encima
       // EL AGUA, y con el poder puesto MAS FUERTE (RF-05). Es la mitad que queda cuando el mundo se
       // apaga: motor y agua. Que el agua SUBA mientras todo lo demas baja es lo que hace que el
       // silencio no se lea como que se rompio el sonido — se lee como que te acercaste al mar.
@@ -339,7 +341,9 @@ export function updateMusic(state) {
   // pistas: HISTORIA (himno epico) / lobby / juego (la pista del reproductor o la del nivel)
   const gm = gameTrack();
   // EL ARRANQUE DEL FICHIN retiene la musica hasta que entra la ficha (ver `retenerMusica`)
-  if (musicaRetenida) { for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (!m.paused) m.pause(); return; }
+  // ...y EN PAUSA tampoco suena nada (autor, 16/10: ver pausarAudio)
+  // ...y LA TARJETA DE MISION va sin musica (autor, 16/10): solo el zumbido y las teclas (ver zumbido)
+  if (musicaRetenida || enTarjeta || enPausa) { for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (!m.paused) m.pause(); return; }
   const want = state === 'story' ? musStory : inLobby(state) ? musLobby : gm;
   for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (m !== want && !m.paused) m.pause();
   if (musicStarted && want.paused && (want !== musStory || MUSIC_STORY)) {
@@ -360,7 +364,8 @@ export function updateMusic(state) {
   // El LERP es el mismo de siempre (0.08 por cuadro), asi que la entrada es un agachon suave y la
   // salida —al soltar el poder— es la EXHALACION que pide el spec: el sonido volviendo solo. No
   // hace falta programarla; es la misma rampa leida al reves.
-  const tv = (rasOn ? RAS_MUS : state === 'momentum' ? 0.10 : 0.30) * (duckT > 0 ? 0.45 : 1);
+  // (16/10, el autor: "bajemos un poco la musica" — de 0.30 a 0.22, y lo demas en la misma proporcion)
+  const tv = (rasOn ? RAS_MUS : state === 'momentum' ? 0.07 : 0.22) * (duckT > 0 ? 0.45 : 1);
   gm.volume += (tv - gm.volume) * 0.08;
 }
 function startMusicOnce(state) { if (musicStarted || muted || musicaRetenida) return; musicStarted = true; updateMusic(state || 'modeselect'); }
@@ -420,6 +425,190 @@ export function sonidoFicha() {
     arp.forEach((f, i) => nota(f, 0.42 + i * 0.065, 0.07, 'square', 0.05));
     nota(2093, 0.42 + arp.length * 0.065, 0.3, 'square', 0.055);   // do, arriba
     nota(1047, 0.42 + arp.length * 0.065, 0.3, 'triangle', 0.08);  // con el bajo
+  } catch (e) { }
+}
+
+// ---------- LA POSCOMBUSTION (autor, 16/10) ----------
+// Al apretar el turbo suena el ARRANQUE (afterburner_start, una vez). Si se lo mantiene, ENCIMA del final
+// del arranque —un segundo antes de que termine— entra el SOSTENIDO (afterburner_2) en loop, con un fundido
+// de ese mismo segundo: el empalme no se oye. Al soltar, los dos se van en un fundido corto.
+const AB = { encima: 1, sale: 0.25 };
+let abI = null, abS = null, abT = -1, abPrev = false;
+function abAudio(key) {
+  const d = sfxSrc(key); if (!d) return null;
+  const a = new Audio(SFXB + d.f[0]); a.volume = 0; return a;
+}
+function postcombustion(dt, on) {
+  if (!SFXB) return;
+  if (on && !muted && !enPausa) {
+    if (!abI) { abI = abAudio('abInicio'); abS = abAudio('abSostenido'); if (!abI) return; }
+    if (!abPrev) {                                   // APRETASTE: el arranque, desde el principio
+      abT = 0; abPrev = true;
+      try { abI.currentTime = 0; } catch (e) { } abI.volume = SFX_DEF.abInicio.v; abI.play().catch(() => { });
+      if (abS && !abS.paused) { abS.pause(); abS.volume = 0; }
+    }
+    abT += dt;
+    const durI = abI.duration > 0 ? abI.duration : 5.6, tEnc = durI - AB.encima;
+    if (abS && abT >= tEnc) {
+      const D = SFX_DEF.abSostenido;
+      if (abS.paused) { try { abS.currentTime = D.desde; } catch (e) { } abS.play().catch(() => { }); }
+      if (abS.currentTime >= D.hasta) { try { abS.currentTime = D.desde; } catch (e) { } }
+      const u = Math.min(1, (abT - tEnc) / AB.encima);
+      abS.volume = D.v * u;
+      if (!abI.paused) abI.volume = SFX_DEF.abInicio.v * (1 - u);   // el arranque se apaga mientras entra el otro
+    }
+    return;
+  }
+  // SOLTASTE (o salio del vuelo): los dos se van en AB.sale segundos
+  abPrev = false;
+  if (abT < 0 || !abI) return;
+  const k = Math.max(0, 1 - dt / AB.sale);
+  abI.volume *= k; if (abS) abS.volume *= k;
+  if (abI.volume < 0.01 && (!abS || abS.volume < 0.01)) {
+    abI.pause(); if (abS) abS.pause(); abT = -1;
+  }
+}
+
+// ---------- LA PAUSA (autor, 16/10: "en pausa el sonido de atras debe frenar, al igual que la musica, todo") ----------
+// Con el juego en pausa update() no corre, asi que los loops de ambiente (la batalla en tierra, el viento,
+// la lluvia, el agua) quedaban sonando con el ultimo volumen que tenian. Ahora la pausa calla TODO: la
+// musica (updateMusic lee `enPausa`), los loops, la zona de radar y los one-shots que esten sonando. Al
+// volver, los loops y la musica retoman solos en el cuadro siguiente; los one-shots no (eran un instante).
+let enPausa = false;
+/** Lo pide game.js en cada cuadro con el estado de la pausa. Idempotente. */
+export function pausarAudio(v) {
+  v = !!v;
+  if (v === enPausa) return;
+  enPausa = v;
+  if (v) {
+    for (const k of SFX_LOOP_KEYS) { const a = sfxLoopA[k]; if (a && !a.paused) a.pause(); }
+    for (const rel in sfxPool) for (const a of sfxPool[rel].a) if (a && !a.paused) a.pause();
+    if (rvA && !rvA.paused) rvA.pause();
+    if (detA && !detA.paused) { detA.pause(); detOn = false; }
+    if (abI) { abI.pause(); if (abS) abS.pause(); abT = -1; abPrev = false; }
+    if (eng) eng.g.gain.value = 0;
+  }
+  updateMusic(lastState);
+}
+
+// ---------- LAS PANTALLAS (pedido del autor, 16/10/2026) ----------
+// EL ARRANQUE DE LA PC: el booting suena desde el negro, antes de que prenda el tubo, y sigue debajo
+// del BIOS (es el disco y el ventilador de la maquina cargando). Cuando aparece INSERTE FICHA NO se
+// apaga: BAJA y queda de fondo, bajito, hasta que la ficha da paso a la portada (autor, 16/10). Por
+// eso es un <audio> propio y no un one-shot del pool: hay que poder moverle el volumen a mitad de
+// camino. En loop por las dudas: el aviso espera una tecla sin limite y el archivo dura dos minutos.
+const BOOT = { alto: 0.8, bajo: 0.16 };
+let bootA = null, bootTok = 0;
+function rampaBoot(v1, seg, alFinal) {
+  const a = bootA, tok = ++bootTok, v0 = a.volume, t0 = performance.now();
+  const tick = () => {
+    if (tok !== bootTok) return;
+    const u = Math.min(1, (performance.now() - t0) / 1000 / seg);
+    a.volume = v0 + (v1 - v0) * u;
+    if (u < 1) requestAnimationFrame(tick); else if (alFinal) alFinal();
+  };
+  requestAnimationFrame(tick);
+}
+/** El booting de la PC: 'alto' arranca, 'bajo' lo deja de fondo, false lo apaga en fundido. */
+export function arranquePc(nivel) {
+  if (nivel === 'alto') {
+    const d = sfxSrc('bootPc'); if (!d || muted) return;
+    if (!bootA) { bootA = new Audio(SFXB + d.f[0]); bootA.loop = true; }
+    bootA.volume = 0; bootA.currentTime = 0; bootA.play().catch(() => { });
+    rampaBoot(BOOT.alto, 0.3);
+  } else if (!bootA || bootA.paused) {
+    return;
+  } else if (nivel === 'bajo') {
+    rampaBoot(BOOT.bajo, 0.8);
+  } else {
+    rampaBoot(0, 1.2, () => bootA.pause());
+  }
+}
+
+// EL ZUMBIDO DE LA TARJETA: humming MUY bajito mientras esta en pantalla la tarjeta de mision. Es un
+// loop propio (no del catalogo de loops de vuelo, que se manejan por contexto de juego) y entra y sale
+// con una rampa corta, asi prender/apagar cada cuadro no hace clic.
+const ZUMBIDO_V = 0.07;
+let zumbidoA = null, zumbidoOn = false, zumbidoRaf = 0;
+// mientras se ve la tarjeta la MUSICA SE CALLA (autor, 16/10: "quita las musicas mientras esa
+// pantalla esta activa"). Es un flag aparte del zumbido: sin samples (build web) no hay zumbido,
+// pero la musica igual se tiene que ir. Lo lee updateMusic.
+let enTarjeta = false;
+/** Lo pide game.js en cada cuadro: true mientras se ve una tarjeta de mision. Idempotente. */
+export function zumbido(on) {
+  if (!!on !== enTarjeta) { enTarjeta = !!on; updateMusic(lastState); }
+  on = !!on && !muted && !!SFXB;
+  if (on === zumbidoOn) return;
+  zumbidoOn = on;
+  if (on && !zumbidoA) { zumbidoA = new Audio(SFXB + 'screens/humming.mp3'); zumbidoA.loop = true; zumbidoA.volume = 0; }
+  if (!zumbidoA) return;
+  if (on) zumbidoA.play().catch(() => { });
+  const a = zumbidoA, tok = ++zumbidoRaf, v0 = a.volume, v1 = on ? ZUMBIDO_V : 0, t0 = performance.now();
+  const tick = () => {
+    if (tok !== zumbidoRaf) return;
+    const u = Math.min(1, (performance.now() - t0) / 400);
+    a.volume = v0 + (v1 - v0) * u;
+    if (u < 1) requestAnimationFrame(tick);
+    else if (!on) a.pause();
+  };
+  requestAnimationFrame(tick);
+}
+
+// LA ZONA DE RADAR ENEMIGO (autor, 16/10). Al entrar en su alcance —cuando la linea verde empieza a
+// barrer la pantalla— suena green_radar_start (eso lo dispara game.js con el barrido); despues queda
+// green_radar en loop, y su volumen lo pone LO CERCA QUE ESTES DE QUE TE VEAN: bajito al ras, sube a
+// medida que te acercas al techo del radar, y a pleno por encima, con la pantalla en verde. Se va en
+// fundido al salir. El archivo trae 0,6 s de silencio en cada punta: en vez de `loop` (que los repetiria
+// cada vuelta) se da vuelta a mano entre `desde` y `hasta`.
+const RV = { lejos: 0.06, visto: 0.5, desde: 0.6, hasta: 56.55, trasInicio: 3.6 };
+let rvA = null, rvOn = false;
+/** Lo pide game.js en cada cuadro. `adentro`: en el alcance del radar enemigo. `t`: segundos desde que
+ *  entraste (el barrido; el loop entra cuando termina green_radar_start). `cerca`: 0 al ras, 1 en el
+ *  techo del radar o por encima. */
+export function zonaRadar(adentro, t, cerca) {
+  adentro = !!adentro && !muted && !!SFXB;
+  if (adentro && !rvA) { rvA = new Audio(SFXB + SFX_DEF.radarVerde.f[0]); rvA.volume = 0; }
+  if (!rvA) return;
+  const suena = adentro && (t || 0) >= RV.trasInicio;
+  if (suena && !rvOn) { rvOn = true; try { rvA.currentTime = RV.desde; } catch (e) { } rvA.volume = 0; rvA.play().catch(() => { }); }
+  if (!suena && rvOn && rvA.volume < 0.005) { rvOn = false; rvA.pause(); return; }
+  if (!rvOn) return;
+  if (rvA.paused && suena) rvA.play().catch(() => { });   // volviendo de la pausa
+  if (rvA.currentTime >= RV.hasta) try { rvA.currentTime = RV.desde; } catch (e) { }
+  const c = Math.max(0, Math.min(1, cerca || 0));
+  const meta = suena ? RV.lejos + (RV.visto - RV.lejos) * c : 0;
+  rvA.volume += (meta - rvA.volume) * (suena ? 0.08 : 0.06);
+}
+
+// DETECTANDO (autor, 16/10): detecting_2 en loop mientras estas arriba del techo del radar y la barra
+// sube — te estan pintando. Entra y sale con una rampa corta. Lo pide game.js en cada cuadro.
+let detA = null, detOn = false;
+export function detectando(on) {
+  on = !!on && !muted && !enPausa && !!SFXB;
+  if (on && !detA) { detA = new Audio(SFXB + SFX_DEF.radarDetectando.f[0]); detA.loop = true; detA.volume = 0; }
+  if (!detA) return;
+  if (on && !detOn) { detOn = true; try { detA.currentTime = 0; } catch (e) { } detA.play().catch(() => { }); }
+  const meta = on ? SFX_DEF.radarDetectando.v : 0;
+  detA.volume += (meta - detA.volume) * (on ? 0.3 : 0.15);
+  if (!on && detOn && detA.volume < 0.01) { detOn = false; detA.pause(); }
+}
+
+/** LA CARGA DEL PROGRAMA (la entrada a la mision, render/carga.js): el chillido de la casetera de las
+ *  computadoras de los 80 — el tono guia parejo y despues los datos, dos frecuencias que saltan al azar.
+ *  Sintetizado, como el tubo: bajito, porque es textura y no un golpe. `guia` y `datos` en segundos. */
+export function sonidoCarga(guia, datos) {
+  if (muted || !ctxAudio()) return;
+  try {
+    const o = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter(), t0 = AC.currentTime;
+    o.type = 'square'; f.type = 'lowpass'; f.frequency.value = 2600;
+    o.frequency.setValueAtTime(808, t0);
+    for (let t = guia; t < guia + datos; t += 0.012) o.frequency.setValueAtTime(Math.random() < 0.5 ? 1022 : 2044, t0 + t);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(0.022, t0 + 0.03);
+    g.gain.setValueAtTime(0.022, t0 + guia + datos - 0.04);
+    g.gain.linearRampToValueAtTime(0.0001, t0 + guia + datos);
+    o.connect(f); f.connect(g); g.connect(AC.destination);
+    o.start(t0); o.stop(t0 + guia + datos + 0.05);
   } catch (e) { }
 }
 
@@ -576,6 +765,9 @@ export function setRunMusic(isCampaign, level, keep, prueba, pista, mision) {
 }
 
 // ---------- REPRODUCTOR (cambiar de pista en vuelo, modos que no son historia) ----------
+/** UNA PISTA AL AZAR para la corrida (los modos sueltos, 16/10): del reproductor —game.mp3 y el
+ *  soundtrack, la musica de las misiones—, nunca la `original` (esa es del libro de vuelo). */
+export function sortearPista() { trackIdx = (Math.random() * PLAYLIST.length) | 0; syncPlayerBtn(); }
 export function trackCount() { return PLAYLIST.length; }
 export function currentTrackName() { return 'TRACK ' + (trackIdx + 1); }
 

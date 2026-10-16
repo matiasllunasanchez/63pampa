@@ -69,7 +69,8 @@ const CINTA_LINEA = 44;   // el recorrido, adentro de la placa
  *    metaCol color de la meta y de `b` (default: el naranja de aviso)
  *    a, b   los dos lados de la fraccion (`b` null = no hay meta: solo el numero, sin linea)
  *    uni    unidad al final (o null)
- *    boost  estelas atras del marcador */
+ *    boost  estelas atras del marcador
+ *    icono  un icono antes del valor, cuando no hay linea (POR LA PATRIA: el avioncito con los puntos) */
 function cinta(o) {
   const conLinea = o.b != null;
   ctx.font = F_VAL;
@@ -78,12 +79,13 @@ function cinta(o) {
   ctx.font = F_ROT;
   const uniW = o.uni ? Math.round(ctx.measureText(o.uni).width) + 2 : 0;
   const rotW = o.rot ? Math.round(ctx.measureText(o.rot).width) + 5 : 0;
+  const iconoW = o.icono && !conLinea ? 13 : 0;
   // EL NOMBRE DEL BLANCO, en SU cuadro y en rojo, pegado a los kilometros (playtest 11/9). Estaba a la
   // izquierda de la ruta, en gris: lejos del numero con el que se asocia. Pegado al total, y del color
   // del total, el cuadro se lee de un tiron — «2.6 km hasta el HMS SHEFFIELD».
   const nomW = o.nombre ? Math.round(ctx.measureText(o.nombre).width) + 8 : 0;
   let linea = CINTA_LINEA;
-  let ancho = 4 + rotW + (conLinea ? linea + 5 + 5 : 0) + aW + (o.b ? 3 + bW : 0) + uniW + 4;
+  let ancho = 4 + rotW + iconoW + (conLinea ? linea + 5 + 5 : 0) + aW + (o.b ? 3 + bW : 0) + uniW + 4;
   const conNombre = () => ancho + (nomW ? nomW - 1 : 0);   // el instrumento entero: cinta + cuadro
   // EL MINIMO: el ancho que la radio necesita para colgar debajo con el MISMO ancho (ver VOZ). Lo
   // que falta se lo lleva la LINEA de la ruta, que gana resolucion en vez de ganar alto. Sin linea
@@ -115,6 +117,7 @@ function cinta(o) {
     ctx.fillText(o.rot, bx0 + 4, y + 2);
   }
   let kx = bx0 + 4 + rotW;
+  if (iconoW) { iconoEn(kx + 5, y, o.icono, P.ink); kx += iconoW; }
   if (conLinea) {
     const x0 = kx, x1 = x0 + linea;
     // via PUNTEADA (pendiente) que se va rellenando continua (recorrido): lee como ruta de mapa
@@ -227,27 +230,15 @@ export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, sol
  *  cuenta lo que falta para casa y el radar se termina a `radarKm` del blanco: cae en el mismo punto. */
 const radarFr = ruta => (ruta && ruta.radarKm && ruta.blanco > 0 ? (ruta.blanco - ruta.radarKm) / ruta.blanco : null);
 
-/** POR LA PATRIA: contra tu record. Sin objetivo no hay ruta, pero la pregunta del renglon es la
- *  misma —¿como va esta corrida?— y las tres cosas que la contestan son la misma info: el
- *  kilometraje dice cuanto aguantaste, el puntaje cuanto sacaste y el record contra que se compara.
- *  Estaban en tres placas sueltas apiladas en la esquina; son un instrumento.
- *
- *  SIN RECORD TODAVIA no se dibuja la linea: una barra que avanza hacia cero no avanza hacia nada.
- *  Queda el kilometraje y el puntaje, que es exactamente lo que hay para decir. */
-export function drawCorridaBar(best) {
-  const km = Math.max(0, run.dist) / 1000;
-  const pts = Math.floor(run.score);
-  cinta({
-    rot: km.toFixed(1) + ' km',   // en minuscula, como en la cinta con objetivo
-    prog: best > 0 ? Math.max(0, Math.min(1, pts / best)) : 0,
-    meta: 'record',
-    a: String(pts), b: best > 0 ? '/ ' + best : null,
-    // PASASTE TU MARCA: la bandera y el numero se prenden en acento. Es el unico aviso que hace
-    // falta —la linea ya esta llena y el marcador clavado en la punta— y evita el cartel, que en
-    // POR LA PATRIA taparia mundo justo cuando el jugador esta arriesgando mas.
-    metaCol: best > 0 && pts >= best ? P.accent : P.warn,
-    uni: null, boost: run.boost,
-  });
+/** POR LA PATRIA: LOS PUNTOS, Y NADA MAS (16/10, el autor: "por la patria no tiene final, cambiar esta
+ *  barrita objetivo, quitarla y mostrar puntos acumulados con icono de avioncito"). Era una RUTA contra
+ *  tu record —kilometraje, linea y «299 / 33309»—, y una ruta dice que hay un final: en un camino
+ *  infinito no lo hay. Quedan los km recorridos y el avioncito con el puntaje, en el mismo lugar de la
+ *  cinta (de ahi cuelga la radio). El record se ve donde termina la corrida. */
+export function drawCorridaBar() {
+  // …con los KILOMETROS recorridos adelante (16/10, el autor: "poner kilometros recorridos y puntaje")
+  cinta({ rot: (Math.max(0, run.dist) / 1000).toFixed(1) + ' km', icono: 'avion', a: String(Math.floor(run.score)),
+    uni: T('hud_pts'), uniCol: P.dim, boost: run.boost });
 }
 
 // colores de la bandera argentina, para el conteo del despegue
@@ -484,6 +475,16 @@ function plate(x, y, w, h) {
 // HUD que se mueve solo y sin que hagas nada, y de ahi le viene el peso.
 const ODO_DEC = '#a2762f';   // el ambar del acento, apagado: misma familia, otro plano
 
+/** EL PUNTAJE, en una placa como la del odometro (CICLO DE MUERTE: la cinta de arriba es del blanco). */
+function drawPuntos(x, y) {
+  const pts = String(Math.floor(run.score));
+  ctx.font = 'bold 9px monospace';
+  const w = Math.max(46, ctx.measureText(pts).width + 24);
+  plate(x, y, w, 12);
+  ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.fillText(pts, x + 4, y + 9);
+  ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.textAlign = 'right';
+  ctx.fillText(T('hud_pts'), x + w - 3, y + 9);
+}
 function drawOdo(x, y) {
   const km = Math.max(0, run.dist) / 1000;
   const ent = String(Math.floor(km)), dec = Math.floor((km - Math.floor(km)) * 10);
@@ -2069,7 +2070,6 @@ const DIG = {
   4: ['##...##', '##...##', '##...##', '##...##', '##...##', '##...##', '#######', '#######', '.....##', '.....##', '.....##', '.....##', '.....##', '.....##', '.....##'],
 };
 function digito(x, y, n, col) {
-  const d = DIG[Math.max(0, Math.min(4, n | 0))];
   // MAS DE 4 (la bodega del Hercules bombardero, 16/10: hasta 12): la tabla de pixeles llega a 4, asi
   // que el numero va en la letra chica del estante
   if ((n | 0) > 4) {
@@ -2077,6 +2077,7 @@ function digito(x, y, n, col) {
     ctx.fillText(String(n | 0), x, y + 5);
     return;
   }
+  const d = DIG[Math.max(0, Math.min(4, n | 0))];
   ctx.fillStyle = col;
   const x0 = x + FINO;                                   // 7 de 9: centrado en la celda de 3
   for (let j = 0; j < d.length; j++) {
@@ -2169,7 +2170,7 @@ export function drawHUD(h) {
   cajaCinta = null;   // ver cintaCaja: una caja de otro cuadro no cuenta
   placas.length = 0;  // ver placasHud: las de este cuadro
   cajaPiloto = null;  // idem: la cara de la que sale mi voz es la de ESTE cuadro
-      const { best, gameMode, objectiveDist, objectiveShip } = h;
+      const { gameMode, objectiveDist, objectiveShip } = h;
   // EL PODER RASANTE llega POR SNAPSHOT y no por import, a diferencia de sus dos hermanos: el
   // lint de capas prohibe que `render` importe de `systems`, y las dos violaciones que ya existen
   // (tempo y chancha) estan en la lista de trinquete, que solo puede achicarse. La convencion 4
@@ -2210,6 +2211,9 @@ export function drawHUD(h) {
   // PERSECUCION no tiene objetivo NI record: la cinta no tiene contra que medir, asi que el
   // kilometraje se queda aca como contador abierto — la forma que le toca cuando no hay meta.
   if (objectiveDist <= 0 && gameMode !== 'survival') { drawOdo(MARGEN, ty); ty += 12 + AIRE; }
+  // EL PUNTAJE EN EL CICLO (16/10: "los puntos en ambos modos siempre se muestran"). En POR LA PATRIA
+  // ya esta en la cinta de arriba; en el ciclo la cinta es del blanco, asi que va su placa aca.
+  if (gameMode === 'cycle' && h.suelto) { drawPuntos(MARGEN, ty); ty += 12 + AIRE; }
   // LA CINTA: contra el buque si hay objetivo, contra tu record si es POR LA PATRIA.
   //
   // EL RECORD ES DE POR LA PATRIA Y DE NINGUN OTRO MODO. `rasante_frontal_best` es UN numero
@@ -2221,7 +2225,7 @@ export function drawHUD(h) {
   // EL CARTEL (core/cartel.js) va ANTES de la cinta: baja desde atras de ella y vuelve a esconderse ahi
   drawCartel();
   if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa, h.ruta);
-  else if (gameMode === 'survival') drawCorridaBar(best);
+  else if (gameMode === 'survival') drawCorridaBar();
 
   // EL CONTADOR DE MISION SE FUE (playtest 29/8). «MISION 3/14» arriba del todo era lo unico del
   // HUD que hablaba del MENU y no del vuelo: en que numero de la campaña estas no cambia nada de lo

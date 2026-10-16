@@ -172,7 +172,7 @@ export const puedeCambiar = () => (filaOk(run) ? run.orden.length : run.lives) >
 
 /** Arranca el relevo: descuenta la vida, congela el punto de la caida y prepara al companero.
  *  game.js ya disparo crashFX() — los restos del lider estan volando cuando esto corre. */
-export function startRelevo(cause, spent) {
+export function startRelevo(cause, spent, perdido) {
   // LA FILA: cae el primero y vuela el que seguia. Con la mecanica apagada la fila esta en orden y
   // esto da el mismo `next` que `pilotIdx` daba antes; si una sonda la desincronizo, se rehace.
   if (!filaOk(run)) run.orden = filaDeVidas(run.squad, run.lives);
@@ -192,10 +192,12 @@ export function startRelevo(cause, spent) {
   // EL AVERIADO NO FRENA LA CAMARA (8/10, el autor: "nada que se detenga la camara significa averiado"):
   // en campaña, el que vuelve roto a la base no se queda filmado — la camara sigue al que entra desde el
   // primer cuadro, y el roto se ve irse de costado con su humo. El primer tiempo se acorta a la mitad.
-  const averiado = !!roster && !sano && !spent;
+  // …SALVO QUE SE HAYA PERDIDO (`perdido`, 16/10): fuera de la campaña el avion que cae es un
+  // `derribado` al azar (core/fx.js) — no vuelve a la base, y la camara se queda mirando como cae.
+  const averiado = !!roster && !sano && !spent && !perdido;
   const t0 = sano ? RELEVO_WRECK - REBOBINA_T : averiado ? RELEVO_WRECK * 0.5 : 0;
   rv = {
-    t: t0, t0, cambio: sano, solo: sano, cause, averiado,
+    t: t0, t0, cambio: sano, solo: sano, cause, averiado, perdido: !!perdido,
     // RF-15: `spent` = la pasada se gasto (soltaste o secaste el tanque), NO te derribaron. Cambia
     // el titular de la cinematica y nada mas — la cuenta es la misma. Sin esto la pantalla decia
     // "DERRIBADO" sobre un avion al que nadie toco, que es la clase de mentira que rompe un juego.
@@ -285,7 +287,7 @@ export function updateRelevo(dt) {
   // pantalla se toma de la del avion propio (las puntas que publica el dibujo), escalada a la
   // distancia del que se va; el sprite del que se va trae el alabeo horneado, asi que el ala va
   // horizontal. El humo sube y se abre hacia el lado al que se va, como la estela de antes.
-  if (roster && !rv.cambio && fallenPos(rv).z > 3.8) {
+  if (roster && !rv.cambio && !rv.perdido && fallenPos(rv).z > 3.8) {
     if (!rv.humo) { rv.humo = nuevoHumo(); rv.humoA = 0.5 + Math.random() * 0.45; }
     const p0 = fallenPos(rv), s = proj(p0.x, p0.y, p0.z), sp = proj(plane.x, plane.y, PZ);
     const semi = run.t - run.alaT < 1 && sp.k > 0 ? Math.abs(run.alaRx - run.alaLx) / 2 / sp.k : 1.6;

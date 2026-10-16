@@ -148,6 +148,8 @@ export const MV_FILM = { LENTO: 0.45, ENTRA: 0.35, COLA: 0.6, SALE: 0.5 };
 
 const D_SUELTA = PULSO_CINE.SUELTA;
 const D_IMPACTO = D_SUELTA + PULSO_CINE.IMPACTO;
+// lo que tarda el Exocet en llegar en su cinematica: mas que la caida de una bomba, es lejos (16/10)
+const EXO_VUELO = 1.8;
 
 export const CINES = {
   pulso_premio: {
@@ -280,6 +282,52 @@ export const CINES = {
       // (t 0 → 2.39) y la mision no se perdia nunca, porque la señal `done` no llegaba.
       { t: 2.4, fade: { a: 1, dur: 0.8 } },
       { t: 3.25, fin: true },
+    ],
+  },
+
+  // EL EXOCET ERRADO (autor, 16/10): la prueba era cargarle las coordenadas y se cargaron mal. El misil
+  // sale IGUAL —una vez que salio no hay vuelta atras—, se lo ve irse rozando el agua PARA OTRO LADO
+  // (render/pulso.js con `Q.errado`), el buque queda entero, y fundido a negro: la pantalla de derrota
+  // explica como funcionaba el arma (data/derrotas.js `death_exocet_errado`).
+  // EL EXOCET QUE PEGA (autor, 16/10). Hermana del premio del PULSO, sin la pirueta y EN TERCERA: el
+  // Super Etendard suelta, el misil baja al ras y se va RECTO hasta el buque (render/pulso.js con
+  // `Q.exocet`), el impacto, el buque ardiendo de lejos, y el resplandor. El avion ya se volvia.
+  pulso_premio_exocet: {
+    id: 'pulso_premio_exocet',
+    beats: [
+      { t: 0, parte: 'encare', limpiar: 'popups', control: 'ninguno', ritmo: RITMO },
+      { t: 0, vuelo: true },
+      { t: 0, tempo: { a: RITMO, ramp: PULSO_CINE.DESHIELO, ease: 'suave' } },
+      { t: 0, cam: { modo: 'chase' } },
+      { t: 0, pose: { alt: CINE_VUELO.RAS_ALT, ramp: 0.25 } },
+      { t: 0.4, parte: 'suelta', sfx: { key: 'exocetSale' } },   // el Exocet sale: su motor (16/10)
+      { t: 0.4 + EXO_VUELO, parte: 'impacto', fx: { boom: '$boom', shake: '$shake' },
+        sfx: { key: 'exHeavy', beep: [70, 0.3, 'sawtooth', 0.07, 38] } },
+      { t: 0.4 + EXO_VUELO + PULSO_CINE.IMPACTO, parte: 'muerte' },
+      { t: 0.4 + EXO_VUELO + PULSO_CINE.IMPACTO, pose: { alt: CINE_VUELO.ESC_ALT, ramp: CINE_VUELO.ESC_T } },
+      { t: [0.4 + EXO_VUELO + PULSO_CINE.IMPACTO, '$muerteDur', -DESTELLO],
+        fade: { a: 1, dur: DESTELLO, ease: 'entra', color: '#f4fbff' } },
+      { t: [0.4 + EXO_VUELO + PULSO_CINE.IMPACTO, '$muerteDur'], fin: true },
+    ],
+  },
+
+  pulso_fallo_exocet: {
+    id: 'pulso_fallo_exocet',
+    beats: [
+      { t: 0, parte: 'encare', limpiar: 'popups', control: 'ninguno', ritmo: RITMO },
+      { t: 0, vuelo: true },
+      { t: 0, tempo: { a: RITMO, ramp: 0.45, ease: 'suave' } },
+      // EN TERCERA (autor, 16/10: "cinematica desde 3era persona, el avion desde afuera"): del PULSO
+      // queda solo la secuencia de botones; lo que pasa despues se mira desde atras del avion
+      { t: 0, cam: { modo: 'chase' } },
+      { t: 0, pose: { alt: CINE_VUELO.RAS_ALT, ramp: 0.25 } },
+      // LA SUELTA: el mismo tramo del premio, mas largo — el misil tiene que verse irse lejos
+      { t: 0.4, parte: 'suelta', sfx: { key: 'exocetSale' } },   // el Exocet sale: su motor (16/10)
+      { t: 1.4, rotulo: { key: 'exocet_errado', c: 'warn', big: true, y: 34 } },
+      { t: 2.0, rotulo: { key: 'pulso_fallo_fin', c: 'warn', y: 46 } },
+      { t: 2.4, parte: 'salida', pose: { alt: CINE_VUELO.ESC_ALT, ramp: CINE_VUELO.ESC_T } },
+      { t: 2.8, fade: { a: 1, dur: 0.8 } },
+      { t: 3.7, fin: true },
     ],
   },
 

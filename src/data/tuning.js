@@ -2386,10 +2386,22 @@ export const EYEC_KM_CASA = 150, EYEC_KM_ISLA = 60;
 // VY0 es POSITIVO a proposito: el golpe lo ENCABRITA un instante antes de caer. En rasante (3-8 m) una
 // caida directa duraba un segundo y no daba tiempo de eyectarse; asi dura ~2 s desde el agua.
 export const CAIDA = { VY0: 5, G: 8, VY_MAX: -20, ROLL: 2.2, DERIVA: 5, MAX_T: 4.5 };
-// LA EYECCION A PEDIDO (12/10, el autor): durante la caida, [Q]+[E] juntas (los dos rolidos del teclado)
-// o L1+R1 en el mando. En POR LA PATRIA salvar al piloto suma PTS; en mision, solo si la mision lo
-// permite (`eyeccion: true` en data/missions.js).
-export const EYECCION = { PTS: 2500 };
+// EL AVION QUE SE PIERDE, AL AZAR (16/10, el autor: "a veces explota, otras se prende fuego, se eyecta
+// el piloto y cae en la tierra, y despues el avion puede explotar o caer prendido fuego, todo al azar;
+// de cada 5 aviones 3 o 4 se eyectaban"). Fuera de la campaña —que va por el guion— todo avion que se
+// pierde por misil o por fuego (no por choque) es un `derribado` (core/fx.js `derribar`):
+//   EXPLOTA: probabilidad de que el golpe sea una bola de fuego (si no, se prende fuego), por causa
+//   P_EYECTA: cuantos se eyectan (~3,5 de 5); EYECTA_T: a los cuantos segundos de caida, entre [a, b]
+//   ESTALLA_P: cuantos revientan en el aire despues (el resto cae en llamas hasta el suelo); ESTALLA_T:
+//     cuanto despues de la eyeccion (o del golpe, si nadie salto)
+//   la caida: VY0 (el golpe lo encabrita un instante), G, VY_MAX, ROLL, DERIVA (m/s de costado), VZ
+//   (m/s hacia adelante, con la camara) y MAX_T (si no toco nada, revienta igual)
+// La eyeccion ya no es a pedido (Q+E): es del dado, como pidio el autor.
+export const DERRIBO = {
+  EXPLOTA: { misil: 0.65, bala: 0.25 }, P_EYECTA: 0.7, EYECTA_T: [0.3, 0.8],
+  ESTALLA_P: 0.45, ESTALLA_T: [0.5, 1.4],
+  VY0: 4, G: 9, VY_MAX: -22, ROLL: 2.4, DERIVA: 4, VZ: 3, MAX_T: 3.2,
+};
 
 // ---------------- EL SEA WOLF (pedido del autor 28/9) ----------------
 // El misil de defensa CERCANA de las fragatas: corto alcance, muy rapido, guiado desde el buque y

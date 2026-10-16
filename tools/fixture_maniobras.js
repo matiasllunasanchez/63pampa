@@ -167,7 +167,8 @@ app.whenReady().then(async () => {
   // ---------- entrar a volar ----------
   // POR LA PATRIA: PASILLO infinito. Es el modo correcto para medir piruetas por la misma razon
   // que lo es para medir olas — no se acaba a mitad de una medicion ni desemboca en un climax.
-  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?qa');
+  // `fijo`: POR LA PATRIA sin el mundo al azar de los modos sueltos (16/10) — se mide en el mundo de siempre
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?qa&fijo');
   await sleep(2600);
   const tap = async k => {
     win.webContents.sendInputEvent({ type: 'keyDown', keyCode: k });

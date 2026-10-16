@@ -99,6 +99,10 @@ function puntoImpacto(z) {   // `z` = PULSO_IMPACTO (era la zona elegida, hasta 
 // CUANTOS. Son perillas de teatro y por eso viven aca y no en data/: no cambian ninguna regla, y
 // el dia que haya una hoja de sprites para esto se reemplaza el dibujo sin tocar los numeros.
 const FOCOS = 7, SOLDADOS = 9;
+// EL EXOCET PEGA MAS FUERTE (autor, 16/10: "la explosion GRANDE sobre el barco donde impacte, y buena
+// cantidad de fuego — pero no lo va a partir al medio"): el estallido del impacto, los focos de adentro y
+// las llamas, multiplicados. El buque sigue entero: revienta por dentro y arde, como el Sheffield.
+const EXO = { blast: 2.3, focos: 1.45, llamas: 7, ancho: 2.4, alto: 1.6 };
 
 /** Un estallido: nucleo claro, bola caliente y esquirlas. Crece y se apaga con `p` (0..1).
  *
@@ -160,15 +164,21 @@ function drawCineMundo(Q, c, t, cab) {
     const sp = chase ? proj(plane.x, plane.y, PZ)
       : { x: W / 2, y: (cab ? cab.vidrio : H) - 2 };
     // LA TRAYECTORIA de la bomba `i` en su avance `p`, para poder pedirsela tambien a la estela.
+    // EL EXOCET (16/10) no cae: baja al agua enseguida y va RECTO, al ras. Errado, va a un punto al
+    // costado del buque, sobre el horizonte vacio.
+    const meta = Q.errado ? { x: im.x + (im.x < W / 2 ? 1 : -1) * W * 0.32, y: im.y + 4 } : im;
     const vuelo = (i, p) => {
       const x0 = sp.x + (i - (nB - 1) / 2) * 8;
       return {
-        x: x0 + (im.x - x0) * p,
-        // parabola: la bomba sube un pelo al salir y despues cae sobre el blanco
-        y: sp.y + (im.y - sp.y) * (p * p * 0.65 + p * 0.35),
+        x: x0 + (meta.x - x0) * p,
+        // la bomba: parabola, sube un pelo al salir y despues cae sobre el blanco. El Exocet: se asienta
+        // al ras en el primer tramo y de ahi va derecho
+        y: Q.exocet ? sp.y + (meta.y - sp.y) * Math.min(1, p * 1.6 + p * p * 0.2)
+          : sp.y + (meta.y - sp.y) * (p * p * 0.65 + p * 0.35),
         // ARRANCAN GRANDES: salen de al lado tuyo. Con 4 px la ristra nacia ya del tamaño que
         // tiene a medio camino y no se leia como algo que sale — se leia como algo que aparece.
-        s: Math.max(1, PULSO_CINE.BOMBA_R * (1 - p * 0.86)),
+        // (el Exocet se achica menos: es un misil de 5 m con su estela, y se lo tiene que seguir con la vista)
+        s: Math.max(1, PULSO_CINE.BOMBA_R * (1 - p * (Q.exocet ? 0.7 : 0.86))),
       };
     };
     for (let i = 0; i < nB; i++) {
@@ -213,7 +223,7 @@ function drawCineMundo(Q, c, t, cab) {
   // se queda ardiendo toda la muerte.
   if (c.parte === 'impacto' || c.parte === 'muerte') {
     const pi = c.parte === 'impacto' ? c.fParte : 1;
-    if (pi < 1) estallido(im.x, im.y, uh * 0.95 * z.blast * Q.clase.blast, pi);
+    if (pi < 1) estallido(im.x, im.y, uh * 0.95 * z.blast * Q.clase.blast * (Q.exocet ? EXO.blast : 1), pi);
     // FOGONAZO a pantalla completa en los primeros cuadros: la pantalla se lava, como en la
     // cabina de verdad. Dura poquisimo — es un golpe, no un fundido.
     if (c.parte === 'impacto' && c.tParte < 0.13) {
@@ -246,7 +256,7 @@ function drawCineMundo(Q, c, t, cab) {
       // EL TAMAÑO: comparable al estallido del impacto (0.95·uh), no un poperío. Con 0.34-0.61 se
       // veian pops chiquitos contra un buque que en el premio llena la ventana — y lo que se pide
       // aca es que el barco REVIENTE, no que chisporrotee.
-      estallido(fx2, fy2, uh * (0.58 + ((i * 17) % 4) * 0.13) * z.blast, pf);
+      estallido(fx2, fy2, uh * (0.58 + ((i * 17) % 4) * 0.13) * z.blast * (Q.exocet ? EXO.focos : 1), pf);
       ctx.restore();
     }
     // ---- LOS QUE SALEN DESPEDIDOS ----
@@ -289,12 +299,15 @@ function drawCineMundo(Q, c, t, cab) {
       }
     }
     // FUEGO: lengua que titila en el punto de impacto (y en la flotacion si volo la carga)
-    const fw = uh * (0.7 + humo * 0.5);
-    // las LLAMAS horneadas (render/fuego.js): tres focos desfasados a lo ancho del impacto
+    const fw = uh * (0.7 + humo * 0.5) * (Q.exocet ? EXO.ancho : 1);
+    // las LLAMAS horneadas (render/fuego.js): tres focos desfasados a lo ancho del impacto (con el
+    // Exocet, siete: el incendio que se llevo al Sheffield)
     let horneado = false;
-    for (let i = 0; i < 3; i++) {
-      horneado = fuego.llama(im.x - fw / 2 + (i + 0.5) * fw / 3, im.y + uh * 0.15,
-        uh * (1.7 + (i === 1 ? 0.6 : 0) + humo * 0.4), t, i * 5 + 1) || horneado;
+    const nLl = Q.exocet ? EXO.llamas : 3, kAlto = Q.exocet ? EXO.alto : 1;
+    for (let i = 0; i < nLl; i++) {
+      const centro = Math.abs(i - (nLl - 1) / 2) < 1 ? 0.6 : ((i * 7) % 3) * 0.25;
+      horneado = fuego.llama(im.x - fw / 2 + (i + 0.5) * fw / nLl, im.y + uh * 0.15,
+        uh * (1.7 + centro + humo * 0.4) * kAlto, t, i * 5 + 1) || horneado;
     }
     for (let i = 0; i < 7 && !horneado; i++) {
       const fl = Math.abs(Math.sin(t * (7 + i) + i * 1.7));
@@ -600,6 +613,8 @@ export function drawPulso(w) {
   const Q = w.Q; if (!Q) return;
   const t = w.t;
   const cine = Q.fase === 'cine' ? w.cine : null;
+  // EL EXOCET ERRADO tambien dibuja su mundo: el misil saliendo para otro lado (16/10)
+  const cineErrado = Q.fase === 'perdido' && Q.errado ? w.cine : null;
   // LA CINEMATICA DE LA PERDIDA es cinematica igual que el premio: sin velo, sin cinta y sin nada
   // que leer. Se trata aparte porque NO tiene premio que mostrar (`drawCinePremio` lee `Q.premio`,
   // que en una derrota es null), asi que comparte la salida temprana y nada mas.
@@ -637,10 +652,10 @@ export function drawPulso(w) {
   // por la misma razon que el flak — el canopy tiene que poder taparlo.
   // LA CAJA DE LA CABINA, calculada ANTES de dibujar nada: la necesita la ristra (sale de abajo
   // del morro) y despues la usa el propio dibujo de la cabina. Es la misma cuenta, pedida una vez.
-  const cabW = cabinaW(cine, t);
+  const cabW = cabinaW(cine || cineErrado, t);
   const caja = momRender.cajaCabina(cabW);
   cajaUlt = { top: +caja.top.toFixed(1), h: +caja.h.toFixed(1), ancho: +caja.dw.toFixed(1), vidrio: +caja.vidrio.toFixed(1), off: +cabW.yOff.toFixed(1) };
-  if (cine) drawCineMundo(Q, cine, t, caja);
+  if (cine || cineErrado) drawCineMundo(Q, cine || cineErrado, t, caja);
 
   // LA CABINA. Se reusa tal cual la del climax 2D (con su `yOff`, igual que el ARENA): es el mismo
   // avion y el mismo vidrio — no hay una cabina distinta por modo.
@@ -651,7 +666,7 @@ export function drawPulso(w) {
   // EN TERCERA (`cam: 'chase'`) NO SE DIBUJA NI LA CABINA NI LA SAL: las dos son dispositivos de
   // primera persona. La sal esta entre el ojo y el mundo, y desde afuera del avion no hay vidrio
   // donde pegarse. Ahi el avion lo dibuja el orquestador, con el sprite de siempre.
-  if (!cine || cine.cam.modo !== 'chase') {
+  if (!(cine || cineErrado) || (cine || cineErrado).cam.modo !== 'chase') {
     if (typeof window !== 'undefined') window.__cabW = cabW;   // QUITAR con __cabdbg
     const cab = momRender.drawCockpit(cabW);
     drawSal(cab.top, cab.vidrio);

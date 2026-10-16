@@ -9,7 +9,7 @@ import { run } from './run.js';
 import { geoActiva, esTierraEn, alturaSuelo, sueloEn } from './geografia.js';   // G1: agua o tierra, por punto
 import { parts, popups, obstacles, estallidos } from './world.js';
 import { P } from '../data/palette.js';
-import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO, ESTALLIDO, PIQUE, PART_DIV, PART_TAMANO, PART_MIN, PART_ABRE } from '../data/tuning.js';
+import { POLVO_ABRE, POLVO_BAJA, POLVO_BARRIDO, ESTALLIDO, DERRIBO, PIQUE, PART_DIV, PART_TAMANO, PART_MIN, PART_ABRE } from '../data/tuning.js';
 import { recetaDe, CHUNKS_MAX, CHUNK_LIFE, SEC_N, SEC_T,
   ONDA_T, ONDA_R, ONDA_PUSH, CERCA, FLASH_T,
   CHAIN_R, CHAIN_DEPTH, CHAIN_DELAY, DESPIECE, PARTS_MAX,
@@ -573,11 +573,98 @@ export function onda(x, y, z) {
   }
 }
 
+// ---------------- EL AVION QUE SE PIERDE (16/10) ----------------
+// El autor: "a veces puede explotar, otras se puede prender fuego, luego se eyecta el piloto y cae en la
+// tierra, y despues de la eyeccion el avion puede explotar o caer prendido fuego, todo al azar. De cada
+// 5 aviones 3 o 4 se eyectaban." Fuera de la campaña (que va por el guion) es lo que pasa con TODO
+// avion propio que se pierde por misil o por fuego: el ultimo (game.js `die`) y el que deja lugar a un
+// relevo. Es un objeto del MUNDO y no el avion del jugador: en el relevo ese avion pasa a ser el que
+// entra. Es un `chunk` (con `derribado`) para moverse como el escombro en todos los estados — con la
+// camara en el derribo, con el mundo en vuelo — y para que la colision lo ignore. Lo dibuja
+// render/squad.js (`drawDerribado`); el dado y los tiempos estan en DERRIBO (data/tuning.js).
+const azar = ([a, b]) => a + Math.random() * (b - a);
+/** Pierde el avion `av` ({x, y}) por `tipo` ('misil' | 'bala'). `look` es la hoja que se dibuja.
+ *  Devuelve el objeto (game.js mira `fin` para saber cuando termino de caer). */
+export function derribar(av, tipo, look) {
+  const D = DERRIBO;
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  // SIN NAFTA ('seco'): no hay golpe ni fuego — el motor se apaga, planea, el piloto se eyecta siempre
+  const seco = tipo === 'seco';
+  const explota = !seco && Math.random() < (D.EXPLOTA[tipo] ?? 0.4);
+  const eyecta = seco || Math.random() < D.P_EYECTA;
+  const tEyecta = eyecta ? azar(D.EYECTA_T) : Infinity;
+  const estalla = Math.random() < D.ESTALLA_P;
+  const o = {
+    type: 'chunk', done: true, chunkT: 0, derribado: true, vida: D.MAX_T + 4, look,
+    x: av.x, y: Math.max(1.5, av.y), z: PZ, vx: dir * D.DERIVA, vy: D.VY0, vz: D.VZ,
+    t: 0, roll: 0, dir, explota, tEyecta, eyecto: false, seco,
+    tEstalla: estalla && !seco ? (eyecta ? tEyecta : 0.3) + azar(D.ESTALLA_T) : Infinity, fin: false,
+    spin: 0, vspin: 0, size: 1, grav: 0, ph: 0, parte: null,
+  };
+  // EL GOLPE: o la bola de fuego (sigue cayendo, roto y en llamas) o el fuego que prende
+  if (explota) explodeAt(o.x, o.y, o.z, true, false, true);
+  else if (!seco) { boom(0.18, true); chispazoFuego(o); }
+  obstacles.push(o);
+  return o;
+}
+function chispazoFuego(o) {
+  const s = proj(o.x, o.y, o.z);
+  for (let i = 0; i < 12; i++) {
+    const a = Math.random() * 6.283, v = 30 + Math.random() * 60;
+    parts.push({ x: s.x, y: s.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, life: 0.35 + Math.random() * 0.3,
+      c: Math.random() < 0.5 ? '#ffd27a' : '#ff8a3a', r: 1 + Math.random() });
+  }
+}
+/** Un cuadro del derribado: cae rolando en llamas; en su momento salta el piloto; y revienta en el aire
+ *  o al tocar el agua o el suelo. Termina con `fin` (y `chunkT` pasado: el prune comun se lo lleva). */
+function stepDerribado(o, dt) {
+  if (o.fin) { o.chunkT = o.vida + 1; return; }
+  const D = DERRIBO;
+  o.t += dt;
+  o.vy = Math.max(D.VY_MAX, o.vy - D.G * dt);
+  o.x += o.vx * dt; o.y += o.vy * dt; o.z += o.vz * dt;
+  o.roll += o.dir * D.ROLL * (o.seco ? 0.3 : 1) * dt;   // el seco planea: rola apenas
+  // EL FUEGO Y EL HUMO: llamas pegadas al avion y la columna negra que deja atras (el seco no arde)
+  const s = proj(o.x, o.y, o.z);
+  if (!o.seco) for (let i = 0; i < 3; i++) parts.push({ x: s.x + (Math.random() - 0.5) * s.k * 1.2, y: s.y + (Math.random() - 0.5) * s.k * 0.6,
+    vx: (Math.random() - 0.5) * 14, vy: -8 - Math.random() * 18, life: 0.18 + Math.random() * 0.2,
+    c: ['#fff1b0', '#ffc24a', '#ff7a2a'][i], r: Math.max(1, s.k * (0.35 - i * 0.07)) });
+  if (!o.seco) for (let i = 0; i < 2; i++) parts.push({ x: s.x + (Math.random() - 0.5) * s.k, y: s.y,
+    vx: (Math.random() - 0.5) * 10, vy: -14 - Math.random() * 12, life: 0.9 + Math.random() * 0.5,
+    c: Math.random() < 0.6 ? '#2b2b28' : '#4a4a42', r: Math.max(1.4, s.k * 0.5) });
+  const wz = run.dist + o.z;
+  const tierra = esTierraEn(o.x, wz);
+  const suelo = tierra ? alturaSuelo(o.x, wz) + 0.5 : 1;
+  // LA EYECCION: el mismo paracaidas del piloto ARGENTINO (fila 0 de la hoja) — si todavia hay altura
+  if (!o.eyecto && o.t >= o.tEyecta && o.y > suelo + 2) {
+    o.eyecto = true;
+    boom(0.06, true);
+    obstacles.push({
+      type: 'chunk', done: true, chunkT: 0, paraca: true,
+      x: o.x, y: o.y + 0.5, z: o.z + 1,
+      vx: -o.dir * 2, vy: 9, vz: o.vz, spin: 0, vspin: 0, size: 0.95, hot: false,
+      c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: 7, ph: 0, parte: null, arg: true,
+    });
+  }
+  // EL FINAL: revienta en el aire, o al tocar (o se le acaba el tiempo)
+  const estalla = o.t >= o.tEstalla && o.y > suelo + 1.5;
+  const toca = o.y <= suelo || o.t > D.MAX_T;
+  if (estalla || toca) {
+    if (toca) o.y = Math.max(o.y, suelo);
+    explodeAt(o.x, o.y, o.z, true, false, true);
+    boom(0.25, true);
+    despiece({ type: 'plane', x: o.x, y: o.y, z: o.z }, { imp: { vz: o.vz, vy: estalla ? 4 : 8 } });
+    if (toca) columnaBomba(o.x, o.y, o.z, !tierra);
+    o.fin = true;
+  }
+}
+
 /** UN CUADRO de un pedazo: sigue de largo con su inercia, cae, rebota corto y humea si esta
  *  caliente. Vivia adentro del bloque de estado 'dead' de game.js, donde solo podia correr para
  *  los restos del jugador; ahora la llaman los dos lados — el mundo en vuelo (collision.js) y el
  *  mundo detenido (game.js) — porque desde D0 hay escombro ajeno cayendo mientras se juega. */
 export function stepChunk(o, dt) {
+  if (o.derribado) { stepDerribado(o, dt); return; }   // el avion propio que se pierde (16/10)
   o.chunkT += dt;
   // ESPIRAL (D2): el resto del helicoptero cae en tirabuzon. No es fisica de rigidos (§4.3): es el
   // mismo pedazo de siempre con el lado empujandolo en circulo — a esta escala se lee igual.

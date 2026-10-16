@@ -329,7 +329,12 @@
   body.arranque-sale #bios {
     opacity: 0;
   }
-  body.arranque-apagado #ambiente {
+  body.arranque-apagado #ambiente,
+  /* ...y SIN LUZ MIENTRAS EL BIOS TAPA AL JUEGO (autor, 16/10): el resplandor copia el canvas del
+     juego, que abajo ya esta pintando la portada, asi que el borde se teñia con una pantalla que se
+     ve negra (BIOS, INSERTE FICHA, PRESIONE CUALQUIER TECLA). Vuelve en fundido (la transicion de
+     #ambiente) cuando la ficha da paso a la portada: `arranque-sale` es ese momento. */
+  body.arranque-bios:not(.arranque-sale) #ambiente {
     opacity: 0;
   }
   /* EL TUBO: un punto que se abre en una raya horizontal, la raya que se abre hacia arriba y abajo

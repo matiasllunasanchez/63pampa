@@ -67,8 +67,15 @@ export function setCfg(c) {
             off: (c && c.off) || null, ship: (c && c.ship) || '', tries: 0, flak: 0,
             // CUANTOS PROYECTILES SUELTA EL PREMIO: la mision lo dice (`pulsoBombas`); sin dato, los de
             // siempre. El Super Etendard del Sheffield lanzo UN Exocet, no una ristra (autor, 12/10).
-            bombas: (c && c.bombas) || 0 };
+            bombas: (c && c.bombas) || 0,
+            // EL EXOCET (autor, 16/10): la prueba es CARGARLE LAS COORDENADAS al misil. Bien hecha, el misil
+            // vuela recto y siempre pega; mal hecha no hay re-encare — sale igual, para otro lado, y la
+            // mision se pierde (cinematica `pulso_fallo_exocet`).
+            exocet: !!(c && c.exocet) };
 }
+
+/** ¿La prueba es la del EXOCET? Entra aparte porque la carga se resuelve despues de setCfg (setRunObjective). */
+export function setExocet(v) { if (carry) carry.exocet = !!v; }
 
 /** EL BUQUE de esta corrida. Entra aparte de setCfg() y no dentro porque el orden de armado del
  *  run es reset() → setRunObjective(): cuando se configura la prueba, el objetivo todavia es el de
@@ -110,7 +117,7 @@ export function enter(desdePasillo, conf) {
   const c = conf || carry || {};
   carry = { t01: c.t01 || 0, campaign: !!c.campaign, owned: c.owned || [], off: c.off || null,
             ship: c.ship || '', tries: (carry && carry.tries) || 0, flak: (carry && carry.flak) || 0,
-            bombas: c.bombas || 0 };   // (sin esta linea el `pulsoBombas` de la mision se perdia aca)
+            bombas: c.bombas || 0, exocet: !!c.exocet };   // (sin esta linea el `pulsoBombas` de la mision se perdia aca)
   Q = {
     t: 0,                                 // reloj REAL de la prueba
     fase: 'prueba',                       // 'prueba' | 'exito' | 'fallo'
@@ -136,6 +143,8 @@ export function enter(desdePasillo, conf) {
     hb: 0, hbDub: -1, hbT: 0, hbPer: PULSO_TEATRO.HB[0],             // EL LATIDO (Q5): reloj, segundo golpe pendiente, fase 0..1
     shake: 0,
     desdePasillo: !!desdePasillo,
+    exocet: carry.exocet,                 // el premio vuela RECTO y al ras (render/pulso.js)
+    errado: false,                        // el Exocet salio con las coordenadas mal: va para otro lado
   };
   armarSecuencia();
   // LA PRUEBA TAMBIEN ARRANCA CON LA PANTALLA LIMPIA (mismo motivo que el premio): los popups del
@@ -282,15 +291,15 @@ function exito() {
   // de la timeline se mide contra esto, asi que una maniobra corta no deja aire muerto y una larga
   // no queda cortada (PLAN_CINE_PESO P3). Sin pirueta, el encare y nada mas.
   const durMv = b && MOVES[b.move] ? MOVES[b.move].dur : 0;
-  cine.start('pulso_premio', {
+  cine.start(Q.exocet ? 'pulso_premio_exocet' : 'pulso_premio', {
     pirueta: b ? b.move : undefined,
     piruetaDir: b ? b.dir : 1,
     tPir: CINE_VUELO.RAS_T + CINE_VUELO.POSE_T + durMv,
     tSinPirueta: b ? undefined : 0,
     // el estallido del impacto, escalado por la clase del buque. El tamaño lo proponia LA ZONA
     // elegida; desde el 15/9 es uno solo (PULSO_IMPACTO) porque no hay zona que elegir.
-    boom: 0.34 * PULSO_IMPACTO.blast * Q.clase.blast,
-    shake: 6 * PULSO_IMPACTO.blast,
+    boom: 0.34 * PULSO_IMPACTO.blast * Q.clase.blast * (Q.exocet ? 1.8 : 1),   // (el Exocet pega mas fuerte)
+    shake: 6 * PULSO_IMPACTO.blast * (Q.exocet ? 1.4 : 1),
     // EL SEGUNDO ESTALLIDO (la santabarbara) era exclusivo de la zona brava. Sin zonas, que el
     // buque vuele por dentro pasa a ser dato de la MISION —la ranura MUERTE del catalogo de
     // remates— asi que aca no se agenda: la ligadura queda sin atar y el beat no existe.
@@ -340,11 +349,19 @@ function latido(dt) {
 
 /** El fallo (plan §3): NUNCA es muerte. Se paga con la vuelta, y recien el 3er intento pierde. */
 function fallar(motivo) {
+  if (Q.exocet) { exocetErrado(motivo); return; }
   Q.fase = 'fallo'; Q.faseT = 0; Q.tries++; Q.motivo = motivo;
   // la cuenta se guarda ACA y no en el re-encare: el 2º fallo no re-encara — sale a la cinematica
   // del relevo y vuelve por enter(), asi que si no se anotara aca, perder un avion borraria el flak
   if (carry) { carry.tries = Q.tries; carry.flak = Math.min(PULSO.FLAK_T.length - 1, Q.tries); }
   beep(120, 0.4, 'sawtooth', 0.07, -80);
+}
+
+/** EL EXOCET CON LAS COORDENADAS MAL CARGADAS: sale igual —ya no hay vuelta atras—, se ve irse rozando
+ *  el agua para otro lado, y la mision se pierde al terminar la cinematica (`pulso_fallo_exocet`). */
+function exocetErrado(motivo) {
+  Q.fase = 'perdido'; Q.faseT = 0; Q.errado = true; Q.motivo = motivo || Q.motivo;
+  cine.start('pulso_fallo_exocet');
 }
 
 /** Un cuadro de la prueba.
@@ -383,7 +400,10 @@ export function update(dtReal, dtMundo) {
   // que el error SE VEA antes de que arranque lo que venga.
   if (Q.fase === 'rojo') {
     Q.errT += dtReal;
-    if (Q.errT >= PULSO_CINTA.ROJO_T) { Q.fase = 'perdido'; Q.faseT = 0; cine.start('pulso_fallo'); }
+    if (Q.errT >= PULSO_CINTA.ROJO_T) {
+      if (Q.exocet) exocetErrado(Q.motivo);
+      else { Q.fase = 'perdido'; Q.faseT = 0; cine.start('pulso_fallo'); }
+    }
     return null;
   }
   // PERDIDO: la CINEMATICA DE LA PERDIDA (`pulso_fallo` en data/cines.js), hermana de la del
@@ -391,7 +411,7 @@ export function update(dtReal, dtMundo) {
   // ahi la mision se cae por el embudo de derrota de siempre.
   if (Q.fase === 'perdido') {
     const s = cine.update(dtReal);
-    return s && s.done ? { death: 'death_pulso' } : null;
+    return s && s.done ? { death: Q.errado ? 'death_exocet_errado' : 'death_pulso' } : null;
   }
 
   Q.faseT += dtReal;
@@ -595,8 +615,9 @@ if (typeof window !== 'undefined') window.__qfalla = () => {
   // DERECHO A LA CINEMATICA, sin pasar por el rojo: el catalogo de CINEMATICAS traza desde el
   // instante cero y se corta si el director todavia no arranco — y la rotura de la tecla dura casi
   // un segundo. La rotura se mira jugando, que es donde significa algo.
-  Q.fase = 'perdido'; Q.faseT = 0;
-  cine.start('pulso_fallo');
+  // (con el Exocet, la de la perdida es la del misil desviado — la misma puerta del juego)
+  if (Q.exocet) exocetErrado(Q.motivo);
+  else { Q.fase = 'perdido'; Q.faseT = 0; cine.start('pulso_fallo'); }
   return window.__qdbg();
 };
 // __qcfg: re-entra con otra configuracion. Es la unica forma de ver la ESCALADA sin jugar la

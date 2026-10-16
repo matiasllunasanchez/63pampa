@@ -44,6 +44,12 @@ export const SFX_DEF = {
   engN: { f: ['flying/motor/normal.wav'], v: 0.32, loop: true },       // crucero (se intercala con engN2)
   engN2: { f: ['flying/motor/normal2.wav'], v: 0.32, loop: true },
   turbo: { f: ['flying/motor/turbo.wav'], v: 0.5, loop: true },
+  // LA POSCOMBUSTION (autor, 16/10), sumada al loop del turbo: al apretar, el ARRANQUE (5,6 s); si se
+  // mantiene, el SOSTENIDO en loop, encimado 1 s con el final del arranque. Los maneja postcombustion()
+  // en systems/audio.js (necesitan volumen propio y un loop recortado: el sostenido trae 0,86 s de
+  // silencio adelante y 0,4 al final).
+  abInicio: { f: ['flying/motor/afterburner_start.mp3'], v: 0.55 },
+  abSostenido: { f: ['flying/motor/afterburner_2.mp3'], v: 0.45, desde: 0.86, hasta: 32.8 },
   waterNear: { f: ['flying/water_near_plane.mp3'], v: 0.22, loop: true },   // rasante, volumen bajo
   waveFly: { f: ['flying/motor/wave_fly1.wav', 'flying/motor/wave_fly2.wav'], v: 0.45 },  // paso bajo sobre el agua
   // ROCE: pasar cerca de un obstaculo sin chocarlo. Tiene sonido PROPIO (antes compartia el del
@@ -96,4 +102,37 @@ export const SFX_DEF = {
   // el arranque del fichin: suena al terminar la carga del BIOS, cuando aparece INSERTE FICHA
   // (antes de la moneda propia de audio.js, que es la tecla) — pedido del autor, 4/10
   insertCoin: { f: ['general/insert_coin.mp3'], v: 0.5, m: 1 },
+  // LAS PANTALLAS (autor, 16/10). `booting` es el arranque de la PC antes de que prenda el tubo: el
+  // archivo dura dos minutos: fuerte bajo el BIOS, bajito desde INSERTE FICHA y se va con la portada.
+  // No pasa por sfxOne: lo maneja arranquePc (systems/audio.js), que le mueve el volumen. Aca solo
+  // queda la ruta.
+  bootPc: { f: ['screens/booting.mp3'], v: 0.8, m: 1 },
+  // LA TARJETA DE MISION: un beep al azar por cada PALABRA del titulo que aparece (los tres vinieron
+  // en .mov con el audio ya en mp3: se remuxaron sin recodificar; los originales en
+  // assets/source/sfx/screens/title/). Los tres traen 0,12 s de silencio adelante: `offset` lo saltea
+  // para que el beep caiga junto con la palabra.
+  tituloBeep: { f: ['screens/title/beep1.mp3', 'screens/title/beep2.mp3', 'screens/title/beep3.mp3'], v: 0.55, m: 1, offset: 0.12 },
+  // ...y una tecla por cada LETRA del texto blanco de abajo. El sample es la tecla (0,18 s) y un
+  // segundo de silencio: a 15 letras por segundo se pisan, por eso el pool de 3 del motor alcanza.
+  tecla: { f: ['screens/short_key.mp3'], v: 0.32, m: 1 },
+  // LOS RADARES (autor, 16/10). El AZUL suena al prender el radar propio (la onda que sale del Super
+  // Etendard); DETECTING suena mientras detecta —desde el segundo de prendido hasta que quedan marcadas las
+  // flechitas, ver DETECTA_* en data/radar_propio.js— y se corta ahi (el archivo dura 22 s: se usa el
+  // principio). Los dos traen silencio adelante y `offset` lo saltea.
+  radarAzul: { f: ['radars/blue_radar.mp3'], v: 0.7, m: 1, offset: 0.28, fo: 0.4 },
+  radarDetecta: { f: ['radars/detecting.mp3'], v: 0.55, m: 1, offset: 0.2 },
+  // El VERDE es el del radar enemigo, en loop mientras estes en su alcance, mas fuerte cuanto mas cerca
+  // estes de que te vean. No pasa por sfxOne: lo maneja zonaRadar (systems/audio.js), que le mueve el
+  // volumen y lo da vuelta sin el silencio de las puntas.
+  radarVerde: { f: ['radars/green_radar.mp3'], v: 0.6, m: 1 },
+  // ...y su ARRANQUE, una vez, cuando la linea verde empieza a barrer la pantalla (4,4 s; 0,18 de silencio)
+  // DETECTANDO (autor, 16/10): mientras estas en la zona verde del radar y te estan pintando — o sea arriba
+  // del techo, con la barra subiendo. Loop corto (tres bips). Lo maneja detectando() en systems/audio.js.
+  radarDetectando: { f: ['radars/detecting_2.mp3'], v: 0.45, m: 1 },
+  // EL BUQUE LANZA (autor, 16/10): cada vez que la barra del radar llega al tope y sale la tanda de Sea
+  // Dart, bajito, uno de los dos al azar. Traen ~0,15 s de silencio adelante.
+  // EL EXOCET QUE SALE (autor, 16/10): el motor del misil al lanzarlo, en las dos cinematicas (pega y errado)
+  exocetSale: { f: ['ammo/exocet_sound.mp3'], v: 0.75, m: 1, offset: 0.14, fo: 0.4 },
+  lanzaMisil: { f: ['ammo/lauching_missil.mp3', 'ammo/lauching_missil_2.mp3'], v: 0.3, m: 1, offset: 0.14 },
+  radarVerdeInicio: { f: ['radars/green_radar_start.mp3'], v: 0.7, m: 1, offset: 0.18 },
 };

@@ -141,3 +141,41 @@ function luzDeMira(pts, tr, a, listo) {
   }
   ctx.restore();
 }
+
+// LA LINEA DEL EXOCET (autor, 16/10: "mantener la mira no figura la CAIDA sino una linea recta, con otro
+// color"). El Exocet no cae: baja al ras enseguida y va derecho. La mira lo dice asi — una recta celeste,
+// del avion al horizonte rozando el agua — para que se lea que el arma es otra cosa que una bomba.
+// `marca` (opcional, en pantalla) = el blanco que la linea cruza: se encuadra con cuatro esquinas.
+const EXO = { linea: '#6fd3ff', css: '111,211,255' };
+export function drawLineaExocet(x, y, z0, listo, marca) {
+  const a = listo === false ? 0.4 : 0.9;
+  const pts = [];
+  for (let k = 0; k <= 16; k++) {
+    const u = k / 16, z = z0 + 2 + u * u * 520;
+    // baja al ras en el primer tramo (como sale de verdad) y de ahi va derecho a 1,5 m del agua
+    const yy = Math.max(1.5, y - (y - 1.5) * Math.min(1, u * 5));
+    pts.push(proj(x, yy, z));
+  }
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (const [col, w, al] of [[SOMBRA, 3, a * 0.35], [EXO.linea, 1.4, a]]) {
+    ctx.globalAlpha = al; ctx.strokeStyle = col; ctx.lineWidth = w;
+    ctx.setLineDash([6, 3]);
+    ctx.beginPath(); pts.forEach((s, i) => (i ? ctx.lineTo(s.x, s.y) : ctx.moveTo(s.x, s.y))); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  // el haz: la misma recta, ancha y tenue, sumada
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = a * 0.25; ctx.strokeStyle = `rgb(${EXO.css})`; ctx.lineWidth = 5;
+  ctx.beginPath(); pts.forEach((s, i) => (i ? ctx.lineTo(s.x, s.y) : ctx.moveTo(s.x, s.y))); ctx.stroke();
+  ctx.globalCompositeOperation = 'source-over';
+  if (marca) {
+    const r = Math.max(5, marca.r || 8), e = r * 0.45;
+    ctx.globalAlpha = 1; ctx.strokeStyle = EXO.linea; ctx.lineWidth = 1.2;
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const cx = marca.x + sx * r, cy = marca.y + sy * r;
+      ctx.beginPath(); ctx.moveTo(cx - sx * e, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy - sy * e); ctx.stroke();
+    }
+  }
+  ctx.restore();
+}

@@ -33,6 +33,11 @@ export const RADAR_PROPIO = {
   ONDA_R: 260,       // radio final en pixeles de mundo (480 de ancho): cruza la pantalla
   // EL ECO: cuando una onda llega con el blanco a tiro, el blanco queda MARCADO estos segundos.
   MARCA_T: 12,
+  // LA DETECCION (16/10, el autor): al prender, primero sale la onda y suena el radar azul; recien al
+  // segundo empieza a DETECTAR (suena detecting) y cuando termina quedan marcadas las flechitas. Antes de
+  // eso las ondas salen pero no marcan nada. Solo la primera vez de cada prendida: despues marca de una.
+  DETECTA_DESDE: 1.0,  // segundos de prendido hasta que empieza a detectar
+  DETECTA_DUR: 1.2,    // lo que tarda en detectar (lo que suena detecting)
   COLOR: [90, 180, 255],
   // LOS OTROS BUQUES DEL PASILLO (15/10, el autor: "que marque tambien los otros buques, sin texto, solo
   // flechitas azules: son puntos nomas"): la fragata del mastil y la barcaza. Estan cerca —no los tapa el

@@ -19,6 +19,7 @@ import { bendW, paredH } from '../core/zigzag.js';
 import { techoLadera, mez } from './paredes.js';
 import { techoIsla } from './islas.js';
 import { drawColinas } from './colinas.js';   // las lomadas de afuera del carril (30/9)
+import { drawDerribado } from './squad.js';   // el avion propio que se pierde (16/10)
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
 import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
@@ -2359,6 +2360,8 @@ function dibujarObstaculo(o) {
     ctx.beginPath(); ctx.ellipse(g.x, g.y, R * 1.15, R * 0.3, 0, 0, 6.2832); ctx.stroke();
     ctx.restore();
     ctx.globalAlpha = 1; ctx.lineWidth = 1;
+  } else if (o.type === 'chunk' && o.derribado) {
+    drawDerribado(o);   // el avion propio que se pierde, entero hasta que revienta (16/10)
   } else if (o.type === 'chunk') {
     // PEDAZO DEL AVION derribado (ver die en game.js): fragmento que sigue de largo con la
     // inercia, girando. Un rect rotado con canto iluminado — a esta escala, el TUMBO (rotacion

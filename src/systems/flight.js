@@ -659,7 +659,8 @@ export function flightSystem(dt, deps) {
   // numero del store, o sea que no hace falta inventarle una señal nueva al contrato de retorno
   // de este sistema — que ya devuelve climax, objetivo y muerte, y no quiere una cuarta cosa.
   if (run.detection >= 1) {
-    const pinta = fsVal('pinta', null);
+    // (16/10: los modos sueltos no tienen fases, y ahi la alarma corre igual: `cfg.pintaSuelto`)
+    const pinta = fsVal('pinta', cfg.pintaSuelto || null);
     if (pinta === 'muerte') return { death: 'death_pintado' };
     if (pinta === 'cap') est.sumar();
   }
@@ -698,6 +699,7 @@ export function flightSystem(dt, deps) {
     // `x3`… — render/hud.js, balizasAlerta)
     run.shake = Math.min(7, run.shake + 1 + n * 0.5);
     beep(880, 0.12, 'square', 0.06); setTimeout(() => beep(880, 0.12, 'square', 0.06), 160);
+    sfxOne('lanzaMisil');   // el buque dispara: uno de los dos lanzamientos, bajito (16/10)
   }
 
   // cañón

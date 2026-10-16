@@ -16,7 +16,7 @@ import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
 import { tobera, llama, PLANE_SCALE, drawGear, drawTren, drawShadow } from './plane.js';
 import { drawBorde } from './borde.js';
 import { ANCLAS } from '../data/anclas.js';
-import { drawSquadPips } from './hud.js';
+import { drawSquadPips, anchoSquad } from './hud.js';
 import { formationSlots, detras, RELEVO_WRECK, RELEVO_DUR, puestoFormacion } from '../core/squad.js';
 import { pilotName, planeName, rosterActive, fallenPos } from '../systems/squad.js';
 import { skinOf } from '../data/skins.js';
@@ -145,9 +145,38 @@ export function drawFallen({ selPlane, rv }) {
   ctx.imageSmoothingEnabled = smooth;
 }
 
+/** EL AVION QUE SE PIERDE (core/fx.js `derribar`, 16/10): fuera de la campaña, el tuyo cae en
+ *  llamas rolando hasta que revienta. La hoja es la que se venia viendo en vuelo (`look`: el avion
+ *  elegido y, con roster, la skin del piloto), nivelada y girada por `roll`. Lo llama el dibujo de los
+ *  pedazos (render/world.js): es un pedazo mas del mundo, con su profundidad. */
+export function drawDerribado(o) {
+  const L = o.look || {};
+  const pl = PLANES[L.sel] || PLANES[0];
+  if (!pl) return;
+  const s = proj(o.x, o.y, o.z);
+  const f = Math.min(4, s.k / proj(0, 0, PZ).k);   // (tope: pegado a la camara no tapa la pantalla)
+  const sk = rosterActive() && L.idx != null ? skinOf(pilotName(L.idx), pl) : null;
+  const hoja = sk ? sk.sheetImg : pl.sheetOk ? pl.sheetImg : null;
+  const smooth = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(o.roll);
+  if (hoja) {
+    const col = (SHEET_NF - 1) / 2;
+    const w = SHEET_FW * PLANE_SCALE * f * (pl.escala || 1), h = SHEET_FH * PLANE_SCALE * f * (pl.escala || 1);
+    ctx.drawImage(hoja, col * SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), -w / 2, -h / 2, w, h);
+  } else if (pl.ready) {
+    const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
+    ctx.drawImage(pl.img, -w / 2, -h / 2, w, h);
+  }
+  ctx.restore();
+  ctx.imageSmoothingEnabled = smooth;
+}
+
 /** ¿Es un relevo de AVERIADO con chapa? (campaña: nadie muere, el avion vuelve a la base). Ahi el titular
  *  no va arriba en rojo: es el ROTULO del nombre del avion con el aviso en blanco (game.js). */
-export const relevoAveriado = rv => !!(rv && !rv.solo && !rv.cambio && !rv.spent && rosterActive() && planeName(rv.fallen));
+export const relevoAveriado = rv => !!(rv && !rv.solo && !rv.cambio && !rv.spent && !rv.perdido && rosterActive() && planeName(rv.fallen));
 
 /** Sobreimpresion de la cinematica del relevo (grilla de diseño). El texto vive ACA y no en
  *  popups: es informacion de escena, fija mientras dura — un popup se iria flotando. */
@@ -174,7 +203,15 @@ export function drawRelevo(rv) {
   // rotulo del que entra, con "AVERIADO, vuelve a base" en blanco abajo (game.js, `relevoAveriado`)
   if (relevoAveriado(rv)) { /* lo dibuja el rotulo */ }
   else if (rv.solo) ctx.fillText(T('pasada_turn', { c: pilotName(rv.next) }), DW / 2, 10);
-  else ctx.fillText(T(rv.cambio ? 'sq_atras' : rv.spent === 'seco' ? 'sq_seco' : rv.spent ? 'sq_spent' : rosterActive() ? 'sq_dmg' : 'sq_down', { c: nom(rv.fallen) }), DW / 2, 10);
+  else {
+    // (el SECO que se ve caer —fuera de la campaña— no vuelve a la base: se quedo sin nafta, 16/10)
+    const txt = T(rv.cambio ? 'sq_atras' : rv.spent === 'seco' ? (rv.perdido ? 'sq_seco_cae' : 'sq_seco') : rv.spent ? 'sq_spent' : rosterActive() && !rv.perdido ? 'sq_dmg' : 'sq_down', { c: nom(rv.fallen) });
+    // QUE NO SE PISE CON LA PLACA DEL ESCUADRON (16/10: con 8 aviones la placa llega al medio): si el
+    // titular centrado la tocaria, se corre a la derecha hasta despegarse
+    const f0 = ctx.font, placa = 4 + anchoSquad() + 6; ctx.font = f0;   // (anchoSquad cambia la fuente)
+    const tw = ctx.measureText(txt).width;
+    ctx.fillText(txt, Math.min(DW - 4 - tw / 2, Math.max(DW / 2, placa + tw / 2)), 10);
+  }
   // LA CAUSA NO SE DICE ACA (12/9). Estaba en rv.cause y se imprimia debajo del titular, pero
   // sobre el juego en marcha es una linea de texto mas que leer mientras el companero entra: el
   // jugador acaba de VER como se cayo. La pantalla de derribado sigue nombrandola (drawDead).

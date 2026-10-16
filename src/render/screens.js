@@ -3,14 +3,14 @@
 // Cada funcion recibe `w`: un snapshot chico de solo lectura con lo que necesita mostrar. No leen
 // estado global — asi se pueden dibujar en cualquier momento (util para probarlas sueltas) y se ve
 // de un vistazo de que dependen.
-import { ctx, DW as W, DH as H, px, panel, wrapText, titleFont, menuFont, descFont, labelFont, handFont } from './ctx.js';
+import { ctx, DW as W, DH as H, px, panel, wrapText, titleFont, menuFont, descFont, labelFont, handFont, rotuloChicoFont, avisoFont } from './ctx.js';
 import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
 import { clamp01 } from '../core/physics.js';
 import { radio, restante, visible, log } from '../core/radioVN.js';
 import { run } from '../core/run.js';
-import { sinceReady, txtOf } from '../core/dialogue.js';
+import { sinceReady, txtOf, palabrasVisibles } from '../core/dialogue.js';
 import { PLACA_DE_CUADRO } from '../data/placas.js';
 import { HUD_TECHO, cintaCaja, vozMin, VOZ, pilotoCaja, sinTilde } from './hud.js';
 import { retrato } from './retratos.js';
@@ -219,8 +219,7 @@ export function drawResults(w) {
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(20);
   ctx.fillText(T(R.puntos === false ? 'res_fin' : R.salvo ? 'res_salvo' : 'res_title'), W / 2, 22);
-  ctx.fillStyle = P.ink; ctx.font = descFont(11);
-  ctx.fillText(R.mission.name, W / 2, 36);
+  ctx.font = finFont(9); bloque([R.mission.name], 36, 11, P.ink);   // legible: ver FIN_TXT
 
   const done = w.resRow >= R.rows.length;
   const stT = w.resT - (R.rows.length * 0.45 + 0.15);
@@ -229,8 +228,7 @@ export function drawResults(w) {
   // Queda el titular —MISION FINALIZADA, arriba— y el pie, con el mismo reloj del recuento completo.
   if (R.puntos === false) {
     if (done && stT > 1.1 && Math.sin(w.t * 4) > -0.3) {
-      ctx.fillStyle = P.accent; ctx.font = descFont(10);
-      ctx.fillText(T('continuePrompt'), W / 2, H - 7);
+      ctx.font = finFont(8); bloque([T('continuePrompt')], H - 7, 10, P.accent);
     }
     return;
   }
@@ -263,8 +261,7 @@ export function drawResults(w) {
 
   if (done) {
     if (stT > 1.1 && Math.sin(w.t * 4) > -0.3) {
-      ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = descFont(10);
-      ctx.fillText(T('continuePrompt'), W / 2, H - 7);
+      ctx.textAlign = 'center'; ctx.font = finFont(8); bloque([T('continuePrompt')], H - 7, 10, P.accent);
     }
   }
 }
@@ -298,6 +295,85 @@ export function drawBrief(w) {
   }
 }
 
+// ---------- LOS TEXTOS DE LAS PANTALLAS DE FIN: que se LEAN (autor, 16/10: "no se entienden") ----------
+// Iban en la manuscrita de los menus (EmbolismSpark) a 9 px, gris sobre una foto: trazo finito y
+// desparejo contra cielo, bandera y monumento. Ahora la causa, el por que y el dato van en JOSEFIN
+// (la letra limpia de los rotulos, que se lee a 12 px de mundo), con sombra, y sobre una FRANJA
+// oscura que solo tapa donde hay texto: la foto sigue siendo el ambiente, el texto manda.
+const FIN_TXT = { ancho: 296, sombra: 'rgba(0, 0, 0, 0.95)' };
+const finFont = size => rotuloChicoFont(size);
+/** Parte `txt` en renglones de `maxW` px con la fuente activa (la misma cuenta que wrapText). */
+function renglones(txt, maxW) {
+  const out = []; let line = '';
+  for (const w of String(txt).split(' ')) {
+    if (line && ctx.measureText(line + ' ' + w).width > maxW) { out.push(line); line = w; }
+    else line = line ? line + ' ' + w : w;
+  }
+  if (line) out.push(line);
+  return out;
+}
+/** La franja oscura detras de un bloque de texto: de `y0` a `y1`, con los bordes esfumados. */
+function franja(y0, y1, a) {
+  const g = ctx.createLinearGradient(0, y0 - 6, 0, y1 + 6);
+  g.addColorStop(0, 'rgba(6, 9, 12, 0)'); g.addColorStop(0.2, `rgba(6, 9, 12, ${a})`);
+  g.addColorStop(0.8, `rgba(6, 9, 12, ${a})`); g.addColorStop(1, 'rgba(6, 9, 12, 0)');
+  ctx.fillStyle = g; ctx.fillRect(0, y0 - 6, W, y1 - y0 + 12);
+}
+/** Dibuja los renglones centrados con sombra; `y` es la base del primero. */
+function bloque(lines, y, lh, color) {
+  ctx.save();
+  ctx.shadowColor = FIN_TXT.sombra; ctx.shadowBlur = 2; ctx.shadowOffsetY = 1;
+  ctx.fillStyle = color;
+  lines.forEach((l, i) => ctx.fillText(l, W / 2, y + i * lh));
+  ctx.restore();
+}
+
+/** EL RECUADRO DE LA NOTA HISTORICA, como una FICHA DE ARCHIVO (autor, 16/10: el recuadro liso
+ *  "quedaba simple"): una pestaña dorada de carpeta con el rotulo en negro, la ficha oscura con un
+ *  degrade, escuadras en las esquinas como las de un documento montado, y un "1982" de agua al
+ *  fondo a la derecha. El texto, a la izquierda. Se apoya ABAJO, cerca del filete del pie
+ *  (`yFondo`); si es tan largo que llegaria al puntaje (`yMin`), crece hacia abajo igual. */
+const ORO = '214, 160, 70';
+// ESCRITA A MANO (autor, 16/10): la birome de Mateo (handFont, Mayorice), un poco mas grande que la
+// letra de imprenta porque la manuscrita a 7 px se empasta. Tinta clara, color papel.
+const notaFont = () => handFont(10);
+function notaHistorica(lines, yFondo, yMin) {
+  const LH = 10, bw = FIN_TXT.ancho + 4, bx = (W - bw) / 2;
+  const bh = 8 + lines.length * LH + 4;
+  const by = Math.max(yMin + 8, yFondo - bh);
+  ctx.save();
+  // la ficha
+  const g = ctx.createLinearGradient(bx, by, bx + bw, by + bh);
+  g.addColorStop(0, 'rgba(20, 24, 26, 0.9)'); g.addColorStop(1, 'rgba(8, 11, 14, 0.82)');
+  ctx.fillStyle = g; ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = `rgba(${ORO}, 0.28)`; ctx.fillRect(bx, by, bw, 0.5); ctx.fillRect(bx, by + bh - 0.5, bw, 0.5);
+  // el 1982 de agua, recortado por la ficha
+  ctx.beginPath(); ctx.rect(bx, by, bw, bh); ctx.clip();
+  ctx.font = titleFont(Math.max(18, bh * 0.9)); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = `rgba(${ORO}, 0.07)`; ctx.fillText('1982', bx + bw - 4, by + bh / 2 + 1);
+  ctx.restore();
+  // escuadras en las cuatro esquinas
+  ctx.fillStyle = `rgba(${ORO}, 0.85)`;
+  const L = 5, e = 1;
+  for (const [x, y, sx, sy] of [[bx, by, 1, 1], [bx + bw, by, -1, 1], [bx, by + bh, 1, -1], [bx + bw, by + bh, -1, -1]]) {
+    ctx.fillRect(sx > 0 ? x : x - L, sy > 0 ? y : y - e, L, e);
+    ctx.fillRect(sx > 0 ? x : x - e, sy > 0 ? y : y - L, e, L);
+  }
+  // la pestaña de carpeta, con el rotulo
+  ctx.font = labelFont(6);
+  const tw = ctx.measureText(T('notaHist')).width + 10, th = 8, tx = bx + 6, ty = by - th;
+  ctx.fillStyle = `rgb(${ORO})`;
+  ctx.beginPath(); ctx.moveTo(tx, by); ctx.lineTo(tx + 2, ty); ctx.lineTo(tx + tw - 2, ty); ctx.lineTo(tx + tw, by); ctx.closePath(); ctx.fill();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#16120a';
+  ctx.fillText(T('notaHist'), tx + 5, by - 2);
+  // el texto
+  ctx.save(); ctx.translate(bx + 8 - W / 2, 0);   // `bloque` dibuja en W/2: se corre al margen
+  ctx.textAlign = 'left'; ctx.font = notaFont();
+  bloque(lines, by + 11, LH, '#efe3c6');
+  ctx.restore();
+  ctx.textAlign = 'center';
+}
+
 export function drawDead(w) {
   // la pantalla sube con un fade corto (reveal 0→1) para empalmar con el destrozo que se vio antes
   const rev = w.reveal == null ? 1 : w.reveal;
@@ -316,51 +392,72 @@ export function drawDead(w) {
   // te bajo nadie: erraste la mano y el buque sigue flotando. Decirle "derribado" a eso seria
   // mentirle al jugador sobre lo que acaba de pasar.
   ctx.fillText(T(w.perdido ? 'dead_pulso' : w.out ? 'dead_out' : 'dead'), W / 2, 26);
-  ctx.fillStyle = P.dim; ctx.font = descFont(11);
-  ctx.fillText(T(w.deathCause), W / 2, 40);
-  // POR QUE PASO (data/derrotas.js, 28/9): una o dos lineas debajo de la causa. Empuja todo lo de
-  // abajo lo que ocupe, para que no se pise con el puntaje.
+  // LA CAUSA y el POR QUE PASO (data/derrotas.js, 28/9), en un solo bloque legible (ver FIN_TXT). El
+  // por que ocupa uno o dos renglones y empuja todo lo de abajo lo que ocupe.
   const pq = w.porque || {};
-  let baja = 0;
-  if (pq.que) {
-    ctx.fillStyle = P.foam; ctx.font = descFont(9);
-    baja = wrapText(T(pq.que), W / 2, 54, 300, 11) - 54;
-  }
+  ctx.font = finFont(9);
+  const causa = renglones(T(w.deathCause), FIN_TXT.ancho);
+  ctx.font = finFont(7);
+  const que = pq.que ? renglones(T(pq.que), FIN_TXT.ancho) : [];
+  const yQue = 40 + (causa.length - 1) * 11 + 12;
+  const finArriba = que.length ? yQue + (que.length - 1) * 9 : 40 + (causa.length - 1) * 11;
+  franja(31, finArriba + 3, 0.62);
+  ctx.font = finFont(9); bloque(causa, 40, 11, P.ink);
+  ctx.font = finFont(7); bloque(que, yQue, 9, P.foam);
+  const baja = Math.max(0, finArriba - 54 + 11);
 
   const hasAward = w.stars > 0 && w.awardT >= 0;
   // POR LA PATRIA: la corrida ENTERA fue el "nivel" → se premia con estrellas segun el puntaje.
   // w.stars viene de game.js (0 en los demas modos, donde el derribado es fracaso y no se premian).
-  if (hasAward) drawAward(W / 2, 66 + baja, w.stars, w.awardT, w.t, 1.5);
+  const yAward = 62 + baja;
+  if (hasAward) drawAward(W / 2, yAward, w.stars, w.awardT, w.t, 1.25);
 
-  // PUNTAJE — el número grande
-  const yScore = (hasAward ? 100 : 74) + baja;
-  ctx.fillStyle = P.ink; ctx.font = menuFont(14);
+  // PUNTAJE — chico y PEGADO al galardon (autor, 16/10): es el pie del premio, no un segundo titular
+  const yScore = hasAward ? yAward + 17 : 66 + baja;
+  ctx.fillStyle = P.ink; ctx.font = menuFont(10);
   ctx.fillText(T('scoreLabel', { n: Math.floor(w.score) }), W / 2, yScore);
   // EL RECORD, SOLO SI HAY UNO. `best` llega en CERO fuera de POR LA PATRIA —el unico modo que lo
   // hace y el unico que lo muestra— y tambien en una partida nueva. Antes el cero pasaba igual y la
   // pantalla decia «MEJOR 0», que no es un record sino un cero; y en los modos con objetivo llegaba
   // a decir «NUEVO RECORD» por un maximo hecho en otro modo que ademas no se iba a guardar.
+  let yFinPuntaje = yScore;
   if (w.best > 0) {
     const supera = Math.floor(w.score) >= w.best;
     ctx.fillStyle = supera ? P.accent : P.dim;
-    ctx.font = labelFont(9);
+    // en la letra gorda de los carteles (Gomarice): la fina se perdia sobre la foto. Mismo paso que
+    // de las estrellas al puntaje, para que los tres renglones queden parejos (autor, 16/10)
+    ctx.font = avisoFont(8);
     ctx.fillText(supera ? T('newRecord') : T('bestDead', { n: w.best }), W / 2, yScore + 13);
+    yFinPuntaje = yScore + 13;
   }
 
-  // EL DATO DE LA GUERRA: el de ESTE caso si lo hay (data/derrotas.js); si no, uno al azar
-  ctx.fillStyle = '#8a9ba1'; ctx.font = descFont(9);
-  wrapText('» ' + (pq.hist ? T(pq.hist) : L().facts[w.factIdx]), W / 2, yScore + 32, 300, 11);
-  // PIE: reintentar centrado, volver al menu a la derecha (es la salida, no la accion principal)
+  // EL PIE (autor, 16/10: "mas espacio con el texto de abajo, que deberia ser un footer"): una
+  // franja propia al fondo, separada por un filete, con reintentar al centro y volver al menu a la
+  // derecha. Nada del cuerpo baja de PIE_Y.
+  const PIE_Y = H - 21;
+
+  // LA NOTA HISTORICA (autor, 16/10: "todas las notas historicas deben estar indicadas con una
+  // seccion visual que las diferencie"): un recuadro propio con su rotulo, entre el puntaje y el pie.
+  // El dato de ESTE caso si lo hay (data/derrotas.js); si no, uno al azar.
+  ctx.font = notaFont();
+  const dato = renglones(pq.hist ? T(pq.hist) : L().facts[w.factIdx], FIN_TXT.ancho - 16);
+  notaHistorica(dato, PIE_Y - 7, yFinPuntaje + 8);
+
+  // el pie
+  ctx.fillStyle = 'rgba(6, 9, 12, 0.6)'; ctx.fillRect(0, PIE_Y, W, H - PIE_Y);
+  ctx.fillStyle = 'rgba(214, 160, 70, 0.35)'; ctx.fillRect(14, PIE_Y, W - 28, 0.5);
   if (w.deathT > 0.7 && Math.sin(w.t * 4) > -0.3) {
-    ctx.fillStyle = P.accent; ctx.font = descFont(11);
+    ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = finFont(8);
+    ctx.shadowColor = FIN_TXT.sombra; ctx.shadowBlur = 2; ctx.shadowOffsetY = 1;
     // …y el pie lo dice literal: la mision se REINICIA entera, no se continua. Es la unica salida
     // hasta que se pase — por eso no dice "reintentar", que suena a otra oportunidad dentro de lo
     // mismo, sino REINICIAR.
-    ctx.fillText(T(w.perdido ? 'retryPulso' : 'retryPrompt'), W / 2, H - 12);
+    ctx.fillText(T(w.libro ? 'libroVolver' : w.perdido ? 'retryPulso' : 'retryPrompt'), W / 2, H - 8);   // (libro: no se reintenta)
+    ctx.shadowColor = 'transparent';
   }
   if (w.deathT > 0.7) {
     ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = labelFont(6);
-    ctx.fillText(T('menuPrompt'), W - 10, H - 12);
+    ctx.fillText(T('menuPrompt'), W - 12, H - 8);
   }
   ctx.restore();
 }
@@ -579,21 +676,9 @@ export function drawStory(w) {
   // y lo imprimen los fixtures (asi se sabe en que escena estas sin mirar la pantalla). Lo que se
   // fue es el dibujo, que es la decision que se puede volver atras en un renglon.
   //
-  // LA TARJETA DE NIVEL ES LA EXCEPCION y conserva su titulo grande al centro: ahi el nombre de la
-  // mision ES el contenido de la pantalla. Ya no dice "MISIÓN N —" (pedido de Matias, 30/8): el
-  // numero de capitulo, cuando la escena lo trae (`capitulo` en data/story.js), se pinta chico y
-  // aparte arriba del nombre — no pegado en la misma linea.
-  if (sc.titulo && card) {
-    ctx.textAlign = 'center';
-    let ty = 76;
-    if (sc.capitulo) {
-      ctx.font = '6px monospace'; ctx.fillStyle = '#7d8f97';
-      ctx.fillText(`CAPÍTULO ${sc.capitulo}`, W / 2, ty);
-      ty += 12;
-    }
-    ctx.font = 'bold 11px monospace'; ctx.fillStyle = P.warn;
-    wrapChars(sc.titulo, 32).forEach((t, i) => ctx.fillText(t, W / 2, ty + i * 14));
-  }
+  // LA TARJETA DE NIVEL ES LA EXCEPCION: ahi el nombre de la mision ES el contenido de la pantalla, y
+  // tiene layout propio (drawTarjeta).
+  if (card && sc.titulo) { drawTarjeta(w, d, sc, ln); return; }
   if (vnBox) { drawVNBox(w, d, ln, d.si + 1 >= d.seq.length && d.li + 1 >= ((sc.lineas || []).length), esNarracion); return; }
   // ---- layout centrado (narracion, tarjeta de nivel, cuaderno y carta) ----
   const yText = card ? 104 : 108;
@@ -633,6 +718,149 @@ export function drawStory(w) {
   const n = (sc.lineas || []).length;
   for (let i = 0; i < n; i++)
     px(W / 2 - n * 4 + i * 8 + 2, H - 13, 3, 3, i === d.li ? P.accent : '#2e3c45');
+}
+
+// ---------- LA TARJETA DE MISION ----------
+// ESTRUCTURADA, COMO UN EXPEDIENTE (autor, 16/10): todo alineado a la izquierda, de arriba a abajo
+//   CAPÍTULO N            chico y apagado, en la esquina de arriba
+//   EL TITULO             grande y en rojo, apareciendo DE A UNA PALABRA (cada una con su beep)
+//   ───────────           una raya que separa
+//   la linea              en blanco, tipeada con la tecla de verdad (short_key)
+// Antes iba todo centrado en el medio: el titulo, chico y en naranja, quedaba flotando.
+//
+// LAS PALABRAS NO SE CORREN: el titulo se parte en renglones ENTERO y despues se dibujan solo las
+// palabras que ya salieron, cada una en el lugar que le toca — igual que el texto tipeado de la caja.
+// El cuando lo decide el motor (palabrasVisibles en core/dialogue.js), que es tambien quien atrasa
+// la linea de abajo hasta que el titulo esta completo.
+// LA PANTALLA VIEJA (autor, 16/10: "la barra que pasa por atras me encanta, podemos agregarle mas
+// detalles de pantalla vieja o de radar"). Todo FONDO, tenue y por debajo del texto — acompaña, no compite:
+//   · la grilla de coordenadas de una pantalla de ploteo, casi invisible;
+//   · las cuatro escuadras de las esquinas, como el marco de una mira;
+//   · un RADAR chico abajo a la derecha: anillos, cruz, el barrido que gira con su estela y dos ecos que
+//     se encienden cuando el haz les pasa por encima, y el rumbo del haz en grados al lado;
+//   · EN LINEA titilando arriba a la derecha, como el indicador de una terminal;
+//   · cada tanto, un TIRON de la imagen: una franja fina corrida y mas clara, una fraccion de segundo;
+//   · y la viñeta: las esquinas mas oscuras, como el vidrio curvo de un tubo.
+// La barra que baja (la que gusto) es la de drawStory, comun a todas las escenas: no se toca.
+const VIEJA = { verde: '94, 245, 138', radar: { r: 24, dx: 50, dy: 48 } };
+function pantallaVieja(t) {
+  const V = VIEJA.verde;
+  ctx.save();
+  // la grilla
+  ctx.fillStyle = `rgba(${V}, 0.035)`;
+  for (let x = 10; x < W - 9; x += 20) ctx.fillRect(x, 10, 0.5, H - 20);
+  for (let y = 10; y < H - 9; y += 20) ctx.fillRect(10, y, W - 20, 0.5);
+  // las escuadras
+  ctx.strokeStyle = `rgba(${V}, 0.35)`; ctx.lineWidth = 0.7;
+  const E = 7, m = 13;
+  for (const [x, y, sx, sy] of [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]) {
+    ctx.beginPath(); ctx.moveTo(x + sx * E, y); ctx.lineTo(x, y); ctx.lineTo(x, y + sy * E); ctx.stroke();
+  }
+  // EL RADAR
+  const R = VIEJA.radar.r, cx = W - VIEJA.radar.dx, cy = H - VIEJA.radar.dy;
+  const ang = (t * 1.6) % (Math.PI * 2);
+  ctx.strokeStyle = `rgba(${V}, 0.22)`; ctx.lineWidth = 0.5;
+  for (const k of [1, 0.66, 0.33]) { ctx.beginPath(); ctx.arc(cx, cy, R * k, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+  // la estela: gajos que se apagan detras del haz
+  for (let i = 0; i < 14; i++) {
+    const a0 = ang - (i + 1) * 0.07, a1 = ang - i * 0.07;
+    ctx.fillStyle = `rgba(${V}, ${0.16 * (1 - i / 14)})`;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, a0, a1); ctx.closePath(); ctx.fill();
+  }
+  ctx.strokeStyle = `rgba(${V}, 0.7)`; ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang) * R, cy + Math.sin(ang) * R); ctx.stroke();
+  // los ecos: se prenden cuando el haz los toca y se apagan de a poco
+  for (const [ea, er] of [[0.8, 0.62], [3.9, 0.4]]) {
+    const atras = ((ang - ea) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    const brillo = Math.max(0, 1 - atras / 4);
+    if (brillo <= 0.02) continue;
+    ctx.fillStyle = `rgba(${V}, ${0.9 * brillo})`;
+    ctx.fillRect(cx + Math.cos(ea) * R * er - 1, cy + Math.sin(ea) * R * er - 1, 2, 2);
+  }
+  // el rumbo del haz, en grados (0 al norte, como una brujula)
+  ctx.font = 'bold 5px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = `rgba(${V}, 0.5)`;
+  const grados = Math.round(((ang + Math.PI / 2) * 180 / Math.PI) % 360);
+  ctx.fillText(`AZ ${String(grados).padStart(3, '0')}°`, cx - R - 4, cy + R - 1);
+  // EN LINEA, titilando
+  if ((t % 1.2) < 0.8) {
+    ctx.fillStyle = `rgba(${V}, 0.6)`; ctx.fillRect(W - 50, 17, 3, 3);
+    ctx.textAlign = 'left'; ctx.fillText('EN LÍNEA', W - 45, 20);
+  }
+  // el tiron: cada ~3,7 s, 0,09 s
+  const ciclo = t % 3.7;
+  if (ciclo < 0.09) {
+    const y = 20 + ((Math.floor(t / 3.7) * 73) % (H - 40));
+    ctx.fillStyle = 'rgba(220, 240, 255, 0.06)'; ctx.fillRect(10, y, W - 20, 3);
+    ctx.fillStyle = `rgba(${V}, 0.12)`; ctx.fillRect(14, y + 1, W - 24, 0.5);
+  }
+  // la viñeta
+  const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.62);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+const TARJ = { x: 18, cap: 30, titulo: 54, renglon: 20, wrap: 25, rojo: '#d63a2c', fosforo: '#5ef58a', brillo: 'rgba(94, 245, 138, 0.55)' };
+function drawTarjeta(w, d, sc, ln) {
+  pantallaVieja(w.t || 0);
+  ctx.textAlign = 'left';
+  // la linea chica de arriba: CAPÍTULO N en las misiones, o el `rotulo` de la tarjeta (LO QUE PASÓ)
+  const rot = sc.rotulo || (sc.capitulo ? `CAPÍTULO ${sc.capitulo}` : '');
+  if (rot) {
+    ctx.font = 'bold 6px monospace'; ctx.fillStyle = '#7d8f97';
+    ctx.fillText(rot, TARJ.x, TARJ.cap);
+  }
+  const renglones = wrapChars(String(sc.titulo), TARJ.wrap);
+  let quedan = palabrasVisibles();
+  ctx.font = 'bold 18px monospace'; ctx.fillStyle = TARJ.rojo;
+  renglones.forEach((r, i) => {
+    let x = TARJ.x;
+    for (const pal of r.split(' ')) {
+      if (quedan-- <= 0) return;
+      ctx.fillText(pal, x, TARJ.titulo + i * TARJ.renglon);
+      x += ctx.measureText(pal + ' ').width;
+    }
+  });
+  const yRaya = TARJ.titulo + (renglones.length - 1) * TARJ.renglon + 10;
+  if (palabrasVisibles() > 0) px(TARJ.x, yRaya, W - TARJ.x * 2, 1, '#5a2a26');
+  // LA LINEA, tipeada y EN FOSFORO VERDE (autor, 16/10: "letra verde? y mas computadora vieja?"):
+  // la de un monitor monocromo de los 80 — verde, con el resplandor del fosforo alrededor de cada
+  // letra, un parpadeo leve de brillo, las lineas de barrido encima y el cursor de bloque que se
+  // queda titilando al terminar, como una terminal esperando. `d.wrap` la trae partida por el motor.
+  const yText = yRaya + 18;
+  ctx.font = 'bold 7px monospace'; ctx.fillStyle = TARJ.fosforo;
+  // el resplandor NO escala con la transformacion: se da en px del buffer (U*SC = 3 por px de diseño)
+  ctx.shadowColor = TARJ.brillo; ctx.shadowBlur = 7;
+  ctx.globalAlpha = 0.9 + Math.random() * 0.1;
+  let left = d.typed, curX = TARJ.x, curY = yText, yFin = yText;
+  for (let i = 0; i < d.wrap.length; i++) {
+    const y = yText + i * 11;
+    if (left <= 0) { curY = y - 11; break; }
+    const shown = d.wrap[i].slice(0, left);
+    left -= d.wrap[i].length + 1;
+    ctx.fillText(shown, TARJ.x, y);
+    curX = TARJ.x + ctx.measureText(shown).width + 1; curY = y; yFin = y;
+  }
+  // el cursor: un bloque del alto de la letra, titilando a medio segundo como el de una terminal; recien
+  // aparece cuando empieza a tipear (antes, el titulo es lo unico que pasa) y no se va al terminar
+  if (d.typed > 0 && (d.done ? (d.seqT % 1) < 0.5 : Math.sin(d.seqT * 14) > -0.5)) {
+    ctx.fillRect(curX, curY - 6, 4, 7);
+  }
+  ctx.shadowBlur = 0; ctx.shadowColor = 'transparent'; ctx.globalAlpha = 1;
+  // las lineas de barrido del monitor, solo sobre el bloque de texto: una raya oscura fina por px
+  if (d.typed > 0) {
+    ctx.globalAlpha = 0.35; ctx.fillStyle = '#000';
+    for (let y = yText - 8; y < yFin + 3; y += 1) ctx.fillRect(TARJ.x - 2, y, W - TARJ.x * 2 + 4, 1 / 3);
+    ctx.globalAlpha = 1;
+  }
+  const last = d.si + 1 >= d.seq.length && d.li + 1 >= ((sc.lineas || []).length);
+  // LOS CONTROLES, VERDES Y ADENTRO DE LAS ESCUADRAS (autor, 16/10): la caja es el recuadro que
+  // marcan las cuatro esquinas de pantallaVieja, y el verde es el del fosforo
+  promptAvanzar(w, d, last, { bx: 15, by: 15, bw: W - 30, bh: H - 30 }, { color: TARJ.fosforo, lado: 6, fuente: '4px monospace' });
+  const n = (sc.lineas || []).length;
+  for (let i = 0; i < n; i++)
+    px(W / 2 - n * 4 + i * 8 + 2, H - 22, 2, 2, i === d.li ? TARJ.fosforo : '#1f3a28');
 }
 
 // ---------- EL CUADERNO DE MATEO (registro TIERRA) ----------
@@ -943,16 +1171,16 @@ function promptCuaderno(w, d, last) {
  *  Se dibuja SIEMPRE que haya algo atras, aunque el avance este cerrado por un `hold`: el silencio
  *  impide adelantarse, no volver a leer. Si desapareciera junto con la de avanzar, el jugador
  *  aprenderia que "durante la pausa no hay controles", que es lo contrario de lo que pasa. */
-function dibujarTeclaFlecha(x, y, lado, dir) {
+function dibujarTeclaFlecha(x, y, lado, dir, color) {
   const r = Math.max(1.5, lado * 0.23);
   ctx.save();
-  ctx.strokeStyle = P.accent; ctx.lineWidth = 1;
+  ctx.strokeStyle = color || P.accent; ctx.lineWidth = lado < 8 ? 0.7 : 1;
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(x + 0.5, y + 0.5, lado - 1, lado - 1, r);
   else ctx.rect(x + 0.5, y + 0.5, lado - 1, lado - 1);
   ctx.stroke();
   const cx = x + lado / 2, cy = y + lado / 2, p2 = lado * 0.23;
-  ctx.fillStyle = P.accent;                          // la punta mira segun `dir`: -1 izq, +1 der
+  ctx.fillStyle = color || P.accent;                 // la punta mira segun `dir`: -1 izq, +1 der
   ctx.beginPath();
   ctx.moveTo(cx + dir * p2 * 1.3, cy);
   ctx.lineTo(cx - dir * p2, cy - p2); ctx.lineTo(cx - dir * p2, cy + p2);
@@ -964,7 +1192,11 @@ function dibujarTeclaFlecha(x, y, lado, dir) {
 // espejado, asi que con tamaños distintos se leerian como dos controles de sistemas distintos.
 const LADO_TECLA = 8;
 
-function promptAvanzar(w, d, last, caja) {
+/** `estilo` (opcional): { color, lado, fuente } — la TARJETA DE MISION los pide verdes y mas chicos,
+ *  adentro de sus escuadras (autor, 16/10). Sin estilo, los de siempre. */
+function promptAvanzar(w, d, last, caja, estilo) {
+  const col = (estilo && estilo.color) || P.accent, LADO = (estilo && estilo.lado) || LADO_TECLA;
+  const fuente = (estilo && estilo.fuente) || '5px monospace';
   // LOS DOS CONTROLES SE CUELGAN DE LA CAJA (pedido de Matias, 27/8), no de la pantalla:
   //
   //   AVANZAR  → esquina inferior DERECHA, ADENTRO de la caja.
@@ -988,16 +1220,16 @@ function promptAvanzar(w, d, last, caja) {
   // SU IZQUIERDA —no a la derecha, que es lo que la sacaba del canvas— y solo en la ULTIMA
   // pantalla, donde dice EMPEZAR y esa palabra es informacion nueva. En las intermedias alcanza
   // el glifo: el jugador ya aprendio el gesto en la primera.
-  const xIcono = der - 4 - LADO_TECLA, yIcono = abajo - 4 - LADO_TECLA;
+  const xIcono = der - 4 - LADO, yIcono = abajo - 4 - LADO;
   const visible = w.canAdvance && Math.sin(sinceReady() * 5) > -0.35;
   if (visible) {
     // en la ULTIMA pantalla la palabra cambia —ahi el control no sigue la escena, DESPEGA— y esa
     // es informacion que no esta en ningun otro lado. En las demas dice siempre SIGUIENTE.
     const ultima = last && w.state !== 'epilogue';
-    ctx.font = '5px monospace'; ctx.fillStyle = P.accent; ctx.textAlign = 'right';
+    ctx.font = fuente; ctx.fillStyle = col; ctx.textAlign = 'right';
     ctx.globalAlpha = ultima ? 1 : 0.5;
-    ctx.fillText(T(ultima ? 'startPrompt' : 'nextPrompt'), xIcono - 3, yIcono + LADO_TECLA - 2);
-    dibujarTeclaFlecha(xIcono, yIcono, LADO_TECLA, 1);
+    ctx.fillText(T(ultima ? 'startPrompt' : 'nextPrompt'), xIcono - 3, yIcono + LADO - 1.5);
+    dibujarTeclaFlecha(xIcono, yIcono, LADO, 1, col);
     ctx.globalAlpha = 1;
   }
   // VOLVER: en la esquina inferior IZQUIERDA, a la MISMA ALTURA que AVANZAR y en espejo — la tecla
@@ -1012,9 +1244,9 @@ function promptAvanzar(w, d, last, caja) {
   if (d.li > 0 || d.si > 0) {
     const xV = izq + 4, yV = yIcono;
     ctx.globalAlpha = 0.5;
-    dibujarTeclaFlecha(xV, yV, LADO_TECLA, -1);
-    ctx.font = '5px monospace'; ctx.fillStyle = P.accent; ctx.textAlign = 'left';
-    ctx.fillText(T('backPrompt'), xV + LADO_TECLA + 3, yV + LADO_TECLA - 2);
+    dibujarTeclaFlecha(xV, yV, LADO, -1, col);
+    ctx.font = fuente; ctx.fillStyle = col; ctx.textAlign = 'left';
+    ctx.fillText(T('backPrompt'), xV + LADO + 3, yV + LADO - 1.5);
     ctx.textAlign = 'left'; ctx.globalAlpha = 1;
   }
 }

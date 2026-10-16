@@ -1573,6 +1573,38 @@ y 4,5" en los Tipo 21, Sea Wolf en los Tipo 22) ya entra al juego; esto es lo qu
 
 **Decisión del autor:** pendiente; el juego sigue con la tabla provisoria.
 
+---
+
+## EL HÉRCULES BOMBARDERO (TC-68) _(16/10/2026 — docs/sistemas/PLAN_ROGUELIKE_SUELTOS.md §6)_
+
+**Contexto:** el autor quiere un Hércules modificado jugable, con bombas (y cañones lentos, que son
+licencia del juego). La referencia que trajo es un resumen de IA: *"adaptaron soportes bajo las alas
+para que pudiera cargar y lanzar hasta 12 bombas de 250 kg"*.
+
+**A verificar:**
+1. ¿El C-130 **TC-68** soltaba las bombas desde **soportes bajo el ala** o **empujándolas por la rampa**
+   trasera? (Hay relatos de las dos cosas; puede que haya sido distinto en cada salida.)
+2. ¿**Cuántas** y de **qué peso**? (¿12 de 250 kg, u 8?)
+3. ¿Qué atacó y cuándo? El petrolero *British Wye* (29/5) es el caso conocido; ¿hubo otros (el
+   *Hercules* de bandera liberiana el 8/6)?
+
+**Decisión del autor:** pendiente; el avión no está hecho.
+
+---
+
+## LA FICHA DE LOS BUQUES: TRES CLASES MAL PUESTAS _(16/10/2026 — src/data/ships.js `SHIP_CLASS`)_
+
+**Contexto:** `SHIP_CLASS` agrupa los 14 buques en cuatro dibujos (t42, t21, log, cv). Para el dibujo
+alcanza, pero tres nombres caen en una clase que no era la suya:
+1. **HMS Broadsword** — fragata **Tipo 22** (Sea Wolf), no Tipo 21.
+2. **HMS Glamorgan** — destructor **clase County** (Sea Slug, Exocet), no Tipo 42.
+3. **HMS Plymouth** — fragata **clase Rothesay** (Tipo 12), no Tipo 21.
+
+**A verificar:** que no haya otro en la misma situación, y si el juego quiere un dibujo propio para
+cada clase o le alcanza con el más parecido.
+
+**Decisión del autor:** pendiente; no bloquea nada.
+
 ## EL HERCULES BOMBARDERO (TC-68): QUE COLGABA Y DE DONDE _(16/10/2026 — tools/blender/modelos_hercules.py, src/data/cargas.js)_
 
 **Contexto:** el autor lo pidió jugable con "hasta 12 bombas de 250 kg o 6 de 500 kg". Lo que se encontró:

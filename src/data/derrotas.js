@@ -37,6 +37,7 @@ export const DERROTAS = {
   death_eyecto_rescate: { que: null, hist: 'hist_eyeccion' },
   death_eyecto_mar: { que: null, hist: 'hist_eyeccion' },
   death_pulso: { que: 'que_pulso', hist: 'hist_bomba' },
+  death_exocet_errado: { que: 'que_exocet_errado', hist: 'hist_exocet' },
   death_pasada: { que: 'que_pasada', hist: 'hist_bomba' },
 };
 

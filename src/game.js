@@ -4,6 +4,7 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
+import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA } from './data/modos_sueltos.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
@@ -22,7 +23,7 @@ import { cabina, enCabina, CABINA } from './core/cabina.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts, estallidos,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
-import { proj, popup, explodeAt, polvoSuelo, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES } from './core/fx.js';
+import { proj, popup, explodeAt, polvoSuelo, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES, derribar } from './core/fx.js';
 import { ULTIMA_VARIANTE } from './core/fx.js';   // QUITAR con las sondas de v2
 import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T,
   forzarVariante, variantesDe, recetaDe, MORIBUNDO_MAX, DESPIECE } from './data/despiece.js';
@@ -82,13 +83,13 @@ import { stepRecibe } from './systems/recibe.js';
 import { resetRecibe } from './core/recibe.js';
 import { drawRecibe } from './render/recibe.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
-import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A, CAIDA, EYECCION } from './data/tuning.js';
-import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE, cargaParaAvion } from './data/cargas.js';
+import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A, CAIDA } from './data/tuning.js';
+import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE, cargaParaAvion, EXOCET_ALCANCE_KM } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
 import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque, proximoPilon } from './core/nafta.js';
 import { trayectoria } from './core/balistica.js';
 import { blanco } from './core/blanco.js';
-import { drawTrayectoria } from './render/trayectoria.js';
+import { drawTrayectoria, drawLineaExocet } from './render/trayectoria.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
 import { drawRotuloVuelo, ROTULO, ROTULO_T, ROTULO_NOMBRE, ROTULO_ESCAPE, ROTULO_FALLO } from './render/rotulo.js';
@@ -110,10 +111,11 @@ import * as world from './render/world.js';
 import { drawMarco } from './render/marco.js';
 import * as soldierArt from './render/soldiers.js';
 import { theme, applyTheme } from './render/theme.js';
-import { retenerMusica, sonidoTubo, sonidoFicha } from './systems/audio.js';
+import { retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando } from './systems/audio.js';
+import { drawCarga, CARGA, CARGA_T } from './render/carga.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
-         setRasante } from './systems/audio.js';
+         setRasante, sfxStop } from './systems/audio.js';
 import * as world3D from './legacy/three-world.js';
 import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, probarFuente, setPZ } from './render/ctx.js';
 import * as screens from './render/screens.js';
@@ -214,9 +216,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // …y el GABINETE ENTERO hasta la ficha: al echarla, la camara se acerca a como se juega
     // (render/ambiente.js). Tambien al terminar, por si el arranque se salteo (pruebas, sin ?intro).
     fichinEntero();
-    arrancar({ alPrender: sonidoTubo, alCargado: () => sfxOne('insertCoin'),
+    arrancar({ alEmpezar: () => arranquePc('alto'), alFinBios: () => arranquePc('bajo'),
+      alPrender: sonidoTubo, alCargado: () => sfxOne('insertCoin'),
       alFicha: () => { sonidoFicha(); acercarFichin(); },
-      alTerminar: () => { retenerMusica(false); acercarFichin();
+      alTerminar: () => { arranquePc(false); retenerMusica(false); acercarFichin();
         // EN MODO DEV, DIRECTO AL MENU (8/10, core/dev.js): sin portada que pida una tecla
         if (typeof window !== 'undefined' && window.RASANTE_DEV && S.state === 'title') setState('modeselect');
       } });
@@ -266,6 +269,59 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // 'survival' = el modo actual (infinito, juntar puntos hasta morir).
     // 'campaign' = modo historia: recorre MISSIONS en orden. 'cycle' juega las mismas al azar.
     let gameMode = 'survival';
+    // ---------- LOS MODOS SUELTOS: POR LA PATRIA y CICLO DE MUERTE (data/modos_sueltos.js, 16/10) ----------
+    // Los dos son la misma corrida infinita —mundo al azar, presion que crece con los km y con la alarma,
+    // el escuadron de la dificultad como vidas, usar cosas cuesta puntos—; el ciclo le suma BLANCOS que se
+    // encadenan. No cuentan las herramientas (S.test) ni el libro de vuelo.
+    // `?fijo` (sonda): POR LA PATRIA con el mundo de siempre — lo usan los fixtures que MIDEN volando en el
+    // pasillo infinito (maniobras): un mundo al azar con la presion subiendo no es una vara.
+    const FIJO = typeof location !== 'undefined' && /[?&]fijo\b/.test(location.search);
+    const suelto = () => (gameMode === 'survival' || gameMode === 'cycle') && !S.test && !libro && !FIJO;
+    // arranca en FACIL cada vez que se abre el juego (autor, 16/10): no se guarda la ultima elegida
+    let dificultad = DIF_DEFAULT;
+    function difNav(dir) {
+      dificultad = (dificultad + dir + DIFICULTADES.length) % DIFICULTADES.length;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    let kmPrevios = 0;        // CICLO: los km de los blancos anteriores de esta corrida (la rampa los cuenta)
+    let startCiclo = null;    // CICLO: el arranque elegido en OPCIONES, mientras los blancos encadenados salen en vuelo
+    let cfgPersec = null;     // lo que el mundo al azar piso de la cfg, para devolverselo a PERSECUCION (que usa la cfg cruda)
+    const pesado = lista => { const tot = lista.reduce((a, [, p]) => a + p, 0); let r = Math.random() * tot;
+      for (const [v, p] of lista) { if ((r -= p) < 0) return v; } return lista[0][0]; };
+    /** EL MUNDO AL AZAR: cielo (y con el, la hora), terreno, lluvia, niebla y viento. */
+    function sortearEntorno() {
+      if (!cfgPersec) cfgPersec = { sky: cfg.sky, water: cfg.water, terrain: cfg.terrain, wind: cfg.wind, rain: cfg.rain,
+        fog: cfg.fog, obstacles: cfg.obstacles, bombs: cfg.bombs, caza: cfg.caza };
+      const cielo = pesado(ENTORNO.cielos);
+      cfg.sky = SKY_PRESETS[cielo] ? cielo : 'dusk';
+      cfg.water = 'auto';
+      cfg.terrain = pesado(ENTORNO.terrenos);
+      cfg.rain = cfg.sky === 'storm' || Math.random() < ENTORNO.lluvia ? 1 : 0;
+      cfg.fog = Math.random() < ENTORNO.niebla ? 1 : 0;
+      cfg.wind = Math.random() < ENTORNO.viento;
+      for (const k in PERILLAS) cfg[k] = PERILLAS[k].base * DIFICULTADES[dificultad].k;
+      applyCfg();
+    }
+    /** LA PRESION, cuadro a cuadro: dificultad × rampa de km × alarma, sobre la base de cada perilla. */
+    function aplicarPresion() {
+      const km = kmPrevios + Math.max(0, run.dist) / 1000, est = run.estrellas | 0;
+      const alarma = est > 0 ? ALARMA.golpe * (1 + ALARMA.porEstrella * (est - 1)) : 1;
+      const p = DIFICULTADES[dificultad].k * Math.min(RAMPA.max, 1 + RAMPA.porKm * km) * alarma;
+      for (const k in PERILLAS) cfg[k] = Math.min(PERILLAS[k].techo, PERILLAS[k].base * p);
+    }
+    /** USAR CUESTA: ¿alcanza el puntaje para `accion`? Si no, lo avisa y devuelve false. Fuera de los
+     *  modos sueltos todo es gratis. */
+    function alcanza(accion) {
+      if (!suelto() || !COSTOS[accion] || run.score >= COSTOS[accion]) return true;
+      beep(150, 0.09, 'square', 0.05); cartel(T('sinPuntos'), P.warn, T('sinPuntos_sub', { n: COSTOS[accion] }));
+      return false;
+    }
+    /** …y lo cobra, con el numero subiendo desde el avion. */
+    function cobrar(accion) {
+      if (!suelto() || !COSTOS[accion]) return;
+      run.score = Math.max(0, run.score - COSTOS[accion]);
+      const ps = proj(plane.x, plane.y, PZ); popup(ps.x, ps.y - 18, '-' + COSTOS[accion], P.warn);
+    }
     let curLevel = 0;
     let modeSel = 0;                 // pantalla inicial: 0 = HISTORIA, 1 = JUEGO RAPIDO
     let quickSel = 0;                // cursor del submenu JUEGO RAPIDO
@@ -400,6 +456,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     /** Congela el mundo y dice la linea, en ese orden y en el mismo cuadro: el pedido es que la
      *  pausa enganche ANTES de que el dialogo arranque, no a mitad. */
     function dlgFreeze(key) {
+      if (suelto()) return;   // SIN DIALOGOS en los modos sueltos (autor, 16/10: "al menos por ahora")
       radioTramo(key);
       dlgPausa = true; dlgT = 0; dlgTyped = 0;
       engineOff();                   // igual que pauseToggle: el motor no ruge con el mundo quieto
@@ -581,6 +638,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  lineas y leerla ES la escena. 58 es la franja que ya usa el aviso de la Chancha lista:
      *  debajo del rotulo del objetivo y arriba del horizonte. */
     function radioTramo(key) {
+      if (suelto()) return;   // SIN DIALOGOS en los modos sueltos (autor, 16/10: "al menos por ahora")
       // EL PILOTO AMIGO (PATRIA 2, el libro de vuelo) habla SOLO SI HAY AMIGO: volando solo —se cayeron
       // los demas— esa voz no existe y la linea se calla (autor, 14/10: "siempre que haya al menos uno").
       if (String(T(key)).startsWith('PATRIA 2:') && run.lives < 2) return;
@@ -658,6 +716,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         beep(150, 0.09, 'square', 0.05); cartel(T('ch_radar'), P.warn);
         return;
       }
+      if (cfg.fuelOn && !chancha.activa() && !alcanza('chancha')) return;   // USAR CUESTA (modos sueltos, 16/10)
       const r = chancha.pedir({
         fuelOn: cfg.fuelOn,
         // EL PASILLO DE VERDAD, y por MODO ademas de por estado (RF-07). Mirar solo `S.state`
@@ -699,7 +758,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       });
       if (r === 'nofuel') return;                                    // sin combustible el poder no existe
       if (r === 'nozone' && chancha.meterVal() < 1) return;          // ni siquiera la tenia lista
-      if (r === 'ok') { beep(520, 0.07, 'square', 0.05, 120); if (conRuta) chanchaDice('ch_viene'); else radioCh('ch_call'); return; }
+      if (r === 'ok') { cobrar('chancha'); beep(520, 0.07, 'square', 0.05, 120); if (conRuta) chanchaDice('ch_viene'); else radioCh('ch_call'); return; }
       // las otras dos lineas del ritual (Condor y la Chancha) las dispara el sistema por dt:
       // ver el bloque 'ack'/'come' de chancha.tick — aca solo suena el pedido.
       beep(150, 0.09, 'square', 0.05);
@@ -900,8 +959,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const visto = run.detection > 0.001 || run.estrellas > 0 || run.radarVisto;
       // un avion SIN chafitas (en campaña, antes de ganar la carta): la tecla no existe todavia
       if (!(run.chapitasMax > 0)) { beep(150, 0.06, 'square', 0.03); return; }
+      if (!alcanza('chapitas')) return;   // USAR CUESTA (16/10)
       const r = chapitasSys.soltar(plane.x, plane.y, PZ, visto);
       if (!r) { beep(150, 0.09, 'square', 0.05); cartel(T('chapitas_nada'), P.dim); return; }
+      cobrar('chapitas');
       run.spd = Math.max(34, run.spd * (1 - CHAPITAS.FRENO));          // el freno abierto
       // EL CARTUCHO: sale expulsado hacia atras con un golpe de polvora — un soplo gris de la cola, y
       // recien ahi el viento abre la nube (lo que trajo el autor el 8/10; ver PREGUNTAS_HISTORICAS)
@@ -1045,10 +1106,22 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     /** Un cuadro del motor de historia. Devuelve la señal de pressDialogue() ('complete', 'next',
      *  'scene', 'end') o null; QUIEN DECIDE A DONDE IR es el que llama, no el motor. */
     function stepStory(dt) {
-      const before = dlg.typed;
+      const before = dlg.typed, palAntes = dialogue.palabrasVisibles(), scAntes = dialogue.scene();
       const auto = dialogue.stepDialogue(dt);
+      // LA TARJETA DE MISION SUENA DISTINTO (autor, 16/10): un beep al azar por PALABRA del titulo y
+      // la tecla de verdad (short_key) por cada letra de abajo, sobre el zumbido de la pantalla.
+      // Sin samples (build web) cae al tic sintetizado de siempre.
+      const enTarjeta = scAntes && scAntes.tipo === 'TARJETA';
+      if (enTarjeta && dialogue.scene() === scAntes && dialogue.palabrasVisibles() > palAntes) sfxOne('tituloBeep');
       // tick de maquina de escribir: uno por caracter nuevo (el tic por personaje es F6)
-      if (dlg.typed > before && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
+      // UNA TECLA CADA TRES LETRAS (autor, 16/10: "estan demasiado seguidas"; primero de a dos, despues
+      // "cada 3 letras a ver"): a 15 letras por segundo la tecla sonaba como una rafaga; de a tres queda
+      // en 5 por segundo. La que no suena tampoco cae al tic.
+      const TECLA_CADA = 3;
+      if (dlg.typed > before && !isMuted()) {
+        if (enTarjeta) { if (dlg.typed % TECLA_CADA === 1 && !sfxOne('tecla')) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013); }
+        else beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
+      }
       // gracia de 0.4 s AL EMPEZAR LA SECUENCIA: la tecla que confirmo CAMPAÑA en el menu no debe
       // saltear el tipeo de la primera linea. Despues el reloj de la secuencia ya la dejo atras.
       // VOLVER ATRAS gana sobre avanzar: la flecha izquierda tambien prende `anyPress`, asi que
@@ -1779,9 +1852,49 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  'super' antes del Pulso, 'escolta' despues. null en las salidas de un solo avion. */
     /** EL BUQUE DE LEJOS en el Pulso del Super Etendard (`pulsoLejos`): el Exocet se suelta a 20-30
      *  millas, y en el parabrisas el blanco tiene que verse chico. */
+    // ---------- EL EXOCET (autor, 16/10) ----------
+    // La diferencia con la bomba: no se calibra la altura ni te podes pasar. Adentro de las 30 millas
+    // (EXOCET_ALCANCE_KM) se lanza cuando uno quiere, y lanzarlo ES entrar al PULSO: la prueba es
+    // cargarle las coordenadas. Bien hecha, el misil va recto y siempre pega; mal hecha, se va para
+    // otro lado y la mision se pierde (systems/pulso.js `exocetErrado`).
+    // (EL INVINCIBLE no entra aca: su lanzamiento esta guionado en un punto de la ida — `lanzamiento`.)
+    let exocetAvisado = false, exocetLejos = false;
+    const exocetLanzable = () => !!(cargaDe(cfg.carga) || {}).exocet && runClimax() === 'pulso'
+      && !(curMission() && curMission().lanzamiento) && objectiveDist > 0;
+    /** Los km que faltan al blanco (con ruta, los reales; sin ruta, los del pasillo). */
+    const kmAlBlanco = () => rutaSys.hay() ? rutaSys.alBlanco() : Math.max(0, objectiveDist - run.dist) / 1000;
+    const exocetATiro = () => exocetLanzable() && kmAlBlanco() <= EXOCET_ALCANCE_KM;
+    /** La tecla con el Exocet colgado: adentro del alcance entra al PULSO; afuera, avisa. */
+    function lanzarExocet() {
+      if (!exocetATiro()) {
+        beep(160, 0.09, 'square', 0.05); run.mslCd = 0.6;
+        cartel(T('exocet_lejos'), P.warn, T('exocet_lejos_sub', { km: Math.round(kmAlBlanco()) }));
+        return;
+      }
+      exocetLejos = kmAlBlanco() > 5;   // de lejos el buque se ve chico en el parabrisas (fxLejos)
+      pulso.enter(true); fadeT = 0.4;
+    }
+    /** LO QUE LA RECTA DEL EXOCET MARCA (16/10): el blanco mas cercano adelante y en el carril del avion —
+     *  los buques primero, despues cualquier cosa que se pueda derribar—, en pantalla, para encuadrarlo. */
+    const MARCABLES = ['mast', 'lcu', 'helo', 'jet', 'aatruck', 'radar', 'depot'];
+    function marcaExocet() {
+      let mejor = null;
+      for (const o of obstacles) {
+        if (o.dead || o.done || !MARCABLES.includes(o.type) || o.z <= PZ + 4 || o.z > PZ + 420) continue;
+        if (Math.abs((o.x || 0) - plane.x) > 7) continue;
+        const pr = (o.type === 'mast' || o.type === 'lcu') ? 0 : 1;
+        if (!mejor || pr < mejor.pr || (pr === mejor.pr && o.z < mejor.o.z)) mejor = { o, pr };
+      }
+      if (!mejor) return null;
+      const o = mejor.o, s = proj(o.x || 0, (o.y || 0) + (o.h || 3) * 0.5, o.z);
+      return s.k > 0 ? { x: s.x, y: s.y, r: Math.max(5, (o.h || 4) * s.k * 0.8) } : null;
+    }
     function fxLejos(fx) {
-      const k = libroEnTramo() === 'super' && curMission().pulsoLejos;
+      const k = (libroEnTramo() === 'super' && curMission().pulsoLejos) || (exocetLejos && (curMission().pulsoLejos || 0.45));
       if (fx && k) fx.lejos = k;
+      // (16/10) fuera del premio el sistema no da efecto de buque, pero LEJOS vale igual: durante la prueba
+      // y en el Exocet errado el blanco tambien esta a 30 millas
+      else if (!fx && k) return { lejos: k };
       return fx;
     }
     function libroEnTramo() {
@@ -2016,7 +2129,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         setState('carga'); beep(600, 0.08, 'square', 0.05);
         return;
       }
-      run.t = 0; fadeT = fade; setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
+      run.t = 0; entrarCargando(fade); setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
     }
     function cargaNav(dir) {
       cargaSel = (cargaSel + dir + CARGAS_ELEGIBLES.length) % CARGAS_ELEGIBLES.length;
@@ -2027,7 +2140,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       cfg.carga = CARGAS_ELEGIBLES[cargaSel];
       prepararCarga();
       beep(880, 0.12, 'square', 0.06);
-      run.t = 0; fadeT = 1.0; setState(afterBrief()); sfxOne('lv1');
+      run.t = 0; entrarCargando(1.0); setState(afterBrief()); sfxOne('lv1');
     }
     /** LA BOMBA DEL BUQUE de esta mision (data/bombas.js): MK-17 hasta el 25 de mayo, BRP-250 desde
      *  ahi; la mision la puede decir y `?bomba=mk17|brp` la pisa. */
@@ -2110,6 +2223,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // con ella si nadie eligio otra (fuera de la campaña no hay hangar).
       cfg.carga = cargaParaAvion(cfg.carga, PLANES[selPlane] && PLANES[selPlane].key);
       prepararCarga();
+      pulso.setExocet(exocetLanzable());   // la prueba del Exocet: siempre pega o se va para otro lado
+      exocetAvisado = false; exocetLejos = false;
       // EL AVION ELEGIDO VUELA DISTINTO (16/10, el Hercules bombardero, data/planes.js): su velocidad, su
       // cañon y su bodega. Se escribe en CADA corrida (resetRun no conoce estos campos): sin avion propio,
       // null y la de siempre. La bodega solo fuera de LA SUELTA, que arma sus bombas por pasada.
@@ -2126,6 +2241,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // numero acá se volveria mentira sin que nada lo avise.
       // …y una salida del LIBRO DE VUELO suena una de music/original al azar (autor, 13/10: "me
       // referi solo a libro de vuelo"). La CAMPAÑA no: cada mision va a tener su tema y su repertorio.
+      // LOS MODOS SUELTOS (16/10): una pista AL AZAR por corrida, de las de las misiones (no la `original`)
+      if (suelto() && !keepMusic) sortearPista();
       setRunMusic(gameMode === 'campaign', curLevel, keepMusic, !!S.test,
         gameMode === 'campaign' ? (curMission() || {}).musica : null,   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
         !!libro);
@@ -2754,6 +2871,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let machHold = null;   // sonda de LO TRANSONICO (QUITAR): fija velocidad/alabeo cuadro a cuadro
     let altHold = null;    // sonda de LOS RESTOS (QUITAR): fija la altura cuadro a cuadro
     let fadeT = 0;      // fundido desde negro al entrar al juego (se dibuja al final de draw)
+    // LA CARGA DEL PROGRAMA (autor, 16/10): en CAMPAÑA, la entrada a la mision despues de la tarjeta
+    // no es un fundido sino la carga de un programa de casete (render/carga.js). Cuenta para atras.
+    let cargaProgT = 0;
+    /** Reemplaza el fundido de entrada por la carga, si la mision es de campaña. */
+    function entrarCargando(fade) {
+      if (gameMode !== 'campaign' || S.test) { fadeT = fade; return; }
+      fadeT = 0; cargaProgT = CARGA_T; sonidoCarga(CARGA.GUIA, CARGA.DATOS);
+    }
     let frenoAntes = false;   // la tecla de freno el cuadro anterior: la COBRA sale en el flanco
     // LOS ROTULOS GRANDES DEL DESENLACE (¡LE DISTE! ¡ESCAPÁ YA!, ¡MUY LARGA! ¡FALLASTE!, ¡LE ERRASTE!):
     // OCULTOS por ahora (autor, 8/10: "creo que no quedan bien los mensajes grandes, ocultalos y
@@ -2802,6 +2927,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
       if (gameMode !== 'campaign' && gameMode !== 'cycle') soltarMision();
+      // LOS MODOS SUELTOS (16/10): mundo al azar en cada corrida, y la barra del radar SUMA ESTRELLAS
+      // (la alarma) como en las misiones con fases. PERSECUCION usa la cfg cruda: se le devuelve lo
+      // que el azar piso. Un blanco encadenado del CICLO conserva el arranque en vuelo (siguienteBlanco).
+      if (suelto()) sortearEntorno();
+      else if (cfgPersec && gameMode === 'persec') { Object.assign(cfg, cfgPersec); cfgPersec = null; applyCfg(); }
+      cfg.pintaSuelto = suelto() ? 'cap' : null;
+      // …y CON COMBUSTIBLE (autor, 16/10): la nafta es el reloj, y sin ella la Chancha no existe
+      if (suelto()) { cfg.fuelOn = true; cfg.fuelScale = NAFTA_ESCALA; }
+      kmPrevios = 0;
+      if (startCiclo !== null) { cfg.start = startCiclo; startCiclo = null; }
       callarRadio();   // una linea de radio a medio decir no puede sobrevivir a la corrida
       dlgPausa = false;   // …ni su congelada: morir o salir durante el dialogo dejaria el mundo
                           // quieto sin nadie que lo suelte, y eso no se arregla desde adentro
@@ -2843,7 +2978,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       charla.resetCharla(); charlaFin = false;   // ni la charla a medio decir de la corrida anterior
       estrellas.resetEstrellas();   // ni las estrellas de la corrida anterior: te buscan por lo que hiciste EN ESTA
       persec.resetPersec();   // PERSECUCION: idem con el lider
-      caida = null; eyecto = false;   // LA CAIDA EN LLAMAS del derribo anterior
+      caida = null; derribo = null;   // LA CAIDA EN LLAMAS (y el avion perdido) del derribo anterior
       // …y en el MODO PERSECUCION se arma de entrada, con el roster de la corrida como pool de
       // lideres. No es una mecanica que aparece: es de lo que se trata la partida.
       // PERSECUCION: se arma por MODO (N2, infinito) o por DATO DE MISION (N3, `persec` en
@@ -2882,6 +3017,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el ESCUADRON de la corrida: cfg.squad aviones y vos de lider. Vive en `run` (no en el
       // sistema) porque lo leen HUD + relevo + este archivo.
       run.squad = run.lives = cfg.squad;
+      if (suelto()) run.squad = run.lives = DIFICULTADES[dificultad].aviones;   // la dificultad es el escuadron
       squad.resetFila();   // la fila de pilotos, en orden (core/squad.js)
       squad.resetSquad();
       toT = 0; toCount = 4;
@@ -3072,6 +3208,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       mejChange: dir => { mejChange(dir); beep(560, 0.05, 'square', 0.04); },
       mejBack,
       startTitle: () => { if (S.state !== 'title') return; modeSel = 0; setState('modeselect'); beep(620, 0.07, 'square', 0.05); },
+      difNav: dir => { if (gameMode === 'survival' || gameMode === 'cycle') difNav(dir); },
       planeNav: dir => { selPlane = (selPlane + dir + PLANES.length) % PLANES.length; beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04); },
       roll: dir => startRoll(dir),
       // COMBO: la SECUENCIA llega cruda ('lll', 'drul'...) desde dirTap (core/input.js), que ya
@@ -3211,8 +3348,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // con el MOMENTUM OBLIGADO de la suelta corriendo, el tuyo no se suma (8/10: se multiplicaban
         // las dos camaras lentas)
         if (blancoSys.lento()) { beep(140, 0.09, 'square', 0.05); return; }
+        if (!tempo.active() && tempo.meterVal() >= 1 && !alcanza('momentum')) return;   // USAR CUESTA (16/10)
         const r = tempo.toggle(nivelMomentum());
         if (r === 'empty') { beep(140, 0.09, 'square', 0.05); return; }
+        if (r === 'on') cobrar('momentum');
         beep(r === 'on' ? 330 : 520, 0.09, 'square', 0.05, r === 'on' ? -160 : 160);   // slide abajo = el tiempo cae
         cartel(r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
       },
@@ -3260,9 +3399,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL RADAR PROPIO [Y] (15/10): prender y apagar el de busqueda. Solo en vuelo y en los aviones que lo llevan
       radarToggle: () => {
         if (S.state !== 'play') return;
+        if (radarP.tiene && !radarP.on && !alcanza('radar')) return;   // USAR CUESTA (16/10)
         const r = radarSys.toggle();
-        if (r === 'on') { beep(980, 0.07, 'sine', 0.05, 200); cartel(T('radar_on'), '#5ab4ff', T('radar_on_sub')); }
-        else if (r === 'off') beep(520, 0.06, 'sine', 0.04, -150);
+        if (r === 'on') cobrar('radar');
+        // (16/10: prender suena el radar AZUL; sin samples, el bip de siempre. Apagar corta el azul y la
+        // deteccion si estaban sonando)
+        if (r === 'on') { if (!sfxOne('radarAzul')) beep(980, 0.07, 'sine', 0.05, 200); cartel(T('radar_on'), '#5ab4ff', T('radar_on_sub')); }
+        else if (r === 'off') { sfxStop('radarAzul', 0.3); sfxStop('radarDetecta', 0.2); beep(520, 0.06, 'sine', 0.04, -150); }
         else if (r === 'vacio') { beep(180, 0.08, 'square', 0.04); cartel(T('radar_sin'), P.dim); }
       },
       gearToggle: () => {
@@ -3417,11 +3560,28 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // VA EN EL EMBUDO y no en cada climax: los cinco caminos que terminaban una mision pasaban
       // por aca, asi que esta es la unica linea del juego que hay que cambiar para que el regreso
       // exista. El `!run.climaxHecho` lo hace idempotente — si algo volviera a llamar, cierra.
+      if (gameMode === 'cycle' && suelto()) { siguienteBlanco(); return; }
       if (!run.climaxHecho && fases.hayVuelta()) { volverDelBlanco(); return; }
       freezeRun();
       setState('results'); levelT = 0; resT = 0; resRow = 0;
       beep(700, 0.15, 'square', 0.06, 1000);
       engineOff();
+    }
+    /** CICLO DE MUERTE (16/10): el blanco cayo y ya hay otro. Sin recuento ni briefing: otro buque al
+     *  azar, otro mundo al azar, y el pasillo sigue EN VUELO. Lo que se lleva la corrida: el puntaje, las
+     *  vidas, las estrellas y los km (la rampa los cuenta todos). */
+    function siguienteBlanco() {
+      const lleva = { score: run.score, lives: run.lives, squad: run.squad, est: run.estrellas,
+        km: kmPrevios + Math.max(0, run.dist) / 1000 };
+      const start = startCiclo !== null ? startCiclo : cfg.start;
+      randomMission();
+      reset(); setRunObjective(true);
+      startCiclo = start; cfg.start = 'air'; resetPlane();
+      run.score = lleva.score; run.lives = lleva.lives; run.squad = lleva.squad; run.estrellas = lleva.est;
+      kmPrevios = lleva.km;
+      setState(afterBrief()); fadeT = 0.55;
+      beep(700, 0.15, 'square', 0.06, 1000);
+      cartel(T('cicloBlanco'), P.accent, objectiveShip);
     }
     /** LLEGASTE A CASA: arranca la aproximacion final (PLAN_MISION_CINCO_FASES §4).
      *
@@ -3539,7 +3699,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const seco = alMando(run);   // el que vuela ahora
         beep(430, 0.06, 'square', 0.04);
         decirRadio(T('seco_radio', { c: squad.pilotName(seco) }), n => CARA_DE_RADIO[n] || null);
-        squad.startRelevo('death_seco', 'seco');
+        // FUERA DE LA CAMPAÑA EL SECO SE VE (16/10, el autor: "me desaparece el avion de la nada, sin
+        // explosion"): el avion sin nafta no se esfuma — planea apagado, el piloto se eyecta y cae al
+        // agua. En campaña sigue siendo el que vuelve a la base en reserva (el guion).
+        const seVe = !squad.rosterActive();
+        if (seVe) derribar(plane, 'seco', avionPropio());
+        squad.startRelevo('death_seco', 'seco', seVe);
         setState('relevo');
       } else eyectar();
     }
@@ -3820,6 +3985,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // flanco lo detecta su propio update (systems/pasada.js) — este embudo es del pasillo.
       if (S.state === 'pasada') return;
       if (S.state !== 'play' || run.mslCd > 0) return;
+      if (exocetLanzable()) { lanzarExocet(); return; }   // el Exocet no se suelta: se lanza con el PULSO
       // LA SUELTA: las bombas salen del ESTANTE (systems/blanco.js) — la del centro es la del buque y
       // no sale lejos de el. Si lo unico que queda es esa, la tecla no suelta y se dice por que.
       if (runClimax() === 'suelta') {
@@ -3961,6 +4127,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // COMO CAE, SEGUN QUE LO BAJO (12/10, el autor): el misil revienta en el acto; la bala y el
       // antiaereo lo PRENDEN FUEGO y cae — a la vista, en llamas, y en la caida te podes eyectar
       // (empezarCaida). El choque revienta donde pego, como siempre.
+      // FUERA DE LA CAMPAÑA, AL AZAR (16/10): explota o se prende fuego, el piloto salta 3-4 de cada 5,
+      // y despues revienta en el aire o cae en llamas (core/fx.js `derribar`, DERRIBO en data/tuning.js)
+      else if (derriboAlAzar(cause)) derribo = derribar(plane, tipoDerribo(cause), avionPropio());
       else if (tipoDerribo(cause) === 'bala' && plane.y > 1.5) empezarCaida();
       else crashFX(tipoDerribo(cause));
       // EL RECORD (S2): en las herramientas no se toca ni en memoria — si solo se salteara el
@@ -3973,22 +4142,28 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (gameMode === 'survival' && !sinRastro() && Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
     }
 
-    // ---------------- LA CAIDA EN LLAMAS Y LA EYECCION (12/10) ----------------
-    // El autor: "si es bala o antiaereo, prenderse fuego y caer. Y deberia poder eyectarme si quiero:
-    // avisarme, y una combinacion de botones al mismo tiempo para salvar al piloto — eso da mas puntos
-    // en POR LA PATRIA. En las misiones, solo si la mision lo permite." Hasta aca el avion
-    // DESAPARECIA: el estado 'dead' deja de dibujarlo, y solo quedaban los pedazos.
+    // ---------------- LA CAIDA EN LLAMAS (12/10) ----------------
+    // El autor: "si es bala o antiaereo, prenderse fuego y caer". Hasta aca el avion DESAPARECIA: el
+    // estado 'dead' deja de dibujarlo, y solo quedaban los pedazos. Hoy es lo de la CAMPAÑA (que va
+    // por el guion); fuera de ella el avion que se pierde es un `derribado` al azar (16/10, ver abajo).
+    // La eyeccion a pedido (Q+E / L1+R1, con premio en POR LA PATRIA) se fue el 16/10: el autor la
+    // quiere del dado ("de cada 5 aviones 3 o 4 se eyectaban").
     //
     // La caida es parte del 'dead' (el mundo sigue, la colision ya no corre): el avion sigue a la
     // vista, rolando y en llamas, y revienta recien al tocar el agua o el suelo (crashFX). `deathT` se
     // queda en cero mientras cae: el fundido y la pantalla de fin cuentan desde el impacto.
     let caida = null;      // { t, vy, roll, dir } mientras el avion cae en llamas
-    let eyecto = false;    // ya salto el piloto en esta caida
-    /** ¿Se puede eyectar? En POR LA PATRIA siempre; en una mision, solo si la mision lo declara. */
-    const puedeEyectar = () => gameMode === 'survival' || !!(curMission() && curMission().eyeccion);
+    // EL AVION QUE SE PIERDE AL AZAR (16/10), fuera de la campaña: lo que no es choque (misil, fuego) y
+    // todavia esta en el aire. El objeto vive en el mundo (core/fx.js `derribar`); `derribo` es el del
+    // ultimo avion, para que el fundido espere a que termine de caer.
+    let derribo = null;
+    // (la campaña y el libro de vuelo van por el GUION: ahi no se tira el dado. POR LA PATRIA, el
+    // arcade y los modos sueltos, si — aunque tengan escuadrilla con nombre)
+    const derriboAlAzar = c => gameMode !== 'campaign' && !libro && tipoDerribo(c) !== 'choque' && plane.y > 1.2;
+    /** La hoja con la que se dibuja: la del avion que venias volando (con roster, la skin del piloto). */
+    const avionPropio = () => ({ sel: selPlane, idx: alMando(run) });
     function empezarCaida() {
       caida = { t: 0, vy: CAIDA.VY0, roll: 0, dir: Math.random() < 0.5 ? -1 : 1 };
-      eyecto = false;
       // EL GOLPE: chapa, chispas y el primer humo — sin bola de fuego, que esa va al pegar abajo
       sfxOne('exSmall'); boom(0.18, true); run.shake = 6;
       const ps = proj(plane.x, plane.y, PZ);
@@ -4014,8 +4189,6 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       for (let i = 0; i < 2; i++) parts.push({ x: ps.x + (Math.random() - 0.5) * ps.k, y: ps.y,
         vx: (Math.random() - 0.5) * 10, vy: -14 - Math.random() * 12, life: 0.9 + Math.random() * 0.5,
         c: Math.random() < 0.6 ? '#2b2b28' : '#4a4a42', r: Math.max(1.4, ps.k * 0.5) });
-      // LA EYECCION: [Q]+[E] juntas, o L1+R1. Solo en la caida, y solo donde se puede
-      if (!eyecto && puedeEyectar() && ((inp.rollL && inp.rollR) || inp.eyect)) eyectarEnCaida();
       const wz = run.dist + PZ;
       const suelo = esTierraEn(plane.x, wz) ? alturaSuelo(plane.x, wz) + 0.5 : 1;
       if (plane.y <= suelo || caida.t > CAIDA.MAX_T) {
@@ -4025,26 +4198,6 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         deathT = 0;
       }
     }
-    function eyectarEnCaida() {
-      eyecto = true;
-      beep(900, 0.08, 'square', 0.05, -300); boom(0.06, true);
-      // el mismo paracaidas que la eyeccion sin nafta (eyectar): piloto ARGENTINO, fila 0 de la hoja
-      obstacles.push({
-        type: 'chunk', done: true, chunkT: 0, paraca: true,
-        x: plane.x, y: plane.y + 0.5, z: PZ + 4,
-        vx: -caida.dir * 2, vy: 9, vz: 4, spin: 0, vspin: 0, size: 0.95, hot: false,
-        c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: 6, ph: 0, parte: null, arg: true,
-      });
-      const ps = proj(plane.x, plane.y, PZ);
-      if (gameMode === 'survival') {
-        run.score += EYECCION.PTS;
-        popup(ps.x, ps.y - 26, T('eyec_salvo') + '  +' + EYECCION.PTS, P.accent, true);
-        // el record se escribio al morir: lo de la eyeccion tambien cuenta
-        if (!sinRastro() && Math.floor(run.score) > best) { best = Math.floor(run.score); try { localStorage.setItem('rasante_frontal_best', best); } catch (e) { } }
-        deadStars = starsFor(Math.floor(run.score), SURVIVAL_PAR);
-      } else popup(ps.x, ps.y - 26, T('eyec_salvo'), P.accent, true);
-    }
-
     // EL EMBUDO DE LA MUERTE. Todas las señales { death } de los sistemas (colision, roce,
     // combustible, misiles del radar, momentum) caen aca, y aca — en UN solo lugar — se decide
     // si es el fin (ultimo avion → derribado) o un RELEVO (queda escuadron: el companero asume).
@@ -4075,9 +4228,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (relevoRompe() && esChoque(cause)) { die(cause); return; }
       if (canRelevo(run.lives)) {
         // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
-        if (relevoRompe()) dmgFX(); else crashFX(tipoDerribo(cause));
+        // (fuera de la campaña, lo que no es choque cae al azar —`derribar`, 16/10— y no vuelve averiado)
+        const perdido = derriboAlAzar(cause);
+        if (perdido) derribar(plane, tipoDerribo(cause), avionPropio());
+        else if (relevoRompe()) dmgFX();
+        else crashFX(tipoDerribo(cause));
         golpesPopa = 0;                // el que entra trae la chapa sana
-        squad.startRelevo(cause);      // la mision sigue: descuenta y prepara al companero
+        squad.startRelevo(cause, undefined, perdido);   // la mision sigue: descuenta y prepara al companero
         setState('relevo');
       } else die(cause);
     }
@@ -4132,6 +4289,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  cualquier tecla); sin ninguna de las dos es una linea de radio mas. Las lecciones NO pasan por
      *  `condorAlcance`: estan puestas a mano en su lugar, y el corte de Condor esta afuera a proposito. */
     function stepLecciones() {
+      if (suelto()) return;   // SIN DIALOGOS en los modos sueltos (autor, 16/10: "al menos por ahora")
       const m = curMission(), L = m && m.lecciones;
       if (!L || lecIdx >= L.length || dlgPausa || charla.hablando()) return;
       const lec = L[lecIdx];
@@ -4159,6 +4317,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  chapa en el piso, la Chancha nombrada— pasan UNA vez por corrida y no hacen cola. */
     const ESPACIADOS = ['agua', 'choque', 'radar'];
     function avisar(av, tipo) {
+      if (suelto()) return;   // SIN DIALOGOS en los modos sueltos (autor, 16/10: "al menos por ahora")
       const sc = SCENES[av[tipo]];
       // los diferidos llegan por reloj de pared: si el vuelo ya termino, la linea no tiene donde caer
       if (!sc || !sc.lineas.length || charla.hablando() || S.state !== 'play') return;
@@ -4273,6 +4432,23 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       machPrev = run.spd;
       tickDuck(dt);                      // el ducking de la musica se recupera solo
       fadeT = Math.max(0, fadeT - dt);   // fundido desde negro (se pinta al final de draw)
+      cargaProgT = Math.max(0, cargaProgT - dt);   // la carga del programa (render/carga.js)
+      if (S.state === 'play' && !exocetAvisado && exocetATiro()) {   // EXOCET A TIRO: una vez, al entrar
+        exocetAvisado = true; beep(880, 0.08, 'sine', 0.05, 300); cartel(T('exocet_atiro'), '#5ab4ff', T('exocet_atiro_sub'));
+      }
+      // el zumbido de la tarjeta de mision: suena mientras se ve, y se va solo al salir (audio.js)
+      zumbido(S.state === 'story' && (dialogue.scene() || {}).tipo === 'TARJETA');
+      // la zona del radar enemigo: green_radar alto con el barrido verde, bajito mientras sigas adentro
+      // `cerca`: 0 a RV_RANGO por debajo del techo, 1 en el techo y por encima (la pantalla en verde)
+      // LOS MODOS SUELTOS: la presion del mundo cuadro a cuadro, y el RADAR SIEMPRE (16/10): sin ruta no
+      // hay "entrar en alcance", asi que el barrido verde y su sonido salen al empezar a volar
+      if (suelto() && (S.state === 'play' || S.state === 'takeoff')) aplicarPresion();
+      if (suelto() && S.state === 'play' && radarScanT < 0 && !rutaSys.hay()) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
+      // DETECTANDO: en la zona verde (arriba del techo, en alcance) y con la barra subiendo
+      detectando(S.state === 'play' && rutaSys.enAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
+      { const techo = fases.techoRadar(RADAR_ALT), RV_RANGO = 14;
+        zonaRadar(S.state === 'play' && rutaSys.enAlcance() && (rutaSys.hay() || suelto()), radarScanT >= 0 ? run.t - radarScanT : 99,
+          (plane.y - (techo - RV_RANGO)) / RV_RANGO); }
       // FOGONAZO (D3): se apaga solo, rapido. Va acá y no en un sistema porque tiene que correr en
       // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
       run.flash = Math.max(0, run.flash - dt / FLASH_T);
@@ -4560,9 +4736,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             else if (gameMode === 'pasadas') startPasadaBattle(false);
             else {
               reset(); setRunObjective();
-              // ciclo: briefing corto de la mision; POR LA PATRIA: derecho al despegue
-              if (gameMode === 'cycle') { briefT = 0; setState('brief'); beep(600, 0.08, 'square', 0.05); }
-              else { setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+              // los dos modos sueltos salen derecho al despegue: el CICLO es POR LA PATRIA con blancos
+              // (16/10), y la tarjeta del blanco la dice la cinta de arriba
+              setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
             }
           }
         } else if (S.state === 'dead') {
@@ -4572,9 +4748,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // propia inercia (no los arrastra el mundo), los Harriers siguen volando su escena y los
           // misiles siguen de largo. Collision no corre: nada mas puede pasarte. Arriba, el fundido.
           if (caida) stepCaida(dt);
+          // el avion perdido al azar: el fundido y la pantalla de fin cuentan desde que termina de caer
+          const cayendo = !!(derribo && !derribo.fin);
+          if (cayendo) deathT = 0;
           if (!erroSuelta(deathCause) && gameMode !== 'arena' && gameMode !== 'pasadas') {
             // (mientras cae en llamas el avion sigue volando: el mundo no frena hasta el impacto)
-            const adv = run.spd * (caida ? 0.9 : MUERTE_AVANCE) * dt;
+            const adv = run.spd * (caida || cayendo ? 0.9 : MUERTE_AVANCE) * dt;
             run.dist += adv;
             for (const o of obstacles) if (o.type !== 'chunk' && o.type !== 'airboom') o.z -= adv;
             for (const sd of soldiers) sd.z -= adv;
@@ -4594,8 +4773,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             else if (gameMode === 'pasadas') startPasadaBattle(false);
             // LIBRO DE VUELO: no se reintenta — se cuenta lo que pasó de verdad, salga como salga la
             // corrida (autor, 12/10). Volver a volarla es volver a elegirla en el libro.
-            else if (libro) { initStory(curMission().epi); setState('epilogue'); beep(500, 0.05, 'square', 0.04); }
-            else { reset(); setRunObjective(true); setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05); }
+            // …y LO QUE PASÓ es solo para cuando ganaste (autor, 16/10): perdida, la salida termina en esta
+            // pantalla —la explicacion de la derrota y la nota historica— y la tecla vuelve al libro
+            else if (libro) { volverAlLibro(); beep(500, 0.05, 'square', 0.04); }
+            else {
+              // CICLO: la corrida se termino con la muerte; la que sigue es otra, con otro blanco
+              if (gameMode === 'cycle' && suelto()) randomMission();
+              reset(); setRunObjective(true); setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
+            }
           }
         } else if (S.state === 'relevo') {
           // RELEVO DEL ESCUADRON. Los restos del lider ya los movio el bloque comun de arriba
@@ -4860,7 +5045,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // apaga a partir de este cuadro (spawnSystem, mas abajo, ya lo va a ver apagado).
       // Una escena que no existe en el guion se ignora en silencio a proposito: un id mal escrito
       // en un tramo no puede llevarse la mision puesta.
-      if (trs && trs.charla && SCENES[trs.charla]) charla.armar(trs.charla);
+      if (trs && trs.charla && SCENES[trs.charla] && !suelto()) charla.armar(trs.charla);   // (sin charlas en los modos sueltos)
       // ?charla=<ID> (sonda, QUITAR): la misma puerta, disparada por distancia en vez de por tramo.
       if (charlaProbe && !charlaArmed && run.dist >= 300) { charlaArmed = true; charla.armar(charlaProbe); }
       // LA RADIO DE LA FASE (PLAN_MISION_CINCO_FASES §11), en el mismo renglon y por el mismo
@@ -4877,7 +5062,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // subian?" — no: a 9.000 m el mar es un plano y no queda nada que jugar). La fase que trae `corte`
       // abre con un negro de una linea —el intersticial de la campaña— y su radio sale al volver.
       const decirFase = f => { if (f && f.radio) { if (f.pausa) dlgFreeze(f.radio); else radioTramo(f.radio); } };
-      if (fss && fss.corte) {
+      if (fss && fss.corte && !suelto()) {   // (el corte a negro es narracion: no en los modos sueltos)
         setState(armarInter(T(fss.corte), CORTE_FASE_S, () => { setState('play'); fadeT = 0.55; decirFase(fss); }));
         return;
       }
@@ -4920,7 +5105,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // (la mision lo puede apagar con `senaRadar: false` — 8/10, las SMALL de prueba)
           if (alc && run.dist < objectiveDist && !(curMission() && curMission().senaRadar === false)) senaCompanero('radar', 1);
           // …y EL ESCANEO: la linea que barre la pantalla y la red que respira (world.ESC_*)
-          if (alc) radarScanT = run.t;
+          if (alc) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }   // (16/10: y suena el arranque del radar)
         }
         alcanceAntes = alc;
         // LA CHANCHA DE LA IDA VIENE SOLA Y ESPERA (27/9, el autor: "SIEMPRE debe aparecer a la ida y
@@ -5707,7 +5892,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // …y EN UN CAMBIO DE PILOTO SIEMPRE, con o sin roster: ahi el que se va no es un averiado sino tu
       // avion cediendo el puesto, y verlo irse es la mitad de la escena.
       // (salvo tras errar la suelta —`solo`—: el tuyo ya se fue en el fundido, no se lo vuelve a ver)
-      if (S.state === 'relevo' && squad.relevo() && !squad.relevo().solo && (squad.rosterActive() || squad.relevo().cambio))
+      if (S.state === 'relevo' && squad.relevo() && !squad.relevo().solo && !squad.relevo().perdido && (squad.rosterActive() || squad.relevo().cambio))
         squadRender.drawFallen({ selPlane, rv: squad.relevo() });
       // EL LIDER de la PERSECUCION: siempre esta mas lejos que vos (es la definicion del modo), asi
       // que va antes del avion y no necesita el reparto en dos pasadas que si necesita LA COLA.
@@ -5753,7 +5938,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const hayTanque = naftaSys.hayTanque() && !!proximoPilon(run.tanque);
         // (en verde cuando el blanco esta en verde: soltar ahora pega — systems/blanco.js `hud().listo`)
         const verdeBlanco = runClimax() === 'suelta' && !!(blancoSys.hud() || {}).listo;
-        if (run.apuntaBomba) drawTrayectoria(trayectoria(bombaSale(), run.spd, suelo), hayBomba() || (run.apuntaTanque && hayTanque), verdeBlanco);
+        // EL EXOCET (16/10): no cae — la mira es una RECTA celeste al ras, y encuadra lo que cruza
+        if (run.apuntaBomba && (cargaDe(cfg.carga) || {}).exocet) drawLineaExocet(plane.x, plane.y, PZ, exocetLanzable() ? exocetATiro() : true, marcaExocet());
+        else if (run.apuntaBomba) drawTrayectoria(trayectoria(bombaSale(), run.spd, suelo), hayBomba() || (run.apuntaTanque && hayTanque), verdeBlanco);
         else if (run.apuntaTanque) drawTrayectoria(trayectoria(Object.assign(tanquesSalen('centro', 1)[0], { x: plane.x }), run.spd, suelo), hayTanque);
         if (hzW) ctx.restore();
       }
@@ -5972,7 +6159,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // ¿EN ESTA CORRIDA PUEDE SUBIR? Solo con fases: sin ellas `pinta` no se resuelve y completar
         // la barra del radar dispara la oleada de siempre sin sumar nada. Decide si el panel se ve
         // a nivel cero (apagado, esperando) o no existe.
-        busqueda: fases.hayFases(),
+        busqueda: fases.hayFases() || suelto(), suelto: suelto(),   // (16/10: en los modos sueltos la alarma corre siempre)
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
           ras: { on: rasante.active(), resta: rasante.restante(), dur: rasante.duracion() } }); if (!perdidaUI) drawCinta();
@@ -6053,7 +6240,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       });
       if (S.state === 'relevo' && squad.relevo()) squadRender.drawRelevo(squad.relevo());
       if (S.state === 'menu') {
-        menus.drawMenu({ selPlane, gameMode, t: run.t });
+        menus.drawMenu({ selPlane, gameMode, t: run.t,
+          dif: gameMode === 'survival' || gameMode === 'cycle' ? DIFICULTADES[dificultad] : null });
         // ahora se hace aca, antes de dibujar
       }
       // EL DERRIBO SE FUNDE A NEGRO mientras el mundo sigue (8/10, el autor: "meter fade negro"): de
@@ -6064,28 +6252,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         ctx.globalAlpha = u * u * (3 - 2 * u); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.restore();
       }
-      // EL AVISO DE LA EYECCION, mientras cae en llamas y se puede: grande, al centro, titilando
-      if (S.state === 'dead' && caida && !eyecto && puedeEyectar()) {
-        const k = ctx.canvas.width / 320;
-        ctx.save(); ctx.setTransform(k, 0, 0, k, 0, 0); ctx.textAlign = 'center';
-        if (Math.floor(caida.t * 6) % 2 === 0) {
-          ctx.font = avisoFont(14); ctx.fillStyle = '#0a0e11'; ctx.fillText(T('eyec_aviso'), 161, 45);
-          ctx.fillStyle = P.warn; ctx.fillText(T('eyec_aviso'), 160, 44);
-        }
-        ctx.font = '7px monospace'; ctx.fillStyle = P.ink; ctx.fillText(T('eyec_teclas'), 160, 55);
-        ctx.restore();
-      }
       // DERRIBADO: esperar a que se vea el destrozo; despues la pantalla sube con un fade corto
       if (S.state === 'dead' && deathT > DEATH_REVEAL)
         // `best` en CERO fuera de POR LA PATRIA: es el mismo criterio que ya usa `stars` —lo que no
         // es de este modo llega apagado y el render no tiene que saber en que modo esta.
         screens.drawDead({ score: run.score, best: gameMode === 'survival' ? best : 0, deathCause, deathT, factIdx, t: run.t, porque: deathPorque,
+          libro: !!libro,
           reveal: Math.min(1, (deathT - DEATH_REVEAL) / 0.35), stars: deadStars, awardT: deathT - DEATH_REVEAL - 0.2, bg: deadBg,
           out: squad.rosterActive(),   // campaña: la escuadrilla quedo fuera de combate, no "derribado"
           // …y el PULSO tiene su propio titular: no te derribaron, erraste la mano. La mision se
           // reinicia entera con cualquier tecla, que es lo que ya hacia esta pantalla.
           // …y ERRAR LA SUELTA tambien: perdiste la mision, a nadie lo bajaron
-          perdido: deathCause === 'death_pulso' || erroSuelta(deathCause) });
+          perdido: deathCause === 'death_pulso' || deathCause === 'death_exocet_errado' || erroSuelta(deathCause) });
       if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t, bg: winBg });
       if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t: run.t });
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
@@ -6293,6 +6471,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         }
       }
 
+      // la carga del programa (campaña, al entrar a la mision) — tambien al final de todo
+      if (cargaProgT > 0) drawCarga(CARGA_T - cargaProgT, 'RASANTE ' + (curLevel + 1));
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {
         ctx.globalAlpha = Math.min(1, fadeT / 1.4);
@@ -6377,6 +6557,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       window.__fuenteNum = f => { NUMEROS.fam = f; return f; };
       // LAS TRES METRALLAS en la corrida en curso (y la cinta), para capturas: __metralla(3, 2)
       window.__metralla = (m, c) => { run.metralla = m; if (c) run.cinta = c; return JSON.stringify({ metralla: run.metralla, cinta: run.cinta, heat: +run.heat.toFixed(2), giro: +run.giro.toFixed(2), tiros: stats.shots }); };
+      // la carga del programa a mano, para mirarla sin volar una campaña (render/carga.js)
+      // el blanco cumplido, por la puerta real (finishObjective): en el CICLO encadena el siguiente
+      window.__blancoYa = () => { finishObjective(); return JSON.stringify({ st: S.state, ship: objectiveShip, score: Math.floor(run.score), lives: run.lives }); };
+      // el pasillo a `m` metros, y lo que dice el Exocet de ahi (alcance de 30 millas)
+      window.__dist = m => { run.dist = +m; return JSON.stringify({ dist: run.dist, obj: objectiveDist, km: +kmAlBlanco().toFixed(1), lanzable: exocetLanzable(), atiro: exocetATiro() }); };
+      window.__carga = () => { cargaProgT = CARGA_T; sonidoCarga(CARGA.GUIA, CARGA.DATOS); return CARGA_T; };
       window.__estado = () => JSON.stringify({ st: S.state, nivel: curLevel, inter: interTxt, interT: +interT.toFixed(2), interDur, oferta: upgOffer.length, runT: +run.t.toFixed(2) });
       window.__czstart = o => caza.start(o || {});
       window.__czdbg = () => caza.dbg();
@@ -6466,6 +6652,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // UN COMPAÑERO TE HACE SEÑAS (data/senales.js SENAS_COMP): __senacomp('alerta', 'costado', -1)
       window.__senacomp = (id, sale, lado) => { const ok = senaCompanero(id, lado); if (ok && sale) senas.sale = sale; return ok; };
       window.__deathdbg = () => deathCause;
+      // morir por la puerta real con la causa pedida (relevo o fin): para mirar el derribo de cada causa
+      window.__morir = c => { onDeath(c || 'death_sidewinder'); return S.state; };
+      // la causa del ULTIMO relevo (y si quedo averiado/perdido): para saber que tumbo al avion
+      window.__relevodbg = () => { const r = squad.relevo(); return JSON.stringify(r ? { cause: r.cause, spent: r.spent, averiado: r.averiado, perdido: r.perdido } : null); };
       window.__pscaer = m => persec.caerLider(m || undefined);
       window.__psscore = () => Math.floor(run.score);
       // VUELO NIVELADO para el fixture. Es la misma sonda que `__czalto` (clava altura y rumbo) y se
@@ -7239,6 +7429,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // congelado sin menu ni caja que lo explique ES un cuelgue, aunque el codigo este esperando.
       if (paused && !PAUSABLE()) paused = false;
       if (dlgPausa && ((S.state !== 'play' && S.state !== 'landing') || (dlgT > 1 && !radioVis()))) { dlgPausa = false; lecFoco = null; }
+      pausarAudio(paused);   // la pausa calla todo: musica, ambiente, loops (systems/audio.js)
       if (paused) {
         pauseT += raw;
         draw(); updateMusic(S.state);
@@ -7353,6 +7544,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           buques: obstacles.filter(o => buqueRadar(o, PZ)).length,
           aTiro: objectiveDist > 0 && run.dist < objectiveDist
             && (rutaSys.hay() ? rutaSys.alBlanco() <= RADAR_PROPIO.ALCANCE_KM : objectiveDist - run.dist <= RADAR_PROPIO.ALCANCE_M) });
+        // LA DETECCION (16/10): detecting suena desde que empieza hasta que quedan marcadas las flechitas
+        if (rp.det === 'empieza') sfxOne('radarDetecta');
+        else if (rp.det === 'termina') sfxStop('radarDetecta', 0.25);
         if (rp.sig === 'eco') { beep(1250, 0.08, 'sine', 0.05, 300); cartel(T('radar_eco'), '#5ab4ff', null, { alerta: true }); }
         else if (rp.sig === 'ecoAereo') { beep(1100, 0.08, 'sine', 0.05, 250); cartel(T('radar_eco_aereo'), '#5ab4ff', null, { alerta: true }); }
         else if (rp.sig === 'sinCarga') { beep(220, 0.1, 'square', 0.04, -60); cartel(T('radar_sin'), P.dim); }

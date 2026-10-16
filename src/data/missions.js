@@ -77,7 +77,7 @@ export const CAMPAIGN_CFG = C({});
 export const MISSIONS = [
   {
     id: 'm1', name: 'CON SAL EN LAS ALAS', date: 'fines de abril de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'rumbo sudeste · mar abierto' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'rumbo sudeste · mar abierto' },
     goal: { kind: 'distance', meters: 2200 },
     // COMBUSTIBLE PRENDIDO, PERO SIN CHANCHA. El tanque se ve y baja —es la mitad de lo que hace
     // falta para que el poder signifique algo cuando llegue— y en M1 solo se lo NOMBRA.
@@ -197,7 +197,7 @@ export const MISSIONS = [
   },
   {
     id: 'm2', name: 'EL BAUTISMO DE FUEGO', date: '1 de mayo de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'cruce de costa' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'cruce de costa' },
     goal: { kind: 'distance', meters: 2600 },
     cfg: C({ bombs: 0.5 }),
     // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
@@ -210,7 +210,7 @@ export const MISSIONS = [
   },
   {
     id: 'm3', name: 'EL INVENTO', date: 'primeros dias de mayo de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'patrulla de reconocimiento costero' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'patrulla de reconocimiento costero' },
     // LA PISTA OBLIGATORIA DE ESTA MISION (pedido del autor, 10/10/2026): ALAMBRE, desde que
     // arranca. Es la unica mision que pide la suya; el resto de la campaña vuela con game.mp3.
     // Va acá y no en systems/audio.js porque es una decision DE ESTA MISION: la cancion se llama
@@ -237,7 +237,7 @@ export const MISSIONS = [
   },
   {
     id: 'm4', name: 'EL DIA QUE SANGRO EL MAR', date: '4 de mayo de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'blanco: destructor clase 42' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'blanco: destructor clase 42' },
     goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: 2600 },
     cfg: C({ bombs: 0.5 }),
     // EL TRANSITO DEL NARWAL (GUION_3, "de donde salen las posiciones"), y la primera mision con
@@ -279,7 +279,7 @@ export const MISSIONS = [
   },
   {
     id: 'm5', name: 'EL CALLEJON DE LAS BOMBAS', date: '21 de mayo de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'entrada al estrecho de San Carlos' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'entrada al estrecho de San Carlos' },
     goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 2600 },
     climax: 'arena',   // ver la nota de arriba
     // EL SILENCIO DEL NARWAL (GUION_3 M5, §3.9). Es el MISMO tramo de transito de m4 —misma
@@ -332,7 +332,7 @@ export const MISSIONS = [
   },
   {
     id: 'm6', name: 'LA BOMBA QUE NO DESPERTO', date: '23 de mayo de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'fragata al noroeste del estrecho' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'fragata al noroeste del estrecho' },
     goal: { kind: 'ship', ship: 'HMS ANTELOPE', dist: 2800 },
     cfg: C({ sky: 'sun', obstacles: 1.7, fog: 1, fogLen: 0 }),
     // G-08: el objetivo por radio, en el primer tramo. `obstacles: 0` no es cosmetico — una charla
@@ -345,7 +345,7 @@ export const MISSIONS = [
   },
   {
     id: 'm7', name: 'PASTELITOS', date: '25 de mayo de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'destructor en el estrecho' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'destructor en el estrecho' },
     goal: { kind: 'ship', ship: 'HMS COVENTRY', dist: 2800 },
     cfg: C({ sky: 'clear', obstacles: 1.7 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -359,7 +359,7 @@ export const MISSIONS = [
   },
   {
     id: 'm8', name: 'EL BATIR DE LAS ALAS', date: '25 de mayo de 1982 · segunda salida',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'blanco: carguero grande' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'blanco: carguero grande' },
     goal: { kind: 'ship', ship: 'ATLANTIC CONVEYOR', dist: 3000 },
     cfg: C({ obstacles: 1.7, rain: 1, squad: 4 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -373,7 +373,7 @@ export const MISSIONS = [
   },
   {
     id: 'm9', name: 'EL PIBE', date: '27 de mayo de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'centro logístico en San Carlos' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'centro logístico en San Carlos' },
     goal: { kind: 'distance', meters: 3200 },
     cfg: C({ sky: 'storm', obstacles: 1.7, bombs: 2, rain: 2, fog: 1, squad: 4 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -387,7 +387,7 @@ export const MISSIONS = [
   },
   {
     id: 'm10', name: 'LOS PRIMOS', date: '5 de junio de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'reconocimiento armado sobre las islas' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'reconocimiento armado sobre las islas' },
     goal: { kind: 'distance', meters: 3600 },
     // LA MAS LARGA DEL JUEGO Y LA UNICA DONDE EL NIVEL ES EL CLIMA (GUION_3 M10). No tiene buque
     // ni blancos: el enemigo es el frente cerrado, la niebla y la nafta. Por eso `obstacles` baja
@@ -411,7 +411,7 @@ export const MISSIONS = [
   },
   {
     id: 'm11', name: 'LO QUE NO SE DICE', date: '8 de junio de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'apoyo sobre Fitzroy' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'apoyo sobre Fitzroy' },
     goal: { kind: 'ship', ship: 'RFA SIR GALAHAD', dist: 3000 },
     cfg: C({ sky: 'cloudy', obstacles: 1.7, squad: 3, caza: 2 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -425,7 +425,7 @@ export const MISSIONS = [
   },
   {
     id: 'm12', name: 'ANGEL DE CORRIENTES', date: '8 de junio de 1982 · segunda salida',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'segunda salida sobre Fitzroy' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'segunda salida sobre Fitzroy' },
     goal: { kind: 'ship', ship: 'RFA SIR TRISTRAM', dist: 3000 },
     cfg: C({ obstacles: 1.7, bombs: 2, rain: 1, squad: 3 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -439,7 +439,7 @@ export const MISSIONS = [
   },
   {
     id: 'm13', name: 'LA CENA', date: '11 de junio de 1982',
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'apoyo a las posiciones de los montes' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'apoyo a las posiciones de los montes' },
     goal: { kind: 'ship', ship: 'HMS BROADSWORD', dist: 3200 },
     cfg: C({ sky: 'moon', terrain: 'land', obstacles: 1.7, bombs: 2, fog: 1, squad: 3, caza: 2 }),
     chancha: false,   // la Chancha vuela corto desde el epilogo de m6: no baja mas al sur
@@ -455,7 +455,7 @@ export const MISSIONS = [
     id: 'm14', name: 'EL TERO', date: 'madrugada del 12 de junio de 1982',
     // SIN RUMBO, a proposito: M14 es la unica mision sin orden. Esa noche no hay pajaro asignado
     // ni nadie que los mande (ver RESUELTOS_GUION, G-08), y el cartel no puede decir lo contrario.
-    despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: '' },
+    despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: '' },
     goal: { kind: 'ship', ship: 'HMS GLAMORGAN', dist: 3400 },
     climax: 'arena',   // ver la nota de arriba
     cfg: C({ sky: 'night', obstacles: 1.7, bombs: 2, fog: 1, fogLen: 2, squad: 3, caza: 2 }),

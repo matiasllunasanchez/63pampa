@@ -14,9 +14,14 @@ export const radarP = {
   ve: false,        // este cuadro: prendido, a altura y con el blanco a tiro
   aereoT: 0,        // segundos que le quedan a la marca de los CONTACTOS AEREOS (los Harrier), 0 = sin marcar
   buquesT: 0,       // idem, los OTROS BUQUES del pasillo (fragatas y barcazas)
+  onT: 0,           // segundos desde que se prendio esta vez
+  detectando: false, // esta corriendo la deteccion (suena detecting)
+  detectaT: 0,      // `onT` en que arranco la deteccion
+  detectado: false, // ya detecto en esta prendida: las ondas marcan de una
 };
 
 export function resetRadarP(tiene) {
   radarP.tiene = !!tiene; radarP.on = false; radarP.carga = 1;
   radarP.ondas.length = 0; radarP.cadaT = 0; radarP.marcaT = 0; radarP.ecoT = -1; radarP.ve = false; radarP.aereoT = 0; radarP.buquesT = 0;
+  radarP.onT = 0; radarP.detectando = false; radarP.detectaT = 0; radarP.detectado = false;
 }

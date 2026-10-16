@@ -40,6 +40,9 @@ export const CARGAS = [
 
 /** LA CARGA PROPIA DE CADA AVION, la que sale si nadie eligio otra (12/10). Fuera de la campaña no hay
  *  hangar, y el Dagger volaba con la India: es la suya. (La campaña vuela A-4B.) */
+// EL ALCANCE DEL EXOCET (autor, 16/10): se suelta a 30 millas nauticas del blanco o menos — 55,6 km.
+// Adentro de eso el jugador lo lanza cuando quiere; afuera, la tecla avisa y no sale nada.
+export const EXOCET_ALCANCE_KM = 55.6;
 export const CARGA_PROPIA = { dagger: 'india', supere: 'exocet', herc: 'herc_250' };
 
 /** La carga que cuelga de verdad el avion `key` si se pidio `id`: una carga de OTRO avion no se puede

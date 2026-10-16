@@ -1,6 +1,8 @@
 // EL ARRANQUE DEL FICHIN (pedido del autor, 3/10/2026). Al abrir el programa:
 //
 //   1. NEGRO, y se FUNDE el gabinete con el tubo apagado.
+//      Ya desde aca suena el BOOTING de la PC (autor, 16/10): fuerte bajo el BIOS, bajito desde INSERTE
+//      FICHA, y se va con la portada.
 //   2. El tubo SE PRENDE como un televisor (la animacion es de styles.css, el sonido de audio.js).
 //   3. Texto de BIOS, "como cuando arrancaba una PC vieja", tipeandose.
 //   4. La pantalla vacia, y INSERTE FICHA bien grande en el medio, SOLO. Despues suena el insert coin
@@ -73,7 +75,7 @@ export const arranqueActivo = () => activo;
 /** Corre la secuencia. `alPrender` (el tubo), `alCargado` (el insert coin: INSERTE FICHA ya esta
  *  en pantalla), `alFicha` (la moneda) y `alTerminar` (ya se ve la
  *  portada) son los ganchos de sonido y musica de game.js. */
-export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
+export function arrancar({ alEmpezar, alPrender, alFinBios, alCargado, alFicha, alTerminar } = {}) {
   const b = typeof document !== 'undefined' && document.body, stage = cv && cv.parentElement;
   const bios = b && document.getElementById('bios');
   // (en MODO DEV no hay arranque: directo al juego — 8/10, ver core/dev.js)
@@ -84,6 +86,8 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
     return;
   }
   activo = true;
+  // EL BOOTING DE LA PC (autor, 16/10): suena desde el negro, antes de que prenda el tubo
+  if (alEmpezar) alEmpezar();
   b.classList.add('arranque-bios');
   bios.width = BW * RES; bios.height = BH * RES;
   const g = bios.getContext('2d');
@@ -156,7 +160,7 @@ export function arrancar({ alPrender, alCargado, alFicha, alTerminar } = {}) {
     padPrev = algun;
 
     const t = ahora() - desde;
-    if (fase === 'bios' && t > ARRANQUE.BIOS_DESDE + BIOS_T + 0.5) pasarA('vacio');
+    if (fase === 'bios' && t > ARRANQUE.BIOS_DESDE + BIOS_T + 0.5) { pasarA('vacio'); if (alFinBios) alFinBios(); }
     else if (fase === 'vacio' && t > ARRANQUE.VACIO) pasarA('ficha');
     else if (fase === 'ficha' && t > ARRANQUE.SUENA && !cargado) { cargado = true; if (alCargado) alCargado(); }
     if (fase === 'ficha' && t > ARRANQUE.FICHA) pasarA('aviso');
@@ -212,6 +216,7 @@ function dibujar(g, fase, t, durRenglon) {
       g.fillText('PARA CONTINUAR', BW / 2, BH / 2 + 2, BW - 16);
     }
     g.font = 'bold 7px monospace';
-    if (fase === 'credito') { g.textAlign = 'right'; g.fillStyle = COL.texto; g.fillText('CREDITO 1', BW - 10, BH - 14); }
+    // CREDITO 1 apenas aparece PRESIONE CUALQUIER TECLA (autor, 16/10), no recien con la ficha
+    if (fase === 'aviso' || fase === 'credito') { g.textAlign = 'right'; g.fillStyle = COL.texto; g.fillText('CREDITO 1', BW - 10, BH - 14); }
   }
 }

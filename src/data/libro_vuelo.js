@@ -106,7 +106,7 @@ const r1 = {
   id: 'r1', name: 'EL SHEFFIELD',
   fecha: '4 DE MAYO DE 1982', hora: '11:04', horaQue: 'lanzamiento',
   desc: 'Dos Super Étendard de la Armada salen de Río Grande a buscar a la flota con un Exocet cada uno. Al ras del mar, con niebla, guiados por un Neptune.',
-  despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'blanco: destructor clase 42' },
+  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', rumbo: 'blanco: destructor clase 42' },
   goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: LARGO },
   climax: 'pulso',
   cfg: cfgReal({ sky: 'cloudy', fog: 1, fogLen: 1, squad: 2, caza: 0 }),
@@ -144,10 +144,10 @@ const r1 = {
 // Al volver, uno de ORO cruzo Pradera del Ganso y lo derribo la antiaerea propia. Ultimo dia de
 // niebla.
 const r2 = {
-  id: 'r2', name: 'LA GLASGOW',
+  id: 'r2', name: 'HMS GLASGOW',   // nombre completo (autor, 16/10: "LA GLASGOW" quedaba feo)
   fecha: '12 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
   desc: 'Dos escuadrillas de A-4B salen de Río Gallegos contra dos buques en el estrecho. Volás la segunda, ORO, contra la Glasgow.',
-  despegue: { desde: 'BAM RÍO GALLEGOS', rumbo: 'blanco: destructor clase 42' },
+  despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'blanco: destructor clase 42' },
   goal: { kind: 'ship', ship: 'HMS GLASGOW', dist: LARGO },
   climax: 'suelta',
   // LA MK-17 (la de las espoletas que fallaban en todo mayo) y el SEA WOLF: lo tiraba la Brilliant, que
@@ -210,7 +210,7 @@ const r3 = {
   id: 'r3', name: 'LA ARDENT',
   fecha: '21 DE MAYO DE 1982', hora: '14:10', horaQue: 'despegue',
   desc: 'Tres A-4Q de la Armada, sin Hércules: cada litro contado. El blanco asignado no está; el alternativo, los buques de San Carlos.',
-  despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'blanco alternativo: bahía San Carlos' },
+  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', rumbo: 'blanco alternativo: bahía San Carlos' },
   goal: { kind: 'ship', ship: 'HMS ARDENT', dist: LARGO },
   climax: 'suelta',
   // LA BRP-250 hasta que exista la MK-82 Snakeye: es la bomba con cola retardadora que el juego ya
@@ -270,7 +270,7 @@ const r4 = {
   id: 'r4', name: 'LA PLYMOUTH',
   fecha: '8 DE JUNIO DE 1982', hora: '≈13:00', horaQue: 'ataque',
   desc: 'Seis Dagger salen de Río Grande hacia Bahía Agradable. Al ras y muy rápidos, se pasan, y encuentran una fragata sola en el estrecho.',
-  despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'rumbo: Bahía Agradable' },
+  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', rumbo: 'rumbo: Bahía Agradable' },
   goal: { kind: 'ship', ship: 'HMS PLYMOUTH', dist: LARGO },
   climax: 'suelta',
   // Bombas de 250 kg (la BRP-250 es la de 250 que el juego tiene; cual era exactamente, a confirmar).
@@ -332,7 +332,7 @@ const r5 = {
   id: 'r5', name: 'EL INVINCIBLE',
   fecha: '30 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
   desc: 'Dos Super Étendard con el último Exocet y cuatro A-4C salen juntos de Río Grande a buscar al portaaviones. Primero lanzás el misil; después, lo escoltás.',
-  despegue: { desde: 'BAN RÍO GRANDE', rumbo: 'blanco: el grupo de portaaviones' },
+  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', rumbo: 'blanco: el grupo de portaaviones' },
   goal: { kind: 'ship', ship: 'HMS INVINCIBLE', dist: LARGO * 1.2 },
   climax: 'pulso',
   // DONDE SE LANZA EL EXOCET: a esta fraccion de la ida, no en el blanco. Lo que queda de ahi al
@@ -370,21 +370,23 @@ export const LIBRO_VUELO = [r1, r2, r3, r5, r4];
 // EL CONTEXTO es una TARJETA: el dato (fecha · hora · base), despues EL AVION Y EL ARMA en dos lineas
 // (que era, por que ese y no otro — autor, 14/10: "explicar cosas, antes de arrancar") y el contexto. LO QUE PASÓ es
 // otra TARJETA. Una linea por frase larga: la tarjeta pasa de a una.
-const tarjeta = (id, titulo, lineas) => ({
-  id, tipo: 'TARJETA', titulo,
+// `rotulo` (opcional): la linea CHICA de arriba del titulo, donde las misiones dicen CAPÍTULO N (autor,
+// 16/10: "LO QUE PASÓ tambien chico, arriba"). El titulo grande queda solo con el nombre.
+const tarjeta = (id, titulo, lineas, rotulo) => ({
+  id, tipo: 'TARJETA', titulo, rotulo,
   lineas: lineas.map((es, i) => ({ id: id + '_' + String((i + 1) * 10).padStart(3, '0'), personaje: null, cara: null, hold: 0, es, en: '' })),
 });
 const dato = m => m.fecha + ' · ' + m.hora + ' · ' + m.despegue.desde;
 
 export const LIBRO_SCENES = {
   R1_CONTEXTO: tarjeta('R1_CONTEXTO', r1.name, [dato(r1), 'El Super Étendard era de la Armada y el único avión argentino que podía lanzar el Exocet: un misil antibuque que se suelta a 20 o 30 millas y llega solo, rozando el agua.', 'Argentina tenía cinco Exocet y no iban a llegar más. Cada avión lleva uno: si uno falla, queda el otro.', 'Un Neptune de la Armada encontró a la flota esa mañana. Dos Super Étendard despegaron de Río Grande a las 09:45 y cargaron nafta de un Hércules en la ida.', 'Al ras del mar, sin radar, hasta la posición que pasó el Neptune. Para apuntar hay que subir y prender el radar: una sola vez.']),
-  R1_LO_QUE_PASO: tarjeta('R1_LO_QUE_PASO', 'LO QUE PASÓ · ' + r1.name, ['4 de mayo de 1982. A las 11:04 los dos Super Étendard lanzaron sus Exocet desde 20 a 30 millas, y volvieron al ras a Río Grande.', 'Uno alcanzó al HMS Sheffield. Murieron 20 tripulantes. Se hundió seis días después, mientras lo remolcaban.']),
+  R1_LO_QUE_PASO: tarjeta('R1_LO_QUE_PASO', r1.name, ['4 de mayo de 1982. A las 11:04 los dos Super Étendard lanzaron sus Exocet desde 20 a 30 millas, y volvieron al ras a Río Grande.', 'Uno alcanzó al HMS Sheffield. Murieron 20 tripulantes. Se hundió seis días después, mientras lo remolcaban.'], 'LO QUE PASÓ'),
   R2_CONTEXTO: tarjeta('R2_CONTEXTO', r2.name, [dato(r2), 'El A-4B Skyhawk de la Fuerza Aérea no tiene misiles antibuque: ataca con una bomba, y para soltarla hay que pasar por encima del buque, adentro de su antiaérea.', 'En mayo las espoletas fallaban seguido: muchas bombas atravesaban el buque sin estallar.', 'Dos buques británicos bombardeaban las posiciones de Puerto Argentino. A las 12:20 salió la escuadrilla CUÑA contra la Brilliant; a las 12:30, ORO contra la Glasgow.', 'La Brilliant tiene Sea Wolf. Último día de niebla.']),
-  R2_LO_QUE_PASO: tarjeta('R2_LO_QUE_PASO', 'LO QUE PASÓ · ' + r2.name, ['12 de mayo de 1982. De ocho A-4B volvieron cuatro: los Sea Wolf de la Brilliant bajaron a tres de CUÑA.', 'Una bomba de ORO atravesó a la Glasgow de lado a lado y estalló en el agua: el destructor quedó fuera de combate el resto de la guerra.', 'Al volver, uno de ORO cruzó Pradera del Ganso y lo derribó la antiaérea propia.']),
+  R2_LO_QUE_PASO: tarjeta('R2_LO_QUE_PASO', r2.name, ['12 de mayo de 1982. De ocho A-4B volvieron cuatro: los Sea Wolf de la Brilliant bajaron a tres de CUÑA.', 'Una bomba de ORO atravesó a la Glasgow de lado a lado y estalló en el agua: el destructor quedó fuera de combate el resto de la guerra.', 'Al volver, uno de ORO cruzó Pradera del Ganso y lo derribó la antiaérea propia.'], 'LO QUE PASÓ'),
   R3_CONTEXTO: tarjeta('R3_CONTEXTO', r3.name, [dato(r3), 'El A-4Q era el Skyhawk de la Armada, hecho para el portaaviones. Después del Belgrano la flota se quedó en el continente y volaron desde Río Grande.', 'Sus bombas tienen cola retardadora: frenan en el aire y dan tiempo a escapar de la explosión, así que se pueden soltar más bajo.', '21 de mayo, el día del desembarco en San Carlos. La primera sección de la Tercera Escuadrilla despega de Río Grande a las 14:10, con cuatro bombas con cola retardadora cada uno.', 'No hay Hércules: la nafta es la que se lleva. Hay mal tiempo en la boca del estrecho.']),
-  R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', 'LO QUE PASÓ · ' + r3.name, ['21 de mayo de 1982. Los tres A-4Q le pegaron a la HMS Ardent; la segunda sección, ocho minutos después, también. La fragata se hundió.', 'A la salida, dos Sea Harrier derribaron a los tres: dos pilotos se eyectaron y sobrevivieron; el tercero no volvió.']),
+  R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', r3.name, ['21 de mayo de 1982. Los tres A-4Q le pegaron a la HMS Ardent; la segunda sección, ocho minutos después, también. La fragata se hundió.', 'A la salida, dos Sea Harrier derribaron a los tres: dos pilotos se eyectaron y sobrevivieron; el tercero no volvió.'], 'LO QUE PASÓ'),
   R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4), 'El Dagger era la versión israelí del Mirage 5, de la Fuerza Aérea: más rápido que el Skyhawk, pero sin sonda para cargar nafta en vuelo.', 'Por eso volaba con tres tanques y dos bombas de 250 kg: el alcance justo para ir, atacar y volver.', '8 de junio. Dos escuadrillas de Dagger, PERRO y GATO, salen de Río Grande. Uno vuelve porque un pájaro le rompe el parabrisas: quedan cinco.', 'El Dagger no carga nafta en vuelo: lo que llevás es lo que hay.']),
-  R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', 'LO QUE PASÓ · ' + r4.name, ['8 de junio de 1982. Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.', 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.']),
+  R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', r4.name, ['8 de junio de 1982. Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.', 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.'], 'LO QUE PASÓ'),
   R5_CONTEXTO: tarjeta('R5_CONTEXTO', r5.name, [dato(r5), 'Era el último Exocet: de los cinco que llegaron de Francia quedaba uno. Esta vez salía acompañado por cuatro A-4C de la Fuerza Aérea.', 'El Super Étendard lanza de lejos y se vuelve. El A-4C no lleva misiles: su trabajo es que el Exocet llegue.', '30 de mayo. Salen de Río Grande y cargan de dos KC-130 en la ida. Entran al ras por el sur del grupo de portaaviones.']),
-  R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', 'LO QUE PASÓ · ' + r5.name, ['30 de mayo de 1982. Según la Argentina, el Exocet y las bombas alcanzaron al HMS Invincible. Según los británicos, el misil cayó al mar y los A-4C atacaron a la fragata Avenger sin acertar.', 'Dos de los cuatro A-4C fueron derribados; sus pilotos no volvieron.']),
+  R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', r5.name, ['30 de mayo de 1982. Según la Argentina, el Exocet y las bombas alcanzaron al HMS Invincible. Según los británicos, el misil cayó al mar y los A-4C atacaron a la fragata Avenger sin acertar.', 'Dos de los cuatro A-4C fueron derribados; sus pilotos no volvieron.'], 'LO QUE PASÓ'),
 };
