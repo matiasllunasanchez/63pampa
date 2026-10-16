@@ -4,7 +4,7 @@
 //   - Los dos empiezan y SOLO terminan cuando el jugador muere. Las vidas son el escuadron: cuando
 //     cae uno, pasa la posta al siguiente.
 //   - Antes de arrancar, ademas del avion, se elige la DIFICULTAD: FACIL (escuadron de 8), NORMAL
-//     (5), DIFICIL (3) y CORONADO DE GLORIA (un solo avion).
+//     (6), DIFICIL (3) y CORONADO DE GLORIA (un solo avion).
 //   - El mundo varia al azar en cada corrida: territorio, ambiente, clima, la hora del dia en que
 //     arranca, terreno, enemigos.
 //   - La complejidad crece con los KILOMETROS, de a poco. Cuantas mas ESTRELLAS (te buscan), MAS
@@ -22,7 +22,7 @@
  *  `aviones` = el escuadron (las vidas). `k` = cuanto pesa el mundo de entrada (multiplica la presion). */
 export const DIFICULTADES = [
   { id: 'facil', es: 'FÁCIL', en: 'EASY', aviones: 8, k: 0.75 },
-  { id: 'normal', es: 'NORMAL', en: 'NORMAL', aviones: 5, k: 1 },
+  { id: 'normal', es: 'NORMAL', en: 'NORMAL', aviones: 6, k: 1 },   // (16/10: 8 / 6 / 3 / 1)
   { id: 'dificil', es: 'DIFÍCIL', en: 'HARD', aviones: 3, k: 1.3 },
   { id: 'gloria', es: 'CORONADO DE GLORIA', en: 'CROWNED IN GLORY', aviones: 1, k: 1.5 },
 ];

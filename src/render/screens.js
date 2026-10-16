@@ -467,11 +467,11 @@ export function drawVictory(w) {
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(20);
-  ctx.fillText('CAMPANA COMPLETADA', W / 2, 34);
+  ctx.fillText(T('vic_titulo'), W / 2, 34);
   ctx.fillStyle = P.dim; ctx.font = descFont(10);
   ctx.fillText('(2 niveles de prueba - se agregaran mas)', W / 2, 52);
   ctx.fillStyle = P.ink; ctx.font = menuFont(12);
-  ctx.fillText('PUNTAJE  ' + Math.floor(w.score), W / 2, 84);
+  ctx.fillText(T('vic_puntaje', { n: Math.floor(w.score) }), W / 2, 84);
 
   // CIERRE: la frase de Iorio, ultima cosa que se ve del juego. Entra DESPUES del puntaje
   // (VIC_QUOTE_T) y con fundido propio a proposito: si apareciera junto con el numero se leeria
@@ -785,7 +785,7 @@ function pantallaVieja(t) {
   // EN LINEA, titilando
   if ((t % 1.2) < 0.8) {
     ctx.fillStyle = `rgba(${V}, 0.6)`; ctx.fillRect(W - 50, 17, 3, 3);
-    ctx.textAlign = 'left'; ctx.fillText('EN LÍNEA', W - 45, 20);
+    ctx.textAlign = 'left'; ctx.fillText(T('tarj_linea'), W - 45, 20);
   }
   // el tiron: cada ~3,7 s, 0,09 s
   const ciclo = t % 3.7;
@@ -806,7 +806,7 @@ function drawTarjeta(w, d, sc, ln) {
   pantallaVieja(w.t || 0);
   ctx.textAlign = 'left';
   // la linea chica de arriba: CAPÍTULO N en las misiones, o el `rotulo` de la tarjeta (LO QUE PASÓ)
-  const rot = sc.rotulo || (sc.capitulo ? `CAPÍTULO ${sc.capitulo}` : '');
+  const rot = sc.rotulo ? T(sc.rotulo) : sc.capitulo ? T('tarj_capitulo', { n: sc.capitulo }) : '';
   if (rot) {
     ctx.font = 'bold 6px monospace'; ctx.fillStyle = '#7d8f97';
     ctx.fillText(rot, TARJ.x, TARJ.cap);

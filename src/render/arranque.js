@@ -30,6 +30,11 @@
 // solo cuenta EN el aviso, y ahi es la ficha. Las teclas, los clics y los botones del mando no llegan
 // al juego mientras esto corre.
 import { cv, avisoFont } from './ctx.js';
+import { SFX_DEF } from '../data/sfx.js';
+import { PLANES } from '../data/planes.js';
+import { T } from '../core/i18n.js';
+/** Cuantos ARCHIVOS de sonido distintos tiene el catalogo (lo que dice el BIOS que cargo). */
+const N_SONIDOS = new Set(Object.values(SFX_DEF).flatMap(d => d.f || [])).size;
 
 /** Los tiempos, en segundos. FUNDE es el de styles.css (#arranque): si se cambia uno, el otro. */
 export const ARRANQUE = {
@@ -47,19 +52,31 @@ export const ARRANQUE = {
 // EL BIOS. Ficticio y de la casa: "TALLER DEL TURCO" es el mecanico de la escuadrilla (M1). Cada
 // renglon dice que es: `cab` cabecera, `ok` chequeo con OK al final, `mem` el conteo de memoria,
 // `carga` CARGANDO con puntos, `''` un renglon en blanco.
+// (16/10, el autor: "RASANTE BIOS sacamos, pongamos solo BIOS o algo de la epoca; abajo una maquina
+// configurada por el Pichon, y algun detalle de MATYMUN"; "voces no tiene, sonidos cargados; modelos algo
+// mas"; y "TODO con su traduccion en ingles"): una BIOS de las de antes, sin marca, la maquina armada por el
+// Pichon y el numero de serie con la firma. Los textos son CLAVES de data/strings.js; las cuentas son de
+// verdad — los archivos de sonido del catalogo (data/sfx.js) y los aviones del roster (data/planes.js).
 const BIOS = [
-  ['RASANTE BIOS v1.982', 'cab'],
-  ['(C) 1982  TALLER DEL TURCO', 'cab'],
+  ['bios_rom', 'cab'],
+  ['bios_maq', 'cab'],
   ['', ''],
-  ['CPU  Z80A  4.00 MHZ', 'ok'],
-  ['MEMORIA', 'mem'],
-  ['VIDEO  CRT 15 KHZ  320X180', 'ok'],
-  ['SONIDO  YM2203  3 VOCES', 'ok'],
-  ['MONEDERO  1 FICHA = 1 CREDITO', 'ok'],
-  ['MANDOS  2 JUGADORES', 'ok'],
+  ['bios_cpu', 'ok'],
+  ['bios_mem', 'mem'],
+  ['bios_video', 'ok'],
+  ['bios_sonido', 'ok'],
+  ['bios_modelos', 'ok'],
+  ['bios_monedero', 'ok'],
+  ['bios_config', 'ok'],
+  ['bios_mandos', 'ok'],
+  ['', ''],   // (16/10, el autor: "dale espacios") la firma, separada de los chequeos
+  ['bios_ns', 'cab'],
+  ['bios_ig', 'cab'],   // (16/10, el autor: la cuenta del juego)
   ['', ''],
-  ['CARGANDO RASANTE', 'carga'],
+  ['bios_carga', 'carga'],
 ];
+/** El texto de un renglon del BIOS, en el idioma activo (con las cuentas puestas). */
+const biosTxt = k => (k ? T(k, { n: k === 'bios_sonido' ? N_SONIDOS : PLANES.length }) : '');
 // LA CALIDAD DE CADA PANTALLA (veces la grilla de 320x180; todas pedidas por el autor el 4/10). RES: el BIOS,
 // a 1x — la grilla del juego, tosco a proposito ("bajale la calidad a la primera pantalla", "menos
 // calidad"). RES_FICHA y RES_AVISO: los dos carteles — subieron a 8 ("un poquito menos borroso") y
@@ -179,8 +196,12 @@ function dibujar(g, fase, t, durRenglon) {
   const parpadeo = periodo => (t % periodo) < periodo * 0.6;
   if (fase === 'bios') {
     g.font = 'bold 7px monospace'; g.textAlign = 'left';
+    // AIRE ENTRE LETRAS (16/10, el autor: "esta todo muy encimado y no se lee, separa las letras"): a 7 px y a
+    // la resolucion baja del BIOS las letras se pegaban; un pixel de mas entre cada una
+    if ('letterSpacing' in g) g.letterSpacing = '1px';
     let tt = t - ARRANQUE.BIOS_DESDE, y = 10, cursorY = 10, cursorX = 12;
-    for (const [txt, tipo] of BIOS) {
+    for (const [clave, tipo] of BIOS) {
+      const txt = biosTxt(clave);
       if (tt < 0) break;
       const dur = durRenglon(tipo), u = Math.min(1, tt / dur);
       g.fillStyle = tipo === 'cab' ? COL.cab : COL.texto;
@@ -188,11 +209,11 @@ function dibujar(g, fase, t, durRenglon) {
       const visible = tipo === 'ok' || tipo === 'cab' ? txt.slice(0, Math.ceil(txt.length * Math.min(1, u * 1.6))) : txt;
       g.fillText(visible, 12, y);
       let fin = 12 + g.measureText(visible).width;
-      if (tipo === 'ok' && u >= 1) { g.fillStyle = COL.ok; g.fillText('OK', 200, y); fin = 214; }
+      if (tipo === 'ok' && u >= 1) { g.fillStyle = COL.ok; g.fillText('OK', 216, y); fin = 230; }
       if (tipo === 'mem') {
         const k = Math.round(640 * u), num = String(k).padStart(4, '0') + 'K';
         g.fillText(num, 70, y);
-        if (u >= 1) { g.fillStyle = COL.ok; g.fillText('OK', 200, y); }
+        if (u >= 1) { g.fillStyle = COL.ok; g.fillText('OK', 216, y); }
         fin = 70 + g.measureText(num).width;
       }
       if (tipo === 'carga') {
@@ -204,19 +225,20 @@ function dibujar(g, fase, t, durRenglon) {
       tt -= dur; y += 10;
     }
     if (parpadeo(0.5)) { g.fillStyle = COL.texto; g.fillRect(cursorX, cursorY + 6, 5, 1); }
+    if ('letterSpacing' in g) g.letterSpacing = '0px';
   } else if (fase === 'ficha' || fase === 'aviso' || fase === 'credito') {
     // EL CARTEL, UNO SOLO Y EN EL MEDIO: INSERTE FICHA fijo mientras suena el insert coin; al
     // terminar el sonido lo REEMPLAZA la invitacion, del mismo porte y titilando. Cuando cae la
     // ficha la invitacion queda quieta y aparece el credito.
     g.textAlign = 'center'; g.fillStyle = COL.ficha;
-    if (fase === 'ficha') { g.font = avisoFont(30); g.fillText('INSERTE FICHA', BW / 2, BH / 2 - 22); }
+    if (fase === 'ficha') { g.font = avisoFont(30); g.fillText(T('bios_ficha'), BW / 2, BH / 2 - 22); }
     else if (fase === 'credito' || parpadeo(1.0)) {
       g.font = avisoFont(16);
-      g.fillText('PRESIONE CUALQUIER TECLA', BW / 2, BH / 2 - 20, BW - 16);
-      g.fillText('PARA CONTINUAR', BW / 2, BH / 2 + 2, BW - 16);
+      g.fillText(T('bios_tecla'), BW / 2, BH / 2 - 20, BW - 16);
+      g.fillText(T('bios_continuar'), BW / 2, BH / 2 + 2, BW - 16);
     }
     g.font = 'bold 7px monospace';
     // CREDITO 1 apenas aparece PRESIONE CUALQUIER TECLA (autor, 16/10), no recien con la ficha
-    if (fase === 'aviso' || fase === 'credito') { g.textAlign = 'right'; g.fillStyle = COL.texto; g.fillText('CREDITO 1', BW - 10, BH - 14); }
+    if (fase === 'aviso' || fase === 'credito') { g.textAlign = 'right'; g.fillStyle = COL.texto; g.fillText(T('bios_credito'), BW - 10, BH - 14); }
   }
 }

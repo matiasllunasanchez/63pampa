@@ -14,6 +14,7 @@
 // reemplaza. El reloj lo lleva game.js (`cargaProgT`); el sonido es sonidoCarga en systems/audio.js
 // y usa los MISMOS dos tiempos de aca, asi el chillido y las franjas cambian juntos.
 import { ctx, W, H } from './ctx.js';
+import { T } from '../core/i18n.js';
 
 export const CARGA = { GUIA: 0.6, DATOS: 1.5 };
 export const CARGA_T = CARGA.GUIA + CARGA.DATOS;
@@ -72,7 +73,7 @@ export function drawCarga(t, nombre) {
   if (guia || listo < TERCIO) {
     ctx.font = 'bold 10px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.fillStyle = '#e8eef0';
-    ctx.fillText('Program: ' + (nombre || 'RASANTE'), PAPEL.x + 8, PAPEL.y + 8);
+    ctx.fillText(T('carga_prog', { n: nombre || 'RASANTE' }), PAPEL.x + 8, PAPEL.y + 8);
     ctx.textBaseline = 'alphabetic';
   }
   ctx.restore();

@@ -58,7 +58,10 @@ export function drawMenu(w) {
   // flechas de seleccion (parpadean), a los costados del avion
   ctx.textAlign = 'center';
   ctx.fillStyle = Math.sin(w.t * 6) > 0 ? P.ink : P.dim; ctx.font = 'bold 13px monospace';
-  ctx.fillText('<', L.colX + 4, L.avionY + 4); ctx.fillText('>', L.colX + L.colW - 4, L.avionY + 4);
+  // PEGADAS AL AVION (16/10, el autor): a los costados de lo que se ve, no en el borde de la columna — la
+  // ilustracion trae aire a los lados, asi que se cuelgan del 80% de su ancho
+  const PWa = ilus ? ilus.naturalWidth / 3 : L.colW, dxa = PWa * 0.4 + 6;
+  ctx.fillText('<', cx - dxa, L.avionY + 4); ctx.fillText('>', cx + dxa, L.avionY + 4);
 
   // LA FICHA DEL AVION (a la derecha): el marco y su rotulo. El contenido —cifras, historia, carga— llega
   // con su propio item; hoy el lugar queda armado y con la linea del avion de respaldo.
