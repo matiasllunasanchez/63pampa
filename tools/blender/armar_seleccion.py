@@ -37,3 +37,35 @@ for clave, carpeta in CARPETA.items():
     out = os.path.join(RAIZ, 'assets', 'planes', carpeta, 'seleccion.png')
     im.save(out)
     print('OK', clave, im.size)
+
+# EL SELECTOR ANIMADO (16/10, ver hornear.py `sel_anim` / `sel_tonel`): las dos hojas, a 336 nativos (1:1 en
+# el menu), cada cuadro con su contorno. Las dos se recortan al MISMO alto —la union de lo que ocupa el avion
+# en todos los cuadros de las dos— para que el menu pase de una a la otra sin que el avion salte.
+#   seleccion_anim.png   15 alabeos (-35..+35) x 5 cabeceos (+8..-8)
+#   seleccion_tonel.png  24 cuadros de la vuelta entera, nivelado
+HOJAS_ANIM = (('sel_anim', 'seleccion_anim', 15, 5), ('sel_tonel', 'seleccion_tonel', 24, 1))
+for clave, carpeta in CARPETA.items():
+    cuadros = {}
+    for vista, _, cols, filas in HOJAS_ANIM:
+        d = os.path.join(AQUI, 'out', 'aviones', clave, vista)
+        if not os.path.isdir(d): break
+        lista = []
+        for r in range(filas):
+            for c in range(cols):
+                im = Image.open(os.path.join(d, 'f_%d_%d.png' % (r, c))).convert('RGBA')
+                A.FW, A.FILAS, A.FH = im.size[0], 1, im.size[1]
+                lista.append(A.contorno(im, lineas=True))
+        cuadros[vista] = lista
+    if len(cuadros) != len(HOJAS_ANIM):
+        print('FALTA ANIM', clave); continue
+    cajas = [im.getbbox() for l in cuadros.values() for im in l if im.getbbox()]
+    y0 = max(0, min(b[1] for b in cajas) - AIRE * 2)
+    y1 = max(b[3] for b in cajas) + AIRE * 2
+    for vista, nombre, cols, filas in HOJAS_ANIM:
+        lista = cuadros[vista]
+        fw = lista[0].size[0]; fh = min(lista[0].size[1], y1) - y0
+        hoja = Image.new('RGBA', (fw * cols, fh * filas), (0, 0, 0, 0))
+        for i, im in enumerate(lista):
+            hoja.paste(im.crop((0, y0, fw, y0 + fh)), ((i % cols) * fw, (i // cols) * fh))
+        hoja.save(os.path.join(RAIZ, 'assets', 'planes', carpeta, nombre + '.png'), optimize=True)
+        print('OK ANIM', clave, nombre, hoja.size)

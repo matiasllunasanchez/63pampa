@@ -3,7 +3,7 @@
 // Igual que las demas pantallas: reciben `w`, un snapshot chico de solo lectura. No leen estado
 // global ni lo modifican — la seleccion la maneja el input; aca solo se dibuja.
 import { DEV } from '../core/dev.js';
-import { ctx, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, wrapText, FONT_OTHERS, filaFont } from './ctx.js';
+import { ctx, U, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, wrapText, FONT_OTHERS, filaFont } from './ctx.js';
 import { drawMira } from './miras.js';
 import { P } from '../data/palette.js';
 import { PLANES } from '../data/planes.js';
@@ -22,90 +22,115 @@ import { fmtDate } from '../systems/saves.js';
 // hay que dividir por U (1.5). Por eso el logotipo va en 18 y alla en 26.
 export function drawMenu(w) {
   panel();
-  ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = titleFont(18);              // logotipo: Kirana
-  titulo(W / 2, 20, 18);
-  // EL MODO manda: va pegado al logotipo y en grande, porque es DONDE ESTAS. El rotulo de la
-  // pantalla ("elegi tu avion") es la instruccion, y va despues de un respiro.
-  ctx.fillStyle = P.foam; ctx.font = menuFont(13);
+  // LA PANTALLA DEL AVION, REORDENADA (16/10, el autor: "el logo a la derecha, POR LA PATRIA mas arriba y
+  // mas grande, sin ELEGI TU AVION, mejor distribucion, las vidas distintas, y lugar para un panel de
+  // detalle"). Dos columnas: a la izquierda el modo, el avion con sus flechas, su nombre y su linea, y
+  // abajo la dificultad con el escuadron DIBUJADO (un avioncito por vida); a la derecha, el panel de la
+  // FICHA del avion. El logo, chico arriba a la derecha como en los submenus (viaja desde ahi).
+  if (logoListo()) logoHacia(LOGO_SUB.der - LOGO_SUB.ancho / 2, LOGO_SUB.pie, LOGO_SUB.ancho, 1 / U);
+  const L = AVION_UI;
+  // EL MODO, arriba a la izquierda y grande: es DONDE ESTAS
+  ctx.textAlign = 'left'; ctx.fillStyle = P.foam; ctx.font = menuFont(16);
   ctx.fillText(w.gameMode === 'cycle' ? T('modeCycle')
     : w.gameMode === 'arena' ? T('modeArena')
-    : w.gameMode === 'pasadas' ? T('modePasada') : T('modeSurvival'), W / 2, 35);
-  ctx.fillStyle = P.dim; ctx.font = labelFont(9);                  // rotulo de seccion: GlimpRThin
-  ctx.fillText(T('selTitle'), W / 2, 50);
+    : w.gameMode === 'pasadas' ? T('modePasada') : T('modeSurvival'), L.x, L.modoY);
+  ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(L.x, L.modoY + 6.5); ctx.lineTo(W - L.x, L.modoY + 6.5); ctx.stroke();
+  ctx.globalAlpha = 1;
 
-  // preview del avión elegido, con leve cabeceo.
-  //
-  // EL SUAVIZADO NO ES UNA PREFERENCIA: depende de cuanto hay que achicar la imagen.
-  // La preview se dibuja a PW unidades de DISEÑO, que en el buffer son PW x 3 (U 1.5 x SC 2 = 3
-  // exacto, ver ctx.js). Con PW = 130 eso da 390 px reales. Entonces:
-  //
-  //   ancho del asset multiplo EXACTO de 390 (390, 780…) → vecino mas cercano: pixel art nitido.
-  //   cualquier otro ancho (hoy son de 977)              → suavizado, o el reescalado por 2.5
-  //                                                        tira filas y columnas desparejas y el
-  //                                                        avion sale dentado y sucio.
-  //
-  // Se decide sola a proposito: las previews se van a rehacer a 390 (ver AVIONES_CATALOGO.md
-  // "Generar las ILUSTRACIONES del roster"), y van a entrar de a una. Con un flag global habria
-  // que acordarse de darlo vuelta el dia exacto en que entra la ultima; asi cada avion se dibuja
-  // como le corresponde desde el momento en que su archivo cambia.
-  //
-  // (Antes esto no fijaba nada y heredaba el suavizado del dibujo anterior: el mismo menu se
-  // veia distinto segun de que pantalla venias.)
-  const PW = 130, PX_REAL = PW * 3;
+  // EL AVION, en el centro de la columna izquierda, con leve cabeceo. EL SUAVIZADO depende de cuanto hay
+  // que achicar: ancho del asset multiplo exacto de los px reales → vecino mas cercano; si no, suavizado.
   const pl = PLANES[w.selPlane];
-  if (pl.ready) {
-    const PH = Math.round(PW * pl.h / pl.w);
+  const cx = L.colX + L.colW / 2;
+  const lista = im => im && im.complete && im.naturalWidth;
+  if (lista(pl.selAnim) && lista(pl.selTonel)) {
+    // EL AVION VUELA (16/10, el autor: "mejorar la calidad del avion que vuela y agregarle movimientos"):
+    // un VAIVEN de SEL_CICLO s —alabea a un lado y al otro, y cabecea al doble de ritmo— que empieza y
+    // termina nivelado, y ahi un TONEL de SEL_TONEL s. Las hojas (data/planes.js `selAnim`) estan horneadas
+    // a los px reales del avion (L.avionW x 3): se dibujan 1:1, sin suavizar.
+    const SEL_CICLO = 9, SEL_TONEL = 1.4;
+    const u = w.t % (SEL_CICLO + SEL_TONEL);
+    let img, col, row, cols, filas;
+    if (u < SEL_CICLO) {
+      const f = u / SEL_CICLO;
+      const alabeo = 18 * Math.sin(2 * Math.PI * f), cabeceo = 5 * Math.sin(4 * Math.PI * f);
+      img = pl.selAnim; cols = 15; filas = 5;
+      col = Math.max(0, Math.min(14, Math.round((alabeo + 35) / 5))); row = Math.max(0, Math.min(4, Math.round((8 - cabeceo) / 4)));
+    } else {
+      const f = (u - SEL_CICLO) / SEL_TONEL, suave = f * f * (3 - 2 * f);
+      img = pl.selTonel; cols = 24; filas = 1; col = Math.floor(suave * 24) % 24; row = 0;
+    }
+    const fw = img.naturalWidth / cols, fh = img.naturalHeight / filas;
+    const PW = L.avionW, PH = PW * fh / fw;
+    const smooth = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = fw % (PW * 3) !== 0;
+    ctx.drawImage(img, col * fw, row * fh, fw, fh, Math.round(cx - PW / 2), Math.round(L.avionY - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
+    ctx.imageSmoothingEnabled = smooth;
+  } else if (pl.ready) {
+    const PW = L.avionW, PX_REAL = PW * 3, PH = Math.round(PW * pl.h / pl.w);
     const smooth = ctx.imageSmoothingEnabled;
     ctx.imageSmoothingEnabled = !(pl.w % PX_REAL === 0);
-    ctx.drawImage(pl.img, Math.round(W / 2 - PW / 2), Math.round(80 - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
+    ctx.drawImage(pl.img, Math.round(cx - PW / 2), Math.round(L.avionY - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
     ctx.imageSmoothingEnabled = smooth;
   }
-  // flechas de selección (parpadean)
-  ctx.fillStyle = Math.sin(w.t * 6) > 0 ? P.ink : P.dim; ctx.font = 'bold 15px monospace';
-  ctx.fillText('<', 16, 84); ctx.fillText('>', W - 16, 84);
-
-  // nombre + descripción: mismo par que en el menu de modos — nombre en la condensada,
-  // descripcion en la manuscrita (ver docs/REFERENCIAS.md: son las cartas de los soldados)
+  // flechas de seleccion (parpadean), a los costados del avion
+  ctx.textAlign = 'center';
+  ctx.fillStyle = Math.sin(w.t * 6) > 0 ? P.ink : P.dim; ctx.font = 'bold 13px monospace';
+  ctx.fillText('<', L.colX + 4, L.avionY + 4); ctx.fillText('>', L.colX + L.colW - 4, L.avionY + 4);
+  // nombre + su linea (la manuscrita de las cartas de los soldados, ver docs/REFERENCIAS.md)
   ctx.fillStyle = P.accent; ctx.font = menuFont(12);
-  ctx.fillText(pl.name, W / 2, 114);
-  ctx.fillStyle = P.dim; ctx.font = descFont(10);
-  ctx.fillText(pl.desc[getLang()] || pl.desc.es, W / 2, 127);
+  ctx.fillText(pl.name, cx, L.nombreY);
+  ctx.fillStyle = P.dim; ctx.font = descFont(9);
+  wrapText(pl.desc[getLang()] || pl.desc.es, cx, L.nombreY + 12, L.colW, 10);
 
-  // puntos indicadores del carrusel
-  const n = PLANES.length, gap = 6, totW = (n - 1) * gap;
-  for (let i = 0; i < n; i++) {
-    ctx.fillStyle = i === w.selPlane ? P.accent : '#3a464c';
-    ctx.fillRect(Math.round(W / 2 - totW / 2 + i * gap) - 1, 134, 3, 3);
-  }
-  // LA DIFICULTAD (POR LA PATRIA y CICLO DE MUERTE, 16/10): debajo del avion, con las flechas
-  // arriba/abajo. El escuadron que trae va al lado — en estos modos ES la cantidad de vidas.
+  // LA DIFICULTAD (POR LA PATRIA y CICLO DE MUERTE): el nombre con sus flechas arriba/abajo, y el
+  // ESCUADRON dibujado — un avioncito por vida — en vez de "8 AVIONES" escrito
   if (w.dif) {
-    // CHICO (autor, 16/10): una sola linea — DIFICULTAD ▲ FACIL ▼ · 8 AVIONES
-    const lang = getLang(), nom = w.dif[lang] || w.dif.es;
-    const av = w.dif.aviones === 1 ? T('difAvion') : T('difAviones', { n: w.dif.aviones });
-    ctx.font = labelFont(5);
-    const rot = T('difTitulo') + '  ', wr = ctx.measureText(rot).width;
-    ctx.font = menuFont(7); const wn = ctx.measureText(nom).width;
-    ctx.font = labelFont(5); const cola = '   ·  ' + av, wc = ctx.measureText(cola).width;
-    const flecha = 6, total = wr + flecha + wn + flecha + wc;
-    let x = W / 2 - total / 2; const y = 150;
-    ctx.textAlign = 'left';
-    ctx.fillStyle = P.dim; ctx.fillText(rot, x, y); x += wr;
+    const y = L.difY, x = L.x;
+    ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(6);
+    ctx.fillText(T('difTitulo'), x, y - 9);
+    const nom = w.dif[getLang()] || w.dif.es;
     const col = w.dif.id === 'gloria' ? P.warn : P.accent;
-    ctx.fillStyle = col;
-    ctx.beginPath(); ctx.moveTo(x, y - 1); ctx.lineTo(x + 4, y - 1); ctx.lineTo(x + 2, y - 4.5); ctx.fill(); x += flecha;
-    ctx.font = menuFont(7); ctx.fillText(nom, x, y); x += wn + 2;
-    ctx.beginPath(); ctx.moveTo(x, y - 4.5); ctx.lineTo(x + 4, y - 4.5); ctx.lineTo(x + 2, y - 1); ctx.fill(); x += flecha - 2;
-    ctx.font = labelFont(5); ctx.fillStyle = P.dim; ctx.fillText(cola, x, y);
-    ctx.textAlign = 'center';
+    ctx.fillStyle = col; ctx.font = menuFont(9);
+    const wn = ctx.measureText(nom).width;
+    ctx.beginPath(); ctx.moveTo(x, y - 1.5); ctx.lineTo(x + 4, y - 1.5); ctx.lineTo(x + 2, y - 5); ctx.fill();
+    ctx.fillText(nom, x + 7, y);
+    ctx.beginPath(); ctx.moveTo(x + 9 + wn, y - 5); ctx.lineTo(x + 13 + wn, y - 5); ctx.lineTo(x + 11 + wn, y - 1.5); ctx.fill();
+    // el escuadron: avioncitos en fila, el primero (el que vuela) en acento
+    const ax = x + 22 + wn;
+    for (let i = 0; i < w.dif.aviones; i++) avioncito(ax + i * 9, y - 3, i === 0 ? col : P.ink, i === 0 ? 1 : 0.7);
+    ctx.fillStyle = P.dim; ctx.font = labelFont(5);
+    ctx.fillText(w.dif.aviones === 1 ? T('difAvion') : T('difAviones', { n: w.dif.aviones }), ax + w.dif.aviones * 9 + 3, y);
   }
-  // PIE: una sola linea de teclas, en la misma fuente que el rotulo "ELEGI TU AVION" (GlimpRThin)
-  // para que se lean como parte del mismo sistema. Salieron de aca el prompt amarillo que
-  // parpadeaba (lo dice la fila [ENTER]), el idioma (vive en OPCIONES) y el homenaje (subio a la
-  // portada, que es donde se lee de verdad).
-  ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(4.5);   // mitad de cuerpo: es ayuda, no contenido
-  ctx.fillText(T('selKeys'), W / 2, 166);
+
+  // LA FICHA DEL AVION (a la derecha): el marco y su rotulo. El contenido —cifras, historia, carga— llega
+  // con su propio item; hoy el lugar queda armado y con la linea del avion de respaldo.
+  const F = L.ficha;
+  ctx.fillStyle = '#0a0f12'; ctx.globalAlpha = 0.55; ctx.fillRect(F.x, F.y, F.w, F.h); ctx.globalAlpha = 1;
+  ctx.strokeStyle = '#3a464c'; ctx.lineWidth = 0.6; ctx.strokeRect(F.x + 0.5, F.y + 0.5, F.w - 1, F.h - 1); ctx.lineWidth = 1;
+  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(6);
+  ctx.fillText(T('fichaAvion'), F.x + 6, F.y + 10);
+  ctx.fillStyle = P.accent; ctx.font = menuFont(9);
+  ctx.fillText(pl.name, F.x + 6, F.y + 22);
+
+  // PIE: una sola linea de teclas (mitad de cuerpo: es ayuda, no contenido)
+  ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(4.5);
+  ctx.fillText(T('selKeys'), W / 2, H - 6);
+}
+/** LA GEOMETRIA de la pantalla del avion (grilla de diseño 320x180). */
+const AVION_UI = {
+  x: 16, modoY: 26,
+  colX: 12, colW: 168, avionY: 74, avionW: 112, nombreY: 112,
+  difY: 160,
+  ficha: { x: 190, y: 40, w: 114, h: 126 },
+};
+/** Un avioncito de la fila del escuadron (silueta en cruz, 7 px), centrado en (x, y). */
+function avioncito(x, y, col, a) {
+  ctx.globalAlpha = a; ctx.fillStyle = col;
+  ctx.fillRect(x - 3.5, y - 0.5, 7, 1.2);     // alas
+  ctx.fillRect(x - 0.6, y - 3, 1.2, 6);       // fuselaje
+  ctx.fillRect(x - 1.8, y + 2, 3.6, 0.9);     // cola
+  ctx.globalAlpha = 1;
 }
 
 // PORTADA y MENU DE MODOS: se dibujan en coordenadas NATIVAS (NW x NH = 480x270), no en la grilla
@@ -188,7 +213,7 @@ function drawLogo(cx, yPie, ancho) {
 // logo (se viene del juego), aparece directo donde va. El reloj es de pared: el menu no tiene `dt`.
 const LOGO_VIAJE = 9;   // rapidez del acercamiento (exponencial): ~0,35 s para llegar
 let logoR = null, logoUltT = 0;
-function logoHacia(cx, yPie, ancho) {
+function logoHacia(cx, yPie, ancho, k = 1) {
   const ahora = performance.now();
   const dt = Math.min(0.1, (ahora - logoUltT) / 1000);
   if (!logoR || ahora - logoUltT > 250) logoR = { cx, yPie, ancho };
@@ -197,7 +222,9 @@ function logoHacia(cx, yPie, ancho) {
     logoR.cx += (cx - logoR.cx) * k; logoR.yPie += (yPie - logoR.yPie) * k; logoR.ancho += (ancho - logoR.ancho) * k;
   }
   logoUltT = ahora;
-  drawLogo(logoR.cx, logoR.yPie, logoR.ancho);
+  // `k`: la pantalla que dibuja en la grilla de DISEÑO (320x180, la del avion) pasa 1/U — el logo guarda
+  // su lugar en coordenadas nativas, asi el viaje entre una escala y otra no salta
+  drawLogo(logoR.cx * k, logoR.yPie * k, logoR.ancho * k);
 }
 /** EL LOGO DE LOS SUBMENUS: chico, arriba a la derecha (alineado al borde derecho de las rayas, NW - 30). */
 const LOGO_SUB = { ancho: 92, pie: 34, der: NW - 30 };

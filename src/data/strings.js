@@ -43,6 +43,7 @@ export const STRINGS = {
     radar_on: 'RADAR PRENDIDO', radar_on_sub: 'TE ESTAN ESCUCHANDO', radar_eco: '¡BLANCO EN PANTALLA!', radar_eco_aereo: '¡HARRIER EN PANTALLA!',
     radar_sin: 'RADAR SIN CARGA', radar_bajo: 'EL HORIZONTE LO TAPA', radar_bajo_sub: 'SUBI PARA VERLO',
     // LOS MODOS SUELTOS (data/modos_sueltos.js, 16/10)
+    fichaAvion: 'FICHA DEL AVION',
     difTitulo: 'DIFICULTAD', difAviones: '{n} AVIONES', difAvion: 'UN SOLO AVION', sinPuntos: 'FALTAN PUNTOS',
     sinPuntos_sub: 'CUESTA {n}', cicloBlanco: 'NUEVO BLANCO', hud_pts: 'PTS',
     fase_rasante: 'CONDOR: PLATA FIEL, TE SIGO YO. NO CONTESTES.',
@@ -435,7 +436,7 @@ export const STRINGS = {
     ctrlMenu: 'EN LOS MENUS',   ctrlMenuK: 'flechas · ENTER · ESC', ctrlMenuP: 'cruceta · ✕ · ◯',
     selKeys: '[ESC] ATRAS      [ENTER] SELECCIONAR',
     modeCampaign: 'HISTORIA', modeSurvival: 'POR LA PATRIA', modeCycle: 'CICLO DE MUERTE',
-    modeCampaignDesc: 'Modo historia por niveles', modeSurvivalDesc: 'Puntaje infinito hasta morir',
+    modeCampaignDesc: 'Misiones reales y campañas de la guerra', modeSurvivalDesc: 'Puntaje infinito hasta morir',
     modeCycleDesc: 'Objetivos aleatorios, dificultad creciente',
     modeArena: 'MINUTOS SAGRADOS', modeArenaDesc: 'Batallas aleatorias',
     // JUEGO RAPIDO: la puerta a todo lo que se juega SIN guion. La lista de arriba tenia seis
@@ -443,7 +444,7 @@ export const STRINGS = {
     // partida suelta) y la eleccion del modo suelto vive un nivel adentro.
     // ATRAS: la salida de un submenu, VISIBLE. ESC y el boton B ya volvian, pero eso hay que saberlo
     menuBack: 'ATRAS', menuBackDesc: 'Volver al menu principal',
-    modeQuick: 'JUEGO RAPIDO', modeQuickDesc: 'Modo arcade, sin guion',
+    modeQuick: 'JUEGO RAPIDO', modeQuickDesc: 'Modo arcade',
     quickTitle: 'JUEGO RAPIDO',
     modeDev: 'MODO DEV', modeDevDesc: 'Pruebas, cinematicas, maniobras y misiones sueltas', devTitle: 'MODO DEV',
     // MODO PRUEBAS (docs/proyecto/COMO_PROBAR.md §4): el catalogo de MOMENTOS. Los titulos de cada
@@ -1286,6 +1287,7 @@ export const STRINGS = {
     corte_bajada: '120 MILES FROM THE TARGET\nDOWN TO THE WAVES',
     radar_on: 'RADAR ON', radar_on_sub: 'THEY CAN HEAR YOU', radar_eco: 'TARGET ON SCOPE!', radar_eco_aereo: 'HARRIER ON SCOPE!',
     radar_sin: 'RADAR DRAINED', radar_bajo: 'BELOW THE HORIZON', radar_bajo_sub: 'CLIMB TO SEE IT',
+    fichaAvion: 'AIRCRAFT FILE',
     difTitulo: 'DIFFICULTY', difAviones: '{n} PLANES', difAvion: 'ONE PLANE ONLY', sinPuntos: 'NOT ENOUGH POINTS',
     sinPuntos_sub: 'COSTS {n}', cicloBlanco: 'NEW TARGET', hud_pts: 'PTS',
     fase_rasante: 'CONDOR: PLATA FLIGHT, I HAVE YOU. DO NOT ANSWER.',
@@ -1577,11 +1579,11 @@ export const STRINGS = {
     ctrlMenu: 'IN MENUS',       ctrlMenuK: 'arrows · ENTER · ESC', ctrlMenuP: 'd-pad · ✕ · ◯',
     selKeys: '[ESC] BACK      [ENTER] SELECT',
     modeCampaign: 'CAMPAIGN', modeSurvival: 'SURVIVAL', modeCycle: 'DEATH CYCLE',
-    modeCampaignDesc: 'Story mode by levels', modeSurvivalDesc: 'Endless score until you die',
+    modeCampaignDesc: 'Real missions and campaigns of the war', modeSurvivalDesc: 'Endless score until you die',
     modeCycleDesc: 'Random objectives, rising difficulty',
     modeArena: 'SACRED MINUTES', modeArenaDesc: 'Random battles',
     menuBack: 'BACK', menuBackDesc: 'Back to the main menu',
-    modeQuick: 'QUICK GAME', modeQuickDesc: 'Arcade mode, no story',
+    modeQuick: 'QUICK GAME', modeQuickDesc: 'Arcade mode',
     quickTitle: 'QUICK GAME',
     modeDev: 'DEV MODE', modeDevDesc: 'Test bench, cutscenes, manoeuvres and single missions', devTitle: 'DEV MODE',
     modePruebas: 'TEST BENCH', modePruebasDesc: 'The catalogue of moments, no grinding to get there',

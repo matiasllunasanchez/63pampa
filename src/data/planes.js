@@ -146,6 +146,16 @@ PLANES.forEach(pl => {
       pl.sheet5Img.src = dir + 'sheet5.png';
       pl.tren5 = new Image(); pl.tren5.src = dir + 'tren5.png';
     }
+    // EL SELECTOR ANIMADO (16/10, el autor: "mejorar la calidad del avion que vuela en el selector, y
+    // agregarle movimientos"): dos hojas horneadas con la camara del selector a 336 px nativos — el VAIVEN
+    // (15 alabeos x 5 cabeceos) y el TONEL (24 cuadros de la vuelta) —, tools/blender/armar_seleccion.py.
+    // Las recorre render/menus.js; si no cargan (build web, horno viejo) queda la ilustracion quieta.
+    pl.selAnim = pl.selTonel = null;
+    if (!HORNO_VIEJO && pl.src.startsWith('../')) {
+      const dirSel = pl.src.slice(0, pl.src.lastIndexOf('/') + 1);
+      pl.selAnim = new Image(); pl.selAnim.src = dirSel + 'seleccion_anim.png';
+      pl.selTonel = new Image(); pl.selTonel.src = dirSel + 'seleccion_tonel.png';
+    }
     pl.variantes = HORNO_VIEJO || pl.sinVariantes ? [] : [1, 2, 3, 4].map(n => { const im = new Image(); im.src = dir + 'variante' + n + '.png'; return im; });
   }
 });

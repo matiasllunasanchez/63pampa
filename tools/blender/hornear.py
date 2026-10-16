@@ -103,9 +103,18 @@ SEL_YAW, SEL_ELEV, SEL_ROLL, SEL_ZOOM, SEL_Z = (float(os.environ.get(k, d)) for 
                                                 (('SEL_YAW', '124'), ('SEL_ELEV', '21'), ('SEL_ROLL', '-12'), ('SEL_ZOOM', '0.93'), ('SEL_Z', '-0.45')))
 # (el HERCULES BOMBARDERO, 16/10, abre el doble que un caza: su encuadre se abre en la misma proporcion)
 if MODELO in ('herc', 'hercules_bombardero') and 'SEL_ZOOM' not in os.environ: SEL_ZOOM = 0.86
-if VISTA == 'seleccion':
+# EL SELECTOR ANIMADO (16/10, el autor: "mejorar la calidad del avion que vuela en el selector, y agregarle
+# movimientos — hornear alabeos y demas con esa camara y una resolucion mayor"). La misma camara, a 336 px
+# nativos (render/menus.js lo dibuja a 112 de diseño = 336 reales: 1:1, sin agrandar), en dos hojas:
+#   sel_anim   el VAIVEN: alabeos de -35 a +35 cada 5° (columnas) x cabeceos de +8 a -8 cada 4° (filas)
+#   sel_tonel  el TONEL: la vuelta entera, cada 15°, nivelado
+# tools/blender/armar_seleccion.py las arma y render/menus.js las recorre.
+SELECTOR = VISTA in ('seleccion', 'sel_anim', 'sel_tonel')
+if SELECTOR:
     ANGLES, PITCHES = [SEL_ROLL], [0]
-    FW = FH = int(arg('--px', '195'))
+    if VISTA == 'sel_anim': ANGLES, PITCHES = [SEL_ROLL + a for a in range(-35, 36, 5)], [8, 4, 0, -4, -8]
+    if VISTA == 'sel_tonel': ANGLES = [SEL_ROLL + a for a in range(0, 360, 15)]
+    FW = FH = int(arg('--px', '195' if VISTA == 'seleccion' else '336'))
     _d = math.hypot(CAM['pos'][1] - CAM['lookY'], CAM['pos'][2])
     _e, _a = math.radians(SEL_ELEV), math.radians(SEL_YAW)
     CAM = dict(CAM, pos=(_d * math.cos(_e) * math.sin(_a), CAM['lookY'] + _d * math.sin(_e), _d * math.cos(_e) * math.cos(_a)),
@@ -194,7 +203,7 @@ def camara(padre, cam=None, nombre='cam', activa=True):
 # valga 1.0 en el ShaderToRGB, que es la escala en la que se cortan las bandas.
 SOL = (-3, 5, 4)
 CONTRALUZ = (2, 1, -4)          # el rojizo de atras: ese no es lampara, lo calcula el material
-if VISTA == 'seleccion':        # el sol y el contraluz giran con la camara del selector (ver SEL_YAW)
+if SELECTOR:                    # el sol y el contraluz giran con la camara del selector (ver SEL_YAW)
     _gira = lambda v: (v[0] * math.cos(math.radians(SEL_YAW)) + v[2] * math.sin(math.radians(SEL_YAW)), v[1],
                        -v[0] * math.sin(math.radians(SEL_YAW)) + v[2] * math.cos(math.radians(SEL_YAW)))
     SOL, CONTRALUZ = _gira(SOL), _gira(CONTRALUZ)
@@ -386,7 +395,7 @@ def al_cuadro(p_mundo):
 # borde entre las dos se pierde — el contorno solo rodeaba la silueta. Cada pose se hornea dos veces: la
 # de siempre y una en grises con la DISTANCIA a la camara (f_<f>_<c>_z.png, cerca = oscuro). Con eso
 # armar_hoja.py traza la linea donde una pieza pasa por delante de otra. No en las capas ni el selector.
-PROFUNDIDAD = not CAPA and VISTA != 'seleccion' and not GUARDAR
+PROFUNDIDAD = not CAPA and not SELECTOR and not GUARDAR
 Z_CERCA, Z_LEJOS = 6.0, 20.0
 def mat_profundidad():
     m = bpy.data.materials.new('profundidad'); m.use_nodes = True
@@ -553,7 +562,7 @@ if __name__ == '__main__':
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         K = dict(mat_cel=mat_cel, mat_cel_nodo=mat_cel_nodo, mat_emisivo=mat_emisivo, lin=lin,
                  perilla=perilla, mezcla=mezcla, ocultar_si=ocultar_si,
-                 cargas=bool(GUARDAR or CAPA), controles=CONTROLES, insignias=VISTA == 'seleccion')
+                 cargas=bool(GUARDAR or CAPA), controles=CONTROLES, insignias=SELECTOR)
         raiz = mod.construir(MODELO, T, K) if MODELO in getattr(mod, 'FICHAS', {}) else getattr(mod, MODELO)(T, K)
         if CAPA:
             # LA CAPA: solo sus piezas (la carga y su pilon) se pintan; el avion queda de OCLUSOR
