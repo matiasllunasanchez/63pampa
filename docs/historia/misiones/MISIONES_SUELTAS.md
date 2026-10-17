@@ -128,6 +128,53 @@ un video, con el avión visto desde arriba sobre las islas).
 
 > *"las islas"* — agregado del autor, el mismo 9/10.
 
+**✅ El hecho (17/10): el Neptune del 4 de mayo.** Va en el **Libro de vuelo, justo antes del
+Sheffield**: primero encontrás la flota, después la atacás con el Super Étendard.
+
+> *"Ok entonces primero la de sheffield ponemos una mision del neptune primero, deberiamos ir
+> rasante y cada tanto subir? o como deberia ser?"*
+
+**Lo que pasó** (Gaceta Aeronáutica): sale de Río Grande de madrugada · 07:10 primer contacto · 08:43
+tres contactos · **09:25 se le rompe el radar y lo arreglan a medias** · **10:30 dos buques medianos y
+uno grande** · 10:35 pasa los datos a los Super Étendard · aterriza 12:04.
+
+**Cómo volaba de verdad (17/10)** — *"o el neptune no volaba rasante"*, preguntó el autor. Fuentes:
+Infobae, «Ataque al Sheffield: (...) el piloto que voló en "la boca del lobo"» (2022); Fundación
+Malvinas, «COAN: el hundimiento del HMS Sheffield»:
+
+- **Crucero a 1.500–2.000 pies** (unos 500 m). **No iba siempre al ras.**
+- **Cada 20 o 30 minutos bajaba y se acercaba al ras** hasta unas 50 millas.
+- **Para emitir subía** (a unos 1.000 m; la última vez a 2.500 pies), **emitía uno o dos segundos —dos
+  o tres vueltas de antena, sólo en el sector donde podían estar los buques—** y **volvía a bajar a 150
+  pies** para esconderse.
+- **Usaba menos potencia** para que lo oyeran más lejos: *"para hacer creer a los que lo escuchaban
+  que se estaba yendo"*.
+- **Con el radar apagado, escuchaba** las emisiones enemigas y medía su intensidad: 15, 18, 25
+  decibeles. **Desde 20, ya lo tenían en pantalla.**
+- **El radar rompía cristales** a máxima potencia: ya habían roto dos juegos; **la última emisión, la
+  cuarta, fue «con el último cristal»**.
+- **Volaba en zigzag** simulando un avión de rescate.
+- **A las 10:35 subió a ~3.500 pies** para pasar las posiciones a los Super Étendard, y **se fue pegado
+  al mar**.
+- No tenía defensa propia.
+
+**Cómo se juega (corregido con lo real):**
+
+1. **Crucero medio** y, **cada tanto, bajar al ras para acercarse**: el Neptune no es un caza; se
+   esconde y se mueve en zigzag.
+2. **Emitir es un recurso contado: cuatro cristales.** Cada emisión gasta uno. **Subir, emitir un
+   segundo en el sector elegido, bajar.** Si gastás los cuatro sin encontrar la flota, se terminó.
+3. **Escuchar**: con el radar apagado, un **medidor en decibeles** muestra cuánto te están oyendo.
+   **Pasar de 20 = te tienen en pantalla** → Sea Harrier.
+4. **Potencia baja** como opción: te oyen más lejos (sube menos el medidor) pero ves menos.
+5. **Juntar contactos**: uno → tres → **dos medianos y uno grande**.
+6. **Subir a pasar los datos por radio** (última exposición) y **volver pegado al mar**.
+
+**Puntaje:** cristales que te sobran y decibeles que no pasaste. **Enlace con el Sheffield:** si lo
+hiciste bien, el Super Étendard arranca con mejores datos.
+
+**⚠ Falta el avión:** no hay Neptune en `data/planes.js`. Es un modelo nuevo.
+
 **⚠ Fecha (10/10):** los Neptune **se retiraron el 15 de mayo**, gastados. La misión tiene que ser
 **antes**. Después los reemplazaron **dos Embraer EMB-110 que mandó Brasil en secreto**; no
 encontraron blancos por el alcance y la distancia de la flota (`M7_CAMBIOS.md`, pedido 5).

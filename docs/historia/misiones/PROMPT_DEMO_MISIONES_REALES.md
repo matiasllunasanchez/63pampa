@@ -61,6 +61,15 @@ Leé, en este orden:
 
 ---
 
+## (Después de la demo) · «EL NEPTUNE» — 4 de mayo de 1982, antes del Sheffield
+
+**No entra en esta tarea: falta el modelo del Neptune.** Va en el Libro de vuelo **justo antes del
+Sheffield** (el Neptune encuentra la flota y le pasa los datos a los Super Étendard). Diseño en
+`MISIONES_SUELTAS.md`, S-02. Si armás el Sheffield, dejá preparado que pueda recibir «datos del
+Neptune» desde otra misión.
+
+---
+
 ## MISIÓN 1 · «EL SHEFFIELD» — 4 de mayo de 1982
 
 **Avión:** Super Étendard (`supere`). **Blanco:** HMS Sheffield (`t42`). **Clímax:** Pulso.
