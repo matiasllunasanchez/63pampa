@@ -444,6 +444,7 @@ export const STRINGS = {
     ctrlPause: 'PAUSA',         ctrlPauseK: 'ESC',              ctrlPauseP: 'START',
     ctrlMenu: 'EN LOS MENUS',   ctrlMenuK: 'flechas · ENTER · ESC', ctrlMenuP: 'cruceta · ✕ · ◯',
     selKeys: '[ESC] ATRAS      [ENTER] SELECCIONAR',
+    escFenix: 'ESCUADRÓN FÉNIX',   // la ficha del avion de un avion del Fenix (render/menus.js)
     modeCampaign: 'HISTORIA', modeSurvival: 'POR LA PATRIA', modeCycle: 'CICLO DE MUERTE',
     modeCampaignDesc: 'Misiones reales y campañas de la guerra', modeSurvivalDesc: 'Puntaje infinito hasta morir',
     modeCycleDesc: 'Objetivos aleatorios, dificultad creciente',
@@ -1595,6 +1596,7 @@ export const STRINGS = {
     ctrlPause: 'PAUSE',         ctrlPauseK: 'ESC',              ctrlPauseP: 'START',
     ctrlMenu: 'IN MENUS',       ctrlMenuK: 'arrows · ENTER · ESC', ctrlMenuP: 'd-pad · ✕ · ◯',
     selKeys: '[ESC] BACK      [ENTER] SELECT',
+    escFenix: 'FÉNIX SQUADRON',
     modeCampaign: 'CAMPAIGN', modeSurvival: 'SURVIVAL', modeCycle: 'DEATH CYCLE',
     modeCampaignDesc: 'Real missions and campaigns of the war', modeSurvivalDesc: 'Endless score until you die',
     modeCycleDesc: 'Random objectives, rising difficulty',

@@ -1629,8 +1629,8 @@ Aerostar, Rockwell Turbo Commander y FMA Guaraní II (Escuadrón Fénix), Lockhe
 Pucará, Aermacchi MB-339A, y vuelve el Pampa (con su placa: voló en 1984). Medidas reales; pinturas:
 - **MB-339A:** arena oscuro y verde arriba, panza blanca, desde abril de 1982 (modelersite; las calcas del
   4-A-115 citan FS34258, FS33564 y FS17925). Coincide con lo que se sabe; falta una fuente argentina.
-- **Neptune:** gris claro arriba y blanco abajo. **Sin fuente**: el 2-P-112 está en el Museo de la Aviación
-  Naval (Comandante Espora), y AirHistory lo da como P-2E, no SP-2H.
+- **Neptune:** ✅ resuelto por el autor (16/10, con fotos y un perfil del 2-P-112): camuflaje **gris azulado y
+  verde** arriba, panza clara, trompa vidriada, «112» en la nariz y «2-P-112» con la bandera en la deriva.
 - **Learjet 35A (T-24):** blanco con franja azul. **Sin fuente** del esquema de 1982.
 - **Los civiles del Fénix:** blanco con una franja de empresa (marrón, azul o roja) — inventadas.
 

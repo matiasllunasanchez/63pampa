@@ -70,12 +70,31 @@ export function drawMenu(w) {
   ctx.strokeStyle = '#3a464c'; ctx.lineWidth = 0.6; ctx.strokeRect(F.x + 0.5, F.y + 0.5, F.w - 1, F.h - 1); ctx.lineWidth = 1;
   // EL NOMBRE COMPLETO encabeza la ficha (16/10, el autor: "el nombre donde esta FICHA DEL AVION")
   const nombre = (pl.nombre && (pl.nombre[getLang()] || pl.nombre.es)) || pl.name;
+  // EL DISTINTIVO DEL ESCUADRON (16/10, el autor: "el escudo del Escuadron Fenix a la izquierda del titulo, y
+  // poner ESCUADRON FENIX cuando sea del Fenix"): el escudo a 1:1 (54 px reales = 18 de diseño) a la
+  // izquierda del nombre y de la linea, que se corren; la linea arranca con el nombre del escuadron
+  // …Y EL DE SU ARMA para los demas (16/10, el autor: "el escudo de la Fuerza Aerea para los aviones que
+  // correspondian, y el de la Armada para los otros"): `arma` en data/planes.js. El del Fenix gana.
+  const esc = escudo(pl.escuadron === 'fenix' ? 'fenix' : pl.arma);
+  const conEsc = !!(esc && esc.complete && esc.naturalWidth);
+  const dx = conEsc ? esc.naturalWidth / 3 + 4 : 0;
+  if (conEsc) {
+    const smooth = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(esc, F.x + 5, F.y + 4 + (18 - esc.naturalHeight / 3) / 2, esc.naturalWidth / 3, esc.naturalHeight / 3);   // centrado en los 18 de alto
+    ctx.imageSmoothingEnabled = smooth;
+  }
   ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.font = menuFont(9);
-  ctx.fillText(nombre, F.x + 6, F.y + 11, F.w - 12);
+  ctx.fillText(nombre, F.x + 6 + dx, F.y + 11, F.w - 12 - dx);
   // la linea corta del avion (lo que es en el juego) y abajo SU HISTORIA: de donde salio, que se le hizo y
   // como se uso en la guerra (`ficha` en data/planes.js; si un avion no la trae, queda la linea sola)
-  ctx.fillStyle = P.dim; ctx.font = labelFont(6);
-  ctx.fillText((pl.desc[getLang()] || pl.desc.es).toUpperCase(), F.x + 6, F.y + 21, F.w - 12);
+  ctx.font = labelFont(6);
+  let lx = F.x + 6 + dx;
+  if (pl.escuadron === 'fenix') {
+    const rot = T('escFenix') + '  ·  ';
+    ctx.fillStyle = '#e77a1a'; ctx.fillText(rot, lx, F.y + 21); lx += ctx.measureText(rot).width;
+  }
+  ctx.fillStyle = P.dim;
+  ctx.fillText((pl.desc[getLang()] || pl.desc.es).toUpperCase(), lx, F.y + 21, F.x + F.w - 6 - lx);
   const ficha = pl.ficha && (pl.ficha[getLang()] || pl.ficha.es);
   FICHA_INFO.max = 0;
   if (ficha) {
@@ -106,6 +125,15 @@ export function drawMenu(w) {
   // PIE: una sola linea de teclas (mitad de cuerpo: es ayuda, no contenido)
   ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(4.5);
   ctx.fillText(T('selKeys'), W / 2, H - 6);
+}
+/** LOS ESCUDOS de la ficha (assets/ui/escudo_<id>.png, los arma tools/escudos.py): se piden una vez. Las
+ *  rutas van escritas enteras porque tools/build_web.py las embebe buscando el texto. */
+const RUTA_ESCUDO = { fenix: '../assets/ui/escudo_fenix.png', faa: '../assets/ui/escudo_faa.png', armada: '../assets/ui/escudo_armada.png' };
+const ESCUDOS = {};
+function escudo(id) {
+  if (!RUTA_ESCUDO[id]) return null;
+  if (!ESCUDOS[id]) { ESCUDOS[id] = new Image(); ESCUDOS[id].src = RUTA_ESCUDO[id]; }
+  return ESCUDOS[id];
 }
 /** Hasta donde se puede desplazar la ficha que se dibujo (renglones de mas): game.js acota las flechas con esto. */
 export const FICHA_INFO = { max: 0 };

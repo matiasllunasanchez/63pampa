@@ -98,6 +98,37 @@ def _helice(raiz, K, x, y, z, r, palas, mat_pala, mat_cono, sg):
             p.rotation_euler = (0, 0, a)
             p.location = (x + math.cos(a) * r * 0.5, y + math.sin(a) * r * 0.5, z - r * 0.05)
 
+# LAS CALCOMANIAS: una imagen pegada al costado (el escudo del Fenix). Un cuadrado con la imagen y su alfa
+# cortado en seco (pixel art: nada de bordes a medias), sin luz — es pintura, y asi el escudo se lee entero.
+ESCUDO_FENIX = os.path.normpath(os.path.join(AQUI, '..', '..', 'assets', 'source', 'ui', 'escudo_fenix.png'))
+def _calco(raiz, K, ruta, sg, z, y, alto, x):
+    import bpy
+    img = bpy.data.images.load(ruta, check_existing=True)
+    ancho = alto * img.size[0] / img.size[1]
+    me = bpy.data.meshes.new('calco')
+    me.from_pydata([(-ancho / 2, -alto / 2, 0), (ancho / 2, -alto / 2, 0), (ancho / 2, alto / 2, 0), (-ancho / 2, alto / 2, 0)], [], [(0, 1, 2, 3)])
+    uv = me.uv_layers.new(); 
+    for i, c in enumerate(((0, 0), (1, 0), (1, 1), (0, 1))): uv.data[i].uv = c
+    m = bpy.data.materials.get('calco_' + os.path.basename(ruta))
+    if not m:
+        m = bpy.data.materials.new('calco_' + os.path.basename(ruta)); m.use_nodes = True
+        N, L = m.node_tree.nodes, m.node_tree.links
+        for n in list(N): N.remove(n)
+        tx = N.new('ShaderNodeTexImage'); tx.image = img; tx.interpolation = 'Closest'
+        em = N.new('ShaderNodeEmission'); L.new(tx.outputs['Color'], em.inputs['Color'])
+        tr = N.new('ShaderNodeBsdfTransparent')
+        corte = N.new('ShaderNodeMath'); corte.operation = 'GREATER_THAN'; corte.inputs[1].default_value = 0.5
+        L.new(tx.outputs['Alpha'], corte.inputs[0])
+        mx = N.new('ShaderNodeMixShader'); L.new(corte.outputs[0], mx.inputs[0]); L.new(tr.outputs[0], mx.inputs[1]); L.new(em.outputs[0], mx.inputs[2])
+        out = N.new('ShaderNodeOutputMaterial'); L.new(mx.outputs[0], out.inputs['Surface'])
+    me.materials.append(m)
+    ob = bpy.data.objects.new('calco', me)
+    bpy.context.scene.collection.objects.link(ob)
+    ob.parent = raiz
+    ob.rotation_euler = (0, sg * math.pi / 2, 0)
+    ob.location = (sg * x, y, z)
+    return ob
+
 def avion(T, K, F):
     S = _km(F)
     raiz = _raiz(T, F.get('nombre', 'avion'))
@@ -170,18 +201,24 @@ def avion(T, K, F):
             _subdiv(loft(e.get('nombre', 'extra'), e['est'], raiz, mat, n=16, expo=2.0, cerrar=(True, True)), 1)
     # LAS LETRAS de la FAA y la escarapela del fuselaje, de los dos lados (las letras: modelos_hercules._texto,
     # que las pasa a malla; `x` = el costado del fuselaje en esa estacion)
+    k = S['k']
+    def costado(z, y):
+        """Donde esta el costado del fuselaje (x) en la estacion z, a la altura y (unidades del modelo)."""
+        for a, b in zip(S['fuselaje'], S['fuselaje'][1:]):
+            if a[0] <= z <= b[0]:
+                f = (z - a[0]) / ((b[0] - a[0]) or 1); w = a[1] + (b[1] - a[1]) * f; h = a[2] + (b[2] - a[2]) * f
+                yc = a[3] + (b[3] - a[3]) * f; q = min(0.99, abs((y - yc) / h)) ** F.get('expo', 2.2)
+                return w * (1 - q) ** (1 / F.get('expo', 2.2))
+        return 0.1
+    if F.get('escudo'):
+        # EL ESCUDO DEL ESCUADRON FENIX (16/10, el autor): la calcomania en los dos costados de la trompa
+        z, y, alto = (w * k for w in F['escudo'])
+        for sg in (-1, 1):
+            _calco(raiz, K, ESCUDO_FENIX, sg, z, y, alto, costado(z, y) + 0.01)
     if F.get('letras') or F.get('escarapela_fus'):
         import importlib.util as _iu
         _sp = _iu.spec_from_file_location('modelos_herc_letras', os.path.join(AQUI, 'modelos_hercules.py'))
         H = _iu.module_from_spec(_sp); _sp.loader.exec_module(H)
-        k = S['k']
-        def costado(z, y):
-            for a, b in zip(S['fuselaje'], S['fuselaje'][1:]):
-                if a[0] <= z <= b[0]:
-                    f = (z - a[0]) / ((b[0] - a[0]) or 1); w = a[1] + (b[1] - a[1]) * f; h = a[2] + (b[2] - a[2]) * f
-                    yc = a[3] + (b[3] - a[3]) * f; q = min(0.99, abs((y - yc) / h)) ** F.get('expo', 2.2)
-                    return w * (1 - q) ** (1 / F.get('expo', 2.2))
-            return 0.1
         for sg in (-1, 1):
             for texto, z, y, alto in F.get('letras', []):
                 z, y, alto = z * k, y * k, alto * k
@@ -206,11 +243,28 @@ def ventanillas(z0, z1, n, y0, y1, x=(0.3, 9.0), ancho=0.42):
     paso = (z1 - z0) / n
     return [dict(x=x, z=(z0 + i * paso, z0 + i * paso + paso * ancho), y=(y0, y1), color=VIDRIO, arriba=False) for i in range(n)]
 
-def civil(franja, y_franja, parabrisas, ventanas, extra=()):
+def parabrisas(z0, z1, y0, y1, poste=0.035, frente=0.36, laterales=2):
+    """EL PARABRISAS CON MARCO Y PANELES (16/10, el autor): en vez de una mancha oscura, los vidrios separados
+    por el MARCO, que es la chapa que queda sin pintar entre ellos. Al frente dos paneles con el POSTE del
+    medio (|x| < `poste`); al costado, despues del montante, `laterales` ventanas de cabina separadas por sus
+    postes; el borde de arriba y el de abajo quedan como marco. Medidas en metros (como la ficha)."""
+    L = z1 - z0
+    m = 0.06                                    # el ancho del marco
+    out = [dict(x=(poste, frente), z=(z0, z0 + L * 0.55), y=(y0 + m, y1 - m), color=VIDRIO, arriba=False)]
+    zl0, zl1 = z0 + L * 0.55 + m, z1 + 0.55     # las laterales siguen hacia atras del parabrisas
+    paso = (zl1 - zl0) / laterales
+    for i in range(laterales):
+        out.append(dict(x=(frente + m, 9.0), z=(zl0 + i * paso, zl0 + (i + 1) * paso - m), y=(y0 + m * 1.6, y1 - m * 1.6),
+                        color=VIDRIO, arriba=False))
+    return out
+
+def civil(franja, y_franja, parabrisas_, ventanas, extra=()):
     """La pintura de un ejecutivo civil o de la FAA: blanco arriba, gris claro abajo, la FRANJA de color a
     lo largo del fuselaje, el parabrisas y las ventanillas."""
     return dict(arriba=[BLANCO], panza=GRIS_PANZA, umbral_panza=-0.55,
-                marcas=[dict(y=y_franja, color=franja, arriba=False), parabrisas] + ventanas + list(extra))
+                marcas=[dict(y=y_franja, color=franja, arriba=False)]
+                       + (parabrisas(parabrisas_['z'][0], parabrisas_['z'][1], *parabrisas_['y']) if isinstance(parabrisas_, dict) else parabrisas_)
+                       + ventanas + list(extra))
 
 def camo_faa(extra=()):
     return dict(arriba=[VERDE_FAA, ARENA_FAA], corte=0.5, escala=0.35, panza=PANZA_FAA, marcas=list(extra))
@@ -238,8 +292,9 @@ FICHAS['learjet'] = dict(
     pintura=civil('#1f3f7a', (0.02, 0.18), dict(z=(-6.20, -5.30), y=(0.20, 0.80), color=VIDRIO, arriba=False),
                   ventanillas(-4.5, 0.9, 6, 0.30, 0.56, ancho=0.40)),
     bandera=(2.05, 2.50), escarapelas=(3.6, -0.5, 0.55),
-    letras=[('FUERZA AEREA ARGENTINA', -1.80, 0.68, 0.20), ('T-24', -5.80, -0.32, 0.30)],
+    letras=[('FUERZA AEREA ARGENTINA', -1.80, 0.68, 0.20), ('T-24', -4.70, -0.32, 0.30)],
     escarapela_fus=(1.55, 0.10, 0.28),
+    escudo=(-6.10, -0.02, 0.55),      # el escudo del Escuadron Fenix, en la trompa
     tren=dict(x=1.30, nariz=-5.70, suelo=-1.45, r=0.30, ancho=0.18),
 )
 # ---- CESSNA CITATION II (civil, del Fenix). 14,39 m de largo, 15,90 de envergadura, 4,57 de alto. Ala baja
@@ -258,6 +313,7 @@ FICHAS['citation'] = dict(
     pintura=civil('#8a5a2b', (0.02, 0.18), dict(z=(-6.00, -5.10), y=(0.25, 0.95), color=VIDRIO, arriba=False),
                   ventanillas(-4.2, 0.9, 7, 0.32, 0.62, ancho=0.45)),
     bandera=(2.20, 2.70),
+    escudo=(-5.80, 0.0, 0.60),      # el escudo del Escuadron Fenix, en la trompa
     tren=dict(x=1.95, nariz=-5.40, suelo=-1.40, r=0.30, ancho=0.18),
 )
 # ---- SWEARINGEN MERLIN III (civil, del Fenix). 12,85 m de largo, 14,10 de envergadura, 5,13 de alto. Tubo
@@ -278,6 +334,7 @@ FICHAS['merlin'] = dict(
     pintura=civil('#2a5aa8', (-0.05, 0.12), dict(z=(-4.80, -3.95), y=(0.20, 0.82), color=VIDRIO, arriba=False),
                   ventanillas(-3.3, 1.3, 6, 0.25, 0.50)),
     bandera=(2.80, 3.30),
+    escudo=(-4.70, 0.0, 0.55),      # el escudo del Escuadron Fenix, en la trompa
     tren=dict(x=2.55, nariz=-4.60, suelo=-1.45, r=0.30, ancho=0.18),
 )
 # ---- MITSUBISHI MU-2B (civil, del Fenix). 12,02 m de largo, 11,94 de envergadura con los tanques, 4,17 de
@@ -297,6 +354,7 @@ FICHAS['mu2'] = dict(
     pintura=civil('#b0302a', (-0.05, 0.12), dict(z=(-4.50, -3.75), y=(0.20, 0.82), color=VIDRIO, arriba=False),
                   ventanillas(-3.2, 1.2, 5, 0.22, 0.48)),
     bandera=(2.20, 2.65),
+    escudo=(-4.40, 0.05, 0.55),      # el escudo del Escuadron Fenix, en la trompa
     tren=dict(x=0.85, nariz=-4.40, suelo=-1.40, r=0.30, ancho=0.20, ala=False, z=0.10),
 )
 # ---- PIPER AEROSTAR 601P (civil, del Fenix). 10,61 m de largo, 11,18 de envergadura, 3,73 de alto. Fino
@@ -313,6 +371,7 @@ FICHAS['aerostar'] = dict(
     pintura=civil('#b0302a', (-0.02, 0.12), dict(z=(-3.60, -2.85), y=(0.18, 0.72), color=VIDRIO, arriba=False),
                   ventanillas(-2.4, 0.4, 3, 0.20, 0.45)),
     bandera=(1.85, 2.25),
+    escudo=(-3.40, 0.05, 0.45),      # el escudo del Escuadron Fenix, en la trompa
     tren=dict(x=1.85, nariz=-3.70, suelo=-1.25, r=0.26, ancho=0.16),
 )
 # ---- ROCKWELL TURBO COMMANDER 690 (civil, del Fenix). 13,52 m de largo, 14,22 de envergadura, 4,56 de alto.
@@ -329,6 +388,7 @@ FICHAS['commander'] = dict(
     pintura=civil('#2a5aa8', (-0.05, 0.12), dict(z=(-4.95, -4.15), y=(0.20, 0.86), color=VIDRIO, arriba=False),
                   ventanillas(-3.6, 1.6, 7, 0.20, 0.50)),
     bandera=(2.55, 3.05),
+    escudo=(-4.80, 0.05, 0.60),      # el escudo del Escuadron Fenix, en la trompa
     tren=dict(x=2.35, nariz=-4.90, suelo=-1.50, r=0.32, ancho=0.20),
 )
 # ---- FMA IA-50 GUARANI II (FAA). 15,30 m de largo, 19,53 de envergadura, 5,61 de alto. Hecho en Cordoba:
@@ -348,6 +408,7 @@ FICHAS['guarani'] = dict(
     bandera=(2.60, 3.50), escarapelas=(6.5, -0.6, 0.80),
     letras=[('FUERZA AEREA ARGENTINA', -1.60, 0.80, 0.26)],
     escarapela_fus=(1.10, 0.05, 0.42),
+    escudo=(-5.60, 0.05, 0.70),      # el escudo del Escuadron Fenix, en la trompa
     tren=dict(x=3.10, nariz=-5.50, suelo=-1.70, r=0.36, ancho=0.22),
 )
 # ---- FMA IA-58 PUCARA (FAA, Grupo 3 de Ataque; S-07, S-13, S-14). 14,25 m de largo, 14,50 de envergadura,
@@ -407,11 +468,15 @@ FICHAS['neptune'] = dict(
     estab=[(0.0, 9.80, 3.00, 0.11, 1.10), (6.40, 11.0, 1.60, 0.11, 1.20)],
     motores=[dict(tipo='helice', x=4.60, y=0.00, z0=-6.20, z1=2.20, r=1.05, helice=2.05, palas=4, expo=2.0),
              dict(tipo='jet', x=8.90, y=-1.10, z0=-1.60, z1=2.40, r=0.55, pintada=True)],
-    extras=[dict(tipo='elipsoide', nombre='radomo', mat='#9aa3a8', centro=(0, -1.55, -4.80), radios=(1.25, 0.70, 1.70)),
-            dict(tipo='loft', nombre='mad', mat='metal', est=[(12.4, 0.30, 0.30, 1.22), (14.6, 0.18, 0.18, 1.30), (15.6, 0.04, 0.04, 1.32)])],
-    pintura=dict(arriba=['#8b949a'], panza='#dfe3e5', umbral_panza=-0.30,
-                 marcas=[dict(z=(-11.6, -10.6), y=(0.60, 1.55), color=VIDRIO, arriba=False)]),
-    bandera=(8.30, 10.0), escarapelas=(10.0, -0.8, 1.30),
+    extras=[dict(tipo='elipsoide', nombre='radomo', mat='#b9c8cf', centro=(0, -1.55, -4.80), radios=(1.25, 0.70, 1.70)),
+            dict(tipo='loft', nombre='mad', mat='#c9a640', est=[(12.4, 0.30, 0.30, 1.22), (14.6, 0.18, 0.18, 1.30), (15.6, 0.04, 0.04, 1.32)])],
+    # LA PINTURA DE 1982 (16/10, el autor con las fotos del 2-P-112: "los Neptune eran verdes"): manchones
+    # GRIS AZULADO y VERDE arriba, la panza clara; la trompa VIDRIADA (la burbuja del observador) y la cabina
+    pintura=dict(arriba=['#6f8ca3', '#6e9670'], corte=0.5, escala=0.85, panza='#b9c8cf', umbral_panza=-0.45,
+                 marcas=[dict(z=(-12.7, -11.75), color=VIDRIO, arriba=False)]
+                        + parabrisas(-10.9, -9.9, 1.00, 1.62, poste=0.05, frente=0.45, laterales=2)),
+    letras=[('112', -9.20, 0.10, 0.70)],
+    bandera=(5.50, 6.60), escarapelas=(10.0, -0.8, 1.30),
     tren=dict(x=4.60, nariz=-10.0, suelo=-3.20, r=0.65, ancho=0.40),
 )
 

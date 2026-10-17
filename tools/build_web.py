@@ -150,6 +150,9 @@ def main():
     js, ok = sub_path(js, '../assets/ui/miras.webp', uri(ASSETS / 'ui' / 'miras.webp', 'image/webp')); n += ok
     # EL LOGO de la portada y del selector de modo (render/menus.js)
     js, ok = sub_path(js, '../assets/ui/logo_rasante.svg', uri(ASSETS / 'ui' / 'logo_rasante.svg', 'image/svg+xml')); n += ok
+    js, ok = sub_path(js, '../assets/ui/escudo_fenix.png', uri(ASSETS / 'ui' / 'escudo_fenix.png', 'image/png')); n += ok   # el escudo del Fenix (render/menus.js)
+    js, ok = sub_path(js, '../assets/ui/escudo_faa.png', uri(ASSETS / 'ui' / 'escudo_faa.png', 'image/png')); n += ok
+    js, ok = sub_path(js, '../assets/ui/escudo_armada.png', uri(ASSETS / 'ui' / 'escudo_armada.png', 'image/png')); n += ok
     # ILUSTRACIONES de portada y de fin (assets/photos/{ppal,win,lose}/): NO entran en
     # el build web — son ~20 fotos y el Artifact tope 16 MB. Mismo criterio que TBACK. En
     # Electron/Steam si van; aca las pantallas caen al fondo opaco (drawEndBg/drawPpalBg lo
