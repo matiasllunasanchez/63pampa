@@ -108,6 +108,15 @@ function createWindow() {
   });
 }
 
+// LA MUSICA DE music/original, LEIDA DE LA CARPETA (17/10, el autor: POR LA PATRIA y CICLO DE MUERTE
+// "deben reproducir de forma aleatoria la carpeta de music original"): lo que haya ahi es lo que suena —
+// agregar o sacar un tema es soltar o borrar el archivo. La pagina lo pide al arrancar (preload.js).
+ipcMain.on('musica-original', e => {
+  const dir = path.join(__dirname, '..', 'assets', 'music', 'original');
+  try { e.returnValue = fs.readdirSync(dir).filter(f => /\.(mp3|m4a|ogg|opus|wav)$/i.test(f)).sort(); }
+  catch (err) { e.returnValue = []; }
+});
+
 // OPCIONES -> PANTALLA: la pagina pide completa (true) o ventana (false) — ver electron/preload.js
 ipcMain.on('pantalla-completa', (e, v) => {
   const w = BrowserWindow.fromWebContents(e.sender);

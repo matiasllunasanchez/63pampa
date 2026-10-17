@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('RASANTE_APP', true);
 contextBridge.exposeInMainWorld('RASANTE_DEV', process.argv.includes('--rasante-dev'));
 // OPCIONES -> PANTALLA (src/game.js): pantalla completa o ventana. Lo aplica electron/main.js.
 contextBridge.exposeInMainWorld('rasanteVentana', { pantallaCompleta: v => ipcRenderer.send('pantalla-completa', !!v) });
+// LOS TEMAS DE music/original, como estan en la carpeta (electron/main.js; los usa systems/audio.js)
+contextBridge.exposeInMainWorld('rasanteMusica', { original: () => ipcRenderer.sendSync('musica-original') });
 
 window.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add('electron');

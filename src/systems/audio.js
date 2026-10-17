@@ -66,7 +66,17 @@ const musZona = musPool[0];
 // no las usa: cada mision va a tener su tema y su repertorio (hoy, `musica` en data/missions.js).
 // Rutas ENTERAS y literales a proposito: tools/build_web.py las vacia (WEB_DROP) y busca el texto
 // exacto. Vacias, el sorteo no tiene de donde sacar y la mision cae a game.mp3.
-const MUSIC_MISION = [
+// …Y EN ELECTRON SE LEE LA CARPETA (17/10): lo que haya en music/original es lo que suena
+// (window.rasanteMusica, electron/preload.js). La lista de abajo queda de respaldo —sin Electron, o si
+// la carpeta no se pudo leer— y para el build web, que busca estas rutas literales.
+const ORIGINAL_DISCO = (() => {
+  try { const l = typeof window !== 'undefined' && window.rasanteMusica && window.rasanteMusica.original(); return Array.isArray(l) ? l : []; }
+  catch (e) { return []; }
+})();
+// (la carpeta armada por partes: tools/build_web.py rechaza toda ruta ../assets/ literal que no sepa
+// re-embeber, y en la web esto no corre — ahi no hay rasanteMusica)
+const ORIGINAL_DIR = ['..', 'assets', 'music', 'original', ''].join('/');
+const MUSIC_MISION = ORIGINAL_DISCO.length ? ORIGINAL_DISCO.map(f => ORIGINAL_DIR + encodeURIComponent(f)) : [
   '../assets/music/original/balas_en_bandoneon1.mp3',
   '../assets/music/original/balas_en_bandoneon2.mp3',
   '../assets/music/original/bandoneon_de_acero1.mp3',
@@ -97,7 +107,7 @@ function sortearMision() {
   return true;
 }
 // termina una: sale otra al azar, sin hueco
-musMision.addEventListener('ended', () => { if (enMision && sortearMision()) musMision.play().catch(() => { }); });
+musMision.addEventListener('ended', () => { if (enMision && sortearMision()) { musMision.play().catch(() => { }); syncPlayerBtn(); } });
 
 // PLAYLIST del REPRODUCTOR: la base del juego + el soundtrack, presentadas como TRACK 1..N.
 // Es la lista que se puede cambiar en vuelo (modos que NO son historia) y de la que la campaña
@@ -773,7 +783,11 @@ export function setRunMusic(isCampaign, level, keep, prueba, pista, mision) {
  *  soundtrack, la musica de las misiones—, nunca la `original` (esa es del libro de vuelo). */
 export function sortearPista() { trackIdx = (Math.random() * PLAYLIST.length) | 0; syncPlayerBtn(); }
 export function trackCount() { return PLAYLIST.length; }
-export function currentTrackName() { return 'TRACK ' + (trackIdx + 1); }
+export function currentTrackName() {
+  // con music/original sonando (libro de vuelo, POR LA PATRIA, CICLO): el nombre del tema, del archivo
+  if (enMision && misionSrc) return decodeURIComponent(misionSrc.split('/').pop()).replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').toUpperCase();
+  return 'TRACK ' + (trackIdx + 1);
+}
 
 /** Cambia a la pista `i` (envuelve). Si hay una pista de juego sonando, el cambio es EN VIVO. */
 export function setTrack(i) {
@@ -782,8 +796,14 @@ export function setTrack(i) {
   syncPlayerBtn();
   updateMusic(lastState);   // si estamos en juego (no lobby/historia), suena la nueva ya
 }
-export function nextTrack() { setTrack(trackIdx + 1); }
-export function prevTrack() { setTrack(trackIdx - 1); }
+// ◄ ► CON music/original SONANDO (17/10): no hay lista que recorrer — salta a otro tema al azar
+function saltarMision() {
+  if (!sortearMision()) return;
+  syncPlayerBtn();
+  if (musicStarted && !muted) musMision.play().catch(() => { });
+}
+export function nextTrack() { if (enMision) return saltarMision(); setTrack(trackIdx + 1); }
+export function prevTrack() { if (enMision) return saltarMision(); setTrack(trackIdx - 1); }
 
 // avance automatico al terminar cada pista (ver 'ENCADENADO' arriba).
 PLAYLIST.forEach((a2, i) => a2.addEventListener('ended', () => {

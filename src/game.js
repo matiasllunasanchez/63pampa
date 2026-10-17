@@ -2320,9 +2320,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // referi solo a libro de vuelo"). La CAMPAÑA no: cada mision va a tener su tema y su repertorio.
       // LOS MODOS SUELTOS (16/10): una pista AL AZAR por corrida, de las de las misiones (no la `original`)
       if (suelto() && !keepMusic) sortearPista();
+      // …SALVO POR LA PATRIA Y CICLO DE MUERTE (17/10, el autor: "deben reproducir de forma aleatoria la
+      // carpeta de music original, y nunca terminar: siempre alguna reproduce"): como el libro de vuelo,
+      // una de music/original al azar y, al terminar, otra (systems/audio.js, sortearMision).
       setRunMusic(gameMode === 'campaign', curLevel, keepMusic, !!S.test,
         gameMode === 'campaign' ? (curMission() || {}).musica : null,   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
-        !!libro);
+        !!libro || suelto());
     }
 
     // ---------- OPCIONES: LA pantalla de configuración ----------
