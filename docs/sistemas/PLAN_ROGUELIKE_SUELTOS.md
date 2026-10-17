@@ -110,6 +110,10 @@ altímetro que avisa del suelo.
 ## 6 · LOS AVIONES
 
 - La carta rota (regla 6) depende del avión elegido al arrancar la corrida.
+- **CADA AVIÓN ARRANCA CON SU ARMAMENTO REAL** (el autor, 17/10): *"los aviones deben contar con sus armamentos o
+  sets de armas básicas, salvo los que no traían cañones"*. Los del **Escuadrón Fénix** (civiles) y el **Neptune**
+  vuelan **sin cañón** (`sinCanon` en `data/planes.js`). La carta **CAÑÓN** se ofrece **solo** a esos aviones y lo
+  habilita (licencia del juego); para los demás, la metralla de fábrica ya está.
 - **HÉRCULES BOMBARDERO** *(avión nuevo, a desarrollar)*: bombas y **cañones LENTOS, distintos a la vista** de los
   del resto. ⚠ El hecho es real (el C-130 **TC-68** se usó como bombardero improvisado, p. ej. contra el
   petrolero *British Wye*), pero **cuántas bombas y cómo las soltaba** (soportes bajo el ala o empujándolas por

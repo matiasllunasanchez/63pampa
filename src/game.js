@@ -2308,6 +2308,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const avSel = PLANES[selPlane];
       run.vuelo = (avSel && avSel.vuelo) || null;
       run.canon = (avSel && avSel.canon) || null;
+      run.sinCanon = !!(avSel && avSel.sinCanon);   // los que no tenian armas (el Fenix, el Neptune): sin cañon
       run.mslMax = avSel && cargaDe(cfg.carga).bombasN && runClimax() !== 'suelta' ? bombasDe(cfg.carga) : 0;
       if (run.mslMax) run.msl = run.mslMax;
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
@@ -4540,7 +4541,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // FOGONAZO (D3): se apaga solo, rapido. Va acá y no en un sistema porque tiene que correr en
       // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
       run.flash = Math.max(0, run.flash - dt / FLASH_T);
-      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire, overheat: run.overheat, metralla: run.metralla, canon: !!run.canon, soldiers, alarmaBuque: blancoSys.alarma() });   // loops con fade
+      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire && !run.sinCanon, overheat: run.overheat, metralla: run.metralla, canon: !!run.canon, soldiers, alarmaBuque: blancoSys.alarma() });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
       const camZt = 1;   // ver CAM_ZOOMS: el zoom por raster quedo desactivado

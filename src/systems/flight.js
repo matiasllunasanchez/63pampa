@@ -706,7 +706,8 @@ export function flightSystem(dt, deps) {
   run.fireT -= dt;
   run.tiroT += dt;
   // CON LA MIRA DE LA BOMBA PUESTA el gatillo es de la bomba, no del cañon (ver abajo)
-  const gatillo = inp.fire && !inp.apunta;
+  // (sin cañon —`sinCanon` en data/planes.js, los aviones que no tenian armas— el gatillo no dispara)
+  const gatillo = inp.fire && !inp.apunta && !run.sinCanon;
   const met = METRALLAS[run.metralla] || METRALLAS[1];   // comun, plata u oro (data/tuning.js)
   run.heat -= dt * (gatillo ? GUN_COOL_FIRE : GUN_COOL_IDLE);
   if (run.heat < 0) run.heat = 0;
