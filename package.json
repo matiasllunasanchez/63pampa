@@ -9,6 +9,8 @@
     "build:game": "esbuild src/game.js --bundle --format=iife --outfile=src/game.bundle.js",
     "prestart": "npm run build:game",
     "start": "electron .",
+    "prod": "npm run build:game && electron . --prod",
+    "prod:2": "npm run build:game && electron . --prod --monitor=2",
     "smoke": "electron tools/smoke.js",
     "feel": "node tools/feeltest.js",
     "syntax": "python3 tools/check_syntax.py",

@@ -1,6 +1,6 @@
 // Proceso principal de Electron: crea la ventana y carga el juego (src/index.html).
 // El juego es una app canvas autocontenida; Electron solo la envuelve en una ventana nativa.
-const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -14,10 +14,35 @@ const DEV = !app.isPackaged && !process.argv.includes('--prod');
 // esa carpeta va en el empaquetado y build/ no. Sale de assets/source/steam/rasante2.png.
 const ICONO = path.join(__dirname, '..', 'assets', 'ui', 'icono.png');
 
+// EN QUE MONITOR SE ABRE (16/10, el autor: "como hago para que el juego se abra en el otro monitor"). Se
+// abre en el MISMO MONITOR EN EL QUE SE CERRO la ultima vez (se guarda en <userData>/monitor.json). Para
+// elegirlo a mano: `npm start -- --monitor=2` (1 = el principal, 2 = el siguiente, en el orden del sistema).
+// Si ese monitor ya no esta conectado, el principal.
+const MONITOR_JSON = () => path.join(app.getPath('userData'), 'monitor.json');
+function monitorElegido() {
+  const todos = screen.getAllDisplays();
+  const arg = process.argv.find(a => a.startsWith('--monitor='));
+  if (arg) {
+    const n = parseInt(arg.split('=')[1], 10);
+    const orden = [screen.getPrimaryDisplay()].concat(todos.filter(d => d.id !== screen.getPrimaryDisplay().id));
+    if (n >= 1 && n <= orden.length) return orden[n - 1];
+  }
+  try {
+    const { id } = JSON.parse(fs.readFileSync(MONITOR_JSON(), 'utf8'));
+    const d = todos.find(x => x.id === id);
+    if (d) return d;
+  } catch (e) { /* sin guardado: el principal */ }
+  return screen.getPrimaryDisplay();
+}
+
 function createWindow() {
+  const mon = monitorElegido().workArea;
   const win = new BrowserWindow({
     width: 1280,
     height: 720,          // 16:9, el aspecto nativo del juego
+    // centrada en el monitor elegido: la pantalla completa se hace en el monitor donde esta la ventana
+    x: Math.round(mon.x + (mon.width - Math.min(1280, mon.width)) / 2),
+    y: Math.round(mon.y + (mon.height - Math.min(720, mon.height)) / 2),
     minWidth: 640,
     minHeight: 360,
     backgroundColor: '#0d1216',   // igual al --bg del juego: sin flash blanco al abrir
@@ -43,6 +68,10 @@ function createWindow() {
   win.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
 
   win.once('ready-to-show', () => win.show());
+  // al cerrar, se anota en que monitor estaba (ver `monitorElegido`)
+  win.on('close', () => {
+    try { fs.writeFileSync(MONITOR_JSON(), JSON.stringify({ id: screen.getDisplayMatching(win.getBounds()).id })); } catch (e) { }
+  });
 
   // EL LOG DE ERRORES (9/10: el juego "se termina tildando" y no habia forma de saber por que). Los
   // errores y avisos de la pagina —incluido el del loop que sobrevive a un cuadro roto, src/game.js
