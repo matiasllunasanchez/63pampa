@@ -9,7 +9,7 @@ import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES } from './data/upgrades.js';
-import { ofertaSuelta, BANCO_PTS, momentumDe, soporteDe } from './data/banco_suelto.js';
+import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_PTS, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -424,10 +424,30 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       else if (id === 'reparacion') { run.integ = 100; run.escudo = 1; }
       else if (id === 'amigo') squad.sumarAvion();
       else if (id === 'chancha1') run.chanchaGratis = (run.chanchaGratis || 0) + 1;
+      libretaEnRun();
     }
+    /** LO QUE LA LIBRETA LE PONE A LA CORRIDA, recalculado entero (al armar la corrida y despues de cada
+     *  carta): resetRun no conoce estos campos, y fuera de los modos sueltos valen lo de siempre. */
+    function libretaEnRun() {
+      const s = suelto(), t = id => s && pichon.includes(id);
+      run.potencia = s ? potenciaDe(pichon) : 1;
+      run.escudoK = 1 + (s ? escudoDe(pichon) : 0);
+      run.aguAncho = t('rasante1') ? 1.4 : 1;
+      run.relevoK = t('veterano') ? 2 : 1;
+      run.chafRecarga = t('chafRecarga') ? 25 : 0;
+      run.chafK = t('chafPotencia') ? 1.5 : 1;
+      run.radarGratis = t('radar1');
+      radarP.recargaK = t('radar1') ? 2 : 1;
+    }
+    let chafRepuestoT = 0;
     /** Una vez por cuadro de vuelo: cobra los umbrales de puntos y abre el banco si se debe uno y es seguro. */
-    function stepBanco() {
+    function stepBanco(dt) {
       if (!suelto()) return;
+      // CHAFITAS DE REPUESTO: una carga cada run.chafRecarga s, hasta el tope del avion
+      if (run.chafRecarga && run.chapitas < run.chapitasMax) {
+        chafRepuestoT += dt;
+        if (chafRepuestoT >= run.chafRecarga) { chafRepuestoT = 0; run.chapitas++; beep(760, 0.05, 'square', 0.03, 120); }
+      } else chafRepuestoT = 0;
       while (run.score >= bancoProx) { bancoPend++; bancoProx += BANCO_PTS; }
       if (bancoPend > 0 && bancoSeguro()) abrirBanco();
     }
@@ -436,6 +456,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  modos sueltos todo es gratis. */
     function alcanza(accion) {
       if (accion === 'chancha' && run.chanchaGratis > 0) return true;   // la carta +1 CHANCHA
+      if (accion === 'radar' && run.radarGratis) return true;            // la carta RADAR DE GUARDIA
       if (!suelto() || !COSTOS[accion] || run.score >= COSTOS[accion]) return true;
       beep(150, 0.09, 'square', 0.05); cartel(T('sinPuntos'), P.warn, T('sinPuntos_sub', { n: COSTOS[accion] }));
       return false;
@@ -443,6 +464,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     /** …y lo cobra, con el numero subiendo desde el avion. */
     function cobrar(accion) {
       if (accion === 'chancha' && run.chanchaGratis > 0) { run.chanchaGratis--; return; }
+      if (accion === 'radar' && run.radarGratis) return;
       if (!suelto() || !COSTOS[accion]) return;
       run.score = Math.max(0, run.score - COSTOS[accion]);
       const ps = proj(plane.x, plane.y, PZ); popup(ps.x, ps.y - 18, '-' + COSTOS[accion], P.warn);
@@ -2258,6 +2280,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
         { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta(),
           dificultad: curMission() && curMission().dificultad, bomba: bombaDeLaMision(),
+          espoletas: suelto() ? espoletasDe(pichon) : 0,   // las del banco suelto
           // el piso de una ESTRUCTURA: la explanada que la geografia le aplana debajo (0 sin geografia)
           piso: alturaBlanco() });
       // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): el tanque se llena segun la carga YA RESUELTA
@@ -2307,6 +2330,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EN CAMPAÑA LA BRP ES UNA CARTA DEL BANCO (10/10, data/upgrades.js): la que trae la mision si la
       // fija, si no la de la libreta; en los demas modos, la regla de siempre (`bombaDe`)
       // (…y apagable en MEJORAS DEL PICHON: apagada, la MK-17 aunque se tenga la carta)
+      // (EN LOS MODOS SUELTOS, la ultima que se eligio en el banco: BRP o SNAKEYE; si no, la MK-17)
+      if (suelto()) return bombaSuelta(pichon);
       if (m && !m.bomba && conLibreta()) return bombaDeLibreta(pichon, cfg.movesOff);
       return bombaDe(m, MISSIONS.indexOf(m));
     }
@@ -2406,6 +2431,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // SOPORTE MULTIPLE —, que se repone como siempre. El CAÑON de la carta se lo devuelve al que no lo traia.
       if (suelto() && !run.mslMax && !run.sinBombas) { run.mslMax = 1 + soporteDe(pichon); run.mslCada = 7; }
       if (suelto() && run.sinCanon && pichon.includes('canon')) run.sinCanon = false;
+      libretaEnRun();
       if (run.mslMax) run.msl = run.mslMax;
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
@@ -4652,7 +4678,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LOS MODOS SUELTOS: la presion del mundo cuadro a cuadro, y el RADAR SIEMPRE (16/10): sin ruta no
       // hay "entrar en alcance", asi que el barrido verde y su sonido salen al empezar a volar
       if (suelto() && (S.state === 'play' || S.state === 'takeoff')) aplicarPresion();
-      if (S.state === 'play') stepBanco();   // el banco suelto: umbrales de puntos y la apertura en un momento seguro
+      if (S.state === 'play') stepBanco(dt);   // el banco suelto: umbrales de puntos y la apertura en un momento seguro
       if (suelto() && S.state === 'play' && radarScanT < 0 && !rutaSys.hay()) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
       // DETECTANDO: en la zona verde (arriba del techo, en alcance) y con la barra subiendo
       detectando(S.state === 'play' && rutaSys.enAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
@@ -7279,6 +7305,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         offer: bancoOffer ? bancoOffer.cartas.map(c => c.id) : null, rota: bancoOffer && bancoOffer.rota ? bancoOffer.rota.id : null,
         msl: run.msl, mslMax: run.mslMax, carga: cfg.carga, metralla: run.metralla, chafitas: run.chapitas, sinCanon: run.sinCanon, lives: run.lives });
       window.__bancoElegir = i => { bancoSel = i | 0; bancoT = 1; bancoConfirm(); return window.__banco(); };
+      // dar una carta por id (como si se la hubiera elegido), para medir su efecto
+      window.__bancoDar = id => { const c = CARTAS_SUELTAS.find(x => x.id === id); if (!c) return null; if (!c.uso) pichon.push(id); aplicarCarta(c);
+        return JSON.stringify({ id, potencia: run.potencia, escudoK: run.escudoK, aguAncho: run.aguAncho, relevoK: run.relevoK, chafRecarga: run.chafRecarga,
+          chafK: run.chafK, radarGratis: run.radarGratis, mslMax: run.mslMax, msl: run.msl, carga: cfg.carga, chapitas: run.chapitas, lives: run.lives,
+          metralla: run.metralla, cinta: run.cinta, sinCanon: run.sinCanon, gratis: run.chanchaGratis, integ: run.integ, bomba: bombaDeLaMision() }); };
     }
     if (typeof window !== 'undefined') window.__udbg = () => JSON.stringify({
       state: S.state, level: curLevel, offer: upgOffer.map(u => u.id), sel: upgSel, pichon,

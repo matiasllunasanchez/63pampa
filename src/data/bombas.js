@@ -55,6 +55,15 @@ export const BOMBAS = {
     armaT: 0.5, holgura: 1.4, pDet: [0.5, 1, 1, 1], racha: 0, tarde: 0, tardeT: [0, 0],
     dano: { centro: 100, extremo: 55 }, grande: true, traba: 0.06, radio: 10, onda: 8, boquete: 8,
   },
+  // LA SNAKEYE (Mk 82 frenada, la de la Armada: el A-4Q contra la Ardent, 21/5). Las aletas la frenan:
+  // arma ENSEGUIDA —se suelta bajo sin que te alcance— y casi siempre detona. Su precio: es la mas chica
+  // (227 kg) — en el extremo rompe poco — y la holgura es la menor: la bomba frena, hay que estar encima.
+  // (Solo en los modos sueltos, como carta del banco: data/banco_suelto.js.)
+  snakeye: {
+    nombre: 'MK-82 SNAKEYE', kg: 227, es: 'de origen estadounidense', en: 'US-made',
+    armaT: 0.2, holgura: 0.8, pDet: [0.2, 0.9, 0.6, 1], racha: 0, tarde: 0, tardeT: [0, 0],
+    dano: { centro: 90, extremo: 45 }, grande: true, traba: 0.05, radio: 9, onda: 7, boquete: 7,
+  },
 };
 
 /** DESDE QUE MISION DE CAMPAÑA vuelan las BRP (indice: 6 = M7, el 25 de mayo — la fecha de "desde

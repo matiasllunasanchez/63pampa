@@ -48,7 +48,9 @@ export function preparar(on, nombre, objectiveDist, geo, carga, opts) {
   // ventana (se emboca de milagro); la BRP la agranda y arma antes.
   const bi = bombaInfo(o.bomba);
   blanco.bomba = o.bomba && bombaInfo(o.bomba) === bi ? o.bomba : 'brp';
-  blanco.armaT = bi.armaT;
+  // LAS ESPOLETAS (la carta del banco suelto, `o.espoletas` 0..2): arma antes y detona mas seguido
+  espoletas = o.espoletas | 0;
+  blanco.armaT = bi.armaT * (1 - 0.3 * espoletas);
   fallidas = 0;   // corrida nueva: la racha arranca de cero
   holguraMax *= bi.holgura;
   spdPrev = -1; spdRate = 0;   // corrida nueva: el acelerador de la anterior no cuenta
@@ -245,11 +247,12 @@ function sorteo(t) {
   if (q === 'explota' || q === 'tarde' || q === 'falla') return q;
   const bi = bombaInfo(blanco.bomba);
   const topo = bi.racha > 0 && fallidas >= bi.racha;
-  if (!topo && Math.random() >= chanceDetona(blanco.bomba, t)) { fallidas++; return 'falla'; }
+  if (!topo && Math.random() >= Math.min(1, chanceDetona(blanco.bomba, t) + 0.2 * espoletas)) { fallidas++; return 'falla'; }
   fallidas = 0;
   return Math.random() < bi.tarde ? 'tarde' : 'explota';
 }
 let fallidas = 0;   // armadas seguidas que no detonaron (ver `racha` en data/bombas.js)
+let espoletas = 0;  // el nivel de ESPOLETAS de la corrida (ver preparar)
 
 /** LA BOMBA QUE REVIENTA EN EL CASCO. `grande` es la de la BRP (pedido del autor 29/9: "EXPLOSION
  *  VISIBLE en el barco, con sonido explosivo y todo"): la bola, la onda y una cadena de secundarias

@@ -290,7 +290,7 @@ export function fallenPos(r) {
 
 /** Un frame de cinematica. Mueve camara y avion (autopiloto) y devuelve 'done' al terminar. */
 export function updateRelevo(dt) {
-  rv.t += dt;
+  rv.t += dt * (run.relevoK || 1);   // (RELEVO VETERANO del banco suelto: el siguiente entra antes)
   const ph = relevoPhase(rv.t);
 
   // CAMPAÑA: el averiado deja ESTELA DE HUMO mientras queda atras — la prueba visible, junto

@@ -32,7 +32,7 @@ export function resetDamage() { run.integ = 100; run.escudo = 1; run.escudoT = 0
 /** EL ESCUDO SE LLENA SOLO si pasa `ESCUDO.demora` sin daño. Lo llama el orquestador cada cuadro,
  *  en todos los estados: el escudo no es del pasillo ni de un climax, es del avion. */
 export function tickEscudo(dt) {
-  const r = recargar(run.escudo, run.escudoT, dt);
+  const r = recargar(run.escudo, run.escudoT, dt * (run.escudoK || 1));   // (CHAPA REFORZADA del banco suelto: se llena antes)
   run.escudo = r.escudo; run.escudoT = r.quieto;
 }
 

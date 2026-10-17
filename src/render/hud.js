@@ -1234,7 +1234,7 @@ function aguja(cx, cy, a, largo, pal, gordo) {
         else if (rr <= EJE) col = dx + dy < 0 ? L : G;
         else if (rr <= EJE + FINO) col = O;
         else if (t >= -COLA && t <= largo + FINO) {
-          const w = ancho(t);
+          const w = ancho(t) * (run.aguAncho || 1);
           if (Math.abs(d) <= w && t <= largo) col = d < 0 ? L : G;
           else if (Math.abs(d) <= w + FINO) col = O;
         }
@@ -2145,7 +2145,7 @@ function drawEstante(h) {
     // QUE BOMBA ES (data/bombas.js): el nombre corto encima del estante — MK-17 o BRP
     if (r.bomba) {
       ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.dim;
-      ctx.fillText(r.bomba === 'mk17' ? 'MK17' : 'BRP', X_RACK + RACK_W / 2, CUADROS_Y - 2);
+      ctx.fillText(r.bomba === 'mk17' ? 'MK17' : r.bomba === 'snakeye' ? 'MK82' : 'BRP', X_RACK + RACK_W / 2, CUADROS_Y - 2);
       ctx.textAlign = 'left';
     }
   } else if (c.centro === 'tanque') {

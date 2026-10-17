@@ -753,9 +753,10 @@ export function flightSystem(dt, deps) {
     }
     const bala = { x: bx, y: plane.y, z: PZ + 3, x0: bx, y0: plane.y, z0: PZ + 3, tx, ty, path: true };
     if (cn) Object.assign(bala, { dano: cn.dano, vel: cn.vel, gordo: cn.gordo });
+    if (run.potencia > 1) bala.dano = (bala.dano || 1) * run.potencia;   // BALA PERFORANTE (el banco suelto)
     bullets.push(bala);
     // (el cañon lento calienta lo mismo POR SEGUNDO que la metralla: cada tiro pesa lo que pesan los que no tira)
-    run.heat += calorTiro(run.metralla, run.cinta) * (cn ? met.cad / cn.cad : 1);
+    run.heat += calorTiro(run.metralla, run.cinta) * (cn ? met.cad / cn.cad : 1) * (run.potencia > 1 ? 1 + (run.potencia - 1) * 0.15 : 1);   // (su precio: recalienta)
     // EL CAÑONAZO del Hercules (16/10, el autor): una explosion chica por tiro; sin samples (web), el beep grave
     if (cn && !sfxOne('herCanon')) beep(150 + Math.random() * 30, 0.09, 'sawtooth', 0.05);   // la CINTA dice cuanto aguanta la rafaga
     if (run.heat >= 1) { run.overheat = true; beep(140, 0.3, 'sawtooth', 0.05); }

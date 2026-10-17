@@ -41,7 +41,7 @@ export const azar = f => { rnd = f || Math.random; };
 export function soltar(x, y, pz, visto) {
   if (!(run.chapitas > 0)) return null;
   run.chapitas--;
-  const n = nubeNueva(x, y, pz);
+  const n = nubeNueva(x, y, pz, run.chafK || 1);
   // PARA EL DIBUJO: los TUBOS (CHAPITAS.TUBOS de 16 cm) que el cartucho escupe hacia atras en abanico,
   // girando, y las TIRAS de cada uno —repartidas entre los tubos— para cuando revienta
   n.tubos = Array.from({ length: CHAPITAS.TUBOS }, (_, j) => {
@@ -63,7 +63,7 @@ export function soltar(x, y, pz, visto) {
   // la MITAD revienta en la nube (o en la bengala); la otra se desvia a un COSTADO y pasa de largo
   n.costados = [];
   for (const m of missiles) {
-    if (!tomaNube(m, pz)) continue;
+    if (!tomaNube(m, pz, run.chafK || 1)) continue;
     const blanco = porCalor(m) ? n.bengala : n;
     if (rnd() < CHAPITAS.EXPLOTA) m.cebo = blanco;
     else {

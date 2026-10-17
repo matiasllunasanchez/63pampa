@@ -66,7 +66,7 @@ function entrar() {
   run.aguGra = AGU.GRACIA;                    // …y con la gracia puesta, por el dedo que ya venia
   esperandoSoltar = !!inp.u;
   // EL SECTOR ARRANCA SORTEADO, sin anterior del que escapar (el -1 dice "no habia").
-  const w = ancho(0);
+  const w = ancho(0) * (run.aguAncho || 1);   // (RASANTE FINO del banco suelto: la banda mas ancha)
   run.aguSec = sector(w, Math.random(), -1);
   // …Y EL INDICADOR ARRANCA EN LA PUNTA MAS LEJANA AL SECTOR. Medido: con el sector sorteado en
   // 0,044 y el indicador saliendo de 0, la primera pasada llegaba 0,1 s despues de abrirse el
@@ -102,7 +102,7 @@ function acertar() {
   run.aguN++;
   run.aguGolpe = run.t;
   run.aguVen = ventana(run.aguN);             // acertar RELLENA la ventana, que es todo el punto
-  run.aguSec = sector(ancho(run.aguN), Math.random(), run.aguSec);
+  run.aguSec = sector(ancho(run.aguN) * (run.aguAncho || 1), Math.random(), run.aguSec);
   // EL SECTOR NUEVO ARRANCA DESARMADO, incluso si cae justo donde ya esta el indicador: si se
   // armara ahi, el jugador tendria que acertar una pasada que ya empezo —a veces con un cuadro de
   // margen— y eso es una moneda, no dificultad. Se arma cuando el indicador entre de nuevo.
@@ -137,7 +137,7 @@ export function tickAguante(dt, enBanda) {
   // pirueta o porque el poder rasante te levanto. No hay premio que quitar mas alla de cortarlo.
   if (!enBanda) { salir(); return 'sale'; }
 
-  const w = ancho(run.aguN);
+  const w = ancho(run.aguN) * (run.aguAncho || 1);
   const antes = pos(run.aguF);
   run.aguF += vel(run.aguN) * dt;
   const ahora = pos(run.aguF);

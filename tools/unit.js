@@ -2621,6 +2621,22 @@ test('banco suelto: se arranca sin nada, las mejoras piden su item y lo que el a
   assert.equal(momentumDe(['momentum1', 'momentum2']), 2); assert.equal(soporteDe(['soporte1']), 1);
 });
 
+test('banco suelto: la bomba es la ultima elegida, y las espoletas, la potencia y la chapa cuentan niveles', async () => {
+  const { bombaSuelta, espoletasDe, potenciaDe, escudoDe, motivoRota, cartaDe } = await import('../src/data/banco_suelto.js');
+  const { BOMBAS, chanceDetona } = await import('../src/data/bombas.js');
+  assert.equal(bombaSuelta([]), 'mk17', 'de fabrica, la MK-17');
+  assert.equal(bombaSuelta(['brp']), 'brp');
+  assert.equal(bombaSuelta(['brp', 'jink', 'snakeye']), 'snakeye', 'la ultima que se eligio');
+  assert.equal(bombaSuelta(['snakeye', 'brp']), 'brp');
+  assert.ok(BOMBAS.snakeye && BOMBAS.snakeye.armaT < BOMBAS.brp.armaT, 'la frenada arma antes');
+  assert.ok(chanceDetona('snakeye', 0.3) > chanceDetona('mk17', 0.3));
+  assert.equal(espoletasDe(['espoletas1', 'espoletas2']), 2);
+  assert.equal(potenciaDe([]), 1); assert.equal(potenciaDe(['potencia2', 'potencia3']), 3);
+  assert.equal(escudoDe(['escudo1']), 1);
+  assert.ok(motivoRota(cartaDe('radar1'), { key: 'sky' }), 'sin radar, rota');
+  assert.equal(motivoRota(cartaDe('radar1'), { key: 'supere' }), null);
+});
+
 // LA «CONFIGURACION INDIA» DEL DAGGER (data/cargas.js, 12/10): tres tanques y dos bombas en el ala media
 test('india: tres tanques y dos bombas, solo el Dagger, y en la suelta sus bombas son las del buque', async () => {
   const { conBombaCentral, cargaDe, bombasDe, tanquesDe, capasDe, cargaParaAvion, CARGA_BASE, CAPAS_EXTRA } = await import('../src/data/cargas.js');

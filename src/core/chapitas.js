@@ -20,17 +20,17 @@ export const engaña = m => porRadar(m) || porCalor(m);
  *  (no ya resuelto, ni detras de un señuelo, ni de otro cebo), y estar a menos de ALCANCE_Z: por
  *  DELANTE el de radar; el de calor de los DOS LADOS — el Sidewinder de LA COLA viene de atras, y la
  *  bengala queda justo ahi. `pz` es la profundidad del avion. */
-export function tomaNube(m, pz) {
+export function tomaNube(m, pz, k = 1) {   // k: CHAFITAS DENSAS (el banco suelto) — engaña de mas lejos
   if (!engaña(m) || m.done || m.senuelo || m.cebo) return false;
   const dz = m.z - pz;
-  return porCalor(m) ? Math.abs(dz) <= CHAPITAS.ALCANCE_Z : dz > 0 && dz <= CHAPITAS.ALCANCE_Z;
+  return porCalor(m) ? Math.abs(dz) <= CHAPITAS.ALCANCE_Z * k : dz > 0 && dz <= CHAPITAS.ALCANCE_Z * k;
 }
 
 /** LA NUBE NUEVA, soltada desde el avion en (x, y), apenas detras de la profundidad `pz`. Sale con la
  *  velocidad del avion (`lleva` = 1) y se va quedando atras (ver pasoNube). `vida` en segundos;
  *  cuando llega a cero deja de engañar. Es el mismo objeto que el señuelo de los tanques
  *  espera como `m.cebo` ({ x, y, z }), y por eso la cuenta del misil contra el es una sola. */
-export const nubeNueva = (x, y, pz) => ({ x, y, z: pz - 1, vida: CHAPITAS.VIDA, t: 0, lleva: 1, chapitas: true });
+export const nubeNueva = (x, y, pz, k = 1) => ({ x, y, z: pz - 1, vida: CHAPITAS.VIDA * k, t: 0, lleva: 1, chapitas: true });
 
 /** UN CUADRO DE LA NUBE (devuelve la NUEVA): sale con la velocidad del avion (`lleva` = 1) y el aire
  *  se la come (CHAPITAS.INERCIA), asi que se va quedando atras de a poco; cae despacio, y se apaga. */
