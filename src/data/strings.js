@@ -268,6 +268,7 @@ export const STRINGS = {
     campC1Desc: 'Mayo 1982',
     campC2Desc: 'CAMPANA 2',
     campSoon: 'PROXIMAMENTE',
+    libroEnDesarrollo: 'EN DESARROLLO', libroSinFecha: 'FECHA A CONFIRMAR',
     // HISTORIA EN LA DEMO (12/10): dos secciones — las campañas (la de Mateo, bloqueada) y el LIBRO DE
     // VUELO con las salidas reales (data/libro_vuelo.js).
     campSecCampanas: 'CAMPAÑAS', campSecLibro: 'LIBRO DE VUELO',
@@ -1466,6 +1467,7 @@ export const STRINGS = {
     campC1Desc: 'CAMPAIGN 1 — MAY 1982',
     campC2Desc: 'CAMPAIGN 2',
     campSoon: 'COMING SOON',
+    libroEnDesarrollo: 'IN DEVELOPMENT', libroSinFecha: 'DATE TO BE CONFIRMED',
     campSecCampanas: 'CAMPAIGNS', campSecLibro: 'FLIGHT LOG',
     campAtrasDesc: 'BACK TO STORY',
     campCampanasDesc: 'THE STORY, MISSION BY MISSION', campLibroDesc: 'REAL SORTIES OF THE WAR, ONE BY ONE',

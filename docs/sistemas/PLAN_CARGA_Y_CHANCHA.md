@@ -109,3 +109,38 @@ una opción de la mano. No hay que escribir nada nuevo — ya está escrito.
 
 **Si el jugador no logra cargar de la Chancha**, el juego se lo dice y lo manda de vuelta a la base.
 Era un problema frecuente en 1982. Detalle y dudas en `../historia/misiones/M5_CAMBIOS.md` · 5.
+
+---
+
+## Cuántos se volvían por fallas — la cuenta con lo que contó el autor (17/10)
+
+*Pregunta del autor: "de todo lo que te conté, cuál es la probabilidad aproximada de las fallas que
+tenían los aviones al salir y tener que volverse". Cuenta sobre las salidas donde dio cifras
+(`historia/misiones/CRONOLOGIA_1982.md`). **Es una muestra, no una estadística oficial**, y tiende a
+exagerar: se anotaron las salidas donde algo falló.*
+
+| Día | Salida | Salieron | Se volvieron por fallas | Causa |
+|---|---|---|---|---|
+| 25/5 | A-4B | 5 | 1 | falla |
+| 8/6 mañana | A-4B | 8 | 3 | **carga de combustible** |
+| 8/6 mañana | Dagger | 6 | 1 | parabrisas |
+| 8/6 tarde | A-4B | 6 | 2 | **carga de combustible** |
+| 12/6 | Canberra | 4 | 3 | fallas |
+| 12/6 mañana | A-4 | 4 | 4 | **carga de combustible** |
+| 12/6 | 4 aviones | 4 | 2 | uno roto tapa la pista |
+| 12/6 noche | Canberra | 2 | 2 | altímetro |
+| 12/6 medianoche | Canberra | 2 | 1 | falla |
+| 13/6 | A-4 | 8 | 1 | **carga de combustible** |
+| 13/6 | Dagger | 6 | 2 | no despegan |
+| 13/6 | Dagger | 6 | 2 | no despega + falla |
+| 13/6 noche | Canberra | 2 | 0 | — |
+| **Total** | | **63** | **24** | **≈ 38 %** |
+
+**Por etapa:** hasta el 8 de junio, **7 de 25 (≈ 28 %)** · el 12 de junio, **12 de 16 (75 %)** · el 13,
+**5 de 22 (≈ 23 %)**.
+**Por avión:** A-4 **11 de 35 (≈ 31 %)**, casi todo por la **carga** · Dagger **5 de 18 (≈ 28 %)** ·
+Canberra **6 de 10 (60 %)**.
+
+**Para el juego (propuesta):** M1–M4 sin fallas (es aprendizaje) · M5–M9 **una de cada cinco** salidas
+puede fallar la carga · M10–M12 **una de cada tres** · M13 **más de la mitad**: el desgaste se siente.
+

@@ -77,8 +77,10 @@ app.whenReady().then(async () => {
   if (d.fila.id === 'secCampanas') ok('ESC vuelve a la raiz, sobre CAMPAÑAS'); else bad('ESC desde CAMPAÑAS: ' + JSON.stringify(d.fila));
   await tap('Down'); await tap('Return');                   // a LIBRO DE VUELO
   d = await L();
-  const esperado = ['libro0', 'libro1', 'libro2', 'libro3', 'libro4', 'back'];
-  if (JSON.stringify(d.filas) === JSON.stringify(esperado)) ok('adentro del LIBRO DE VUELO: las cinco salidas y ATRAS');
+  // las cinco salidas, despues LAS QUE VIENEN en gris (17/10, deshabilitadas: el '-') y ATRAS
+  const jugables = d.filas.filter(f => /^libro\d$/.test(f)), proximas = d.filas.filter(f => /^proxima\d+-$/.test(f));
+  const esperado = [...['libro0', 'libro1', 'libro2', 'libro3', 'libro4'], ...proximas, 'back'];
+  if (proximas.length && jugables.length === 5 && JSON.stringify(d.filas) === JSON.stringify(esperado)) ok('adentro del LIBRO DE VUELO: las cinco salidas, ' + proximas.length + ' en desarrollo debajo y ATRAS');
   else bad('filas del libro: ' + JSON.stringify(d.filas));
   if (d.fila.id === 'libro' && d.fila.k === 0) ok('el cursor arranca en la primera salida');
   else bad('el cursor arranca en ' + JSON.stringify(d.fila));

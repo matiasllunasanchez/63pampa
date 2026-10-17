@@ -364,6 +364,25 @@ const r5 = {
 /** Las salidas, en orden de fecha: es el orden del LIBRO DE VUELO. */
 export const LIBRO_VUELO = [r1, r2, r3, r5, r4];
 
+/** LAS QUE VIENEN (17/10, el autor: "agregar todas las misiones que relevamos en la documentacion, todas
+ *  las que sucedieron, pero el resto ponerlas disabled debajo"). Los hechos reales de MISIONES_SUELTAS.md
+ *  que todavia no se juegan: van en gris debajo de las salidas, en orden de fecha, con EN DESARROLLO
+ *  al lado de la fecha. Sin nombres de personas (la regla de arriba): Owen Crippa es «el Aermacchi».
+ *  `s` = su numero en MISIONES_SUELTAS.md. `fecha` null = el doc todavia no la fija. */
+export const LIBRO_PROXIMAS = [
+  { s: 1, es: 'EL RESCATE DEL BELGRANO', en: 'THE BELGRANO RESCUE', fecha: { es: '3 DE MAYO DE 1982', en: '3 MAY 1982' } },
+  { s: 2, es: 'EL NEPTUNE', en: 'THE NEPTUNE', fecha: { es: '4 DE MAYO DE 1982', en: '4 MAY 1982' } },
+  { s: 9, es: 'EL AERMACCHI DEL ESTRECHO', en: 'THE AERMACCHI OVER THE SOUND', fecha: { es: '21 DE MAYO DE 1982', en: '21 MAY 1982' } },
+  { s: 7, es: 'LOS DOS PUCARÁ', en: 'THE TWO PUCARÁS', fecha: { es: '21 DE MAYO DE 1982', en: '21 MAY 1982' } },
+  { s: 10, es: 'TRES DAGGER CONTRA DOS HARRIER', en: 'THREE DAGGERS AGAINST TWO HARRIERS', fecha: { es: '21 DE MAYO DE 1982', en: '21 MAY 1982' } },
+  { s: 11, es: 'COLGADO DEL PATÍN', en: 'HANGING FROM THE SKID', fecha: { es: '21 DE MAYO DE 1982', en: '21 MAY 1982' } },
+  { s: 12, es: 'TRES DAGGER SOBRE PUERTO SAN CARLOS', en: 'THREE DAGGERS OVER PORT SAN CARLOS', fecha: { es: '24 DE MAYO DE 1982', en: '24 MAY 1982' } },
+  { s: 13, es: 'SOBRE PRADERA DEL GANSO', en: 'OVER GOOSE GREEN', fecha: { es: '28 DE MAYO DE 1982', en: '28 MAY 1982' } },
+  { s: 14, es: 'DOS PUCARÁ CONTRA DOS HELICÓPTEROS', en: 'TWO PUCARÁS AGAINST TWO HELICOPTERS', fecha: { es: '28 DE MAYO DE 1982', en: '28 MAY 1982' } },
+  { s: 4, es: 'EL ESCUADRÓN FÉNIX', en: 'THE FÉNIX SQUADRON', fecha: { es: '7 DE JUNIO DE 1982', en: '7 JUNE 1982' } },
+  { s: 8, es: 'DESDE TIERRA: PUERTO HOWARD', en: 'FROM THE GROUND: PORT HOWARD', fecha: null },
+];
+
 // ---------------------------------------------------------------------------------------------
 // LAS ESCENAS (mismo formato que data/story.js; las lee core/dialogue.js).
 //

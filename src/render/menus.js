@@ -10,7 +10,7 @@ import { PLANES, UNIDADES } from '../data/planes.js';
 import { T, getLang } from '../core/i18n.js';
 import { CAMPAIGNS } from '../data/campaigns.js';
 import { MISSIONS, climaxOf } from '../data/missions.js';
-import { LIBRO_VUELO } from '../data/libro_vuelo.js';
+import { LIBRO_VUELO, LIBRO_PROXIMAS } from '../data/libro_vuelo.js';
 import { BANCO, loadoutAt } from '../data/upgrades.js';
 import { fmtDate } from '../systems/saves.js';
 
@@ -730,6 +730,12 @@ function campText(r) {
     const m = LIBRO_VUELO[r.k], av = PLANES.find(p => p.key === m.aviones[0].plane);
     return { name: m.name, desc: m.fecha + '  ·  ' + m.hora + ' ' + T('libroHora_' + m.horaQue) + '  ·  ' + (av ? av.name : ''),
       compacta: true };
+  }
+  // LAS QUE VIENEN (17/10): el nombre y, pegado a la fecha, EN DESARROLLO
+  if (r.id === 'proxima') {
+    const m = LIBRO_PROXIMAS[r.k], es = getLang() !== 'en';
+    const f = m.fecha ? (es ? m.fecha.es : m.fecha.en) : T('libroSinFecha');
+    return { name: es ? m.es : m.en, desc: f + '  ·  ' + T('libroEnDesarrollo'), compacta: true };
   }
   return { name: CAMPAIGNS[1].name, desc: T('campC2Desc') + '  ·  ' + T('campSoon') };
 }

@@ -6,7 +6,7 @@ import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
 import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA } from './data/modos_sueltos.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
-import { LIBRO_VUELO, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
+import { LIBRO_VUELO, LIBRO_PROXIMAS, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES } from './data/upgrades.js';
 import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T } from './data/fallas.js';
@@ -2016,6 +2016,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       { id: 'back', back: true, sub: true },
     ]) : campVista === 'libro' ? [
       ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k })),
+      // las que vienen, en gris debajo (17/10): se ven y se marcan, no se entran
+      ...LIBRO_PROXIMAS.map((m, k) => ({ id: 'proxima', k, disabled: true })),
       { id: 'back', back: true, sub: true },
     ] : [
       { id: 'secCampanas' },
