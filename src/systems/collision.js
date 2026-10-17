@@ -47,6 +47,12 @@ import { hablar } from '../core/voz.js';
 
 /** Golpe NO letal (nube de explosion, bandada): sacude, frena y quema combustible — castiga sin
  *  derribar. El daño real del juego sigue siendo binario (chocar = morir); esto es friccion. */
+/** LA ESQUIRLA (PLAN_FALLAS, modos sueltos): una explosion que te agarra cerca la ANOTA y el orquestador
+ *  tira el dado de dañar un sistema (data/fallas.js). Una por segundo y medio: el hongo cobra cada cuadro. */
+function esquirlaCerca() {
+  if (run.t - (run.esquirlaT === undefined ? -9 : run.esquirlaT) < 1.5) return;
+  run.esquirlaT = run.t; run.esquirlas = (run.esquirlas || 0) + 1;
+}
 function softHit(msgKey, f) {
   const m = f === undefined ? 1 : f;                 // intensidad: 1 = onda expansiva / bandada
   run.spd = Math.max(34, run.spd * (1 - 0.14 * m));
@@ -79,6 +85,7 @@ function cruzarEstallidos(dt) {
         const s = proj(plane.x, plane.y, PZ); popup(s.x, s.y - 14, T('hitBlast'), P.warn);
         if (dmg.takeHit('death_onda')) muerte = 'death_onda';
       } else softHit('hitBlast');
+      esquirlaCerca();
     }
   }
   prune(estallidos, e => e.z > PZ - 6);
@@ -305,7 +312,7 @@ export function collisionSystem(dt) {
       if (o.type === 'boom') {                                        // meterse en el hongo: daño
         // zona de daño acompaña al dibujo (que ahora es TRIPLE): alto 9→36, ancho ±10
         const top = 9 + Math.min(1, o.boomT / 1.1) * 27;
-        if (o.boomT < 4.5 && Math.abs(plane.x - o.x) < 10 && plane.y < top) softHit('hitBlast');
+        if (o.boomT < 4.5 && Math.abs(plane.x - o.x) < 10 && plane.y < top) { softHit('hitBlast'); esquirlaCerca(); }
         continue;
       }
       // Las medidas salen de core/hitbox.js — la MISMA fuente que usa el overlay de depuracion
@@ -513,7 +520,7 @@ export function collisionSystem(dt) {
           // entre medio de la nube" — el estallido ahi ya es la noticia)
           if (!c.esBengala) popup(s.x, s.y - 12, T(c.chapitas ? 'chapitas_senuelo' : 'tanque_senuelo') + ' +' + S.PTS, P.accent, true);
           if (!c.chapitas) c.z = 9999;
-          else if (Math.hypot(c.x - plane.x, c.y - plane.y, c.z - PZ) < S.CERCA) softHit(null, S.SOFT);
+          else if (Math.hypot(c.x - plane.x, c.y - plane.y, c.z - PZ) < S.CERCA) { softHit(null, S.SOFT); esquirlaCerca(); }
           m.z = 0; m.done = true;
           run.score += S.PTS; stats.dodges++;
         }

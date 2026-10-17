@@ -87,6 +87,16 @@ export const CARTAS = [
     desc: 'Vuelve un avion a la escuadrilla (+1 vida)',
     quote: 'Llego uno de Rio Grande. Viene con vos.' },
 
+  // ---------------- EL TALLER (las fallas, data/fallas.js) ----------------
+  { id: 'tallerLiv', grupo: 'taller', name: 'TALLER LIVIANO', uso: true, pide: 'tallerLiv', peso: 2,
+    desc: 'Repara las fallas leves y medias de hasta 3 aviones', quote: 'Cinta, alambre y una noche sin dormir.' },
+  { id: 'tallerPes', grupo: 'taller', name: 'TALLER PESADO', uso: true, pide: 'tallerPes', peso: 2,
+    desc: 'Repara la falla grave de un avion', quote: 'Le cambiamos la pieza entera. Vino en el Hercules.' },
+  { id: 'vuelta', grupo: 'taller', name: 'VUELTA RAPIDA', uso: true, pide: 'vuelta',
+    desc: 'Los que estan en la base vuelven ya, reparados', quote: 'Cargaron, revisaron, y salieron de nuevo.' },
+  { id: 'municion', grupo: 'taller', name: 'MUNICION', uso: true,
+    desc: 'Bombas y chafitas al tope en toda la escuadrilla', quote: 'Llego el camion de la armeria.' },
+
   // ---------------- ALCANCE ----------------
   { id: 'tanques', grupo: 'alcance', name: 'TANQUES DE ALA', tecla: 'B',
     desc: 'Dos tanques externos: mas alcance. Pesan, y se pueden soltar',

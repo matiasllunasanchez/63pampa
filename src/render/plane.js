@@ -346,7 +346,8 @@ function muzzles(bank) {
   const ca = Math.cos(a), sa = Math.sin(a);
   const ab = Math.abs(bank);
   const tilt = ab > 0.5 ? a * (ab - 0.5) / 0.5 : 0;
-  for (const gx of [-5, 5]) {
+  // (UN SOLO CAÑON, la falla media de data/fallas.js: el fogonazo del lado que tira y nada mas)
+  for (const gx of run.falCanon === 2 ? [5] : [-5, 5]) {
     const gy = -1;
     ctx.save();
     ctx.translate(gx * ca - gy * sa, gx * sa + gy * ca);
@@ -376,7 +377,8 @@ function fogonazos(spW, spH, tp) {
   // la escala del sprite (84 = el cuadro de la hoja base), y CRECE CON LA METRALLA (autor, 9/10):
   // comun, plata y oro, `fogon` en METRALLAS (data/tuning.js)
   const k = spW / 84 * (METRALLAS[run.metralla] || METRALLAS[1]).fogon;
-  for (const [tx, ty] of [[tp[0], tp[1]], [tp[2], tp[3]]]) estrellaFogon(tx * spW * FOGON_RAIZ, ty * spH * FOGON_RAIZ, k);
+  // (UN SOLO CAÑON — la falla media —: solo la raiz de un lado)
+  for (const [tx, ty] of run.falCanon === 2 ? [[tp[2], tp[3]]] : [[tp[0], tp[1]], [tp[2], tp[3]]]) estrellaFogon(tx * spW * FOGON_RAIZ, ty * spH * FOGON_RAIZ, k);
 }
 function estrellaFogon(x, y, k) {
   const big = Math.random() < 0.45;                // no todos los disparos son iguales

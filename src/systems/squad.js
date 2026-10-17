@@ -108,9 +108,13 @@ function ponerFicha(f, conMunicion) {
 /** EL AVION AMIGO (la carta de los modos sueltos, data/banco_suelto.js): vuelve a la escuadrilla el ultimo
  *  que cayo, sano, lleno y con su carga, al FONDO de la fila. Devuelve false si la escuadrilla esta entera. */
 export function sumarAvion() {
-  const n = run.squad - (run.lives + 1);
-  if (n < 0) return false;
   if (!filaOk(run)) run.orden = filaDeVidas(run.squad, run.lives);
+  // el ultimo que cayo: el numeral mas alto que no vuela ni esta en la base (PLAN_FALLAS)
+  const ocupados = new Set([...run.orden, ...(run.enBase || []).map(b => b.n)]);
+  let n = -1;
+  for (let i = run.squad - 1; i >= 0 && n < 0; i--) if (!ocupados.has(i)) n = i;
+  if (n < 0) return false;
+  if (run.fallasFlota) run.fallasFlota[n] = {};
   run.lives++;
   run.orden.push(n);
   run.flota[n] = { fuel: 100, tanque: null, integ: 100, escudo: 1, escudoT: 0, msl: run.mslMax || MSL_MAX,

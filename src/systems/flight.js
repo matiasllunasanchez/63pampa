@@ -707,7 +707,8 @@ export function flightSystem(dt, deps) {
   run.tiroT += dt;
   // CON LA MIRA DE LA BOMBA PUESTA el gatillo es de la bomba, no del cañon (ver abajo)
   // (sin cañon —`sinCanon` en data/planes.js, los aviones que no tenian armas— el gatillo no dispara)
-  const gatillo = inp.fire && !inp.apunta && !run.sinCanon;
+  // (…ni con los CAÑONES MUDOS, la falla TOTAL de data/fallas.js: `run.falCanon` 3)
+  const gatillo = inp.fire && !inp.apunta && !run.sinCanon && !(run.falCanon >= 3);
   const met = METRALLAS[run.metralla] || METRALLAS[1];   // comun, plata u oro (data/tuning.js)
   run.heat -= dt * (gatillo ? GUN_COOL_FIRE : GUN_COOL_IDLE);
   if (run.heat < 0) run.heat = 0;
@@ -718,7 +719,8 @@ export function flightSystem(dt, deps) {
   run.giro = gatillo && !run.overheat ? run.giro + dt : 0;
   // EL CAÑON DEL AVION (data/planes.js `canon`, el Hercules): uno solo, desde el centro, lento y potente
   const cn = run.canon;
-  const cad = cn ? cn.cad : met.cad;
+  // UN SOLO CAÑON (la falla MEDIA): la mitad de los tiros, todos del mismo lado
+  const cad = (cn ? cn.cad : met.cad) * (run.falCanon === 2 ? 0.5 : 1);
   if (gatillo && !run.overheat && run.giro >= (cn ? 0 : met.calienta) && run.fireT <= 0 && mvAllowsFire()) {
     // la cadencia ARRASTRA el resto, de a lo sumo un cuadro: con `fireT = 1 / cad` cada tiro esperaba
     // el cuadro entero que sobraba, y a 60 fps la de 18 tiros/s tiraba 15
@@ -729,7 +731,7 @@ export function flightSystem(dt, deps) {
     // Se alterna en vez de disparar los dos juntos a proposito: asi la cadencia, el daño y la
     // PRECISION del recuento (hits/shots) quedan exactamente iguales que antes — lo unico que
     // cambia es de donde sale cada trazadora. Con cualquier metralla se ven los dos chorros.
-    gunSide = -gunSide;
+    gunSide = run.falCanon === 2 ? 1 : -gunSide;
     const bx = cn ? plane.x : plane.x + gunSide * GUN_X;
     // Las dos lineas CONVERGEN en el punto apuntado, como un armamento reglado de verdad: salen
     // separadas del avion y se juntan alla adelante.
@@ -756,7 +758,8 @@ export function flightSystem(dt, deps) {
     if (run.potencia > 1) bala.dano = (bala.dano || 1) * run.potencia;   // BALA PERFORANTE (el banco suelto)
     bullets.push(bala);
     // (el cañon lento calienta lo mismo POR SEGUNDO que la metralla: cada tiro pesa lo que pesan los que no tira)
-    run.heat += calorTiro(run.metralla, run.cinta) * (cn ? met.cad / cn.cad : 1) * (run.potencia > 1 ? 1 + (run.potencia - 1) * 0.15 : 1);   // (su precio: recalienta)
+    run.heat += calorTiro(run.metralla, run.cinta) * (cn ? met.cad / cn.cad : 1) * (run.potencia > 1 ? 1 + (run.potencia - 1) * 0.15 : 1)   // (su precio: recalienta)
+      * (run.falCanon === 1 ? 1.5 : 1);   // RECALIENTA (la falla LEVE)
     // EL CAÑONAZO del Hercules (16/10, el autor): una explosion chica por tiro; sin samples (web), el beep grave
     if (cn && !sfxOne('herCanon')) beep(150 + Math.random() * 30, 0.09, 'sawtooth', 0.05);   // la CINTA dice cuanto aguanta la rafaga
     if (run.heat >= 1) { run.overheat = true; beep(140, 0.3, 'sawtooth', 0.05); }

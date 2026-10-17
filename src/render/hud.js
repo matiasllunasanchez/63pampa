@@ -15,6 +15,7 @@ import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
 import { cargaDe } from '../data/cargas.js';
 import { run } from '../core/run.js';
+import { estadoAvion, BASE_T } from '../data/fallas.js';
 import { shown as dmgShown } from '../systems/damage.js';
 import { proj } from '../core/fx.js';
 import { scrapeLimit, speedTarget } from '../core/physics.js';
@@ -1294,6 +1295,32 @@ function alTablero(x, y, fn, cy = 16) {
 }
 
 function reloj(x, y, o) { return alTablero(x, y, () => relojFila(x, y, o)); }
+// ---- LAS FALLAS EN LOS RELOJES (PLAN_FALLAS, modos sueltos; data/fallas.js) ----
+/** El grado de la falla `id` del avion que vuela (0 sano). Solo hay fallas en los modos sueltos. */
+let altLag = 0;   // el altimetro que ATRASA (falla media): la altura que muestra
+const falHud = id => (run.fallasFlota ? ((run.fallasFlota[alMando(run)] || {})[id] || 0) : 0);
+/** Lo que la falla le hace a las OPCIONES de un reloj: LEVE la aguja tiembla, MEDIA ademas el vidrio
+ *  partido y saltos, TOTAL la aguja caida y sin numero. */
+function conFalla(o, g) {
+  if (!g) return o;
+  const t = run.t;
+  if (g === 1) return { ...o, tiembla: (o.tiembla || 0) + Math.sin(t * 41) * 0.08 + Math.sin(t * 17) * 0.05 };
+  if (g === 2) return { ...o, roto: true, tiembla: (o.tiembla || 0) + (Math.sin(t * 2.3) > 0.5 ? Math.sin(t * 53) * 0.3 : 0.06) };
+  return { ...o, val: -0.04, col: '#4e5a62', txt: '', roto: true, borde: null, critico: false, franjas: undefined, zonas: undefined, marcas: undefined, icoCol: '#4e5a62' };
+}
+/** Y ENCIMA DEL RELOJ: el bisel ambar que late (LEVE/MEDIA) o el velo con NO FUNCIONA (TOTAL). */
+function marcaFalla(x, y, g) {
+  if (!g) return;
+  alTablero(x, y, () => {
+    if (g >= 3) {
+      ctx.globalAlpha = 0.55; px(x + 1, y + 1, CUADRO - 2, CUADRO - 2, '#0b0f12'); ctx.globalAlpha = 1;
+      ctx.font = 'bold 4px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#e0503a';
+      ctx.fillText('NO', x + CUADRO / 2, y + CUADRO - 9); ctx.fillText('FUNCIONA', x + CUADRO / 2, y + CUADRO - 4);
+      ctx.textAlign = 'left';
+      bordePlaca(x, y, CUADRO, CUADRO, '#8a2a1e');
+    } else bordePlaca(x, y, CUADRO, CUADRO, Math.sin(run.t * 6) > 0 ? '#d08a2e' : '#7a5120');
+  });
+}
 function relojFila(x, y, o) {
   if (o.roto) plateRota(x, y, CUADRO, CUADRO); else plate(x, y, CUADRO, CUADRO);
   const cx = x + 13, cy = y + 16, r = 10;
@@ -1577,7 +1604,14 @@ export function drawSquadPips(x, y) {
     // rojo encima se comia el avion y gritaba mas que el escuadron entero (pedido del autor, 12/9):
     // que la silueta siga ahi, apagada, ya dice que ese no vuelve — y es lo que se pidio desde el
     // principio (un compañero menos, no un numero menos), sin el subrayado.
-    iconoEn(ax + 3, y + 5, 'avion', down ? '#3a4750' : i === manda ? P.accent : P.foam);
+    // LAS FALLAS (PLAN_FALLAS §3, modos sueltos): el que espera, en su color — verde bien, ambar con fallas,
+    // rojo con una TOTAL o con dos (y titila); el que esta en la BASE, gris azulado con lo que le falta
+    const base = (run.enBase || []).find(b => b.n === i);
+    const est = !down && run.fallasFlota ? estadoAvion(run.fallasFlota[i]) : 'bien';
+    const colFalla = est === 'fallas' ? '#e0a83a' : est === 'muchas' ? (Math.sin(run.t * 8) > -0.2 ? '#e0503a' : '#7a2c22') : null;
+    iconoEn(ax + 3, y + 5, 'avion', base ? '#5d7686' : down ? '#3a4750' : i === manda ? (colFalla || P.accent) : (colFalla || P.foam));
+    if (i === manda && colFalla) px(ax, y + SQUAD_H - 3, SQ_PASO - 2, 1, P.accent);   // (el que vuela, subrayado)
+    if (base) { const f = Math.max(0, Math.min(1, 1 - base.t / BASE_T)); px(ax, y + SQUAD_H - 3, SQ_PASO - 2, 1, '#2c3a44'); px(ax, y + SQUAD_H - 3, Math.max(1, (SQ_PASO - 2) * f), 1, '#9fc3d8'); }
   }
   // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
@@ -2437,7 +2471,8 @@ export function drawHUD(h) {
   const ch = chSnap(), cv = chMeter(), gastada = chGastada();
   // …y solo si la mision la TIENE (`h.chanchaViva`, por snapshot): una mision con `chancha: false`
   // no puede pedirla, y un reloj lleno y en verde ahi es un boton que miente.
-  if (cfg.fuelOn && h.chanchaViva !== false && pide(cv >= 1 || gastada || !!ch || !!h.chIdaLista)) {
+  const gCh = falHud('reabast');
+  if (cfg.fuelOn && (h.chanchaViva !== false || gCh >= 3) && pide(cv >= 1 || gastada || !!ch || !!h.chIdaLista || gCh > 0)) {
     // EL FINAL DE LA ESCALA ES LA EMERGENCIA: cuando la aguja llega al icono, la Chancha se puede
     // pedir. Con una cita en curso el numero cuenta lo que importa — cuanto falta para que llegue,
     // cuanto dura la ventana, o cuanto tanque va entrando.
@@ -2449,7 +2484,7 @@ export function drawHUD(h) {
     // RESERVA, que baja mientras te pasa nafta. Antes mostraba TU tanque, y un numero de la Chancha
     // que subia no se entendia.
     const suReserva = !!ch && ch.conn;
-    reloj(xCha, CUADROS_Y, {
+    reloj(xCha, CUADROS_Y, conFalla({
       // la de la IDA planificada no depende de la barra: aguja al tope y LISTA, aunque la barra este baja
       val: suReserva ? ch.reserva : gastada ? 0 : h.chIdaLista ? 1 : cv, ico: 'chancha', fin: 'emergencia',
       critico: !!ch && ch.fase === 'cita' && ch.win < 8,     // la ventana de la cita se esta cerrando
@@ -2462,7 +2497,8 @@ export function drawHUD(h) {
       txt: enCita ? (ch.fase === 'eta' ? (ch.espera ? '--' : Math.ceil(ch.eta) + 's')
         : ch.conn ? Math.round(ch.reserva * 100) + '%' : ch.espera ? '--' : Math.ceil(Math.max(0, ch.win)) + 's')
         : h.chIdaLista ? T('ch_lista') : Math.round(cv * 100) + '%',
-      txtCol: lista ? verde : ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim });
+      txtCol: lista ? verde : ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim }, gCh));
+    marcaFalla(xCha, CUADROS_Y, gCh);
   }
 
   // ---- EL RADAR PROPIO (15/10, data/radar_propio.js): solo en los aviones que lo llevan ------------
@@ -2479,11 +2515,15 @@ export function drawHUD(h) {
   // 0,97 y no 1 por el mismo motivo que el 0,05 del cañon: sube y baja sola volando rasante.
   const xSalud = X_SALUD;
   if (pide((dmgShown() && run.integ < 100) || amarilla() < 0.97, 'salud')) relojSalud(xSalud, CUADROS_Y);
-  if (!run.sinCanon && pide(run.heat > 0.05 || run.overheat, 'canon'))   // (sin cañon no hay reloj: 17/10)
+  const gCa = falHud('canon');
+  if (!run.sinCanon && pide(run.heat > 0.05 || run.overheat || gCa > 0, 'canon')) {   // (sin cañon no hay reloj: 17/10)
     // EL CAÑON no tiene municion que contar —dispara hasta recalentarse y se traba hasta enfriar—,
     // asi que el reloj marca TEMPERATURA, con la zona roja donde se traba. Uno por METRALLA: el
     // simple de siempre, o el atornillado de plata o de oro (ver relojCanon).
     relojCanon(X_CANON, CUADROS_Y, run.metralla);
+    if (gCa >= 2) alTablero(X_CANON, CUADROS_Y, () => vidrioRoto(X_CANON, CUADROS_Y));
+    marcaFalla(X_CANON, CUADROS_Y, gCa);
+  }
 
   // ---- EL CENTRO: LOS CUATRO DEL VUELO (playtest 11/9) -----------------------------------------
   // VELOCIDAD, MACH, ALTITUD y GAS, en relojes como los del resto de la fila. Pedido del autor con
@@ -2558,7 +2598,12 @@ export function drawHUD(h) {
   // Van ANTES que la del radar en la lista: si coinciden (el borde de abajo es RADAR_ALT a
   // proposito) manda el rojo del radar, que es el que te mata.
   const divNafta = zg ? [[fA(ZONAS_GASTO[0].desde), GASTO_COL.menor], [fA(ZONAS_GASTO[1].desde), GASTO_COL.mayor]] : [];
-  reloj(xVuelo(2), CUADROS_Y, { val: fA(plane.y), ico: 'alt', critico: visto, franjas,
+  // EL ALTIMETRO FALLADO (PLAN_FALLAS): leve tiembla, media ATRASA (la aguja sigue a la altura con medio
+  // segundo de retraso), TOTAL muerto — se vuela a ojo, sin la banda de soltar
+  const gAl = falHud('altimetro');
+  altLag += (plane.y - altLag) * Math.min(1, (gAl === 2 ? 2 : 60) / 60);
+  const altVista = gAl === 2 ? altLag : plane.y;
+  reloj(xVuelo(2), CUADROS_Y, conFalla({ val: fA(altVista), ico: 'alt', critico: visto, franjas,
     col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : enSuelta ? SUELTA_COL : plane.y <= BANDA_ALT ? P.accent : P.foam,
     zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(BANDA_ALT), P.accent]].concat(sa ? [[fA(sa[0]), fA(sa[1]), SUELTA_COL]] : []),
     // sin marca de techo FUERA DE RADAR: no hay techo (PLAN_NAFTA_ALCANCE N2)
@@ -2569,7 +2614,8 @@ export function drawHUD(h) {
     // buscar la aguja, como el borde del turbo en el velocimetro) y TITILANDO cuando ademas es el
     // momento de soltar: el mismo latido que la cinta y el estante.
     borde: h.sueltaYa ? (titilaSuelta() ? SUELTA_COL : null) : enSuelta ? SUELTA_COL : null,
-    txt: Math.round(plane.y) + 'm', txtCol: visto ? P.warn : P.dim });
+    txt: Math.round(altVista) + 'm', txtCol: visto ? P.warn : P.dim }, gAl));
+  marcaFalla(xVuelo(2), CUADROS_Y, gAl);
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).
   // (SIN BORDE CRITICO, por pedido del autor: el gas se opera, no avisa. Sin nafta avisa la nafta.)
@@ -2618,6 +2664,13 @@ export function drawHUD(h) {
   // del buque, apagada (bloqueada). Las de ala pueden ser bombas o tanques. Cuando es el momento de
   // soltar, lo que se puede soltar titila en verde con el mismo latido que la cinta y el altimetro.
   alTablero(X_RACK, CUADROS_Y, () => drawEstante(h));
+  // el LANZADOR fallado: el bisel del estante (ambar que late) o, TOTAL, en rojo y con la cruz
+  { const gB = falHud('bombas');
+    if (gB) alTablero(X_RACK, CUADROS_Y, () => {
+      bordePlaca(X_RACK, CUADROS_Y, RACK_W, CUADRO, gB >= 3 ? '#8a2a1e' : Math.sin(run.t * 6) > 0 ? '#d08a2e' : '#7a5120');
+      if (gB >= 3) { ctx.fillStyle = '#e0503a'; const cx = X_RACK + RACK_W / 2, cy = CUADROS_Y + 13;
+        for (let i = -4; i <= 4; i++) { ctx.fillRect(cx + i, cy + i, 1, 1); ctx.fillRect(cx + i, cy - i, 1, 1); } }
+    }); }
 
   // (LA PALANCA DE GAS del borde derecho se fue al reloj de GAS, en el centro de la fila: 11/9.)
 }

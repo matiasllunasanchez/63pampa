@@ -9,6 +9,7 @@ import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES } from './data/upgrades.js';
+import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T } from './data/fallas.js';
 import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_PTS, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
@@ -372,7 +373,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     /** Lo que el banco le pregunta al juego para no ofrecer una carta de uso que no haria nada. */
     const bancoCtx = () => ({ avion: PLANES[selPlane], puede: {
       reparar: run.integ < 100,
-      amigo: run.lives < run.squad,
+      amigo: run.lives + (run.enBase || []).length < run.squad,
+      tallerLiv: hayFallas(2), tallerPes: hayTotal(), vuelta: (run.enBase || []).length > 0,
     } });
     /** ¿ES UN MOMENTO SEGURO para pausar y abrir el banco? "La oferta no aparece en medio de una esquivada"
      *  (PLAN_ROGUELIKE_SUELTOS §2.3): nada guiado viniendo, nada sin resolver adelante y cerca, sin pirueta
@@ -389,6 +391,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const o = ofertaSuelta(pichon, bancoCtx());
       if (!o.cartas.length) { bancoPend = 0; return; }   // la libreta esta llena: no hay nada que ofrecer
       bancoOffer = o; bancoSel = 0; bancoT = 0;
+      // EL REGALO DEL CICLO (PLAN_FALLAS §5): al abrir el banco, el que vuela recarga bombas y chafitas
+      if (run.mslMax) run.msl = run.mslMax;
+      run.chapitas = run.chapitasMax;
       setState('banco'); engineOff();
       beep(660, 0.1, 'square', 0.05, 220);
     }
@@ -424,6 +429,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       else if (id === 'reparacion') { run.integ = 100; run.escudo = 1; }
       else if (id === 'amigo') squad.sumarAvion();
       else if (id === 'chancha1') run.chanchaGratis = (run.chanchaGratis || 0) + 1;
+      // EL TALLER: el liviano arregla las LEVES y MEDIAS de hasta 3 aviones; el pesado, la TOTAL de uno
+      else if (id === 'tallerLiv') {
+        let k = 0;
+        (run.fallasFlota || []).forEach((f, n) => { if (k < 3 && Object.values(f || {}).some(g => g > 0 && g <= 2)) { run.fallasFlota[n] = repararFallas(f, 2); k++; } });
+      }
+      else if (id === 'tallerPes') {
+        const n = (run.fallasFlota || []).findIndex(f => Object.values(f || {}).some(g => g >= 3));
+        if (n >= 0) run.fallasFlota[n] = repararFallas(run.fallasFlota[n], 3);
+      }
+      else if (id === 'vuelta') for (const b of run.enBase || []) b.t = 0;
+      else if (id === 'municion') { run.msl = run.mslMax || run.msl; run.chapitas = run.chapitasMax;
+        for (const f of run.flota || []) if (f) { f.msl = run.mslMax || f.msl; f.chapitas = run.chapitasMax; } }
       libretaEnRun();
     }
     /** LO QUE LA LIBRETA LE PONE A LA CORRIDA, recalculado entero (al armar la corrida y despues de cada
@@ -450,6 +467,68 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       } else chafRepuestoT = 0;
       while (run.score >= bancoProx) { bancoPend++; bancoProx += BANCO_PTS; }
       if (bancoPend > 0 && bancoSeguro()) abrirBanco();
+    }
+
+    // ---------- LAS FALLAS DEL AVION (data/fallas.js, docs/sistemas/PLAN_FALLAS.md) ----------
+    // `run.fallasFlota[n]` = { sistema: grado } del numeral n (0 sano … 3 TOTAL). `run.enBase` = los que
+    // volvieron a la base: { n, t } (t = lo que les falta para volver reparados).
+    const fallasDe = n => (run.fallasFlota && run.fallasFlota[n]) || {};
+    /** El grado de la falla `id` del avion que vuela (0 fuera de los modos sueltos). */
+    const falla = id => (suelto() ? fallasDe(alMando(run))[id] || 0 : 0);
+    /** UNA SALIDA NUEVA: cada avion tira su dado (suma a lo que ya traia; los de la base vuelven sanos). */
+    function tirarFlota() {
+      if (!run.fallasFlota) run.fallasFlota = [];
+      for (let i = 0; i < run.squad; i++) run.fallasFlota[i] = tirarFallas(run.fallasFlota[i] || {});
+    }
+    /** El cartel con las fallas del numeral `n` (al cambiar de avion, al arrancar). */
+    function avisarFallas(n) {
+      const t = textoFallas(fallasDe(n), getLang());
+      if (t) cartel(squad.pilotName(n) || T('falla_avion'), P.warn, t);
+    }
+    /** Para el banco: ¿hay algo que el TALLER pueda arreglar? */
+    const hayFallas = hasta => (run.fallasFlota || []).some(f => Object.values(f || {}).some(g => g > 0 && g <= hasta));
+    const hayTotal = () => (run.fallasFlota || []).some(f => Object.values(f || {}).some(g => g >= 3));
+    /** VOLVER A LA BASE [R]: el que vuela se retira (la cinematica del cambio) y entra el siguiente; el que se
+     *  fue vuelve REPARADO Y LLENO a los BASE_T segundos. Mientras tanto no es vida: si cae el ultimo, se
+     *  pierde. El ultimo no se puede mandar. */
+    function aLaBase() {
+      if (!suelto() || S.state !== 'play') return;
+      if (run.lives < 2) { beep(140, 0.09, 'square', 0.05); cartel(T('base_ultimo'), P.warn); return; }
+      const n = alMando(run);
+      pedirCambio();
+      if (S.state !== 'relevo') return;            // el cambio no salio (trabado): tampoco se va
+      // el que salio quedo al fondo de la fila: se lo saca de ahi y va a la base
+      const i = run.orden.lastIndexOf(n);
+      if (i >= 0) run.orden.splice(i, 1);
+      run.lives--;
+      (run.enBase = run.enBase || []).push({ n, t: BASE_T });
+      cartel(T('base_va', { n: squad.pilotName(n) || '' }), '#9fb3c0', T('base_va_sub', { s: BASE_T }));
+    }
+    let esquirlasVistas = 0;
+    /** Una vez por cuadro de vuelo: los de la base, las esquirlas y lo que la falla del cañon le dice al vuelo. */
+    function stepFallas(dt) {
+      if (!suelto()) { run.falCanon = 0; return; }
+      run.falCanon = falla('canon');
+      for (const b of (run.enBase || []).slice()) {
+        b.t -= dt;
+        if (b.t > 0) continue;
+        run.enBase.splice(run.enBase.indexOf(b), 1);
+        run.fallasFlota[b.n] = {};
+        run.flota[b.n] = { fuel: 100, tanque: null, integ: 100, escudo: 1, escudoT: 0, msl: run.mslMax || 1,
+          chapitas: run.chapitasMax, gastoRef: run.gastoLider };
+        run.lives++; run.orden.push(b.n);
+        beep(780, 0.1, 'square', 0.05, 160);
+        cartel(T('base_vuelve', { n: squad.pilotName(b.n) || '' }), P.accent, T('base_vuelve_sub'));
+      }
+      // LA ESQUIRLA: collision cuenta las explosiones cerca (run.esquirlas); cada una tira el dado
+      while (esquirlasVistas < (run.esquirlas || 0)) {
+        esquirlasVistas++;
+        const n = alMando(run), r = tirarEsquirla(fallasDe(n));
+        if (!r.sistema) continue;
+        run.fallasFlota[n] = r.fallas;
+        beep(160, 0.12, 'sawtooth', 0.05, -60);
+        cartel(T('falla_esquirla'), P.warn, textoFallas({ [r.sistema]: r.fallas[r.sistema] || 3 }, getLang()));
+      }
     }
 
     /** USAR CUESTA: ¿alcanza el puntaje para `accion`? Si no, lo avisa y devuelve false. Fuera de los
@@ -671,7 +750,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const sinSonda = () => !!(PLANES[selPlane] && PLANES[selPlane].sonda === false);
     // ¿LA CHANCHA EXISTE EN ESTA CORRIDA? La rotura del guion (la mision con `chancha: false`, en campaña,
     // el selector y PRUEBAS) o un avion sin sonda. UNA sola regla para el pedido, la ida y el HUD.
-    const chanchaViva = () => !((gameMode === 'campaign' || S.test || libro) && curMission() && curMission().chancha === false) && !sinSonda();
+    const chanchaViva = () => !(falla('reabast') >= 3) && !((gameMode === 'campaign' || S.test || libro) && curMission() && curMission().chancha === false) && !sinSonda();
     let upgOffer = [];               // la oferta de la pantalla actual (2 tarjetas)
     let cargaSel = 0, cargaT = 0;    // EL HANGAR (PLAN_NAFTA_ALCANCE N7): la tarjeta marcada y su reloj
     let upgSel = 0, upgT = 0;        // cursor y reloj propio de la pantalla
@@ -919,7 +998,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // ver el bloque 'ack'/'come' de chancha.tick — aca solo suena el pedido.
       beep(150, 0.09, 'square', 0.05);
       // la negativa del guion no la dice ella; la del Dagger, tampoco: no hay a quien pedirle
-      if (r === 'broken') radioCh(sinSonda() ? 'ch_sinsonda' : 'ch_broken');
+      if (r === 'broken') radioCh(sinSonda() ? 'ch_sinsonda' : falla('reabast') >= 3 ? 'ch_sondaRota' : 'ch_broken');
       else chanchaDice(r === 'early' ? 'ch_early' : r === 'used' ? 'ch_used' : 'ch_nozone');
     }
 
@@ -2432,6 +2511,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (suelto() && !run.mslMax && !run.sinBombas) { run.mslMax = 1 + soporteDe(pichon); run.mslCada = 7; }
       if (suelto() && run.sinCanon && pichon.includes('canon')) run.sinCanon = false;
       libretaEnRun();
+      // LAS FALLAS: corrida nueva, cada avion tira su dado (siguienteBlanco tira la suya despues de traer la flota)
+      if (suelto() && !encadena) { tirarFlota(); esquirlasVistas = 0; avisarFallas(alMando(run)); }
       if (run.mslMax) run.msl = run.mslMax;
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
@@ -3133,6 +3214,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // CORRIDA NUEVA DE UN MODO SUELTO: la libreta vacia (las cartas duran la corrida; y sin esto se heredaba
       // la de la ultima campaña, MOMENTUM incluido). El salto de un blanco al otro del ciclo no cuenta.
       if (suelto() && !encadena) { pichon = []; bancoProx = BANCO_PTS; bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
+      // LAS FALLAS Y LA BASE son de la corrida (resetRun no los conoce: sin esto pasaban a la campaña)
+      if (!encadena) { run.fallasFlota = null; run.enBase = null; run.esquirlas = 0; run.esquirlaT = undefined; }
       // LOS MODOS SUELTOS (16/10): mundo al azar en cada corrida, y la barra del radar SUMA ESTRELLAS
       // (la alarma) como en las misiones con fases. PERSECUCION usa la cfg cruda: se le devuelve lo
       // que el azar piso. Un blanco encadenado del CICLO conserva el arranque en vuelo (siguienteBlanco).
@@ -3330,6 +3413,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LA CINEMATICA DEL CAMBIO (systems/squad.js, startCambio): la del relevo, con el que se va sano
       // y sin descontar nada. El titular y quien asume los dice su propia sobreimpresion.
       if (squad.startCambio()) {
+        avisarFallas(alMando(run));   // EL QUE ENTRA, CON SUS FALLAS (PLAN_FALLAS §3)
         // EL SEÑUELO: todo lo guiado que venia hacia vos pasa a perseguir al que se retira
         for (const m of missiles) if (!m.tracer && !m.done) m.senuelo = true;
         setState('relevo');
@@ -3409,6 +3493,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       upgNav: dir => upgNav(dir),
       upgConfirm: () => upgConfirm(),
       bancoNav: dir => bancoNav(dir),
+      aLaBase: () => aLaBase(),
       bancoConfirm: () => bancoConfirm(),
       cargaNav: dir => cargaNav(dir),
       cargaConfirm: () => cargaConfirm(),
@@ -3788,7 +3873,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  vidas, las estrellas y los km (la rampa los cuenta todos). */
     function siguienteBlanco() {
       const lleva = { score: run.score, lives: run.lives, squad: run.squad, est: run.estrellas,
-        km: kmPrevios + Math.max(0, run.dist) / 1000, gratis: run.chanchaGratis || 0 };
+        km: kmPrevios + Math.max(0, run.dist) / 1000, gratis: run.chanchaGratis || 0,
+        // …y la ESCUADRILLA como esta: sus fallas, quien va en la fila y quien esta en la base (PLAN_FALLAS)
+        fallas: run.fallasFlota, orden: (run.orden || []).slice(), base: run.enBase };
       const start = startCiclo !== null ? startCiclo : cfg.start;
       randomMission();
       encadena = true; reset(); setRunObjective(true); encadena = false;
@@ -3796,6 +3883,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       bancoPend++;   // EL OBJETIVO VENCIDO PAGA UNA CARTA (PLAN_ROGUELIKE_SUELTOS §4)
       startCiclo = start; cfg.start = 'air'; resetPlane();
       run.score = lleva.score; run.lives = lleva.lives; run.squad = lleva.squad; run.estrellas = lleva.est;
+      if (lleva.orden.length === run.lives) run.orden = lleva.orden;
+      run.enBase = lleva.base; run.fallasFlota = lleva.fallas;
+      tirarFlota(); esquirlasVistas = run.esquirlas || 0;   // salida nueva: cada uno tira de nuevo (suma)
       kmPrevios = lleva.km;
       setState(afterBrief()); fadeT = 0.55;
       beep(700, 0.15, 'square', 0.06, 1000);
@@ -4204,6 +4294,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state === 'pasada') return;
       if (S.state !== 'play' || run.mslCd > 0) return;
       if (exocetLanzable()) { lanzarExocet(); return; }   // el Exocet no se suelta: se lanza con el PULSO
+      // EL LANZADOR FALLADO (PLAN_FALLAS: "las bombas no se desprendian"): leve, una de cada cuatro no sale;
+      // media, la mitad; TOTAL, ninguna. No se gasta: queda colgada, y el clac del pilon dice por que
+      { const g = falla('bombas');
+        if (g && (run.msl > 0 || runClimax() === 'suelta') && Math.random() < [0, 0.25, 0.5, 1][g]) {
+          cartel(T(g >= 3 ? 'falla_bomba_total' : 'falla_bomba'), P.warn); beep(120, 0.12, 'square', 0.05, -40); run.mslCd = 0.6; return;
+        } }
       // LA SUELTA: las bombas salen del ESTANTE (systems/blanco.js) — la del centro es la del buque y
       // no sale lejos de el. Si lo unico que queda es esa, la tecla no suelta y se dice por que.
       if (runClimax() === 'suelta') {
@@ -4678,7 +4774,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LOS MODOS SUELTOS: la presion del mundo cuadro a cuadro, y el RADAR SIEMPRE (16/10): sin ruta no
       // hay "entrar en alcance", asi que el barrido verde y su sonido salen al empezar a volar
       if (suelto() && (S.state === 'play' || S.state === 'takeoff')) aplicarPresion();
-      if (S.state === 'play') stepBanco(dt);   // el banco suelto: umbrales de puntos y la apertura en un momento seguro
+      if (S.state === 'play') { stepBanco(dt); stepFallas(dt); }   // el banco suelto: umbrales de puntos y la apertura en un momento seguro
       if (suelto() && S.state === 'play' && radarScanT < 0 && !rutaSys.hay()) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
       // DETECTANDO: en la zona verde (arriba del techo, en alcance) y con la barra subiendo
       detectando(S.state === 'play' && rutaSys.enAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
@@ -7301,6 +7397,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // SONDAS DEL BANCO SUELTO: fijar el puntaje y leer la libreta, lo que se debe y lo que se ofrece
     if (typeof window !== 'undefined') {
       window.__puntos = n => { run.score = +n; return run.score; };
+      // las fallas: fijar las del avion que vuela (o del numeral n) y leer la escuadrilla
+      window.__fallas = (f, n) => { if (!run.fallasFlota) run.fallasFlota = []; run.fallasFlota[n === undefined ? alMando(run) : n] = f || {};
+        return JSON.stringify({ flota: run.fallasFlota, base: run.enBase, lives: run.lives, orden: run.orden, manda: alMando(run), falCanon: run.falCanon }); };
+      window.__esquirla = () => { run.esquirlas = (run.esquirlas || 0) + 1; return run.esquirlas; };
       window.__banco = () => JSON.stringify({ state: S.state, pend: bancoPend, prox: bancoProx, pichon: pichon.slice(),
         offer: bancoOffer ? bancoOffer.cartas.map(c => c.id) : null, rota: bancoOffer && bancoOffer.rota ? bancoOffer.rota.id : null,
         msl: run.msl, mslMax: run.mslMax, carga: cfg.carga, metralla: run.metralla, chafitas: run.chapitas, sinCanon: run.sinCanon, lives: run.lives });
@@ -7814,7 +7914,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         else if (rp.sig === 'ecoAereo') { beep(1100, 0.08, 'sine', 0.05, 250); cartel(T('radar_eco_aereo'), '#5ab4ff', null, { alerta: true }); }
         else if (rp.sig === 'sinCarga') { beep(220, 0.1, 'square', 0.04, -60); cartel(T('radar_sin'), P.dim); }
         else if (rp.sig === 'bajo') cartel(T('radar_bajo'), '#5ab4ff', T('radar_bajo_sub')); }
-      if (ch.carga > 0) run.fuel = Math.min(100, run.fuel + ch.carga);
+      // (LA SONDA FLOJA, PLAN_FALLAS: carga mas lento — leve al 60%, media al 35%)
+      if (ch.carga > 0) run.fuel = Math.min(100, run.fuel + ch.carga * [1, 0.6, 0.35, 0][falla('reabast')]);
       if (ch.rum) beep(58, 0.3, 'sawtooth', 0.028);                    // los motores del Hercules
       if (ch.bomba) beep(190, 0.05, 'square', 0.03, 40);               // la bomba de transferencia
       if (ch.sig) chanchaRadio(ch.sig);

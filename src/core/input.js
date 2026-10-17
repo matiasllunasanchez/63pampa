@@ -337,6 +337,8 @@ export function initInput(cv, a) {
       if (isConfirm(e.code)) { a.cargaConfirm(); e.preventDefault(); return; }
       return;
     }
+    // VOLVER A LA BASE [R] (PLAN_FALLAS, modos sueltos): el que vuela se retira y vuelve reparado mas tarde
+    if (e.code === 'KeyR' && !e.repeat && S.state === 'play' && a.aLaBase) { a.aLaBase(); e.preventDefault(); return; }
     if (S.state === 'banco') {                                           // EL BANCO SUELTO: elegir UNA carta
       if (isUp(e.code) || isLeft(e.code)) { a.bancoNav(-1); e.preventDefault(); return; }
       if (isDown(e.code) || isRight(e.code)) { a.bancoNav(1); e.preventDefault(); return; }

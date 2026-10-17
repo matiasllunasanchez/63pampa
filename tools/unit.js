@@ -2617,7 +2617,8 @@ test('banco suelto: se arranca sin nada, las mejoras piden su item y lo que el a
   assert.ok(conDano.has('reparacion'), 'la de uso se puede volver a ofrecer');
   // con la libreta casi llena, ofrece las que quedan
   const casiTodo = CARTAS.filter(c => !c.uso && !['tanques', 'momentum3'].includes(c.id)).map(c => c.id);
-  assert.deepEqual(ids(ofertaSuelta(casiTodo, ctx(sky))).sort(), ['chancha1', 'momentum3', 'tanques'], 'las que quedan (+1 CHANCHA es de uso)');
+  { const quedan = ['chancha1', 'momentum3', 'municion', 'tanques'], o = ids(ofertaSuelta(casiTodo, ctx(sky)));
+    assert.equal(o.length, 3); for (const id of o) assert.ok(quedan.includes(id), id + ': solo las que quedan'); }
   assert.equal(momentumDe(['momentum1', 'momentum2']), 2); assert.equal(soporteDe(['soporte1']), 1);
 });
 
@@ -2635,6 +2636,31 @@ test('banco suelto: la bomba es la ultima elegida, y las espoletas, la potencia 
   assert.equal(escudoDe(['escudo1']), 1);
   assert.ok(motivoRota(cartaDe('radar1'), { key: 'sky' }), 'sin radar, rota');
   assert.equal(motivoRota(cartaDe('radar1'), { key: 'supere' }), null);
+});
+
+// LAS FALLAS DEL AVION (data/fallas.js, PLAN_FALLAS): la tirada, el tope de dos, la esquirla y el taller
+test('fallas: la tirada respeta las bases, se queda con las dos peores, y el taller repara por grado', async () => {
+  const { tirarFallas, SISTEMAS, esquirla, estadoAvion, reparar, recortar, textoFallas, MAX_FALLAS } = await import('../src/data/fallas.js');
+  // con el dado fijo: 0 = sale todo, grado LEVE; 0.999 = nada
+  assert.deepEqual(tirarFallas({}, () => 0.999), {});
+  const todo = tirarFallas({}, () => 0);
+  assert.equal(Object.keys(todo).length, MAX_FALLAS, 'nunca mas de dos');
+  // la frecuencia del reabastecimiento ronda su base (33%)
+  let n = 0, seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 6000; i++) if (tirarFallas({}, rnd).reabast) n++;
+  assert.ok(Math.abs(n / 6000 - SISTEMAS.reabast.base) < 0.05, 'reabast ~33%: ' + (n / 6000).toFixed(3));
+  // no baja lo que ya traia
+  assert.equal(tirarFallas({ canon: 3 }, () => 0.999).canon, 3);
+  assert.deepEqual(recortar({ a: 1, b: 3, c: 2 }), { b: 3, c: 2 });
+  // la esquirla: sube un grado o daña uno nuevo
+  const e = esquirla({ canon: 1 }, (() => { const v = [0, 0.5]; let i = 0; return () => v[i++ % 2]; })());
+  assert.ok(e.sistema);
+  assert.equal(esquirla({}, () => 0.99).sistema, null, 'con el dado alto no pasa nada');
+  assert.equal(estadoAvion({}), 'bien'); assert.equal(estadoAvion({ canon: 1 }), 'fallas');
+  assert.equal(estadoAvion({ canon: 3 }), 'muchas'); assert.equal(estadoAvion({ canon: 1, bombas: 1 }), 'muchas');
+  assert.deepEqual(reparar({ canon: 1, bombas: 2, reabast: 3 }, 2), { reabast: 3 }, 'el liviano no toca la total');
+  assert.deepEqual(reparar({ reabast: 3 }, 3), {});
+  assert.match(textoFallas({ reabast: 3, canon: 2 }), /SONDA ROTA.*UN SOLO CAÑON/);
 });
 
 // LA «CONFIGURACION INDIA» DEL DAGGER (data/cargas.js, 12/10): tres tanques y dos bombas en el ala media

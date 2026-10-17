@@ -654,6 +654,11 @@ export const STRINGS = {
     upgRitual: '"ESO NO SE PUEDE."  ...  "A VER. MOSTRAME."',
     upgRitualLib: '"...A VER, PIBE. MOSTRAME."',
     // EL BANCO DE LOS MODOS SUELTOS (render/menus.js drawBanco)
+    // LAS FALLAS (data/fallas.js) y VOLVER A LA BASE
+    falla_avion: 'AVION CON FALLAS', falla_esquirla: '¡ESQUIRLA!', falla_bomba: 'LA BOMBA NO SE DESPRENDE',
+    falla_bomba_total: 'LAS BOMBAS NO SE DESPRENDEN', ch_sondaRota: 'TENES LA SONDA ROTA: NO PODES CARGAR.',
+    base_ultimo: 'ES EL ULTIMO AVION: NO SE PUEDE MANDAR A LA BASE', base_va: '{n} VUELVE A LA BASE',
+    base_va_sub: 'VUELVE REPARADO EN {s} S', base_vuelve: '{n} VOLVIO A LA ESCUADRILLA', base_vuelve_sub: 'REPARADO Y CON NAFTA',
     banco_titulo: 'EL BANCO', banco_sub: 'ELEGI UNA CARTA — LA LLEVAS HASTA EL FINAL DE LA CORRIDA  ·  LLEVAS {n}',
     banco_rota: 'NO SE PUEDE', banco_uso: 'DE UN USO',
     banco_g_armas: 'ARMAS', banco_g_defensa: 'DEFENSA', banco_g_alcance: 'ALCANCE', banco_g_poderes: 'PODERES',
@@ -1771,6 +1776,10 @@ export const STRINGS = {
     cargaSinChancha: 'THE TANKER DOES NOT COME SOUTH ON THIS ONE',
     upgRitual: '"THAT CANNOT BE DONE."  ...  "SHOW ME."',
     upgRitualLib: '"...ALL RIGHT, KID. SHOW ME."',
+    falla_avion: 'FAULTY AIRCRAFT', falla_esquirla: 'SHRAPNEL!', falla_bomba: 'THE BOMB WON\'T RELEASE',
+    falla_bomba_total: 'THE BOMBS WON\'T RELEASE', ch_sondaRota: 'YOUR PROBE IS BROKEN: YOU CAN\'T REFUEL.',
+    base_ultimo: 'LAST AIRCRAFT: IT CAN\'T GO BACK TO BASE', base_va: '{n} RETURNS TO BASE',
+    base_va_sub: 'BACK, REPAIRED, IN {s} S', base_vuelve: '{n} REJOINED THE FLIGHT', base_vuelve_sub: 'REPAIRED AND REFUELLED',
     banco_titulo: 'THE BANK', banco_sub: 'CHOOSE ONE CARD — IT LASTS UNTIL THE END OF THE RUN  ·  YOU HAVE {n}',
     banco_rota: 'NOT POSSIBLE', banco_uso: 'ONE USE',
     banco_g_armas: 'WEAPONS', banco_g_defensa: 'DEFENCE', banco_g_alcance: 'RANGE', banco_g_poderes: 'POWERS',
