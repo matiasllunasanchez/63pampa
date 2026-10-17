@@ -769,7 +769,7 @@ export function flightSystem(dt, deps) {
   // (EL HERCULES, 16/10: "en los ciclos bombas a rolete" — su bodega es la carga entera, `run.mslMax`, y
   // se repone de a una cada MSL_REGEN_HERC s)
   const mslTope = run.mslMax || MSL_MAX, mslCada = run.mslMax ? MSL_REGEN_HERC : 7;
-  if (run.msl < mslTope && deps.climax !== 'suelta') { run.mslRegen += dt; if (run.mslRegen >= mslCada) { run.mslRegen = 0; run.msl++; } }
+  if (run.msl < mslTope && deps.climax !== 'suelta' && !run.sinBombas) { run.mslRegen += dt; if (run.mslRegen >= mslCada) { run.mslRegen = 0; run.msl++; } }
   // MANTENER APUNTA, SOLTAR TIRA (27/9): con la tecla apretada se ve la trayectoria (la mira de
   // render/trayectoria.js) y la bomba sale al LEVANTARLA. Antes salia al apretar, y mantenida
   // repetia cada medio segundo.

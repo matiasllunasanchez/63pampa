@@ -2309,6 +2309,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       run.vuelo = (avSel && avSel.vuelo) || null;
       run.canon = (avSel && avSel.canon) || null;
       run.sinCanon = !!(avSel && avSel.sinCanon);   // los que no tenian armas (el Fenix, el Neptune): sin cañon
+      // …ni bombas ni chafitas (`sinArmas`): arrancan sin nada, y el HUD no muestra lo que no tienen
+      run.sinBombas = !!(avSel && avSel.sinArmas);
+      if (run.sinBombas) { run.msl = 0; chapitasSys.reset(0); }
       run.mslMax = avSel && cargaDe(cfg.carga).bombasN && runClimax() !== 'suelta' ? bombasDe(cfg.carga) : 0;
       if (run.mslMax) run.msl = run.mslMax;
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el

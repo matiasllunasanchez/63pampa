@@ -2102,7 +2102,7 @@ function drawEstante(h) {
   const r = h.rack, verde = !!(r && h.sueltaYa && titilaSuelta());
   const c = cargaDe(cfg.carga);
   const hayAla = !!(r ? r.ala : c.ala);
-  if (!r && !hayAla && !(run.chapitasMax > 0) && !pide(run.msl < (run.mslMax || MSL_MAX))) return;
+  if (!r && !hayAla && !(run.chapitasMax > 0) && (run.sinBombas || !pide(run.msl < (run.mslMax || MSL_MAX)))) return;   // (sin armas, sin estante: 17/10)
   plate(X_RACK, CUADROS_Y, RACK_W, CUADRO);
   const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1;
   const VACIO = '#2e3c45';
@@ -2154,7 +2154,7 @@ function drawEstante(h) {
   } else {
     // las bombas de la tecla de bomba (MSL_MAX, se recargan): cargada blanca con la punta amarilla,
     // sin ninguna la misma silueta en el gris de la placa
-    fila(yc, 'bomba', run.msl, run.msl > 0 ? null : VACIO, !(run.msl > 0));
+    if (!run.sinBombas) fila(yc, 'bomba', run.msl, run.msl > 0 ? null : VACIO, !(run.msl > 0));
   }
   // ABAJO: las chapitas (vacio si el avion no trae)
   const yb = CUADROS_Y + 21;
@@ -2479,7 +2479,7 @@ export function drawHUD(h) {
   // 0,97 y no 1 por el mismo motivo que el 0,05 del cañon: sube y baja sola volando rasante.
   const xSalud = X_SALUD;
   if (pide((dmgShown() && run.integ < 100) || amarilla() < 0.97, 'salud')) relojSalud(xSalud, CUADROS_Y);
-  if (pide(run.heat > 0.05 || run.overheat, 'canon'))
+  if (!run.sinCanon && pide(run.heat > 0.05 || run.overheat, 'canon'))   // (sin cañon no hay reloj: 17/10)
     // EL CAÑON no tiene municion que contar —dispara hasta recalentarse y se traba hasta enfriar—,
     // asi que el reloj marca TEMPERATURA, con la zona roja donde se traba. Uno por METRALLA: el
     // simple de siempre, o el atornillado de plata o de oro (ver relojCanon).
