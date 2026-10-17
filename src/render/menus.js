@@ -70,25 +70,22 @@ export function drawMenu(w) {
   ctx.strokeStyle = '#3a464c'; ctx.lineWidth = 0.6; ctx.strokeRect(F.x + 0.5, F.y + 0.5, F.w - 1, F.h - 1); ctx.lineWidth = 1;
   // EL NOMBRE COMPLETO encabeza la ficha (16/10, el autor: "el nombre donde esta FICHA DEL AVION")
   const nombre = (pl.nombre && (pl.nombre[getLang()] || pl.nombre.es)) || pl.name;
-  // EL DISTINTIVO DEL ESCUADRON (16/10, el autor: "el escudo del Escuadron Fenix a la izquierda del titulo, y
-  // poner ESCUADRON FENIX cuando sea del Fenix"): el escudo a 1:1 (54 px reales = 18 de diseño) a la
-  // izquierda del nombre y de la linea, que se corren; la linea arranca con el nombre del escuadron
-  // …Y EL DE SU ARMA para los demas (16/10, el autor: "el escudo de la Fuerza Aerea para los aviones que
-  // correspondian, y el de la Armada para los otros"): `arma` en data/planes.js. El del Fenix gana.
+  // EL DISTINTIVO (16/10, el autor: "el escudo del Escuadron Fenix, y el de la Fuerza Aerea o la Armada para los
+  // que correspondian"; despues: "sacalos afuera, a la seccion de las flechas del avion, porque empujaban MUCHO
+  // al titulo"; y despues "del otro extremo"): arriba a la DERECHA de la columna del avion, pegado a la ficha, a la altura del tope de la ficha, a 1:1 (alto
+  // 36 de diseño: el doble, pedido del autor). `arma` en data/planes.js; el del Fenix gana.
   const esc = escudo(pl.escuadron === 'fenix' ? 'fenix' : pl.arma);
-  const conEsc = !!(esc && esc.complete && esc.naturalWidth);
-  const dx = conEsc ? esc.naturalWidth / 3 + 4 : 0;
-  if (conEsc) {
+  if (esc && esc.complete && esc.naturalWidth) {
     const smooth = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(esc, F.x + 5, F.y + 4 + (18 - esc.naturalHeight / 3) / 2, esc.naturalWidth / 3, esc.naturalHeight / 3);   // centrado en los 18 de alto
+    ctx.drawImage(esc, F.x - 8 - esc.naturalWidth / 3, F.y + (36 - esc.naturalHeight / 3) / 2, esc.naturalWidth / 3, esc.naturalHeight / 3);
     ctx.imageSmoothingEnabled = smooth;
   }
   ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.font = menuFont(9);
-  ctx.fillText(nombre, F.x + 6 + dx, F.y + 11, F.w - 12 - dx);
+  ctx.fillText(nombre, F.x + 6, F.y + 11, F.w - 12);
   // la linea corta del avion (lo que es en el juego) y abajo SU HISTORIA: de donde salio, que se le hizo y
   // como se uso en la guerra (`ficha` en data/planes.js; si un avion no la trae, queda la linea sola)
   ctx.font = labelFont(6);
-  let lx = F.x + 6 + dx;
+  let lx = F.x + 6;
   if (pl.escuadron === 'fenix') {
     const rot = T('escFenix') + '  ·  ';
     ctx.fillStyle = '#e77a1a'; ctx.fillText(rot, lx, F.y + 21); lx += ctx.measureText(rot).width;
