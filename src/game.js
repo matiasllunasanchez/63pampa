@@ -357,7 +357,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         climaKm = km + CLIMA.cadaKm[0] + Math.random() * (CLIMA.cadaKm[1] - CLIMA.cadaKm[0]);
       }
       const alarma = est > 0 ? ALARMA.golpe * (1 + ALARMA.porEstrella * (est - 1)) : 1;
-      const p = DIFICULTADES[dificultad].k * Math.min(RAMPA.max, 1 + RAMPA.porKm * km) * alarma;
+      // LA OLA DEL CICLO (PLAN_ROGUELIKE_SUELTOS §4): la presion no sube pareja — es baja al dejar un objetivo
+      // (el escape, con las alarmas bajando) y crece a medida que te acercas al siguiente, hasta el ataque
+      const ola = gameMode === 'cycle' && objectiveDist > 0 ? 0.65 + 0.6 * Math.max(0, Math.min(1, run.dist / objectiveDist)) : 1;
+      const p = DIFICULTADES[dificultad].k * Math.min(RAMPA.max, 1 + RAMPA.porKm * km) * alarma * ola;
       for (const k in PERILLAS) cfg[k] = Math.min(PERILLAS[k].techo, PERILLAS[k].base * p);
     }
     // ---------- EL BANCO DE LOS MODOS SUELTOS (data/banco_suelto.js) ----------
@@ -2435,10 +2438,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       });
     }
 
+    /** EL NOMBRE QUE SE MUESTRA del objetivo: en CICLO DE MUERTE no tiene nombre ("al azar, sin nombre e
+     *  infinitos", PLAN_ROGUELIKE_SUELTOS §4); en lo demas, el del buque. (`objectiveShip` sigue siendo la
+     *  clave del buque: de ella salen su perfil, su defensa y su Pulso.) */
+    const nombreObjetivo = () => (gameMode === 'cycle' && suelto() ? T('ciclo_objetivo') : objectiveShip);
     function setRunObjective(keepMusic) {
       if (gameMode === 'campaign' || gameMode === 'cycle' || gameMode === 'arena' || gameMode === 'pasadas') {
         const m = curMission(), g = goalOf(m);
         objectiveDist = g.dist(m.goal) * QA_DIST;
+        // CICLO DE MUERTE (PLAN_ROGUELIKE_SUELTOS §4, el autor 17/10: "aprox 3 o 4 km"): un objetivo cada 3 a 4 km
+        if (gameMode === 'cycle' && suelto()) objectiveDist = (3000 + Math.random() * 1000) * QA_DIST;
         objectiveShip = g.label(m.goal);
         objectiveKind = m.goal.kind || 'ship';
         g.setup(m.goal);
@@ -3882,14 +3891,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       run.chanchaGratis = lleva.gratis;
       bancoPend++;   // EL OBJETIVO VENCIDO PAGA UNA CARTA (PLAN_ROGUELIKE_SUELTOS §4)
       startCiclo = start; cfg.start = 'air'; resetPlane();
-      run.score = lleva.score; run.lives = lleva.lives; run.squad = lleva.squad; run.estrellas = lleva.est;
+      // EL ESCAPE: del objetivo vencido se sale con la alarma alta, y baja a medida que te escondes
+      run.score = lleva.score; run.lives = lleva.lives; run.squad = lleva.squad; run.estrellas = Math.max(lleva.est, 3);
       if (lleva.orden.length === run.lives) run.orden = lleva.orden;
       run.enBase = lleva.base; run.fallasFlota = lleva.fallas;
       tirarFlota(); esquirlasVistas = run.esquirlas || 0;   // salida nueva: cada uno tira de nuevo (suma)
       kmPrevios = lleva.km;
       setState(afterBrief()); fadeT = 0.55;
       beep(700, 0.15, 'square', 0.06, 1000);
-      cartel(T('cicloBlanco'), P.accent, objectiveShip);
+      cartel(T('cicloBlanco'), P.accent, nombreObjetivo());
     }
     /** LLEGASTE A CASA: arranca la aproximacion final (PLAN_MISION_CINCO_FASES §4).
      *
@@ -5999,7 +6009,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       drawBarreras();   // cruza el pasillo entero: va DESPUES de las laderas y antes de lo que vuela
       // cuña roja en el horizonte: hacia donde vamos. En LA SUELTA no: el buque ya esta en el mundo y
       // lleva su propia flecha de cerca — dos marcas para lo mismo eran "muchas flechas" (23/9).
-      if (runClimax() !== 'suelta') world.drawObjectiveMarker(objectiveDist, { nombre: objectiveShip, km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null });
+      if (runClimax() !== 'suelta') world.drawObjectiveMarker(objectiveDist, { nombre: nombreObjetivo(), km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null });
       world.drawWake();
       // EL REFLEJO DE LA LUNA, con el agua y debajo de lo que vuela (render/noche.js, 4/10)
       drawReflejoLuna(nocheDe(cfg.sky), solPant);
@@ -6448,7 +6458,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // fundido y la RADIO, y la primera version apagaba el bloque entero — medido, el avion se
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
-        ctx.save(); ctx.scale(U, U); if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip, goalKind: objectiveKind,
+        ctx.save(); ctx.scale(U, U); if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT),
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
