@@ -25,6 +25,12 @@ OUT = ROOT / 'dist-web' / 'index.html'
 PLANE_DIRS = {'sky': 'a4-skyhawk', 'dagger': 'iai-dagger', 'supere': 'super-etendard',
               'a4q': 'a4q', 'pampa': 'pampa-63', 'mirage': 'mirage-5p'}
 PLANE_PREVIEW_EXT = {'mirage': 'png'}     # el resto es webp
+# LOS QUE NACIERON EN BLENDER (16/10: el Hercules bombardero y los de las misiones secundarias): no tienen
+# preview.* — solo la ilustracion del selector y la hoja; la 2 y la 3 se vacian como en los demas
+PLANE_DIRS_BLENDER = {'herc': 'hercules-bombardero', 'learjet': 'learjet-35a', 'citation': 'cessna-citation',
+                      'merlin': 'swearingen-merlin', 'mu2': 'mitsubishi-mu2', 'aerostar': 'aerostar-601',
+                      'commander': 'turbo-commander', 'guarani': 'ia50-guarani', 'pucara': 'ia58-pucara',
+                      'mb339': 'mb-339a', 'neptune': 'sp2h-neptune'}
 # El juego usa mp3 originales; para la web se re-embebe la m4a comprimida de assets/music/web/.
 # Las pistas de adrenaline que no entran en el límite de 16 MB se DESCARTAN del build web ('').
 WEB_AUDIO = {
@@ -52,14 +58,17 @@ WEB_DROP = [
     'original/balas_en_bandoneon2.mp3',
     'original/bandoneon_de_acero1.mp3',
     'original/bandoneon_de_acero2.mp3',
-    'original/bandoneon_de_guerra1.mp3',
-    'original/bandoneon_de_guerra2.mp3',
+    'original/bandoras.mp3',
+    'original/Carnavalitox.mp3',
+    'original/Chamoide.m4a',
+    'original/fenretardo.mp3',
+    'original/Karera.m4a',
+    'original/karera2.m4a',
     'original/last_aires1.mp3',
     'original/last_aires2.mp3',
-    'original/lastoneon1.mp3',
-    'original/lastoneon2.mp3',
-    'original/rememberon1.mp3',
-    'original/rememberon2.mp3',
+    'original/Malambo.m4a',
+    'original/tangalfa.m4a',
+    'original/tangbeta.m4a',
     'original/wardoneon1.mp3',
     'original/wardoneon2.mp3',
 ]
@@ -107,6 +116,11 @@ def main():
                           uri(ASSETS / 'planes' / d / 'seleccion.png', 'image/png')); n += ok
         js, ok = sub_path(js, f'../assets/planes/{d}/sheet.png',
                           uri(ASSETS / 'planes' / d / 'sheet.png', 'image/png')); n += ok
+    for key, d in PLANE_DIRS_BLENDER.items():
+        for f in ('seleccion.png', 'sheet.png'):
+            js, ok = sub_path(js, f'../assets/planes/{d}/{f}', uri(ASSETS / 'planes' / d / f, 'image/png')); n += ok
+        js, _ = sub_path(js, f'../assets/planes/{d}/sheet2.png', '')
+        js, _ = sub_path(js, f'../assets/planes/{d}/sheet3.png', '')
     # HOJA 2 (cabeceos empinados de las piruetas): NO entra en la web — son ~120 KB entre las 6 y
     # el render cae solo a las filas normales de la hoja base (ver data/planes.js). Se VACIA la
     # ruta para que `new Image()` no pida un archivo inexistente.
