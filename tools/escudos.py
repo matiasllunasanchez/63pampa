@@ -9,8 +9,8 @@ from PIL import Image, ImageDraw
 
 RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 FUENTE, DESTINO = os.path.join(RAIZ, 'assets', 'source', 'ui'), os.path.join(RAIZ, 'assets', 'ui')
-ALTO = 108
-ANCHO_MAX = 192    # 64 de diseño
+ALTO = 72
+ANCHO_MAX = 128    # 43 de diseño
 MARCA = (255, 0, 255, 255)
 
 def sin_fondo(im):

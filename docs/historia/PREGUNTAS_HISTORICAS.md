@@ -1639,3 +1639,15 @@ Fénix (figura en la referencia que mandó el autor); que el Neptune guió a los
 **Licencia del juego:** los del Fénix y el Neptune no llevaban armas — en el juego tienen un cañón liviano.
 
 **Decisión del autor:** pendiente; no bloquea nada.
+
+## CUANTOS HUBO Y CUANTOS SE PERDIERON, POR AVION _(17/10/2026 — src/data/planes.js `guerra`, la franja de la pantalla del avion)_
+
+**Contexto:** el autor pidió, en la franja de la Fuerza Aérea y la Armada, "cuántos tuvimos en la guerra y cuántos
+perdimos", de fuentes argentinas. Perdidas FAA: Anexo de bajas (es.wikipedia, con datos de la FAA), 1982malvinas.com,
+malvinense.com.ar. Armada: armada.mil.ar (A-4Q), zona-militar (Super Étendard), 1982malvinas.com (MB-339).
+**A verificar:** las cantidades EMPEÑADAS no tienen fuente argentina (30 A-4B, 27 Dagger, 8 A-4Q salen de la tabla
+de en.wikipedia); el **MB-339** varía: 7 movilizados y 5 perdidos (fuentes argentinas) contra 6 y 2 (en.wikipedia);
+el **Pucará** suma distinto según quién cuente (24 en las islas, todos perdidos: 11 capturados y 13 accidentados, o
+11 destruidos, 6 capturados y 13 accidentados).
+
+**Decisión del autor:** pendiente.

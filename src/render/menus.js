@@ -6,7 +6,7 @@ import { DEV } from '../core/dev.js';
 import { ctx, U, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, wrapText, FONT_OTHERS, filaFont, rotuloChicoFont } from './ctx.js';
 import { drawMira } from './miras.js';
 import { P } from '../data/palette.js';
-import { PLANES } from '../data/planes.js';
+import { PLANES, UNIDADES } from '../data/planes.js';
 import { T, getLang } from '../core/i18n.js';
 import { CAMPAIGNS } from '../data/campaigns.js';
 import { MISSIONS, climaxOf } from '../data/missions.js';
@@ -46,13 +46,17 @@ export function drawMenu(w) {
   const cx = L.colX + L.colW / 2;
   // LA GRANDE (16/10, el autor: "aprovechar el espacio y agrandar los aviones"): todos tienen su ilustracion
   // horneada a 495 px (165 de diseño a 1:1; el Hercules a 540, 180) — mas grandes sin estirar nada
+  // LA FRANJA DE LA FUERZA primero (ver `franjaFuerza`): el avion se centra en lo que queda libre debajo
+  const pieFranja = franjaFuerza(pl, L.x, L.ficha.y, L.ficha.x - 8 - L.x);
   const img = selGrande(pl);
   const ilus = img && img.complete && img.naturalWidth ? img : pl.ready ? pl.img : null;
   if (ilus) {
     const PW = ilus.naturalWidth / 3, PH = ilus.naturalHeight / 3;
     const smooth = ctx.imageSmoothingEnabled;
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(ilus, cx - PW / 2, L.avionY - PH / 2 + Math.sin(w.t * 1.3) * 1.5, PW, PH);
+    // (17/10, el autor: "que no lo tape el cuadro… centralo en el contenido libre que tiene"): centrado entre el
+    // pie de la franja y el pie de la ficha
+    ctx.drawImage(ilus, cx - PW / 2, (pieFranja + L.ficha.y + L.ficha.h) / 2 - PH / 2 + Math.sin(w.t * 1.3) * 1.5, PW, PH);
     ctx.imageSmoothingEnabled = smooth;
   }
   // flechas de seleccion (parpadean), a los costados del avion
@@ -61,7 +65,8 @@ export function drawMenu(w) {
   // PEGADAS AL AVION (16/10, el autor): a los costados de lo que se ve, no en el borde de la columna — la
   // ilustracion trae aire a los lados, asi que se cuelgan del 80% de su ancho
   const PWa = ilus ? ilus.naturalWidth / 3 : L.colW, dxa = PWa * 0.4 + 6;
-  ctx.fillText('<', cx - dxa, L.avionY + 4); ctx.fillText('>', cx + dxa, L.avionY + 4);
+  const ay = ilus ? (pieFranja + L.ficha.y + L.ficha.h) / 2 + 4 : L.avionY + 4;   // a media altura del avion
+  ctx.fillText('<', cx - dxa, ay); ctx.fillText('>', cx + dxa, ay);
 
   // LA FICHA DEL AVION (a la derecha): el marco y su rotulo. El contenido —cifras, historia, carga— llega
   // con su propio item; hoy el lugar queda armado y con la linea del avion de respaldo.
@@ -70,26 +75,16 @@ export function drawMenu(w) {
   ctx.strokeStyle = '#3a464c'; ctx.lineWidth = 0.6; ctx.strokeRect(F.x + 0.5, F.y + 0.5, F.w - 1, F.h - 1); ctx.lineWidth = 1;
   // EL NOMBRE COMPLETO encabeza la ficha (16/10, el autor: "el nombre donde esta FICHA DEL AVION")
   const nombre = (pl.nombre && (pl.nombre[getLang()] || pl.nombre.es)) || pl.name;
-  // EL DISTINTIVO (16/10, el autor: "el escudo del Escuadron Fenix, y el de la Fuerza Aerea o la Armada para los
-  // que correspondian"; despues: "sacalos afuera, a la seccion de las flechas del avion, porque empujaban MUCHO
-  // al titulo"; y despues "del otro extremo"): arriba a la DERECHA de la columna del avion, pegado a la ficha, a la altura del tope de la ficha, a 1:1 (alto
-  // 36 de diseño: el doble, pedido del autor). `arma` en data/planes.js; el del Fenix gana.
-  const esc = escudo(pl.escuadron === 'fenix' ? 'fenix' : pl.arma);
-  if (esc && esc.complete && esc.naturalWidth) {
-    const smooth = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(esc, F.x - 8 - esc.naturalWidth / 3, F.y + (36 - esc.naturalHeight / 3) / 2, esc.naturalWidth / 3, esc.naturalHeight / 3);
-    ctx.imageSmoothingEnabled = smooth;
-  }
+  // LA FRANJA DE LA FUERZA (17/10, el autor: "un cuadro tipo franja horizontal que muestre el escudo, diga de que
+  // fuerza es, y debajo el detalle"): arriba de la columna del avion, a la altura del tope de la ficha. El
+  // escudo a 1:1 (tools/escudos.py), al lado el nombre de la fuerza y debajo su detalle (data/planes.js
+  // UNIDADES). Antes el escudo iba solo y el texto comun del Fenix se repetia en la ficha de cada avion.
   ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.font = menuFont(9);
   ctx.fillText(nombre, F.x + 6, F.y + 11, F.w - 12);
   // la linea corta del avion (lo que es en el juego) y abajo SU HISTORIA: de donde salio, que se le hizo y
   // como se uso en la guerra (`ficha` en data/planes.js; si un avion no la trae, queda la linea sola)
   ctx.font = labelFont(6);
   let lx = F.x + 6;
-  if (pl.escuadron === 'fenix') {
-    const rot = T('escFenix') + '  ·  ';
-    ctx.fillStyle = '#e77a1a'; ctx.fillText(rot, lx, F.y + 21); lx += ctx.measureText(rot).width;
-  }
   ctx.fillStyle = P.dim;
   ctx.fillText((pl.desc[getLang()] || pl.desc.es).toUpperCase(), lx, F.y + 21, F.x + F.w - 6 - lx);
   const ficha = pl.ficha && (pl.ficha[getLang()] || pl.ficha.es);
@@ -122,6 +117,33 @@ export function drawMenu(w) {
   // PIE: una sola linea de teclas (mitad de cuerpo: es ayuda, no contenido)
   ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(4.5);
   ctx.fillText(T('selKeys'), W / 2, H - 6);
+}
+/** LA FRANJA DE LA FUERZA del avion `pl` en (x, y), de ancho `w`: fondo como el de la ficha, el escudo a la
+ *  izquierda y a su derecha el nombre de la fuerza (naranja el Fenix, acento los demas) y el detalle. */
+function franjaFuerza(pl, x, y, w) {
+  const id = pl.escuadron || pl.arma, U_ = UNIDADES[id];
+  if (!U_) return y;
+  const lang = getLang(), esc = escudo(id), hay = !!(esc && esc.complete && esc.naturalWidth);
+  const ew = hay ? esc.naturalWidth / 3 : 0, eh = hay ? esc.naturalHeight / 3 : 0;
+  const tx = x + 4 + (hay ? ew + 5 : 0), tw = x + w - 4 - tx;
+  // el detalle de la unidad (el Fenix) o, si no tiene, cuantos hubo y cuantos se perdieron de este avion
+  const det = (U_.detalle && (U_.detalle[lang] || U_.detalle.es)) || (pl.guerra && (pl.guerra[lang] || pl.guerra.es));
+  ctx.font = rotuloChicoFont(4.6);   // letra chica (el autor)
+  const lineas = det ? renglones(det, tw) : [];
+  const LH = 5.2, h = Math.max(eh + 6, 11 + lineas.length * LH);
+  ctx.fillStyle = '#0a0f12'; ctx.globalAlpha = 0.55; ctx.fillRect(x, y, w, h); ctx.globalAlpha = 1;
+  ctx.strokeStyle = '#3a464c'; ctx.lineWidth = 0.6; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.lineWidth = 1;
+  if (hay) {
+    const smooth = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(esc, x + 4, y + (h - eh) / 2, ew, eh);
+    ctx.imageSmoothingEnabled = smooth;
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = id === 'fenix' ? '#e77a1a' : P.accent; ctx.font = menuFont(6);
+  ctx.fillText(U_.nombre[lang] || U_.nombre.es, tx, y + 8, tw);
+  ctx.fillStyle = P.foam; ctx.font = rotuloChicoFont(4.6);
+  lineas.forEach((l, i) => ctx.fillText(l, tx, y + 14 + i * LH));
+  return y + h;
 }
 /** LOS ESCUDOS de la ficha (assets/ui/escudo_<id>.png, los arma tools/escudos.py): se piden una vez. Las
  *  rutas van escritas enteras porque tools/build_web.py las embebe buscando el texto. */
