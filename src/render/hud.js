@@ -850,6 +850,25 @@ function barraConc(x0, y0, w, h, frac, col, rot) {
   pasada(x0 + fw, w - fw, '#8a9ba1');
 }
 
+// ---- LO QUE CUESTA USAR (modos sueltos): el -N sube y se apaga arriba de lo que se uso, en su color ----
+const COSTO_DE = { momentum: { col: '#e8cf3d' }, chancha: { col: '#e8a34a' }, radar: { col: '#5ab4ff' }, chapitas: { col: '#c8d4dc' } };
+const COSTO_DUR = 1600;   // ms
+const donde = { momentum: null, chancha: null, radar: null, chapitas: null };   // el centro de cada uno, lo anota el que lo dibuja
+function drawCostos() {
+  const l = run.costos;
+  if (!l || !l.length) return;
+  const ahora = performance.now();
+  for (let i = l.length - 1; i >= 0; i--) {
+    const c = l[i], e = (ahora - c.t0) / COSTO_DUR;
+    if (e >= 1) { l.splice(i, 1); continue; }
+    const p = donde[c.accion] || [W / 2, CUADROS_Y];
+    ctx.globalAlpha = e < 0.7 ? 1 : (1 - e) / 0.3;
+    ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#0a0e11'; ctx.fillText('-' + c.n, p[0] + 1, p[1] - 3 - e * 10 + 1);
+    ctx.fillStyle = (COSTO_DE[c.accion] || {}).col || P.warn; ctx.fillText('-' + c.n, p[0], p[1] - 3 - e * 10);
+    ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  }
+}
 function barraPoder(px0, py0, val, col, claro, oscuro, on, lista, rot) {
   const c = on ? (Math.sin(run.t * 14) > 0 ? claro : col) : col;
   plate(px0, py0, CUADRO, PODER_H + 2);
@@ -2507,6 +2526,9 @@ export function drawHUD(h) {
   // (…y despues: "o ponelo entre medio de los elementos de abajo, en esos espacios": en el hueco entre el
   // grupo del vuelo y el de lo que se carga, centrado en la fila)
   if (radarP.tiene) radarPropio(FIN_VUELO + Math.round((X_CARGA - FIN_VUELO - RADAR_W) / 2), CUADROS_Y + Math.round((CUADRO - ALERTA_H) / 2));
+  donde.radar = [FIN_VUELO + Math.round((X_CARGA - FIN_VUELO) / 2), CUADROS_Y];
+  donde.chancha = [X_CHANCHA + CUADRO / 2, CUADROS_Y];
+  donde.chapitas = [X_RACK + RACK_W / 2, CUADROS_Y];
 
   // ---- SALUD (izquierda, bajo la cara) y el CAÑON (derecha, con lo que se carga) ----------------
   // SALUD en la esquina, pegada a la cara del piloto (pedido del autor). El cañon no se gasta: se
@@ -2640,6 +2662,7 @@ export function drawHUD(h) {
   // …y en una mision SIN PODERES no esta: una barra que no se puede usar es un boton que miente
   if (cfg.poderes !== false) {
     barraPoder(MARGEN, yPod, tv, MOM_COL, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
+    donde.momentum = [MARGEN + CUADRO / 2, yPod];
     tabListo(0, yPod, altoPod, tv >= 1, MOM_CLARO);
     // …Y ARRIBA, LA DEL RASANTE (volvio, 23/9). La MISMA forma que tenia antes del 13/9 —la placa,
     // el nombre adentro, el celeste de mar— y la FUNCION de ahora: aparece recien cuando la racha
@@ -2664,6 +2687,7 @@ export function drawHUD(h) {
   // del buque, apagada (bloqueada). Las de ala pueden ser bombas o tanques. Cuando es el momento de
   // soltar, lo que se puede soltar titila en verde con el mismo latido que la cinta y el altimetro.
   alTablero(X_RACK, CUADROS_Y, () => drawEstante(h));
+  drawCostos();   // los -N de lo que se uso, arriba de cada uno
   // el LANZADOR fallado: el bisel del estante (ambar que late) o, TOTAL, en rojo y con la cruz
   { const gB = falHud('bombas');
     if (gB) alTablero(X_RACK, CUADROS_Y, () => {

@@ -9,6 +9,12 @@
 
 Solo en los modos sueltos (`suelto()`: POR LA PATRIA y CICLO DE MUERTE). La campaña no se toca.
 
+**Estado (17/10): HECHO la v1** — `src/data/fallas.js` (tirada, tope de dos, esquirla, taller): REABASTECIMIENTO,
+BOMBAS, CAÑONES y ALTIMETRO con sus tres grados en los relojes (`render/hud.js conFalla / marcaFalla`), las vidas en
+su color, el cartel al cambiar, la ESQUIRLA (collision.js `esquirlaCerca`), VOLVER A LA BASE con **[R]** (90 s, vuelve
+reparado), las cartas TALLER LIVIANO / PESADO / VUELTA RAPIDA / MUNICION, y el `-N` de los poderes arriba de cada uno.
+**Falta:** la base en el mando (hoy solo teclado), y los sistemas de la segunda tanda (combustible, motor, chafitas, ADI).
+
 ---
 
 ## 0 · Lo que ya hay y se reusa (relevado 17/10)

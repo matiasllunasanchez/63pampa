@@ -549,7 +549,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (accion === 'radar' && run.radarGratis) return;
       if (!suelto() || !COSTOS[accion]) return;
       run.score = Math.max(0, run.score - COSTOS[accion]);
-      const ps = proj(plane.x, plane.y, PZ); popup(ps.x, ps.y - 18, '-' + COSTOS[accion], P.warn);
+      // LO GASTADO SE VE ARRIBA DE LO QUE SE USO (17/10, el autor: "debe aparecer arriba de cada cosa la
+      // cantidad de puntos gastados, con el color del poder usado"): el HUD lo dibuja (render/hud.js drawCostos)
+      (run.costos = run.costos || []).push({ accion, n: COSTOS[accion], t0: performance.now() });
     }
     let curLevel = 0;
     let modeSel = 0;                 // pantalla inicial: 0 = HISTORIA, 1 = JUEGO RAPIDO

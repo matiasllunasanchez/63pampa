@@ -6,7 +6,15 @@
 > pirueta X, o más capacidad de balas"* — y *"las cartas duran la corrida, tal cual, es un ROGUELIKE el
 > juego"*.
 
-**Estado: PLAN.** Nada de esto está hecho. Los dos modos se están rehaciendo en paralelo (la base de
+**Estado (17/10): HECHO en lo principal** — `src/data/banco_suelto.js` (el catalogo y sus reglas), el banco en
+pausa (estado `banco`, `render/menus.js drawBanco`), la libreta vacia al arrancar (`pichon`), una MK-17 de fabrica,
+la oferta cada `BANCO_PTS` y al vencer cada objetivo del ciclo, la carta ROTA con su motivo, y el ciclo con objetivos
+sin nombre cada 3-4 km y la dificultad en ola. **Falta:** objetivos grandes de TIERRA en el ciclo (hoy solo buques),
+CAPACIDAD de los tanques (el del centro), POSCOMBUSTION / mira / altimetro (sin decidir), el Hercules en el banco.
+Los niveles los puse yo para probar (autor: "las que consideres vos"): CHAFITAS 4, CADENCIA 3 (comun, plata, oro),
+CINTA 3, POTENCIA 3, ESPOLETAS 2, SOPORTE 2, CHAPA 2, MOMENTUM 3.
+
+**Antes (16/10): PLAN.** Nada de esto estaba hecho. Los dos modos se están rehaciendo en paralelo (la base de
 reglas vive en `src/data/modos_sueltos.js`: dificultades, presión por km y estrellas, mundo al azar,
 usar cosas cuesta puntos): este plan se monta ENCIMA de eso, no lo reemplaza.
 
