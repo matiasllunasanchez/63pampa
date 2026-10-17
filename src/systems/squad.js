@@ -105,6 +105,19 @@ function ponerFicha(f, conMunicion) {
   if (conMunicion) run.msl = f.msl;
 }
 
+/** EL AVION AMIGO (la carta de los modos sueltos, data/banco_suelto.js): vuelve a la escuadrilla el ultimo
+ *  que cayo, sano, lleno y con su carga, al FONDO de la fila. Devuelve false si la escuadrilla esta entera. */
+export function sumarAvion() {
+  const n = run.squad - (run.lives + 1);
+  if (n < 0) return false;
+  if (!filaOk(run)) run.orden = filaDeVidas(run.squad, run.lives);
+  run.lives++;
+  run.orden.push(n);
+  run.flota[n] = { fuel: 100, tanque: null, integ: 100, escudo: 1, escudoT: 0, msl: run.mslMax || MSL_MAX,
+    chapitas: run.chapitasMax, gastoRef: run.gastoLider };
+  return true;
+}
+
 /** Lo que gasto el que manda este cuadro (solo lo que BAJO: la Chancha no le carga a los de atras). */
 export function gastoLider(d) { if (d > 0) run.gastoLider += d; }
 

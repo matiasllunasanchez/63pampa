@@ -337,6 +337,12 @@ export function initInput(cv, a) {
       if (isConfirm(e.code)) { a.cargaConfirm(); e.preventDefault(); return; }
       return;
     }
+    if (S.state === 'banco') {                                           // EL BANCO SUELTO: elegir UNA carta
+      if (isUp(e.code) || isLeft(e.code)) { a.bancoNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code) || isRight(e.code)) { a.bancoNav(1); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { a.bancoConfirm(); e.preventDefault(); return; }
+      e.preventDefault(); return;
+    }
     if (S.state === 'upgrade') {                                         // EL BANCO DEL PICHON: elegir UNA mejora
       if (isUp(e.code) || isLeft(e.code)) { a.upgNav(-1); e.preventDefault(); return; }
       if (isDown(e.code) || isRight(e.code)) { a.upgNav(1); e.preventDefault(); return; }
@@ -814,6 +820,10 @@ export function initInput(cv, a) {
         if ((nu && !nav.u) || (nl && !nav.l)) a.cargaNav(-1);
         if ((nd && !nav.d) || (nr && !nav.r)) a.cargaNav(1);
         if (confirm) a.cargaConfirm();
+      } else if (S.state === 'banco') {
+        if ((nu && !nav.u) || (nl && !nav.l)) a.bancoNav(-1);
+        if ((nd && !nav.d) || (nr && !nav.r)) a.bancoNav(1);
+        if (confirm) a.bancoConfirm();
       } else if (S.state === 'upgrade') {
         if ((nu && !nav.u) || (nl && !nav.l)) a.upgNav(-1);
         if ((nd && !nav.d) || (nr && !nav.r)) a.upgNav(1);

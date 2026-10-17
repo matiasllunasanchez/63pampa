@@ -1166,6 +1166,56 @@ export function drawUpgrade(w) {
   }
 }
 
+// EL BANCO DE LOS MODOS SUELTOS (estado 'banco', data/banco_suelto.js): la corrida en pausa y tres cartas
+// para elegir UNA. Debajo, si la hay, la carta ROTA: lo que tu avion no puede llevar, con el motivo — se ve,
+// no se elige (PLAN_ROGUELIKE_SUELTOS §2.6, el Exocet en un A-4B).
+const GRUPO_COL = { armas: '#e8a34a', defensa: '#7fc8a0', alcance: '#6fb3e0', poderes: '#c79be8', piruetas: '#e0d070', taller: '#d08a6a' };
+export function drawBanco(w) {
+  panel();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.accent; ctx.font = titleFont(22);
+  ctx.fillText(T('banco_titulo'), NW / 2, 36);
+  ctx.fillStyle = P.dim; ctx.font = descFont(10);
+  ctx.fillText(T('banco_sub', { n: w.libreta }), NW / 2, 54);
+  const x = 52, wCard = NW - 104, hCard = 44, y0 = 66;
+  for (let i = 0; i < w.offer.length; i++) {
+    const u = w.offer[i], y = y0 + i * (hCard + 6), on = i === w.sel;
+    ctx.globalAlpha = on ? 0.16 : 0.06; ctx.fillStyle = on ? P.accent : P.body;
+    ctx.fillRect(x, y, wCard, hCard); ctx.globalAlpha = 1;
+    ctx.strokeStyle = on ? P.accent : '#3a464c'; ctx.strokeRect(x + 0.5, y + 0.5, wCard, hCard);
+    ctx.textAlign = 'left';
+    if (on) { ctx.fillStyle = P.accent; ctx.font = 'bold 12px monospace'; ctx.fillText('>', x - 16, y + 24); }
+    ctx.fillStyle = on ? P.accent : P.body; ctx.font = menuFont(12);
+    ctx.fillText(u.name, x + 12, y + 15);
+    // el grupo, a la derecha y en su color (ARMAS, DEFENSA…): de un vistazo se ve que tipo de carta es
+    ctx.textAlign = 'right'; ctx.fillStyle = GRUPO_COL[u.grupo] || P.dim; ctx.font = labelFont(8);
+    ctx.fillText(T('banco_g_' + (u.grupo || 'armas')) + (u.uso ? ' · ' + T('banco_uso') : ''), x + wCard - 10, y + 14);
+    ctx.textAlign = 'left'; ctx.fillStyle = P.body; ctx.font = descFont(10);
+    ctx.fillText(u.desc, x + 12, y + 28);
+    ctx.fillStyle = P.dim; ctx.font = descFont(9);
+    const como = u.seq ? T('upgCombo') + ' ' + u.seq : u.tecla ? T('upgTecla') + ' ' + u.tecla : '';
+    ctx.fillText(como + (u.quote ? (como ? '   ' : '') + '"' + u.quote + '"' : ''), x + 12, y + 39);
+  }
+  // LA ROTA: tachada, en gris, con el motivo en rojo
+  if (w.rota) {
+    const y = y0 + w.offer.length * (hCard + 6) + 2, h = 26;
+    ctx.globalAlpha = 0.05; ctx.fillStyle = P.body; ctx.fillRect(x, y, wCard, h); ctx.globalAlpha = 1;
+    ctx.setLineDash([3, 3]); ctx.strokeStyle = '#5a3a36'; ctx.strokeRect(x + 0.5, y + 0.5, wCard, h); ctx.setLineDash([]);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#6b7680'; ctx.font = menuFont(10);
+    ctx.fillText(w.rota.name, x + 12, y + 11);
+    const tw = ctx.measureText(w.rota.name).width;
+    ctx.fillStyle = '#6b7680'; ctx.fillRect(x + 10, y + 7, tw + 4, 1);   // tachada
+    ctx.fillStyle = P.warn; ctx.font = descFont(9);
+    ctx.fillText(w.rota.motivo, x + 12, y + 22);
+    ctx.textAlign = 'right'; ctx.fillStyle = P.warn; ctx.font = labelFont(8);
+    ctx.fillText(T('banco_rota'), x + wCard - 10, y + 11);
+  }
+  if (Math.sin(w.t * 4) > -0.3) {
+    ctx.fillStyle = P.dim; ctx.font = descFont(11); ctx.textAlign = 'center';
+    ctx.fillText(T(w.offer.length > 1 ? 'modeHint' : 'upgHint1'), NW / 2, NH - 8);
+  }
+}
+
 // EL HANGAR (estado 'carga', PLAN_NAFTA_ALCANCE N7): despues del briefing y antes de despegar, desde
 // M3. Tres tarjetas, una por carga elegible. Los numeros los arma game.js (`w.rows`) — el dibujo no
 // sabe de nafta: lee lo que le pasan. `sinChancha` marca las cargas que dependen de ella cuando la

@@ -9,6 +9,7 @@ import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES } from './data/upgrades.js';
+import { ofertaSuelta, BANCO_PTS, momentumDe, soporteDe } from './data/banco_suelto.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -358,15 +359,90 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const p = DIFICULTADES[dificultad].k * Math.min(RAMPA.max, 1 + RAMPA.porKm * km) * alarma;
       for (const k in PERILLAS) cfg[k] = Math.min(PERILLAS[k].techo, PERILLAS[k].base * p);
     }
+    // ---------- EL BANCO DE LOS MODOS SUELTOS (data/banco_suelto.js) ----------
+    /** La carga que da la libreta: sin tanques hasta la carta TANQUES; el Dagger con ella vuela la India; el
+     *  Super Etendard con el Exocet si tiene la carta; el Hercules, su bodega (es un bombardero). */
+    function cargaSuelta() {
+      const k = PLANES[selPlane] && PLANES[selPlane].key, tq = pichon.includes('tanques');
+      if (k === 'herc') return 'herc_250';
+      if (k === 'supere' && pichon.includes('exocet')) return 'exocet';
+      if (k === 'dagger' && tq) return 'india';
+      return tq ? 'tanques_bomba' : 'bomba';
+    }
+    /** Lo que el banco le pregunta al juego para no ofrecer una carta de uso que no haria nada. */
+    const bancoCtx = () => ({ avion: PLANES[selPlane], puede: {
+      reparar: run.integ < 100,
+      amigo: run.lives < run.squad,
+    } });
+    /** ¿ES UN MOMENTO SEGURO para pausar y abrir el banco? "La oferta no aparece en medio de una esquivada"
+     *  (PLAN_ROGUELIKE_SUELTOS §2.3): nada guiado viniendo, nada sin resolver adelante y cerca, sin pirueta
+     *  a medias, sin la Chancha enganchada y fuera del ataque. */
+    function bancoSeguro() {
+      if (S.state !== 'play' || paused || dlgPausa || charla.hablando() || run.mv) return false;
+      if (missiles.some(m => !m.done)) return false;
+      if (obstacles.some(o => !o.done && o.z > PZ && o.z < PZ + 70)) return false;
+      if (chancha.activa() || blancoSys.escapando() || caza.active()) return false;
+      if (runClimax() === 'suelta' && blanco.on && blanco.z < 400) return false;
+      return true;
+    }
+    function abrirBanco() {
+      const o = ofertaSuelta(pichon, bancoCtx());
+      if (!o.cartas.length) { bancoPend = 0; return; }   // la libreta esta llena: no hay nada que ofrecer
+      bancoOffer = o; bancoSel = 0; bancoT = 0;
+      setState('banco'); engineOff();
+      beep(660, 0.1, 'square', 0.05, 220);
+    }
+    function bancoNav(dir) {
+      if (!bancoOffer || bancoOffer.cartas.length < 2) return;
+      bancoSel = (bancoSel + dir + bancoOffer.cartas.length) % bancoOffer.cartas.length;
+      beep(520, 0.05, 'square', 0.04);
+    }
+    function bancoConfirm() {
+      const c = bancoOffer && bancoOffer.cartas[bancoSel];
+      if (!c || bancoT < 0.4) return;   // gracia: la tecla que venia apretada no elige sola
+      if (!c.uso) pichon.push(c.id);
+      aplicarCarta(c);
+      bancoOffer = null; bancoPend = Math.max(0, bancoPend - 1);
+      setState('play');
+      beep(880, 0.12, 'square', 0.06);
+      cartel(c.name, P.accent, c.desc);
+    }
+    /** LO QUE LA CARTA HACE EN EL ACTO. Las que leen la libreta (piruetas, MOMENTUM, BRP…) no necesitan nada:
+     *  ya miran `pichon`. Las demas tocan la corrida. */
+    function aplicarCarta(c) {
+      const id = c.id;
+      if (id.startsWith('metralla')) run.metralla = metrallaDe(pichon);
+      else if (id.startsWith('cinta')) run.cinta = cintaDe(pichon);
+      else if (id.startsWith('chafitas')) chapitasSys.reset(chafitasDe(pichon));
+      else if (id === 'canon') run.sinCanon = false;
+      else if (id.startsWith('soporte')) { run.mslMax = 1 + soporteDe(pichon); run.msl = run.mslMax; }
+      else if (id === 'tanques' || id === 'exocet') {
+        cfg.carga = cargaParaAvion(cargaSuelta(), PLANES[selPlane] && PLANES[selPlane].key);
+        naftaSys.preparar(cfg.carga, rutaSys.hay());   // (los tanques llegan llenos)
+        pulso.setExocet(exocetLanzable());
+      }
+      else if (id === 'reparacion') { run.integ = 100; run.escudo = 1; }
+      else if (id === 'amigo') squad.sumarAvion();
+      else if (id === 'chancha1') run.chanchaGratis = (run.chanchaGratis || 0) + 1;
+    }
+    /** Una vez por cuadro de vuelo: cobra los umbrales de puntos y abre el banco si se debe uno y es seguro. */
+    function stepBanco() {
+      if (!suelto()) return;
+      while (run.score >= bancoProx) { bancoPend++; bancoProx += BANCO_PTS; }
+      if (bancoPend > 0 && bancoSeguro()) abrirBanco();
+    }
+
     /** USAR CUESTA: ¿alcanza el puntaje para `accion`? Si no, lo avisa y devuelve false. Fuera de los
      *  modos sueltos todo es gratis. */
     function alcanza(accion) {
+      if (accion === 'chancha' && run.chanchaGratis > 0) return true;   // la carta +1 CHANCHA
       if (!suelto() || !COSTOS[accion] || run.score >= COSTOS[accion]) return true;
       beep(150, 0.09, 'square', 0.05); cartel(T('sinPuntos'), P.warn, T('sinPuntos_sub', { n: COSTOS[accion] }));
       return false;
     }
     /** …y lo cobra, con el numero subiendo desde el avion. */
     function cobrar(accion) {
+      if (accion === 'chancha' && run.chanchaGratis > 0) { run.chanchaGratis--; return; }
       if (!suelto() || !COSTOS[accion]) return;
       run.score = Math.max(0, run.score - COSTOS[accion]);
       const ps = proj(plane.x, plane.y, PZ); popup(ps.x, ps.y - 18, '-' + COSTOS[accion], P.warn);
@@ -549,7 +625,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  de mejoras que tiene el juego — una por mision, elegida entre dos—, asi que cada eleccion ya
      *  pagaba una pirueta y ahora ademas afila el especial. Fuera de campaña `pichon` no crece y el
      *  MOMENTUM queda en el nivel base, que es el mismo juego de siempre. */
-    const nivelMomentum = () => pichon.length;
+    // (EN LOS MODOS SUELTOS, 17/10: el MOMENTUM es una carta con sus mejoras — data/banco_suelto.js — y cada
+    // una vale tres filas; arranca en la base)
+    const nivelMomentum = () => (suelto() ? momentumDe(pichon) * 3 : pichon.length);
+    // EL BANCO DE LOS MODOS SUELTOS (docs/sistemas/PLAN_ROGUELIKE_SUELTOS.md): cada BANCO_PTS puntos —y en
+    // el ciclo, al vencer cada objetivo— una carta. `bancoPend` cuenta las que se deben; se abren de a una
+    // en un momento SEGURO (ver bancoSeguro), con el mundo en pausa (estado 'banco').
+    let bancoProx = BANCO_PTS, bancoPend = 0, bancoOffer = null, bancoSel = 0, bancoT = 0;
+    let encadena = false;   // siguienteBlanco: el reset de un blanco al siguiente NO es corrida nueva
     /** ¿Rige LA LIBRETA — o sea, solo salen las piruetas aprendidas? En campaña siempre, y en las
      *  HERRAMIENTAS (S.test: el SELECTOR DE MISIONES y PRUEBAS) tambien, porque ahi la mision se
      *  juega COMO EN CAMPAÑA (mismo criterio que el roster y la Chancha — ver reset() y
@@ -558,7 +641,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  El `gameMode === 'cycle'` del test NO es redundante: los MOMENTOS de PRUEBAS que arrancan
      *  POR LA PATRIA o PERSECUCION pasan por la misma puerta con `S.test` puesto, y esos modos se
      *  juegan con todas las piruetas — gatearlos seria probar otro juego que el que van a probar. */
-    const conLibreta = () => gameMode === 'campaign' || (S.test && gameMode === 'cycle');
+    // …Y EN LOS MODOS SUELTOS (17/10): ahi la libreta es la de la corrida — se arranca sin nada y las
+    // cartas del banco suelto la llenan (data/banco_suelto.js).
+    const conLibreta = () => gameMode === 'campaign' || (S.test && gameMode === 'cycle') || suelto();
     // ¿EL AVION TIENE SONDA? (data/planes.js, `sonda`). El Dagger no tenia (12/10): sin sonda la Chancha
     // no existe para el, en ningun modo — no es una regla del guion, es el avion.
     const sinSonda = () => !!(PLANES[selPlane] && PLANES[selPlane].sonda === false);
@@ -2298,6 +2383,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (gameMode === 'campaign' && !S.test && curLevel < CARGA_ELEGIBLE_DESDE) cfg.carga = CARGA_BASE;
       // LA CARGA ES DEL AVION (12/10, data/cargas.js): la India solo la cuelga el Dagger, y el Dagger sale
       // con ella si nadie eligio otra (fuera de la campaña no hay hangar).
+      // …Y EN LOS MODOS SUELTOS LA CARGA LA DA LA LIBRETA (17/10): sin tanques hasta la carta TANQUES; el
+      // Exocet del Super Etendard, con la suya.
+      if (suelto()) cfg.carga = cargaSuelta();
       cfg.carga = cargaParaAvion(cfg.carga, PLANES[selPlane] && PLANES[selPlane].key);
       prepararCarga();
       pulso.setExocet(exocetLanzable());   // la prueba del Exocet: siempre pega o se va para otro lado
@@ -2313,6 +2401,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       run.sinBombas = !!(avSel && avSel.sinArmas);
       if (run.sinBombas) { run.msl = 0; chapitasSys.reset(0); }
       run.mslMax = avSel && cargaDe(cfg.carga).bombasN && runClimax() !== 'suelta' ? bombasDe(cfg.carga) : 0;
+      run.mslCada = 0;
+      // LOS MODOS SUELTOS ARRANCAN CON UNA BOMBA (17/10): una MK-17, para poder atacar siempre — mas las del
+      // SOPORTE MULTIPLE —, que se repone como siempre. El CAÑON de la carta se lo devuelve al que no lo traia.
+      if (suelto() && !run.mslMax && !run.sinBombas) { run.mslMax = 1 + soporteDe(pichon); run.mslCada = 7; }
+      if (suelto() && run.sinCanon && pichon.includes('canon')) run.sinCanon = false;
       if (run.mslMax) run.msl = run.mslMax;
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
@@ -3011,6 +3104,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
       if (gameMode !== 'campaign' && gameMode !== 'cycle') soltarMision();
+      // CORRIDA NUEVA DE UN MODO SUELTO: la libreta vacia (las cartas duran la corrida; y sin esto se heredaba
+      // la de la ultima campaña, MOMENTUM incluido). El salto de un blanco al otro del ciclo no cuenta.
+      if (suelto() && !encadena) { pichon = []; bancoProx = BANCO_PTS; bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
       // LOS MODOS SUELTOS (16/10): mundo al azar en cada corrida, y la barra del radar SUMA ESTRELLAS
       // (la alarma) como en las misiones con fases. PERSECUCION usa la cfg cruda: se le devuelve lo
       // que el azar piso. Un blanco encadenado del CICLO conserva el arranque en vuelo (siguienteBlanco).
@@ -3286,6 +3382,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL BANCO DEL PICHON (estado 'upgrade'): elegir la mejora entre misiones
       upgNav: dir => upgNav(dir),
       upgConfirm: () => upgConfirm(),
+      bancoNav: dir => bancoNav(dir),
+      bancoConfirm: () => bancoConfirm(),
       cargaNav: dir => cargaNav(dir),
       cargaConfirm: () => cargaConfirm(),
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
@@ -3664,10 +3762,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  vidas, las estrellas y los km (la rampa los cuenta todos). */
     function siguienteBlanco() {
       const lleva = { score: run.score, lives: run.lives, squad: run.squad, est: run.estrellas,
-        km: kmPrevios + Math.max(0, run.dist) / 1000 };
+        km: kmPrevios + Math.max(0, run.dist) / 1000, gratis: run.chanchaGratis || 0 };
       const start = startCiclo !== null ? startCiclo : cfg.start;
       randomMission();
-      reset(); setRunObjective(true);
+      encadena = true; reset(); setRunObjective(true); encadena = false;
+      run.chanchaGratis = lleva.gratis;
+      bancoPend++;   // EL OBJETIVO VENCIDO PAGA UNA CARTA (PLAN_ROGUELIKE_SUELTOS §4)
       startCiclo = start; cfg.start = 'air'; resetPlane();
       run.score = lleva.score; run.lives = lleva.lives; run.squad = lleva.squad; run.estrellas = lleva.est;
       kmPrevios = lleva.km;
@@ -4552,6 +4652,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LOS MODOS SUELTOS: la presion del mundo cuadro a cuadro, y el RADAR SIEMPRE (16/10): sin ruta no
       // hay "entrar en alcance", asi que el barrido verde y su sonido salen al empezar a volar
       if (suelto() && (S.state === 'play' || S.state === 'takeoff')) aplicarPresion();
+      if (S.state === 'play') stepBanco();   // el banco suelto: umbrales de puntos y la apertura en un momento seguro
       if (suelto() && S.state === 'play' && radarScanT < 0 && !rutaSys.hay()) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
       // DETECTANDO: en la zona verde (arriba del techo, en alcance) y con la barra subiendo
       detectando(S.state === 'play' && rutaSys.enAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
@@ -5071,6 +5172,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             const f = interNext; interNext = null; interDur = 0;
             if (f) f();
           }
+        } else if (S.state === 'banco') {
+          bancoT += dtReal;   // EL BANCO SUELTO: el mundo en pausa; se elige por input.js (bancoNav/bancoConfirm)
         } else if (S.state === 'upgrade') {
           // EL BANCO DEL PICHON: reloj propio (run.t queda quieto entre misiones). La eleccion
           // entra por input.js (upgNav/upgConfirm), no por anyPress: hay que ELEGIR, no saltear.
@@ -6409,6 +6512,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL BANCO DEL PICHON: pantalla de mejora entre misiones. Desde M8 (muerto el Pichon,
       // indice 7) las mejoras salen de su libreta y la pantalla cambia de nombre.
       if (S.state === 'upgrade') menus.drawUpgrade({ offer: upgOffer, sel: upgSel, t: upgT, libreta: curLevel >= 7 });
+      if (S.state === 'banco' && bancoOffer) menus.drawBanco({ offer: bancoOffer.cartas, rota: bancoOffer.rota, sel: bancoSel, t: bancoT, libreta: pichon.length });
       if (S.state === 'carga') menus.drawCarga({ rows: filasCarga(), sel: cargaSel, t: cargaT, bomba: fichaBomba() });
       // PAUSA: overlay en nativas, encima de todo lo del mundo (el fade de historia va despues,
       // pero con el juego pausado nunca conviven)
@@ -7168,6 +7272,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         offer: upgOffer.map(u => u.id), pichon: pichon.slice() });
     };
 
+    // SONDAS DEL BANCO SUELTO: fijar el puntaje y leer la libreta, lo que se debe y lo que se ofrece
+    if (typeof window !== 'undefined') {
+      window.__puntos = n => { run.score = +n; return run.score; };
+      window.__banco = () => JSON.stringify({ state: S.state, pend: bancoPend, prox: bancoProx, pichon: pichon.slice(),
+        offer: bancoOffer ? bancoOffer.cartas.map(c => c.id) : null, rota: bancoOffer && bancoOffer.rota ? bancoOffer.rota.id : null,
+        msl: run.msl, mslMax: run.mslMax, carga: cfg.carga, metralla: run.metralla, chafitas: run.chapitas, sinCanon: run.sinCanon, lives: run.lives });
+      window.__bancoElegir = i => { bancoSel = i | 0; bancoT = 1; bancoConfirm(); return window.__banco(); };
+    }
     if (typeof window !== 'undefined') window.__udbg = () => JSON.stringify({
       state: S.state, level: curLevel, offer: upgOffer.map(u => u.id), sel: upgSel, pichon,
       mejSel, mejRows: mejRows().map(r => r.head ? '#' : r.label()),

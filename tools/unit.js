@@ -2586,6 +2586,41 @@ test('suelta: la carga siempre trae la bomba del centro, y el ala se respeta', a
   }
 });
 
+// EL BANCO DE LOS MODOS SUELTOS (data/banco_suelto.js, 17/10): item y mejora, rotas por avion, de uso
+test('banco suelto: se arranca sin nada, las mejoras piden su item y lo que el avion no lleva sale roto', async () => {
+  const { ofertaSuelta, CARTAS, motivoRota, cartaDe, momentumDe, soporteDe } = await import('../src/data/banco_suelto.js');
+  const sky = { key: 'sky' }, supere = { key: 'supere' }, fenix = { key: 'lear', sinCanon: true, sonda: false };
+  const ctx = (avion, puede = {}) => ({ avion, puede });
+  const ids = o => o.cartas.map(c => c.id);
+  // sin repetidas y todas completas
+  assert.equal(new Set(CARTAS.map(c => c.id)).size, CARTAS.length, 'ids unicos');
+  for (const c of CARTAS) for (const k of ['name', 'desc', 'grupo']) assert.ok(c[k], c.id + ': falta ' + k);
+  // ofrece tres, sin repetir, y nunca la mejora sin su item
+  for (let k = 0; k < 200; k++) {
+    const o = ofertaSuelta([], ctx(sky));
+    assert.equal(o.cartas.length, 3);
+    assert.equal(new Set(ids(o)).size, 3);
+    for (const id of ids(o)) assert.ok(!['chafitas2', 'metralla3', 'cinta3', 'soporte2', 'momentum2'].includes(id), id + ' sin su item');
+  }
+  // el Exocet: en el A-4B sale ROTO con el motivo; en el Super Etendard, elegible
+  assert.match(motivoRota(cartaDe('exocet'), sky), /Exocet/);
+  assert.equal(motivoRota(cartaDe('exocet'), supere), null);
+  // sin sonda, la Chancha rota; el CAÑON solo para los que no lo traian, y su metralla recien despues
+  assert.ok(motivoRota(cartaDe('chancha1'), fenix));
+  const vistas = new Set(); for (let k = 0; k < 300; k++) ofertaSuelta([], ctx(fenix)).cartas.forEach(c => vistas.add(c.id));
+  assert.ok(vistas.has('canon') && !vistas.has('metralla2'), 'el Fenix: primero el CAÑON');
+  const vistasSky = new Set(); for (let k = 0; k < 300; k++) ofertaSuelta([], ctx(sky)).cartas.forEach(c => vistasSky.add(c.id));
+  assert.ok(!vistasSky.has('canon') && vistasSky.has('metralla2'), 'el A-4B ya trae cañon');
+  // las de uso: solo si hacen algo, y no quedan en la libreta
+  assert.ok(!vistasSky.has('reparacion') && !vistasSky.has('amigo'), 'con todo sano no se ofrecen');
+  const conDano = new Set(); for (let k = 0; k < 300; k++) ofertaSuelta(['reparacion'], ctx(sky, { reparar: true })).cartas.forEach(c => conDano.add(c.id));
+  assert.ok(conDano.has('reparacion'), 'la de uso se puede volver a ofrecer');
+  // con la libreta casi llena, ofrece las que quedan
+  const casiTodo = CARTAS.filter(c => !c.uso && !['tanques', 'momentum3'].includes(c.id)).map(c => c.id);
+  assert.deepEqual(ids(ofertaSuelta(casiTodo, ctx(sky))).sort(), ['chancha1', 'momentum3', 'tanques'], 'las que quedan (+1 CHANCHA es de uso)');
+  assert.equal(momentumDe(['momentum1', 'momentum2']), 2); assert.equal(soporteDe(['soporte1']), 1);
+});
+
 // LA «CONFIGURACION INDIA» DEL DAGGER (data/cargas.js, 12/10): tres tanques y dos bombas en el ala media
 test('india: tres tanques y dos bombas, solo el Dagger, y en la suelta sus bombas son las del buque', async () => {
   const { conBombaCentral, cargaDe, bombasDe, tanquesDe, capasDe, cargaParaAvion, CARGA_BASE, CAPAS_EXTRA } = await import('../src/data/cargas.js');

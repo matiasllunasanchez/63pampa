@@ -653,6 +653,11 @@ export const STRINGS = {
     cargaSinChancha: 'EN ESTA MISION LA CHANCHA NO BAJA',
     upgRitual: '"ESO NO SE PUEDE."  ...  "A VER. MOSTRAME."',
     upgRitualLib: '"...A VER, PIBE. MOSTRAME."',
+    // EL BANCO DE LOS MODOS SUELTOS (render/menus.js drawBanco)
+    banco_titulo: 'EL BANCO', banco_sub: 'ELEGI UNA CARTA — LA LLEVAS HASTA EL FINAL DE LA CORRIDA  ·  LLEVAS {n}',
+    banco_rota: 'NO SE PUEDE', banco_uso: 'DE UN USO',
+    banco_g_armas: 'ARMAS', banco_g_defensa: 'DEFENSA', banco_g_alcance: 'ALCANCE', banco_g_poderes: 'PODERES',
+    banco_g_piruetas: 'PIRUETA', banco_g_taller: 'TALLER',
     upgSub: 'ELEGI UNA MEJORA', upgSub1: 'TU PRIMERA MEJORA', upgCombo: 'COMBO:', upgTecla: 'TECLA:',
 
     // ---------- EL PODER RASANTE (SPEC_PODER_RASANTE, tecla 6) ----------
@@ -1766,6 +1771,10 @@ export const STRINGS = {
     cargaSinChancha: 'THE TANKER DOES NOT COME SOUTH ON THIS ONE',
     upgRitual: '"THAT CANNOT BE DONE."  ...  "SHOW ME."',
     upgRitualLib: '"...ALL RIGHT, KID. SHOW ME."',
+    banco_titulo: 'THE BANK', banco_sub: 'CHOOSE ONE CARD — IT LASTS UNTIL THE END OF THE RUN  ·  YOU HAVE {n}',
+    banco_rota: 'NOT POSSIBLE', banco_uso: 'ONE USE',
+    banco_g_armas: 'WEAPONS', banco_g_defensa: 'DEFENCE', banco_g_alcance: 'RANGE', banco_g_poderes: 'POWERS',
+    banco_g_piruetas: 'MANOEUVRE', banco_g_taller: 'WORKSHOP',
     upgSub: 'CHOOSE ONE UPGRADE', upgSub1: 'YOUR FIRST UPGRADE', upgCombo: 'COMBO:', upgTecla: 'KEY:',
 
     // EL PODER RASANTE (tecla 6)
