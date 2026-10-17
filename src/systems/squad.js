@@ -298,7 +298,9 @@ export function updateRelevo(dt) {
   // CAMARA. Primer tiempo: clavada en los restos — ver caer al companero ES la escena. Segundo
   // tiempo: persigue al avion nuevo con el mismo lerp del vuelo, un poco mas lento (pasa por el
   // humo del lider en el camino, no corta seco).
-  if (ph.beat === 'wreck' && !rv.averiado) {
+  // (modos sueltos, 17/10: `sigue` = la camara va con el que entra desde el arranque; `verHasta` = se
+  // queda en el caido mas alla del primer tiempo, mirando la eyeccion — game.js relevoSuelto)
+  if ((ph.beat === 'wreck' || rv.t < (rv.verHasta || 0)) && !rv.averiado && !rv.sigue) {
     cam.x += (rv.wx * 0.86 - cam.x) * Math.min(1, dt * 4);
     cam.y += (rv.wy + 2.6 - cam.y) * Math.min(1, dt * 4);
   } else {

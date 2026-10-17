@@ -4322,14 +4322,31 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
         // (fuera de la campaña, lo que no es choque cae al azar —`derribar`, 16/10— y no vuelve averiado)
         const perdido = derriboAlAzar(cause);
-        if (perdido) derribar(plane, tipoDerribo(cause), avionPropio());
-        else if (relevoRompe()) dmgFX();
-        else crashFX(tipoDerribo(cause));
+        const caido = perdido ? derribar(plane, tipoDerribo(cause), avionPropio()) : null;
+        if (!perdido) { if (relevoRompe()) dmgFX(); else crashFX(tipoDerribo(cause)); }
         golpesPopa = 0;                // el que entra trae la chapa sana
         squad.startRelevo(cause, undefined, perdido);   // la mision sigue: descuenta y prepara al companero
+        relevoSuelto(caido);
         setState('relevo');
       } else die(cause);
     }
+
+    /** EL RELEVO DE LOS MODOS SUELTOS (17/10, el autor, solo POR LA PATRIA y CICLO DE MUERTE): con el
+     *  avion que se pierde (`caido`, el derribado al azar de core/fx.js) la camara ya no se clava igual
+     *  siempre —
+     *    · SIN EYECCION: el que cae "baja velocidad y el de atras lo supera". La camara no frena: sigue
+     *      con el que entra a la velocidad del vuelo, y el caido queda atras con el mundo.
+     *    · CON EYECCION: la camara FRENA MAS — se queda mirando el salto del piloto hasta RELEVO_VER_EYEC
+     *      despues, mientras el siguiente entra, y recien ahi acelera y sigue con el tuyo.
+     *  Todo adentro del relevo (invulnerable): no toca el juego ni choca con nada. Un choque contra un
+     *  objeto (sin `caido`) sigue como siempre. */
+    function relevoSuelto(caido) {
+      const rr = squad.relevo();
+      if (!rr || !caido || !suelto()) return;
+      if (caido.tEyecta < Infinity) rr.verHasta = caido.tEyecta + RELEVO_VER_EYEC;
+      else { rr.sigue = true; rr.t = rr.t0 = RELEVO_WRECK * 0.5; }
+    }
+    const RELEVO_VER_EYEC = 1.0;   // segundos de camara frenada despues del salto del piloto
 
     /** El golpe que no mata: chispas y sacudon (el mismo `dmgFX` del avion que vuelve averiado),
      *  chapa que baja hasta el piso, y el margen del roce devuelto para que el agua no vuelva a
@@ -4893,9 +4910,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // errada, que no rompen nada) el mundo no avanza durante los restos: la camara queda con el
           // avion y con lo que choco. Despues retoma de a poco la media maquina del relevo.
           const rr0 = squad.relevo();
-          const choque = rr0 && !rr0.cambio && !rr0.solo;
+          // (modos sueltos, 17/10 — ver relevoSuelto: sin eyeccion el mundo no frena y el caido queda atras;
+          // con eyeccion frena hasta `verHasta` y despues acelera)
+          const choque = rr0 && !rr0.cambio && !rr0.solo && !rr0.sigue;
           const retoma = !choque ? 1 : (() => {
-            const u = Math.max(0, Math.min(1, (rr0.t - RELEVO_WRECK) / 0.5));
+            const u = Math.max(0, Math.min(1, (rr0.t - Math.max(RELEVO_WRECK, rr0.verHasta || 0)) / (rr0.verHasta ? 0.7 : 0.5)));
             return u * u * (3 - 2 * u);
           })();
           // …Y CUANDO ENTRA EL RELEVO, LA CAMARA SIGUE CON EL (autor, 4/10: "la camara debe detenerse en
@@ -4903,9 +4922,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // relevo"): tras un choque retoma a la velocidad de VUELO —no a la media maquina— y TODO lo
           // del choque (los restos, la bola de fuego, lo que se choco, el buque) se mueve con el mundo
           // y queda atras. Antes los restos no avanzaban y quedaban clavados mientras el mar corria.
-          const adv = run.spd * (choque ? 1 : 0.4) * dt * retoma;
+          const adv = run.spd * (choque || (rr0 && rr0.sigue) ? 1 : 0.4) * dt * retoma;
           run.dist += adv;                     // la mision sigue: el escuadron no deja de volar
-          for (const o of obstacles) if (choque || (o.type !== 'chunk' && o.type !== 'airboom')) o.z -= adv;
+          for (const o of obstacles) if (choque || (rr0 && rr0.sigue) || (o.type !== 'chunk' && o.type !== 'airboom')) o.z -= adv;
           if (choque && adv > 0 && blanco.on) blancoSys.alOdometro();
           for (const sd of soldiers) sd.z -= adv;
           popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
@@ -6753,6 +6772,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       window.__deathdbg = () => deathCause;
       // morir por la puerta real con la causa pedida (relevo o fin): para mirar el derribo de cada causa
       window.__morir = c => { onDeath(c || 'death_sidewinder'); return S.state; };
+      // SONDA del relevo de los modos sueltos (17/10): sigue / verHasta y el reloj
+      window.__rvdbg = () => { const r = squad.relevo(); return r ? { t: +r.t.toFixed(2), sigue: !!r.sigue, ver: r.verHasta ? +r.verHasta.toFixed(2) : null, camx: +cam.x.toFixed(1), dist: Math.round(run.dist), st: S.state, modo: gameMode } : { st: S.state, dist: Math.round(run.dist) }; };
       // la causa del ULTIMO relevo (y si quedo averiado/perdido): para saber que tumbo al avion
       window.__relevodbg = () => { const r = squad.relevo(); return JSON.stringify(r ? { cause: r.cause, spent: r.spent, averiado: r.averiado, perdido: r.perdido } : null); };
       window.__pscaer = m => persec.caerLider(m || undefined);
