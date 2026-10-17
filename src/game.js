@@ -10,7 +10,7 @@ import { LIBRO_VUELO, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo
 import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES } from './data/upgrades.js';
 import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T } from './data/fallas.js';
-import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_PTS, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
+import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -468,7 +468,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         chafRepuestoT += dt;
         if (chafRepuestoT >= run.chafRecarga) { chafRepuestoT = 0; run.chapitas++; beep(760, 0.05, 'square', 0.03, 120); }
       } else chafRepuestoT = 0;
-      while (run.score >= bancoProx) { bancoPend++; bancoProx += BANCO_PTS; }
+      // los KILOMETROS de la corrida (los del ciclo se suman de blanco a blanco en kmPrevios)
+      const km = kmPrevios + Math.max(0, run.dist) / 1000;
+      while (km >= bancoProx) { bancoPend++; bancoProx += BANCO_KM; }
       if (bancoPend > 0 && bancoSeguro()) abrirBanco();
     }
 
@@ -734,10 +736,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // (EN LOS MODOS SUELTOS, 17/10: el MOMENTUM es una carta con sus mejoras — data/banco_suelto.js — y cada
     // una vale tres filas; arranca en la base)
     const nivelMomentum = () => (suelto() ? momentumDe(pichon) * 3 : pichon.length);
-    // EL BANCO DE LOS MODOS SUELTOS (docs/sistemas/PLAN_ROGUELIKE_SUELTOS.md): cada BANCO_PTS puntos —y en
+    // EL BANCO DE LOS MODOS SUELTOS (docs/sistemas/PLAN_ROGUELIKE_SUELTOS.md): cada BANCO_KM km —y en
     // el ciclo, al vencer cada objetivo— una carta. `bancoPend` cuenta las que se deben; se abren de a una
     // en un momento SEGURO (ver bancoSeguro), con el mundo en pausa (estado 'banco').
-    let bancoProx = BANCO_PTS, bancoPend = 0, bancoOffer = null, bancoSel = 0, bancoT = 0;
+    let bancoProx = BANCO_KM, bancoPend = 0, bancoOffer = null, bancoSel = 0, bancoT = 0;
     let encadena = false;   // siguienteBlanco: el reset de un blanco al siguiente NO es corrida nueva
     /** ¿Rige LA LIBRETA — o sea, solo salen las piruetas aprendidas? En campaña siempre, y en las
      *  HERRAMIENTAS (S.test: el SELECTOR DE MISIONES y PRUEBAS) tambien, porque ahi la mision se
@@ -3224,7 +3226,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (gameMode !== 'campaign' && gameMode !== 'cycle') soltarMision();
       // CORRIDA NUEVA DE UN MODO SUELTO: la libreta vacia (las cartas duran la corrida; y sin esto se heredaba
       // la de la ultima campaña, MOMENTUM incluido). El salto de un blanco al otro del ciclo no cuenta.
-      if (suelto() && !encadena) { pichon = []; bancoProx = BANCO_PTS; bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
+      if (suelto() && !encadena) { pichon = []; bancoProx = BANCO_KM; bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
       // LAS FALLAS Y LA BASE son de la corrida (resetRun no los conoce: sin esto pasaban a la campaña)
       if (!encadena) { run.fallasFlota = null; run.enBase = null; run.esquirlas = 0; run.esquirlaT = undefined; }
       // LOS MODOS SUELTOS (16/10): mundo al azar en cada corrida, y la barra del radar SUMA ESTRELLAS

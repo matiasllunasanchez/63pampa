@@ -26,8 +26,10 @@
 import { UPGRADES, CHAFITAS, METRALLA, CINTA, BOMBA_BRP } from './upgrades.js';
 import { RADAR_PROPIO } from './radar_propio.js';
 
-/** Cada cuantos puntos se abre el banco (16/10: 5000 para probar). */
-export const BANCO_PTS = 5000;
+/** CADA CUANTOS KILOMETROS se abre el banco (17/10, el autor: "deberia ser por kilometros": con puntos, gastarlos
+ *  en la Chancha bajaba el puntaje y al volver a juntarlos se cobraba el mismo umbral otra vez). Los km volados
+ *  no bajan nunca. A ~130 m/s, 6 km son unos 45 s de vuelo. (Antes: cada 5000 puntos.) */
+export const BANCO_KM = 6;
 /** Cuantas se ofrecen (se elige UNA). */
 export const BANCO_N = 3;
 
