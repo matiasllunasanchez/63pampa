@@ -128,7 +128,7 @@ export function enter(desdePasillo, conf) {
     bi: 0,                                // compas en curso
     ti: 0,                                // token en curso DENTRO del compas
     errs: 0,                              // errores cometidos en esta secuencia
-    perdon: errFor(carry.t01),            // errores perdonados en esta secuencia (escala por nivel)
+    perdon: errFor(carry.t01) + (run.itb ? 1 : 0),   // errores perdonados (escala por nivel; LA ITB, en CICLO, perdona uno mas)
     motivo: null,                         // por que se fallo (lo canta el render, no un popup)
     tries: carry.tries,                   // fallos gastados (plan §3: 3 y se pierde la mision)
     flak: carry.flak,                     // grados que se acerco el flak (cada fallo lo acerca)

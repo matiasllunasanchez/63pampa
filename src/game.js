@@ -4,7 +4,7 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
-import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA } from './data/modos_sueltos.js';
+import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, DETECCION, nivelCorrida, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA } from './data/modos_sueltos.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_PROXIMAS, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
@@ -113,7 +113,7 @@ import * as world from './render/world.js';
 import { drawMarco } from './render/marco.js';
 import * as soldierArt from './render/soldiers.js';
 import { theme, applyTheme } from './render/theme.js';
-import { retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando } from './systems/audio.js';
+import { setNivel, retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando } from './systems/audio.js';
 import { drawCarga, CARGA, CARGA_T } from './render/carga.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
@@ -143,7 +143,7 @@ import { drawCabina } from './render/cabina.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { BOMBA_CARGA_T, BOMBA_CARGA_VZ, CH_VAIVEN } from './data/tuning.js';
-import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA, CHAPITAS, BORDE_DESTELLO } from './data/tuning.js';
+import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA, CH_ETA, CHAPITAS, BORDE_DESTELLO } from './data/tuning.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
          LAND_COSTO_CHAPA, LAND_PTS, FUGA_Y } from './data/tuning.js';
@@ -356,11 +356,20 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         cfg.wind = Math.random() < CLIMA.viento;
         climaKm = km + CLIMA.cadaKm[0] + Math.random() * (CLIMA.cadaKm[1] - CLIMA.cadaKm[0]);
       }
-      const alarma = est > 0 ? ALARMA.golpe * (1 + ALARMA.porEstrella * (est - 1)) : 1;
+      // EL NIVEL DE LA CORRIDA (data/modos_sueltos.js `nivelCorrida`): crece con los km y de el sale todo
+      const niv = nivelCorrida(km);
+      const golpe = ALARMA.golpe[0] + (ALARMA.golpe[1] - ALARMA.golpe[0]) * niv;
+      const alarma = est > 0 ? golpe * (1 + ALARMA.porEstrella * (est - 1)) : 1;
+      // …la barra del radar: lenta al arrancar, la de siempre recien con el nivel pleno (flight.js)
+      cfg.detCargaS = DETECCION.cargaS[0] + (DETECCION.cargaS[1] - DETECCION.cargaS[0]) * niv;
+      // …y LOS BIDONES: solo si este avion no puede llamar a la Chancha, y solo sobre tierra (spawn.js)
+      cfg.bidonSolo = chanchaViva() ? 'nunca' : 'tierra';
       // LA OLA DEL CICLO (PLAN_ROGUELIKE_SUELTOS §4): la presion no sube pareja — es baja al dejar un objetivo
       // (el escape, con las alarmas bajando) y crece a medida que te acercas al siguiente, hasta el ataque
-      const ola = gameMode === 'cycle' && objectiveDist > 0 ? 0.65 + 0.6 * Math.max(0, Math.min(1, run.dist / objectiveDist)) : 1;
-      const p = DIFICULTADES[dificultad].k * Math.min(RAMPA.max, 1 + RAMPA.porKm * km) * alarma * ola;
+      const uO = Math.max(0, Math.min(1, run.dist / Math.max(1, objectiveDist)));
+      // (EL NEPTUNE: el blanco ya esta ubicado — la primera parte de la aproximacion es mas tranquila)
+      const ola = gameMode === 'cycle' && objectiveDist > 0 ? (run.neptune ? 0.5 + 0.75 * uO * uO : 0.65 + 0.6 * uO) : 1;
+      const p = DIFICULTADES[dificultad].k * (1 + (RAMPA.max - 1) * niv) * alarma * ola;
       for (const k in PERILLAS) cfg[k] = Math.min(PERILLAS[k].techo, PERILLAS[k].base * p);
     }
     // ---------- EL BANCO DE LOS MODOS SUELTOS (data/banco_suelto.js) ----------
@@ -378,6 +387,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       reparar: run.integ < 100,
       amigo: run.lives + (run.enBase || []).length < run.squad,
       tallerLiv: hayFallas(2), tallerPes: hayTotal(), vuelta: (run.enBase || []).length > 0,
+      ciclo: gameMode === 'cycle',
     } });
     /** ¿ES UN MOMENTO SEGURO para pausar y abrir el banco? "La oferta no aparece en medio de una esquivada"
      *  (PLAN_ROGUELIKE_SUELTOS §2.3): nada guiado viniendo, nada sin resolver adelante y cerca, sin pirueta
@@ -442,6 +452,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (n >= 0) run.fallasFlota[n] = repararFallas(run.fallasFlota[n], 3);
       }
       else if (id === 'vuelta') for (const b of run.enBase || []) b.t = 0;
+      // LAS DE LA HISTORIA (18/10) que actuan en el acto
+      else if (id === 'mirage') run.mirageHasta = kmCorrida() + 5;
+      else if (id === 'fenix') run.fenix = (run.fenix || 0) + 1;
+      else if (id === 'itb' && blanco.on) seawolfSys.poner(null);   // el blanco que ya esta: sin defensa
       else if (id === 'municion') { run.msl = run.mslMax || run.msl; run.chapitas = run.chapitasMax;
         for (const f of run.flota || []) if (f) { f.msl = run.mslMax || f.msl; f.chapitas = run.chapitasMax; } }
       libretaEnRun();
@@ -458,6 +472,34 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       run.chafK = t('chafPotencia') ? 1.5 : 1;
       run.radarGratis = t('radar1');
       radarP.recargaK = t('radar1') ? 2 : 1;
+      // LAS DE LA HISTORIA (18/10): factores que leen flight.js, collision.js, chancha y el pulso
+      run.radarMalv = t('radarMalvinas');
+      run.neptune = t('neptune');
+      run.trackerK = t('tracker') ? 2 : 1;       // la barra de alarma se vacia mas rapido (flight.js)
+      run.detK = t('guerraElec') ? 1.5 : 1;      // …y se carga mas lento
+      run.defK = t('coordinado') ? 0.6 : 1;      // antiaereos y defensas del buque tiran mas lento
+      run.terrenoK = t('terreno') ? 1.8 : 1;     // el margen de roce sobre tierra (flight.js)
+      run.itb = t('itb');
+      run.kc130 = t('kc130');
+      run.rescate = t('rescate');
+    }
+    /** Los km de la corrida (en CICLO, los de todos los blancos). */
+    const kmCorrida = () => kmPrevios + Math.max(0, run.dist) / 1000;
+    // EL RADAR MALVINAS avisa la pareja que entra; EL KIT DE SUPERVIVENCIA devuelve al eyectado (18/10)
+    let cazaAntes = false, eyectVistos = 0;
+    const rescates = [];
+    function stepHistoria(dt) {
+      const cz = caza.active();
+      if (cz && !cazaAntes && run.radarMalv) cartel('RADAR MALVINAS', P.warn, 'Una pareja de Harrier entrando');
+      cazaAntes = cz;
+      const ey = run.eyectados || 0;
+      if (ey > eyectVistos) { if (run.rescate) for (let i = eyectVistos; i < ey; i++) rescates.push(40); eyectVistos = ey; }
+      for (let i = rescates.length - 1; i >= 0; i--) {
+        rescates[i] -= dt;
+        if (rescates[i] > 0) continue;
+        rescates.splice(i, 1);
+        if (run.lives + (run.enBase || []).length < run.squad) { squad.sumarAvion(); cartel('KIT DE SUPERVIVENCIA', P.accent, 'Lo rescataron: vuelve a la escuadrilla'); }
+      }
     }
     let chafRepuestoT = 0;
     /** Una vez por cuadro de vuelo: cobra los umbrales de puntos y abre el banco si se debe uno y es seguro. */
@@ -469,6 +511,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (chafRepuestoT >= run.chafRecarga) { chafRepuestoT = 0; run.chapitas++; beep(760, 0.05, 'square', 0.03, 120); }
       } else chafRepuestoT = 0;
       // los KILOMETROS de la corrida (los del ciclo se suman de blanco a blanco en kmPrevios)
+      stepHistoria(dt);
       const km = kmPrevios + Math.max(0, run.dist) / 1000;
       while (km >= bancoProx) { bancoPend++; bancoProx += BANCO_KM; }
       if (bancoPend > 0 && bancoSeguro()) abrirBanco();
@@ -997,6 +1040,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // tanque baja. Una mision que no declara ninguna zona se comporta como siempre.
         conZona: !conRuta && fases.hayZonaChancha(),
         enZona: fases.val('chancha', false) === true,
+        // (SEGUNDO KC-130, 18/10: llega en la mitad de tiempo)
+        ...(suelto() && run.kc130 ? { eta: CH_ETA * 0.5 } : {}),
       });
       if (r === 'nofuel') return;                                    // sin combustible el poder no existe
       if (r === 'nozone' && chancha.meterVal() < 1) return;          // ni siquiera la tenia lista
@@ -2352,7 +2397,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // (una ESTRUCTURA no trae Sea Cat ni Sea Wolf: son misiles de buque. Si la mision quiere una
         // defensa, la declara con `defensa:`)
         const est = objectiveKind === 'estructura';
-        seawolfSys.poner(!hayBlanco ? null : q || (est && curMission().defensa === undefined ? null
+        // (LA ITB, 18/10: en CICLO el Exocet de tierra ya le saco la defensa a cada blanco)
+        seawolfSys.poner(!hayBlanco || (suelto() && run.itb) ? null : q || (est && curMission().defensa === undefined ? null
           : defensaDe(curMission(), MISSIONS.indexOf(curMission()))));
       }
       if (hayBlanco) cfg.carga = conBombaCentral(cfg.carga);
@@ -2563,6 +2609,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // que cambiar el IDIOMA (que es una fila de esta misma pantalla) repinte el resto al instante.
     // `save` es la clave de localStorage; `preview` le pide al render que dibuje el valor.
     const yesNo = () => [T('optYes'), T('optNo')];
+    const volSel = { musica: 10, efectos: 10, radar: 10 };   // OPCIONES → SONIDO, de 0 a 10
     const OPT_ROWS = [
       { head: 'optSecJuego' },
       { label: () => T('optLang'), opts: LANGS, names: () => LANGS.map(l => STRINGS[l].langName),
@@ -2581,6 +2628,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       { label: () => T('optPantalla'), opts: ['completa', 'ventana'], names: () => [T('optPantalla_completa'), T('optPantalla_ventana')],
         get: () => cfg.pantalla, save: 'rasante_pantalla',
         set: v => { cfg.pantalla = v; if (window.rasanteVentana) window.rasanteVentana.pantallaCompleta(v === 'completa'); } },
+
+      // EL SONIDO (18/10): tres perillas, una por grupo de la mezcla (data/mezcla.js)
+      { head: 'optSecSonido' },
+      ...['musica', 'efectos', 'radar'].map(p => ({ label: () => T('optVol_' + p), opts: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        names: () => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => n * 10 + '%'),
+        get: () => volSel[p], set: v => { volSel[p] = v; setNivel(p, v / 10); }, save: 'rasante_vol_' + p })),
 
       { head: 'optSecControl' },
       // TODO lo que toca al AVION —piruetas, mira, ejes, esquema de control— se mudó a MEJORAS DEL
@@ -3237,6 +3290,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (suelto()) sortearEntorno();
       else if (cfgPersec && gameMode === 'persec') { Object.assign(cfg, cfgPersec); cfgPersec = null; applyCfg(); }
       cfg.pintaSuelto = suelto() ? 'cap' : null;
+      if (!suelto()) { cfg.detCargaS = null; cfg.bidonSolo = null; }   // (los pone aplicarPresion, solo en los modos sueltos)
       // …y CON COMBUSTIBLE (autor, 16/10): la nafta es el reloj, y sin ella la Chancha no existe
       if (suelto()) { cfg.fuelOn = true; cfg.fuelScale = NAFTA_ESCALA; }
       kmPrevios = 0;
@@ -5666,7 +5720,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // salva y recarga mientras estes adentro de su zona. No tira con el negro ni la camara lenta del
       // final, ni en el escape (ahi te busca la artilleria de popa).
       {
-        const sws = seawolfSys.step(dt, { pz: PZ, plane,
+        const sws = seawolfSys.step(dt * (run.defK || 1), { pz: PZ, plane,   // (ATAQUE COORDINADO: tiran mas lento)
           activo: runClimax() === 'suelta' && !cfg.devcam && blancoSys.negro() <= 0 && blancoSys.slow() === 1 && !blancoSys.escapando() });
         if (sws === 'fija') { beep(1400, 0.05, 'square', 0.04); setTimeout(() => beep(1400, 0.05, 'square', 0.04), 110); }
         if (sws === 'tira') { beep(980, 0.09, 'sawtooth', 0.05, -300); run.shake = Math.min(6, run.shake + 1); }
@@ -5721,7 +5775,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // que la mision quiso, y de ★1 en adelante se habilita aunque la fase la haya apagado.
         // Es un piso y no una suma: sumar hacia arriba desbordaba el rango 0..2 que el director
         // acota igual, y ademas hacia que una mision sin cola pasara a tenerla el doble.
-        intensidad: pisoEstrella('caza', tramos.val('caza', fases.val('caza', cfg.caza)), run.estrellas),
+        // (BARRIDO DE MIRAGE, 18/10: por unos km no entra ninguna pareja nueva)
+        intensidad: suelto() && run.mirageHasta > kmCorrida() ? 0 : pisoEstrella('caza', tramos.val('caza', fases.val('caza', cfg.caza)), run.estrellas),
         voces: fases.val('voces', true),
         dist: run.dist, meta: objectiveDist, ciego: inBank(), jets: run.jets,
         // EL RADAR ENCIMA apura a la pareja siguiente (1/10; desde el 3/10 no trae mas a la vez)
@@ -7886,6 +7941,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el pasillo se termina (muerte, relevo, climax, devcam). El sistema devuelve señales y el
       // % de tanque del cuadro; escribir `run.fuel` es del orquestador, como corresponde.
       const ch = chancha.tick(dt, {
+        rateK: suelto() && run.kc130 ? 1.6 : 1,   // (SEGUNDO KC-130: carga mas rapido)
         inPlay: S.state === 'play' && !cfg.devcam,
         score: run.score, planeX: plane.x, planeY: plane.y, fuel: run.fuel,
         // un golpe corta la transferencia: la manguera no aguanta un avion sacudido

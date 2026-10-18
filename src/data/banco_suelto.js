@@ -15,7 +15,7 @@
 // aplica game.js (`efecto` / el id).
 //
 // CAMPOS: id · name · desc · quote (opcional) · tecla (opcional, la del renglon COMO SE USA)
-//   grupo     'armas' | 'defensa' | 'alcance' | 'poderes' | 'piruetas' | 'taller'
+//   grupo     'armas' | 'defensa' | 'alcance' | 'poderes' | 'piruetas' | 'taller' | 'inteligencia'
 //   requiere  id (o lista: alcanza con UNA) que hay que tener antes
 //   uso       true: se aplica al elegirla y NO queda en la libreta (se puede volver a ofrecer)
 //   pide      clave de `ctx.puede` que tiene que ser true para ofrecerla (una de uso sin nada que hacer
@@ -122,6 +122,44 @@ export const CARTAS = [
   { id: 'radar1', grupo: 'poderes', name: 'RADAR DE GUARDIA', tecla: 'Y', necesita: 'radar',
     rota: 'Tu avion no lleva radar de busqueda',
     desc: 'Prender el radar no cuesta puntos, y se recarga el doble de rapido', quote: 'El Agave nunca duerme.' },
+
+  // ---------------- INTELIGENCIA Y TACTICA (18/10, de la historia de 1982) ----------------
+  // El autor: "segun la historia argentina, ¿no se te ocurren mas?" — y despues "agregalas todas menos la
+  // pintura". Los hechos de cada una estan a verificar en docs/historia/PREGUNTAS_HISTORICAS.md (18/10).
+  { id: 'radarMalvinas', grupo: 'inteligencia', name: 'RADAR MALVINAS',
+    desc: 'El TPS-43 de Puerto Argentino avisa cuando entra una pareja de Harrier',
+    quote: 'Del CIC: dos Harrier en la CAP, vienen hacia ustedes.' },
+  { id: 'neptune', grupo: 'inteligencia', name: 'EL NEPTUNE', pide: 'ciclo',
+    desc: 'Solo CICLO: el blanco ya esta ubicado. La primera parte de cada aproximacion es mas tranquila',
+    quote: 'El Neptune los encontro. Vayan derecho.' },
+  { id: 'tracker', grupo: 'inteligencia', name: 'EL TRACKER QUE ESCUCHABA',
+    desc: 'Conocen sus radares: bajando al ras, la barra de alarma se vacia el doble de rapido',
+    quote: 'Dieciocho radares, con sus frecuencias. Sabemos donde no mirar.' },
+  { id: 'guerraElec', grupo: 'inteligencia', name: 'GUERRA ELECTRONICA',
+    desc: 'La barra de alarma se carga mas lento: tardan mas en encontrarte',
+    quote: 'Desde Rio Gallegos les ensuciamos la pantalla.' },
+  { id: 'mirage', grupo: 'inteligencia', name: 'BARRIDO DE MIRAGE', uso: true,
+    desc: 'Los Mirage se llevan a los Harrier: por 5 km no entra ninguna pareja nueva',
+    quote: 'Salen los Mirage altos. Que los persigan a ellos.' },
+  { id: 'fenix', grupo: 'inteligencia', name: 'ESCUADRON FENIX', uso: true,
+    desc: 'Un Learjet hace de eco falso: la proxima oleada de misiles de radar se va detras de el',
+    quote: 'Un Learjet civil, solo, haciendose pasar por una escuadrilla.' },
+  { id: 'coordinado', grupo: 'inteligencia', name: 'ATAQUE COORDINADO',
+    desc: 'Los atacan de varios lados a la vez: los antiaereos y las defensas del buque tiran mas lento',
+    quote: 'Entramos por los dos rumbos al mismo tiempo. No saben a quien mirar.' },
+  { id: 'terreno', grupo: 'inteligencia', name: 'CONOCER EL TERRENO',
+    desc: 'Rozar la tierra perdona mas: el margen sobre el suelo dura casi el doble',
+    quote: 'Cada loma de la isla, de memoria.' },
+  { id: 'itb', grupo: 'inteligencia', name: 'LA ITB', pide: 'ciclo',
+    desc: 'Solo CICLO: el Exocet de tierra castiga cada blanco antes de tu ataque. Sin Sea Cat ni Sea Wolf, y la prueba perdona un error mas',
+    quote: 'Lo bajaron de un destructor y lo montaron en un trailer.' },
+  { id: 'kc130', grupo: 'alcance', name: 'SEGUNDO KC-130', necesita: 'sonda', tecla: 'J',
+    rota: 'Tu avion no tiene sonda de reabastecimiento',
+    desc: 'Habia dos Hercules cisterna: la Chancha llega antes y carga mas rapido',
+    quote: 'El otro Hercules ya esta en el aire.' },
+  { id: 'rescate', grupo: 'defensa', name: 'KIT DE SUPERVIVENCIA',
+    desc: 'El piloto que se eyecta vuelve: al rato, su avion se suma otra vez a la escuadrilla',
+    quote: 'Una radio, una bengala y un helicoptero que lo fue a buscar.' },
 
   // ---------------- PIRUETAS ----------------
   ...PIRUETAS,

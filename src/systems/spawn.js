@@ -59,7 +59,7 @@ import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, MANPAD_P
 // EL RELIEVE (T3): donde queda plantado cada cosa que se siembra. La misma funcion que dibuja
 // la loma y que decide el choque contra el suelo.
 import { tierraH, hayRelieve } from '../core/tierra.js';
-import { geoActiva, sueloEn, alturaSuelo, geo, islaEn } from '../core/geografia.js';
+import { geoActiva, sueloEn, alturaSuelo, geo, islaEn, esTierraEn } from '../core/geografia.js';
 // EL TERRENO DE LA SIEMBRA. Sin geografia, el de la mision. Con geografia, siempre MAR: sobre tierra
 // no se siembra nada (decision del autor, 29/9: "por ahora unidades no pongamos nada, concentremonos
 // en terreno"), asi que lo unico que nace es lo del mar, y nace donde hay mar.
@@ -284,6 +284,19 @@ function cliff(x) {
   obstacles.push({ type: 'cliff', x, h, hw, z: SPAWN_Z, done: false, ph: Math.random() * 6, seed: (Math.random() * 9999) | 0 });
 }
 
+/** EL BIDON en el carril `lane`, o null si ahi no puede ir. Fuera de los modos sueltos va donde siempre (en el
+ *  aire, `spawnY`). Con `cfg.bidonSolo === 'tierra'` solo sobre TIERRA y APOYADO en el suelo: busca la x
+ *  del carril mas cercana a `lane` que sea tierra a la profundidad de siembra. */
+function bidonEn(lane) {
+  if (cfg.bidonSolo !== 'tierra') return { type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false };
+  const wz = run.dist + SPAWN_Z;
+  for (const d of [0, 8, -8, 16, -16, 24, -24, 32, -32]) {
+    const x = Math.max(-SPAWN_X, Math.min(SPAWN_X, lane + d));
+    if (esTierraEn(x, wz)) return { type: 'fuel', x, y: alturaSuelo(x, wz) + 1.8, z: SPAWN_Z, done: false, enTierra: true };
+  }
+  return null;
+}
+
 /** Un obstaculo nuevo en el horizonte. El sorteo mezcla amenazas y bidones; sin combustible
  *  activo, los bidones se fuerzan menos (serian pickups inutiles) y su slot cae en globo. */
 function spawn() {
@@ -338,8 +351,15 @@ function spawn() {
   // LOS BIDONES, y si el tramo los corta (`bidones: false`, SPEC_TRAMOS §2). Es UNA pregunta y
   // no dos: el combustible tiene que estar prendido en el mapa Y el tramo no tiene que haberlo
   // cortado. Lo pide M10, donde el ultimo tercio se vuela sabiendo que no aparece ninguno.
-  const bidones = cfg.fuelOn && val('bidones', true) !== false;
-  if (bidones && run.fuelDist > 700) { obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false }); run.fuelDist = 0; return; }
+  // EN LOS MODOS SUELTOS (`cfg.bidonSolo`, 18/10, el autor: "el combustible flotante debe aparecer unicamente
+  // si el avion no tiene recarga con Chancha, y unicamente en tierra"): con Chancha no hay ninguno, y sin
+  // ella solo sobre tierra, apoyado en el suelo (`bidonEn`). Fuera de esos modos, como siempre.
+  const bidones = cfg.fuelOn && val('bidones', true) !== false && cfg.bidonSolo !== 'nunca';
+  if (bidones && run.fuelDist > 700) {
+    const b = bidonEn(lane);
+    // sin tierra a la vista no nace: el contador queda cargado y sale apenas aparezca
+    if (b) { obstacles.push(b); run.fuelDist = 0; return; }
+  }
   const r = Math.random();
   const ph = Math.random() * 6;
   const terr = terrSiembra();
@@ -384,7 +404,7 @@ function spawn() {
     else if (r < 0.85) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     else if (r < 0.93) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
     else if (r < 0.97) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
-    else if (bidones) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
+    else if (bidones && bidonEn(lane)) obstacles.push(bidonEn(lane));
     else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     return;
   }
@@ -409,7 +429,7 @@ function spawn() {
     else if (r < 0.75) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     else if (r < 0.84) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
     else if (r < 0.92) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
-    else if (bidones) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
+    else if (bidones && bidonEn(lane)) obstacles.push(bidonEn(lane));
     else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
     return;
   }
@@ -454,7 +474,7 @@ function spawn() {
   else if (r < 0.54) obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
   else if (r < 0.67) obstacles.push({ type: 'helo', x: lane, y: spawnY('helo'), z: SPAWN_Z, ...hpOf('helo'), ...mov('helo', lane), done: false, ph });
   else if (r < 0.78) obstacles.push({ type: 'jet', x: lane, y: spawnY('jet'), z: SPAWN_Z, ...hpOf('jet'), ...mov('jet', lane), done: false, ph });
-  else if (bidones) obstacles.push({ type: 'fuel', x: lane, y: spawnY('fuel'), z: SPAWN_Z, done: false });
+  else if (bidones && bidonEn(lane)) obstacles.push(bidonEn(lane));
   else obstacles.push({ type: 'balloon', x: lane, y: spawnY('balloon'), z: SPAWN_Z, ...hpOf('balloon'), ...mov('balloon', lane), done: false, ph });
 }
 

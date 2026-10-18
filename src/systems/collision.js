@@ -392,7 +392,7 @@ export function collisionSystem(dt) {
     }
     // ANTIAEREO: dentro de su banda de tiro larga un misil guiado cada AA_CD segundos
     if ((o.type === 'aa' || o.type === 'aatruck') && !o.done && o.hp > 0 && o.z > AA_Z0 && o.z < AA_Z1) {
-      o.cd -= dt;
+      o.cd -= dt * (run.defK || 1);   // (ATAQUE COORDINADO: tiran mas lento)
       if (o.cd <= 0) {
         // LA MANGUERA (zigzag Z5): los de la ladera tiran DE A TRES seguidos y despues descansan.
         // Un cañon suelto es un punto que dispara; tres trazadoras juntas cruzando el pasillo son
@@ -410,7 +410,7 @@ export function collisionSystem(dt) {
     // MISIL AL HOMBRO: uno por vez, con recarga larga, y solo dentro de su banda (mas corta que la
     // del Rapier: el tirador tiene que ver el avion)
     if (o.type === 'manpad' && !o.done && o.hp > 0 && o.z > MANPAD_Z0 && o.z < MANPAD_Z1) {
-      o.cd -= dt;
+      o.cd -= dt * (run.defK || 1);   // (ATAQUE COORDINADO: tiran mas lento)
       if (o.cd <= 0) {
         o.cd = MANPAD_CD; o.fireT = run.t;
         missiles.push({ x: o.x, y: (o.gy || 0) + 1.6, z: o.z, done: false });
@@ -456,7 +456,7 @@ export function collisionSystem(dt) {
     // PUESTO con soldados adentro: una rafaga corta de trazadoras (rapidas, casi rectas) que
     // hay que esquivar. Dispara pocas veces — es presion, no una lluvia.
     if (o.type === 'bldg' && o.armed && !o.done && o.hp > 0 && o.shots > 0 && o.z > 90 && o.z < 200) {
-      o.cd -= dt;
+      o.cd -= dt * (run.defK || 1);   // (ATAQUE COORDINADO: tiran mas lento)
       if (o.cd <= 0) {
         o.cd = 0.75; o.shots--; o.fireT = run.t;
         missiles.push({ x: o.x, y: o.h * 0.6, z: o.z, done: false, tracer: true });

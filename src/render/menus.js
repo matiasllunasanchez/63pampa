@@ -1175,7 +1175,7 @@ export function drawUpgrade(w) {
 // EL BANCO DE LOS MODOS SUELTOS (estado 'banco', data/banco_suelto.js): la corrida en pausa y tres cartas
 // para elegir UNA. Debajo, si la hay, la carta ROTA: lo que tu avion no puede llevar, con el motivo — se ve,
 // no se elige (PLAN_ROGUELIKE_SUELTOS §2.6, el Exocet en un A-4B).
-const GRUPO_COL = { armas: '#e8a34a', defensa: '#7fc8a0', alcance: '#6fb3e0', poderes: '#c79be8', piruetas: '#e0d070', taller: '#d08a6a' };
+const GRUPO_COL = { armas: '#e8a34a', defensa: '#7fc8a0', alcance: '#6fb3e0', poderes: '#c79be8', piruetas: '#e0d070', taller: '#d08a6a', inteligencia: '#9fc0d8' };
 export function drawBanco(w) {
   panel();
   ctx.textAlign = 'center';

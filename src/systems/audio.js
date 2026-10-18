@@ -8,6 +8,7 @@
 import { SFXB, SFX_DEF } from '../data/sfx.js';
 import { RAS_MUS, RAS_AGUA, BANDA_ALT, METRALLAS } from '../data/tuning.js';
 import { AUDIO_BLOQUEADO } from '../data/sonido.js';
+import { MEZCLA, FOCO_RADAR, EXPLOSIONES_MAX, METRALLA_TONO, BUS_DE, PERILLAS_SONIDO } from '../data/mezcla.js';
 
 let lastState = 'modeselect';   // ultimo estado conocido, para las llamadas que no lo reciben
 
@@ -158,7 +159,34 @@ try { muted = localStorage.getItem('rasante_muted') === '1'; } catch (e) { }
 if (AUDIO_BLOQUEADO) muted = true;
 
 
-const SFX_MASTER = 0.3;   // volumen maestro de TODOS los samples (no tapan la musica de fondo)
+// LA MEZCLA POR GRUPOS (18/10, data/mezcla.js): cada sonido sale por su grupo, y el grupo pesa lo que
+// dice MEZCLA × lo que el jugador puso en OPCIONES × el FOCO DEL RADAR (cuando te miran, los demas se
+// corren). Reemplaza al maestro unico de 0.3 y a los `m: 1` que lo salteaban.
+const nivelJugador = { musica: 1, efectos: 1, radar: 1 };
+let focoRadar = 0, focoMeta = 0;   // 0..1: cuanto protagonismo tiene el radar ahora
+/** Lo pone OPCIONES → SONIDO: `perilla` es musica/efectos/radar, `v` de 0 a 1. */
+export function setNivel(perilla, v) { if (perilla in nivelJugador) nivelJugador[perilla] = Math.max(0, Math.min(1, +v || 0)); }
+function perillaDe(bus) { for (const p in PERILLAS_SONIDO) if (PERILLAS_SONIDO[p].includes(bus)) return p; return 'efectos'; }
+/** Cuanto pesa un grupo AHORA (mezcla × jugador × foco del radar). */
+function busGain(bus) {
+  const foco = FOCO_RADAR[bus] !== undefined ? 1 - (1 - FOCO_RADAR[bus]) * focoRadar : 1;
+  return (MEZCLA[bus] !== undefined ? MEZCLA[bus] : MEZCLA.combate) * nivelJugador[perillaDe(bus)] * foco;
+}
+/** El multiplicador de un sonido del catalogo, por su grupo. */
+function gainDe(key) { return busGain(BUS_DE[key] || 'combate'); }
+/** El foco del radar sigue a su meta con rampa (entra rapido, vuelve despacio). */
+function tickFoco(dt) {
+  const T = focoMeta > focoRadar ? FOCO_RADAR.entra : FOCO_RADAR.sale;
+  focoRadar += (focoMeta - focoRadar) * Math.min(1, dt / Math.max(0.01, T) * 3);
+}
+/** ¿Cuantas explosiones suenan ahora? (para el tope de EXPLOSIONES_MAX) */
+function explosionesSonando() {
+  let n = 0;
+  for (const k in SFX_DEF) if (k.startsWith('ex') && k !== 'exocetSale') for (const rel of SFX_DEF[k].f) {
+    const pool = sfxPool[rel]; if (pool) for (const a of pool.a) if (a && !a.paused && !a.ended) n++;
+  }
+  return n;
+}
 // ...salvo los que declaran su propio `m` en el catalogo. Es para la VOZ: 0.3 esta calibrado para
 // que efectos que suenan todo el tiempo (motor, metralla, explosiones) no le ganen a la musica,
 // pero una linea de radio que suena una vez por relevo y dura dos segundos tiene que ESCUCHARSE
@@ -175,6 +203,7 @@ export function sfxSrc(key) { if (!SFXB) return null; const d = SFX_DEF[key]; re
 const sfxTurn = {};
 export function sfxOne(key, vol) {
   const d = sfxSrc(key); if (!d || muted) return false;
+  if (key.startsWith('ex') && key !== 'exocetSale' && explosionesSonando() >= EXPLOSIONES_MAX) return true;   // ya hay bastantes
   const rel = d.alt
     ? d.f[(sfxTurn[key] = ((sfxTurn[key] || 0) + 1)) % d.f.length]
     : d.f[(Math.random() * d.f.length) | 0];
@@ -182,7 +211,7 @@ export function sfxOne(key, vol) {
   let a = pool.a[pool.i % 3];
   if (!a) a = pool.a[pool.i % 3] = new Audio(SFXB + rel);
   pool.i++;
-  const v = Math.min(1, (vol !== undefined ? vol : d.v) * (d.m !== undefined ? d.m : SFX_MASTER));
+  const v = Math.min(1, (vol !== undefined ? vol : d.v) * gainDe(key));
   const t0 = d.offset || 0;
   try { a.currentTime = t0; } catch (e) { }   // offset: arranca N segundos adentro del sample
   playFaded(a, v, d.fi || 0, d.fo || 0, t0);
@@ -257,6 +286,9 @@ let tirabaPrev = false;
 // game.js; pasarlas explicitas deja el modulo probable por si solo y sin dependencias ocultas.
 export function updateSfx(dt, w) {
   for (const k of SFX_LOOP_KEYS) sfxTgt[k] = 0;
+  // EL FOCO DEL RADAR (data/mezcla.js): te estan pintando (DETECTANDO) o el verde suena cerca del techo
+  focoMeta = muted || enPausa ? 0 : Math.max(detOn ? 1 : 0, rvOn ? rvCerca : 0);
+  tickFoco(dt);
   const flying = w.state === 'play' || w.state === 'takeoff';
   if (!flying || muted) postcombustion(dt, false);
   if (!flying) tirabaPrev = false;   // fuera de vuelo no hay rafaga que soltar (la descarga no suena al volver)
@@ -285,7 +317,9 @@ export function updateSfx(dt, w) {
           const g = sfxLoop(gk);
           if (g) {
             if (gd.bucle) { try { g.currentTime = 0; } catch (e) { } }    // la de ORO: arranca del giro
-            g.volume = gd.v * SFX_MASTER;
+            g.volume = gd.v * gainDe(gk);
+            // cada rafaga, un tono apenas distinto (METRALLA_TONO): el mismo loop siempre igual cansa
+            g.preservesPitch = false; g.playbackRate = 1 + (Math.random() * 2 - 1) * METRALLA_TONO;
           }
         }
       } else if (tirabaPrev) {                                            // SOLTASTE (o se recalento)
@@ -320,7 +354,7 @@ export function updateSfx(dt, w) {
     // `bucle` (data/sfx.js): da vueltas por un tramo y no por el archivo entero
     const b = SFX_DEF[k].bucle;
     if (b && !a.paused && a.currentTime >= b[1]) { try { a.currentTime = b[0]; } catch (e) { } }
-    const tgt = (sfxTgt[k] || 0) * SFX_MASTER;
+    const tgt = (sfxTgt[k] || 0) * gainDe(k);
     a.volume += (tgt - a.volume) * Math.min(1, dt * 3.5);
     if (tgt > 0 && a.paused && musicStarted) a.play().catch(() => { });
     else if (tgt === 0 && !a.paused && a.volume < 0.012) { a.pause(); a.volume = 0; }
@@ -367,6 +401,9 @@ export function updateMusic(state) {
     want.play().catch(() => { });
   }
   curTrack = want;
+  // el lobby y la historia no tienen mezcla dinamica: su base por el grupo de la musica
+  if (want === musLobby) musLobby.volume = 0.42 * busGain('musica');
+  else if (want === musStory) musStory.volume = 0.38 * busGain('musica');
   // mezcla dinamica: en MOMENTUM la musica se AHOGA (camara lenta, como bajo el agua) y
   // las explosiones grandes la agachan un instante (ducking). Lerp por frame → suave.
   //
@@ -379,7 +416,7 @@ export function updateMusic(state) {
   // salida —al soltar el poder— es la EXHALACION que pide el spec: el sonido volviendo solo. No
   // hace falta programarla; es la misma rampa leida al reves.
   // (16/10, el autor: "bajemos un poco la musica" — de 0.30 a 0.22, y lo demas en la misma proporcion)
-  const tv = (rasOn ? RAS_MUS : state === 'momentum' ? 0.07 : 0.22) * (duckT > 0 ? 0.45 : 1);
+  const tv = (rasOn ? RAS_MUS : state === 'momentum' ? 0.07 : 0.22) * (duckT > 0 ? 0.45 : 1) * busGain('musica');
   gm.volume += (tv - gm.volume) * 0.08;
 }
 function startMusicOnce(state) { if (musicStarted || muted || musicaRetenida) return; musicStarted = true; updateMusic(state || 'modeselect'); }
@@ -458,7 +495,7 @@ function postcombustion(dt, on) {
     if (!abI) { abI = abAudio('abInicio'); abS = abAudio('abSostenido'); if (!abI) return; }
     if (!abPrev) {                                   // APRETASTE: el arranque, desde el principio
       abT = 0; abPrev = true;
-      try { abI.currentTime = 0; } catch (e) { } abI.volume = SFX_DEF.abInicio.v; abI.play().catch(() => { });
+      try { abI.currentTime = 0; } catch (e) { } abI.volume = SFX_DEF.abInicio.v * gainDe('abInicio'); abI.play().catch(() => { });
       if (abS && !abS.paused) { abS.pause(); abS.volume = 0; }
     }
     abT += dt;
@@ -468,8 +505,8 @@ function postcombustion(dt, on) {
       if (abS.paused) { try { abS.currentTime = D.desde; } catch (e) { } abS.play().catch(() => { }); }
       if (abS.currentTime >= D.hasta) { try { abS.currentTime = D.desde; } catch (e) { } }
       const u = Math.min(1, (abT - tEnc) / AB.encima);
-      abS.volume = D.v * u;
-      if (!abI.paused) abI.volume = SFX_DEF.abInicio.v * (1 - u);   // el arranque se apaga mientras entra el otro
+      abS.volume = D.v * gainDe('abSostenido') * u;
+      if (!abI.paused) abI.volume = SFX_DEF.abInicio.v * gainDe('abInicio') * (1 - u);   // el arranque se apaga mientras entra el otro
     }
     return;
   }
@@ -529,11 +566,11 @@ export function arranquePc(nivel) {
     const d = sfxSrc('bootPc'); if (!d || muted) return;
     if (!bootA) { bootA = new Audio(SFXB + d.f[0]); bootA.loop = true; }
     bootA.volume = 0; bootA.currentTime = 0; bootA.play().catch(() => { });
-    rampaBoot(BOOT.alto, 0.3);
+    rampaBoot(BOOT.alto * gainDe('bootPc'), 0.3);
   } else if (!bootA || bootA.paused) {
     return;
   } else if (nivel === 'bajo') {
-    rampaBoot(BOOT.bajo, 0.8);
+    rampaBoot(BOOT.bajo * gainDe('bootPc'), 0.8);
   } else {
     rampaBoot(0, 1.2, () => bootA.pause());
   }
@@ -575,7 +612,7 @@ export function zumbido(on) {
 // fundido al salir. El archivo trae 0,6 s de silencio en cada punta: en vez de `loop` (que los repetiria
 // cada vuelta) se da vuelta a mano entre `desde` y `hasta`.
 const RV = { lejos: 0.06, visto: 0.5, desde: 0.6, hasta: 56.55, trasInicio: 3.6 };
-let rvA = null, rvOn = false;
+let rvA = null, rvOn = false, rvCerca = 0;
 /** Lo pide game.js en cada cuadro. `adentro`: en el alcance del radar enemigo. `t`: segundos desde que
  *  entraste (el barrido; el loop entra cuando termina green_radar_start). `cerca`: 0 al ras, 1 en el
  *  techo del radar o por encima. */
@@ -590,7 +627,9 @@ export function zonaRadar(adentro, t, cerca) {
   if (rvA.paused && suena) rvA.play().catch(() => { });   // volviendo de la pausa
   if (rvA.currentTime >= RV.hasta) try { rvA.currentTime = RV.desde; } catch (e) { }
   const c = Math.max(0, Math.min(1, cerca || 0));
-  const meta = suena ? RV.lejos + (RV.visto - RV.lejos) * c : 0;
+  rvCerca = suena ? c : 0;
+  // (el volumen sale del grupo de atencion: RV dice cuanto de su pleno, el grupo cuanto pesa el pleno)
+  const meta = suena ? (RV.lejos + (RV.visto - RV.lejos) * c) * gainDe('radarVerde') : 0;
   rvA.volume += (meta - rvA.volume) * (suena ? 0.08 : 0.06);
 }
 
@@ -602,7 +641,7 @@ export function detectando(on) {
   if (on && !detA) { detA = new Audio(SFXB + SFX_DEF.radarDetectando.f[0]); detA.loop = true; detA.volume = 0; }
   if (!detA) return;
   if (on && !detOn) { detOn = true; try { detA.currentTime = 0; } catch (e) { } detA.play().catch(() => { }); }
-  const meta = on ? SFX_DEF.radarDetectando.v : 0;
+  const meta = on ? SFX_DEF.radarDetectando.v * gainDe('radarDetectando') : 0;
   detA.volume += (meta - detA.volume) * (on ? 0.3 : 0.15);
   if (!on && detOn && detA.volume < 0.01) { detOn = false; detA.pause(); }
 }

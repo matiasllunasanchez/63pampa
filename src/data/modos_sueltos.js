@@ -28,14 +28,24 @@ export const DIFICULTADES = [
 ];
 export const DIF_DEFAULT = 0;   // FACIL: cada vez que se abre el juego arranca aca (autor, 16/10)
 
-/** LA PRESION DEL MUNDO. Cada perilla del spawn arranca en su `base` y se multiplica por
- *    presion = k(dificultad) × rampa(km) × alarma(estrellas)
- *  y nunca pasa de su `techo` (un pasillo imposible no es dificil, es injusto).
- *    rampa(km)       = min(RAMPA.max, 1 + RAMPA.porKm × km) — sube parejo con lo recorrido
- *    alarma(est)     = 1 sin estrellas; con alarma, ALARMA.golpe de entrada y + ALARMA.porEstrella
- *                      por cada estrella de mas. Se va apenas la perdes. */
-export const RAMPA = { porKm: 0.12, max: 3 };
-export const ALARMA = { golpe: 1.6, porEstrella: 0.3 };
+/** LA DIFICULTAD CRECIENTE (18/10, el autor: "la dificultad de POR LA PATRIA debe ser creciente y CICLO DE
+ *  MUERTE tambien, las alarmas deben tardar mas en cargar, todo debe ser proporcional a una dificultad
+ *  creciente"). UN SOLO numero manda todo: el NIVEL de la corrida, de 0 a 1, que crece con los km
+ *  volados (en CICLO, los de todos los blancos: no se reinicia de blanco a blanco)
+ *    nivel(km)       = (km / RAMPA.kmPleno) ^ RAMPA.curva, topado en 1 — arranca suave, sin escalones
+ *  y de el sale cada cosa:
+ *    presion         = k(dificultad) × (1 + (RAMPA.max - 1) × nivel) × alarma(estrellas)
+ *    alarma(est)     = 1 sin estrellas; con alarma, un golpe que CRECE con el nivel (de ALARMA.golpe[0] a
+ *                      [1]) y + ALARMA.porEstrella por cada estrella de mas. Se va apenas la perdes.
+ *    la barra del radar tarda DETECCION.cargaS[0] s en llenarse al arrancar y [1] con el nivel pleno (la
+ *                      de siempre, fuera de estos modos, es 1,4 s)
+ *  Cada perilla del spawn arranca en su `base`, se multiplica por la presion y nunca pasa de su `techo`
+ *  (un pasillo imposible no es dificil, es injusto). Con ~130 m/s, 50 km son unos seis minutos y medio. */
+export const RAMPA = { kmPleno: 50, curva: 1.3, max: 3 };
+export const ALARMA = { golpe: [1.15, 1.7], porEstrella: 0.3 };
+export const DETECCION = { cargaS: [5, 1.6] };
+/** El nivel de la corrida (0..1) a `km` volados. */
+export const nivelCorrida = km => Math.min(1, Math.pow(Math.max(0, km) / RAMPA.kmPleno, RAMPA.curva));
 export const PERILLAS = {
   obstacles: { base: 0.8, techo: 2.4 },   // densidad del pasillo (data/tuning SPAWN_DENS / obst)
   bombs: { base: 0.4, techo: 2.5 },       // Sea Slug

@@ -320,6 +320,7 @@ export const STRINGS = {
     // Las filas venian del menu [M], que era solo-castellano porque era una herramienta interna.
     // Al mudarse a OPCIONES —que tiene el selector de IDIOMA adentro— quedar a medio traducir se
     // notaria de una, asi que pasan todas por T().
+    optSecSonido: 'SONIDO', optVol_musica: 'MÚSICA', optVol_efectos: 'EFECTOS', optVol_radar: 'RADAR Y ALERTAS',
     optSecJuego: 'JUEGO', optSecControl: 'CONTROL Y VISTA', optSecPartida: 'PARTIDA',
     optSecAmbiente: 'AMBIENTE',
     optNoteAmbiente: 'FONDO y AGUA los elige la campaña en cada misión', optNoteAmbienteK: '', optNoteAmbienteP: '',
@@ -663,7 +664,7 @@ export const STRINGS = {
     banco_titulo: 'EL BANCO', banco_sub: 'ELEGI UNA CARTA — LA LLEVAS HASTA EL FINAL DE LA CORRIDA  ·  LLEVAS {n}',
     banco_rota: 'NO SE PUEDE', banco_uso: 'DE UN USO',
     banco_g_armas: 'ARMAS', banco_g_defensa: 'DEFENSA', banco_g_alcance: 'ALCANCE', banco_g_poderes: 'PODERES',
-    banco_g_piruetas: 'PIRUETA', banco_g_taller: 'TALLER',
+    banco_g_piruetas: 'PIRUETA', banco_g_taller: 'TALLER', banco_g_inteligencia: 'INTELIGENCIA',
     upgSub: 'ELEGI UNA MEJORA', upgSub1: 'TU PRIMERA MEJORA', upgCombo: 'COMBO:', upgTecla: 'TECLA:',
 
     // ---------- EL PODER RASANTE (SPEC_PODER_RASANTE, tecla 6) ----------
@@ -1504,6 +1505,7 @@ export const STRINGS = {
     optNet: 'RADAR MESH',
     optNetOff: 'OFF', optNetEnter: 'ON ENTERING', optNetAlways: 'ALWAYS',
     optKeys: '[↑] [↓] SELECT      [<] [>] CHANGE      [ESC] BACK',
+    optSecSonido: 'SOUND', optVol_musica: 'MUSIC', optVol_efectos: 'EFFECTS', optVol_radar: 'RADAR & ALERTS',
     optSecJuego: 'GAME', optSecControl: 'CONTROLS & VIEW', optSecPartida: 'RUN',
     optSecAmbiente: 'WEATHER',
     optNoteAmbiente: 'SKY and WATER are set by the campaign each mission', optNoteAmbienteK: '', optNoteAmbienteP: '',
@@ -1785,7 +1787,7 @@ export const STRINGS = {
     banco_titulo: 'THE BANK', banco_sub: 'CHOOSE ONE CARD — IT LASTS UNTIL THE END OF THE RUN  ·  YOU HAVE {n}',
     banco_rota: 'NOT POSSIBLE', banco_uso: 'ONE USE',
     banco_g_armas: 'WEAPONS', banco_g_defensa: 'DEFENCE', banco_g_alcance: 'RANGE', banco_g_poderes: 'POWERS',
-    banco_g_piruetas: 'MANOEUVRE', banco_g_taller: 'WORKSHOP',
+    banco_g_piruetas: 'MANOEUVRE', banco_g_taller: 'WORKSHOP', banco_g_inteligencia: 'INTELLIGENCE',
     upgSub: 'CHOOSE ONE UPGRADE', upgSub1: 'YOUR FIRST UPGRADE', upgCombo: 'COMBO:', upgTecla: 'KEY:',
 
     // EL PODER RASANTE (tecla 6)

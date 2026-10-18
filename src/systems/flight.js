@@ -577,7 +577,8 @@ export function flightSystem(dt, deps) {
     // playtest no llego nunca a descubrir para que era el tramo— porque a 150 m/s el margen son
     // 0.64 s y el techo te empuja justo ahi. Fuera de un filo el multiplicador es 1 y la cuenta es
     // exactamente la de siempre, que es lo que `npm run feel` custodia.
-    const lim = scrapeLimit(run.spd, run.boost) * fsVal('agua', 1);
+    // (CONOCER EL TERRENO, 18/10: sobre tierra el margen dura mas — `run.terrenoK`, modos sueltos)
+    const lim = scrapeLimit(run.spd, run.boost) * fsVal('agua', 1) * (deathMsg === 'death_land' ? run.terrenoK || 1 : 1);
     run.scrapeT += dt;
     // CON CHAPA (INTEGRIDAD / VISUAL, desde el 11/9) agotar el margen ya no mata: el roce gasta el
     // ESCUDO y despues la chapa (systems/damage.js, `roce`), y se cae recien sin chapa. El reloj se
@@ -637,7 +638,9 @@ export function flightSystem(dt, deps) {
   run.radarVisto = alt > techoRadar(RADAR_ALT);
   if (cfg.radar === 'voz') run.detection = 0;
   else {
-    if (run.radarVisto) run.detection += dt / 1.4; else run.detection -= dt / 0.9;
+    // (en los modos sueltos la barra tarda lo que diga la dificultad de la corrida: `cfg.detCargaS`, game.js)
+    // (GUERRA ELECTRONICA: carga mas lento, `run.detK`; EL TRACKER: al ras se vacia mas rapido, `run.trackerK`)
+    if (run.radarVisto) run.detection += dt / ((cfg.detCargaS || 1.4) * (run.detK || 1)); else run.detection -= dt / 0.9 * (run.trackerK || 1);
     // EL RADAR PROPIO TE DELATA (15/10): prendido, los buques escuchan la emision — aunque vueles al ras
     if (radarP.on) run.detection += dt * (RADAR_PROPIO.DELATA + (run.radarVisto ? 0 : 1 / 0.9));
     run.detection = Math.max(0, Math.min(1, run.detection));
@@ -658,6 +661,12 @@ export function flightSystem(dt, deps) {
   // NO SE ANUNCIA ACA. El orquestador MIRA `run.estrellas` cambiar y decide que decir: es un
   // numero del store, o sea que no hace falta inventarle una señal nueva al contrato de retorno
   // de este sistema — que ya devuelve climax, objetivo y muerte, y no quiere una cuarta cosa.
+  // EL ESCUADRON FENIX (18/10): un Learjet hace de eco falso — la barra llena se va detras de el (ni
+  // estrella ni oleada) y vuelve a la mitad
+  if (run.detection >= 1 && run.fenix > 0) {
+    run.fenix--; run.detection = 0.35;
+    cartel('ESCUADRON FENIX', P.accent, 'La oleada se fue detras del Learjet');
+  }
   if (run.detection >= 1) {
     // (16/10: los modos sueltos no tienen fases, y ahi la alarma corre igual: `cfg.pintaSuelto`)
     const pinta = fsVal('pinta', cfg.pintaSuelto || null);

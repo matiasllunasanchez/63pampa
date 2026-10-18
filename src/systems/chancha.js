@@ -174,7 +174,7 @@ export function tick(dt, e) {
     if (connT < CH_ENGANCHE) return out;
     // LA BARRITA LLENA TRABA (12/10): de aca en adelante el avion va colgado de la canasta
     if (!trabado) { trabado = true; out.sig = 'traba'; }
-    out.carga = Math.min(CH_RATE_TRABADO * dt, 100 - e.fuel, reserva * 100);
+    out.carga = Math.min(CH_RATE_TRABADO * (e.rateK || 1) * dt, 100 - e.fuel, reserva * 100);
     reserva = Math.max(0, reserva - out.carga / 100);
     bombaT -= dt;
     if (bombaT <= 0) { bombaT = 0.34; out.bomba = true; }        // la bomba de transferencia

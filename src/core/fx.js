@@ -638,6 +638,7 @@ function stepDerribado(o, dt) {
   // LA EYECCION: el mismo paracaidas del piloto ARGENTINO (fila 0 de la hoja) — si todavia hay altura
   if (!o.eyecto && o.t >= o.tEyecta && o.y > suelo + 2) {
     o.eyecto = true;
+    run.eyectados = (run.eyectados || 0) + 1;   // (lo lee el KIT DE SUPERVIVENCIA, game.js)
     boom(0.06, true);
     obstacles.push({
       type: 'chunk', done: true, chunkT: 0, paraca: true,
