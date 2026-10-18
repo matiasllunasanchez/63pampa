@@ -2617,7 +2617,8 @@ test('banco suelto: se arranca sin nada, las mejoras piden su item y lo que el a
   assert.ok(conDano.has('reparacion'), 'la de uso se puede volver a ofrecer');
   // con la libreta casi llena, ofrece las que quedan
   const casiTodo = CARTAS.filter(c => !c.uso && !['tanques', 'momentum3'].includes(c.id)).map(c => c.id);
-  { const quedan = ['chancha1', 'momentum3', 'municion', 'tanques'], o = ids(ofertaSuelta(casiTodo, ctx(sky)));
+  // (las de uso que siempre sirven —MUNICION, BARRIDO DE MIRAGE, ESCUADRON FENIX, 18/10— tambien quedan)
+  { const quedan = ['chancha1', 'momentum3', 'municion', 'tanques', 'mirage', 'fenix'], o = ids(ofertaSuelta(casiTodo, ctx(sky)));
     assert.equal(o.length, 3); for (const id of o) assert.ok(quedan.includes(id), id + ': solo las que quedan'); }
   assert.equal(momentumDe(['momentum1', 'momentum2']), 2); assert.equal(soporteDe(['soporte1']), 1);
 });

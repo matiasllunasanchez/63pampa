@@ -108,7 +108,22 @@ Formato: **ÍTEM** → sus mejoras. *(de fábrica)* = ya lo tenés al arrancar; 
 
 **Piruetas** — las 12 del banco, cada una una carta (sin mejoras por ahora).
 
-**Fuera:** las **bengalas caseras** (el autor, 16/10: no).
+**Inteligencia y táctica** *(18/10, de la historia de 1982 — "agregalas todas menos la pintura"; hechos a
+verificar en `PREGUNTAS_HISTORICAS.md`)* — grupo nuevo `inteligencia`, todas sin mejoras:
+- **RADAR MALVINAS** — el TPS-43 avisa cada pareja de Harrier que entra (cartel).
+- **EL NEPTUNE** *(solo CICLO)* — la primera parte de cada aproximación es más tranquila (la ola arranca más baja).
+- **EL TRACKER QUE ESCUCHABA** — al ras, la barra de alarma se vacía el doble de rápido.
+- **GUERRA ELECTRÓNICA** — la barra de alarma se carga 1,5× más lento.
+- **BARRIDO DE MIRAGE** *(un uso)* — por 5 km no entra ninguna pareja de Harrier nueva.
+- **ESCUADRÓN FÉNIX** *(un uso)* — la próxima barra llena se va detrás del Learjet: ni estrella ni oleada.
+- **ATAQUE COORDINADO** — antiaéreos, misil al hombro, puestos y Sea Cat/Wolf tiran a 0,6.
+- **CONOCER EL TERRENO** — el margen de roce sobre tierra dura 1,8×.
+- **LA ITB** *(solo CICLO)* — cada blanco viene sin Sea Cat ni Sea Wolf y EL PULSO perdona un error más.
+
+Y en sus grupos: **SEGUNDO KC-130** *(alcance, avión con sonda)* — la Chancha llega en la mitad de tiempo y carga
+1,6× más rápido; **KIT DE SUPERVIVENCIA** *(defensa)* — el piloto que se eyecta vuelve 40 s después (+1 avión).
+
+**Fuera:** las **bengalas caseras** (el autor, 16/10: no) y la **pintura de baja visibilidad** (18/10: no).
 
 **Sin decidir** (propuestas que no se contestaron): niveles de POSCOMBUSTIÓN, mira de bomba (marca dónde pega),
 altímetro que avisa del suelo.

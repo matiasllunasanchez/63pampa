@@ -1651,3 +1651,28 @@ el **Pucará** suma distinto según quién cuente (24 en las islas, todos perdid
 11 destruidos, 6 capturados y 13 accidentados).
 
 **Decisión del autor:** pendiente.
+
+---
+
+## LAS CARTAS DE INTELIGENCIA Y TÁCTICA _(18/10/2026 — src/data/banco_suelto.js, docs/sistemas/PLAN_ROGUELIKE_SUELTOS.md §5)_
+
+**Contexto:** once cartas nuevas del banco de los modos sueltos salen de hechos de 1982. El efecto de juego es
+licencia; el hecho que las nombra tiene que estar bien antes de que el texto de la carta pase al guion.
+
+**A verificar:**
+1. **RADAR MALVINAS:** ¿el TPS-43 de Puerto Argentino (y el CIC Malvinas) avisaba a los aviones de ataque por
+   radio de las patrullas de Harrier?
+2. **EL NEPTUNE:** ¿el SP-2H Neptune de la Armada ubicó a la flota antes del ataque al *Sheffield* (4/5)?
+3. **EL TRACKER:** ¿18 radares identificados (MEJORAS_PICHON §8)?
+4. **GUERRA ELECTRÓNICA DEL EJÉRCITO:** ¿interferían o solo escuchaban? (la carta asume que "ensuciaban")
+5. **BARRIDO DE MIRAGE:** ¿los Mirage III salían a barrer en alto para llevarse a los Harrier lejos de las
+   escuadrillas de ataque? ¿Desde cuándo?
+6. **ESCUADRÓN FÉNIX:** ¿los Learjet civiles hacían de señuelo (eco de escuadrilla) además de guía y relevo?
+7. **ATAQUE COORDINADO:** ¿del 21 al 25/5 se atacó a propósito desde varios rumbos a la vez para saturar las
+   defensas, o fue el resultado de la llegada de escuadrillas?
+8. **CONOCER EL TERRENO:** ¿hay testimonios de pilotos que aprendieran el terreno de las islas para volar a ras?
+9. **LA ITB:** el Exocet MM38 en tierra que dio al *Glamorgan* (12/6) — ¿hubo otros disparos?
+10. **SEGUNDO KC-130:** ¿eran dos los KC-130 (TC-69 y TC-70)?
+11. **KIT DE SUPERVIVENCIA:** ¿cómo se rescataba a un piloto eyectado sobre las islas (quién, en cuánto tiempo)?
+
+**Decisión del autor:** pendiente; las cartas ya están en el juego con su texto provisorio.
