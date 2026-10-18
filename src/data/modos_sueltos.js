@@ -52,6 +52,13 @@ export const PERILLAS = {
   caza: { base: 0.5, techo: 2.5 },        // LA COLA: los pares de Sea Harrier
 };
 
+/** EL ARRANQUE (18/10, el autor: "¿por que no se arranca desde el aeropuerto? apenas arranca deberia haber una
+ *  zona sin radar, sin nada, que arranque con contador como el aeropuerto, manteniendo el avion volando
+ *  automaticamente: TOMAS EL CONTROL DEL AVION EN…"). Se sale SIEMPRE de la pista (aunque OPCIONES diga EN
+ *  VUELO); despues del despegue, `autoS` segundos de piloto automatico con la cuenta, y al tomar el control
+ *  `libreM` metros sin radar y sin nada sembrado (systems/ruta.js `setLibre`). A ~130 m/s, 1200 m son ~9 s. */
+export const ARRANQUE = { autoS: 3, libreM: 1200 };
+
 /** EL MUNDO AL AZAR de cada corrida (y de cada blanco del ciclo). Pesos relativos. */
 export const ENTORNO = {
   // la hora del dia la dice el cielo (SKY_PRESETS en data/palette.js; la noche sale de `nocheDe`)

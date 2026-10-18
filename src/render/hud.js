@@ -298,41 +298,60 @@ export function drawLanding(d) {
 
 /** `dsp` = el `despegue` de la mision ({ desde, rumbo }), o null fuera de una mision — ahi queda el
  *  cartel generico de siempre. Un rumbo vacio no se escribe: la placa se achica a un renglon. */
-export function drawTakeoff(toT, dsp) {
+export function drawTakeoff(toT, dsp, auto = 0, suelto = false) {
   ctx.textAlign = 'center';
-  const titulo = dsp ? T('takeoffWord') + ' · ' + dsp.desde : T('takeoffTitle');
-  const rumbo = dsp ? dsp.rumbo : T('takeoffHeading');
+  // los modos sueltos no salen de una base real ni van a un blanco dicho (18/10, el autor: "eso es mentira,
+  // quitarlo"): un rumbo generico y nada mas
+  const titulo = suelto ? T('takeoffSuelto') : dsp ? T('takeoffWord') + ' · ' + dsp.desde : T('takeoffTitle');
+  const rumbo = suelto ? null : dsp ? dsp.rumbo : T('takeoffHeading');
+  const enAuto = auto && toT >= 3;
   // placa oscura detras del encabezado: cae sobre el amanecer y sin esto no se lee
-  ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17, W, rumbo ? 23 : 13);
-  ctx.fillStyle = P.ink; ctx.font = '7px monospace';
-  ctx.fillText(titulo, W / 2, 26);
-  // el rumbo va pegado al titulo: antes estaba en y=80, encima del avion en la pista
-  if (rumbo) {
-    ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
-    ctx.fillText(rumbo, W / 2, 36);
-  }
-
-  const cn = 3 - Math.floor(toT);
-  if (cn >= 1) {
-    const frac = toT % 1;
-    const fs = Math.round(30 - frac * 10);
-    const num = String(cn);
-    ctx.font = 'bold ' + fs + 'px monospace';
-    // sombra: el conteo cae sobre el sol del amanecer y sin esto no se lee
-    ctx.fillStyle = '#0a0e11aa';
-    ctx.fillText(num, W / 2 + 1, 69);
-    // bandera argentina: tres franjas horizontales (celeste / blanco / celeste)
-    const top = 68 - fs * 0.75, hgt = fs * 0.78;
-    const bands = [[0, 1 / 3, CELESTE], [1 / 3, 2 / 3, BLANCO], [2 / 3, 1, CELESTE]];
-    for (const [a, b, col] of bands) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, top + hgt * a, W, hgt * (b - a) + 0.5);   // +0.5: sin costura entre franjas
-      ctx.clip();
-      ctx.fillStyle = col;
-      ctx.fillText(num, W / 2, 68);
-      ctx.restore();
+  if (!enAuto) {
+    ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17, W, rumbo ? 23 : 13);
+    ctx.fillStyle = P.ink; ctx.font = '7px monospace';
+    ctx.fillText(titulo, W / 2, 26);
+    // el rumbo va pegado al titulo: antes estaba en y=80, encima del avion en la pista
+    if (rumbo) {
+      ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
+      ctx.fillText(rumbo, W / 2, 36);
     }
+  }
+  // EL PILOTO AUTOMATICO de los modos sueltos (`auto` segundos despues de la carrera, game.js): la misma
+  // cuenta con la bandera, pero ahora dice cuando el avion pasa a ser tuyo. Arriba de todo, chico y
+  // titilando, PILOTO AUTOMATICO; el rumbo se va (18/10, el autor: "tomas el control mas arriba")
+  if (enAuto) {
+    const u = (toT - 3) * 3 / auto, cn = 3 - Math.floor(u);
+    if (Math.sin(toT * 9) > -0.2) {
+      ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(W / 2 - 34, 3, 68, 9);
+      ctx.fillStyle = '#9fd8a8'; ctx.font = '6px monospace';
+      ctx.fillText(T('takeoffAuto'), W / 2, 9);
+    }
+    ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17, W, 13);
+    ctx.fillStyle = P.ink; ctx.font = 'bold 7px monospace';
+    ctx.fillText(T('takeoffControl'), W / 2, 26);
+    if (cn >= 1) cuentaBandera(String(cn), u % 1, 62);
+    return;
+  }
+  const cn = 3 - Math.floor(toT);
+  if (cn >= 1) cuentaBandera(String(cn), toT % 1, 68);
+}
+/** El numero de la cuenta, con la bandera argentina adentro (celeste / blanco / celeste) y sombra: cae sobre
+ *  el sol del amanecer y sin esto no se lee. `frac` lo achica a lo largo del segundo; `y` = la base. */
+function cuentaBandera(num, frac, y) {
+  const fs = Math.round(30 - frac * 10);
+  ctx.font = 'bold ' + fs + 'px monospace';
+  ctx.fillStyle = '#0a0e11aa';
+  ctx.fillText(num, W / 2 + 1, y + 1);
+  const top = y - fs * 0.75, hgt = fs * 0.78;
+  const bands = [[0, 1 / 3, CELESTE], [1 / 3, 2 / 3, BLANCO], [2 / 3, 1, CELESTE]];
+  for (const [a, b, col] of bands) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, top + hgt * a, W, hgt * (b - a) + 0.5);   // +0.5: sin costura entre franjas
+    ctx.clip();
+    ctx.fillStyle = col;
+    ctx.fillText(num, W / 2, y);
+    ctx.restore();
   }
 }
 
@@ -1628,8 +1647,12 @@ export function drawSquadPips(x, y) {
     const base = (run.enBase || []).find(b => b.n === i);
     const est = !down && run.fallasFlota ? estadoAvion(run.fallasFlota[i]) : 'bien';
     const colFalla = est === 'fallas' ? '#e0a83a' : est === 'muchas' ? (Math.sin(run.t * 8) > -0.2 ? '#e0503a' : '#7a2c22') : null;
-    iconoEn(ax + 3, y + 5, 'avion', base ? '#5d7686' : down ? '#3a4750' : i === manda ? (colFalla || P.accent) : (colFalla || P.foam));
-    if (i === manda && colFalla) px(ax, y + SQUAD_H - 3, SQ_PASO - 2, 1, P.accent);   // (el que vuela, subrayado)
+    // EL QUE VUELA SE MARCA CON UNA FLECHA, no con el color de sus fallas (18/10, el autor: "el avion
+    // seleccionado esta en rojo y titila, deberia ser una flecha; rojo parece atacado o dañado"): va en
+    // acento, quieto, con la flechita debajo. Sus fallas ya las dicen los relojes; las de los que
+    // esperan, su color.
+    iconoEn(ax + 3, y + 5, 'avion', base ? '#5d7686' : down ? '#3a4750' : i === manda ? P.accent : (colFalla || P.foam));
+    if (i === manda) { px(ax + 3, y + SQUAD_H - 2, 1, 1, P.accent); px(ax + 2, y + SQUAD_H - 1, 3, 1, P.accent); }   // la flechita, sobre el borde de la placa
     if (base) { const f = Math.max(0, Math.min(1, 1 - base.t / BASE_T)); px(ax, y + SQUAD_H - 3, SQ_PASO - 2, 1, '#2c3a44'); px(ax, y + SQUAD_H - 3, Math.max(1, (SQ_PASO - 2) * f), 1, '#9fc3d8'); }
   }
   // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto

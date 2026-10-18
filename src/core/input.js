@@ -197,6 +197,8 @@ export function initInput(cv, a) {
       if (e.repeat) { e.preventDefault(); return; }
       if (isUp(e.code)) a.pauseNav(-1);
       else if (isDown(e.code)) a.pauseNav(1);
+      else if (isLeft(e.code)) a.pauseLado(-1);     // (VER CARTAS: pasar de carta)
+      else if (isRight(e.code)) a.pauseLado(1);
       else if (isConfirm(e.code)) a.pauseConfirm();
       else if (isBack(e.code)) a.pauseBack();
       e.preventDefault(); return;
@@ -340,8 +342,12 @@ export function initInput(cv, a) {
     // VOLVER A LA BASE [R] (PLAN_FALLAS, modos sueltos): el que vuela se retira y vuelve reparado mas tarde
     if (e.code === 'KeyR' && !e.repeat && S.state === 'play' && a.aLaBase) { a.aLaBase(); e.preventDefault(); return; }
     if (S.state === 'banco') {                                           // EL BANCO SUELTO: elegir UNA carta
-      if (isUp(e.code) || isLeft(e.code)) { a.bancoNav(-1); e.preventDefault(); return; }
-      if (isDown(e.code) || isRight(e.code)) { a.bancoNav(1); e.preventDefault(); return; }
+      // las cartas van en fila: izquierda / derecha pasan de carta; arriba / abajo leen (con la tecla
+      // apretada sigue bajando: el repeat del teclado)
+      if (isLeft(e.code)) { a.bancoNav(-1); e.preventDefault(); return; }
+      if (isRight(e.code)) { a.bancoNav(1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.bancoLeer(1); e.preventDefault(); return; }
+      if (isUp(e.code)) { a.bancoLeer(-1); e.preventDefault(); return; }
       if (isConfirm(e.code)) { a.bancoConfirm(); e.preventDefault(); return; }
       e.preventDefault(); return;
     }
@@ -651,12 +657,15 @@ export function initInput(cv, a) {
     if (inGame && a.isPaused()) {
       for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
       const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;
+      const nl = down(14) || ax(0) < -0.5, nr = down(15) || ax(0) > 0.5;
       if (nu && !nav.u) a.pauseNav(-1);
       if (nd && !nav.d) a.pauseNav(1);
+      if (nl && !nav.l) a.pauseLado(-1);
+      if (nr && !nav.r) a.pauseLado(1);
       if (hit(0)) a.pauseConfirm();
       if (hit(1)) a.pauseBack();
       if (hit(9)) a.pauseToggle();
-      nav.u = nu; nav.d = nd;
+      nav.u = nu; nav.d = nd; nav.l = nl; nav.r = nr;
       btnPrev = pressed;
       requestAnimationFrame(pollGamepad);
       return;
@@ -823,8 +832,13 @@ export function initInput(cv, a) {
         if ((nd && !nav.d) || (nr && !nav.r)) a.cargaNav(1);
         if (confirm) a.cargaConfirm();
       } else if (S.state === 'banco') {
-        if ((nu && !nav.u) || (nl && !nav.l)) a.bancoNav(-1);
-        if ((nd && !nav.d) || (nr && !nav.r)) a.bancoNav(1);
+        if (nl && !nav.l) a.bancoNav(-1);
+        if (nr && !nav.r) a.bancoNav(1);
+        // arriba / abajo leen; mantenido, sigue bajando (un paso cada ~0,12 s)
+        if (nd || nu) {
+          const ahora = performance.now();
+          if ((nd && !nav.d) || (nu && !nav.u) || ahora - (nav.leerT || 0) > 120) { a.bancoLeer(nd ? 1 : -1); nav.leerT = ahora; }
+        }
         if (confirm) a.bancoConfirm();
       } else if (S.state === 'upgrade') {
         if ((nu && !nav.u) || (nl && !nav.l)) a.upgNav(-1);

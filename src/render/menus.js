@@ -13,6 +13,7 @@ import { MISSIONS, climaxOf } from '../data/missions.js';
 import { LIBRO_VUELO, LIBRO_PROXIMAS } from '../data/libro_vuelo.js';
 import { BANCO, loadoutAt } from '../data/upgrades.js';
 import { fmtDate } from '../systems/saves.js';
+import { iconoDe, ICONO_FW, ICONO_COLS } from '../data/iconos_cartas.js';
 
 // ELECCION DE AVION — la pantalla previa de CICLO DE MUERTE y POR LA PATRIA. Usa los MISMOS
 // roles tipograficos que el lobby (logotipo / rotulo / nombre / texto corrido), para que las dos
@@ -1172,54 +1173,174 @@ export function drawUpgrade(w) {
   }
 }
 
-// EL BANCO DE LOS MODOS SUELTOS (estado 'banco', data/banco_suelto.js): la corrida en pausa y tres cartas
-// para elegir UNA. Debajo, si la hay, la carta ROTA: lo que tu avion no puede llevar, con el motivo — se ve,
-// no se elige (PLAN_ROGUELIKE_SUELTOS §2.6, el Exocet en un A-4B).
+// EL BANCO DE LOS MODOS SUELTOS (estado 'banco', data/banco_suelto.js): la corrida en pausa y cartas
+// VERTICALES para elegir UNA (18/10, el autor: "cartas verticales que se muevan de derecha a izquierda al
+// seleccionar y si presiono abajo se puede scrollear y leer la descripcion — EXPLICAR Y QUE SE APRENDA").
+// Un carrusel: la elegida al medio y grande, las otras a los costados; `w.vista` es la posicion que se
+// desliza (game.js la acerca a `sel`). La cara: el dibujo horneado en Blender (assets/hud/cartas.png,
+// data/iconos_cartas.js), el nombre, la linea corta y la tecla. Bajando (`w.leer`, px) se lee lo de
+// data/cartas_lee.js: el DATO, QUE HACE y EN 1982. Al final del carrusel, si la hay, la ROTA: lo que tu
+// avion no puede llevar, en gris y con el motivo — se ve y se lee, no se elige (PLAN_ROGUELIKE §2.6).
+// Devuelve { leerMax }: cuanto se puede bajar en la carta elegida.
 const GRUPO_COL = { armas: '#e8a34a', defensa: '#7fc8a0', alcance: '#6fb3e0', poderes: '#c79be8', piruetas: '#e0d070', taller: '#d08a6a', inteligencia: '#9fc0d8' };
+const CARTAS_IMG = new Image();
+CARTAS_IMG.src = '../assets/hud/cartas.png';
+const CW = 150, CH = 204, C_ARTE = 96, C_TOPE = 13, C_PIE = 12, C_PAD = 8;
+// EL TEXTO DE LAS CARTAS en una letra de LECTURA (18/10, el autor: "una fuente mas clara de leer"): la del
+// menu (EmbolismSpark) es de pincel y a este tamaño se empasta. Josefin Sans viene empaquetada (styles.css).
+const cartaFont = () => uiFont('JosefinSans', 10, '');
+const cartaFontChica = () => uiFont('JosefinSans', 8, '');
+const HISTORIA_COL = '#b9a77e';   // la historia, en sepia: se distingue de lo que hace la carta
+/** Las lineas de `txt` que entran en `maxW` con la fuente ACTUAL (como wrapText, pero sin dibujar). */
+function lineasDe(txt, maxW) {
+  const out = []; let line = '';
+  for (const w of String(txt || '').split(' ')) {
+    const prueba = line ? line + ' ' + w : w;
+    if (ctx.measureText(prueba).width > maxW && line) { out.push(line); line = w; } else line = prueba;
+  }
+  if (line) out.push(line);
+  return out;
+}
+/** El contenido de una carta, en renglones con su fuente, color y alto: la cara y lo que se lee abajo. */
+function cuerpoCarta(u, lee, rota) {
+  const ancho = CW - C_PAD * 2, out = [];
+  const bloque = (txt, font, color, lh, extra = 0, centro = false) => {
+    ctx.font = font;
+    for (const l of lineasDe(txt, ancho)) out.push({ t: l, font, color, h: lh, centro });
+    if (extra) out.push({ h: extra });
+  };
+  const titulo = txt => { out.push({ h: 4 }); out.push({ raya: true, t: txt, font: labelFont(7), color: P.dim, h: 11 }); };
+  out.push({ arte: true, h: C_ARTE + 2 });
+  bloque(u.name, menuFont(11), rota ? '#8a949a' : P.ink, 12, 2, true);
+  bloque(u.desc, cartaFont(), P.body, 11, 3, true);
+  if (rota && u.motivo) bloque(u.motivo, cartaFont(), P.warn, 11, 3, true);
+  const como = u.seq ? T('upgCombo') + ' ' + u.seq : u.tecla ? T('upgTecla') + ' ' + u.tecla : '';
+  if (como) bloque(como, labelFont(7), P.dim, 9, 0, true);
+  const cara = out.reduce((s, r) => s + r.h, 0);
+  // abajo, primero QUE HACE —lo que sirve para decidir ahora—, y despues la historia, mas chica y en otro color:
+  // es para el que quiere seguir leyendo (18/10, el autor: "que predomine que es y que hace; el usuario no va a
+  // leer todo en ese momento"). El `dato` no se muestra: lo repetia la historia.
+  if (lee) {
+    out.push({ h: 6 });
+    titulo(T('banco_que'));
+    bloque(lee.que, cartaFont(), P.ink, 11, 4);
+    titulo(T(u.grupo === 'piruetas' ? 'banco_aire' : 'banco_1982'));
+    bloque(lee.historia, cartaFontChica(), HISTORIA_COL, 9, 2);
+  }
+  if (u.quote) { out.push({ h: 6 }); bloque('"' + u.quote + '"', cartaFont(), P.dim, 11, 0, true); }
+  return { out, cara, alto: out.reduce((s, r) => s + r.h, 0) };
+}
+/** Una carta en (x, y) = su esquina, a escala `k`. `on` = la elegida; `leer` = cuanto se bajo. */
+function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
+  // `rota` = el SELLO de una carta en gris: el texto (NO SE PUEDE en el banco, USADA en VER CARTAS), o nada
+  // USADA (VER MEJORAS) va en color y lo dice chiquito arriba, en naranja (la mini ya lleva el sello);
+  // NO SE PUEDE, en gris y con el sello cruzado
+  const usada = rota === T('cartas_usada'), selloCol = P.warn;
+  if (usada) rota = null;
+  const col = rota ? '#6b7680' : (GRUPO_COL[u.grupo] || P.dim);
+  const { out, cara, alto } = cuerpoCarta(u, on ? lee : null, rota);
+  const vista = CH - C_TOPE - C_PIE;
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y)); ctx.scale(k, k);
+  // el marco: fondo oscuro, la franja del grupo arriba y el borde (en la elegida, en su color)
+  ctx.fillStyle = '#10161a'; ctx.fillRect(0, 0, CW, CH);
+  ctx.globalAlpha = 0.9; ctx.fillStyle = col; ctx.fillRect(0, 0, CW, 3); ctx.globalAlpha = 1;
+  ctx.strokeStyle = on ? col : '#33404a'; ctx.lineWidth = 1;
+  if (rota) ctx.setLineDash([3, 3]);
+  ctx.strokeRect(0.5, 0.5, CW - 1, CH - 1); ctx.setLineDash([]);
+  ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = labelFont(7);
+  ctx.fillText(T('banco_g_' + (u.grupo || 'armas')), C_PAD, 11);
+  ctx.textAlign = 'right';
+  if (rota) { ctx.fillStyle = selloCol; ctx.fillText(rota, CW - C_PAD, 11); }
+  else if (usada) { ctx.fillStyle = P.accent; ctx.fillText(T('cartas_usada'), CW - C_PAD, 11); }
+  else if (u.uso) { ctx.fillStyle = P.accent; ctx.fillText(T('banco_uso'), CW - C_PAD, 11); }
+  // lo que se desliza: recortado entre la franja de arriba y el pie
+  ctx.save();
+  ctx.beginPath(); ctx.rect(1, C_TOPE, CW - 2, vista); ctx.clip();
+  let yy = C_TOPE - leer;
+  for (const r of out) {
+    if (yy > CH || yy + r.h < C_TOPE - 120) { yy += r.h; continue; }
+    if (r.arte) {
+      // el fondo del dibujo: el color del grupo, apenas, con un horizonte
+      ctx.globalAlpha = 0.10; ctx.fillStyle = col; ctx.fillRect(4, yy, CW - 8, C_ARTE); ctx.globalAlpha = 0.18;
+      ctx.fillRect(4, yy + C_ARTE * 0.66, CW - 8, 1); ctx.globalAlpha = 1;
+      if (CARTAS_IMG.complete && CARTAS_IMG.naturalWidth) {
+        const n = iconoDe(u), sx = (n % ICONO_COLS) * ICONO_FW, sy = Math.floor(n / ICONO_COLS) * ICONO_FW;
+        const bob = on && !rota ? Math.round(Math.sin(t * 2.2) * 1.5) : 0;
+        if (rota) { ctx.filter = 'grayscale(1) brightness(1.15)'; ctx.globalAlpha *= 0.75; }
+        ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, Math.round(CW / 2 - ICONO_FW / 2), Math.round(yy) + bob, ICONO_FW, ICONO_FW);
+        ctx.filter = 'none'; if (rota) ctx.globalAlpha /= 0.75;
+      }
+      if (rota) {                                                         // el sello: NO SE PUEDE, cruzado
+        ctx.save(); ctx.translate(CW / 2, yy + C_ARTE / 2); ctx.rotate(-0.28);
+        ctx.font = menuFont(12); ctx.textAlign = 'center';
+        const tw = ctx.measureText(rota).width;
+        ctx.strokeStyle = selloCol; ctx.lineWidth = 2; ctx.strokeRect(-tw / 2 - 6, -11, tw + 12, 18);
+        ctx.fillStyle = selloCol; ctx.fillText(rota, 0, 3);
+        ctx.restore();
+      }
+    } else if (r.raya) {
+      ctx.fillStyle = r.color; ctx.font = r.font; ctx.textAlign = 'left';
+      ctx.fillText(r.t, C_PAD, yy + 8);
+      const tw = ctx.measureText(r.t).width;
+      ctx.globalAlpha = 0.35; ctx.fillRect(C_PAD + tw + 4, yy + 5, CW - C_PAD * 2 - tw - 4, 1); ctx.globalAlpha = 1;
+    } else if (r.t) {
+      ctx.fillStyle = r.color; ctx.font = r.font;
+      ctx.textAlign = r.centro ? 'center' : 'left';
+      ctx.fillText(r.t, r.centro ? CW / 2 : C_PAD, yy + r.h - 2);
+    }
+    yy += r.h;
+  }
+  ctx.restore();
+  // el pie: LEER (si hay mas abajo) y la barra de cuanto se bajo
+  const leerMax = Math.max(0, alto - vista + 4);
+  if (on && leerMax > 0) {
+    const f = Math.min(1, leer / leerMax), bh = Math.max(12, vista * vista / alto);
+    ctx.globalAlpha = 0.25; ctx.fillStyle = col; ctx.fillRect(CW - 3, C_TOPE, 2, vista);
+    ctx.globalAlpha = 0.9; ctx.fillRect(CW - 3, C_TOPE + (vista - bh) * f, 2, bh); ctx.globalAlpha = 1;
+    if (leer < cara - vista + 30 && Math.sin(t * 5) > -0.4) {
+      ctx.textAlign = 'center'; ctx.fillStyle = col; ctx.font = labelFont(7);
+      ctx.fillText(T('banco_leer'), CW / 2, CH - 3);
+    }
+  }
+  ctx.restore();
+  return leerMax;
+}
+/** EL CARRUSEL de cartas completas (el banco y VER CARTAS de la pausa): la elegida (`sel`) al medio, las otras
+ *  a los costados segun `w.vista`; `sello(i)` = el sello de la carta i (null si va en color). Devuelve cuanto se
+ *  puede bajar en la elegida. */
+function carrusel(todas, sel, w, sello) {
+  const y0 = 44, paso = 138;
+  // de la mas lejana a la elegida: la elegida queda arriba de todo
+  const orden = todas.map((u, i) => i).sort((a, b) => Math.abs(b - w.vista) - Math.abs(a - w.vista));
+  let leerMax = 0;
+  for (const i of orden) {
+    const d = i - w.vista, ad = Math.min(1.6, Math.abs(d));
+    if (Math.abs(d) > 2.2) continue;
+    const k = 1 - 0.2 * Math.min(1, ad), on = i === sel;
+    const sacude = on && w.sacude > 0 ? Math.sin(w.sacude * 60) * 3 * w.sacude / 0.35 : 0;
+    const x = NW / 2 + d * paso - (CW * k) / 2 + sacude, y = y0 + (CH * (1 - k)) / 2;
+    ctx.globalAlpha = 1 - 0.45 * Math.min(1, ad);
+    const m = drawCartaBanco(todas[i], x, y, k, on, on ? w.leer : 0, w.t, w.lee && w.lee(todas[i].id), sello(i));
+    ctx.globalAlpha = 1;
+    if (on) leerMax = m;
+  }
+  return leerMax;
+}
 export function drawBanco(w) {
   panel();
   ctx.textAlign = 'center';
-  ctx.fillStyle = P.accent; ctx.font = titleFont(22);
-  ctx.fillText(T('banco_titulo'), NW / 2, 36);
-  ctx.fillStyle = P.dim; ctx.font = descFont(10);
-  ctx.fillText(T('banco_sub', { n: w.libreta }), NW / 2, 54);
-  const x = 52, wCard = NW - 104, hCard = 44, y0 = 66;
-  for (let i = 0; i < w.offer.length; i++) {
-    const u = w.offer[i], y = y0 + i * (hCard + 6), on = i === w.sel;
-    ctx.globalAlpha = on ? 0.16 : 0.06; ctx.fillStyle = on ? P.accent : P.body;
-    ctx.fillRect(x, y, wCard, hCard); ctx.globalAlpha = 1;
-    ctx.strokeStyle = on ? P.accent : '#3a464c'; ctx.strokeRect(x + 0.5, y + 0.5, wCard, hCard);
-    ctx.textAlign = 'left';
-    if (on) { ctx.fillStyle = P.accent; ctx.font = 'bold 12px monospace'; ctx.fillText('>', x - 16, y + 24); }
-    ctx.fillStyle = on ? P.accent : P.body; ctx.font = menuFont(12);
-    ctx.fillText(u.name, x + 12, y + 15);
-    // el grupo, a la derecha y en su color (ARMAS, DEFENSA…): de un vistazo se ve que tipo de carta es
-    ctx.textAlign = 'right'; ctx.fillStyle = GRUPO_COL[u.grupo] || P.dim; ctx.font = labelFont(8);
-    ctx.fillText(T('banco_g_' + (u.grupo || 'armas')) + (u.uso ? ' · ' + T('banco_uso') : ''), x + wCard - 10, y + 14);
-    ctx.textAlign = 'left'; ctx.fillStyle = P.body; ctx.font = descFont(10);
-    ctx.fillText(u.desc, x + 12, y + 28);
-    ctx.fillStyle = P.dim; ctx.font = descFont(9);
-    const como = u.seq ? T('upgCombo') + ' ' + u.seq : u.tecla ? T('upgTecla') + ' ' + u.tecla : '';
-    ctx.fillText(como + (u.quote ? (como ? '   ' : '') + '"' + u.quote + '"' : ''), x + 12, y + 39);
-  }
-  // LA ROTA: tachada, en gris, con el motivo en rojo
-  if (w.rota) {
-    const y = y0 + w.offer.length * (hCard + 6) + 2, h = 26;
-    ctx.globalAlpha = 0.05; ctx.fillStyle = P.body; ctx.fillRect(x, y, wCard, h); ctx.globalAlpha = 1;
-    ctx.setLineDash([3, 3]); ctx.strokeStyle = '#5a3a36'; ctx.strokeRect(x + 0.5, y + 0.5, wCard, h); ctx.setLineDash([]);
-    ctx.textAlign = 'left'; ctx.fillStyle = '#6b7680'; ctx.font = menuFont(10);
-    ctx.fillText(w.rota.name, x + 12, y + 11);
-    const tw = ctx.measureText(w.rota.name).width;
-    ctx.fillStyle = '#6b7680'; ctx.fillRect(x + 10, y + 7, tw + 4, 1);   // tachada
-    ctx.fillStyle = P.warn; ctx.font = descFont(9);
-    ctx.fillText(w.rota.motivo, x + 12, y + 22);
-    ctx.textAlign = 'right'; ctx.fillStyle = P.warn; ctx.font = labelFont(8);
-    ctx.fillText(T('banco_rota'), x + wCard - 10, y + 11);
-  }
-  if (Math.sin(w.t * 4) > -0.3) {
-    ctx.fillStyle = P.dim; ctx.font = descFont(11); ctx.textAlign = 'center';
-    ctx.fillText(T(w.offer.length > 1 ? 'modeHint' : 'upgHint1'), NW / 2, NH - 8);
-  }
+  ctx.fillStyle = P.accent; ctx.font = titleFont(18);
+  ctx.fillText(T('banco_titulo'), NW / 2, 22);
+  ctx.fillStyle = P.dim; ctx.font = descFont(9);
+  ctx.fillText(T('banco_sub', { n: w.libreta }), NW / 2, 35);
+  const todas = w.rota ? [...w.offer, w.rota] : w.offer;
+  const sel = Math.min(w.sel, todas.length - 1);
+  const leerMax = carrusel(todas, sel, w, i => (i >= w.offer.length ? T('banco_rota') : null));
+  ctx.fillStyle = P.dim; ctx.font = descFont(9); ctx.textAlign = 'center';
+  ctx.fillText(T(sel >= w.offer.length ? 'banco_hint_rota' : 'banco_hint'), NW / 2, NH - 8);
+  ctx.textAlign = 'left';
+  return { leerMax };
 }
 
 // EL HANGAR (estado 'carga', PLAN_NAFTA_ALCANCE N7): despues del briefing y antes de despegar, desde
@@ -1264,6 +1385,91 @@ export function drawCarga(w) {
 export function drawPause(w) {
   ctx.fillStyle = '#070a0dd2';           // velo: mas cerrado que panel() — el juego es contexto, no fondo
   ctx.fillRect(0, 0, NW, NH);
+  // VER CARTAS (modos sueltos, 18/10, el autor: "dos sectores, uno con ACTIVAS y otro con USADAS debajo, y las
+  // cartas chicas en una version reducida; cada vez que seleccionamos una la vemos en 100%; si pasamos a la
+  // siguiente, la anterior vuelve a su version chica: solo imagen, nombre y cantidad"). Las repetidas van en
+  // una sola, con su ×N. Izquierda / derecha recorren (las activas y despues las usadas), arriba / abajo leen
+  // la grande. La grande crece desde su lugar (`w.cartasCrece` 0..1) y se acomoda adentro de la pantalla.
+  if (w.view === 'cartas' && w.cartas) {
+    const { activas, usadas } = w.cartas, todas = [...activas, ...usadas];
+    ctx.textAlign = 'center';
+    ctx.fillStyle = P.accent; ctx.font = titleFont(18); ctx.fillText(T('pauseCartas'), NW / 2, 22);
+    if (!todas.length) {
+      ctx.fillStyle = P.dim; ctx.font = cartaFont(); ctx.fillText(T('cartas_ninguna'), NW / 2, 130);
+      if (w.alto) w.alto(0, 0);
+    } else {
+      const sel = Math.min(w.cartasSel || 0, todas.length - 1);
+      // la grande, fija a la izquierda; los dos sectores de minis, a la derecha (asi la grande no tapa ninguna)
+      const mw = 60, mh = 57, cols = 5, x0 = 168, top = 34, bottom = NH - 18;
+      // el lugar de cada mini: los dos sectores, uno debajo del otro
+      const lugar = [], titulos = [];
+      let y = 0;
+      for (const [lista, k, base] of [[activas, 'cartas_activas', 0], [usadas, 'cartas_usadas', activas.length]]) {
+        if (!lista.length) continue;
+        titulos.push({ y, t: T(k) + '  ' + lista.reduce((n, c) => n + c.n, 0), gris: base > 0 });
+        y += 13;
+        lista.forEach((c, i) => { lugar[base + i] = { x: x0 + (i % cols) * mw, y: y + Math.floor(i / cols) * (mh + 3) }; });
+        y += Math.ceil(lista.length / cols) * (mh + 3) + 4;
+      }
+      // si no entra todo, se corre para que la elegida quede a la vista
+      const vista = bottom - top, ls = lugar[sel];
+      const off = y <= vista ? 0 : Math.max(0, Math.min(y - vista, ls.y + mh / 2 - vista / 2));
+      ctx.save(); ctx.beginPath(); ctx.rect(0, top - 2, NW, vista + 2); ctx.clip();
+      for (const tt of titulos) {
+        const yy = top + tt.y - off;
+        ctx.textAlign = 'left'; ctx.font = labelFont(8); ctx.fillStyle = tt.gris ? '#8a959b' : P.accent;
+        ctx.fillText(tt.t, x0 + 2, yy + 9);
+        const tw = ctx.measureText(tt.t).width;
+        ctx.globalAlpha = 0.3; ctx.fillRect(x0 + tw + 8, yy + 5, cols * mw - tw - 10, 1); ctx.globalAlpha = 1;
+      }
+      todas.forEach((c, i) => {
+        const L = lugar[i], x = L.x, yy = top + L.y - off, gris = i >= activas.length, on = i === sel;
+        if (yy > bottom || yy + mh < top) return;
+        const col = GRUPO_COL[c.grupo] || P.dim;
+        ctx.fillStyle = '#10161a'; ctx.fillRect(x + 2, yy, mw - 4, mh);
+        ctx.fillStyle = col; ctx.fillRect(x + 2, yy, mw - 4, 2);
+        ctx.strokeStyle = on ? P.accent : '#33404a'; ctx.lineWidth = on ? 2 : 1; ctx.strokeRect(x + 2.5, yy + 0.5, mw - 5, mh - 1); ctx.lineWidth = 1;
+        if (CARTAS_IMG.complete && CARTAS_IMG.naturalWidth) {
+          const n = iconoDe(c), sx = (n % ICONO_COLS) * ICONO_FW, sy = Math.floor(n / ICONO_COLS) * ICONO_FW;
+          ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, Math.round(x + mw / 2 - 20), yy + 3, 40, 40);
+        }
+        ctx.textAlign = 'center'; ctx.fillStyle = P.ink; ctx.font = uiFont('JosefinSans', 7, '');
+        const nl = lineasDe(c.name, mw - 8).slice(0, 2);
+        nl.forEach((l, k) => ctx.fillText(l, x + mw / 2, yy + 50 + k * 7 - (nl.length - 1) * 3.5));
+        if (c.n > 1) {                                                     // la cantidad
+          ctx.font = labelFont(8); const t2 = '×' + c.n, w2 = ctx.measureText(t2).width + 6;
+          ctx.fillStyle = P.accent; ctx.fillRect(x + mw - 4 - w2, yy + 3, w2, 10);
+          ctx.fillStyle = '#10161a'; ctx.fillText(t2, x + mw - 4 - w2 / 2, yy + 11);
+        }
+        if (gris) {                                                        // usada: el velo y el sello
+          ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x + 2, yy, mw - 4, mh);
+          ctx.save(); ctx.translate(x + mw / 2, yy + 23); ctx.rotate(-0.28);
+          ctx.font = labelFont(8); ctx.textAlign = 'center';
+          const tw = ctx.measureText(T('cartas_usada')).width;
+          ctx.strokeStyle = P.accent; ctx.lineWidth = 1; ctx.strokeRect(-tw / 2 - 3, -7, tw + 6, 10);
+          ctx.fillStyle = P.accent; ctx.fillText(T('cartas_usada'), 0, 1);
+          ctx.restore();
+        }
+        // LA ELEGIDA: un velo del color del borde, encima de todo (tambien del velo de las usadas)
+        if (on) {
+          ctx.globalAlpha = 0.22; ctx.fillStyle = P.accent; ctx.fillRect(x + 2, yy, mw - 4, mh); ctx.globalAlpha = 1;
+          ctx.strokeStyle = P.accent; ctx.lineWidth = 2; ctx.strokeRect(x + 2.5, yy + 0.5, mw - 5, mh - 1); ctx.lineWidth = 1;
+        }
+      });
+      ctx.restore();
+      // LA ELEGIDA AL 100%, a la izquierda: aparece con un salto chico cada vez que se cambia
+      const e = Math.max(0, Math.min(1, w.cartasCrece == null ? 1 : w.cartasCrece)), k = 0.9 + 0.1 * (1 - Math.pow(1 - e, 3));
+      const fx = 10 + (CW * (1 - k)) / 2, fy = 36 + (CH * (1 - k)) / 2;
+      ctx.globalAlpha = 0.4 + 0.6 * e;
+      const m = drawCartaBanco(todas[sel], fx, fy, k, true, w.cartasLeer || 0, w.t, w.lee && w.lee(todas[sel].id), sel >= activas.length ? T('cartas_usada') : null);
+      ctx.globalAlpha = 1;
+      if (w.alto) w.alto(m, todas.length);
+    }
+    ctx.fillStyle = P.dim; ctx.font = descFont(9); ctx.textAlign = 'center';
+    ctx.fillText(T('cartas_pie'), NW / 2, NH - 6);
+    ctx.textAlign = 'left';
+    return;
+  }
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(24);
   ctx.fillText(T('pauseTitle'), NW / 2, 56);

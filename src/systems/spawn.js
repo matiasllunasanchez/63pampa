@@ -7,6 +7,7 @@
 // Es el sistema mas limpio del motor: solo escribe los arrays del mundo y lee la corrida y el
 // mapa. No dibuja, no suena, no decide transiciones.
 
+import { libreHasta } from './ruta.js';
 import { cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, soldiers, popups, bullets, missiles, pmissiles, estallidos } from '../core/world.js';
@@ -527,6 +528,9 @@ export function spawnSystem(dt, objectiveDist) {
   // largo, que es el DRENAJE del RF-01. Va antes que todo lo demas porque es la mas fuerte de
   // las guardas: durante una charla no hay densidad de tramo, ni bombardeo, ni soldados.
   if (!cvSembrar()) return;
+  // LA ZONA LIBRE del arranque de los modos sueltos (systems/ruta.js): lo primero que se siembra llega justo
+  // donde termina
+  if (libreHasta() && run.dist + SPAWN_Z < libreHasta()) return;
   // EL CORDON FINAL es de la APROXIMACION, no del resto de la corrida. La condicion es
   // `dist >= corte`, asi que una vez cruzada se queda cruzada para siempre — y eso, en una mision
   // con VUELTA (PLAN_MISION_CINCO_FASES §11), significaba que pasado el buque no volvia a nacer

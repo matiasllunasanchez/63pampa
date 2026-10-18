@@ -160,6 +160,7 @@ def main():
     js, ok = sub_path(js, '../assets/ammo/chafita.png', uri(ASSETS / 'ammo' / 'chafita.png', 'image/png')); n += ok
     js, ok = sub_path(js, '../assets/ammo/tira.png', uri(ASSETS / 'ammo' / 'tira.png', 'image/png')); n += ok
     js, ok = sub_path(js, '../assets/ammo/bengala.png', uri(ASSETS / 'ammo' / 'bengala.png', 'image/png')); n += ok
+    js, ok = sub_path(js, '../assets/hud/cartas.png', uri(ASSETS / 'hud' / 'cartas.png', 'image/png')); n += ok   # los dibujos de las cartas del banco
     js, ok = sub_path(js, '../assets/ui/malvinas.webp', uri(ASSETS / 'ui' / 'malvinas.webp', 'image/webp')); n += ok
     js, ok = sub_path(js, '../assets/ui/miras.webp', uri(ASSETS / 'ui' / 'miras.webp', 'image/webp')); n += ok
     # EL LOGO de la portada y del selector de modo (render/menus.js)

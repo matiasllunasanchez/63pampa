@@ -15,11 +15,12 @@ let ruta = null;      // el dato de la mision (null = sin ruta)
 let marcas = null;    // sus anclas contra las fases
 let objetivo = 0;
 let lineas = null;     // el horizonte de radar en fracciones: { entra, sale }
+let libre = 0;         // LA ZONA LIBRE del arranque (modos sueltos): hasta este metro, ni radar ni siembra
 
 /** Le pasa a la corrida la ruta de la mision. Una ruta invalida NO se usa (y se avisa por consola):
  *  mejor el juego de siempre que km inventados. El unit test la ataja antes de llegar aca. */
 export function setRuta(r, fases, obj) {
-  ruta = null; marcas = null; lineas = null; objetivo = obj > 0 ? obj : 0;
+  ruta = null; marcas = null; lineas = null; libre = 0; objetivo = obj > 0 ? obj : 0;
   if (!r || !objetivo) return null;
   const e = validarRuta(r, fases);
   if (e.length) { console.warn('[ruta] invalida, se ignora: ' + e.join(' · ')); return null; }
@@ -28,6 +29,12 @@ export function setRuta(r, fases, obj) {
 }
 
 export const hay = () => !!ruta;
+
+/** LA ZONA LIBRE (data/modos_sueltos.js ARRANQUE): al tomar el control, hasta el metro `m` no hay radar (el
+ *  techo se va arriba de todo y el HUD dice FUERA DE RADAR) ni se siembra nada (systems/spawn.js). */
+export const setLibre = m => { libre = m > 0 ? m : 0; };
+export const libreHasta = () => libre;
+export const enLibre = () => libre > 0 && run.dist < libre;
 export const dato = () => ruta;
 
 /** Km recorridos desde la base, ahora. */
@@ -47,6 +54,7 @@ export const kmPorM = () => (ruta ? kmPorMetro(Math.max(0, run.dist) / objetivo,
 /** ¿El radar enemigo llega hasta aca? Sin ruta, siempre (el juego de siempre). Con ruta, solo entre
  *  la linea de `radarKm` de la ida y la de la vuelta. */
 export function enAlcance() {
+  if (enLibre()) return false;
   if (!ruta) return true;
   const p = Math.max(0, run.dist) / objetivo;
   return p >= lineas.entra && (lineas.sale === null || p < lineas.sale);
@@ -55,7 +63,13 @@ export function enAlcance() {
 /** El techo del radar corregido por el alcance. Lo aplica `techoRadar()` de systems/fases.js, que
  *  es la puerta unica del techo: detector, red, tinte, estrellas y HUD leen de ahi. Sin ruta
  *  devuelve el mismo numero que recibe. */
-export const techo = t => (ruta ? techoAlcance(t, run.dist, objetivo, lineas, FLY_TOP, RUTA_RADAR_RAMPA_M) : t);
+export function techo(t) {
+  const base = ruta ? techoAlcance(t, run.dist, objetivo, lineas, FLY_TOP, RUTA_RADAR_RAMPA_M) : t;
+  if (!libre || run.dist >= libre + RUTA_RADAR_RAMPA_M) return base;
+  // la zona libre: sin techo, y al salir el techo baja en rampa (como al cruzar el horizonte de una ruta)
+  const k = Math.max(0, Math.min(1, (run.dist - libre) / Math.max(1, RUTA_RADAR_RAMPA_M)));
+  return FLY_TOP + (base - FLY_TOP) * k;
+}
 
 // __rutaDbg (QUITAR): el alcance del radar en este metro
 if (typeof window !== 'undefined') window.__rutaDbg = () => JSON.stringify({ hay: !!ruta, en: enAlcance(), p: +(Math.max(0, run.dist) / (objetivo || 1)).toFixed(3), lineas });

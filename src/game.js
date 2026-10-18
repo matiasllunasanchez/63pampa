@@ -4,13 +4,14 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
-import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, DETECCION, nivelCorrida, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA } from './data/modos_sueltos.js';
+import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, DETECCION, nivelCorrida, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA, ARRANQUE } from './data/modos_sueltos.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_PROXIMAS, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES } from './data/upgrades.js';
 import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T } from './data/fallas.js';
 import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
+import { leeDe } from './data/cartas_lee.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -291,11 +292,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     /** Arranca la corrida de un modo suelto (o de la mision del ciclo) desde el menu. */
     function arrancarSuelto() {
-      reset(); setRunObjective();
+      reset(); setRunObjective(); conAuto = true;
       // los dos modos sueltos salen derecho al despegue: el CICLO es POR LA PATRIA con blancos
       // (16/10), y la tarjeta del blanco la dice la cinta de arriba
       setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
     }
+    let conAuto = false;      // la corrida suelta que arranca lleva el PILOTO AUTOMATICO despues del despegue (ARRANQUE)
     let kmPrevios = 0;        // CICLO: los km de los blancos anteriores de esta corrida (la rampa los cuenta)
     let startCiclo = null;    // CICLO: el arranque elegido en OPCIONES, mientras los blancos encadenados salen en vuelo
     let cfgPersec = null;     // lo que el mundo al azar piso de la cfg, para devolverselo a PERSECUCION (que usa la cfg cruda)
@@ -403,22 +405,36 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function abrirBanco() {
       const o = ofertaSuelta(pichon, bancoCtx());
       if (!o.cartas.length) { bancoPend = 0; return; }   // la libreta esta llena: no hay nada que ofrecer
-      bancoOffer = o; bancoSel = 0; bancoT = 0;
+      bancoOffer = o; bancoSel = 0; bancoT = 0; bancoVista = -1.2; bancoLeer = bancoLeerV = 0; bancoSacude = 0;
       // EL REGALO DEL CICLO (PLAN_FALLAS §5): al abrir el banco, el que vuela recarga bombas y chafitas
       if (run.mslMax) run.msl = run.mslMax;
       run.chapitas = run.chapitasMax;
       setState('banco'); engineOff();
       beep(660, 0.1, 'square', 0.05, 220);
     }
+    // EL CARRUSEL (18/10): izquierda / derecha pasan de carta (la ROTA va al final: se lee, no se elige);
+    // arriba / abajo bajan y suben por lo que se lee de la elegida (data/cartas_lee.js)
+    const bancoTotal = () => bancoOffer ? bancoOffer.cartas.length + (bancoOffer.rota ? 1 : 0) : 0;
     function bancoNav(dir) {
-      if (!bancoOffer || bancoOffer.cartas.length < 2) return;
-      bancoSel = (bancoSel + dir + bancoOffer.cartas.length) % bancoOffer.cartas.length;
+      const n = bancoTotal();
+      if (n < 2) return;
+      const s2 = Math.max(0, Math.min(n - 1, bancoSel + dir));
+      if (s2 === bancoSel) return;
+      bancoSel = s2; bancoLeer = 0;
       beep(520, 0.05, 'square', 0.04);
     }
+    function bancoLeerMas(dir) {
+      if (!bancoOffer) return;
+      const antes = bancoLeer;
+      bancoLeer = Math.max(0, Math.min(bancoLeerMax, bancoLeer + dir * 30));
+      if (bancoLeer !== antes) beep(dir > 0 ? 300 : 360, 0.03, 'square', 0.02);
+    }
     function bancoConfirm() {
-      const c = bancoOffer && bancoOffer.cartas[bancoSel];
-      if (!c || bancoT < 0.4) return;   // gracia: la tecla que venia apretada no elige sola
+      if (!bancoOffer || bancoT < 0.4) return;   // gracia: la tecla que venia apretada no elige sola
+      const c = bancoOffer.cartas[bancoSel];
+      if (!c) { bancoSacude = 0.35; beep(140, 0.12, 'square', 0.05); return; }   // la ROTA: no se elige
       if (!c.uso) pichon.push(c.id);
+      cartasRun.push(c.id);   // (las de uso no quedan en la libreta: VER CARTAS las lleva igual)
       aplicarCarta(c);
       bancoOffer = null; bancoPend = Math.max(0, bancoPend - 1);
       setState('play');
@@ -783,6 +799,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // el ciclo, al vencer cada objetivo— una carta. `bancoPend` cuenta las que se deben; se abren de a una
     // en un momento SEGURO (ver bancoSeguro), con el mundo en pausa (estado 'banco').
     let bancoProx = BANCO_KM, bancoPend = 0, bancoOffer = null, bancoSel = 0, bancoT = 0;
+    let cartasRun = [];   // TODAS las elegidas en la corrida, en orden (las de uso tambien): VER CARTAS de la pausa
+    let cartasCrece = 0;   // la grande de VER CARTAS crece desde su mini (0..1)
+    let cartasSel = 0, cartasVista = 0, cartasLeer = 0, cartasLeerV = 0, cartasLeerMax = 0, cartasN = 0;
+    let bancoVista = 0, bancoLeer = 0, bancoLeerV = 0, bancoLeerMax = 0, bancoSacude = 0;   // el carrusel y la lectura
     let encadena = false;   // siguienteBlanco: el reset de un blanco al siguiente NO es corrida nueva
     /** ¿Rige LA LIBRETA — o sea, solo salen las piruetas aprendidas? En campaña siempre, y en las
      *  HERRAMIENTAS (S.test: el SELECTOR DE MISIONES y PRUEBAS) tambien, porque ahi la mision se
@@ -810,6 +830,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     //     como "saliste del banco" y no como un corte de camara.
     let veilOut = 0, veilPrev = '';
     let alcanceAntes = null;         // el horizonte de radar en el cuadro anterior (null = sin adoptar)
+    let libreAntes = false;   // la ZONA LIBRE del arranque de los modos sueltos: al salir, se avisa que entra el radar
     let radarScanT = -1;             // run.t del ultimo cruce HACIA ADENTRO del radar (el escaneo), -1 = ninguno
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
@@ -1974,6 +1995,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // mostrarla deshabilitada solo agregaba una parada muerta al cursor).
     const pauseRows = () => [
       { id: 'resume', label: T('pauseResume') },
+      ...(suelto() ? [{ id: 'cartas', label: T('pauseCartas') }] : []),   // VER CARTAS: solo PATRIA y CICLO
       { id: 'controls', label: T('pauseControls') },
       ...(gameMode === 'campaign' ? [{ id: 'save', label: T('pauseSaveRow') }] : []),
       { id: 'quit', label: T('pauseQuit'), quit: true },
@@ -1992,18 +2014,28 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     function pauseNav(dir) {
       if (pauseView === 'menu') { const n = pauseRows().length; pauseSel = (pauseSel + dir + n) % n; }
+      else if (pauseView === 'cartas') { cartasLeer = Math.max(0, Math.min(cartasLeerMax, cartasLeer + dir * 30)); return; }
       else if (pauseView === 'save') {
         const n = pauseSaveRows().length;
         if (n) saveSel = (saveSel + dir + n) % n;
       } else return;                       // CONTROLES: no hay nada que navegar
       beep(520, 0.05, 'square', 0.04);
     }
+    /** Izquierda / derecha en la pausa: en VER CARTAS, pasar de carta (en el menu no hacen nada). */
+    function pauseLado(dir) {
+      if (pauseView !== 'cartas' || cartasN < 2) return;
+      const s2 = Math.max(0, Math.min(cartasN - 1, cartasSel + dir));
+      if (s2 === cartasSel) return;
+      cartasSel = s2; cartasLeer = cartasLeerV = 0; cartasCrece = 0;
+      beep(520, 0.05, 'square', 0.04);
+    }
     function pauseConfirm() {
-      if (pauseView === 'controls') { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
+      if (pauseView === 'controls' || pauseView === 'cartas') { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
       if (pauseView === 'save') { doSave(); return; }
       const r = pauseRows()[pauseSel];
       if (r.id === 'resume') pauseToggle();
       else if (r.id === 'controls') { pauseView = 'controls'; beep(600, 0.06, 'square', 0.05); }
+      else if (r.id === 'cartas') { pauseView = 'cartas'; cartasSel = 0; cartasCrece = 0; cartasLeer = cartasLeerV = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'save') { pauseView = 'save'; saveSel = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'quit') {
         // SALIR: la partida muere aca (sin guardado implicito — guardar es una decision del
@@ -2018,6 +2050,28 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function pauseBack() {
       if (pauseView !== 'menu') { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
       pauseToggle();                       // ESC sobre el menu raiz = reanudar
+    }
+    /** VER CARTAS (18/10, el autor: "ver todas las seleccionadas hasta el momento… separar en dos grupos,
+     *  activas y usadas"). Las que quedan en la libreta son activas; las de uso, usadas — salvo las que todavia
+     *  esperan: la llamada a la Chancha sin pedir, el barrido de Mirage corriendo, el Learjet sin oleada.
+     *  De las que se juntan (dos +1 CHANCHA y una sola llamada pedida), las primeras son las gastadas. */
+    function cartasDeLaCorrida() {
+      const quedan = { chancha1: run.chanchaGratis || 0, fenix: run.fenix || 0 };
+      const total = {};
+      for (const id of cartasRun) total[id] = (total[id] || 0) + 1;
+      const visto = {}, activas = [], usadas = [];
+      for (const id of cartasRun) {
+        const c = CARTAS_SUELTAS.find(x => x.id === id);
+        if (!c) continue;
+        visto[id] = (visto[id] || 0) + 1;
+        let viva = !c.uso;
+        if (id in quedan) viva = visto[id] > total[id] - quedan[id];
+        if (id === 'mirage') viva = (run.mirageHasta || 0) > kmCorrida() && visto[id] === total[id];
+        // las repetidas (dos +1 CHANCHA) van en una sola mini, con su cantidad
+        const lista = viva ? activas : usadas, ya = lista.find(x => x.id === id);
+        if (ya) ya.n++; else lista.push({ ...c, n: 1 });
+      }
+      return { activas, usadas };
     }
     /** Guarda (slot nuevo o pisando el elegido) y vuelve al menu raiz con el flash de confirmacion. */
     function doSave() {
@@ -3281,7 +3335,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (gameMode !== 'campaign' && gameMode !== 'cycle') soltarMision();
       // CORRIDA NUEVA DE UN MODO SUELTO: la libreta vacia (las cartas duran la corrida; y sin esto se heredaba
       // la de la ultima campaña, MOMENTUM incluido). El salto de un blanco al otro del ciclo no cuenta.
-      if (suelto() && !encadena) { pichon = []; bancoProx = BANCO_KM; bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
+      if (suelto() && !encadena) { pichon = []; cartasRun = []; bancoProx = BANCO_KM; bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
       // LAS FALLAS Y LA BASE son de la corrida (resetRun no los conoce: sin esto pasaban a la campaña)
       if (!encadena) { run.fallasFlota = null; run.enBase = null; run.esquirlas = 0; run.esquirlaT = undefined; }
       // LOS MODOS SUELTOS (16/10): mundo al azar en cada corrida, y la barra del radar SUMA ESTRELLAS
@@ -3295,6 +3349,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (suelto()) { cfg.fuelOn = true; cfg.fuelScale = NAFTA_ESCALA; }
       kmPrevios = 0;
       if (startCiclo !== null) { cfg.start = startCiclo; startCiclo = null; }
+      // …y LOS MODOS SUELTOS SALEN SIEMPRE DE LA PISTA (18/10, el autor: "¿por que no se arranca desde el
+      // aeropuerto?"), aunque OPCIONES diga EN VUELO: se devuelve en el proximo reset, como el del ciclo
+      if (suelto() && !encadena && cfg.start === 'air') { startCiclo = 'air'; cfg.start = 'runway'; }
       callarRadio();   // una linea de radio a medio decir no puede sobrevivir a la corrida
       dlgPausa = false;   // …ni su congelada: morir o salir durante el dialogo dejaria el mundo
                           // quieto sin nadie que lo suelte, y eso no se arregla desde adentro
@@ -3544,6 +3601,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       charlaTecla: () => charlaTecla(),
       pauseToggle: () => pauseToggle(),
       pauseNav: dir => pauseNav(dir),
+      pauseLado: dir => pauseLado(dir),
       pauseConfirm: () => pauseConfirm(),
       pauseBack: () => pauseBack(),
       // submenu de HISTORIA y lista de partidas guardadas
@@ -3562,6 +3620,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       upgNav: dir => upgNav(dir),
       upgConfirm: () => upgConfirm(),
       bancoNav: dir => bancoNav(dir),
+      bancoLeer: dir => bancoLeerMas(dir),
       aLaBase: () => aLaBase(),
       bancoConfirm: () => bancoConfirm(),
       cargaNav: dir => cargaNav(dir),
@@ -4927,7 +4986,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         run.dist += run.spd * dt;
         // ACANTILADO: no hay rotacion ni ascenso — el avion ya esta arriba y lo que sigue es el
         // vacio. Sin acantilado, la carrera termina en el clasico tirar de la palanca.
-        if (!cfg.cliff && toT > 1.35 && plane.y < 12) plane.y += 7.2 * dt;   // rotación y ascenso
+        if (!cfg.cliff && toT > 1.35 && toT <= 3 && plane.y < 12) plane.y += 7.2 * dt;   // rotación y ascenso (el piloto automatico, despues)
         // TREN ARRIBA apenas despega. La señal es haber dejado el piso; con ACANTILADO no hay
         // rotacion (el avion ya esta en alto y lo que sigue es el vacio), asi que ahi manda el
         // reloj: se recoge al pasar el borde.
@@ -4952,10 +5011,19 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             if (pu.y < 2.5) polvo(pu.x, PZ + pu.dz, 0.45);
           }
         }
-        const cn = 3 - Math.floor(toT);
-        if (cn !== toCount && cn >= 0) { toCount = cn; beep(cn > 0 ? 520 : 980, 0.14, 'square', 0.06); }
+        // EL PILOTO AUTOMATICO de los modos sueltos (data/modos_sueltos.js ARRANQUE): despegado, el avion sigue
+        // solo —a la altura de crucero, centrado— con otra cuenta: TOMAS EL CONTROL DEL AVION EN 3, 2, 1
+        const auto = conAuto && suelto() ? ARRANQUE.autoS : 0;
+        if (auto && toT > 3) {
+          const k = Math.min(1, dt * 1.6);
+          plane.y += (AIR_START_Y - plane.y) * k; plane.x += (0 - plane.x) * k;
+        }
+        const cn = toT < 3 ? 3 - Math.floor(toT) : auto ? 3 - Math.floor((toT - 3) * 3 / auto) + 10 : -1;
+        if (cn !== toCount && cn >= 0 && cn !== 10) { toCount = cn; beep(cn % 10 > 0 ? 520 : 980, 0.14, 'square', 0.06); }
         engineFly(run.spd, false, 0.017 * Math.min(1, toT));
-        if (toT >= 3) {
+        if (toT >= 3 + auto) {
+          if (auto) rutaSys.setLibre(run.dist + ARRANQUE.libreM);   // y adelante, la zona sin radar ni nada
+          conAuto = false;
           // SIN CARTEL (pedido del autor, 12/9): que aparezca el HUD ya dice que el avion es tuyo.
           setState('play'); run.shake = Math.min(6, run.shake + 1);
           squad.beginExit();   // la formacion sale de plano detras de la camara (render/squad.js)
@@ -5188,7 +5256,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             else {
               // CICLO: la corrida se termino con la muerte; la que sigue es otra, con otro blanco
               if (gameMode === 'cycle' && suelto()) randomMission();
-              reset(); setRunObjective(true); setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
+              reset(); setRunObjective(true); conAuto = true; setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
             }
           }
         } else if (S.state === 'relevo') {
@@ -5366,6 +5434,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           }
         } else if (S.state === 'banco') {
           bancoT += dtReal;   // EL BANCO SUELTO: el mundo en pausa; se elige por input.js (bancoNav/bancoConfirm)
+          // el carrusel se desliza hacia la elegida y la lectura baja suave (no a los saltos de la tecla)
+          const kz = 1 - Math.exp(-dtReal * 12);
+          bancoVista += (bancoSel - bancoVista) * kz;
+          bancoLeerV += (bancoLeer - bancoLeerV) * kz;
+          bancoSacude = Math.max(0, bancoSacude - dtReal);
         } else if (S.state === 'upgrade') {
           // EL BANCO DEL PICHON: reloj propio (run.t queda quieto entre misiones). La eleccion
           // entra por input.js (upgNav/upgConfirm), no por anyPress: hay que ELEGIR, no saltear.
@@ -5508,6 +5581,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // sentidos. Es un cartel y no una radio a proposito: en la ida vas en silencio. El primer
       // cuadro solo adopta el estado (despegar ya fuera de alcance no es "salir" de nada), y un
       // salto de sonda cuenta como cruce — es lo que el jugador veria.
+      if (rutaSys.libreHasta()) {
+        const l = rutaSys.enLibre();
+        if (libreAntes && !l) cartel(T('radarEntra'), P.accent);
+        libreAntes = l;
+      }
       if (rutaSys.hay()) {
         const alc = rutaSys.enAlcance();
         if (alcanceAntes !== null && alc !== alcanceAntes) {
@@ -6641,7 +6719,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // MENUS Y PANTALLAS: tambien en grilla de diseño (320x180), escaladas por U
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
-      if (S.state === 'takeoff') hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null);
+      if (S.state === 'takeoff') hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null, conAuto && suelto() ? ARRANQUE.autoS : 0, suelto());
       // LA CORTA FINAL: las ventanas se resuelven ACA y no en el HUD, con las mismas constantes que
       // despues CALIFICAN la toma. Si el dibujo tuviera su propia idea de "velocidad correcta", el
       // instrumento y el juez podrian discrepar — y no hay nada peor que un HUD en verde y un
@@ -6705,12 +6783,19 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL BANCO DEL PICHON: pantalla de mejora entre misiones. Desde M8 (muerto el Pichon,
       // indice 7) las mejoras salen de su libreta y la pantalla cambia de nombre.
       if (S.state === 'upgrade') menus.drawUpgrade({ offer: upgOffer, sel: upgSel, t: upgT, libreta: curLevel >= 7 });
-      if (S.state === 'banco' && bancoOffer) menus.drawBanco({ offer: bancoOffer.cartas, rota: bancoOffer.rota, sel: bancoSel, t: bancoT, libreta: pichon.length });
+      if (S.state === 'banco' && bancoOffer) {
+        const r = menus.drawBanco({ offer: bancoOffer.cartas, rota: bancoOffer.rota, sel: bancoSel, vista: bancoVista,
+          leer: bancoLeerV, sacude: bancoSacude, lee: leeDe, t: bancoT, libreta: pichon.length });
+        bancoLeerMax = r ? r.leerMax : 0;
+      }
       if (S.state === 'carga') menus.drawCarga({ rows: filasCarga(), sel: cargaSel, t: cargaT, bomba: fichaBomba() });
       // PAUSA: overlay en nativas, encima de todo lo del mundo (el fade de historia va despues,
       // pero con el juego pausado nunca conviven)
       if (paused) menus.drawPause({
         view: pauseView, sel: pauseSel, saveSel, rows: pauseRows(),
+        cartas: pauseView === 'cartas' ? cartasDeLaCorrida() : null, lee: leeDe,
+        cartasSel, cartasCrece: (cartasCrece = Math.min(1, cartasCrece + 0.12)), cartasLeer: (cartasLeerV += (cartasLeer - cartasLeerV) * 0.22),
+        alto: (m, n) => { cartasLeerMax = m; cartasN = n; },
         saveRows: pauseSaveRows(), t: pauseT, msg: pauseT - pauseMsgT,
       });
       // PAUSA DE DIALOGO: velo y CAJA DE LAS PANTALLAS, sin una sola fila de menu. El mundo queda
@@ -7475,9 +7560,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       window.__banco = () => JSON.stringify({ state: S.state, pend: bancoPend, prox: bancoProx, pichon: pichon.slice(),
         offer: bancoOffer ? bancoOffer.cartas.map(c => c.id) : null, rota: bancoOffer && bancoOffer.rota ? bancoOffer.rota.id : null,
         msl: run.msl, mslMax: run.mslMax, carga: cfg.carga, metralla: run.metralla, chafitas: run.chapitas, sinCanon: run.sinCanon, lives: run.lives });
+      // abrir el banco YA (para mirarlo): con `ids` se fuerza la oferta, y `rotaId` agrega esa como rota
+      window.__bancoAbrir = (ids, rotaId) => {
+        abrirBanco();
+        if (bancoOffer && ids) bancoOffer.cartas = ids.map(id => CARTAS_SUELTAS.find(x => x.id === id)).filter(Boolean);
+        if (bancoOffer && rotaId) { const c = CARTAS_SUELTAS.find(x => x.id === rotaId); bancoOffer.rota = c && { ...c, motivo: c.rota || 'Tu avion no puede llevarla' }; }
+        return window.__banco();
+      };
       window.__bancoElegir = i => { bancoSel = i | 0; bancoT = 1; bancoConfirm(); return window.__banco(); };
       // dar una carta por id (como si se la hubiera elegido), para medir su efecto
-      window.__bancoDar = id => { const c = CARTAS_SUELTAS.find(x => x.id === id); if (!c) return null; if (!c.uso) pichon.push(id); aplicarCarta(c);
+      window.__bancoDar = id => { const c = CARTAS_SUELTAS.find(x => x.id === id); if (!c) return null; if (!c.uso) pichon.push(id); cartasRun.push(id); aplicarCarta(c);
         return JSON.stringify({ id, potencia: run.potencia, escudoK: run.escudoK, aguAncho: run.aguAncho, relevoK: run.relevoK, chafRecarga: run.chafRecarga,
           chafK: run.chafK, radarGratis: run.radarGratis, mslMax: run.mslMax, msl: run.msl, carga: cfg.carga, chapitas: run.chapitas, lives: run.lives,
           metralla: run.metralla, cinta: run.cinta, sinCanon: run.sinCanon, gratis: run.chanchaGratis, integ: run.integ, bomba: bombaDeLaMision() }); };

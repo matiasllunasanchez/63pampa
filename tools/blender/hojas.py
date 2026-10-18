@@ -32,6 +32,12 @@ CH_MOT = [2.9, 5.9]
 CH_POD = (8.0, 0.80, 1.15)
 _conos = sorted(x for mx in CH_MOT for x in (-mx, mx))
 
+# el orden de los cuadros de la hoja `cartas` (src/data/iconos_cartas.js lo repite: si se cambia aca, alla)
+ICONOS_CARTAS = ['canon', 'cinta', 'bala', 'brp', 'snakeye', 'espoleta', 'ter', 'exocet',
+                 'chafitas', 'chapa', 'casco', 'llave', 'a4', 'caja_herr', 'motor', 'reloj',
+                 'cajon', 'tanques', 'hercules', 'arena', 'rasante', 'radar', 'neptune', 'auriculares',
+                 'antena', 'mirage', 'learjet', 'pinza', 'terreno', 'itb', 'paracaidas', 'pirueta']
+
 HOJAS = {
     # LOS HELICOPTEROS, HECHOS EN BLENDER (4/10/2026, tools/blender/modelos_helos.py): el de siempre
     # es el Sea King HC.4 verde de los comandos
@@ -153,6 +159,12 @@ HOJAS = {
     'bengala': dict(nueva=True, fw=24, fh=32, pos=(0, 0.05, 2.6), fov=26, lookY=0.05, cols=8, cajas=False, contorno=False,
                     destino='assets/ammo/bengala.png',
                     frames=[dict(modelo='bl:municion_bengala:%d' % f, rots=[]) for f in range(8)]),
+    # LOS DIBUJOS DE LAS CARTAS DEL BANCO (18/10/2026, tools/blender/modelos_cartas.py): un cuadro por dibujo, en
+    # el orden de ICONOS_CARTAS (el mismo que src/data/iconos_cartas.js). Cada modelo se posa y encuadra solo
+    # (`rots` vacio); teleobjetivo de frente para que no se deformen. Con contorno: van sobre la carta.
+    'cartas': dict(nueva=True, fw=96, fh=96, pos=(0, 0, 12), fov=18, lookY=0, cols=8, cajas=False,
+                   destino='assets/hud/cartas.png',
+                   frames=[dict(modelo='bl:carta_' + k, rots=[]) for k in ICONOS_CARTAS]),
     # ---------------- EL FUEGO Y EL HUMO (4/10/2026, tools/blender/modelos_fuego.py) ----------------
     # HOJAS NUEVAS: hasta hoy el fuego y el humo se dibujaban por codigo con rectangulos. De frente y sin
     # volteo (`rots` vacio), sin contorno (el fuego no tiene borde oscuro) y sin caja (la grilla la sabe
