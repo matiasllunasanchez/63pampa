@@ -3,7 +3,7 @@
 // Cada funcion recibe `w`: un snapshot chico de solo lectura con lo que necesita mostrar. No leen
 // estado global — asi se pueden dibujar en cualquier momento (util para probarlas sueltas) y se ve
 // de un vistazo de que dependen.
-import { ctx, DW as W, DH as H, px, panel, wrapText, titleFont, menuFont, descFont, labelFont, handFont, rotuloChicoFont, avisoFont } from './ctx.js';
+import { ctx, DW as W, DH as H, px, panel, wrapText, titleFont, menuFont, descFont, labelFont, handFont, rotuloChicoFont, avisoFont, uiFont } from './ctx.js';
 import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
@@ -334,9 +334,11 @@ function bloque(lines, y, lh, color) {
  *  fondo a la derecha. El texto, a la izquierda. Se apoya ABAJO, cerca del filete del pie
  *  (`yFondo`); si es tan largo que llegaria al puntaje (`yMin`), crece hacia abajo igual. */
 const ORO = '214, 160, 70';
-// ESCRITA A MANO (autor, 16/10): la birome de Mateo (handFont, Mayorice), un poco mas grande que la
+// ESCRITA A MANO (autor, 16/10), en EmbolismSpark (autor, 18/10, elegida entre las manuscritas del
+// banco). OJO: dibuja las vocales acentuadas SIN la tilde (tools/glifos.js) — el autor lo sabe y la
+// eligio igual. La unica del banco con tildes es Mayorice (handFont). Un poco mas grande que la
 // letra de imprenta porque la manuscrita a 7 px se empasta. Tinta clara, color papel.
-const notaFont = () => handFont(10);
+const notaFont = () => uiFont('EmbolismSpark', 10, '');
 function notaHistorica(lines, yFondo, yMin) {
   const LH = 10, bw = FIN_TXT.ancho + 4, bx = (W - bw) / 2;
   const bh = 8 + lines.length * LH + 4;
