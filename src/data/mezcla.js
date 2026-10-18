@@ -10,7 +10,7 @@
 /** CUANTO SUENA CADA GRUPO: multiplica el volumen propio de cada sonido (`v` en data/sfx.js). La musica
  *  multiplica el volumen base de cada pista (audio.js). */
 export const MEZCLA = {
-  musica: 1,        // (18/10, el autor: "un poco mas alta la musica"; era 0.8)
+  musica: 1.5,      // (18/10, el autor: "priorizar la musica, un poco mas alta"; era 0.8, despues 1)
   vuelo: 0.22,      // motor, poscombustion, agua, ambiente
   combate: 0.25,    // metrallas, cañon, misiles, explosiones
   atencion: 0.35,   // radares, detectando, alarma, Exocet, el lanzamiento del buque

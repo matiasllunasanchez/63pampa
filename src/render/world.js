@@ -227,10 +227,17 @@ function portRow(y, wz, k, x0, x1, f) {
   const ra = Math.max(a, x0), rb = Math.min(b, x1);
   const bw = Math.max(1, 0.5 * k);
   if (rb > ra) {
-    px(ra, y, rb - ra, 1, R.surf);
+    // (los bordes con decimales, como la linea: redondeados al pixel salian en escalera — 18/10)
+    ctx.fillStyle = R.surf; ctx.fillRect(ra, y, rb - ra, 1);
     if (R.center === 'amarilla') {                                    // la linea AMARILLA continua (BAM Malvinas)
-      const lw = Math.max(1, 0.32 * k), ex = W / 2 + (0 - cam.x) * k + ZB - lw / 2;
-      if (ex >= x0 && ex + lw <= x1) px(ex, y, lw, 1, '#d6b23c');
+      // SIN ESCALONES Y SIN ENGORDAR (18/10, el autor: "la pista se ve fea, mas que nada la linea
+      // amarilla"): iba fila por fila redondeada al pixel, y al correrse el avion de costado salia en
+      // escalera; y su ancho crecia sin techo, asi que debajo de la camara era una barra gorda. Ahora la
+      // x va con decimales (el borde se suaviza solo), mas angosta, con techo, y un amarillo mas gastado.
+      const lw = Math.min(5, Math.max(0.8, 0.2 * k)), ex = W / 2 + (0 - cam.x) * k + ZB - lw / 2;
+      if (ex >= x0 && ex + lw <= x1) {
+        ctx.globalAlpha = 0.85; ctx.fillStyle = '#c9a63e'; ctx.fillRect(ex, y, lw, 1); ctx.globalAlpha = 1;
+      }
     } else if (R.center && Math.floor(wz / 9) % 2 === 0) {           // eje discontinuo
       const ex = W / 2 + (0 - cam.x) * k + ZB - bw / 2;
       if (ex >= x0 && ex + bw <= x1) px(ex, y, bw, 1, '#9aa39b');

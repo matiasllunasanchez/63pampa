@@ -491,8 +491,7 @@ export function initInput(cv, a) {
       const p = canvasPos(e);
       if (mouse.on || Math.hypot(p.x - mouse.x, p.y - mouse.y) >= MIRA_SUELTA) {
         mouse.x = p.x; mouse.y = p.y; mouse.on = true;
-        clearTimeout(miraQuietaT);
-        miraQuietaT = setTimeout(() => { if (!cfg.aim) mouse.on = false; }, MIRA_QUIETA);
+        miraActiva();
       }
     }
     if (e.pointerId === steerPtr) pointer.steer = canvasPos(e);
@@ -555,7 +554,20 @@ export function initInput(cv, a) {
   let btnPrev = [];                            // estado previo de botones (flanco)
   let padLast = performance.now();             // para el dt del movimiento fluido de la mira
   let capsPrev = null;
-  let miraQuietaT = 0;                         // el reloj de MIRA_QUIETA (ver pointermove)
+  // EL RELOJ DE MIRA_QUIETA (ver pointermove). DISPARAR TAMBIEN LA SOSTIENE (18/10, el autor: "si se
+  // dispara se mantiene; apenas deja de disparar y se deja de mover, se cuentan 5 segundos y vuelve"):
+  // mientras la mira esta suelta, un vistazo cada 100 ms — con el gatillo apretado (teclado, mouse o
+  // mando: todos terminan en `inp.fire`) el reloj vuelve a cero; quieta Y sin disparar MIRA_QUIETA, vuelve.
+  let miraUlt = 0, miraVigia = 0;
+  function miraActiva() {
+    miraUlt = performance.now();
+    if (miraVigia) return;
+    miraVigia = setInterval(() => {
+      if (inp.fire) miraUlt = performance.now();
+      if (!mouse.on || cfg.aim) { if (!mouse.on) { clearInterval(miraVigia); miraVigia = 0; } return; }
+      if (performance.now() - miraUlt >= MIRA_QUIETA) { mouse.on = false; clearInterval(miraVigia); miraVigia = 0; }
+    }, 100);
+  }
   const nav = { u: false, d: false, l: false, r: false };   // navegacion previa (cruceta+stick)
 
   // CAPS LOCK gobierna la mira: activa = MOVIL (la mueve el mouse), inactiva = FIJA.

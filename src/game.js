@@ -4904,7 +4904,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // hay "entrar en alcance", asi que el barrido verde y su sonido salen al empezar a volar
       if (suelto() && (S.state === 'play' || S.state === 'takeoff')) aplicarPresion();
       if (S.state === 'play') { stepBanco(dt); stepFallas(dt); }   // el banco suelto: umbrales de puntos y la apertura en un momento seguro
-      if (suelto() && S.state === 'play' && radarScanT < 0 && !rutaSys.hay()) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
+      // (…recien AL SALIR de la zona sin radar del arranque — 18/10, el autor: "en POR LA PATRIA se escucha el
+      // radar apenas arranca, en la zona fuera de radar, y no se ve": el sonido salia al empezar a volar y
+      // el barrido, con razon, no. Ahora los dos esperan a `enAlcance`, que ya sabe de la zona libre)
+      if (suelto() && S.state === 'play' && radarScanT < 0 && !rutaSys.hay() && rutaSys.enAlcance()) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
       // DETECTANDO: en la zona verde (arriba del techo, en alcance) y con la barra subiendo
       detectando(S.state === 'play' && rutaSys.enAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
       { const techo = fases.techoRadar(RADAR_ALT), RV_RANGO = 14;

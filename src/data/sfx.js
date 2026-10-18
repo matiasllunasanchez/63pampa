@@ -11,15 +11,15 @@ export const SFXB = '../assets/sfx/';
 export const SFX_DEF = {
   // armas
   // LAS TRES METRALLAS (9/10, ver METRALLAS en data/tuning.js): un loop por cada una.
-  gun: { f: ['ammo/machinegun_slow.mp3'], v: 0.65, loop: true },      // COMUN: la de siempre (+30%)
+  gun: { f: ['ammo/machinegun_slow.mp3'], v: 0.45, loop: true },   // (18/10, el autor: metralletas mas bajas; era 0.65)      // COMUN: la de siempre (+30%)
   // PLATA: minigun_ammo2, sacada del .mov que mando el autor (el audio ya era mp3: se copio sin
   // recodificar). Suena ~11 dB mas fuerte que la comun (media -5,4 contra -16,4 dB): por eso 0.2.
-  gunPlata: { f: ['ammo/minigun_ammo2.mp3'], v: 0.2, loop: true },
+  gunPlata: { f: ['ammo/minigun_ammo2.mp3'], v: 0.14, loop: true },   // (18/10: era 0.2)
   // ORO: minigun00 trae el GIRO de los caños (0 a 1,0 s), el disparo (1,0 a 4,9 s) y la frenada (de
   // 4,9 al final). Arranca del principio en cada apretada y, mientras se tire, da vueltas por `bucle`
   // —el tramo que dispara—, asi el giro suena una sola vez y la frenada nunca. Al soltar se CORTA y
   // entra la descarga (systems/audio.js). ~13 dB mas fuerte que la comun.
-  gunOro: { f: ['ammo/minigun00.mp3'], v: 0.15, loop: true, bucle: [1.0, 4.85], corta: true },
+  gunOro: { f: ['ammo/minigun00.mp3'], v: 0.1, loop: true, bucle: [1.0, 4.85], corta: true },
   // LA DESCARGA de la metralla (autor, 4/10): suena cada vez que deja de tirar (soltaste o se
   // recalento) y se corta al volver a apretar — ver systems/audio.js. (ammo/carga.mp3 queda en
   // disco: hubo una carga al apretar y el autor la saco.)
@@ -44,13 +44,13 @@ export const SFX_DEF = {
   lv1: { f: ['flying/motor/lv1.wav'], v: 0.6 },                        // despegue + conteo
   engN: { f: ['flying/motor/normal.wav'], v: 0.32, loop: true },       // crucero (se intercala con engN2)
   engN2: { f: ['flying/motor/normal2.wav'], v: 0.32, loop: true },
-  turbo: { f: ['flying/motor/turbo.wav'], v: 0.3, loop: true },   // (18/10, el autor: "mas bajo el volumen del turbo"; era 0.5)
+  turbo: { f: ['flying/motor/turbo.wav'], v: 0.2, loop: true },   // (18/10, el autor, dos veces: "mas bajo el turbo"; era 0.5, despues 0.3)
   // LA POSCOMBUSTION (autor, 16/10), sumada al loop del turbo: al apretar, el ARRANQUE (5,6 s); si se
   // mantiene, el SOSTENIDO en loop, encimado 1 s con el final del arranque. Los maneja postcombustion()
   // en systems/audio.js (necesitan volumen propio y un loop recortado: el sostenido trae 0,86 s de
   // silencio adelante y 0,4 al final).
-  abInicio: { f: ['flying/motor/afterburner_start.mp3'], v: 0.33 },   // (18/10: mas bajo, con el turbo; era 0.55)
-  abSostenido: { f: ['flying/motor/afterburner_2.mp3'], v: 0.27, desde: 0.86, hasta: 32.8 },
+  abInicio: { f: ['flying/motor/afterburner_start.mp3'], v: 0.22 },   // (18/10: mas bajo, con el turbo; era 0.55)
+  abSostenido: { f: ['flying/motor/afterburner_2.mp3'], v: 0.18, desde: 0.86, hasta: 32.8 },
   waterNear: { f: ['flying/water_near_plane.mp3'], v: 0.22, loop: true },   // rasante, volumen bajo
   waveFly: { f: ['flying/motor/wave_fly1.wav', 'flying/motor/wave_fly2.wav'], v: 0.27 },   // (18/10: la rafaga del esquive, mas baja; era 0.45)  // paso bajo sobre el agua
   // ROCE: pasar cerca de un obstaculo sin chocarlo. Tiene sonido PROPIO (antes compartia el del
