@@ -518,3 +518,43 @@ def base_costera(T, K):
     for i, (x, z) in enumerate(((-1.75, -1.35), (-1.8, -1.12), (-1.6, -1.22))):
         columna('tambor_b', raiz, K['mat_cel']('tambor_b%d' % (i % 2), '#6d7a4a' if i % 2 else '#7d8a55'), x, z, [(0, 0.075, 0.075), (0.2, 0.075, 0.075)], expo=2.0)
     return raiz
+
+# ============================ EL BIDON DE COMBUSTIBLE (lo que se agarra) ============================
+# (18/10/2026, el autor: "los tanques flotantes que aparecen en POR LA PATRIA o CICLO DE MUERTE, horneados en
+# Blender, que digan GAS en amarillo"). Hasta hoy era un dibujo de rectangulos en render/world.js. Un tambor de
+# 200 litros, verde oliva, con los dos aros de rodadura, el borde de arriba y los dos tapones, y GAS en amarillo
+# en el frente, curvado sobre el tambor. `giro` (radianes) lo hace rotar un poco: las columnas de la hoja.
+BIDON_R, BIDON_H = 0.60, 1.62
+def bidon(T, K, giro='0'):
+    raiz = _raiz(T, 'Bidon')
+    raiz.rotation_euler = (0, float(giro), 0)
+    R, H = BIDON_R, BIDON_H
+    chapa = K['mat_cel']('bidon', '#4f5c34')
+    aro = K['mat_cel']('bidon_aro', '#3d4828')
+    columna('tambor', raiz, chapa, 0, 0, [(0.0, R, R), (H, R, R)], expo=2.0)
+    for y in (0.0, H - 0.04):                                             # los bordes de abajo y de arriba
+        columna('borde', raiz, aro, 0, 0, [(y, R * 1.02, R * 1.02), (y + 0.06, R * 1.02, R * 1.02)], expo=2.0)
+    for y in (H * 0.33, H * 0.67):                                        # los aros de rodadura
+        columna('aro', raiz, aro, 0, 0, [(y - 0.035, R * 1.035, R * 1.035), (y + 0.035, R * 1.035, R * 1.035)], expo=2.0)
+    for x, z, r in ((-0.30, -0.12, 0.09), (0.26, 0.20, 0.06)):            # los tapones
+        columna('tapon', raiz, K['mat_cel']('tapon', '#5b6052'), x, z, [(H, r, r), (H + 0.05, r, r)], expo=2.0)
+    # GAS en amarillo, en el frente (+z, hacia la camara), entre los dos aros y CURVADO sobre el tambor
+    cu = bpy.data.curves.new('gas', 'FONT'); cu.body = 'GAS'; cu.size = 0.56
+    cu.align_x = 'CENTER'; cu.align_y = 'CENTER'; cu.extrude = 0.004
+    try:
+        cu.font = bpy.data.fonts.load('/System/Library/Fonts/Supplemental/Arial Black.ttf', check_existing=True)
+    except Exception:
+        pass                                                               # (sin esa fuente: la de Blender)
+    tmp = bpy.data.objects.new('gas_tmp', cu); bpy.context.scene.collection.objects.link(tmp)
+    me = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    bpy.data.objects.remove(tmp)
+    me.materials.append(K['mat_cel']('gas', '#f2c531'))
+    # de los DOS lados: el tambor gira en la hoja y asi siempre muestra el GAS
+    for sg in (1, -1):
+        m2 = me.copy()
+        for v in m2.vertices:                                             # pegado a la curva del tambor
+            x = max(-R * 0.98, min(R * 0.98, v.co.x))
+            v.co = Vector((-v.co.x, v.co.y + H / 2, sg * (math.sqrt(R * R - x * x) + 0.012 + v.co.z)))   # (la hoja sale espejada)
+        if sg < 0: m2.flip_normals()
+        ob = bpy.data.objects.new('gas', m2); bpy.context.scene.collection.objects.link(ob); ob.parent = raiz
+    return raiz

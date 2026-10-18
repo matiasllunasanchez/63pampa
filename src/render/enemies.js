@@ -50,6 +50,7 @@ const FILES = {
   tent: '../assets/world/enemies/tent.png',
   eyectado: '../assets/world/enemies/eyectado.png',
   depot: '../assets/world/enemies/depot.png',
+  bidon: '../assets/world/enemies/bidon.png',   // el bidon que se agarra (18/10, GAS en amarillo)
   bldg: '../assets/world/enemies/bldg.png',
   fragata: '../assets/world/enemies/fragata.png',
   pesquero: '../assets/world/enemies/pesquero.png',
@@ -160,6 +161,7 @@ const ARTE = {
   // depot y bldg se escalan por ALTURA al dibujar (o.h varia por spawn): wu es el ancho a la
   // altura de referencia y drawFrame recibe el k ya multiplicado por (o.h / href)
   depot: { wu: 8.2, href: 5.5 },
+  bidon: { wu: 2.6 },
   bldg: { wu: 6.8, href: 9.5 },
   fragata: { wu: 11 },
   // LOS CIVILES que salen en lugar de la fragata cada tanto (4/10/2026): mas chicos que ella

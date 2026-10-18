@@ -94,6 +94,10 @@ HOJAS = {
                    frames=[dict(modelo='bl:manpad:%r' % a) for a in (0.7, 1.0)]),
     'tent': dict(contorno=False, fw=48, fh=48, dist=12, lookY=0.6, quarter=0.35, cols=1, frames=[dict(modelo='bl:carpa')]),
     'depot': dict(contorno=False, fw=64, fh=48, dist=15, lookY=1.0, quarter=0.4, cols=1, frames=[dict(modelo='bl:deposito')]),
+    # EL BIDON que se agarra en POR LA PATRIA y el CICLO (18/10, modelos_tierra.bidon): GAS en amarillo, y cuatro
+    # cuadros que lo hacen girar un poco (render/world.js los recorre mientras flota). Nuevo: sin version de three.
+    'bidon': dict(contorno=False, fw=72, fh=88, dist=5.0, lookY=0.85, quarter=0.0, cols=4, nueva=True,
+                  frames=[dict(modelo='bl:bidon:%r' % a) for a in (-0.35, -0.12, 0.12, 0.35)]),
     'bldg': dict(contorno=False, fw=64, fh=48, dist=14, lookY=1.4, quarter=0.35, cols=1, frames=[dict(modelo='bl:puesto')]),
     # ---------------- FASE 5: LOS RESTOS ----------------
     # (remodelados en Blender el 4/10/2026: tools/blender/modelos_restos.py, con los modelos nuevos; cuatro

@@ -2520,6 +2520,13 @@ function dibujarObstaculo(o) {
     ctx.globalAlpha = 0.14 + (0.5 + 0.5 * Math.sin(run.t * 4)) * 0.12;
     px(s.x - w * 0.8, s.y - h * 0.66, w * 1.6, h * 1.32, P.accent);
     ctx.globalAlpha = 1;
+    // HORNEADO EN BLENDER (18/10, el autor: "que digan GAS en amarillo"): el tambor verde oliva con GAS, que
+    // gira despacio (las 4 columnas de la hoja, ida y vuelta). Sin la hoja, el dibujo de antes.
+    if (enemyArt.ready('bidon')) {
+      const f = Math.floor(run.t * 3 + (o.x || 0)) % 6, col = f < 4 ? f : 6 - f;
+      enemyArt.drawFrame(ctx, 'bidon', col, 0, s.x, { centerY: s.y }, k, false);
+      return;
+    }
     px(s.x - w / 2, s.y - h / 2, w, h, '#c9721e');                                    // tambor
     px(s.x - w / 2, s.y - h / 2, Math.max(1, w * 0.3), h, '#e8963c');                 // canto al sol
     px(s.x - w / 2, s.y - h * 0.12, w, Math.max(1, h * 0.16), '#8d4d12');             // aro central
