@@ -13,6 +13,7 @@ import {
 } from '../src/core/physics.js';
 
 import { PRUEBAS, momentos } from '../src/data/pruebas.js';
+import { oleadaDe, RAMPA, OLEADA } from '../src/data/modos_sueltos.js';
 
 const near = (a, b, tol = 1e-6) => assert.ok(Math.abs(a - b) <= tol, `${a} != ${b}`);
 
@@ -4280,4 +4281,10 @@ test('misiones: la pista que pide una mision esta en el reproductor', () => {
   for (const p of pedidas) {
     assert.ok(nombres.includes(p), `una mision pide la pista '${p}' y el reproductor no la tiene`);
   }
+});
+
+test('la oleada de los modos sueltos: arranca en 1, sube cada OLEADA.km y topa en MAX con el nivel pleno', () => {
+  assert.equal(oleadaDe(0).n, 1); assert.equal(oleadaDe(0).max, false);
+  assert.equal(oleadaDe(OLEADA.km * 1.5).n, 2); assert.ok(Math.abs(oleadaDe(OLEADA.km * 1.5).frac - 0.5) < 1e-9);
+  assert.equal(oleadaDe(RAMPA.kmPleno).max, true); assert.equal(oleadaDe(RAMPA.kmPleno * 3).n, oleadaDe(RAMPA.kmPleno).n);
 });

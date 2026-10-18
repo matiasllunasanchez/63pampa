@@ -91,6 +91,7 @@ const MUSIC_MISION = ORIGINAL_DISCO.length ? ORIGINAL_DISCO.map(f => ORIGINAL_DI
   '../assets/music/original/last_aires1.mp3',
   '../assets/music/original/last_aires2.mp3',
   '../assets/music/original/Malambo.m4a',
+  '../assets/music/original/dicen_de_mi.m4a',
   '../assets/music/original/tangalfa.m4a',
   '../assets/music/original/tangbeta.m4a',
   '../assets/music/original/wardoneon1.mp3',

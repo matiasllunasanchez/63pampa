@@ -13,16 +13,18 @@
 
 export const SISTEMAS = {
   // EL REABASTECIMIENTO (la sonda): el historico, el que mas fallaba. Cargado a TOTAL: "tenia que volver".
-  reabast: { base: 0.33, grados: [35, 30, 35], es: ['CARGA LENTA', 'SE DESENGANCHA', 'SONDA ROTA'],
+  // (18/10, el autor: "bajá las probabilidades" — con 33/20/10/6 salia fallado el 55% de la escuadrilla y en
+  // el despegue se iban 5 de 8 al taller; con 15/10/5/3, ~30%. El reabastecimiento sigue siendo el mas comun)
+  reabast: { base: 0.15, grados: [35, 30, 35], es: ['CARGA LENTA', 'SE DESENGANCHA', 'SONDA ROTA'],
     en: ['SLOW REFUEL', 'DISCONNECTS', 'PROBE BROKEN'] },
   // EL LANZADOR: las bombas que no se desprenden
-  bombas: { base: 0.20, grados: [50, 35, 15], es: ['SE TRABA A VECES', 'SE TRABA SEGUIDO', 'NO SE DESPRENDEN'],
+  bombas: { base: 0.10, grados: [50, 35, 15], es: ['SE TRABA A VECES', 'SE TRABA SEGUIDO', 'NO SE DESPRENDEN'],
     en: ['JAMS AT TIMES', 'JAMS OFTEN', 'WON\'T RELEASE'] },
   // LOS CAÑONES
-  canon: { base: 0.10, grados: [50, 35, 15], es: ['RECALIENTA', 'UN SOLO CAÑON', 'CAÑONES MUDOS'],
+  canon: { base: 0.05, grados: [50, 35, 15], es: ['RECALIENTA', 'UN SOLO CAÑON', 'CAÑONES MUDOS'],
     en: ['OVERHEATS', 'ONE GUN ONLY', 'GUNS DEAD'] },
   // EL ALTIMETRO: no quita nada, cambia COMO se vuela
-  altimetro: { base: 0.06, grados: [50, 35, 15], es: ['ALTIMETRO TIEMBLA', 'ALTIMETRO ATRASA', 'ALTIMETRO MUERTO'],
+  altimetro: { base: 0.03, grados: [50, 35, 15], es: ['ALTIMETRO TIEMBLA', 'ALTIMETRO ATRASA', 'ALTIMETRO MUERTO'],
     en: ['ALTIMETER JITTERS', 'ALTIMETER LAGS', 'ALTIMETER DEAD'] },
 };
 export const SISTEMAS_ID = Object.keys(SISTEMAS);

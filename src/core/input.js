@@ -340,7 +340,8 @@ export function initInput(cv, a) {
       return;
     }
     // VOLVER A LA BASE [R] (PLAN_FALLAS, modos sueltos): el que vuela se retira y vuelve reparado mas tarde
-    if (e.code === 'KeyR' && !e.repeat && S.state === 'play' && a.aLaBase) { a.aLaBase(); e.preventDefault(); return; }
+    // …y con SHIFT, todos los que tienen fallas (los de la fila, y el que vuela si queda alguien sano)
+    if (e.code === 'KeyR' && !e.repeat && S.state === 'play' && a.aLaBase) { (e.shiftKey && a.aLaBaseTodos ? a.aLaBaseTodos : a.aLaBase)(); e.preventDefault(); return; }
     if (S.state === 'banco') {                                           // EL BANCO SUELTO: elegir UNA carta
       // las cartas van en fila: izquierda / derecha pasan de carta; arriba / abajo leen (con la tecla
       // apretada sigue bajando: el repeat del teclado)

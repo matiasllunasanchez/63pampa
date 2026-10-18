@@ -42,6 +42,14 @@ export const DIF_DEFAULT = 0;   // FACIL: cada vez que se abre el juego arranca 
  *  Cada perilla del spawn arranca en su `base`, se multiplica por la presion y nunca pasa de su `techo`
  *  (un pasillo imposible no es dificil, es injusto). Con ~130 m/s, 50 km son unos seis minutos y medio. */
 export const RAMPA = { kmPleno: 50, curva: 1.3, max: 3 };
+/** LA OLEADA que se ve en el HUD (18/10, el autor: "algun indicador que vaya mostrando el nivel de oleadas o
+ *  dificultad creciente"): una cada `km` kilometros de la corrida (en CICLO, de todos los blancos), hasta el
+ *  nivel pleno de la RAMPA — de ahi en mas, MAX. Es la misma cuenta que mueve el spawn, mostrada en escalones. */
+export const OLEADA = { km: 5 };
+export const oleadaDe = km => {
+  const max = Math.floor(RAMPA.kmPleno / OLEADA.km) + 1, n = Math.min(max, 1 + Math.floor(Math.max(0, km) / OLEADA.km));
+  return { n, max: n >= max, frac: n >= max ? 1 : (Math.max(0, km) % OLEADA.km) / OLEADA.km, nivel: nivelCorrida(km) };
+};
 export const ALARMA = { golpe: [1.15, 1.7], porEstrella: 0.3 };
 export const DETECCION = { cargaS: [5, 1.6] };
 /** El nivel de la corrida (0..1) a `km` volados. */

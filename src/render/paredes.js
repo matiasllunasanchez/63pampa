@@ -197,6 +197,25 @@ export function techoLadera(wx, camZ, ex, ey, dv) {
 const px2 = (x, z, ex) => W / 2 + (x - (ex === undefined ? cam.x : ex) + bendW(z)) * (F / z);
 const py2 = (y, z, ey) => HOR + ((ey === undefined ? cam.y : ey) - y) * (F / z);
 
+/** ¿LA LADERA TAPA UN PUNTO DEL HORIZONTE? (las luces lejanas de la noche, render/noche.js — 18/10). Un punto
+ *  de PANTALLA (sx, sy) que esta lejisimos: lo tapa cualquier tramo de roca mas cerca cuya cresta quede por
+ *  encima de el y cuya columna caiga del lado de la roca — la cara o la meseta de arriba, que sigue hacia
+ *  afuera (`techoLadera` mira solo la cara, porque los obstaculos estan siempre adentro del carril). */
+export function tapaHorizonte(sx, sy) {
+  const p = pared();
+  if (!p) return false;
+  for (const lado of [-1, 1]) {
+    for (let z = 4; z < 2000; z += Math.max(6, z * 0.08)) {
+      const wz = run.dist + z, h = paredH(wz, lado);
+      if (h <= 0.05) continue;
+      const pie = lado * paredXAt(wz, lado), a = px2(pie, z);
+      if (lado > 0 ? sx < a : sx > a) continue;                       // la columna esta adentro del carril
+      if (py2(alturaSuelo(pie, wz) + h, z) <= sy) return true;
+    }
+  }
+  return false;
+}
+
 /** ¿Hay algo que dibujar? Barato y primero: sin paredes esto no cuesta ni un `proj`. */
 export const hayParedes = () => !!pared();
 

@@ -67,6 +67,7 @@ WEB_DROP = [
     'original/last_aires1.mp3',
     'original/last_aires2.mp3',
     'original/Malambo.m4a',
+    'original/dicen_de_mi.m4a',
     'original/tangalfa.m4a',
     'original/tangbeta.m4a',
     'original/wardoneon1.mp3',

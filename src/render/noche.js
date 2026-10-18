@@ -18,6 +18,7 @@ import { geoActiva, esTierraEn } from '../core/geografia.js';
 import { run } from '../core/run.js';
 import { capaLuz, luz } from './brillo.js';
 import { NOCHE } from '../data/noche.js';
+import { tapaHorizonte } from './paredes.js';
 
 /** Que noche hace con el cielo `sky` (null = de dia, no se oscurece nada). */
 export const nocheDe = sky => NOCHE.CIELOS[sky] || null;
@@ -111,6 +112,10 @@ export function drawNoche(n, astro, giro) {
     const x = W / 2 + (l.x - cam.x * 0.25) * 0.45;
     if (x < -4 || x > W + 4) continue;
     const y = HOR + l.dy;
+    // …Y LO QUE TIENEN DELANTE LAS TAPA (18/10, el autor: "las luces del horizonte se ven por encima de las
+    // montañas que deberian taparlas"): estan lejos, asi que cualquier ladera del callejon que cubra esa
+    // columna por encima de ellas las esconde (la cara o la meseta de arriba).
+    if (tapada(x, y)) continue;
     let al = n.lejanas;
     if (l.parpa) al *= 0.35 + 0.65 * Math.max(0, Math.sin(run.t * 2.2 + l.ph));
     const [cr, cg, cb] = l.c;
@@ -122,6 +127,9 @@ export function drawNoche(n, astro, giro) {
   ctx.restore();
   ctx.restore();   // el giro
 }
+
+/** ¿Hay una ladera entre el ojo y la luz lejana de la pantalla (x, y)? (render/paredes.js) */
+const tapada = (x, y) => tapaHorizonte(x, y + 0.5);
 
 /** EL REFLEJO DE LA LUNA en el agua: una columna que tiembla debajo del astro, hecha de rayas.
  *

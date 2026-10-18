@@ -505,6 +505,29 @@ function drawPuntos(x, y) {
   ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.textAlign = 'right';
   ctx.fillText(T('hud_pts'), x + w - 3, y + 9);
 }
+/** LA AMENAZA (modos sueltos, 18/10): rotulo, el numero en su color —verde al arrancar, ambar, rojo al final—
+ *  y una barrita de cinco que se llena hasta el siguiente nivel; en el tope dice MAX. `xd` = el borde DERECHO. */
+const OLEADA_COL = ['#7fc8a0', '#c9c25a', P.accent, '#e0703c', P.warn];
+function drawOleada(xd, y, o) {
+  // (el autor, 18/10: "AMENAZA NV. 1, asi")
+  const col = OLEADA_COL[Math.min(4, Math.floor(o.nivel * 5))], num = T('hud_oleadaNv') + ' ' + (o.max ? T('hud_oleadaMax') : String(o.n));
+  ctx.font = F_ROT; const rw = ctx.measureText(T('hud_oleada')).width;
+  ctx.font = 'bold 7px monospace'; const nw = ctx.measureText(num).width;
+  const w = Math.ceil(3 + rw + 3 + nw + 3 + 14 + 3), x = xd - w;
+  plate(x, y, w, 9);
+  ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.dim;
+  ctx.fillText(T('hud_oleada'), x + 3, y + 6.5);
+  ctx.font = 'bold 7px monospace'; ctx.fillStyle = col;
+  ctx.fillText(num, x + 6 + rw, y + 7);
+  for (let i = 0; i < 5; i++) px(x + w - 17 + i * 3, y + 3, 2, 3, o.max || o.frac * 5 > i ? col : '#2a3238');
+}
+function drawAtajoTaller(x, y, n) {
+  const txt = n > 1 ? T('hud_reparar', { n }) : T('hud_reparar1');
+  ctx.font = F_ROT; const w = Math.ceil(ctx.measureText(txt).width) + 8;
+  plate(x, y, w, 9);
+  ctx.textAlign = 'left'; ctx.fillStyle = Math.sin(run.t * 3) > -0.5 ? '#e8b04a' : P.dim;
+  ctx.fillText(txt, x + 4, y + 6.5);
+}
 function drawOdo(x, y) {
   const km = Math.max(0, run.dist) / 1000;
   const ent = String(Math.floor(km)), dec = Math.floor((km - Math.floor(km)) * 10);
@@ -2290,6 +2313,8 @@ export function drawHUD(h) {
   // EL PUNTAJE EN EL CICLO (16/10: "los puntos en ambos modos siempre se muestran"). En POR LA PATRIA
   // ya esta en la cinta de arriba; en el ciclo la cinta es del blanco, asi que va su placa aca.
   if (gameMode === 'cycle' && h.suelto) { drawPuntos(MARGEN, ty); ty += 12 + AIRE; }
+  // EL ATAJO DEL TALLER (18/10): con aviones con fallas, la tecla que los manda a todos a reparar
+  if (h.suelto && h.fallados > 0) { drawAtajoTaller(MARGEN, ty, h.fallados); ty += 9 + AIRE; }
   // LA CINTA: contra el buque si hay objetivo, contra tu record si es POR LA PATRIA.
   //
   // EL RECORD ES DE POR LA PATRIA Y DE NINGUN OTRO MODO. `rasante_frontal_best` es UN numero
@@ -2302,6 +2327,9 @@ export function drawHUD(h) {
   drawCartel();
   if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa, h.ruta);
   else if (gameMode === 'survival') drawCorridaBar();
+  // LA AMENAZA de los modos sueltos (cuanto aprieta el mundo ahora, data/modos_sueltos.js OLEADA): chica,
+  // arriba a la derecha — en el CICLO, debajo del filo derecho de la cinta, que ahi llega hasta el borde
+  if (h.suelto && h.oleada) drawOleada(W - MARGEN, objectiveDist > 0 ? MARGEN + 13 : MARGEN, h.oleada);
 
   // EL CONTADOR DE MISION SE FUE (playtest 29/8). «MISION 3/14» arriba del todo era lo unico del
   // HUD que hablaba del MENU y no del vuelo: en que numero de la campaña estas no cambia nada de lo

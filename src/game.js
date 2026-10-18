@@ -4,7 +4,7 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
-import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, DETECCION, nivelCorrida, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA, ARRANQUE } from './data/modos_sueltos.js';
+import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, DETECCION, nivelCorrida, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA, ARRANQUE, oleadaDe } from './data/modos_sueltos.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_PROXIMAS, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
@@ -102,7 +102,7 @@ import { spawnSystem, sembrarAmenaza } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
 import * as caza from './systems/caza.js';
 import * as persec from './systems/persec.js';
-import { drawCaza, zv as zvCaza } from './render/caza.js';
+import { drawCaza, zv as zvCaza, setLucesCaza } from './render/caza.js';
 import { drawPersec, drawCinta, cintaRect } from './render/persec.js';
 import { drawChancha } from './render/chancha.js';
 import { inp, mouse, pointer, flags, padInfo, initInput } from './core/input.js';
@@ -127,6 +127,7 @@ import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
 import { drawBrillo, inicioLuz, luz } from './render/brillo.js';
+import { lucesEnemigo } from './render/luces_enemigos.js';
 import { nocheDe, drawNoche, tableroNoche, luzNoche, drawReflejoLuna } from './render/noche.js';
 import { NOCHE } from './data/noche.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
@@ -298,6 +299,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
     }
     let conAuto = false;      // la corrida suelta que arranca lleva el PILOTO AUTOMATICO despues del despegue (ARRANQUE)
+    let oleadaVista = 0;      // la ultima oleada anunciada (modos sueltos): al subir sale el cartel
     let kmPrevios = 0;        // CICLO: los km de los blancos anteriores de esta corrida (la rampa los cuenta)
     let startCiclo = null;    // CICLO: el arranque elegido en OPCIONES, mientras los blancos encadenados salen en vuelo
     let cfgPersec = null;     // lo que el mundo al azar piso de la cfg, para devolverselo a PERSECUCION (que usa la cfg cruda)
@@ -360,6 +362,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       // EL NIVEL DE LA CORRIDA (data/modos_sueltos.js `nivelCorrida`): crece con los km y de el sale todo
       const niv = nivelCorrida(km);
+      // LA OLEADA QUE SUBE se anuncia (el HUD la muestra siempre: drawOleada en render/hud.js)
+      const ol = oleadaDe(km);
+      if (ol.n > oleadaVista) { if (oleadaVista > 0 && S.state === 'play') cartel(ol.max ? T('hud_oleadaTope') : T('hud_oleadaSube', { n: ol.n }), P.warn); oleadaVista = ol.n; }
       const golpe = ALARMA.golpe[0] + (ALARMA.golpe[1] - ALARMA.golpe[0]) * niv;
       const alarma = est > 0 ? golpe * (1 + ALARMA.porEstrella * (est - 1)) : 1;
       // …la barra del radar: lenta al arrancar, la de siempre recien con el nivel pleno (flight.js)
@@ -568,17 +573,58 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       (run.enBase = run.enBase || []).push({ n, t: BASE_T });
       cartel(T('base_va', { n: squad.pilotName(n) || '' }), '#9fb3c0', T('base_va_sub', { s: BASE_T }));
     }
+    /** LOS FALLADOS QUE ESPERAN, en la fila (no el que vuela): los que [SHIFT+R] manda juntos al taller. */
+    const falladosEnFila = () => (run.orden || []).filter(n => n !== alMando(run) && estadoAvion(fallasDe(n)) !== 'bien');
+    /** TODOS LOS FALLADOS AL TALLER (18/10, el autor: "mandar a todos los aviones con fallas a reparar"): los que
+     *  esperan en la fila se van sin cambio de piloto; si el que vuela tambien tiene fallas y queda alguien
+     *  sano, se va el ultimo (con su relevo, como [R]). Nunca se queda la escuadrilla sin nadie en el aire. */
+    function aLaBaseTodos() {
+      if (!suelto() || S.state !== 'play') return;
+      const fila = falladosEnFila();
+      let mandados = 0;
+      for (const n of fila) {
+        if (run.lives < 2) break;
+        run.orden.splice(run.orden.indexOf(n), 1);
+        run.lives--; mandados++;
+        (run.enBase = run.enBase || []).push({ n, t: BASE_T });
+      }
+      const yoFallado = estadoAvion(fallasDe(alMando(run))) !== 'bien';
+      if (yoFallado && run.lives >= 2) { aLaBase(); mandados++; }
+      if (!mandados) { beep(140, 0.09, 'square', 0.05); cartel(T(run.lives < 2 ? 'base_ultimo' : 'base_nadie'), P.warn); return; }
+      if (!(yoFallado && mandados === 1 && !fila.length))
+        cartel(T('base_todos', { n: mandados }), '#9fb3c0', T('base_va_sub', { s: BASE_T }));
+      beep(520, 0.08, 'square', 0.05, -120);
+    }
+    /** LOS FALLADOS NO DESPEGAN (18/10, el autor: "apenas despegamos te tiene que decir: arrancaste con X
+     *  aviones con fallas, volvieron a base a reparaciones — que directamente vayan"). Al empezar la corrida,
+     *  los que salieron con alguna falla van solos al taller y la escuadrilla despega con los sanos. Siempre
+     *  queda uno en el aire: si todos salieron fallados, despega el que tiene menos. Las fallas que aparezcan
+     *  DESPUES (esquirlas, el blanco siguiente del CICLO) ya no se mandan solas: las avisa SHIFT+R en el HUD. */
+    let tallerMsg = 0;   // cuantos se fueron al despegar: el cartel sale al tomar el mando (stepFallas)
+    function tallerAlDespegar() {
+      const grav = n => Object.values(fallasDe(n)).reduce((a, g) => a + g, 0);
+      const fila = (run.orden || []).slice();
+      const sanos = fila.filter(n => grav(n) === 0), fallados = fila.filter(n => grav(n) > 0);
+      if (!fallados.length) { tallerMsg = 0; return; }
+      const queda = sanos.length ? null : fallados.slice().sort((a, b) => grav(a) - grav(b))[0];
+      const van = fallados.filter(n => n !== queda);
+      run.orden = queda !== null ? [queda] : sanos;
+      for (const n of van) { run.lives--; (run.enBase = run.enBase || []).push({ n, t: BASE_T }); }
+      tallerMsg = van.length;
+      if (queda !== null) avisarFallas(queda);
+    }
     let esquirlasVistas = 0;
     /** Una vez por cuadro de vuelo: los de la base, las esquirlas y lo que la falla del cañon le dice al vuelo. */
     function stepFallas(dt) {
       if (!suelto()) { run.falCanon = 0; return; }
       run.falCanon = falla('canon');
+      if (tallerMsg) { cartel(T('base_despegue', { n: tallerMsg }), '#9fb3c0', T('base_despegue_sub', { s: BASE_T })); tallerMsg = 0; }
       for (const b of (run.enBase || []).slice()) {
         b.t -= dt;
         if (b.t > 0) continue;
         run.enBase.splice(run.enBase.indexOf(b), 1);
         run.fallasFlota[b.n] = {};
-        run.flota[b.n] = { fuel: 100, tanque: null, integ: 100, escudo: 1, escudoT: 0, msl: run.mslMax || 1,
+        (run.flota = run.flota || [])[b.n] = { fuel: 100, tanque: null, integ: 100, escudo: 1, escudoT: 0, msl: run.mslMax || 1,
           chapitas: run.chapitasMax, gastoRef: run.gastoLider };
         run.lives++; run.orden.push(b.n);
         beep(780, 0.1, 'square', 0.05, 160);
@@ -2627,7 +2673,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (suelto() && run.sinCanon && pichon.includes('canon')) run.sinCanon = false;
       libretaEnRun();
       // LAS FALLAS: corrida nueva, cada avion tira su dado (siguienteBlanco tira la suya despues de traer la flota)
-      if (suelto() && !encadena) { tirarFlota(); esquirlasVistas = 0; avisarFallas(alMando(run)); }
+      if (suelto() && !encadena) { tirarFlota(); esquirlasVistas = 0; tallerAlDespegar(); }
       if (run.mslMax) run.msl = run.mslMax;
       // MUSICA: campaña usa game.mp3; ciclo y supervivencia mantienen la pista elegida en el
       // reproductor (no la re-sortean). Arranca de cero al empezar el mapa, SALVO al reintentar
@@ -3335,7 +3381,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (gameMode !== 'campaign' && gameMode !== 'cycle') soltarMision();
       // CORRIDA NUEVA DE UN MODO SUELTO: la libreta vacia (las cartas duran la corrida; y sin esto se heredaba
       // la de la ultima campaña, MOMENTUM incluido). El salto de un blanco al otro del ciclo no cuenta.
-      if (suelto() && !encadena) { pichon = []; cartasRun = []; bancoProx = BANCO_KM; bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
+      if (suelto() && !encadena) { oleadaVista = 0; pichon = []; cartasRun = []; bancoProx = BANCO_KM; bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
       // LAS FALLAS Y LA BASE son de la corrida (resetRun no los conoce: sin esto pasaban a la campaña)
       if (!encadena) { run.fallasFlota = null; run.enBase = null; run.esquirlas = 0; run.esquirlaT = undefined; }
       // LOS MODOS SUELTOS (16/10): mundo al azar en cada corrida, y la barra del radar SUMA ESTRELLAS
@@ -3622,6 +3668,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       bancoNav: dir => bancoNav(dir),
       bancoLeer: dir => bancoLeerMas(dir),
       aLaBase: () => aLaBase(),
+      aLaBaseTodos: () => aLaBaseTodos(),
       bancoConfirm: () => bancoConfirm(),
       cargaNav: dir => cargaNav(dir),
       cargaConfirm: () => cargaConfirm(),
@@ -6192,7 +6239,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
       // obstáculos de lejos a cerca
       const all = obstacles.slice().sort((a, b) => b.z - a.z);
-      for (const o of all) if (o.z > 3) world.drawObstacle(o);
+      // (de noche o en la niebla, cada enemigo con sus luces: render/luces_enemigos.js)
+      const lucesK = Math.max(nocheDe(cfg.sky) ? 1 : 0, Math.min(1, fogFade() * 1.4));
+      setLucesCaza(lucesK);
+      for (const o of all) if (o.z > 3) { world.drawObstacle(o); if (lucesK > 0) lucesEnemigo(o, lucesK); }
 
       // LA COLA, primera pasada: lo que esta MAS LEJOS que el avion (la ventana frontal, la
       // salida, las trazadoras que ya te pasaron). Lo que quedo mas cerca se dibuja despues del
@@ -6626,6 +6676,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         ruta: rutaSys.hay() ? { pos: blancoSys.escapando() ? rutaSys.dato().blancoKm : rutaSys.pos(), blanco: rutaSys.dato().blancoKm, radarKm: rutaSys.dato().radarKm || 0 } : null,
         // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
         fueraRadar: S.state === 'play' && !rutaSys.enAlcance(),
+        oleada: suelto() ? oleadaDe(kmCorrida()) : null,
+        fallados: suelto() ? falladosEnFila().length + (estadoAvion(fallasDe(alMando(run))) !== 'bien' ? 1 : 0) : 0,
         // LA CITA DE IDA DISPONIBLE (planificada, sin barra): el reloj de la Chancha se pone en LISTA
         // en la ida, fuera del radar, mientras quede alguna de las que permite la mision
         // EL SEA WOLF: su placa, debajo de la del radar (solo en la suelta)
@@ -7563,6 +7615,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       window.__banco = () => JSON.stringify({ state: S.state, pend: bancoPend, prox: bancoProx, pichon: pichon.slice(),
         offer: bancoOffer ? bancoOffer.cartas.map(c => c.id) : null, rota: bancoOffer && bancoOffer.rota ? bancoOffer.rota.id : null,
         msl: run.msl, mslMax: run.mslMax, carga: cfg.carga, metralla: run.metralla, chafitas: run.chapitas, sinCanon: run.sinCanon, lives: run.lives });
+      // poner un obstaculo quieto delante (para mirar como se ve: las luces de noche, render/luces_enemigos.js)
+      window.__ponerObs = (type, x, y, z) => { obstacles.push({ type, x: +x, y: +y, z: +z, hp: 999, hpMax: 999, gy: 0, h: 3, ph: 0, done: false, quieto: true }); return obstacles.length; };
       // abrir el banco YA (para mirarlo): con `ids` se fuerza la oferta, y `rotaId` agrega esa como rota
       window.__bancoAbrir = (ids, rotaId) => {
         abrirBanco();
