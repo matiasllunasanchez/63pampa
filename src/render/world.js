@@ -5,6 +5,7 @@
 // dejo aplicados los transforms de camara/roll/zoom antes de llamar aca. El cielo alto (degradado,
 // sol, nubes, islas) y los loops de entidades del jugador siguen inline en el orquestador.
 
+import { luz } from './brillo.js';
 import { ctx, px, pxFino, W, H, HOR, F, PZ } from './ctx.js';
 import { theme, applyTheme } from './theme.js';
 import * as veg from './vegetacion.js';
@@ -1671,9 +1672,13 @@ export function drawObstacle(o) {
   // UNA ISLA EN EL MEDIO (PLAN_GEOGRAFIA G4) tambien corta: lo que esta pasando la isla asoma por
   // encima de su lomo, no se pinta encima de la tierra que tiene delante
   const trasIsla = o.z > 8 && hayIslaAntes(o.z);
-  if (!o.enLadera && !trasIsla) return dibujarObstaculo(o);
+  // …Y UNA OLA DELANTE TAMBIEN (19/10, el autor: "los barcos que debian estar detras de la ola, tapados, estaban
+  // por encima"): la ola es parte del mar, que se dibuja antes que todo, asi que sin esto nada quedaba detras
+  const co = o.type !== 'ola' && o.z > 8 ? techoOla(o.x, o.z) : null;
+  if (!o.enLadera && !trasIsla && co === null) return dibujarObstaculo(o);
   const cl = o.enLadera ? techoLadera(o.x, o.z) : null, ci = trasIsla ? techoIsla(o.x, o.z) : null;
-  const corte = cl === null ? ci : ci === null ? cl : Math.min(cl, ci);
+  let corte = cl === null ? ci : ci === null ? cl : Math.min(cl, ci);
+  if (co !== null) corte = corte === null ? co : Math.min(corte, co);
   if (corte === null) return dibujarObstaculo(o);
   const kk = F / o.z, base = HOR + (cam.y - (o.gy || 0)) * kk;
   if (corte >= base) return dibujarObstaculo(o);              // el filo le queda por debajo: entero
@@ -1687,6 +1692,22 @@ export function drawObstacle(o) {
   dibujarObstaculo(o);
   ctx.restore();
   ctx.beginPath();
+}
+
+/** EL FILO DE LA OLA MAS ALTA QUE LE PASA POR DELANTE a un obstaculo en (x, camZ): la `y` de pantalla de su
+ *  cresta en la columna del obstaculo, o null si ninguna lo cubre. */
+function techoOla(x, camZ) {
+  let techo = null;
+  const sx = proj(x, 0, camZ).x;
+  for (const w of obstacles) {
+    if (w.type !== 'ola' || !(w.z > 3) || w.z >= camZ - 1) continue;
+    const wx = cam.x + (sx - W / 2) * w.z / F;                      // la columna del obstaculo, a la altura de la ola
+    const h = olaBump(w, wx - w.x, 0);
+    if (!(h > 0.3)) continue;
+    const y = HOR + (cam.y - h) * F / w.z;
+    if (techo === null || y < techo) techo = y;
+  }
+  return techo;
 }
 
 /** ¿Hay una isla entre la camara y `camZ`? La pregunta barata antes de la cara (`techoIsla`). */
@@ -1708,22 +1729,28 @@ function drawSeaSlug(o, k) {
   // LA ESTELA: el camino recorrido, humo gris que se abre y se apaga hacia atras
   // (una LINEA continua hasta el misil y, encima, los copos que se van abriendo: de a puntos sueltos
   // se leia como una rafaga, no como el rastro de una sola cosa)
+  // (19/10, el autor: "los misiles que caen del cielo deben tener estela mas marcada y fuego detras"): dos capas
+  // —el humo ancho que se abre hacia atras y el alma clara pegada al misil— y copos mas grandes
   const tr = o.tr || [];
   if (tr.length) {
     const pts = tr.map(p => proj(p.x, p.y, o.z)).concat([proj(o.x, o.y, o.z)]);
-    ctx.save(); ctx.lineCap = 'round'; ctx.strokeStyle = '#c9c6bc';
-    for (let i = 1; i < pts.length; i++) {
-      const u = i / pts.length;
-      ctx.globalAlpha = 0.1 + u * 0.45; ctx.lineWidth = Math.max(1, k * (0.35 + (1 - u) * 1.2));
-      ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+    ctx.save(); ctx.lineCap = 'round';
+    for (const [col, ancho, base, sube, desde] of [['#8f938e', 2.8, 0.2, 0.45, 0], ['#f4f2ea', 0.7, 0.08, 0.8, 0.45]]) {
+      ctx.strokeStyle = col;
+      for (let i = 1; i < pts.length; i++) {
+        const u = i / pts.length;
+        if (u < desde) continue;
+        ctx.globalAlpha = base + u * sube; ctx.lineWidth = Math.max(1, k * (0.45 + (1 - u) * ancho));
+        ctx.beginPath(); ctx.moveTo(pts[i - 1].x, pts[i - 1].y); ctx.lineTo(pts[i].x, pts[i].y); ctx.stroke();
+      }
     }
     ctx.restore();
   }
   for (let i = 0; i < tr.length; i += 2) {
     const p = tr[i], u = i / Math.max(1, tr.length), q = proj(p.x, p.y, o.z);
-    const r = Math.max(1.5, k * (0.6 + (1 - u) * 1.8));
-    ctx.globalAlpha = 0.08 + u * 0.22;
-    px(q.x - r / 2, q.y - r / 2, r, r, '#8d918c');
+    const r = Math.max(2, k * (0.9 + (1 - u) * 2.8));
+    ctx.globalAlpha = 0.1 + u * 0.28;
+    px(q.x - r / 2, q.y - r / 2, r, r, i % 4 ? '#9a9d97' : '#c4c2b9');
   }
   ctx.globalAlpha = 1;
   // EL CUERPO, orientado con su velocidad EN PANTALLA: de la cola (atras-arriba) a la nariz
@@ -1734,10 +1761,23 @@ function drawSeaSlug(o, k) {
   const grosor = Math.max(2, 0.75 * k);
   ctx.save(); ctx.lineCap = 'butt';
   const linea = (x0, y0, x1, y1, w, col) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); };
-  // el motor: fuego y halo detras de la cola
-  const fl = 0.7 + Math.sin(run.t * 40 + o.ph) * 0.3;
-  ctx.globalAlpha = 0.55; px(tx - dx * 0.12 - grosor * fl, ty - dy * 0.12 - grosor * fl, grosor * 2 * fl, grosor * 2 * fl, '#f07c22');
-  ctx.globalAlpha = 1; px(tx - grosor * 0.5, ty - grosor * 0.5, grosor, grosor, '#fff2c8');
+  // EL MOTOR: una llama de verdad detras de la cola —tres conos anidados, rojo, naranja y el alma clara, que
+  // tiemblan— y el resplandor que alumbra alrededor (de noche abre la oscuridad: render/brillo.js)
+  const fl = 0.75 + Math.sin(run.t * 40 + o.ph) * 0.18 + Math.sin(run.t * 23 + o.ph * 2) * 0.12;
+  const ux = -dx / L, uy = -dy / L;                                     // hacia atras
+  // una GOTA, no una flecha: angosta en la tobera, se abre al cuarto del largo y se afina hasta la punta
+  for (const [col, lg, an, al] of [['#c8361a', 1.15, 1.25, 0.7], ['#f28a24', 0.85, 0.9, 0.9], ['#ffe9a8', 0.45, 0.5, 1]]) {
+    const ln = L * lg * fl, a = grosor * an;
+    const bx = tx + ux * ln * 0.28, by = ty + uy * ln * 0.28;          // donde la llama es mas ancha
+    ctx.globalAlpha = al; ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(tx + nx * a * 0.45, ty + ny * a * 0.45);
+    ctx.quadraticCurveTo(bx + nx * a * 1.25, by + ny * a * 1.25, tx + ux * ln, ty + uy * ln);
+    ctx.quadraticCurveTo(bx - nx * a * 1.25, by - ny * a * 1.25, tx - nx * a * 0.45, ty - ny * a * 0.45);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.globalAlpha = 1; px(tx - grosor * 0.5, ty - grosor * 0.5, grosor, grosor, '#fff6dc');
+  luz(ctx, tx + ux * L * 0.3, ty + uy * L * 0.3, Math.max(8, k * 3.2), [255, 150, 60], 0.55);
   // las alas en cruz, a media altura, y las aletas de cola (se ven como dos rayas de canto)
   const ala = (f, a) => { const mx = tx + dx * f, my = ty + dy * f; linea(mx - nx * a, my - ny * a, mx + nx * a, my + ny * a, Math.max(1, 0.35 * k), '#9aa3a6'); };
   ala(0.5, grosor * 2.2); ala(0.08, grosor * 1.6);

@@ -163,11 +163,11 @@ if (AUDIO_BLOQUEADO) muted = true;
 // LA MEZCLA POR GRUPOS (18/10, data/mezcla.js): cada sonido sale por su grupo, y el grupo pesa lo que
 // dice MEZCLA × lo que el jugador puso en OPCIONES × el FOCO DEL RADAR (cuando te miran, los demas se
 // corren). Reemplaza al maestro unico de 0.3 y a los `m: 1` que lo salteaban.
-const nivelJugador = { musica: 1, efectos: 1, radar: 1 };
+const nivelJugador = { musica: 1, ambiente: 1, unidad: 1 };
 let focoRadar = 0, focoMeta = 0;   // 0..1: cuanto protagonismo tiene el radar ahora
-/** Lo pone OPCIONES → SONIDO: `perilla` es musica/efectos/radar, `v` de 0 a 1. */
+/** Lo pone OPCIONES → SONIDO: `perilla` es musica/ambiente/unidad, `v` de 0 a 1. */
 export function setNivel(perilla, v) { if (perilla in nivelJugador) nivelJugador[perilla] = Math.max(0, Math.min(1, +v || 0)); }
-function perillaDe(bus) { for (const p in PERILLAS_SONIDO) if (PERILLAS_SONIDO[p].includes(bus)) return p; return 'efectos'; }
+function perillaDe(bus) { for (const p in PERILLAS_SONIDO) if (PERILLAS_SONIDO[p].includes(bus)) return p; return 'unidad'; }
 /** Cuanto pesa un grupo AHORA (mezcla × jugador × foco del radar). */
 function busGain(bus) {
   const foco = FOCO_RADAR[bus] !== undefined ? 1 - (1 - FOCO_RADAR[bus]) * focoRadar : 1;
@@ -202,6 +202,11 @@ export function sfxSrc(key) { if (!SFXB) return null; const d = SFX_DEF[key]; re
 // en vez de al azar. Al azar, una moneda repite: se escuchaba tres veces seguidas la misma y el
 // roce sonaba a bug. Con turno, dos roces seguidos nunca suenan iguales.
 const sfxTurn = {};
+/** CERCA SUENA CERCA (19/10, el autor: "los sonidos cerca de camara deben sonar cerca"): un sonido del mundo a
+ *  `z` metros de la camara. A unos 20 m suena como siempre; pegado a la camara, hasta casi el doble; y se apaga
+ *  con la distancia hasta un piso, para que lo lejano se siga oyendo apenas. */
+export const cercania = z => Math.min(1.8, Math.max(0.15, 45 / (Math.max(0, z || 0) + 25)));
+export function sfxEn(key, z) { const d = SFX_DEF[key]; return sfxOne(key, d ? d.v * cercania(z) : undefined); }
 export function sfxOne(key, vol) {
   const d = sfxSrc(key); if (!d || muted) return false;
   if (key.startsWith('ex') && key !== 'exocetSale' && explosionesSonando() >= EXPLOSIONES_MAX) return true;   // ya hay bastantes
@@ -285,6 +290,7 @@ let engAltT = 0;   // temporizador del crossfade normal↔normal2
 let tirabaPrev = false;
 // `w` es un snapshot de solo lectura del mundo. Antes esto leia 7 variables del closure de
 // game.js; pasarlas explicitas deja el modulo probable por si solo y sin dependencias ocultas.
+const slowPrev = {};
 export function updateSfx(dt, w) {
   for (const k of SFX_LOOP_KEYS) sfxTgt[k] = 0;
   // EL FOCO DEL RADAR (data/mezcla.js): te estan pintando (DETECTANDO) o el verde suena cerca del techo
@@ -347,6 +353,13 @@ export function updateSfx(dt, w) {
       }
     }
     if (w.state === 'momentum') sfxTgt.alarm = SFX_DEF.alarm.v;           // alarma durante el momentum
+    // LA CAMARA LENTA: el reloj del MOMENTUM y el slow_3 de la COBRA, cada uno desde el principio al prenderse
+    if (w.tempo) sfxTgt.momClock = SFX_DEF.momClock.v;
+    if (w.freno) sfxTgt.frenoSlow = SFX_DEF.frenoSlow.v;
+    for (const [k, on] of [['momClock', !!w.tempo], ['frenoSlow', !!w.freno]]) {
+      if (on && !slowPrev[k]) { const a = sfxLoop(k); if (a) try { a.currentTime = 0; } catch (e) { } }
+      slowPrev[k] = on;
+    }
     // …y la del buque de LA SUELTA, desde que la bomba revienta en el casco (systems/blanco.js)
     if (w.state === 'play' && w.alarmaBuque) sfxTgt.alarm = SFX_DEF.alarm.v;
   }
@@ -537,6 +550,7 @@ export function pausarAudio(v) {
     for (const rel in sfxPool) for (const a of sfxPool[rel].a) if (a && !a.paused) a.pause();
     if (rvA && !rvA.paused) rvA.pause();
     if (detA && !detA.paused) { detA.pause(); detOn = false; }
+    if (mcG && AC) mcG.gain.setTargetAtTime(0, AC.currentTime, 0.02);   // el silbido del misil que viene
     if (abI) { abI.pause(); if (abS) abS.pause(); abT = -1; abPrev = false; }
     if (eng) eng.g.gain.value = 0;
   }
@@ -612,12 +626,14 @@ export function zumbido(on) {
 // medida que te acercas al techo del radar, y a pleno por encima, con la pantalla en verde. Se va en
 // fundido al salir. El archivo trae 0,6 s de silencio en cada punta: en vez de `loop` (que los repetiria
 // cada vuelta) se da vuelta a mano entre `desde` y `hasta`.
-const RV = { lejos: 0.06, visto: 0.5, desde: 0.6, hasta: 56.55, trasInicio: 3.6 };
+// `leve`: lo que suena en la zona mientras NO te estan detectando (18/10, el autor: "bajarlo mas, que apenas sea
+// leve; cuando empieza a mostrar DETECTANDO, al volumen de ahora"). Detectando, de `lejos` a `visto` como siempre.
+const RV = { leve: 0.015, lejos: 0.06, visto: 0.5, desde: 0.6, hasta: 56.55, trasInicio: 3.6 };
 let rvA = null, rvOn = false, rvCerca = 0;
 /** Lo pide game.js en cada cuadro. `adentro`: en el alcance del radar enemigo. `t`: segundos desde que
  *  entraste (el barrido; el loop entra cuando termina green_radar_start). `cerca`: 0 al ras, 1 en el
  *  techo del radar o por encima. */
-export function zonaRadar(adentro, t, cerca) {
+export function zonaRadar(adentro, t, cerca, detectandoYa) {
   adentro = !!adentro && !muted && !!SFXB;
   if (adentro && !rvA) { rvA = new Audio(SFXB + SFX_DEF.radarVerde.f[0]); rvA.volume = 0; }
   if (!rvA) return;
@@ -630,7 +646,7 @@ export function zonaRadar(adentro, t, cerca) {
   const c = Math.max(0, Math.min(1, cerca || 0));
   rvCerca = suena ? c : 0;
   // (el volumen sale del grupo de atencion: RV dice cuanto de su pleno, el grupo cuanto pesa el pleno)
-  const meta = suena ? (RV.lejos + (RV.visto - RV.lejos) * c) * gainDe('radarVerde') : 0;
+  const meta = suena ? (detectandoYa ? RV.lejos + (RV.visto - RV.lejos) * c : RV.leve) * gainDe('radarVerde') : 0;
   rvA.volume += (meta - rvA.volume) * (suena ? 0.08 : 0.06);
 }
 
@@ -645,6 +661,59 @@ export function detectando(on) {
   const meta = on ? SFX_DEF.radarDetectando.v * gainDe('radarDetectando') : 0;
   detA.volume += (meta - detA.volume) * (on ? 0.3 : 0.15);
   if (!on && detOn && detA.volume < 0.01) { detOn = false; detA.pause(); }
+}
+
+/** EL MISIL QUE TE VIENE ENCIMA (18/10, el autor: "los misiles que nos tiran, cuando estan cerca, deben sonar").
+ *  No hay muestra del Sidewinder (ni de ningun misil enemigo en vuelo: solo los lanzamientos), asi que se
+ *  sintetiza: el silbido del motor cohete — ruido por un pasabanda — que crece y se afina a medida que el mas
+ *  cercano se acerca. Lo pide game.js en cada cuadro con la distancia en metros (Infinity = ninguno). Sale por
+ *  el grupo ENEMIGO (perilla AMBIENTE). Cuando aparezca una grabacion buena, reemplaza a esto. */
+const MC = { lejos: 140, cerca: 6, max: 0.9, f0: 700, f1: 2800 };
+let mcSrc = null, mcF = null, mcG = null;
+export function misilCerca(d) {
+  const on = !muted && !enPausa && d < MC.lejos;
+  if (!on && !mcSrc) return;
+  if (!ctxAudio()) return;
+  if (!mcSrc) {
+    try {
+      const n = AC.sampleRate * 2, buf = AC.createBuffer(1, n, AC.sampleRate), x = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) x[i] = Math.random() * 2 - 1;
+      mcSrc = AC.createBufferSource(); mcSrc.buffer = buf; mcSrc.loop = true;
+      mcF = AC.createBiquadFilter(); mcF.type = 'bandpass'; mcF.Q.value = 2.2; mcF.frequency.value = MC.f0;
+      mcG = AC.createGain(); mcG.gain.value = 0;
+      mcSrc.connect(mcF); mcF.connect(mcG); mcG.connect(AC.destination); mcSrc.start();
+    } catch (e) { mcSrc = null; return; }
+  }
+  const u = on ? Math.max(0, Math.min(1, (MC.lejos - d) / (MC.lejos - MC.cerca))) : 0, t = AC.currentTime;
+  mcF.frequency.setTargetAtTime(MC.f0 + (MC.f1 - MC.f0) * u * u, t, 0.05);
+  mcG.gain.setTargetAtTime(MC.max * u * u * busGain('enemigo'), t, on ? 0.04 : 0.12);
+}
+
+/** EL TRUENO (systems/tormenta.js): sintetizado — no hay muestra en assets/sfx. Ruido marron por un pasabajos:
+ *  un chasquido corto y el retumbo largo que rueda y se apaga, con dos o tres golpes adentro. `k` 0..1: cuan
+ *  cerca cayo (lejos: mas grave, mas bajo y mas largo). Sale por el grupo AMBIENTE (data/mezcla.js). */
+export function trueno(k = 1) {
+  if (muted || enPausa || !ctxAudio()) return;
+  try {
+    const dur = 2.4 + (1 - k) * 1.6, n = Math.floor(AC.sampleRate * dur);
+    const buf = AC.createBuffer(1, n, AC.sampleRate), d = buf.getChannelData(0);
+    let ult = 0;
+    for (let i = 0; i < n; i++) { ult = (ult + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = ult * 3.5; }
+    const src = AC.createBufferSource(); src.buffer = buf;
+    const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 120 + 260 * k;
+    const g = AC.createGain(), t0 = AC.currentTime, v = (0.35 + 0.65 * k) * 1.6 * busGain('ambiente');
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(v * (0.6 + 0.4 * k), t0 + 0.04);              // el chasquido
+    g.gain.exponentialRampToValueAtTime(v * 0.45, t0 + 0.35);
+    for (let i = 1; i <= 2; i++) {                                                 // los golpes del retumbo
+      const ti = t0 + 0.4 + i * (0.35 + Math.random() * 0.4);
+      g.gain.linearRampToValueAtTime(v * (0.75 - i * 0.15), ti);
+      g.gain.exponentialRampToValueAtTime(v * 0.3, ti + 0.3);
+    }
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(f); f.connect(g); g.connect(AC.destination);
+    src.start(t0); src.stop(t0 + dur + 0.05);
+  } catch (e) { }
 }
 
 /** LA CARGA DEL PROGRAMA (la entrada a la mision, render/carga.js): el chillido de la casetera de las

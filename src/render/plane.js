@@ -134,6 +134,16 @@ const TOBERA_F = 7 / 84;
  *
  *  @param f 0..1 — 0.3 es ralenti, 1 es turbo (ver stepFlame)
  */
+/** El giro libre de [Q]/[E] (`run.freeRoll`, core/horizon.js) partido como el tonel de la seña: `b` lo que pone
+ *  la HOJA (alabeo del sprite, -1..1) y `rot` lo que falta, en radianes. Siempre del lado que se gira. */
+function giroLibre() {
+  const fr = run.freeRoll || 0;
+  if (!fr) return { b: 0, rot: 0 };
+  const sg = Math.sign(fr), A = Math.abs(fr) % (2 * Math.PI), S60 = Math.PI / 3;
+  const b = Math.min(1, A / S60, (2 * Math.PI - A) / S60);
+  return { b: sg * b, rot: fr - sg * b * S60 };
+}
+
 export function tobera(x, y0, f, esc, forzar) {
   if (f <= 0.01) return;
   // SE APAGA AL CABECEAR. Cuando el avion trepa o pica, la hoja cambia de fila y el sprite ya no
@@ -910,7 +920,10 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   ctx.translate(0, -plane.pitch * 1.8);
   // alabeo: rotación 2D + micro-wobble; el foreshortening en X finge la inclinación 3D del ala
   // …salvo durante una SEÑA del pack (data/senales.js): la pose la manda el gesto
-  const bank = run.senalT > 0 ? run.senalBank : Math.max(-1, Math.min(1, plane.bank));
+  // EL GIRO LIBRE DE [Q]/[E] CON LA HOJA, como el tonel de la seña (core/senales.js): los primeros y ultimos 60° los
+  // pone el alabeo real del sprite y el resto la rotacion (19/10, "mismos sprites usados")
+  const gl = giroLibre();
+  const bank = run.senalT > 0 ? run.senalBank : Math.max(-1, Math.min(1, plane.bank + gl.b));
   const pl = PLANES[selPlane];
   ANCLAS = ANCLAS_AVION[pl.key] || ANCLAS_A4;
   const useSheet = pl.sheetOk;   // sprite HORNEADO: el alabeo lo traen los frames
@@ -991,7 +1004,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // + lo que la SEÑA pide mas alla de la hoja (la panza), + el giro SOLO DEL DIBUJO de una maniobra
   // (`mvGiro`: la diagonal del derrape), que el horizonte giratorio no se come como al `mvRoll`
   // + el GIRO LIBRE de [Q]/[E] (`freeRoll`, core/horizon.js): tambien solo del dibujo — el mundo queda quieto
-  ctx.rotate(spinTot + (run.senalT > 0 ? run.senalRot : 0) + (run.mvGiro || 0) + (run.freeRoll || 0));
+  ctx.rotate(spinTot + (run.senalT > 0 ? run.senalRot : 0) + (run.mvGiro || 0) + gl.rot);
   if (rolling) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
   else if (!run.mvRoll && !useSheet) ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
   // Todo este bloque esta authorado para la grilla de 320x180 (fogonazos, fallback de rects,
@@ -1241,7 +1254,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // OJO CON EL ESPACIO: esto corre DESPUES del `restore()`, o sea en pixeles de MUNDO, y el
     // sprite se dibujo con `spW`/`spH`. Las fracciones van contra ESO y nada mas.
     const T = AN.tips[rowPose][colPose];
-    const giroT = spinTot + (run.mvGiro || 0) + (run.freeRoll || 0);   // con los giros del dibujo, igual que el sprite
+    const giroT = spinTot + (run.mvGiro || 0) + giroLibre().rot;   // con los giros del dibujo, igual que el sprite
     const cs = Math.cos(giroT), sn = Math.sin(giroT);
     const gx = (fx, fy) => cx + fx * spW * cs - fy * spH * sn;
     const gy = (fx, fy) => cy + fx * spW * sn + fy * spH * cs;

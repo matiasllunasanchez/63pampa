@@ -25,6 +25,7 @@
 // atrapado. Ver el bloque OPT_ROWS en game.js.
 import { S, cfg, plane } from './state.js';
 import { run } from './run.js';
+import { SENALES } from '../data/senales.js';
 // LA CURVA DEL ZIGZAG tambien inclina el mundo (PLAN_PASILLO_ZIGZAG Z2). Se importa del
 // NUCLEO y no del sistema porque core no puede importar systems — y ademas la formula tiene que
 // ser una sola, la misma que lee la sonda.
@@ -159,9 +160,10 @@ export const attitude = () => {
 };
 
 // ---------- GIRO LIBRE ([Q] / [E], modo LIBRE) ----------
-// VELOCIDAD a fondo: ~1.9 s por vuelta completa. Mas rapido y el mundo se vuelve ilegible; mas
-// lento y no llegas a ponerlo boca abajo antes de que se te venga un obstaculo encima.
-export const FREE_ROLL_V = 3.3;
+// VELOCIDAD a fondo: LA DEL TONEL DE LA SEÑA (19/10, el autor: "ese alabeo automatico del mensaje entre aviones:
+// esa velocidad sobre el eje longitudinal es la que quiero que tenga la E y la Q, y mismos sprites"): una vuelta
+// en lo que dura la seña ALERTA (data/senales.js, 1,1 s). Era 3,3 rad/s (~1,9 s por vuelta).
+export const FREE_ROLL_V = 2 * Math.PI / (SENALES.find(s => s.gesto === 'tonel') || { t: 1.1 }).t;
 // ENDEREZADO al soltar. Es el doble de rapido que el del momentum (1.1), del que salio el resto de
 // esta cinematica: alla el rolido dura un instante, aca podes soltar boca abajo y con 1.1 volver a
 // nivel tardaba casi tres segundos — se sentia como un avion mojado, no como soltar la palanca.

@@ -221,7 +221,7 @@ export const LEE = {
 
   // ---------------- INTELIGENCIA Y TACTICA ----------------
   radarMalvinas: {
-    que: 'Cada vez que una pareja de Harrier entra a buscarte, salta el aviso RADAR MALVINAS. No los saca: te da el segundo para prepararte.',
+    que: 'Cada vez que una pareja de Harrier entra a buscarte, salta el aviso RADAR DE PUERTO ARGENTINO. No los saca: te da el segundo para prepararte.',
     dato: 'UN TPS-43 EN PUERTO ARGENTINO',
     historia: 'La Fuerza Aerea tenia un radar TPS-43 en Puerto Argentino. Desde ahi se seguian los movimientos britanicos y se avisaba a los aviones que entraban o salian de las islas. Lo buscaron con misiles antirradar y siguio funcionando hasta el final.',
   },

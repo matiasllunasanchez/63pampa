@@ -126,7 +126,7 @@ export const CARTAS = [
   // ---------------- INTELIGENCIA Y TACTICA (18/10, de la historia de 1982) ----------------
   // El autor: "segun la historia argentina, ¿no se te ocurren mas?" — y despues "agregalas todas menos la
   // pintura". Los hechos de cada una estan a verificar en docs/historia/PREGUNTAS_HISTORICAS.md (18/10).
-  { id: 'radarMalvinas', grupo: 'inteligencia', name: 'RADAR MALVINAS',
+  { id: 'radarMalvinas', grupo: 'inteligencia', name: 'RADAR DE PUERTO ARGENTINO',   // (19/10, el autor: "RADAR MALVINAS se llamaria RADAR DE PUERTO ARGENTINO")
     desc: 'El TPS-43 de Puerto Argentino avisa cuando entra una pareja de Harrier',
     quote: 'Del CIC: dos Harrier en la CAP, vienen hacia ustedes.' },
   { id: 'neptune', grupo: 'inteligencia', name: 'EL NEPTUNE', pide: 'ciclo',

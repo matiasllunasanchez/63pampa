@@ -23,7 +23,7 @@ import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccio
 import { ESTALLIDO } from '../data/tuning.js';
 import { bombaInfo } from '../data/bombas.js';
 import { CHUNK_LIFE, ONDA_T } from '../data/despiece.js';
-import { sfxOne, beep, boom, duck } from '../systems/audio.js';
+import { sfxOne, sfxEn, beep, boom, duck } from '../systems/audio.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PZ } from '../render/ctx.js';
@@ -155,7 +155,7 @@ export function collisionSystem(dt) {
       if (o.y <= 0.4) {
         o.y = 0; o.type = 'boom'; o.boomT = 0;
         explodeAt(o.x, 0, o.z, true); run.shake = Math.min(7, run.shake + (o.z < 90 ? 3 : 1.2));
-        sfxOne('exXheavy');   // el bombardeo es lo mas fuerte que suena en el juego
+        sfxEn('exXheavy', o.z);   // el bombardeo es lo mas fuerte que suena en el juego
         for (const sd of soldiers) {                        // la explosion barre soldados cercanos
           if (!sd.dead && Math.abs(sd.z - o.z) < 9 && Math.abs(sd.x - o.x) < 8) {
             sd.dead = true; const ss = proj(sd.x, 0, sd.z); bloodBurst(ss.x, ss.y, 6);
@@ -586,7 +586,19 @@ export function collisionSystem(dt) {
         // core/damage.js, asi que es fatal en los tres modos, como el Sea Dart. Se lo pudo sacar.
         explodeAt(m.x, m.y, Math.max(m.z, PZ + 0.6), false, false, true);
         m.z = 0;                                    // el prune de abajo se lo lleva
-        if (dmg.takeHit('death_sidewinder')) return { death: 'death_sidewinder' };
+        if (dmg.takeHit('death_sidewinder')) {
+          // …Y LOS OTROS QUE VENIAN PEGADOS REVIENTAN EN LA MISMA BOLA (19/10, el autor: "choque con 2 sidewinder,
+          // exploto el avion pero los sidewinder quedaron colgados ahi"): este `return` salteaba el prune y el
+          // resto quedaba quieto en el aire con el mundo detenido de la muerte
+          for (let j = missiles.length - 1; j >= 0; j--) {
+            const o = missiles[j];
+            if (o === m || o.done || o.tipo !== 'aim9') continue;
+            if (Math.hypot(o.x - plane.x, o.y - plane.y, o.z - PZ) < 30) explodeAt(o.x, o.y, Math.max(o.z, PZ + 0.6), false, false, true);
+            missiles.splice(j, 1);
+          }
+          const i = missiles.indexOf(m); if (i >= 0) missiles.splice(i, 1);
+          return { death: 'death_sidewinder' };
+        }
         continue;
       }
       if (ev === 'choca') {
@@ -700,7 +712,7 @@ export function collisionSystem(dt) {
             : o.type === 'tower' ? 300 : o.type === 'depot' ? 280 : o.type === 'flag' ? 120
             : o.type === 'bldg' ? 300 : o.type === 'lcu' ? 250 : 150;   // el AA es el blanco prioritario
           run.score += pts; stats.air++;
-          sfxOne(air ? 'exMedium' : 'exXsmall');   // aeronaves: medium · blancos chicos: xsmall
+          sfxEn(air ? 'exMedium' : 'exXsmall', o.z);   // aeronaves: medium · blancos chicos: xsmall (cerca suena cerca)
           const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts);
           // D2: muere con SU receta. La bala ademas EMPUJA — poquito, pero hacia adelante: el
           // escombro sale para el lado del que disparo, que es de donde vino la energia.

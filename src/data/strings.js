@@ -322,7 +322,7 @@ export const STRINGS = {
     // Las filas venian del menu [M], que era solo-castellano porque era una herramienta interna.
     // Al mudarse a OPCIONES —que tiene el selector de IDIOMA adentro— quedar a medio traducir se
     // notaria de una, asi que pasan todas por T().
-    optSecSonido: 'SONIDO', optVol_musica: 'MÚSICA', optVol_efectos: 'EFECTOS', optVol_radar: 'RADAR Y ALERTAS',
+    optSecSonido: 'SONIDO', optVol_musica: 'VOLUMEN DE MÚSICA', optVol_ambiente: 'VOLUMEN DE AMBIENTE', optVol_unidad: 'VOLUMEN DE UNIDAD',
     optSecJuego: 'JUEGO', optSecControl: 'CONTROL Y VISTA', optSecPartida: 'PARTIDA',
     optSecAmbiente: 'AMBIENTE',
     optNoteAmbiente: 'FONDO y AGUA los elige la campaña en cada misión', optNoteAmbienteK: '', optNoteAmbienteP: '',
@@ -1515,7 +1515,7 @@ export const STRINGS = {
     optNet: 'RADAR MESH',
     optNetOff: 'OFF', optNetEnter: 'ON ENTERING', optNetAlways: 'ALWAYS',
     optKeys: '[↑] [↓] SELECT      [<] [>] CHANGE      [ESC] BACK',
-    optSecSonido: 'SOUND', optVol_musica: 'MUSIC', optVol_efectos: 'EFFECTS', optVol_radar: 'RADAR & ALERTS',
+    optSecSonido: 'SOUND', optVol_musica: 'MUSIC VOLUME', optVol_ambiente: 'AMBIENT VOLUME', optVol_unidad: 'UNIT VOLUME',
     optSecJuego: 'GAME', optSecControl: 'CONTROLS & VIEW', optSecPartida: 'RUN',
     optSecAmbiente: 'WEATHER',
     optNoteAmbiente: 'SKY and WATER are set by the campaign each mission', optNoteAmbienteK: '', optNoteAmbienteP: '',

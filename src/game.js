@@ -114,7 +114,7 @@ import * as world from './render/world.js';
 import { drawMarco } from './render/marco.js';
 import * as soldierArt from './render/soldiers.js';
 import { theme, applyTheme } from './render/theme.js';
-import { setNivel, retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando } from './systems/audio.js';
+import { misilCerca, setNivel, retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando } from './systems/audio.js';
 import { drawCarga, CARGA, CARGA_T } from './render/carga.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
@@ -128,6 +128,8 @@ import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
 import { drawBrillo, inicioLuz, luz } from './render/brillo.js';
 import { lucesEnemigo } from './render/luces_enemigos.js';
+import { drawRayos } from './render/rayos.js';
+import { stepTormenta, resetTormenta, fogonazoTormenta, rayosVivos } from './systems/tormenta.js';
 import { nocheDe, drawNoche, tableroNoche, luzNoche, drawReflejoLuna } from './render/noche.js';
 import { NOCHE } from './data/noche.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
@@ -298,6 +300,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // (16/10), y la tarjeta del blanco la dice la cinta de arriba
       setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
     }
+    let swooshDz = 0, swooshVel = 0, swooshT = 0;   // el SWOOSH del avion que se acerca a la camara
+    const SWOOSH_V = 6;                              // m/s de acercamiento (lo dibujado) para que suene
+    let autoAire = false;     // …y arranco en vuelo: el piloto automatico cuenta (sin despegue no hay otra cuenta)
     let conAuto = false;      // la corrida suelta que arranca lleva el PILOTO AUTOMATICO despues del despegue (ARRANQUE)
     let oleadaVista = 0;      // la ultima oleada anunciada (modos sueltos): al subir sale el cartel
     let kmPrevios = 0;        // CICLO: los km de los blancos anteriores de esta corrida (la rampa los cuenta)
@@ -511,7 +516,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     const rescates = [];
     function stepHistoria(dt) {
       const cz = caza.active();
-      if (cz && !cazaAntes && run.radarMalv) cartel('RADAR MALVINAS', P.warn, 'Una pareja de Harrier entrando');
+      if (cz && !cazaAntes && run.radarMalv) cartel('RADAR DE PUERTO ARGENTINO', P.warn, 'Una pareja de Harrier entrando');
       cazaAntes = cz;
       const ey = run.eyectados || 0;
       if (ey > eyectVistos) { if (run.rescate) for (let i = eyectVistos; i < ey; i++) rescates.push(40); eyectVistos = ey; }
@@ -2436,7 +2441,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // estado 'takeoff' (cuenta regresiva + carrera + rotacion) no aplica y se entra directo a jugar.
     // El TREN va con la puerta de entrada: si el nivel empieza ya volando, viene recogido de fabrica
     // (nunca hubo pista de la que levantarlo); si hay carrera, baja para el despegue.
-    function afterBrief() { run.gear = cfg.start === 'air' ? 0 : 1; return cfg.start === 'air' ? 'play' : 'takeoff'; }
+    function afterBrief() {
+      run.gear = cfg.start === 'air' ? 0 : 1;
+      // UNA CUENTA SOLA (18/10, el autor: "el conteo es doble; si hay despegue es con despegue, y si no hay
+      // despegue, 3 segundos antes de darme el control"): con pista, la cuenta es la del despegue y el control
+      // llega al despegar; la corrida suelta que arranca EN VUELO entra al despegue ya pasada la carrera (toT 3)
+      // y tiene la cuenta del piloto automatico
+      autoAire = conAuto && suelto() && cfg.start === 'air';
+      if (autoAire) { toT = 3; toCount = 4; return 'takeoff'; }
+      return cfg.start === 'air' ? 'play' : 'takeoff';
+    }
     // ---------- EL INTERSTICIAL (G-09) ----------
     // Negro con una linea y nada mas. No es una pantalla: es un CORTE, el respiro que separa dos
     // cosas para que no se lean como una sola. Lo usa la campaña para dos momentos:
@@ -2709,7 +2723,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // que cambiar el IDIOMA (que es una fila de esta misma pantalla) repinte el resto al instante.
     // `save` es la clave de localStorage; `preview` le pide al render que dibuje el valor.
     const yesNo = () => [T('optYes'), T('optNo')];
-    const volSel = { musica: 10, efectos: 10, radar: 10 };   // OPCIONES → SONIDO, de 0 a 10
+    const volSel = { musica: 10, ambiente: 10, unidad: 10 };   // OPCIONES → SONIDO, de 0 a 10
     const OPT_ROWS = [
       { head: 'optSecJuego' },
       { label: () => T('optLang'), opts: LANGS, names: () => LANGS.map(l => STRINGS[l].langName),
@@ -2729,9 +2743,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         get: () => cfg.pantalla, save: 'rasante_pantalla',
         set: v => { cfg.pantalla = v; if (window.rasanteVentana) window.rasanteVentana.pantallaCompleta(v === 'completa'); } },
 
-      // EL SONIDO (18/10): tres perillas, una por grupo de la mezcla (data/mezcla.js)
+      // EL SONIDO (18/10): MUSICA, AMBIENTE (el mundo y los enemigos) y UNIDAD (tu avion), data/mezcla.js
       { head: 'optSecSonido' },
-      ...['musica', 'efectos', 'radar'].map(p => ({ label: () => T('optVol_' + p), opts: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      ...['musica', 'ambiente', 'unidad'].map(p => ({ label: () => T('optVol_' + p), opts: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         names: () => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => n * 10 + '%'),
         get: () => volSel[p], set: v => { volSel[p] = v; setNivel(p, v / 10); }, save: 'rasante_vol_' + p })),
 
@@ -3399,6 +3413,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // aeropuerto?"), aunque OPCIONES diga EN VUELO: se devuelve en el proximo reset, como el del ciclo
       if (suelto() && !encadena && cfg.start === 'air') { startCiclo = 'air'; cfg.start = 'runway'; }
       callarRadio();   // una linea de radio a medio decir no puede sobrevivir a la corrida
+      resetTormenta();
       dlgPausa = false;   // …ni su congelada: morir o salir durante el dialogo dejaria el mundo
                           // quieto sin nadie que lo suelte, y eso no se arregla desde adentro
       lecFoco = null; lecIdx = 0;   // las lecciones de la mision vuelven a empezar con la corrida
@@ -3827,7 +3842,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (!tempo.active() && tempo.meterVal() >= 1 && !alcanza('momentum')) return;   // USAR CUESTA (16/10)
         const r = tempo.toggle(nivelMomentum());
         if (r === 'empty') { beep(140, 0.09, 'square', 0.05); return; }
-        if (r === 'on') cobrar('momentum');
+        if (r === 'on') { cobrar('momentum'); sfxOne('momSlow'); }
         beep(r === 'on' ? 330 : 520, 0.09, 'square', 0.05, r === 'on' ? -160 : 160);   // slide abajo = el tiempo cae
         cartel(r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
       },
@@ -4707,6 +4722,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (cause !== 'purs_perdido') aguantarGolpe(sm, cause);
         return;
       }
+      // LOS MISILES EN EL AIRE NO SE QUEDAN COLGADOS (19/10, el autor: "choque con 2 sidewinder, exploto el avion y
+      // los sidewinder quedaron colgados ahi, mientras mi piloto se eyectaba"): en el relevo y el derribado nadie
+      // los mueve, asi que los que venian cerca revientan en la misma bola y el resto se va
+      for (let j = missiles.length - 1; j >= 0; j--) {
+        const m = missiles[j];
+        if (!m.done && Math.hypot(m.x - plane.x, m.y - plane.y, m.z - PZ) < 40) explodeAt(m.x, m.y, Math.max(m.z, PZ + 0.6), false, false, true);
+      }
+      missiles.length = 0;
       // SECO ES PERDER (PLAN_NAFTA_ALCANCE §3.8, decision del autor): sin relevo, porque el tanque es
       // de la corrida y el compañero heredaria el mismo cero — caerian uno detras del otro.
       if (cause === 'death_seco') { sinCombustible(); return; }
@@ -4956,14 +4979,25 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // el barrido, con razon, no. Ahora los dos esperan a `enAlcance`, que ya sabe de la zona libre)
       if (suelto() && S.state === 'play' && radarScanT < 0 && !rutaSys.hay() && rutaSys.enAlcance()) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
       // DETECTANDO: en la zona verde (arriba del techo, en alcance) y con la barra subiendo
+      // EL MISIL QUE TE VIENE: el mas cercano de los enemigos (no la rafaga del Aden) suena mas fuerte y agudo
+      { let dm = Infinity;
+        if (S.state === 'play' && !paused) for (const m of missiles) {
+          if (m.done || m.tipo === 'aden') continue;
+          const d = Math.hypot(m.x - plane.x, m.y - plane.y, m.z - PZ);
+          if (d < dm) dm = d;
+        }
+        misilCerca(dm); }
+      // LA TORMENTA: relampagos, rayos y truenos mientras se vuela (systems/tormenta.js)
+      if (cfg.sky === 'storm' && !paused && (S.state === 'play' || S.state === 'takeoff' || S.state === 'relevo' || S.state === 'landing')) stepTormenta(dt, HOR, W);
       detectando(S.state === 'play' && rutaSys.enAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
       { const techo = fases.techoRadar(RADAR_ALT), RV_RANGO = 14;
         zonaRadar(S.state === 'play' && rutaSys.enAlcance() && (rutaSys.hay() || suelto()), radarScanT >= 0 ? run.t - radarScanT : 99,
-          (plane.y - (techo - RV_RANGO)) / RV_RANGO); }
+          (plane.y - (techo - RV_RANGO)) / RV_RANGO, run.detection > 0.001); }   // (bajito hasta que dice DETECTANDO)
       // FOGONAZO (D3): se apaga solo, rapido. Va acá y no en un sistema porque tiene que correr en
       // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
       run.flash = Math.max(0, run.flash - dt / FLASH_T);
-      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire && !run.sinCanon, overheat: run.overheat, metralla: run.metralla, canon: !!run.canon, soldiers, alarmaBuque: blancoSys.alarma() });   // loops con fade
+      updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire && !run.sinCanon, overheat: run.overheat, metralla: run.metralla, canon: !!run.canon, soldiers, alarmaBuque: blancoSys.alarma(),
+        tempo: tempo.active(), freno: run.mv === 'cobra' || run.mv === 'cobrainv' });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
       const camZt = 1;   // ver CAM_ZOOMS: el zoom por raster quedo desactivado
@@ -5063,7 +5097,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         }
         // EL PILOTO AUTOMATICO de los modos sueltos (data/modos_sueltos.js ARRANQUE): despegado, el avion sigue
         // solo —a la altura de crucero, centrado— con otra cuenta: TOMAS EL CONTROL DEL AVION EN 3, 2, 1
-        const auto = conAuto && suelto() ? ARRANQUE.autoS : 0;
+        const auto = conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0;
         if (auto && toT > 3) {
           const k = Math.min(1, dt * 1.6);
           plane.y += (AIR_START_Y - plane.y) * k; plane.x += (0 - plane.x) * k;
@@ -5072,8 +5106,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (cn !== toCount && cn >= 0 && cn !== 10) { toCount = cn; beep(cn % 10 > 0 ? 520 : 980, 0.14, 'square', 0.06); }
         engineFly(run.spd, false, 0.017 * Math.min(1, toT));
         if (toT >= 3 + auto) {
-          if (auto) rutaSys.setLibre(run.dist + ARRANQUE.libreM);   // y adelante, la zona sin radar ni nada
-          conAuto = false;
+          if (conAuto && suelto()) rutaSys.setLibre(run.dist + ARRANQUE.libreM);   // y adelante, la zona sin radar ni nada
+          conAuto = false; autoAire = false;
           // SIN CARTEL (pedido del autor, 12/9): que aparezca el HUD ya dice que el avion es tuyo.
           setState('play'); run.shake = Math.min(6, run.shake + 1);
           squad.beginExit();   // la formacion sale de plano detras de la camara (render/squad.js)
@@ -5690,6 +5724,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         moves.startMove(arriba && !lado ? 'mortal' : abajo && !lado ? 'cobrainv' : lado ? 'derrape' : 'cobra', lado || 1);
       }
       moves.stepCobraCam(dt);
+      // EL SWOOSH: el avion (lo que se dibuja: el freno, la salida del turbo, el cambio de piloto) se viene
+      // hacia la camara rapido → suena una vez, y descansa un momento antes de poder volver a sonar
+      { const dz = squad.cambioDz() + moves.cobraDz() + turboDz(), v = (dz - swooshDz) / Math.max(dt, 1e-4);
+        swooshT = Math.max(0, swooshT - dt);
+        if (v < -SWOOSH_V && swooshVel >= -SWOOSH_V && swooshT <= 0) { sfxOne('swoosh'); swooshT = 1.1; }
+        swooshDz = dz; swooshVel = v; }
       frenoAntes = !!inp.brake;
       const fuelAntes = run.fuel;
       // EL INVINCIBLE (libro r5): el Super Etendard entra al Pulso en `lanzamiento` y no en el blanco, y
@@ -6122,6 +6162,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const cx = ((c.x - cam.x * 2.2 - run.t * 2 - zfx) % (W + 120) + W + 120) % (W + 120) - 60;
         drawNube(cx, c);
       }
+      // LOS RAYOS DE LA TORMENTA, al fondo: despues del cielo y las nubes, antes de las sierras (render/rayos.js)
+      if (cfg.sky === 'storm') drawRayos(rayosVivos());
       // COLINAS en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo;
       // la imagen de clima queda detras como relleno). Cresta QUEBRADA sorteada por seed y en
       // DOS TONOS — las laderas que miran al sol (izquierda) se iluminan, las otras quedan en
@@ -6614,7 +6656,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       };
       if (noche) tinteRadar();
       // (con el GIRO del horizonte: la franja clara, las luces lejanas y el reflejo rolan con el mundo)
-      drawNoche(noche, solPant, hzW ? { a: hzW, cx: W / 2 + cm.x, cy: H / 2 + cm.y } : null);
+      // (LA TORMENTA: con cada relampago la noche se abre de golpe — systems/tormenta.js)
+      const fgz = cfg.sky === 'storm' ? fogonazoTormenta() : 0;
+      drawNoche(noche && fgz > 0 ? { ...noche, a: noche.a * (1 - 0.6 * fgz) } : noche, solPant, hzW ? { a: hzW, cx: W / 2 + cm.x, cy: H / 2 + cm.y } : null);
       drawBrillo(noche ? NOCHE.BRILLO : undefined, !!noche);
       // (de noche la luna no es el sol: su aureola va apenas — NOCHE.AUREOLA)
       drawAureola(solPant, (rasante.active() ? 1 : AURA_NORMAL) * (noche ? NOCHE.AUREOLA : 1));
@@ -6774,7 +6818,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // MENUS Y PANTALLAS: tambien en grilla de diseño (320x180), escaladas por U
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
-      if (S.state === 'takeoff') hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null, conAuto && suelto() ? ARRANQUE.autoS : 0, suelto());
+      if (S.state === 'takeoff') hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto());
       // LA CORTA FINAL: las ventanas se resuelven ACA y no en el HUD, con las mismas constantes que
       // despues CALIFICAN la toma. Si el dibujo tuviera su propia idea de "velocidad correcta", el
       // instrumento y el juez podrian discrepar — y no hay nada peor que un HUD en verde y un

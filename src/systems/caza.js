@@ -83,7 +83,7 @@ import {
   CAZA_DIR_D0, CAZA_DIR_FIN, CAZA_DIR_INIT, CAZA_DIR_JETS, CAZA_MUDO_P,
   CAZA_SOBRE_TERRENO, ZZ_PARED_TALUD, ZZ_PARED_LIBRE,
 } from '../data/tuning.js';
-import { beep, boom, duck, sfxOne } from './audio.js';
+import { beep, boom, duck, sfxOne, sfxEn } from './audio.js';
 import { pilotName } from './squad.js';
 // EL TERRENO, con las MISMAS funciones que resuelven la colision del jugador: si el enemigo
 // tuviera su propia idea de donde esta la roca habria dos verdades (ver `pisoTerreno`).
@@ -484,7 +484,7 @@ function ahuyentar() {
   const s = proj(C.x, C.y, C.z);
   popup(s.x, s.y - 10, '+' + CAZA_PTS.ahuyenta, P.foam);
   hablar('PUMA', T('caza_hit'));
-  sfxOne('exSmall');
+  sfxEn('exSmall', C.z);
 }
 
 /** LO BAJASTE. El premio se cobra ACA y no cuando toca el suelo: el jugador tiene que saber que
@@ -503,7 +503,7 @@ function derribar() {
   if (C.final === 'bola') {
     // REVIENTA EN EL AIRE, ahi mismo. No queda nada que seguir: se termina en este cuadro.
     explodeAt(C.x, C.y, C.z, true);
-    sfxOne('exHeavy');
+    sfxEn('exHeavy', C.z);
     C.muerto = true;
     return;
   }
@@ -513,7 +513,7 @@ function derribar() {
   // instante por inercia antes de que la gravedad gane, que es lo que lo hace ver PESADO.
   const roto = C.final === 'pedazos';
   explodeAt(C.x, C.y, C.z, roto, true);
-  sfxOne(roto ? 'exHeavy' : 'exSmall');
+  sfxEn(roto ? 'exHeavy' : 'exSmall', C.z);
   C.humo = 1;
   C.vyC = roto ? -5 : 3;
   C.vzC = roto ? 40 : 95;
@@ -568,7 +568,7 @@ function stepCaida(dt) {
   if (C.by <= 0.4) {
     // TOCO. Revienta DONDE TOCO y no en el aire — es la mitad del valor de haberlo dejado caer.
     explodeAt(C.bx, 0.6, C.z, true);
-    sfxOne('exHeavy');
+    sfxEn('exHeavy', C.z);
     run.shake = Math.min(9, run.shake + 4);
     C.muerto = true;
     return;

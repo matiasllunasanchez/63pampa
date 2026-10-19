@@ -44,11 +44,14 @@ export function lucesEnemigo(o, fuerza) {
   const gy = o.gy || 0, h = o.h || 3;
   switch (o.type) {
     case 'helo': case 'jet': {
-      const y = o.y != null ? o.y : gy + h, ala = o.type === 'jet' ? 4.2 : 3.2;
-      aura(o.x, y, z, ala * 1.6, a);
+      // las puntas de ala, dentro del dibujo: el sprite del caza y del Harrier mide 4,2 de ancho (render/enemies.js
+      // ARTE), asi que la punta queda a ~1,9 del centro (19/10, el autor: "los harriers tienen las luces demasiado
+      // lejos de las alas")
+      const y = o.y != null ? o.y : gy + h, ala = o.type === 'jet' ? 1.9 : 3.2;
+      aura(o.x, y, z, ala * 1.8, a);
       punto(o.x - ala, y, z, ROJO, 1.6, 0.55 * a);
       punto(o.x + ala, y, z, VERDE, 1.6, 0.55 * a);
-      if (titila(ph)) punto(o.x, y + 0.9, z, BLANCO, 3.2, 0.9 * a);
+      if (titila(ph)) punto(o.x, y + (o.type === 'jet' ? 0.4 : 0.9), z, BLANCO, 3.2, 0.9 * a);
       if (o.type === 'helo' && titila(ph + 2, 0.9)) punto(o.x, y - 0.8, z, ROJO, 2.2, 0.6 * a);   // la baliza de panza
       break;
     }

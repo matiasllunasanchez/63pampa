@@ -94,7 +94,15 @@ function cinta(o) {
   const min = vozMin();
   if (conLinea && conNombre() < min) { const falta = min - conNombre(); linea += falta; ancho += falta; }
   let total = conNombre();
-  const bx0 = Math.round(W / 2 - total / 2);
+  // …SIN PISAR LA PLACA DEL ESCUADRON (18/10, el autor: "la placa de los aviones pisa la barra"): con
+  // ocho aviones la placa de arriba a la izquierda llega hasta el centro. Si se tocan, la cinta arranca
+  // despues de la placa, y si entonces no entra hasta el margen derecho, lo que sobra lo pierde la LINEA.
+  const minX = run.squad > 1 ? MARGEN + anchoSquad() + 3 : 0;
+  const bx0 = Math.max(minX, Math.round(W / 2 - total / 2));
+  if (conLinea) {
+    const sobra = bx0 + total - (W - MARGEN);
+    if (sobra > 0) { const q = Math.min(sobra, linea - 16); linea -= q; ancho -= q; total -= q; }
+  }
   // …Y SE ESTIRA HASTA EL BORDE DERECHO (4/10, el autor: "usar el resto de barra que tiene a la
   // derecha"). Arranca donde arrancaba —centrada con su ancho justo— y lo que sobra hasta el margen se
   // lo lleva la LINEA: mas recorrido, mas resolucion para leer donde estas y donde empieza el radar.
