@@ -36,7 +36,8 @@ _conos = sorted(x for mx in CH_MOT for x in (-mx, mx))
 ICONOS_CARTAS = ['canon', 'cinta', 'bala', 'brp', 'snakeye', 'espoleta', 'ter', 'exocet',
                  'chafitas', 'chapa', 'casco', 'llave', 'a4', 'caja_herr', 'motor', 'reloj',
                  'cajon', 'tanques', 'hercules', 'arena', 'rasante', 'radar', 'neptune', 'auriculares',
-                 'antena', 'mirage', 'learjet', 'pinza', 'terreno', 'itb', 'paracaidas', 'pirueta']
+                 'antena', 'mirage', 'learjet', 'pinza', 'terreno', 'itb', 'paracaidas', 'pirueta',
+                 'fideos']   # (20/10: la maquina de fideos, la carta de las primeras chafitas)
 
 HOJAS = {
     # LOS HELICOPTEROS, HECHOS EN BLENDER (4/10/2026, tools/blender/modelos_helos.py): el de siempre

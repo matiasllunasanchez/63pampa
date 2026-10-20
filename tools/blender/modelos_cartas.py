@@ -240,8 +240,11 @@ def carta_exocet(T, K):
 
 # ============================ DEFENSA ============================
 def carta_chafitas(T, K):
-    """LAS CHAFITAS: el cajon lanzador con sus tubos, dos cartuchos saliendo y la nube de tiras."""
+    """LAS CHAFITAS: la maquina de fideos DETRAS (20/10, el autor: "la card con chafitas siempre tendra la
+    maquina de fideos detras") y adelante el cajon lanzador con sus tubos, dos cartuchos saliendo y la nube."""
     raiz, p = _marco(T, 'chafitas')
+    atras = _vacio(p, 'chf_atras'); atras.location = (-0.9, 0.9, -2.2); atras.scale = (0.8, 0.8, 0.8)
+    _maquina_fideos(atras, K, 'chm')
     caja('lanzador', (0, 0, 0), (1.3, 0.55, 0.9), p, _mat(K, 'chf_l', OLIVA2))
     tubo = _mat(K, 'chf_t', '#2f3328')
     for i in range(4):
@@ -258,6 +261,55 @@ def carta_chafitas(T, K):
         t = caja('tira%d' % i, (0, 0, 0), (0.07, 0.42, 0.02), p, plata[i % 3])
         t.location = c; t.rotation_euler = (rnd.uniform(0, 3), rnd.uniform(0, 3), rnd.uniform(0, 3))
     return _encuadrar(raiz, p, (0.45, 0.3, 0), tam=3.2)
+
+def _maquina_fideos(p, K, nombre='fid'):
+    """LA MAQUINA DE TALLARINES, la clasica de manivela (20/10, el autor: "que sea claro que es una maquina de
+    fideos y no un coso de hojas"): cuerpo de acero cromado, la manivela grande con su puño de madera, la
+    perilla del grosor, la prensa que la agarra a la mesa, una tira de aluminio entrando por arriba y los
+    tallarines —largos, ondulados, plateados— colgando por delante. Mira hacia +z; la manivela va en +x."""
+    cromo, cromo2 = _mat(K, nombre + 'c', '#c3cacd'), _mat(K, nombre + 'c2', '#8b9497')
+    madera, madera2 = _mat(K, nombre + 'm', MADERA), _mat(K, nombre + 'm2', MADERA2)
+    # la MESA (un canto de madera) y la PRENSA en C que la agarra
+    caja(nombre + '_mesa', (0, -0.55, -0.1), (3.0, 0.22, 1.7), p, madera2)
+    caja(nombre + '_prensa', (-0.55, -0.85, 0.0), (0.18, 0.5, 0.18), p, cromo2)
+    caja(nombre + '_prensa2', (-0.55, -1.05, -0.2), (0.18, 0.12, 0.55), p, cromo2)
+    # EL CUERPO: una caja cromada con los dos laterales mas oscuros, y la boca de los tallarines abajo
+    caja(nombre + '_cuerpo', (0, 0.35, 0), (1.5, 0.9, 0.95), p, cromo)
+    for sx in (-1, 1):
+        caja(nombre + '_lat%d' % sx, (sx * 0.78, 0.35, 0), (0.08, 0.95, 1.0), p, cromo2)
+    caja(nombre + '_boca', (0, -0.05, 0.5), (1.2, 0.14, 0.08), p, _mat(K, nombre + 'b', NEGRO))
+    # la PERILLA del grosor, del lado izquierdo
+    gp = _vacio(p, nombre + '_per'); gp.location = (-0.9, 0.55, 0.15); gp.rotation_euler = (0, 0, math.pi / 2)
+    _cil(nombre + '_perilla', gp, cromo2, [(-0.08, 0.16), (0.08, 0.16)])
+    # LA MANIVELA: eje que sale del costado derecho, el brazo en diagonal y el puño de madera — la silueta
+    # que dice "maquina de fideos" de un vistazo
+    _barra(nombre + '_eje', p, cromo2, (0.8, 0.45, 0.1), (1.15, 0.45, 0.1), 0.09)
+    _barra(nombre + '_brazo', p, cromo, (1.15, 0.45, 0.1), (1.2, 1.35, 0.35), 0.1)
+    _barra(nombre + '_espiga', p, cromo2, (1.2, 1.35, 0.35), (1.55, 1.35, 0.35), 0.06)
+    gm = _vacio(p, nombre + '_mg'); gm.location = (1.72, 1.35, 0.35); gm.rotation_euler = (0, 0, math.pi / 2)
+    _cil(nombre + '_puno', gm, madera, [(-0.2, 0.09), (-0.12, 0.12), (0.12, 0.12), (0.2, 0.09)])
+    # (SIN la tira de aluminio entrando por arriba: una placa blanca encima se leia como "un coso de hojas" —
+    # el autor, 20/10 —; queda la ranura, y lo que dice ALUMINIO son los tallarines plateados)
+    plata = [_mat(K, nombre + 'p%d' % i, c) for i, c in enumerate(('#e6eaec', '#c4cbce', '#f7f8f8'))]
+    caja(nombre + '_ranura', (0, 0.82, 0), (1.1, 0.04, 0.16), p, _mat(K, nombre + 'r', NEGRO))
+    # LOS TALLARINES: salen de la boca, pasan por arriba del canto de la mesa y cuelgan largos y ondulados
+    rnd = random.Random(5)
+    for i in range(14):
+        x = -0.52 + i * 0.08
+        pts = [Vector((x, -0.05, 0.52)), Vector((x, -0.36, 0.86))]
+        for k in range(4):
+            q = pts[-1]
+            pts.append(Vector((x + (0.07 if k % 2 else -0.07) + rnd.uniform(-0.02, 0.02), q.y - 0.4, q.z + 0.03)))
+        for k in range(len(pts) - 1):
+            _barra(nombre + '_t%d_%d' % (i, k), p, plata[(i + k) % 3], pts[k], pts[k + 1], 0.04)
+
+def carta_fideos(T, K):
+    """LA MAQUINA DE FIDEOS (20/10/2026, el autor): la carta que habilita las primeras chafitas. Las de la II
+    Brigada se cortaron con una maquina de tallarines prestada por una fabrica de pastas de Parana; hoy esta en
+    su museo. Sola, en grande: es el origen."""
+    raiz, p = _marco(T, 'fideos')
+    _maquina_fideos(p, K)
+    return _encuadrar(raiz, p, (0.3, 0.55, 0), tam=3.3)
 
 def carta_chapa(T, K):
     """LA CHAPA REFORZADA: una plancha de blindaje remachada, con la marca de un impacto que no paso."""

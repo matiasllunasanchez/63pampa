@@ -4,7 +4,8 @@
 export const ICONOS = ['canon', 'cinta', 'bala', 'brp', 'snakeye', 'espoleta', 'ter', 'exocet',
   'chafitas', 'chapa', 'casco', 'llave', 'a4', 'caja_herr', 'motor', 'reloj',
   'cajon', 'tanques', 'hercules', 'arena', 'rasante', 'radar', 'neptune', 'auriculares',
-  'antena', 'mirage', 'learjet', 'pinza', 'terreno', 'itb', 'paracaidas', 'pirueta'];
+  'antena', 'mirage', 'learjet', 'pinza', 'terreno', 'itb', 'paracaidas', 'pirueta',
+  'fideos'];   // (20/10: la maquina de fideos — la carta de las primeras chafitas)
 export const ICONO_FW = 96, ICONO_COLS = 8;
 
 /** Carta → dibujo. Las familias comparten (las tres de MOMENTUM, las cuatro CHAFITAS…). */
@@ -12,7 +13,7 @@ const DE = {
   metralla2: 'canon', metralla3: 'canon', canon: 'canon', cinta2: 'cinta', cinta3: 'cinta',
   potencia2: 'bala', potencia3: 'bala', brp: 'brp', snakeye: 'snakeye', espoletas1: 'espoleta', espoletas2: 'espoleta',
   soporte1: 'ter', soporte2: 'ter', exocet: 'exocet',
-  chafitas1: 'chafitas', chafitas2: 'chafitas', chafitas3: 'chafitas', chafitas4: 'chafitas', chafRecarga: 'chafitas', chafPotencia: 'chafitas',
+  chafitas1: 'fideos', chafitas2: 'chafitas', chafitas3: 'chafitas', chafitas4: 'chafitas', chafRecarga: 'chafitas', chafPotencia: 'chafitas',
   escudo1: 'chapa', escudo2: 'chapa', veterano: 'casco', reparacion: 'llave', amigo: 'a4', rescate: 'paracaidas',
   tallerLiv: 'caja_herr', tallerPes: 'motor', vuelta: 'reloj', municion: 'cajon',
   tanques: 'tanques', chancha1: 'hercules', kc130: 'hercules',

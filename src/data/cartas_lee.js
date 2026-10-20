@@ -95,7 +95,10 @@ export const LEE = {
   chafitas1: {
     que: 'Una carga (H / circulo): una nube de aluminio que desvia los misiles de radar y una bengala para los de calor. Se suelta abriendo el freno: perdes velocidad.',
     dato: 'HECHAS CON UNA MAQUINA DE FIDEOS',
-    historia: 'Los aviones argentinos no tenian chaff ni bengalas de fabrica. En la II Brigada cortaron aluminio, primero a tijera —lo hicieron unos pibes de escuela— y despues con una maquina de tallarines prestada por una fabrica de pastas. El aluminio salio de los rollos de los escapes de los Canberra.',
+    // (20/10, el autor: la carta de las primeras chafitas con la maquina de fideos, "detallando". Lo
+    // verificado, de docs/historia/MEJORAS_PICHON.md §1; los nombres de las personas van en la placa del
+    // cierre, no aca — la regla de atribucion de ese documento)
+    historia: 'Los aviones argentinos no tenian chaff ni bengalas de fabrica. En la II Brigada Aerea, en Parana, sacaron del deposito los rollos de aluminio que envolvian los escapes de los Canberra. Primero los cortaron a tijera unos chicos de escuela, pero no alcanzaba. Un suboficial propuso una maquina de hacer tallarines: la presto la fabrica de pastas Via Napoli, y le dieron a la manivela las 24 horas, durante casi una semana. Las tiras salian de 7 centimetros, la medida del radar del Sea Dart. La maquina esta hoy en la Sala Historica de la II Brigada.',
   },
   chafitas2: {
     que: 'Otro cartucho: dos cargas por avion (H / circulo). Cada carga es una nube y una bengala. Usalas cuando el misil ya salio, no antes.',
