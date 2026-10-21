@@ -51,7 +51,9 @@
     "charlas": "electron tools/fixture_charlas.js",
     "cuaderno": "electron tools/fixture_cuaderno.js",
     "fixtures": "node tools/fixtures.js",
-    "lint:layers": "node tools/lint_layers.js"
+    "lint:layers": "node tools/lint_layers.js",
+    "defensas": "electron tools/fixture_defensas.js",
+    "balance:defensas": "node tools/balance_defensas.js"
   },
   "author": "Matias Luna",
   "license": "UNLICENSED",

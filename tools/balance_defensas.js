@@ -21,7 +21,9 @@
 //   vibora      de lado a lado, cambiando cada 0,7 s
 //   reactivo    derecho, y quiebra cuando ve venir algo (un misil, una columna)
 //   cañonea     se pone frente a la pieza mas peligrosa y la cañonea desde 600 (con el cañon de su
-//               avion, 9 tiros/s), quebrando igual si algo se le viene encima
+//               avion, 9 tiros/s), quebrando si algo le pega de verdad; lo que viene por su chorro lo
+//               voltea (collision.js: bala contra misil)
+//   compromete  igual, pero en la ventana de cañon NO esquiva nada: la cota de 'si te la jugas'
 //
 // Uso: node tools/balance_defensas.js [corridas=300] [spd=90]
 import { plane } from '../src/core/state.js';
@@ -30,13 +32,14 @@ import { missiles } from '../src/core/world.js';
 import { blanco, resetBlanco, armarSistemas, cajaSistema } from '../src/core/blanco.js';
 import { SHIP_CLASS } from '../src/data/ships.js';
 import { DEFENSAS } from '../src/data/defensas.js';
-import { SISTEMAS, estadoDe, topeCanon, CALIBRE } from '../src/data/sistemas_buque.js';
+import { SISTEMAS, estadoDe, topeCanon, CALIBRE, SIS_ALCANCE } from '../src/data/sistemas_buque.js';
 import { METRALLAS } from '../src/data/tuning.js';
 import * as sw from '../src/systems/seawolf.js';
 import * as art from '../src/systems/artilleria.js';
 import { RELEVO_DUR } from '../src/core/squad.js';
 
 const N = +(process.argv[2] || 300), SPD = +(process.argv[3] || 90);
+const ALC = +(process.env.ALCANCE || 0) || SIS_ALCANCE;   // hasta donde se cañonea (SIS_ALCANCE, o el del barrido)
 const PZ = 14, DT = 1 / 60, Z0 = 1400, VENTANA = 175, FILA = 4;
 const VX = 30, ALT = 10, PASILLO = 34;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -71,7 +74,9 @@ function misiles(dt) {
 }
 
 /** La pieza que cañonea el que cañonea: la que mas mata primero (lanzadores), despues el resto. */
-const PRIORIDAD = ['seacat_lanz', 'seawolf_lanz', 'seacat_dir', 'seawolf_910', 'canon_45', 'oerlikon', 'bofors'];
+const PRIORIDAD = process.env.PRIO === '45'
+  ? ['canon_45', 'seacat_lanz', 'seawolf_lanz', 'seacat_dir', 'seawolf_910', 'oerlikon', 'bofors']
+  : ['seacat_lanz', 'seawolf_lanz', 'seacat_dir', 'seawolf_910', 'canon_45', 'oerlikon', 'bofors'];
 function blancoDeCanon() {
   for (const t of PRIORIDAD) {
     const s = blanco.sistemas.find(x => x.tipo === t && x.estado !== 'fuera' && !(SISTEMAS[t].soloBomba && x.estado === 'danado'));
@@ -82,6 +87,10 @@ function blancoDeCanon() {
 
 /** UNA APROXIMACION de la escuadrilla, de Z0 a la ventana, con `vidas` aviones. Devuelve cuantos se
  *  perdieron en el camino (`vidas` = no llego ninguno). */
+let derribados = 0, tirando = false;
+/** ¿El misil `m` va por el chorro del cañon (adelante, en la caja de impacto de collision.js)? */
+const enChorro = m => m.z > PZ + 3 && m.z < blanco.z && Math.abs(m.x - plane.x) < 2.6 && Math.abs(m.y - plane.y) < 2.2;
+
 function aproximacion(modo, calibre, vidas) {
   missiles.length = 0; sw.reset(); art.reset();
   blanco.z = blanco.zPrev = Z0;
@@ -102,32 +111,38 @@ function aproximacion(modo, calibre, vidas) {
     // ---- el piloto ----
     let quiere = 0;
     if (modo === 'vibora') { tLado += DT; if (tLado > 0.7) { tLado = 0; lado = -lado; } quiere = lado * VX; }
-    const ve = modo === 'reactivo' || modo === 'cañonea';
+    // EL QUE SE COMPROMETE: en la ventana de cañon no esquiva NADA — va a la pieza y tira. Fuera de la
+    // ventana, esquiva como el reactivo. Es la cota de "si te la jugas, cuanto lo sacas y cuanto te cuesta"
+    const juega = modo === 'compromete' && blanco.z < ALC && blanco.z > 260 && !!blancoDeCanon();
+    const ve = (modo === 'reactivo' || modo === 'cañonea' || modo === 'compromete') && !juega;
     // EL QUIEBRE se sostiene hasta que lo que lo provoco paso de largo (un piloto no vuelve a la linea con
     // el misil todavia viniendo), con un tope; si la pared del pasillo lo frena, quiebra para el otro lado
     if (sigo && (qT > 1.6 || (sigo.z !== undefined && sigo.z - PZ <= 0) || sigo.done)) sigo = null;
     if (ve && !sigo) {
       // EL QUE CAÑONEA, mientras sostiene la rafaga, se banca las trazadoras (esquivarlas todas lo deja
       // pegado a la pared del pasillo y nunca alinea): quiebra solo por misiles y columnas
-      const aguanta = modo === 'cañonea' && blanco.z < 600 && blanco.z > 260 && blancoDeCanon();
+      const aguanta = modo === 'cañonea' && blanco.z < ALC && blanco.z > 260 && blancoDeCanon();
+      // …y CERCA DE LA PIEZA SE COMPROMETE (a menos de 10 de alinearse): lo que le tira ese lanzador sale
+      // derecho por su chorro, asi que quebrar ahi es lo unico que lo puede matar
+      const comprometido = aguanta && Math.abs(cajaSistema(aguanta).x - plane.x) < 10;
       for (const m of missiles) {
-        if (aguanta && m.tracer) continue;
+        if (aguanta && (m.tracer || enChorro(m) || (comprometido && m.tipo === 'wolf'))) continue;   // lo que viene por el chorro, lo voltea el cañon
         const rz = m.z - PZ, D = m.tipo === 'wolf' ? DEFENSAS[m.def] : null;
         // el Sea Cat se ve venir de lejos; el Sea Wolf conviene quebrarlo en su tramo ciego; la trazadora, cerca
         const vista = D ? (m.def === 'cat' ? 320 : 130) : 110;
         if (rz > 0 && rz < vista && Math.abs(m.x - plane.x) < 8) { sigo = m; qT = 0; qDir = Math.sign(plane.x - m.x) || 1; break; }
       }
       if (!sigo) for (const c of art.snapshot().cols) {
-        if (c.z - PZ > 0 && c.z - PZ < 90 && Math.abs(c.x - plane.x) < 6) { sigo = { z: c.z, col: c }; qT = 0; qDir = Math.sign(plane.x - c.x) || 1; break; }
+        // (el que cañonea solo quiebra por la columna que le pega: radio letal 3,2 + margen; las de la
+        // horquilla pasan al lado y esquivarlas lo saca de la pieza)
+        if (c.z - PZ > 0 && c.z - PZ < 90 && Math.abs(c.x - plane.x) < (aguanta ? 4.4 : 6)) { sigo = { z: c.z, col: c }; qT = 0; qDir = Math.sign(plane.x - c.x) || 1; break; }
       }
     }
-    if (process.env.DBG && modo === 'cañonea' && blanco.sistemas[4] && blanco.sistemas[4].tipo === 'seacat_lanz' && blanco.z < 620 && blanco.z > 250 && Math.round(t * 60) % 6 === 0)
-      console.log('F', blanco.z | 0, 'x', plane.x.toFixed(1), sigo ? (sigo.col ? 'COL' : sigo.tracer ? 'TRZ' : 'MIS:' + sigo.def) : '-', blanco.sistemas[4].dano.toFixed(1), 'perd', perdidos, 'rel', relevo > 0);
     if (sigo) {
       qT += DT; if (sigo.col) sigo.z -= run.spd * DT;
       if (Math.abs(plane.x) > PASILLO - 2 && Math.sign(plane.x) === qDir) qDir = -qDir;
       quiere = qDir * VX;
-    } else if (modo === 'cañonea' && blanco.z < 600 && blanco.z > 260) {
+    } else if ((modo === 'cañonea' || modo === 'compromete') && blanco.z < ALC && blanco.z > 260) {
       const s = blancoDeCanon();
       if (s) {
         const c = cajaSistema(s), dx = c.x - plane.x;
@@ -140,9 +155,15 @@ function aproximacion(modo, calibre, vidas) {
           }
         } else alineado = 0;
       }
-    } else if (modo === 'reactivo' || modo === 'cañonea') quiere = clamp(-plane.x * 0.8, -VX, VX);
+    } else if (modo === 'reactivo' || modo === 'cañonea' || modo === 'compromete') quiere = clamp(-plane.x * 0.8, -VX, VX);
     plane.vx += (quiere - plane.vx) * Math.min(1, DT * 10);
     plane.x = clamp(plane.x + plane.vx * DT, -PASILLO, PASILLO);
+    // ---- EL CHORRO DEL CAÑON TAMBIEN VOLTEA MISILES (collision.js: bala contra misil, +400) ----
+    // El que cañonea el lanzador tiene la rafaga justo sobre el camino por donde salen sus misiles. Con
+    // 9 tiros/s y el cierre bala+misil de ~500 u/s, un misil que entra en el chorro cruza ~15 balas por
+    // segundo: no sale. Se modela como que muere al entrar.
+    tirando = (modo === 'cañonea' || modo === 'compromete') && !sigo && blanco.z < ALC && blanco.z > 260 && !!blancoDeCanon();
+    if (tirando) for (const m of missiles) if (!m.done && enChorro(m)) { m.done = true; derribados++; }
     // ---- el buque ----
     sw.step(DT, { activo: true, pz: PZ, plane });
     const ar = art.step(DT, { activo: blanco.sistemas.length > 0, pz: PZ, k: 1 });
@@ -165,10 +186,14 @@ function salida(nombre, { defensa, iniciales, respaldo, modo, calibre }) {
   sw.poner(defensa);
   run.spd = SPD; run.defK = 1;
   const p1 = aproximacion(modo, calibre, FILA);
-  const fuera = blanco.sistemas.filter(s => s.estado === 'fuera').length;
-  const p2 = p1 < FILA - 1 ? aproximacion(modo === 'cañonea' ? 'reactivo' : modo, calibre, FILA - p1 - 1) : null;
+  const fuera = blanco.sistemas.filter(s => s.estado !== 'vivo' && !SISTEMAS[s.tipo].eterno).length;   // DAÑADOS o FUERA
+  const p2 = p1 < FILA - 1 ? aproximacion(modo === 'cañonea' || modo === 'compromete' ? 'reactivo' : modo, calibre, FILA - p1 - 1) : null;
   return { p1, p2, fuera };
 }
+
+// PERILLAS PARA BARRER (sin tocar los datos): ALCANCE=800 HP_SEACAT=6 PRIO=45 SOLO=0 node tools/balance_defensas.js
+// (PRIO=45: el que cañonea va primero al 4,5"; SOLO=i: un solo buque de la lista)
+if (process.env.HP_SEACAT) SISTEMAS.seacat_lanz.hp = +process.env.HP_SEACAT;
 
 const BUQUES = [
   ['ARDENT (t16)', 'HMS ARDENT', { defensa: 'cat' }],
@@ -179,7 +204,7 @@ const BUQUES = [
   ['BROADSWORD', 'HMS BROADSWORD', { defensa: 'wolf' }],
   ['SIR GALAHAD', 'RFA SIR GALAHAD', { defensa: 'cat' }],
 ];
-const MODOS = ['derecho', 'vibora', 'reactivo', 'cañonea'];
+const MODOS = ['derecho', 'vibora', 'reactivo', 'cañonea', 'compromete'];
 
 function medir(nombre, o, modo, calibre) {
   let p1 = 0, llega = 0, limpio = 0, fuera = 0, n2 = 0, limpio2 = 0;
@@ -194,13 +219,13 @@ function medir(nombre, o, modo, calibre) {
 }
 
 const pad = (s, n) => String(s).padEnd(n);
-const celda = (r, m) => pad(`${r.perd} · ${r.limpio}% · ${r.limpio2 === null ? '-' : r.limpio2 + '%'}` + (m === 'cañonea' ? ` · ${r.fuera}` : ''), 24);
+const celda = (r, m) => pad(`${r.perd} · ${r.limpio}% · ${r.limpio2 === null ? '-' : r.limpio2 + '%'}` + (m === 'cañonea' || m === 'compromete' ? ` · ${r.fuera}` : ''), 24);
 console.log(`\nBALANCE DE LAS DEFENSAS — ${N} salidas de ${FILA} aviones por caso, a ${SPD} u/s, aproximacion ${Z0} → ${VENTANA}`);
-console.log('perd = aviones perdidos en la aproximacion · limpia = llega SIN perder ninguno · 2ª = la segunda pasada (tras un errado) llega limpia · fuera = piezas sacadas\n');
+console.log('perd = aviones perdidos en la aproximacion · limpia = llega SIN perder ninguno · 2ª = la segunda pasada (tras un errado) llega limpia · tocadas = piezas DAÑADAS o FUERA al final de la 1ª\n');
 console.log(pad('buque', 30) + MODOS.map(m => pad(m + ' (perd·limpia·2ª)', 24)).join(''));
-for (const [rot, nombre, o] of BUQUES) {
+for (const [rot, nombre, o] of (process.env.SOLO ? BUQUES.slice(+process.env.SOLO, +process.env.SOLO + 1) : BUQUES)) {
   for (const cual of ['antes', 'ahora']) {
-    const cs = MODOS.map(m => cual === 'antes' && m === 'cañonea' ? pad('—', 24)
+    const cs = MODOS.map(m => cual === 'antes' && (m === 'cañonea' || m === 'compromete') ? pad('—', 24)
       : celda(medir(nombre, Object.assign({}, o, { respaldo: cual === 'antes' }), m, '20'), m));
     console.log(pad(cual === 'antes' ? rot : '  ahora', 30) + cs.join(''));
   }

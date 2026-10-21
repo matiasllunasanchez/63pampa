@@ -299,7 +299,7 @@ F5 espera al historiador sin bloquear lo demás.
 
 ## 9. Estado de la implementación (20/10/2026)
 
-**F0–F5 hechas.** F6 (balance) con una primera medición; el fixture de aceptación queda pendiente.
+**F0–F6 hechas.**
 
 | Fase | Qué quedó | Dónde |
 |---|---|---|
@@ -316,15 +316,75 @@ F5 espera al historiador sin bloquear lo demás.
 - Glasgow: los Sea Wolf salen de la escolta (x ≈ 57). Broadsword: de sus dos lanzadores. Galahad: ninguno.
 - Solo el 4,5", volando DERECHO desde 1300: un avión perdido en 4 de 4 corridas (se bajó de 4 a ~1).
 
+### F6 — balance medido (20/10/2026) ✔
+
+**Cómo:** `npm run balance:defensas` (`tools/balance_defensas.js`), en Node, contra el integrador real:
+importa `systems/seawolf.js`, `systems/artilleria.js` y el armamento real; copia de `collision.js` el
+guiado y el impacto de misiles y trazadoras, y la bala que voltea misiles. Simula la escuadrilla de 4
+contra el buque, de 1400 a la ventana de suelta (175), sin la bomba. Cada impacto es un avión menos
+(dmgMode `squad`, el de fábrica), y lo releva el siguiente **en el lugar**: 3 s sin defensa, con el mundo
+al 40 %, igual que el estado `relevo` del juego. Reproduce lo medido en Electron: en HEAD, derecho o
+viboreando, 1 avión por aproximación, exacto.
+
+**Cinco pilotos:** derecho · víbora · reactivo (quiebra cuando ve venir algo) · cañonea (va a la pieza
+más peligrosa y la cañonea; lo que viene por su chorro lo voltea) · compromete (como cañonea, pero en la
+ventana de cañón no esquiva nada: la cota de "si te la jugás").
+
+**Resultado a 90 u/s, 400 salidas por caso.** Cada celda: aviones perdidos en la aproximación · % que
+llega limpia · % de la **segunda pasada** (tras un errado) que llega limpia · (piezas tocadas).
+
+| buque | antes (cualquier piloto) | reactivo | cañonea | compromete |
+|---|---|---|---|---|
+| Ardent (t16) | 1 · 0 % · 0 % | 0,8 · 22 % · 27 % | 0,55 · 45 % · 30 % | 0,83 · 23 % · **47 %** · 1,4 |
+| Ardent r3 (Sea Cat fuera) | 1 · 0 % · 0 % | 0,33 · **68 %** · 67 % | 0,16 · 84 % · 70 % | — |
+| Plymouth (r4) | 1 · 0 % · 0 % | 0,79 · 23 % · 25 % | 0,55 · 46 % · 29 % | 0,88 · 20 % · **49 %** · 1,4 |
+| Glasgow + Brilliant (r2) | 2 · 0 % · 0 % | 0,97 · 3 % · 3 % | 1 · 0 % · 2 % | 1,26 · 3 % · 1 % |
+| Coventry + Broadsword | 2 · 0 % · 0 % | 0,97 · 3 % · 1 % | 0,99 · 1 % · 2 % | 1,66 · 1 % · 4 % |
+| Broadsword | 2 · 0 % · 0 % | 1,89 · 0 % · 0 % | 1,01 · 0 % · 0 % · 1 | 1 · 0 % · 0 % · 1 |
+| Sir Galahad | 1 · 0 % · 0 % | 0,29 · 71 % · 70 % | 0,09 · 92 % · 93 % | 0,09 · 91 % · 90 % |
+
+Derecho y víbora quedan como antes (1 avión). A **70 u/s** (más tiempo bajo fuego) volar derecho cuesta
+**más** que antes (Ardent 2,25 contra 2; Plymouth 2,41 contra 2): el 4,5" cobra la aproximación lenta y
+derecha, que es lo que viene a castigar. El 30 mm contra el 20 mm casi no cambia nada (±5 %).
+
+**Qué dice:**
+- **Antes, la defensa no se podía jugar:** pilotear como fuera, se perdía exactamente un avión (el tiro
+  continuo del respaldo no deja hueco). **Ahora la destreza paga:** el reactivo llega limpio ~1 de cada 4
+  veces contra una fragata entera.
+- **Sacar el Sea Cat vale muchísimo:** contra la Ardent sin Sea Cat (r3), el reactivo pasa de 22 % a 68 %
+  limpio. La pieza correcta cambia la misión.
+- **"El primero derrota las defensas" se cumple, y cuesta:** el que se compromete a cañonear pierde más en
+  su pasada (20–23 % limpia contra 22–23 % del reactivo) pero toca ~1,4 piezas, y la **segunda pasada**
+  llega limpia el 47–49 % (contra 25–27 %). Es una decisión de verdad, no un truco.
+- **Cañonear con criterio es lo mejor contra una fragata:** el piloto que cañonea y quiebra si algo le
+  pega de verdad llega limpio 45 % (contra 22 % del reactivo), porque su ráfaga voltea los Sea Cat que le
+  vienen por el chorro.
+- **Las escoltas no se cañonean, y se nota:** contra la Glasgow y la Coventry comprometerse es peor (1,26
+  y 1,66). Ahí la salida es esquivar, y el Sea Wolf de la escolta, confundido o no, cobra ~1 avión.
+- **El Broadsword sin cañonear cuesta 2 aviones; cañoneado, 1:** es el buque donde más rinde apagar un
+  lanzador (tiene dos).
+
+**Cambios de balance que salieron de la medición:**
+- **El lanzador real tiene cargador** (`DEFENSAS.cargador`/`recarga` en `data/defensas.js`): 4 Sea Cat y
+  recarga 4,5 s (cuádruple, recarga a mano), 6 Sea Wolf y recarga 4 s (séxtuple). Con el tiro continuo de
+  antes, nadie podía cañonear un lanzador: el piloto se pasaba la aproximación entera esquivando. La
+  defensa de **respaldo** (buques sin armamento) sigue continua.
+- **Vida de lanzadores y directores** bajada: Sea Cat 14→9, Sea Wolf 16→10, director 8→6, 910 8→6.
+- **El 4,5"**: alcance 1300→1000, una salva cada 3 s y dispersión propia (ya estaba del 20/10: con lo
+  anterior, una aproximación derecha perdía 4 aviones).
+
+**Aceptación:** `npm run defensas` (`tools/fixture_defensas.js`, fuera de `check`): 12 verificaciones —
+armamento real, el cañón pasa el lanzador por DAÑADO a FUERA y la radio lo canta, sin lanzador no hay Sea
+Cat, el re-encare lo encuentra todavía FUERA, el 4,5" no sale a cañonazos, y r2/r3/r4 arrancan como la
+historia.
+
+**Lo que la medición NO dice:** la bomba (la ventana de suelta se juega igual) y lo que un jugador ve a
+600 m — el piloto simulado sabe dónde está cada pieza; el jugador las tiene que encontrar en ~30 px.
+
 **Sondas nuevas (QUITAR al cerrar el plan):** `__sis(i?)` (estado; con `i` pone el avión frente a la
 pieza), `__sisset(i, estado)`. `__buqueSet(nombre)` ahora también re-arma el armamento del buque nuevo.
 
 **Pendiente:**
-- **F6:** el fixture de aceptación (`npm run defensas`) y el barrido de balance completo. Primera
-  medición contra HEAD (t16, 4 corridas × derecho/viboreando, 1300 → 160): **1 avión perdido por
-  corrida en los dos árboles, siempre por el Sea Cat** a ~375 — llega antes de que el 4,5" termine la
-  horquilla. La sonda es débil (después del primer derribo el relevo ya no es comparable): falta medir
-  la aproximación entera de cada avión de la fila y el viboreo real.
 - **D4 en campaña:** hoy los corchetes se ven siempre (la campaña está bloqueada); decidir si van atados a una mejora del Pichón.
 - **Lectura a distancia:** a 400–600 el buque mide ~30 px y las piezas 1–2 px; los corchetes tienen tamaño mínimo pero los nombres recién se leen de cerca (k > 0,55). Ajustar con el autor jugando.
 - `?defensa=cat|wolf` ya no elige los lanzadores de un buque con armamento: solo prende/apaga la defensa.

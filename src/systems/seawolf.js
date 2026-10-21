@@ -148,7 +148,8 @@ export function snapshot(pz) {
   }
   const sD = best ? best.D : D;
   const fase = bc ? bc.fase : 'fuera';
-  const dur = !best || !bc ? 1 : fase === 'fija' ? sD.fija : fase === 'recarga' ? SW_RECARGA : sD.cada;
+  const recarga = best && best.k !== 'respaldo' ? sD.recarga * (best.estado === 'danado' ? 2 : 1) : SW_RECARGA;
+  const dur = !best || !bc ? 1 : fase === 'fija' ? sD.fija : fase === 'recarga' ? recarga : sD.cada;
   return { tipo: best ? best.fam : tipo, nombre: sD ? sD.nombre : '', alcance: sD ? sD.alcance : 0, dentro: !!bc,
     fase, u: bc ? Math.min(1, bc.t / dur) : 0, bz: best ? best.z : blanco.z, bzb: blanco.z, ox: best ? best.x : BL.X,
     on: !!best && blanco.on && !blanco.hundido,
