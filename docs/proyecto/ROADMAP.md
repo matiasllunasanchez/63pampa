@@ -31,6 +31,7 @@ código ([ARQUITECTURA.md](ARQUITECTURA.md)).
 - **Cámara y lectura del vuelo** — #30 ✔
 - **Esquemas de control** — #31 ✔
 - **Menús y configuración** — #32 ✔
+- **Sonido y música** — #35
 
 ---
 
@@ -1787,3 +1788,22 @@ columnas, y el cursor las saltea igual que a los encabezados.
 > y el bloque de joystick en `core/input.js`;
 > `climb`/`climbmax` en `data/moves.js` + su ejecución en `systems/moves.js`; `CAM_PAN` y
 > `run.camPan` en `systems/flight.js`; la tabla de `combo` y `CLIMB_NEAR` en `game.js`.
+
+---
+
+## 35. 💡 Música que sigue al juego (idea, 19/10/2026)
+
+> *"me gustaria coordinar la musica con los enemigos en pantalla y quiza los movimientos del avion,
+> anotar como idea nomas"* — el autor.
+
+**Solo idea, nada decidido ni empezado.** Que la música no sea una pista fija de fondo, sino que
+**reaccione a lo que pasa**:
+
+- **los enemigos en pantalla**: más amenaza visible → la música más intensa (más capas, más percusión);
+  pasillo vacío → se aquieta;
+- **quizá los movimientos del avión**: una pirueta, el turbo, el rasante al ras del agua, acentuados o
+  marcados por la música.
+
+Se relaciona con la mezcla por grupos (`data/mezcla.js`, 18/10) y con el foco del radar, que ya baja la
+música cuando te miran. Para hacerlo de verdad haría falta música **por capas (stems)** o con marcas de
+compás, no los mp3 enteros que hay hoy — eso lo decide el autor con el que hace la música.

@@ -8,7 +8,8 @@ import { ctx, px, W, PZ } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { run } from '../core/run.js';
 import { cfg } from '../core/state.js';
-import { blanco, altoEn, zVista } from '../core/blanco.js';
+import { blanco, altoEn, zVista, cajaSistema } from '../core/blanco.js';
+import { SISTEMAS, SIS_ALCANCE, ESCOLTA } from '../data/sistemas_buque.js';
 import { BL } from '../data/blanco.js';
 import { P } from '../data/palette.js';
 import { drawCascoDelBuque } from './world.js';
@@ -44,6 +45,7 @@ export function drawBlanco() {
   // LA BRUMA de lejos, con el mismo mecanismo que la aproximacion: oscurece conservando la forma.
   // Mientras aparece es MUCHO mas espesa — la niebla del pedido— y cae hasta la de siempre.
   const haze = Math.max(Math.max(0, Math.min(0.35, (blanco.z - 600) / BL.VISIBLE_Z)), 0.8 * (1 - apE));
+  drawEscolta(apE, haze);
   ctx.save();
   ctx.globalAlpha = apE;
   ctx.beginPath(); ctx.rect(-80, -200, W + 160, s.y + 1 + 200); ctx.clip();
@@ -107,6 +109,83 @@ export function drawBlanco() {
       px(pie.x - ancho / 2, pie.y - alto - paso, ancho, Math.max(1, ancho), '#c9a27a');   // la cara
     }
   }
+  drawSistemas(z, apE);
+}
+
+/** LA ESCOLTA (decision D5 del autor, 20/10: se VE). El buque que cubria al blanco —la Brilliant con
+ *  la Glasgow, el Broadsword con la Coventry— a un costado del pasillo y un poco detras: de ahi salen
+ *  sus Sea Wolf (systems/seawolf.js). Va antes del blanco porque esta mas lejos. No se cañonea. */
+function drawEscolta(apE, haze) {
+  const e = blanco.escolta;
+  if (!e || blanco.z + ESCOLTA.DZ < PZ * 2) return;
+  const z = zVista(blanco.z + ESCOLTA.DZ);
+  const s = proj(BL.X + e.lado * ESCOLTA.X, blanco.base, z), k = s.k;
+  const len = BL.LEN * k, uh = Math.max(0.5, BL.LEN * 0.03 * k), hullH = uh * 1.5;
+  ctx.save();
+  ctx.globalAlpha = apE;
+  drawCascoDelBuque(e.nombre, s.x, len, s.y - hullH, uh, hullH, Math.min(1, haze + 0.15), { hoja: true });
+  ctx.restore();
+}
+
+// ---------- LOS SISTEMAS DEL BUQUE (docs/sistemas/PLAN_DEFENSAS_BUQUE.md, F1/F4) ----------
+// Cada pieza del armamento real lleva su estado A LA VISTA, en el mundo y no en el tablero (memoria
+// del proyecto: el HUD cargado es intencional; lo nuevo va al mundo):
+//   VIVO    corchete ROJO con el nombre (SEA CAT, 909, 4.5…), al entrar en alcance de cañon
+//   DAÑADO  corchete AMBAR, humo fino gris y alguna chispa
+//   FUERA   corchete GRIS un instante y se apaga; humo negro que sube
+// D4 del autor (20/10): los corchetes van SIEMPRE en el libro de vuelo. En campaña esta por decidir
+// (candidata a mejora del Pichon); hoy la campaña esta bloqueada y se ven igual.
+const SIS_COL = { vivo: '#e0503a', danado: '#e8a33d', fuera: '#7d878c' };
+const SIS_CORCHETE_Z = SIS_ALCANCE * 1.25;   // entran un poco antes del alcance: llegás sabiendo que hay
+const SIS_GRIS_T = 1.2;                      // cuanto queda el corchete gris despues de sacarlo
+
+function drawSistemas(z, apE) {
+  if (!blanco.sistemas.length || blanco.tipo !== 'buque') return;
+  const conCorchetes = !blanco.hundido && !blanco.escapando && blanco.z < SIS_CORCHETE_Z && blanco.z > PZ * 2;
+  const late = 0.6 + 0.4 * Math.abs(Math.sin(run.t * 5));
+  for (let i = 0; i < blanco.sistemas.length; i++) {
+    const sis = blanco.sistemas[i];
+    if (SISTEMAS[sis.tipo].eterno) continue;
+    const c = cajaSistema(sis);
+    const p = proj(c.x, c.y, z), k = p.k;
+    const hw = Math.max(2, c.hx * k), hh = Math.max(2, c.hy * k);
+    ctx.globalAlpha = apE;
+    // EL HUMO: dibujado, no particulas (el render no escribe en los stores del mundo)
+    if (sis.estado !== 'vivo') {
+      const negro = sis.estado === 'fuera';
+      const n = negro ? 5 : 3;
+      for (let j = 0; j < n; j++) {
+        const ph = ((run.t * (negro ? 0.55 : 0.8) + j / n + i * 0.37) % 1);
+        const r = Math.max(1, (negro ? 1.4 : 0.9) * k * (0.6 + ph));
+        const hx = p.x + Math.sin(ph * 6 + i) * r * 0.6 - ph * r * 1.5;   // la estela del buque lo tira para atras
+        ctx.globalAlpha = apE * (1 - ph) * (negro ? 0.75 : 0.45);
+        px(hx - r / 2, p.y - hh - ph * 7 * k * 0.6 - r / 2, r, r, negro ? '#16191b' : '#8f9599');
+      }
+      if (!negro && Math.sin(run.t * 23 + i * 5) > 0.93) { ctx.globalAlpha = apE; px(p.x - 1, p.y - 1, 2, 2, '#ffd27a'); }
+    }
+    // EL IMPACTO: un destello sobre la pieza mientras la cañonean
+    if (run.t - sis.hitT < 0.07) { ctx.globalAlpha = apE * 0.8; px(p.x - hw * 0.6, p.y - hh * 0.6, hw * 1.2, hh * 1.2, '#fff3c4'); }
+    // EL CORCHETE
+    const gris = sis.estado === 'fuera' && run.t - sis.cambioT < SIS_GRIS_T;
+    if (conCorchetes && (sis.estado !== 'fuera' || gris)) {
+      const col = SIS_COL[sis.estado];
+      const t = Math.max(1, Math.round(k * 0.25)), a = Math.max(2, Math.round(Math.min(hw, hh) * 0.6));
+      const xl = Math.round(p.x - hw - 1), xr = Math.round(p.x + hw + 1), yt = Math.round(p.y - hh - 1), yb = Math.round(p.y + hh + 1);
+      ctx.globalAlpha = apE * (sis.estado === 'vivo' ? late : gris ? 1 - (run.t - sis.cambioT) / SIS_GRIS_T : 0.9);
+      px(xl, yt, a, t, col); px(xl, yt, t, a, col);
+      px(xr - a, yt, a, t, col); px(xr - t, yt, t, a, col);
+      px(xl, yb - t, a, t, col); px(xl, yb - a, t, a, col);
+      px(xr - a, yb - t, a, t, col); px(xr - t, yb - a, t, a, col);
+      // el nombre, chico, arriba del corchete: solo cuando ya se lo puede leer
+      if (k > 0.55) {
+        ctx.font = 'bold 6px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillStyle = '#0a0e11'; ctx.fillText(sis.nombre, p.x + 1, yt);
+        ctx.fillStyle = col; ctx.fillText(sis.nombre, p.x, yt - 1);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
 }
 
 // LAS LUCES DEL BLANCO DE NOCHE (autor, 4/10). Lo que hace que un buque o una base se lean en lo negro

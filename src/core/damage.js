@@ -44,6 +44,9 @@ export const DMG = {
   // EL ESCAPE: la artilleria de popa del buque que dejaste atras (PLAN_VUELTA_REAL V2). Como el
   // antiaereo: tres y estas en el piso.
   death_popa: 34,
+  // EL CAÑON DE 4,5" del buque en la aproximacion (PLAN_DEFENSAS_BUQUE F3): meterse en una columna de
+  // agua de su salva. Como el antiaereo: tres y estas en el piso.
+  death_45: 34,
   // LA ONDA: atravesar una explosion que todavia no se apago (ESTALLIDO en data/tuning.js) — "un
   // poco mas cerca del luego, quitarte vida nomas". Recien reventada no esta aca: `death_estallido`
   // no tiene numero, asi que mata como un choque.

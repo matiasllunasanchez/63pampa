@@ -400,7 +400,8 @@ export function drawDead(w) {
   ctx.font = finFont(9);
   const causa = renglones(T(w.deathCause), FIN_TXT.ancho);
   ctx.font = finFont(7);
-  const que = pq.que ? renglones(T(pq.que), FIN_TXT.ancho) : [];
+  // (`extra`: lo que la escuadrilla le dejo al buque aunque erro la bomba — PLAN_DEFENSAS_BUQUE, D3)
+  const que = [...(pq.que ? renglones(T(pq.que), FIN_TXT.ancho) : []), ...(pq.extra ? renglones(pq.extra, FIN_TXT.ancho) : [])];
   const yQue = 40 + (causa.length - 1) * 11 + 12;
   const finArriba = que.length ? yQue + (que.length - 1) * 9 : 40 + (causa.length - 1) * 11;
   franja(31, finArriba + 3, 0.62);

@@ -29,6 +29,7 @@ export const DERROTAS = {
   death_gunfire: FUEGO, death_aa: FUEGO,
   death_bomb: { que: 'que_seaslug', hist: 'hist_seaslug' },
   death_popa: { que: 'que_popa', hist: 'hist_popa' },
+  death_45: { que: 'que_45', hist: 'hist_45' },
   death_caza: { que: 'que_caza', hist: 'hist_caza' },
   // el dato historico es el mismo del Sea Harrier: ya habla de los Sidewinder de ultima generacion
   death_sidewinder: { que: 'que_sidewinder', hist: 'hist_caza' },
@@ -56,7 +57,7 @@ export const esChoque = causa => !!DERROTAS[causa] && QUE_CHOQUE.includes(DERROT
  *    'choque'  todo lo demas (mar, tierra, objetos, palos): revienta donde pego, como siempre */
 const MISIL = ['death_missile', 'death_seadart', 'death_seawolf', 'death_seacat', 'death_sidewinder',
   'death_bomb', 'death_estallido'];
-const BALA = ['death_gunfire', 'death_aa', 'death_aden', 'death_popa', 'death_caza', 'death_onda'];
+const BALA = ['death_gunfire', 'death_aa', 'death_aden', 'death_popa', 'death_45', 'death_caza', 'death_onda'];
 export const tipoDerribo = causa => MISIL.includes(causa) ? 'misil' : BALA.includes(causa) ? 'bala' : 'choque';
 
 /** Lo que dice la pantalla para la causa `causa`. `veredicto` es el de la ultima bomba sobre el

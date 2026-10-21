@@ -40,7 +40,14 @@ import { kmPorM } from './ruta.js';
 import { extraTurboPorSeg } from '../core/nafta.js';
 import { bombasDe } from '../data/cargas.js';
 import { bombaInfo } from '../data/bombas.js';
-import { blanco } from '../core/blanco.js';
+import { blanco, sistemasATiro, cajaSistema, zVista, radarBuque } from '../core/blanco.js';
+import { BL } from '../data/blanco.js';
+import { SISTEMAS } from '../data/sistemas_buque.js';
+
+/** CONTRA EL BUQUE (PLAN_DEFENSAS_BUQUE): donde se CRUZAN una bala de velocidad `vel` y el casco, que
+ *  viene a `run.spd`. Ahi converge la rafaga, en vez de a 110: a 600 la recta que pasaba por la mira a
+ *  110 erraba la pieza apuntada por la paralaje entre la camara y el cañon. */
+const zEncuentro = vel => { const z0 = PZ + 3; return z0 + vel * (blanco.z - z0) / (vel + Math.max(1, run.spd)); };
 import * as est from './estrellas.js';
 import { PORT_H } from '../data/runways.js';
 // EL SUELO TIENE ALTURA (T3): la misma funcion que levanta el pasto y las estructuras es la que
@@ -640,7 +647,8 @@ export function flightSystem(dt, deps) {
   else {
     // (en los modos sueltos la barra tarda lo que diga la dificultad de la corrida: `cfg.detCargaS`, game.js)
     // (GUERRA ELECTRONICA: carga mas lento, `run.detK`; EL TRACKER: al ras se vacia mas rapido, `run.trackerK`)
-    if (run.radarVisto) run.detection += dt / ((cfg.detCargaS || 1.4) * (run.detK || 1)); else run.detection -= dt / 0.9 * (run.trackerK || 1);
+    // (EL 909 DEL BUQUE, PLAN_DEFENSAS_BUQUE: cerca de un buque con su Sea Dart apagado, no carga — `radarBuque`)
+    if (run.radarVisto) run.detection += dt / ((cfg.detCargaS || 1.4) * (run.detK || 1)) * radarBuque(); else run.detection -= dt / 0.9 * (run.trackerK || 1);
     // EL RADAR PROPIO TE DELATA (15/10): prendido, los buques escuchan la emision — aunque vueles al ras
     if (radarP.on) run.detection += dt * (RADAR_PROPIO.DELATA + (run.radarVisto ? 0 : 1 / 0.9));
     run.detection = Math.max(0, Math.min(1, run.detection));
@@ -744,7 +752,7 @@ export function flightSystem(dt, deps) {
     const bx = cn ? plane.x : plane.x + gunSide * GUN_X;
     // Las dos lineas CONVERGEN en el punto apuntado, como un armamento reglado de verdad: salen
     // separadas del avion y se juntan alla adelante.
-    let tx, ty;
+    let tx, ty, zt = 0;
     if (vm.on) {
       // MIRA CON MOUSE (PC): desproyecta el cursor al mundo a z=110. La bala SALE DEL CAÑON
       // y vuela en linea RECTA 3D que pasa por el punto apuntado (trayectoria balistica,
@@ -752,6 +760,15 @@ export function flightSystem(dt, deps) {
       const k = F / 110;
       tx = Math.max(-40, Math.min(40, (vm.x - W / 2) / k + cam.x));
       ty = Math.max(0, cam.y - (vm.y - HOR) / k);
+      // EL CURSOR SOBRE EL BUQUE: se desproyecta a la profundidad a la que el buque se DIBUJA (zVista) y
+      // la bala va a ese punto del casco, convergiendo donde se cruzan.
+      if (sistemasATiro()) {
+        const kb = F / zVista(blanco.z);
+        const wx = (vm.x - W / 2) / kb + cam.x, wy = cam.y - (vm.y - HOR) / kb;
+        if (Math.abs(wx - BL.X) <= BL.LEN / 2 + 3 && wy >= blanco.base - 2 && wy <= blanco.base + BL.LEN * 0.4) {
+          tx = wx; ty = wy; zt = zEncuentro(cn ? cn.vel : 300);
+        }
+      }
     } else {
       // tactil/legacy: apuntado vertical automatico al blanco aereo mas cercano del carril
       tx = plane.x; ty = plane.y;
@@ -761,8 +778,20 @@ export function flightSystem(dt, deps) {
         const d = Math.abs(o.x - plane.x);
         if (d < td) { td = d; ty = o.y; }
       }
+      // …y la pieza del buque que tenes enfrente (PLAN_DEFENSAS_BUQUE): con la mira fija se apunta de
+      // COSTADO —ponerse sobre el lanzador— y la altura la corrige el cañon, como con un avion
+      if (sistemasATiro()) {
+        let bd = 99, c0 = null;
+        for (const sis of blanco.sistemas) {
+          if (sis.estado === 'fuera' || SISTEMAS[sis.tipo].eterno) continue;
+          const c = cajaSistema(sis), d = Math.abs(c.x - plane.x);
+          if (d < c.hx + 2.5 && d < bd) { bd = d; c0 = c; }
+        }
+        if (c0) { ty = c0.y; zt = zEncuentro(cn ? cn.vel : 300); }
+      }
     }
     const bala = { x: bx, y: plane.y, z: PZ + 3, x0: bx, y0: plane.y, z0: PZ + 3, tx, ty, path: true };
+    if (zt) bala.zt = zt;
     if (cn) Object.assign(bala, { dano: cn.dano, vel: cn.vel, gordo: cn.gordo });
     if (run.potencia > 1) bala.dano = (bala.dano || 1) * run.potencia;   // BALA PERFORANTE (el banco suelto)
     bullets.push(bala);

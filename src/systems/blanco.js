@@ -15,7 +15,9 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { BL } from '../data/blanco.js';
 import { BOMBA_PANZA, BOMBA_DERIVA } from '../data/tuning.js';
-import { blanco, resetBlanco, altoEn, zonaEn, predecir, holgura, vyAlRas, AGUA, TIERRA } from '../core/blanco.js';
+import { blanco, resetBlanco, altoEn, zonaEn, predecir, holgura, vyAlRas, AGUA, TIERRA, cajaSistema, sistemasATiro, zVista, armarSistemas } from '../core/blanco.js';
+import { SISTEMAS, estadoDe, topeCanon } from '../data/sistemas_buque.js';
+import { parts } from '../core/world.js';
 import { active as rasanteActivo } from './rasante.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { estructura } from '../data/estructuras.js';
@@ -37,7 +39,10 @@ export function preparar(on, nombre, objectiveDist, geo, carga, opts) {
   const o = opts || {};
   const est = estructura(nombre);
   if (est) resetBlanco(on, nombre, est.clase, 'estructura', (o.piso || 0) + TIERRA);
-  else resetBlanco(on, nombre, SHIP_CLASS[nombre]);
+  else {
+    resetBlanco(on, nombre, SHIP_CLASS[nombre]);
+    if (on) armarSistemas(nombre, o.sistemasIniciales);
+  }
   blanco.pasadas = o.pasadas > 0 ? o.pasadas : BL.PASADAS;
   // LA DIFICULTAD LA PONE LA MISION, no el jugador (decision del autor, 26/9): el campo
   // `dificultad:` de su renglon en data/missions.js. Una mision sabe si es la primera del juego o
@@ -59,6 +64,97 @@ export function preparar(on, nombre, objectiveDist, geo, carga, opts) {
   objetivo = objectiveDist;
   cargaId = carga;
   if (on) armar();
+}
+
+// ---------- LOS SISTEMAS DEL BUQUE (docs/sistemas/PLAN_DEFENSAS_BUQUE.md) ----------
+
+/** OTRO BUQUE en el mismo blanco (el catalogo de BUQUES cambia el nombre al arrancar): su armamento,
+ *  no el del anterior. */
+export function rearmar(nombre) {
+  blanco.sistemas.length = 0; blanco.escolta = null;
+  if (blanco.on && blanco.tipo === 'buque') armarSistemas(nombre);
+}
+
+/** Suma daño a un sistema. `via` 'canon' respeta el tope de `soloBomba` (D2: el 4,5" con cañon no
+ *  pasa de DAÑADO); 'bomba' no tiene tope. Al cambiar de estado cobra, avisa y lo anota. */
+function dañar(sis, d, via) {
+  const S = SISTEMAS[sis.tipo];
+  if (S.eterno) return;
+  const antes = sis.estado;
+  sis.dano = Math.min(via === 'bomba' ? S.hp : topeCanon(sis.tipo), sis.dano + d);
+  sis.estado = estadoDe(sis.tipo, sis.dano);
+  if (sis.estado === antes) return;
+  sis.cambioT = run.t; sis.quien = blanco.pasada;
+  // de VIVO a FUERA de un saque (una bomba) cobra los dos escalones
+  const pts = (antes === 'vivo' ? S.pts[0] : 0) + (sis.estado === 'fuera' ? S.pts[1] : 0);
+  run.score += pts;
+  const c = cajaSistema(sis), p = proj(c.x, c.y + c.hy, zVista(blanco.z));
+  popup(Math.max(40, Math.min(W - 40, p.x)), p.y - 10, sis.nombre + ' ' + T('sis_' + sis.estado), sis.estado === 'fuera' ? P.accent : P.warn);
+  if (pts) popup(Math.max(40, Math.min(W - 40, p.x)), p.y - 20, '+' + pts, P.accent);
+  if (sis.estado === 'fuera') { boom(0.1); run.shake = Math.min(6, run.shake + 1.2); beep(220, 0.18, 'sawtooth', 0.05, -120); }
+  else beep(520, 0.07, 'square', 0.045, -200);
+  sisEventos.push({ tipo: sis.tipo, nombre: sis.nombre, estado: sis.estado });
+}
+/** COMO QUEDARON LAS DEFENSAS: los nombres FUERA y los DAÑADOS, agrupados ('20 MM x2'). Lo leen la
+ *  placa del relevo y la pantalla de derrota (D3 del autor: "ERRASTE, PERO LA DEJASTE SIN SEA CAT"). */
+export function resumenSistemas() {
+  const cuenta = est => {
+    const n = {};
+    for (const x of blanco.sistemas) if (x.estado === est && !SISTEMAS[x.tipo].eterno) n[x.nombre] = (n[x.nombre] || 0) + 1;
+    return Object.entries(n).map(([k, v]) => v > 1 ? k + ' x' + v : k);
+  };
+  return { fuera: cuenta('fuera'), danado: cuenta('danado') };
+}
+
+/** SONDA (QUITAR al cerrar PLAN_DEFENSAS_BUQUE): pone la pieza `i` en `estado` sin cobrar ni avisar. */
+export function sisForzar(i, estado) {
+  const sis = blanco.sistemas[i];
+  if (!sis) return false;
+  const S = SISTEMAS[sis.tipo];
+  sis.dano = estado === 'fuera' ? S.hp : estado === 'danado' ? S.hp * S.danado : 0;
+  sis.estado = estadoDe(sis.tipo, sis.dano);
+  return true;
+}
+
+/** LO QUE PASO CON LOS SISTEMAS este cuadro, para la radio (game.js lo vacia). */
+const sisEventos = [];
+export const eventosSistemas = () => sisEventos.splice(0);
+
+/** Chispas contra la chapa: en espacio de pantalla (como todas las `parts`), donde se DIBUJA el buque. */
+function chispas(x, y, n, col) {
+  const p = proj(x, y, zVista(blanco.z));
+  for (let i = 0; i < n; i++) parts.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 40, vy: -Math.random() * 30,
+    life: 0.25 + Math.random() * 0.2, c: col || '#ffd27a', r: 1 });
+}
+
+/** UNA BALA DEL CAÑON contra el buque. `b` se movio este cuadro desde `z0`; `d` es su daño en golpes de
+ *  20 mm (calibre y municion ya aplicados). Si cruzo el casco, pega en un sistema o en la chapa y
+ *  devuelve true (collision.js la da por terminada). El cruce se mide igual que el de la bomba. */
+export function balaBuque(b, z0, d) {
+  if (!sistemasATiro()) return false;
+  if (!(z0 < blanco.zPrev && b.z >= blanco.z)) return false;
+  for (const sis of blanco.sistemas) {
+    if (SISTEMAS[sis.tipo].eterno) continue;
+    const c = cajaSistema(sis);
+    if (Math.abs(b.x - c.x) > c.hx || Math.abs(b.y - c.y) > c.hy) continue;
+    sis.hitT = run.t;
+    if (sis.estado !== 'fuera') dañar(sis, d, 'canon');
+    chispas(b.x, b.y, sis.estado === 'fuera' ? 1 : 3);
+    return true;
+  }
+  const h = altoEn(b.x);
+  if (h >= 0 && b.y <= blanco.base + h) { chispas(b.x, b.y, 1, '#c9c2a8'); return true; }   // la chapa: rebota
+  return false;
+}
+
+/** LO QUE UNA BOMBA LE HACE A LOS SISTEMAS: la que revienta saca FUERA lo que este en el boquete; la
+ *  que entra sin detonar (MK-17) deja DAÑADO lo que atraviesa. */
+function bombaSistemas(x, r, explota) {
+  for (const sis of blanco.sistemas) {
+    const c = cajaSistema(sis), S = SISTEMAS[sis.tipo];
+    if (Math.abs(c.x - x) > r + c.hx) continue;
+    dañar(sis, explota ? S.hp : S.hp * S.danado, 'bomba');
+  }
 }
 
 let cargaId = null;
@@ -195,6 +291,7 @@ export function golpe(pm, z0) {
       if (blanco.z >= PZ) blanco.lento = true;   // (ver `lento` abajo: de atras no frena)
       blanco.cumplido = true;
       run.score += BL.PTS_AVERIA;
+      bombaSistemas(pm.x, 3, false);   // la que no detona igual atraviesa: lo que toca queda DAÑADO
       if (r === 'tarde') {
         const [a, b] = bi.tardeT;
         blanco.tardeT = a + Math.random() * (b - a);
@@ -266,6 +363,7 @@ function estalla(x, y, grande) {
   const bi = bombaInfo(blanco.bomba);
   estallido(x, Math.max(B + 1, y), blanco.z, bi.onda);
   blanco.boquetes.push({ x, r: bi.boquete });
+  bombaSistemas(x, bi.boquete, true);
   if (!grande) return;
   onda(x, Math.max(B + 1, y), blanco.z);
   // LA BOLA GRANDE, bien por encima de la de siempre: a 130 de distancia la comun es un punto

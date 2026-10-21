@@ -272,20 +272,16 @@ F5 espera al historiador sin bloquear lo demás.
 - **El Sea Dart y sus 2 segundos** (memoria `rasante-seadart-debilidad-pendiente`): cuando el
   buque tire su propio Sea Dart (F2), es el lugar natural para la guía cortada a los 2 s.
 
-## 7. Decisiones abiertas (del autor)
+## 7. Decisiones del autor (cerradas el 20/10/2026)
 
-- **D1 — ¿Cuánto vale un sistema FUERA en puntos frente a la bomba?** Propuesta: la bomba al
-  centro sigue valiendo varias veces más que todos los sistemas juntos.
-- **D2 — ¿El 4,5" se puede sacar del todo, o solo DAÑAR?** Era una torre blindada; propuesta: con
-  cañón solo DAÑADO, FUERA solo con bomba.
-- **D3 — "Si no embocás la bomba está bien":** ¿significa que dejar el buque sin defensas, aun sin
-  hundirlo, debe poder **ganar** la salida (o puntuarla como éxito parcial en "lo que pasó")?
-  Hoy errar con el último de la fila pierde la misión. Propuesta: no cambiar la victoria, pero que
-  el resultado distinga "ERRASTE" de "ERRASTE, PERO DEJASTE LA FRAGATA SIN SEA CAT".
-- **D4 — ¿Los corchetes por sistema siempre, o solo con una mejora** (tipo "el Pichón te marca los
-  lanzadores")? Propuesta: siempre en el libro de vuelo (demo, feedback); en campaña, a decidir.
-- **D5 — Escoltas (F5):** ¿se ven en pantalla (silueta al costado) o son solo el origen de los
-  misiles fuera de cuadro?
+- **D1 — Puntos:** la bomba al centro vale varias veces más que todos los sistemas juntos. ✔
+- **D2 — El 4,5":** con cañón queda solo DAÑADO; FUERA únicamente con bomba (torre blindada). ✔
+- **D3 — La victoria no cambia:** errar con el último de la fila sigue perdiendo la misión. Lo que
+  se agrega: el resto de la fila igual pasa y daña (cada avión que re-encara puede cañonear los
+  sistemas), y el resultado distingue "ERRASTE" de "ERRASTE, PERO LA DEJASTE SIN SEA CAT". ✔
+- **D4 — Corchetes por sistema:** siempre en el libro de vuelo; en campaña, a decidir (candidata a
+  mejora del Pichón). ✔
+- **D5 — Escoltas:** se VEN — silueta al costado, de donde sale su Sea Wolf (no se cañonea). ✔
 
 ## 8. Trampas de este repo para esta tarea
 
@@ -298,3 +294,37 @@ F5 espera al historiador sin bloquear lo demás.
   gate falla.
 - Fixtures que ya fallan en HEAD limpio (memoria `rasante-fixtures-rotos-conocidos`): no
   perseguirlos como propios.
+
+---
+
+## 9. Estado de la implementación (20/10/2026)
+
+**F0–F5 hechas.** F6 (balance) con una primera medición; el fixture de aceptación queda pendiente.
+
+| Fase | Qué quedó | Dónde |
+|---|---|---|
+| F0 | Catálogo de 10 tipos de sistema con estados, hp, puntos y efecto; armamento real de 17 buques (incluye Brilliant), con posición `u` y altura `h` medidas en la hoja horneada; calibre por avión (20/30 mm). Unit: 7 pruebas nuevas (cobertura de buques, catálogo, estados, D1, D2, calibre, estados iniciales). | `data/sistemas_buque.js`, `data/armamento.js`, `tools/unit.js` |
+| F1 | Los sistemas viven en `blanco.sistemas` y persisten en la fila. Las balas llegan al buque (hasta `SIS_ALCANCE` 600, antes morían a 240), convergen en la pieza apuntada (mouse) o corrigen la altura hacia la pieza de enfrente (mira fija); la chapa las frena. La bomba que revienta saca FUERA lo que está en su boquete; la MK-17 que no detona deja DAÑADO lo que atraviesa. Corchetes rojo/ámbar/gris con el nombre, humo y destello por pieza. | `core/blanco.js`, `systems/blanco.js`, `systems/collision.js`, `systems/flight.js`, `render/blanco.js`, `render/ammo.js` |
+| F2 | La defensa cercana sale de cada lanzador vivo, desde su lugar del casco; DAÑADO = salvas de 2 y recarga doble; el director DAÑADO/FUERA degrada o corta la guía (Sea Wolf: el 910 pierde el blanco a ratos). Un buque sin armamento cae a la defensa de respaldo. El 909 del Sea Dart: cerca del buque (900), con todos FUERA no carga el radar (la suelta alta queda libre); DAÑADOS, a la mitad. | `systems/seawolf.js`, `systems/collision.js`, `core/blanco.js` (`radarBuque`), `systems/flight.js` |
+| F3 | El 4,5" (salvas de columnas que caminan sobre tu rumbo, con horquilla; quebrar reinicia la cuenta; MK6 doble = una columna más) y las trazadoras de 20/40 mm y de cubierta desde sus montajes, con error de puntería propio. Causa nueva `death_45` (textos ES/EN, cae en llamas). | `systems/artilleria.js`, `render/artilleria.js`, `data/sistemas_buque.js` (`ARTILLERIA`), `core/damage.js`, `data/derrotas.js` |
+| F4 | Radio al sacar una pieza FUERA (PUMA; en el libro PATRIA 2, solo si queda un amigo; nada en los modos sueltos). Placa "DEFENSAS DEL BUQUE — FUERA: … DAÑADO: …" al re-encarar (fila u otra pasada). Pantalla de derrota por errar: suma "Pero lo dejaste sin …" (D3). | `game.js`, `render/screens.js`, `data/strings.js` |
+| F5 | La escolta se ve (silueta al costado, D5) y tira de costado sin poder cañonearse. r2 GLASGOW: la Brilliant con el 910 DAÑADO de arranque (falló contra ORO). r3 ARDENT: llega con el Sea Cat FUERA (lo sacó la oleada anterior). Ambos ≈, anotados en PREGUNTAS_HISTORICAS. | `data/libro_vuelo.js`, `render/blanco.js`, `data/ships.js` |
+
+**Medido en el juego (sondas, t16 / Ardent):**
+- Una ráfaga sostenida sobre el lanzador Sea Cat lo pasa de VIVO a FUERA en ~0,8 s de impactos.
+- Defensa cercana en 3 s dentro de la zona: entera 4 misiles · lanzador DAÑADO 2 · FUERA 0.
+- Glasgow: los Sea Wolf salen de la escolta (x ≈ 57). Broadsword: de sus dos lanzadores. Galahad: ninguno.
+- Solo el 4,5", volando DERECHO desde 1300: un avión perdido en 4 de 4 corridas (se bajó de 4 a ~1).
+
+**Sondas nuevas (QUITAR al cerrar el plan):** `__sis(i?)` (estado; con `i` pone el avión frente a la
+pieza), `__sisset(i, estado)`. `__buqueSet(nombre)` ahora también re-arma el armamento del buque nuevo.
+
+**Pendiente:**
+- **F6:** el fixture de aceptación (`npm run defensas`) y el barrido de balance completo. Primera
+  medición contra HEAD (t16, 4 corridas × derecho/viboreando, 1300 → 160): **1 avión perdido por
+  corrida en los dos árboles, siempre por el Sea Cat** a ~375 — llega antes de que el 4,5" termine la
+  horquilla. La sonda es débil (después del primer derribo el relevo ya no es comparable): falta medir
+  la aproximación entera de cada avión de la fila y el viboreo real.
+- **D4 en campaña:** hoy los corchetes se ven siempre (la campaña está bloqueada); decidir si van atados a una mejora del Pichón.
+- **Lectura a distancia:** a 400–600 el buque mide ~30 px y las piezas 1–2 px; los corchetes tienen tamaño mínimo pero los nombres recién se leen de cerca (k > 0,55). Ajustar con el autor jugando.
+- `?defensa=cat|wolf` ya no elige los lanzadores de un buque con armamento: solo prende/apaga la defensa.

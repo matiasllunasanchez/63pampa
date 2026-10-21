@@ -153,6 +153,11 @@ const r2 = {
   // LA MK-17 (la de las espoletas que fallaban en todo mayo) y el SEA WOLF: lo tiraba la Brilliant, que
   // escoltaba a la Glasgow, y fue lo que bajo a la escuadrilla CUÑA. El juego lo pone en el blanco.
   bomba: 'mk17', defensa: 'wolf',
+  // EL SEA WOLF DE LA BRILLIANT, CONFUNDIDO (PLAN_DEFENSAS_BUQUE F5): contra CUÑA funciono —bajo a dos—,
+  // y contra ORO, la que se vuela, su sistema fallo con los aviones cruzandose (≈ fuentes britanicas,
+  // PREGUNTAS_HISTORICAS "EL ARMAMENTO DE CADA BUQUE" punto 4). Su 910 arranca DAÑADO: tira, pero a
+  // ratos pierde el blanco. La Glasgow tira lo suyo: el Sea Dart —que al ras no sirve— y el 4,5".
+  sistemasIniciales: [{ escolta: true, tipo: 'seawolf_910', estado: 'danado' }],
   cfg: cfgReal({ sky: 'cloudy', fog: 1, fogLen: 1, squad: 4 }),
   chanchaMinT: 40,
   chanchaVeces: { ida: 1, vuelta: 1 },
@@ -216,6 +221,10 @@ const r3 = {
   // LA BRP-250 hasta que exista la MK-82 Snakeye: es la bomba con cola retardadora que el juego ya
   // tiene (la mas parecida en como cae). La Ardent tenia Sea Cat.
   bomba: 'brp', defensa: 'cat',
+  // LA ARDENT YA HERIDA (PLAN_DEFENSAS_BUQUE F5): la oleada anterior (Dagger, ~14:00) le pego en el
+  // hangar y se llevo el lanzador del Sea Cat y el Lynx; los A-4Q llegaron despues (≈ a confirmar,
+  // PREGUNTAS_HISTORICAS "EL ARMAMENTO DE CADA BUQUE" punto 3). Le queda el 4,5" y los 20 mm.
+  sistemasIniciales: [{ tipo: 'seacat_lanz', estado: 'fuera' }],
   // SIN CHANCHA: los Hercules estaban en otras operaciones. La nafta es lo que se lleva.
   chancha: false,
   cfg: cfgReal({ sky: 'cloudy', squad: 3 }),

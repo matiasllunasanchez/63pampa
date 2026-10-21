@@ -4288,3 +4288,68 @@ test('la oleada de los modos sueltos: arranca en 1, sube cada OLEADA.km y topa e
   assert.equal(oleadaDe(OLEADA.km * 1.5).n, 2); assert.ok(Math.abs(oleadaDe(OLEADA.km * 1.5).frac - 0.5) < 1e-9);
   assert.equal(oleadaDe(RAMPA.kmPleno).max, true); assert.equal(oleadaDe(RAMPA.kmPleno * 3).n, oleadaDe(RAMPA.kmPleno).n);
 });
+
+// ---------- LAS DEFENSAS DEL BUQUE (docs/sistemas/PLAN_DEFENSAS_BUQUE.md, F0, 20/10/2026) ----------
+// El armamento real por buque: todo buque que el juego sabe dibujar tiene que saber con que se
+// defiende, y todo lo que declara tiene que existir en el catalogo.
+{
+  const { SISTEMAS, estadoDe, topeCanon, calibreDe } = await import('../src/data/sistemas_buque.js');
+  const { ARMAMENTO } = await import('../src/data/armamento.js');
+  const { SHIP_CLASS } = await import('../src/data/ships.js');
+  const { LIBRO_VUELO } = await import('../src/data/libro_vuelo.js');
+  const { MISSIONS: MIS_D } = await import('../src/data/missions.js');
+
+  test('defensas: todo buque de SHIP_CLASS, de las misiones y del libro tiene armamento', () => {
+    const nombres = new Set(Object.keys(SHIP_CLASS));
+    for (const m of [...MIS_D, ...LIBRO_VUELO]) if (m.goal && m.goal.kind === 'ship' && m.goal.ship) nombres.add(m.goal.ship);
+    for (const n of nombres) assert.ok(ARMAMENTO[n], `${n} no tiene entrada en data/armamento.js`);
+  });
+
+  test('defensas: cada sistema declarado existe en el catalogo y cae sobre la eslora', () => {
+    for (const [n, a] of Object.entries(ARMAMENTO)) {
+      for (const s of [...a.sistemas, ...(a.escolta ? a.escolta.sistemas : [])]) {
+        assert.ok(SISTEMAS[s.tipo], `${n}: tipo de sistema desconocido '${s.tipo}'`);
+        assert.ok(s.u >= 0 && s.u <= 1, `${n}: ${s.tipo} con u fuera de la eslora (${s.u})`);
+        assert.ok(s.h > 0 && s.h < 0.4, `${n}: ${s.tipo} sin altura medida o fuera del casco (h ${s.h})`);
+      }
+      if (a.escolta) assert.ok(a.escolta.lado === 1 || a.escolta.lado === -1, `${n}: la escolta necesita lado ±1`);
+    }
+  });
+
+  test('defensas (F5): los estados iniciales de cada mision nombran sistemas que su buque tiene', () => {
+    for (const m of [...MIS_D, ...LIBRO_VUELO]) {
+      for (const ini of m.sistemasIniciales || []) {
+        const a = ARMAMENTO[m.goal && m.goal.ship];
+        assert.ok(a, `${m.id}: sistemasIniciales en una mision sin buque armado`);
+        const lista = ini.escolta ? (a.escolta ? a.escolta.sistemas : []) : a.sistemas;
+        assert.ok(lista.some(x => x.tipo === ini.tipo), `${m.id}: ${ini.tipo} no esta en ${ini.escolta ? 'la escolta de ' : ''}${m.goal.ship}`);
+        assert.ok(ini.estado === 'danado' || ini.estado === 'fuera', `${m.id}: estado inicial '${ini.estado}'`);
+      }
+    }
+  });
+
+  test('defensas: VIVO → DAÑADO → FUERA por daño acumulado; lo eterno no se apaga', () => {
+    assert.equal(estadoDe('seacat_lanz', 0), 'vivo');
+    assert.equal(estadoDe('seacat_lanz', SISTEMAS.seacat_lanz.hp * SISTEMAS.seacat_lanz.danado), 'danado');
+    assert.equal(estadoDe('seacat_lanz', SISTEMAS.seacat_lanz.hp), 'fuera');
+    assert.equal(estadoDe('gpmg', 999), 'vivo');
+  });
+
+  test('defensas: el 4,5" con cañon no pasa de DAÑADO (D2: FUERA solo con bomba)', () => {
+    assert.equal(estadoDe('canon_45', topeCanon('canon_45')), 'danado');
+    assert.equal(topeCanon('oerlikon'), SISTEMAS.oerlikon.hp);
+  });
+
+  test('defensas: el 30 mm pega mas que el 20 mm', () => {
+    assert.ok(calibreDe('dagger') > calibreDe('sky'));
+    assert.equal(calibreDe('avion_que_no_existe'), 1);
+  });
+
+  test('defensas (D1): todos los sistemas de un buque juntos valen menos que la bomba que lo hunde', async () => {
+    const { BL } = await import('../src/data/blanco.js');
+    for (const [n, a] of Object.entries(ARMAMENTO)) {
+      const tot = a.sistemas.reduce((s, x) => s + SISTEMAS[x.tipo].pts[0] + SISTEMAS[x.tipo].pts[1], 0);
+      assert.ok(tot * 2.5 <= BL.PTS_HUNDIDO, `${n}: los sistemas suman ${tot}, demasiado cerca de la bomba (${BL.PTS_HUNDIDO})`);
+    }
+  });
+}

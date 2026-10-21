@@ -82,4 +82,8 @@ export const SHIP_CLASS = {
   // aproximar. La PLYMOUTH era Tipo 12 (clase Rothesay) y no hay modelo: `t21` es la fragata jugable,
   // con la misma nota que el Broadsword.
   'HMS GLASGOW': 't42', 'HMS PLYMOUTH': 't21',
+
+  // LAS ESCOLTAS (docs/sistemas/PLAN_DEFENSAS_BUQUE.md): la Brilliant cubria a la Glasgow el 12/5 y se
+  // dibuja al costado del blanco. Tipo 22: `t21` es la fragata jugable, como el Broadsword.
+  'HMS BRILLIANT': 't21',
 };

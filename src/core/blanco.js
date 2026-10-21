@@ -5,6 +5,8 @@
 // render no puede importar sistemas (`npm run lint:layers`). El objeto se MUTA, nunca se reasigna
 // (`npm run lint:state`).
 import { BL, PERFIL } from '../data/blanco.js';
+import { SISTEMAS, SIS_ALCANCE, estadoDe } from '../data/sistemas_buque.js';
+import { armamentoDe } from '../data/armamento.js';
 import { geo, alturaSuelo, esTierraEn } from './geografia.js';
 import { BOMBA_G, BOMBA_PLANEO, BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_REL_MAX } from '../data/tuning.js';
 
@@ -67,6 +69,13 @@ export const blanco = {
   preNegroT: -1,
   // LA BOMBA TRABADA (autor, 8/10: "a veces se trababan"): la del buque no salio y no va a salir
   trabada: false,
+  // LOS SISTEMAS DEL BUQUE (docs/sistemas/PLAN_DEFENSAS_BUQUE.md): su armamento real, pieza por pieza
+  // (data/armamento.js). { tipo, u, h, nombre, dano, estado, hitT, cambioT, quien }. PERSISTEN entre
+  // las pasadas de la fila — no pasan por `resetBlanco` hasta la corrida siguiente: el que viene atras
+  // encuentra el buque como lo dejo el anterior. `quien` = que pasada lo dejo como esta.
+  sistemas: [],
+  // LA ESCOLTA (decision D5 del autor, 20/10: se VE): { nombre, hoja, lado, sistemas } o null.
+  escolta: null,
 };
 
 export function resetBlanco(on, nombre, clase, tipo, base) {
@@ -81,7 +90,67 @@ export function resetBlanco(on, nombre, clase, tipo, base) {
   blanco.ala = null; blanco.alaN = 0; blanco.centroN = 0; blanco.pred = null; blanco.listo = false;
   blanco.extra = 0; blanco.enDist = false; blanco.buenaAlt = false; blanco.tuvoVentana = false; blanco.perdidaT = -1;
   blanco.escapando = false; blanco.cumplido = false; blanco.tardeT = -1; blanco.boquetes.length = 0;
+  blanco.sistemas.length = 0; blanco.escolta = null;
 }
+
+const nuevoSistema = x => ({ tipo: x.tipo, u: x.u, h: x.h, nombre: x.nombre || SISTEMAS[x.tipo].nombre,
+  dano: 0, estado: 'vivo', hitT: -9, cambioT: -9, quien: -1 });
+
+/** Arma el armamento real del buque (data/armamento.js) y su escolta. `iniciales` es como lo
+ *  ENCONTRO la mision (F5: la Ardent con el Sea Cat ya fuera): [{ tipo, estado, n?, escolta? }] — `n`
+ *  elige el n-esimo de ese tipo (sin `n`, todos); `escolta` lo aplica a la escolta. Un buque sin entrada se queda sin sistemas: juega la defensa
+ *  de respaldo de data/defensas.js, como antes de este plan. */
+export function armarSistemas(nombre, iniciales) {
+  const a = armamentoDe(nombre);
+  if (!a) return;
+  for (const x of a.sistemas) blanco.sistemas.push(nuevoSistema(x));
+  if (a.escolta) blanco.escolta = { nombre: a.escolta.nombre, hoja: a.escolta.hoja, lado: a.escolta.lado,
+    sistemas: a.escolta.sistemas.map(nuevoSistema) };
+  for (const ini of iniciales || []) {
+    let k = 0;
+    // `escolta: true` lo aplica a la escolta (la Brilliant de r2, con el 910 que fallo contra ORO)
+    const lista = ini.escolta ? (blanco.escolta ? blanco.escolta.sistemas : []) : blanco.sistemas;
+    for (const sis of lista) {
+      if (sis.tipo !== ini.tipo) continue;
+      if (ini.n !== undefined && k++ !== ini.n) continue;
+      const S = SISTEMAS[sis.tipo];
+      sis.dano = ini.estado === 'fuera' ? S.hp : S.hp * S.danado;
+      sis.estado = estadoDe(sis.tipo, sis.dano);
+    }
+  }
+}
+
+/** LA CAJA DE IMPACTO de un sistema, en el mundo: centro (x, y) y medios lados (hx, hy). La pieza
+ *  apoya sobre su altura medida (`h`, fraccion de la eslora) y la caja la envuelve. */
+export function cajaSistema(s) {
+  const S = SISTEMAS[s.tipo];
+  const x = BL.X - BL.LEN / 2 + s.u * BL.LEN;
+  return { x, y: blanco.base + s.h * BL.LEN - S.alto * 0.5, hx: S.ancho, hy: S.alto };
+}
+
+/** ¿El buque esta al alcance del cañon? Delante, a flote, y a menos de SIS_ALCANCE. */
+export const sistemasATiro = () => blanco.on && !blanco.hundido && !blanco.escapando && blanco.tipo === 'buque'
+  && blanco.sistemas.length > 0 && blanco.z > PZ_MIN && blanco.z < SIS_ALCANCE;
+const PZ_MIN = 20;
+
+/** EL RADAR DEL BUQUE (PLAN_DEFENSAS_BUQUE, el 909 del Sea Dart): cuanto carga la barra del radar
+ *  cuando subis CERCA de un buque que tiene Sea Dart (1 = como siempre). Con todos sus 909 FUERA —o su
+ *  lanzador FUERA— cerca del buque se puede subir sin que nadie te pinte: la suelta alta, que es la de
+ *  ventana mas ancha (la espoleta necesita vuelo), queda libre para el de atras. DAÑADOS, a la mitad.
+ *  Lejos del buque, o en un buque sin Sea Dart, el radar es el de la flota y no cambia. */
+export const SIS_RADAR_Z = 900;
+export function radarBuque() {
+  if (!blanco.on || blanco.hundido || blanco.tipo !== 'buque' || blanco.z > SIS_RADAR_Z || blanco.z < PZ_MIN) return 1;
+  const r = blanco.sistemas.filter(x => x.tipo === 'seadart_909');
+  if (!r.length) return 1;
+  const l = blanco.sistemas.filter(x => x.tipo === 'seadart_lanz');
+  if (r.every(x => x.estado === 'fuera') || (l.length && l.every(x => x.estado === 'fuera'))) return 0;
+  return r.some(x => x.estado === 'vivo') ? 1 : 0.5;
+}
+
+/** HASTA DONDE VIVE UNA BALA: 240 como siempre; con el buque a tiro, hasta pasar su casco. Lo leen la
+ *  colision (el prune) y el dibujo de las trazadoras. */
+export const balaTope = () => sistemasATiro() ? Math.max(240, blanco.z + 6) : 240;
 
 /** Altura del casco (unidades de mundo, sobre la flotacion) en la coordenada lateral `x`, o -1 si
  *  `x` cae fuera de la eslora. Sale del perfil medido de la hoja horneada: pega donde se ve casco. */

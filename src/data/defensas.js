@@ -22,9 +22,15 @@
 // EL SEA CAT SE ESQUIVA MOVIENDOSE: el operador lo apunta temprano y despues ya no llega a corregir
 // (su tramo ciego es largo, 260), y su tope lateral (14) es la mitad de lo que el avion se corre de
 // costado (30). Correrse cuando se acerca alcanza. Quieto, te pega.
+//   cargador  misiles del LANZADOR REAL antes de recargar, y `recarga` cuanto tarda (solo los buques con
+//             armamento real, PLAN_DEFENSAS_BUQUE: la defensa de respaldo sigue tirando continuo). El Sea
+//             Cat salia de un lanzador CUADRUPLE que se recargaba A MANO; el Sea Wolf, de uno SEXTUPLE.
+//             Medido en Node (tools/balance_defensas.js, 20/10): con tiro continuo nadie podia cañonear
+//             el lanzador — el piloto se pasaba la aproximacion entera esquivando. La recarga es la
+//             ventana para hacerlo, y es historica.
 export const DEFENSAS = {
-  cat:  { nombre: 'SEA CAT',  alcance: 700, fija: 0.8, cada: 0.45, vel: 120, ciego: 260, lat: 14, gana: 1.2, copia: false },
-  wolf: { nombre: 'SEA WOLF', alcance: 600, fija: 1.0, cada: 0.6,  vel: 230, ciego: 95,  lat: 70, gana: 3.2, copia: true },
+  cat:  { nombre: 'SEA CAT',  alcance: 700, fija: 0.8, cada: 0.45, vel: 120, ciego: 260, lat: 14, gana: 1.2, copia: false, cargador: 4, recarga: 4.5 },
+  wolf: { nombre: 'SEA WOLF', alcance: 600, fija: 1.0, cada: 0.6,  vel: 230, ciego: 95,  lat: 70, gana: 3.2, copia: true, cargador: 6, recarga: 4 },
 };
 
 /** Que defensa tiene el buque de la mision `m`. La mision la puede decir (`defensa: 'cat'|'wolf'|

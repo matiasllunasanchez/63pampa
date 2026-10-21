@@ -17,6 +17,7 @@ import { geoActiva, esTierraEn, alturaSuelo } from '../core/geografia.js';   // 
 import * as dmg from './damage.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune, estallidos } from '../core/world.js';
 import * as blancoSys from './blanco.js';
+import { balaTope } from '../core/blanco.js';
 import { BOMBA_G, BOMBA_PLANEO, BOMBA_REL_MAX, SPAWN_Z, TQ_ONDA_X, TQ_ONDA_Z } from '../data/tuning.js';
 import { golpeTanque } from '../core/nafta.js';
 import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion, estallido, piqueMunicion } from '../core/fx.js';
@@ -633,9 +634,12 @@ export function collisionSystem(dt) {
         // SEÑUELO (cambio de piloto): ya se fue detras del que se retiro (game.js, en la cinematica);
         // sigue de largo con lo que traia y no te puede pegar
         m.done = true;
-      } else if (m.z - PZ > D.ciego) {
-        m.vx = Math.max(-D.lat, Math.min(D.lat, (D.copia ? plane.vx : 0) + (plane.x - m.x) * D.gana));
-        m.vy = Math.max(-D.lat, Math.min(D.lat, (D.copia ? plane.vy || 0 : 0) + (plane.y - m.y) * D.gana));
+      } else if (!m.sinGuia && m.z - PZ > D.ciego * (m.ck || 1) && !(m.pierde && Math.sin(m.z * 0.045) > 0.35)) {
+        // (PLAN_DEFENSAS_BUQUE: el DIRECTOR del buque decide la guia — `gk`/`ck` si esta DAÑADO, `pierde`
+        // si es el 910 confundido, que a ratos no corrige; `sinGuia` si esta FUERA: sigue derecho)
+        const g = D.gana * (m.gk || 1);
+        m.vx = Math.max(-D.lat, Math.min(D.lat, (D.copia ? plane.vx : 0) + (plane.x - m.x) * g));
+        m.vy = Math.max(-D.lat, Math.min(D.lat, (D.copia ? plane.vy || 0 : 0) + (plane.y - m.y) * g));
       }
       m.x += (m.vx || 0) * dt; m.y += (m.vy || 0) * dt;
       // SU ESTELA (28/9: "los trayectos tienen que ser visibles"): el camino recorrido, punto a punto
@@ -648,8 +652,10 @@ export function collisionSystem(dt) {
     // trazadora (fuego de tierra): mas rapida y casi recta — se esquiva moviendose, no girando
     const trk = m.tracer ? 0.7 : 1;
     m.z -= (run.spd + (m.tracer ? 150 : 85)) * dt;
-    m.x += Math.max(-20, Math.min(20, (plane.x - m.x) * 2.4 * trk)) * dt;
-    m.y += Math.max(-14, Math.min(14, (plane.y - m.y) * 2.0 * trk)) * dt;
+    // (`ox`/`oy`: el error de punteria del montaje del buque — systems/artilleria.js. Sin el, el guiado
+    // se comia la dispersion y toda trazadora iba al centro del avion)
+    m.x += Math.max(-20, Math.min(20, (plane.x + (m.ox || 0) - m.x) * 2.4 * trk)) * dt;
+    m.y += Math.max(-14, Math.min(14, (plane.y + (m.oy || 0) - m.y) * 2.0 * trk)) * dt;
     }
     if (!m.done && m.z <= PZ + 1.2) {
       m.done = true;
@@ -688,7 +694,8 @@ export function collisionSystem(dt) {
     if (b.path) {
       // balistica recta (mira con mouse): interpola desde el AVION hacia el punto apuntado
       // en funcion del avance en z; pasa exacto por la mira a z=110 y sigue derecho
-      const f = (b.z - b.z0) / (110 - b.z0);
+      // (`zt`: contra el buque la bala converge en la pieza apuntada, no a 110 — flight.js)
+      const f = (b.z - b.z0) / ((b.zt || 110) - b.z0);
       b.x = b.x0 + (b.tx - b.x0) * f;
       const yLibre = b.y0 + (b.ty - b.y0) * f;
       b.y = Math.max(0, yLibre);
@@ -723,6 +730,9 @@ export function collisionSystem(dt) {
       }
     }
     if (b.z >= 999) continue;
+    // EL BUQUE DE LA SUELTA (PLAN_DEFENSAS_BUQUE): la bala que cruza el casco le pega a un sistema —su
+    // armamento real— o rebota en la chapa. `run.calibre`: 20 o 30 mm, segun el avion.
+    if (blancoSys.balaBuque(b, z0, (b.dano || 1) * (run.calibre || 1))) { b.z = 999; stats.hits++; continue; }
     for (const m of missiles) {
       if (m.z < z0 - 2 || m.z > b.z + 2) continue;
       if (Math.abs(b.x - m.x) < 2.6 && Math.abs(b.y - m.y) < 2.2) {
@@ -748,7 +758,7 @@ export function collisionSystem(dt) {
       }
     }
   }
-  prune(bullets, b => b.z < 240);
+  prune(bullets, b => b.z < balaTope());   // 240; con el buque a tiro, hasta su casco (core/blanco.js)
 
   // EL EXOCET: CAE este rato antes de prender el motor, despues acelera (ACEL, u/s²) hasta REL por encima
   // de tu velocidad, a RAS de altura; el humo dura HUMO_T

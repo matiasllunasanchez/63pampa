@@ -90,7 +90,8 @@ function arco(SW_ALCANCE, z, bz, pz, P3, alpha) {
 export function drawEngancheSW(sw, plane, pz) {
   if (!sw || !sw.dentro || (sw.fase !== 'fija' && sw.fase !== 'salva')) return;
   if (sw.fase === 'fija' && Math.sin(run.t * 22) < 0) return;
-  const a = proj(BL.X, SW_ALTO, zVista(sw.bz)), b = proj(plane.x, plane.y, pz);
+  // (desde el LANZADOR que tira — su lugar del casco, o la escolta de costado: `ox`)
+  const a = proj(sw.ox === undefined ? BL.X : sw.ox, SW_ALTO, zVista(sw.bz)), b = proj(plane.x, plane.y, pz);
   ctx.save();
   ctx.strokeStyle = colDefensa(sw.tipo).punta; ctx.lineWidth = 1;
   ctx.globalAlpha = sw.fase === 'salva' ? 0.9 : 0.55;
@@ -136,17 +137,18 @@ export function drawMisilSW(m) {
  *  misil, que sube, se abre y se apaga. Con tiro continuo el buque queda envuelto en su propio humo,
  *  que es como se veia una fragata defendiendose. Va con el buque, a su profundidad comprimida. */
 export function drawHumoSW(sw) {
-  if (!sw || !sw.humos || !sw.humos.length || !(sw.bz > 3)) return;
-  const z = zVista(sw.bz);
+  if (!sw || !sw.humos || !sw.humos.length || !(sw.bzb > 3)) return;
   ctx.save();
   for (const h of sw.humos) {
     const u = Math.max(0, Math.min(1, h.u));
     // A LA ESCALA DEL BUQUE, no del mundo: de lejos el casco mide pocas decenas de pixeles, y una
     // bocanada de tamaño real ahi era una mota. El humo se mide en largos de buque en pantalla.
-    const base = proj(BL.X, SW_ALTO, z), L = Math.max(24, BL.LEN * base.k);
+    // Sale de DONDE salio el misil (PLAN_DEFENSAS_BUQUE): `dx`/`dz` desde el centro del buque — su
+    // lanzador en la eslora, o la escolta de costado.
+    const base = proj(BL.X + h.dx, SW_ALTO, zVista(sw.bzb + (h.dz || 0))), L = Math.max(24, BL.LEN * base.k);
     for (let j = 0; j < 5; j++) {
       // cinco copos por bocanada, cada uno con su deriva: el viento la tira hacia un costado
-      const dx = (h.dx / 4) * L * 0.12 + Math.sin(h.s * 3.1 + j * 1.7) * L * (0.02 + u * 0.08) + u * L * 0.1;
+      const dx = Math.sin(h.s * 3.1 + j * 1.7) * L * (0.02 + u * 0.08) + u * L * 0.1;
       const dy = -(u * L * 0.32 + j * L * 0.015);
       const r = Math.max(3, L * (0.06 + u * 0.16) * (1 - j * 0.1));
       const s = { x: base.x + dx, y: base.y + dy };

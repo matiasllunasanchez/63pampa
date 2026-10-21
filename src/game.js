@@ -77,6 +77,8 @@ import { arrancar, arranqueActivo } from './render/arranque.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
 import * as seawolfSys from './systems/seawolf.js';
+import * as artilleria from './systems/artilleria.js';
+import { drawArtilleria } from './render/artilleria.js';
 import { drawZonaSW, drawEngancheSW, drawMisilSW, drawHumoSW } from './render/seawolf.js';
 import { drawAim9 } from './render/aim9.js';   // el Sidewinder de los Harrier
 import { drawAden, drawAvisoAden } from './render/aden.js';   // la rafaga de los Harrier
@@ -91,7 +93,7 @@ import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DE
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
 import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque, proximoPilon } from './core/nafta.js';
 import { trayectoria } from './core/balistica.js';
-import { blanco } from './core/blanco.js';
+import { blanco, balaTope, cajaSistema, sistemasATiro } from './core/blanco.js';
 import { drawTrayectoria, drawLineaExocet } from './render/trayectoria.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
@@ -178,6 +180,7 @@ import { CARA_DE_RADIO } from './core/voz.js';
 import { derrota, esChoque, tipoDerribo } from './data/derrotas.js';
 import { DEV } from './core/dev.js';
 import { defensaDe } from './data/defensas.js';
+import { calibreDe } from './data/sistemas_buque.js';
 import { BOMBAS, bombaDe, bombaInfo } from './data/bombas.js';
 import { paresDe } from './data/patrullas.js';
 import { pose as poseSenal } from './core/senales.js';
@@ -994,6 +997,35 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  jugador ya sabe lo que dice; el transito es al reves — es una conversacion de cuatro
      *  lineas y leerla ES la escena. 58 es la franja que ya usa el aviso de la Chancha lista:
      *  debajo del rotulo del objetivo y arriba del horizonte. */
+    // ---------- LAS DEFENSAS DEL BUQUE A LA VISTA (PLAN_DEFENSAS_BUQUE F4) ----------
+    // LA RADIO: cuando una pieza sale FUERA, el numeral lo canta (en el libro, PATRIA 2 — y solo si queda
+    // un amigo en el aire; en los modos sueltos no hay dialogos). Una linea cada SIS_RADIO_CADA s: con
+    // una rafaga que saca dos piezas juntas, la segunda no pisa a la primera.
+    const SIS_RADIO_CADA = 2.5;
+    let sisRadioT = -9, placaDefT = -1;
+    function radioSistemas() {
+      for (const ev of blancoSys.eventosSistemas()) {
+        if (ev.estado !== 'fuera' || suelto() || run.t - sisRadioT < SIS_RADIO_CADA) continue;
+        if (libro && run.lives < 2) continue;
+        const key = ev.tipo === 'seadart_909' ? 'sis_r_909' : /_dir$|_910$/.test(ev.tipo) ? 'sis_r_dir'
+          : ev.tipo === 'canon_45' ? 'sis_r_45' : /_lanz$/.test(ev.tipo) ? 'sis_r_lanz' : 'sis_r_aa';
+        sisRadioT = run.t;
+        beep(430, 0.06, 'square', 0.04);
+        decirRadio((libro ? 'PATRIA 2' : 'PUMA') + ': ' + T(key).replace('{n}', ev.nombre), n => CARA_DE_RADIO[n] || null);
+      }
+    }
+    /** LA PLACA DEL SIGUIENTE DE LA FILA: como encuentra el buque. Es el momento en que se entiende que
+     *  el anterior sirvio aunque haya errado (D3 del autor). Sale un rato despues del re-encare, cuando
+     *  ya se levanto el negro. Sin nada dañado, no sale. */
+    function placaDefensas() {
+      const r = blancoSys.resumenSistemas();
+      if (!r.fuera.length && !r.danado.length) return;
+      const partes = [];
+      if (r.fuera.length) partes.push(T('sis_placa_fuera').replace('{l}', r.fuera.join(' · ')));
+      if (r.danado.length) partes.push(T('sis_placa_danado').replace('{l}', r.danado.join(' · ')));
+      cartel(T('sis_placa'), P.accent, partes.join('   '));
+    }
+
     function radioTramo(key) {
       if (suelto()) return;   // SIN DIALOGOS en los modos sueltos (autor, 16/10: "al menos por ahora")
       // EL PILOTO AMIGO (PATRIA 2, el libro de vuelo) habla SOLO SI HAY AMIGO: volando solo —se cayeron
@@ -2530,7 +2562,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           dificultad: curMission() && curMission().dificultad, bomba: bombaDeLaMision(),
           espoletas: suelto() ? espoletasDe(pichon) : 0,   // las del banco suelto
           // el piso de una ESTRUCTURA: la explanada que la geografia le aplana debajo (0 sin geografia)
-          piso: alturaBlanco() });
+          piso: alturaBlanco(),
+          // como ENCONTRO la mision al buque (PLAN_DEFENSAS_BUQUE F5): [{ tipo, estado, n? }]
+          sistemasIniciales: curMission() && curMission().sistemasIniciales });
       // LA NAFTA COMO ALCANCE (PLAN_NAFTA_ALCANCE N3): el tanque se llena segun la carga YA RESUELTA
       // (la bomba del buque incluida). Va despues de la suelta por eso mismo. EN TODAS LAS MISIONES
       // Y MODOS desde el 30/9 (lo que cuelga pesa y se suelta igual en cualquiera); la cuenta en km,
@@ -2675,6 +2709,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const avSel = PLANES[selPlane];
       run.vuelo = (avSel && avSel.vuelo) || null;
       run.canon = (avSel && avSel.canon) || null;
+      run.calibre = calibreDe(avSel && avSel.key);   // 20 o 30 mm contra los sistemas del buque (PLAN_DEFENSAS_BUQUE)
       run.sinCanon = !!(avSel && avSel.sinCanon);   // los que no tenian armas (el Fenix, el Neptune): sin cañon
       // …ni bombas ni chafitas (`sinArmas`): arrancan sin nada, y el HUD no muestra lo que no tienen
       run.sinBombas = !!(avSel && avSel.sinArmas);
@@ -3434,6 +3469,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       chIdaLlena = false;       // la de la ida (la que viene sola) todavia no te lleno
       rasante.resetRasante();   // la barra del RASANTE es de la corrida: se gana volando bajo
       seawolfSys.reset();
+      artilleria.reset();
+      placaDefT = -1; sisRadioT = -9;
       reencareTrasChoque = false;
       limpiarCarteles();
       volvioSalvo = false;
@@ -4615,6 +4652,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       setState('dead'); deathCause = cause; deathT = 0;
       // …y POR QUE: la bomba errada se explica por su ultimo veredicto sobre el buque
       deathPorque = derrota(cause, blancoSys.estado().res, blancoSys.estado().bomba);
+      // …Y SI SE ERRO PERO SE DEJO DAÑO (D3 del autor, 20/10): la mision se pierde igual, pero la
+      // pantalla no dice solo "erraste" — dice lo que la escuadrilla le saco al buque.
+      if (erroSuelta(cause)) {
+        const r = blancoSys.resumenSistemas();
+        const extra = r.fuera.length ? T('sis_pero').replace('{l}', r.fuera.join(' · '))
+          : r.danado.length ? T('sis_pero_danado').replace('{l}', r.danado.join(' · ')) : null;
+        if (extra) deathPorque = Object.assign({}, deathPorque, { extra });
+      }
       // …la pantalla ya esta en negro (el de la pasada errada): sube directo, sin "show del destrozo"
       if (erroSuelta(cause)) deathT = DEATH_REVEAL;
       // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
@@ -5412,7 +5457,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           }
           if (squad.updateRelevo(dt) === 'done') {
             // …el que viene tras un CHOQUE EN EL CRUCE encara de nuevo el mismo buque (ver arriba)
-            if (reencareTrasChoque) { reencareTrasChoque = false; blancoSys.enFila(); caza.despejar(); fadeT = 0.55; }
+            if (reencareTrasChoque) { reencareTrasChoque = false; blancoSys.enFila(); caza.despejar(); fadeT = 0.55; placaDefT = 1.4; }
             // lo que cruzo el plano del avion DURANTE la cinematica ya paso de largo: sin esto,
             // collision lo veria "sin resolver" en el primer frame y podria matar en el handoff
             for (const o of obstacles) if (o.z <= PZ + 1.5) o.done = true;
@@ -5795,6 +5840,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             if (ROTULOS_SUELTA) errarT0 = performance.now();
             cartel(T('rot_erraste'), '#ff6a50', null, { alerta: true });
           }
+          // OTRA PASADA del mismo avion (la mision da varias): tambien vuelve a encontrar el buque como lo dejo
+          if (c === 'reencare') placaDefT = 1.6;
           if (av && av['bl_' + c]) avisar(av, 'bl_' + c);
         }
         // EL CRUCE es el fin del ataque: se le pasa por encima al buque y corta a negro. Hundido,
@@ -5807,7 +5854,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // sano —y todos llevan la bomba del centro—, el de atras toma la pasada; si no, derrota.
         if (b === 'errado') {
           if (canRelevo(run.lives)) {
-            blancoSys.enFila(); onPassSpent({ spent: 'suelta', why: 'death_fallo_blanco' });
+            blancoSys.enFila(); placaDefT = 2.2; onPassSpent({ spent: 'suelta', why: 'death_fallo_blanco' });
             caza.despejar();   // los Harriers que te seguian pasaron el buque con vos: no se rebobinan (8/10)
             // EL REBOBINADO: `enFila` ya dejo el buque a FILA_M; la cinematica arranca con el pasillo
             // corrido hasta REBOBINA_Z y lo devuelve (ver el bloque del relevo)
@@ -5892,6 +5939,21 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           activo: runClimax() === 'suelta' && !cfg.devcam && blancoSys.negro() <= 0 && blancoSys.slow() === 1 && !blancoSys.escapando() });
         if (sws === 'fija') { beep(1400, 0.05, 'square', 0.04); setTimeout(() => beep(1400, 0.05, 'square', 0.04), 110); }
         if (sws === 'tira') { beep(980, 0.09, 'sawtooth', 0.05, -300); run.shake = Math.min(6, run.shake + 1); }
+      }
+      radioSistemas();
+      if (placaDefT > 0 && (placaDefT -= dt) <= 0) placaDefensas();
+      // LA ARTILLERIA DEL BUQUE (systems/artilleria.js, PLAN_DEFENSAS_BUQUE F3): el 4,5" y los montajes
+      // de 20/40 mm, que salen de sus sistemas. Con la defensa del blanco anulada (la carta ITB), callados.
+      {
+        const ar = artilleria.step(dt, { pz: PZ, k: run.defK || 1,
+          activo: runClimax() === 'suelta' && !cfg.devcam && blancoSys.negro() <= 0 && blancoSys.slow() === 1
+            && !blancoSys.escapando() && !(suelto() && run.itb) });
+        if (ar === 'salva') beep(90, 0.22, 'sawtooth', 0.05, -40);   // el cañonazo del 4,5"
+        else if (ar === 'roce') { run.score += 50; run.shake = Math.min(6, run.shake + 1.4); }
+        else if (ar && ar.golpe) {
+          run.shake = Math.min(8, run.shake + 3);
+          if (damage.takeHit(ar.golpe)) { onDeath(ar.golpe); return; }
+        }
       }
       const hit = collisionSystem(dt);   // impactos → devuelve { death } si un choque fue fatal
       if (hit) { onDeath(hit.death); return; }
@@ -6221,7 +6283,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // render de la cabina, lo decide el sistema, y los junta aca — que es el trabajo de este
       // archivo. Se pide ANTES de dibujar porque el buque va primero: es mundo.
       // LA SUELTA: el buque es MUNDO (render/blanco.js) y reemplaza al de la aproximacion pintada.
-      if (runClimax() === 'suelta') { drawBlanco(); drawRecibe(); const sws = seawolfSys.snapshot(PZ); drawHumoSW(sws); drawZonaSW(sws, PZ); }
+      if (runClimax() === 'suelta') { drawBlanco(); drawRecibe(); const sws = seawolfSys.snapshot(PZ); drawHumoSW(sws); drawZonaSW(sws, PZ); drawArtilleria(artilleria.snapshot()); }
       else world.drawApproachBarge(objectiveDist, objectiveShip,
         S.state === 'pulso' ? fxLejos(pulso.shipFx(pulsoRender.ventana(cine.state(), run.t))) : null,
         runClimax() === 'pasada' && S.state !== 'pulso');
@@ -6334,7 +6396,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (S.state === 'play' && runClimax() === 'suelta') drawEngancheSW(seawolfSys.snapshot(PZ), plane, PZ);
       // balas (trazadoras hacia el horizonte) — ver render/ammo.js
       for (const b of bullets) {
-        if (b.z >= 240) continue;
+        if (b.z >= balaTope()) continue;   // 240; con el buque a tiro, hasta su casco
         drawBullet(b);
       }
       // LA BOMBA DEL JUGADOR (23/9: "que sea mas bomba"). Hasta aca se dibujaba como un Exocet
@@ -7822,7 +7884,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // casco del pasillo toma su clase AL ARRANCAR la mision — sin esto se veia siempre el mismo.
         // Se muta el objeto de core/blanco.js (nunca se reasigna: lint:state).
         const clase = SHIP_CLASS[nombre];
-        if (runClimax() === 'suelta' && blanco.on) { blanco.nombre = nombre; if (clase) blanco.clase = clase; }
+        if (runClimax() === 'suelta' && blanco.on) { blanco.nombre = nombre; if (clase) blanco.clase = clase; blancoSys.rearmar(nombre); }
       }
       return JSON.stringify({ buque: objectiveShip, clase: SHIP_CLASS[objectiveShip] || null,
         dist: Math.round(objectiveDist), p: +(run.dist / Math.max(1, objectiveDist)).toFixed(3) });
@@ -8004,6 +8066,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // propia bola de fuego— termina con "chocaste el terreno" en vez de con la foto. Va entre
     // update y draw por el mismo motivo que `__mset`: puesto antes, la fisica se lo lleva por
     // delante en el mismo cuadro. `__nivel(null)` lo suelta.
+    // LOS SISTEMAS DEL BUQUE (PLAN_DEFENSAS_BUQUE) — QUITAR al cerrar el plan. `__sis()` da el estado de cada
+    // pieza; `__sis(i)` ademas pone el avion ENFRENTE de la pieza i (su x, y la altura clavada a la de la
+    // pieza): es lo que deja medir "la rafaga la pasa a DAÑADO y despues a FUERA" sin pilotear a ojo.
+    if (typeof window !== 'undefined') window.__sisset = (i, e) => blancoSys.sisForzar(i, e);
+    if (typeof window !== 'undefined') window.__sis = i => {
+      if (i !== undefined && blanco.sistemas[i]) {
+        const c = cajaSistema(blanco.sistemas[i]);
+        plane.x = c.x; altHold = Math.max(1, c.y);
+      }
+      return JSON.stringify({ z: Math.round(blanco.z), atiro: sistemasATiro(), escolta: blanco.escolta && blanco.escolta.nombre,
+        sis: blanco.sistemas.map(x => ({ n: x.nombre, t: x.tipo, e: x.estado, d: +x.dano.toFixed(1), q: x.quien })) });
+    };
     if (typeof window !== 'undefined') window.__nivel = y => {
       altHold = y === null || y === undefined ? null : Math.max(1, y);
       return JSON.stringify({ hold: altHold, y: +plane.y.toFixed(1) });

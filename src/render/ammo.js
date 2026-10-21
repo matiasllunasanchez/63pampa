@@ -15,7 +15,12 @@
 // Todo con px() (rects enteros): nada de strokes, nada de degrades.
 
 import { ctx, px, PZ } from './ctx.js';
-import { proj } from '../core/fx.js';
+import { proj as projReal } from '../core/fx.js';
+import { zVista } from '../core/blanco.js';
+// LA TRAZADORA QUE VA AL BUQUE (PLAN_DEFENSAS_BUQUE) vuela mas alla de 240, y el buque se DIBUJA a la
+// profundidad comprimida de `zVista`: dibujada a su z real, la bala se veia llegar al casco y seguir
+// de largo antes de pegar. Hasta 200 `zVista` es la identidad: las balas de siempre no cambian.
+const proj = (x, y, z) => projReal(x, y, zVista(z));
 import { luzNoche } from './noche.js';
 
 // del nucleo encendido al rescoldo. El indice 0 es la cabeza; de ahi para atras, enfriando.
@@ -28,7 +33,7 @@ const TAIL_N = 5;    // en cuantos pedazos se parte
  *  hacia atras — se nota al disparar bien al costado. Sin path, la bala va derecho. */
 function at(b, z) {
   if (!b.path) return { x: b.x, y: b.y };
-  const f = (z - b.z0) / (110 - b.z0);   // mismo reparto que usa la colision (systems/collision.js)
+  const f = (z - b.z0) / ((b.zt || 110) - b.z0);   // mismo reparto que usa la colision (systems/collision.js)
   return { x: b.x0 + (b.tx - b.x0) * f, y: Math.max(0, b.y0 + (b.ty - b.y0) * f) };
 }
 
