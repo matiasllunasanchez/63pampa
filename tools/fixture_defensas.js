@@ -10,6 +10,8 @@
 //   5. el 4,5" a cañonazos no pasa de DAÑADO (D2: FUERA solo con bomba)
 //   6. las salidas del libro arrancan como la historia: r2 con la Brilliant de escolta, r3 con el Sea
 //      Cat ya fuera, r4 (la Plymouth) con el cañon doble Mk 6
+//   7. CICLO DE MUERTE juega LA SUELTA (no el Pulso) con el armamento real del blanco — por la puerta
+//      del jugador: menu → JUEGO RAPIDO → CICLO (autor, 21/10)
 //
 // Uso: npm run defensas
 const { app, BrowserWindow } = require('electron');
@@ -113,6 +115,26 @@ app.whenReady().then(async () => {
   await abrir('r4');
   s = await J('__sis()');
   if (pieza(s, '4.5 MK6')) ok('r4 PLYMOUTH: el cañon doble Mk 6'); else bad('r4 armamento: ' + s.sis.map(x => x.n).join(','));
+
+  console.log('7. CICLO DE MUERTE juega LA SUELTA:');
+  await win.loadURL('file://' + path.join(ROOT, 'src', 'index.html') + '?no3d');
+  await sleep(2600);
+  const tap = async (k, ms = 200) => { key(k, true); await sleep(60); key(k, false); await sleep(ms); };
+  await tap('Return');
+  for (let i = 0; i < 10 && (await J('__pausedbg()')).modo !== 'quick'; i++) await tap('Down');
+  await tap('Return', 500);
+  for (let i = 0; i < 10 && (await J('__pausedbg()')).quick !== 'cycle'; i++) await tap('Down');
+  await tap('Return', 600);
+  for (let i = 0; i < 30; i++) { const e = await J('__wjump()'); if (e.state === 'play' || e.state === 'takeoff') break; await tap('Return', 400); }
+  for (let i = 0; i < 60; i++) { if ((await J('__wjump()')).state === 'play') break; await sleep(300); }
+  const w = await J('__wjump()');
+  await js(`__dist(${w.obj} + 14 - 560)`); await sleep(300);
+  const su = await J('__suelta()');
+  if (su.rack && su.rack.centroN === 1 && su.z > 0) ok('el blanco del ciclo es LA SUELTA (bomba ' + su.rack.bomba + ' al centro, buque a ' + su.z + ')');
+  else bad('el ciclo no armo la suelta: ' + JSON.stringify(su).slice(0, 160));
+  s = await J('__sis()');
+  if (s.sis.length && s.atiro) ok('con su armamento real: ' + s.sis.map(x => x.n).join(', '));
+  else bad('el blanco del ciclo sin sistemas');
 
   console.log('\nconsola:');
   if (errors.length) { for (const e of errors.slice(0, 5)) bad('error de consola: ' + e); } else ok('sin errores');

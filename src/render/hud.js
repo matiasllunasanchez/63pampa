@@ -1658,6 +1658,15 @@ export function anchoSquad() {
   return Math.max(ALERTA_MIN_W, Math.round(wFila) + 6);
 }
 
+// LA LLAVE INGLESA, 4x4: la boca abierta arriba a la derecha y el mango en diagonal hacia abajo. Va
+// CHICA y en la esquina del avion: de 5x5 y al centro tapaba la silueta entera y ya no se leia avion.
+const LLAVE = ['.X.X', '.XXX', 'XX..', 'X...'];
+function llaveInglesa(x, y) {
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]])          // el contorno, primero
+    LLAVE.forEach((fila, j) => { for (let i = 0; i < 4; i++) if (fila[i] === 'X') px(x + i + dx, y + j + dy, 1, 1, '#0d1318'); });
+  LLAVE.forEach((fila, j) => { for (let i = 0; i < 4; i++) if (fila[i] === 'X') px(x + i, y + j, 1, 1, '#eef3f5'); });
+}
+
 export function drawSquadPips(x, y) {
   // QUIEN VUELA Y QUIEN CAYO SALEN DE LA FILA (core/squad.js), no de la cuenta de vidas: con el
   // CAMBIO DE PILOTO puede volar PATRIA 3 con PATRIA 2 vivo esperando atras. Caido es el que ya no
@@ -1685,6 +1694,10 @@ export function drawSquadPips(x, y) {
     iconoEn(ax + 3, y + 5, 'avion', base ? '#5d7686' : down ? '#3a4750' : i === manda ? P.accent : (colFalla || P.foam));
     if (i === manda) { px(ax + 3, y + SQUAD_H - 2, 1, 1, P.accent); px(ax + 2, y + SQUAD_H - 1, 3, 1, P.accent); }   // la flechita, sobre el borde de la placa
     if (base) { const f = Math.max(0, Math.min(1, 1 - base.t / BASE_T)); px(ax, y + SQUAD_H - 3, SQ_PASO - 2, 1, '#2c3a44'); px(ax, y + SQUAD_H - 3, Math.max(1, (SQ_PASO - 2) * f), 1, '#9fc3d8'); }
+    // …Y LA LLAVE INGLESA ENCIMA (21/10, el autor: "el iconito de reparacion, una llave inglesa encima del
+    // avion, en blanco"): el gris solo se confundia con un caido. Blanca con contorno oscuro, para que se
+    // lea sobre la silueta gris en una placa de 11 px.
+    if (base) llaveInglesa(ax + 4, y + 1);
   }
   // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.

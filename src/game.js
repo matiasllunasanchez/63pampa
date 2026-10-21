@@ -2527,6 +2527,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (pulsoProbe) return 'pulso';                      // sonda de EL PULSO (Q1)
       if (gameMode === 'pasadas' || pasadaProbe) return 'pasada';
       if (gameMode === 'arena') return 'arena';
+      // CICLO DE MUERTE JUEGA LA SUELTA (autor, 21/10: "ciclo de muerte esta metiendo un momentum y no
+      // deberia, a menos que tengas un Exocet que requiere configurar; el soltar debe ser como en las
+      // pruebas SMALL"). Sus blancos salen de las misiones de la campaña, que declaran 'arena' o 'pasada'
+      // —las dos en cuarentena— y caian en el suplente, EL PULSO: subir, prender el radar y cargar el
+      // blanco, que es como se lanza un Exocet y no como se suelta una bomba. Ahora la carga decide: con
+      // Exocet, el Pulso; con bombas, LA SUELTA de la t17. (Va por `cargaDe` y no por exocetLanzable(),
+      // que pregunta por este mismo climax.)
+      if (gameMode === 'cycle' && suelto()) return (cargaDe(cfg.carga) || {}).exocet ? 'pulso' : 'suelta';
       return climaxOf(curMission()) || 'pasada';
     }
     // define el objetivo del run según el modo (campaña/ciclo: el goal de la mision; supervivencia: infinito)
@@ -4576,6 +4584,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const misil = tipo === 'misil';
       obstacles.push({ type: 'airboom', pix: true, x: plane.x, y: plane.y, z: PZ, boomT: 0, scale: misil ? 0.95 : 0.5, done: true, vz: spd0 * 0.5, vy2: plane.y > 3 ? -2 : 0, ph: Math.random() * 6 });
       if (misil) { boom(0.3, true); run.shake = 9; }
+      else explosionChoque(spd0);
       // PEDAZOS GRANDES en el MUNDO ('chunk'): el motor, media ala, la deriva... Vuelan hacia
       // adelante perdiendo velocidad, la gravedad los baja y rebotan cortos al tocar el suelo.
       // Van en coordenadas de mundo (no de pantalla) justamente para poder ALEJARSE: los `parts`
@@ -4608,6 +4617,36 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       engineOff();
       beep(180, 0.5, 'sawtooth', 0.06, 40);
+    }
+
+    /** EL CHOQUE REVIENTA EN GRANDE (autor, 21/10: "explota como un globito, debe ser una EXPLOSION
+     *  COPADA, con sonido exactamente igual"). Todo lo de aca es DIBUJO —bolas, fuego, humo, sacudon—
+     *  y nada suena: el sonido del choque sigue siendo el de crashFX, tal cual. Por eso no se usa
+     *  explodeAt ni las 'sec' (las dos llaman a boom()).
+     *    · la bola pixel principal, del doble de la de antes (la de crashFX queda adentro)
+     *    · la bola de la hoja detras, grande: el volumen
+     *    · tres bolas chicas corridas que salen con distinta inercia: se abre, no es un punto
+     *    · fuego y humo de pantalla que suben, y la columna que queda ardiendo */
+    function explosionChoque(spd0) {
+      const x = plane.x, y = Math.max(0.6, plane.y);
+      obstacles.push({ type: 'airboom', pix: true, x, y, z: PZ + 0.3, boomT: 0, scale: 1.05, done: true, vz: spd0 * 0.45, vy2: plane.y > 3 ? -2 : 0, ph: Math.random() * 6 });
+      obstacles.push({ type: 'airboom', x, y: y + 1.2, z: PZ + 1.5, boomT: 0, scale: 1.25, done: true, vz: spd0 * 0.4 });
+      for (let i = 0; i < 3; i++) obstacles.push({
+        type: 'airboom', pix: true, x: x + (i - 1) * 3.2 + (Math.random() - 0.5) * 1.5, y: y + Math.random() * 2.2, z: PZ + 0.5 + i * 0.8,
+        boomT: 0, scale: 0.4 + Math.random() * 0.2, done: true, vz: spd0 * (0.3 + Math.random() * 0.35), ph: Math.random() * 6,
+      });
+      const ps = proj(x, y, PZ);
+      const FUEGO = ['#fff1c8', '#ffd27a', P.accent, P.warn, '#c0461f'];
+      for (let i = 0; i < 34; i++) {
+        const ang = Math.random() * 6.283, sp = 30 + Math.random() * 110;
+        parts.push({ x: ps.x, y: ps.y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp * 0.7 - 25,
+          life: 0.35 + Math.random() * 0.55, c: FUEGO[i % FUEGO.length], r: 1.5 + Math.random() * 2.5 });
+      }
+      for (let i = 0; i < 18; i++) parts.push({ x: ps.x + (Math.random() - 0.5) * 18, y: ps.y + (Math.random() - 0.5) * 8,
+        vx: (Math.random() - 0.5) * 30, vy: -20 - Math.random() * 30, life: 1.1 + Math.random() * 0.9,
+        c: i % 3 ? '#3a3a36' : '#5a5a54', r: 2.5 + Math.random() * 3 });
+      obstacles.push({ type: 'humo', done: true, x, y: 0, z: PZ + 2, humoT: 0, humoMax: 5 });
+      run.shake = Math.max(run.shake, 8);
     }
 
     // AVERIADO (campaña): el golpe que en arcade revienta, aca solo SACA DE COMBATE. Nada de
