@@ -207,9 +207,10 @@ const sfxTurn = {};
  *  con la distancia hasta un piso, para que lo lejano se siga oyendo apenas. */
 export const cercania = z => Math.min(1.8, Math.max(0.15, 45 / (Math.max(0, z || 0) + 25)));
 export function sfxEn(key, z) { const d = SFX_DEF[key]; return sfxOne(key, d ? d.v * cercania(z) : undefined); }
-export function sfxOne(key, vol) {
+export function sfxOne(key, vol, forzar) {
   const d = sfxSrc(key); if (!d || muted) return false;
-  if (key.startsWith('ex') && key !== 'exocetSale' && explosionesSonando() >= EXPLOSIONES_MAX) return true;   // ya hay bastantes
+  // (`forzar`: la explosion de MI avion no la saltea el tope — 21/10: es la que tiene que sonar siempre)
+  if (!forzar && key.startsWith('ex') && key !== 'exocetSale' && explosionesSonando() >= EXPLOSIONES_MAX) return true;   // ya hay bastantes
   const rel = d.alt
     ? d.f[(sfxTurn[key] = ((sfxTurn[key] || 0) + 1)) % d.f.length]
     : d.f[(Math.random() * d.f.length) | 0];

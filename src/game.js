@@ -26,7 +26,7 @@ import { cabina, enCabina, CABINA } from './core/cabina.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts, estallidos,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
-import { proj, popup, explodeAt, polvoSuelo, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES, derribar } from './core/fx.js';
+import { proj, popup, explodeAt, polvoSuelo, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES, derribar, onda } from './core/fx.js';
 import { ULTIMA_VARIANTE } from './core/fx.js';   // QUITAR con las sondas de v2
 import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T,
   forzarVariante, variantesDe, recetaDe, MORIBUNDO_MAX, DESPIECE } from './data/despiece.js';
@@ -4570,7 +4570,15 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // TAL CUAL — el companero que asume tiene que ver al lider romperse igual que lo veria el
     // jugador — pero la partida sigue, asi que nada de aca puede tocar la maquina de estados.
     function crashFX(tipo) {
-      sfxOne('exSmall');   // mi avion chocando (agua incluida, por ahora)
+      // MI AVION REVIENTA DE VERDAD (21/10, el autor: "la explosion cuando choco es una bombucha de agua
+      // explotando; tiene que sentirse como una EXPLOSION en serio, con sonido en serio"). Sonaba `exSmall`
+      // por el grupo de combate (0.25 → apenas 0.19), y si ya habia tres explosiones se salteaba. Ahora tres
+      // capas que no saltea el tope: la explosion mas grande que tenemos (exXheavy, larga cola), una pesada
+      // encima para el cuerpo, el golpe grave sintetico; el retumbe lejano un tercio de segundo despues, la
+      // musica agachada y el fogonazo en la cara.
+      sfxOne('exXheavy', 3.6, true); sfxOne('exHeavy', 2.6, true); boom(0.6, false);
+      setTimeout(() => sfxOne('exHeavyDist', 2.4, true), 330);
+      duck(1.8); run.flash = 1;
       explodeAt(plane.x, plane.y, PZ, true, true);   // noBall: la bola del derribo es la PIXEL de abajo
       // INERCIA DEL DESASTRE. Un avion a 300 km/h no frena y explota en el lugar: revienta Y
       // SIGUE — los restos y la bola de fuego conservan la velocidad que traia y avanzan varios
@@ -4583,7 +4591,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // (EL MISIL revienta mas grande: es la muerte que no deja nada — 12/10, "si es misil, explotar")
       const misil = tipo === 'misil';
       obstacles.push({ type: 'airboom', pix: true, x: plane.x, y: plane.y, z: PZ, boomT: 0, scale: misil ? 0.95 : 0.5, done: true, vz: spd0 * 0.5, vy2: plane.y > 3 ? -2 : 0, ph: Math.random() * 6 });
-      if (misil) { boom(0.3, true); run.shake = 9; }
+      if (misil) { boom(0.3, true); run.shake = 14; }
       else explosionChoque(spd0);
       // PEDAZOS GRANDES en el MUNDO ('chunk'): el motor, media ala, la deriva... Vuelan hacia
       // adelante perdiendo velocidad, la gravedad los baja y rebotan cortos al tocar el suelo.
@@ -4629,24 +4637,26 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *    · fuego y humo de pantalla que suben, y la columna que queda ardiendo */
     function explosionChoque(spd0) {
       const x = plane.x, y = Math.max(0.6, plane.y);
-      obstacles.push({ type: 'airboom', pix: true, x, y, z: PZ + 0.3, boomT: 0, scale: 1.05, done: true, vz: spd0 * 0.45, vy2: plane.y > 3 ? -2 : 0, ph: Math.random() * 6 });
-      obstacles.push({ type: 'airboom', x, y: y + 1.2, z: PZ + 1.5, boomT: 0, scale: 1.25, done: true, vz: spd0 * 0.4 });
-      for (let i = 0; i < 3; i++) obstacles.push({
-        type: 'airboom', pix: true, x: x + (i - 1) * 3.2 + (Math.random() - 0.5) * 1.5, y: y + Math.random() * 2.2, z: PZ + 0.5 + i * 0.8,
-        boomT: 0, scale: 0.4 + Math.random() * 0.2, done: true, vz: spd0 * (0.3 + Math.random() * 0.35), ph: Math.random() * 6,
+      // (21/10: mas grande — la bola ~60% mas, cinco secundarias que revientan escalonadas, y la ONDA de choque)
+      obstacles.push({ type: 'airboom', pix: true, x, y, z: PZ + 0.3, boomT: 0, scale: 1.7, done: true, vz: spd0 * 0.45, vy2: plane.y > 3 ? -2 : 0, ph: Math.random() * 6 });
+      obstacles.push({ type: 'airboom', x, y: y + 1.6, z: PZ + 1.5, boomT: 0, scale: 1.8, done: true, vz: spd0 * 0.4 });
+      for (let i = 0; i < 5; i++) obstacles.push({
+        type: 'airboom', pix: true, x: x + (i - 2) * 2.8 + (Math.random() - 0.5) * 1.5, y: y + Math.random() * 3, z: PZ + 0.5 + i * 0.7,
+        boomT: -i * 0.08, scale: 0.55 + Math.random() * 0.3, done: true, vz: spd0 * (0.3 + Math.random() * 0.35), ph: Math.random() * 6,
       });
+      onda(x, y, PZ + 1);
       const ps = proj(x, y, PZ);
       const FUEGO = ['#fff1c8', '#ffd27a', P.accent, P.warn, '#c0461f'];
-      for (let i = 0; i < 34; i++) {
-        const ang = Math.random() * 6.283, sp = 30 + Math.random() * 110;
+      for (let i = 0; i < 60; i++) {
+        const ang = Math.random() * 6.283, sp = 40 + Math.random() * 160;
         parts.push({ x: ps.x, y: ps.y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp * 0.7 - 25,
           life: 0.35 + Math.random() * 0.55, c: FUEGO[i % FUEGO.length], r: 1.5 + Math.random() * 2.5 });
       }
       for (let i = 0; i < 18; i++) parts.push({ x: ps.x + (Math.random() - 0.5) * 18, y: ps.y + (Math.random() - 0.5) * 8,
         vx: (Math.random() - 0.5) * 30, vy: -20 - Math.random() * 30, life: 1.1 + Math.random() * 0.9,
         c: i % 3 ? '#3a3a36' : '#5a5a54', r: 2.5 + Math.random() * 3 });
-      obstacles.push({ type: 'humo', done: true, x, y: 0, z: PZ + 2, humoT: 0, humoMax: 5 });
-      run.shake = Math.max(run.shake, 8);
+      obstacles.push({ type: 'humo', done: true, x, y: 0, z: PZ + 2, humoT: 0, humoMax: 7 });
+      run.shake = Math.max(run.shake, 14);
     }
 
     // AVERIADO (campaña): el golpe que en arcade revienta, aca solo SACA DE COMBATE. Nada de
