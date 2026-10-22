@@ -21,3 +21,6 @@ src/game.bundle.js
 
 # capturas de QA del carril 3D (PLAN_MEJORAS_3D) — se miran y se tiran, no van al repo
 capturas-3d/
+
+# el trailer renderizado (tools/trailer.js): artefacto, pesa y se rehace
+trailer/

@@ -9,6 +9,7 @@
 | Cualquier imagen **a color, pixel art** (fondos de escena y caras) | **`PROMPTS_AIRE_LISTOS.md`** | 18 placas (prólogo, M1, M2, M3) + 10 retratos + 6 figuras del P.2 |
 | Cualquier imagen **de cuaderno, birome azul** (los dibujos de Mateo) | **`PROMPTS_TIERRA_LISTOS.md`** | P.1a arroyo, P.1b sapito (mano de Mateo a los 8) + **las 14 páginas del cuaderno**, una por misión (mano de los 18) |
 | La **hoja de rostros completa** de un personaje (seis celdas, misma grilla) | `PROMPTS_RETRATOS_LISTOS.md` | 8 hojas, una por personaje |
+| **Muchas emociones** (18 por personaje, fondo verde) — el elenco, el de la Chancha, Cóndor y cinco pilotos genéricos | **`PROMPTS_HOJAS_EMOCIONES.md`** | 3 tiras de 6 por personaje (22/10) |
 
 En los tres, **el prompt es el bloque de código entero**: se selecciona de la primera a la
 última línea, se copia y se pega. No hay que agregarle estilo, ni época, ni formato — ya está

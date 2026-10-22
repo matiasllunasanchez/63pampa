@@ -53,7 +53,8 @@
     "fixtures": "node tools/fixtures.js",
     "lint:layers": "node tools/lint_layers.js",
     "defensas": "electron tools/fixture_defensas.js",
-    "balance:defensas": "node tools/balance_defensas.js"
+    "balance:defensas": "node tools/balance_defensas.js",
+    "trailer": "electron tools/trailer.js"
   },
   "author": "Matias Luna",
   "license": "UNLICENSED",
