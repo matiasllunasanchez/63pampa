@@ -217,7 +217,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // loadOpts() lo pone despues
     cfg.fichinZoom = zoomDePantalla();
     setZoomFichin(cfg.fichinZoom);
-    setFondo(cfg.fondo);
+    // EL JUEGO ARRANCA SIEMPRE EN EL FICHIN ENTERO (21/10, el autor: "el inicio SIEMPRE tiene que arrancar con
+    // fichin, luego convertir a pantalla completa o con resplandor o la configuracion que tenga"). Mientras dura
+    // el arranque el fondo es el gabinete, diga lo que diga OPCIONES —loadOpts corre despues y lo pisaba—; al
+    // terminar, el acercamiento y recien ahi el fondo elegido (ver `alTerminar`).
+    let fondoEnArranque = true;
+    setFondo('fichin');
     // EL ARRANQUE DEL FICHIN (render/arranque.js): negro, el gabinete, el tubo que se prende, el
     // BIOS, INSERTE FICHA, la ficha y PRESIONE CUALQUIER TECLA.
     // La musica de la portada espera a que el jugador "continue".
@@ -228,7 +233,16 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     arrancar({ alEmpezar: () => arranquePc('alto'), alFinBios: () => arranquePc('bajo'),
       alPrender: sonidoTubo, alCargado: () => sfxOne('insertCoin'),
       alFicha: () => { sonidoFicha(); acercarFichin(); },
-      alTerminar: () => { arranquePc(false); retenerMusica(false); acercarFichin();
+      alTerminar: () => { arranquePc(false); retenerMusica(false);
+        // EL FICHIN, Y DESPUES LO ELEGIDO. Con el arranque entero la ficha ya empezo el acercamiento; sin
+        // arranque (MODO DEV) el gabinete se ve un momento entero y recien ahi se acerca. Terminado el
+        // acercamiento (ACERCA_T de render/ambiente.js), el fondo de OPCIONES. En las pruebas (sin el
+        // preload de Electron) no hay espera: el fondo elegido de una.
+        const app = typeof window !== 'undefined' && window.RASANTE_APP;
+        const aplicar = () => { fondoEnArranque = false; if (cfg.fondo !== 'fichin') setFondo(cfg.fondo); };
+        if (!app) { acercarFichin(); aplicar(); }
+        else if (window.RASANTE_DEV) setTimeout(() => { acercarFichin(); setTimeout(aplicar, 1500); }, 900);
+        else { acercarFichin(); setTimeout(aplicar, 900); }
         // EN MODO DEV, DIRECTO AL MENU (8/10, core/dev.js): sin portada que pida una tecla
         if (typeof window !== 'undefined' && window.RASANTE_DEV && S.state === 'title') setState('modeselect');
       } });
@@ -2776,7 +2790,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       { label: () => T('optFondo'), opts: FONDOS, names: () => FONDOS.map(f => T('optFondo_' + f)),
         // clave '2': la primera ('rasante_fondo') se grabo con NEGRO de fabrica; con clave nueva todos
         // arrancan en el FICHIN, que paso a ser el default (autor, 3/10)
-        get: () => cfg.fondo, set: v => { cfg.fondo = v; setFondo(v); }, save: 'rasante_fondo2' },
+        get: () => cfg.fondo, set: v => { cfg.fondo = v; if (!fondoEnArranque) setFondo(v); }, save: 'rasante_fondo2' },   // (en el arranque manda el fichin)
       // CUAN CERCA DEL FICHIN (3/10): 1 el gabinete entero, 2 y 3 acercan y el juego crece
       { label: () => T('optZoom'), opts: ZOOMS, names: () => ZOOMS.map(String),
         get: () => cfg.fichinZoom, set: v => { cfg.fichinZoom = v; setZoomFichin(v); }, save: 'rasante_fichin_zoom4' },   // la clave cambia con cada default nuevo (3/10 el 2; 4/10 el 3, despues segun el monitor): asi todos arrancan en el nuevo
@@ -4576,8 +4590,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // capas que no saltea el tope: la explosion mas grande que tenemos (exXheavy, larga cola), una pesada
       // encima para el cuerpo, el golpe grave sintetico; el retumbe lejano un tercio de segundo despues, la
       // musica agachada y el fogonazo en la cara.
-      sfxOne('exXheavy', 3.6, true); sfxOne('exHeavy', 2.6, true); boom(0.6, false);
-      setTimeout(() => sfxOne('exHeavyDist', 2.4, true), 330);
+      // (21/10, el autor: "EXCESIVAMENTE ALTO" — con el grupo `enemigo` en 0.3 iba a 1.0 y tres capas encima;
+      // ahora ~1,5 veces una explosion pesada comun: 0.36 / 0.21 / 0.24 y el golpe grave a la mitad)
+      sfxOne('exXheavy', 1.2, true); sfxOne('exHeavy', 0.7, true); boom(0.25, false);
+      setTimeout(() => sfxOne('exHeavyDist', 0.8, true), 330);
       duck(1.8); run.flash = 1;
       explodeAt(plane.x, plane.y, PZ, true, true);   // noBall: la bola del derribo es la PIXEL de abajo
       // INERCIA DEL DESASTRE. Un avion a 300 km/h no frena y explota en el lugar: revienta Y

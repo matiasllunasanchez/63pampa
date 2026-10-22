@@ -19,6 +19,7 @@ import { run } from '../core/run.js';
 import { capaLuz, luz } from './brillo.js';
 import { NOCHE } from '../data/noche.js';
 import { tapaHorizonte } from './paredes.js';
+import { tapaColinas } from './colinas.js';
 
 /** Que noche hace con el cielo `sky` (null = de dia, no se oscurece nada). */
 export const nocheDe = sky => NOCHE.CIELOS[sky] || null;
@@ -129,7 +130,8 @@ export function drawNoche(n, astro, giro) {
 }
 
 /** ¿Hay una ladera entre el ojo y la luz lejana de la pantalla (x, y)? (render/paredes.js) */
-const tapada = (x, y) => tapaHorizonte(x, y + 0.5);
+// …o una LOMA de la tierra (render/colinas.js, 22/10): las lomas cercanas tambien las esconden
+const tapada = (x, y) => tapaHorizonte(x, y + 0.5) || tapaColinas(x, y + 0.5);
 
 /** EL REFLEJO DE LA LUNA en el agua: una columna que tiembla debajo del astro, hecha de rayas.
  *

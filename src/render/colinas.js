@@ -80,6 +80,30 @@ export function drawColinas(zCorte) {
   colinasHasta(zCorte || 0);
 }
 
+/** ¿UNA LOMADA TAPA ESTE PUNTO DEL HORIZONTE? (las luces lejanas de la noche, render/noche.js — 22/10, el
+ *  autor: "las luces del horizonte se siguen viendo por delante de las montañas que estan cerca"). El arreglo
+ *  del 18/10 miraba solo las laderas del callejon (`tapaHorizonte` de paredes.js); las lomas de la TIERRA son
+ *  otra cosa y no las sabia. Se recorre la columna de pantalla `sx` de cerca a lejos: en cada profundidad, la
+ *  x de mundo que cae ahi, la altura de la loma con la MISMA cuenta con la que se dibuja, y si su cresta queda
+ *  por encima de `sy`, la tapa. Barato: sin tierra a la vista no hace nada. */
+export function tapaColinas(sx, sy) {
+  if (!cuadro.activo) return false;
+  const dv = run.dist;
+  for (let z = 6; z < COLINA_Z; z += Math.max(3, z * 0.035)) {
+    const wz = dv + z, rampa = rampaTierra(wz);
+    if (rampa <= 0.01 || islaEn(wz)) continue;
+    const k = F / z, x = (sx - W / 2) / k + cam.x - bendW(z);
+    if (Math.abs(x) < COLINA_X0) continue;                       // adentro del carril no hay loma
+    const lado = x < 0 ? -1 : 1;
+    if (paredH(wz, lado) > 0) continue;                           // ahi manda la ladera (paredes.js)
+    const t = tierraAdentro(x, wz, sueloEn(wz) === 'coast');
+    if (t <= 0) continue;
+    const h = colinaH(x, wz) * rampa * t;
+    if (h > 0.05 && proj(x, h, z).y <= sy) return true;
+  }
+  return false;
+}
+
 /** Sigue pintando las lomadas del cuadro, de donde quedaron, hasta `zCorte` (camZ). */
 export function colinasHasta(zCorte) {
   if (!cuadro.activo) return;
