@@ -21,6 +21,7 @@ import * as enemyArt from './enemies.js';
 import { drawMira } from './miras.js';
 import * as fuego from './fuego.js';
 import { nocheDe, luzNoche } from './noche.js';
+import { reflejoLuz } from './luces_enemigos.js';
 // EL VERDE DE LA SUELTA, el mismo que titila en el tablero (SUELTA_COL de render/hud.js).
 const VERDE_SUELTA = '#7fe07a';
 
@@ -210,11 +211,14 @@ function lucesNoche(z, k, ap, esBase) {
     const p = proj(xw, blanco.base + Math.min(h, BL.LEN * 0.05) * 0.45, z);
     px(p.x - r / 2, p.y - r / 2, r, r, '#ffd890');
     luzNoche(ctx, p.x, p.y, 3 + k * 1.2, [255, 200, 120], 0.35 * ap);
+    // (y el buque las refleja en el agua — 22/10, "que reboten bien"; la base esta en tierra: no)
+    if (!esBase) reflejoLuz(p.x, p.y, proj(xw, blanco.base, z).y, k, '#ffd890', [255, 200, 120], 0.35 * ap);
   }
   if (!esBase || Math.sin(run.t * 4) > 0) {                         // la baliza de la base titila
     const pt = proj(xAlto, blanco.base + alto + BL.LEN * 0.01, z);
     px(pt.x - r / 2, pt.y - r, r, r, esBase ? '#ff5040' : '#f4f8ff');
     luzNoche(ctx, pt.x, pt.y, 5 + k * 1.6, esBase ? [255, 70, 50] : [230, 240, 255], 0.6 * ap);
+    if (!esBase) reflejoLuz(pt.x, pt.y, proj(xAlto, blanco.base, z).y, k, '#f4f8ff', [230, 240, 255], 0.5 * ap);
   }
   if (!esBase) for (const [f, c, rgb] of [[-0.46, '#ff4a3a', [255, 70, 50]], [0.46, '#4aff7a', [70, 255, 120]]]) {
     const xw = BL.X + f * BL.LEN, h = altoEn(xw);
@@ -222,6 +226,7 @@ function lucesNoche(z, k, ap, esBase) {
     const p = proj(xw, blanco.base + Math.min(h, BL.LEN * 0.06), z);
     px(p.x - r / 2, p.y - r / 2, r, r, c);
     luzNoche(ctx, p.x, p.y, 4 + k * 1.3, rgb, 0.5 * ap);
+    reflejoLuz(p.x, p.y, proj(xw, blanco.base, z).y, k, c, rgb, 0.5 * ap);
   }
   ctx.restore();
 }

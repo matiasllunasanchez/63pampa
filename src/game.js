@@ -6420,6 +6420,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const all = obstacles.slice().sort((a, b) => b.z - a.z);
       // (de noche o en la niebla, cada enemigo con sus luces: render/luces_enemigos.js)
       const lucesK = Math.max(nocheDe(cfg.sky) ? 1 : 0, Math.min(1, fogFade() * 1.4));
+      run.lucesK = lucesK;   // (las luces de MI avion las lee render/plane.js — solo de noche o niebla, 22/10)
       setLucesCaza(lucesK);
       for (const o of all) if (o.z > 3) { world.drawObstacle(o); if (lucesK > 0) lucesEnemigo(o, lucesK); }
 

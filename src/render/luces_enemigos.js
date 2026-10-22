@@ -15,10 +15,35 @@ import { ctx, F, px } from './ctx.js';
 import { proj } from '../core/fx.js';
 import { run } from '../core/run.js';
 import { luz } from './brillo.js';
+import { esTierraEn } from '../core/geografia.js';
 
 const ROJO = ['#ff4a3a', [255, 70, 50]], VERDE = ['#4aff7a', [70, 255, 120]], BLANCO = ['#f4f8ff', [230, 240, 255]];
 const AMBAR = ['#ffd890', [255, 200, 120]];
 const LEJOS = 900;   // mas alla, ni se dibujan
+
+/** EL REBOTE EN EL AGUA (22/10, el autor: "y alumbran / iluminan el ambiente, que reboten bien"). Una luz
+ *  sobre el mar se ve dos veces: ella, y su reflejo — una columna de rayitas que tiembla con las olas debajo
+ *  de la superficie, del largo de lo alta que esta (el espejo del agua). Y alumbra: un charco de luz sobre el
+ *  agua, justo abajo, que es el que abre la oscuridad de la noche ahi. En PANTALLA: `sx, sy` la luz, `ySup`
+ *  la superficie debajo de ella, `k` la escala (F/z), `hex`/`rgb` el color, `a` la fuerza. */
+export function reflejoLuz(sx, sy, ySup, k, hex, rgb, a) {
+  const alto = ySup - sy;
+  if (!(alto > 0.5) || !(a > 0.02)) return;
+  const largo = Math.min(alto * 1.6, 60 + k * 4), ancho = Math.max(1, k * 0.6);
+  ctx.save();
+  for (let y = 0, i = 0; y < largo; y += Math.max(1, k * 0.35), i++) {
+    const u = y / largo, temb = Math.sin(run.t * 7 + i * 1.9 + sx * 0.1) * (0.6 + u * 2) * Math.max(1, k * 0.25);
+    const al = a * 0.55 * (1 - u) * (0.55 + 0.45 * Math.sin(run.t * 5.1 + i * 2.7));
+    if (al < 0.02) continue;
+    ctx.globalAlpha = Math.min(1, al);
+    px(sx - ancho / 2 + temb, ySup + y, ancho * (0.6 + 0.6 * Math.abs(Math.sin(i * 3.1))), 1, hex);
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+  luz(ctx, sx, ySup + 1, Math.max(4, k * 2.2), rgb, Math.min(1, a * 0.45));    // el charco que alumbra
+}
+/** ¿Hay mar debajo de (x, z)? (sobre tierra no hay reflejo: G1) */
+const sobreAgua = (x, z) => !esTierraEn(x, run.dist + z);
 
 /** Un punto de luz en el mundo (x, y, z) con su color; `r` del resplandor en metros, `a` su fuerza. */
 function punto(x, y, z, [hex, rgb], r, a) {
@@ -28,6 +53,7 @@ function punto(x, y, z, [hex, rgb], r, a) {
   px(p.x - t / 2, p.y - t / 2, t, t, hex);
   ctx.globalAlpha = 1;
   luz(ctx, p.x, p.y, Math.max(5, r * k * 1.5), rgb, Math.min(1, a * 1.4));
+  if (y > 0.3 && sobreAgua(x, z)) reflejoLuz(p.x, p.y, proj(x, 0, z).y, k, hex, rgb, a);
 }
 /** EL AURA: un resplandor ancho y bajo alrededor del cuerpo, como si lo alumbraran sus propias luces —
  *  abre la oscuridad lo justo para que se lea la silueta (`m` = el medio tamaño del bicho, en metros). */

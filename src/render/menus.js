@@ -805,7 +805,7 @@ function drawRowMenu(w, titleKey, textOfBase, geo) {
     if (t.compacta) return i === w.sel ? RH_C + (rh - RH_C) * abreE : RH_C;
     return rh + (i === w.sel && t.mas ? masAlto(t.mas) : 0);
   };
-  const cap = (geo && geo.view) || w.rows.length, TOPE = NH - 14;
+  const cap = (geo && geo.view) || w.rows.length, TOPE = NH - ((geo && geo.tope) || 14);
   let i0 = cap >= w.rows.length ? 0 : Math.max(0, Math.min(w.rows.length - cap, w.sel - Math.floor(cap / 2)));
   const hasta = (a, b) => { let h = 0; for (let k = a; k <= b; k++) h += alto(k); return h; };
   while (i0 < w.sel && y0 + hasta(i0, w.sel) - rh + 20 > TOPE) i0++;
@@ -965,7 +965,11 @@ function pruebaText(r) {
 // pega al nombre de la siguiente — con rh 26 entraba una fila mas y se leia como un bloque solo.
 // La cuenta del peor caso, con un encabezado adentro de la ventana: 84 + 18 + 4×29 = 218 para la
 // sexta, su descripcion en 232 y el resalte cerrando en 238, dentro de los 270 de alto.
-export const PRUEBA_ROWS = { y0: 84, rh: 34, headH: 18, view: 5 };
+// (22/10, el autor: "falta mas espacio abajo"): eran 5 filas fijas y con las filas compactas quedaba media
+// pantalla vacia. Ahora el tope lo pone la ALTURA (drawRowMenu corta en TOPE), con un techo de 11 filas.
+export const PRUEBA_ROWS = { y0: 84, rh: 34, headH: 18, view: 11 };
+// …y donde abajo va un renglon de contexto (las variantes de una maniobra), la lista corta antes
+const PRUEBA_ROWS_PIE = { ...PRUEBA_ROWS, tope: 40 };
 export function drawPruebasMenu(w) { drawRowMenu(w, 'pruebasTitle', pruebaText, PRUEBA_ROWS); }
 
 // ---------- CINEMATICAS (el catalogo del DIRECTOR, PLAN_DIRECTOR_CINEMATICAS §5) ----------
@@ -997,7 +1001,7 @@ function mvText(r) {
 }
 export function drawManiobrasMenu(w) { drawRowMenu(w, 'mvTitle', mvText, PRUEBA_ROWS); }
 export function drawMvVarsMenu(w) {
-  drawRowMenu(w, 'mvVarsTitle', mvText, PRUEBA_ROWS);
+  drawRowMenu(w, 'mvVarsTitle', mvText, PRUEBA_ROWS_PIE);
   // EL NOMBRE DE LA MANIOBRA, abajo de todo: el mismo lugar donde el selector de misiones pone la
   // libreta. Es contexto —"esto es de lo que estamos hablando"— y no una fila elegible.
   if (!w.mv) return;

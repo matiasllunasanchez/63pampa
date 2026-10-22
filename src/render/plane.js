@@ -9,7 +9,8 @@
 
 import { blanco } from '../core/blanco.js';
 import { BL as BL_BLANCO } from '../data/blanco.js';
-import { ctx, px, PZ, U, W, H, HOR } from './ctx.js';
+import { ctx, px, PZ, U, W, H, HOR, F } from './ctx.js';
+import { reflejoLuz } from './luces_enemigos.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
 import { geoActiva, esTierraEn, sueloEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
@@ -281,6 +282,20 @@ export const TIP_OUT = 1.30;
 // alguien la cuente a mano cada vez que se toca un angulo del horneado.
 const TIPS = ANCLAS.base.tips;
 
+
+/** Las luces de navegacion del avion del jugador, en PANTALLA (las puntas ya resueltas con su giro). */
+function navMias(lx, ly, rx, ry, cx, cy, k) {
+  const ySup = proj(plane.x, 0, PZ).y, sobreAgua = !esTierraEn(plane.x, run.dist + PZ);
+  const t = 2;
+  const una = (x, y, hex, rgb, a) => {
+    ctx.globalAlpha = Math.min(1, a * 1.6); px(x - t / 2, y - t / 2, t, t, hex); ctx.globalAlpha = 1;
+    luz(ctx, x, y, 9, rgb, Math.min(1, a));
+    if (sobreAgua) reflejoLuz(x, y, ySup, F / PZ, hex, rgb, a * 0.8);
+  };
+  una(lx, ly, '#ff4a3a', [255, 70, 50], 0.6 * k);
+  una(rx, ry, '#4aff7a', [70, 255, 120], 0.6 * k);
+  if (Math.sin(run.t * 1.3 * 6.283) > 0.82) una(cx, cy - 2, '#f4f8ff', [230, 240, 255], 0.9 * k);
+}
 
 /** VORTICES DE PUNTA DE ALA. `f` es la FUERZA (0 = nada): con un booleano no se podia pedir
  *  "fuerte en la pirueta y suave con turbo", que es exactamente para lo que existe. */
@@ -1266,6 +1281,10 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // acaba de dibujarlo.
     run.alaLx = alaLx; run.alaLy = alaLy; run.alaRx = alaRx; run.alaRy = alaRy; run.alaT = run.t;
     tipTrail(alaLx, alaLy, alaRx, alaRy, fuerzaTip);
+    // LAS LUCES DE NAVEGACION DE MI AVION (22/10, el autor: "las luces de los aviones, si es de dia, no van
+    // encendidas — solo de noche o niebla"): roja en la punta izquierda, verde en la derecha y el destello
+    // blanco anticolision, con su reflejo en el agua. `run.lucesK` lo pone game.js (cuanto de noche o niebla).
+    if ((run.lucesK || 0) > 0.02 && S.state !== 'dead') navMias(alaLx, alaLy, alaRx, alaRy, cx, cy, run.lucesK);
   }
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
