@@ -306,6 +306,12 @@
     opacity: 1;
     transition: none;
   }
+  /* DEL FICHIN AL FONDO ELEGIDO, POR NEGRO (22/10, game.js `alTerminar`): entra en medio segundo y sale con
+     el fundido de siempre (el 1.4s de arriba) — el cambio de tamaño del juego pasa con la pantalla en negro */
+  body.fondo-cambio #arranque {
+    opacity: 1;
+    transition: opacity .5s ease-in;
+  }
   #ambiente {
     transition: opacity .8s ease-out;
   }

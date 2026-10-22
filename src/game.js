@@ -239,8 +239,18 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // acercamiento (ACERCA_T de render/ambiente.js), el fondo de OPCIONES. En las pruebas (sin el
         // preload de Electron) no hay espera: el fondo elegido de una.
         const app = typeof window !== 'undefined' && window.RASANTE_APP;
-        const aplicar = () => { fondoEnArranque = false; if (cfg.fondo !== 'fichin') setFondo(cfg.fondo); };
-        if (!app) { acercarFichin(); aplicar(); }
+        // EL CAMBIO, POR NEGRO (22/10, el autor: "el efecto que acerca y cambia al resplandor tiene que ser
+        // menos violento, hoy cambia de un segundo a otro"): se funde a negro medio segundo, recien ahi cambia
+        // el fondo (y con el el tamaño y el lugar del juego, que es lo que saltaba), y vuelve del negro con
+        // el fundido largo del arranque (#arranque y `fondo-cambio` en styles.css).
+        const aplicar = () => {
+          fondoEnArranque = false;
+          if (cfg.fondo === 'fichin') return;
+          const b = document.body;
+          b.classList.add('fondo-cambio');
+          setTimeout(() => { setFondo(cfg.fondo); requestAnimationFrame(() => b.classList.remove('fondo-cambio')); }, 520);
+        };
+        if (!app) { acercarFichin(); fondoEnArranque = false; if (cfg.fondo !== 'fichin') setFondo(cfg.fondo); }
         else if (window.RASANTE_DEV) setTimeout(() => { acercarFichin(); setTimeout(aplicar, 1500); }, 900);
         else { acercarFichin(); setTimeout(aplicar, 900); }
         // EN MODO DEV, DIRECTO AL MENU (8/10, core/dev.js): sin portada que pida una tecla
