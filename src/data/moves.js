@@ -36,29 +36,28 @@
 // En teclado el "stick derecho" son W/A/S/D con la MIRA FIJA, y Q/E + R/F siempre.
 //
 //   STICK DERECHO — las que ROLAN
-//     ⟳←←←   TONEL izquierda           ⟳→→→   TONEL derecha
-//     ⟳↓→↑←  TONEL BARRIL horario      ⟳↓←↑→  TONEL BARRIL antihorario
-//     ↓⟳←←   TIRABUZON izquierda       ↓⟳→→   TIRABUZON derecha   (picas con el izq, rolas con el der)
-//     ⟳↑↓↑   COBRA                     ⟳↑↑↓   MORTAL              ⟳↓↓↑  COBRA MORTAL INVERTIDA
-//     ⟳←→←   DERRAPE izquierda         ⟳→←→   DERRAPE derecha     (tambien [G]/L2: solo, + ↑, + dir)
+//     →→ / ←←          TONEL derecha / izquierda   (WASD o flechas, da igual)
+//     ↓→↑← / ↓←↑→      TONEL BARRIL (WASD o flechas)
+//     Q S E  TIRABUZON izquierda       E S Q  TIRABUZON derecha   (rolar, picar, rolar al reves)
+//     ⟳↑↓↑   COBRA                     ⟳↑↑↓   MORTAL              ⟳↓↓↑  COBRA MORTAL INVERTIDA   (tambien [G]: sola, + W, + S)
+//     [Q]+[D] y [E]+[A]  DERRAPE (los mandos cruzados, dos acordes; el primer canto va a la [D];
+//                        [E]+[A] y [Q]+[D] es el mismo arrancando para la [A])
 //
 //   LOS DOS STICKS — el ASCENSOR (mirar hacia donde vas y empujar dos veces)
-//     ⟳↓ ↓↓  TERRAIN MASKING           ⟳↑ ↑↑  ASCENSO / SOBRE EL RADAR   (segun ALTURA)
+//     ⟳↓ ↓↓  TERRAIN MASKING           ↑↑↑↑   ASCENSO     ↑↑↑↑↑↑  SOBRE EL RADAR   (WASD o flechas)
 //
 //   STICK IZQUIERDO — las que ZIGZAGUEAN
-//     ↑↓↓    SPLIT-S / MASKING         ↓↑↑    POP-UP / HIGH YO-YO   (segun ALTURA)
+//     ↑↓↓    SPLIT-S (solo alto)       ↓↑↑    POP-UP (solo bajo)
 //     ↓↑↓    LOW YO-YO                 ↑↓↑    HIGH YO-YO
 //     ↓←←    BREAK TURN izquierda      ↓→→    BREAK TURN derecha
 //     ←→←    S-TURN izquierda          →←→    S-TURN derecha
 //     ↑←→    JINK izquierda            ↑→←    JINK derecha
 //
-// CONTEXTUALES. '↑↓↓' y '↓↑↑' no los decide como apretas sino la ALTURA A LA QUE VIENE VOLANDO EL
-// AVION (plane.y). Se resuelve en el `combo` de game.js contra los umbrales de abajo.
+// UNA SOLA FORMA POR MANIOBRA (autor, 24/10). '↑↓↓' y '↓↑↑' eran CONTEXTUALES (segun la altura hacian
+// una u otra); ahora cada uno es de una sola maniobra y en la otra altura no hace nada:
 //
-//   ↑↓↓  con el avion ALTO (y > MV_HI)  → SPLIT-S          (hay cielo debajo para picar)
-//   ↑↓↓  con el avion BAJO (y <= MV_HI) → TERRAIN MASKING  (ya estas bajo: pegate mas)
-//   ↓↑↑  con el avion BAJO (y < MV_LO)  → POP-UP           (salis de rasante hacia arriba)
-//   ↓↑↑  con el avion ALTO (y >= MV_LO) → HIGH YO-YO       (ya tenes altura: colgate arriba)
+//   ↑↓↓  solo con el avion ALTO (y > MV_HI) → SPLIT-S   (bajo no hay donde picar; el masking es ⟳↓↓↓)
+//   ↓↑↑  solo con el avion BAJO (y < MV_LO) → POP-UP    (alto, el yo-yo es ↑↓↑)
 //
 // REGLA DE DISEÑO: ninguna secuencia puede ser PREFIJO de otra, o la corta dispararia antes de que
 // la larga se complete. El caso inverso (una corta que es el FINAL de una larga, como '←←' dentro
@@ -172,13 +171,13 @@ export const MV_HI = 18, MV_LO = 14;
 // pegados al bloque de prosa de arriba —que dice lo mismo— para que un cambio en uno deje al otro
 // a la vista.
 const COMBO = {
-  splits: '↑↓↓ (alto)', breakt: '↓←← · ↓→→', hiyo: '↑↓↑ · ↓↑↑ (alto)', loyo: '↓↑↓',
-  jink: '↑←→ · ↑→←', sturn: '←→← · →←→', mask: '⟳↓↓↓ · ↑↓↓ (bajo)', popup: '↓↑↑ (bajo)',
-  climb: '⟳↑↑↑', climbmax: '⟳↑↑↑ (contra el radar)', spin: '↓⟳←← · ↓⟳→→',
-  barrel: '⟳↓→↑← · ⟳↓←↑→', tonel: '⟳←←← · ⟳→→→',
+  splits: '↑↓↓ (alto)', breakt: '↓←← · ↓→→', hiyo: '↑↓↑', loyo: '↓↑↓',
+  jink: '↑←→ · ↑→←', sturn: '←→← · →←→', mask: '⟳↓↓↓', popup: '↓↑↑ (bajo)',
+  climb: '↑↑↑↑', climbmax: '↑↑↑↑↑↑', spin: 'Q S E · E S Q',
+  barrel: '↓→↑← · ↓←↑→', tonel: '→→ · ←←',
   // LOS FRENOS (4/10): la tecla de freno ([G] / L2), sola o con la mano derecha, y su combo
-  cobra: '[G] · ⟳↑↓↑', mortal: '[G]+⟳↑ · ⟳↑↑↓', cobrainv: '[G]+⟳↓ · ⟳↓↓↑',
-  derrape: '[G]+←/→ · ⟳←→← · ⟳→←→',
+  cobra: '[G] · ⟳↑↓↑', mortal: '[G]+W · ⟳↑↑↓', cobrainv: '[G]+S · ⟳↓↓↑',
+  derrape: '[Q]+[D] y [E]+[A] · [E]+[A] y [Q]+[D]',
 };
 
 /** Las filas del menu MANIOBRAS: la pirueta, con que se pide y que hace.

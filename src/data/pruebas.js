@@ -187,6 +187,15 @@ export const PRUEBAS = [
     setup: a => { a.patria({ obstacles: 0 }); a.luego(1.2, g => g.cfg({ zigzag: 2 })); },
   },
 
+  {
+    // LOS FRENOS (autor, 24/10: "quiero probarlos completos en prueba, quiero que me salgan TODAS las
+    // piruetas"): el pasillo infinito, sin obstaculos ni nafta, en el A-4B — el Hercules no hace piruetas
+    // y POR LA PATRIA respeta el avion que haya quedado elegido. COBRA [G] · MORTAL [G]+W ·
+    // DERRAPE [Q]+[D] y [E]+[A] (o al reves, del otro lado) · COBRA INVERTIDA [G]+S.
+    id: 'frenos', titulo: 'LOS FRENOS', desc: 'Cobra G · Mortal G+W · Invertida G+S · Derrape Q+D, E+A (o al reves)',
+    setup: a => { a.sonda('avion', 0); a.patria({ obstacles: 0, fuelOn: false }); },
+  },
+
   // (LA HISTORIA —EL LOCKER de M07— salio del catalogo el 4/10, a pedido del autor)
 
   // IDEAS VIEJAS (autor, 4/10): lo que ya no esta en el juego pero sigue andando, aparte para que no

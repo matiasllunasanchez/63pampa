@@ -146,7 +146,14 @@ const limpiar = () => js('window.__pasilloLimpio && window.__pasilloLimpio()');
 //
 // Se manda el flanco de tecla en cada muestra en vez de una vez: es barato y no depende de que el
 // juego mantenga el estado de la tecla entre eventos sinteticos.
-const gas = () => { win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w' }); };
+// …y desde el 24/10 el reenvio va como AUTO-REPETICION (`isAutoRepeat`, lo que manda el teclado con la
+// tecla sostenida): el ASCENSO es ↑↑↑↑ y cada keyDown fresco cuenta como un toque, asi que mandar la W
+// suelta en cada muestra lo disparaba solo. Un jugador con la W apretada no escribe toques; esto tampoco.
+let gasPuesto = false;
+const gas = () => {
+  win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w', modifiers: gasPuesto ? ['isAutoRepeat'] : [] });
+  gasPuesto = true;
+};
 
 const rango = (tr, k) => {
   const v = tr.map(x => x[k]).filter(x => typeof x === 'number' && isFinite(x));

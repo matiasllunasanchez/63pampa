@@ -3481,6 +3481,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       fadeT = 0; cargaProgT = CARGA_T; sonidoCarga(CARGA.GUIA, CARGA.DATOS);
     }
     let frenoAntes = false;   // la tecla de freno el cuadro anterior: la COBRA sale en el flanco
+    // EL DERRAPE en dos acordes: el primero lo arma por DERRAPE_ACORDE segundos (positivo = [Q]+[D],
+    // negativo = [E]+[A]) y el otro lo dispara
+    let qdAntes = false, eaAntes = false, derrapeArma = 0;
+    const DERRAPE_ACORDE = 0.6;
     // LOS ROTULOS GRANDES DEL DESENLACE (¡LE DISTE! ¡ESCAPÁ YA!, ¡MUY LARGA! ¡FALLASTE!, ¡LE ERRASTE!):
     // OCULTOS por ahora (autor, 8/10: "creo que no quedan bien los mensajes grandes, ocultalos y
     // manejemos todo en el cuadrado de arriba"). El codigo queda: `true` los vuelve a mostrar.
@@ -3887,44 +3891,60 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (PLANES[selPlane] && PLANES[selPlane].sinPiruetas) return false;
         const mvOk = id => moveAllowed(id,
           { campaign: conLibreta(), owned: pichon, off: cfg.movesOff });
+        // CON CUALQUIER MANO (autor, 24/10: "en todas las maniobras las flechitas y WASD es lo mismo"): estas
+        // se comparan en minusculas, asi que da igual si el toque vino de WASD, de las flechas o del stick
+        // que rola, y como se lea la mira. A PROPOSITO fuera de la gramatica de `npm run maniobras` (3-4
+        // toques, ninguno bombeable): el tonel son DOS toques y el ascenso repite el de volar.
+        //   →→ / ←←          TONEL
+        //   ↓→↑← / ↓←↑→      TONEL BARRIL (la O dibujada)
+        //   ↑↑↑↑             ASCENSO (contra el techo del radar, ya lo cruza: SOBRE EL RADAR)
+        //   ↑↑↑↑ ↑↑          SOBRE EL RADAR: el ascenso, y dos toques mas mientras sube. El ascenso corta
+        //                    los toques al salir, asi que llegan como ↑↑ con el ascenso en el aire.
+        switch (seq.toLowerCase()) {
+          case 'rr': return startRoll(1);
+          case 'll': return startRoll(-1);
+          case 'drul': return mvOk('barrel') && moves.startMove('barrel', 1);
+          case 'dlur': return mvOk('barrel') && moves.startMove('barrel', -1);
+          case 'uuuu':
+            return plane.y >= RADAR_ALT - CLIMB_NEAR
+              ? mvOk('climbmax') && moves.startMove('climbmax', 1, FLY_TOP)    // ya estas contra el radar: cruzalo
+              : mvOk('climb') && moves.startMove('climb', 1, RADAR_ALT);       // subi hasta el borde y quedate ahi
+          case 'uu':
+            if (run.mv !== 'climb' || !mvOk('climbmax')) return false;
+            run.mv = null;
+            return moves.startMove('climbmax', 1, FLY_TOP);
+        }
         switch (seq) {
           // ---- STICK DERECHO (mayusculas): LAS QUE ROLAN ----
           // Un avion rola con la muñeca, no con el timon, y en el mando la muñeca que rola es la
           // del stick derecho — el mismo que ya hace el giro libre del horizonte. Estaban en el
           // izquierdo por herencia, y ahi competian con esquivar: '←←←' salia solo tratando de
           // pasar entre dos cosas. Ahora el stick izquierdo NO produce ningun rolido.
-          case 'LLL': return startRoll(-1);                    // el tonel clasico (camino legado)
-          case 'RRR': return startRoll(1);
-          case 'DRUL': return mvOk('barrel') && moves.startMove('barrel', 1);    // la O dibujada con el stick que rola
-          case 'DLUR': return mvOk('barrel') && moves.startMove('barrel', -1);
-          case 'dLL': return mvOk('spin') && moves.startMove('spin', -1);      // picas con el izquierdo, rolas con el derecho
-          case 'dRR': return mvOk('spin') && moves.startMove('spin', 1);
+          // (el TONEL y el TONEL BARRIL se fueron arriba, con cualquier mano)
+          // EL TIRABUZON (autor, 24/10): [Q] [S] [E] o [E] [S] [Q] — rolar, picar y rolar al reves. Gira
+          // para el lado del primer rolido.
+          case 'LdR': return mvOk('spin') && moves.startMove('spin', -1);
+          case 'RdL': return mvOk('spin') && moves.startMove('spin', 1);
           // ---- STICK DERECHO: LOS FRENOS (autor, 4/10: "arma una combinacion de teclas para COBRA,
-          // DERRAPE y MORTAL"). Tambien salen con [G]/L2 (+ direccion / + arriba); esto es el combo.
+          // DERRAPE y MORTAL"). Tambien salen con [G]/L2 (sola / + arriba / + abajo); esto es el combo.
           // Van sin `mvOk`: son `legado`, controles como el tonel, no poderes que se aprenden.
           //   ↑↓↑  COBRA: levantar la trompa, plantarla y volver a levantar — se planta
           //   ↑↑↓  MORTAL: arriba, arriba (pasa por encima) y abajo (vuelve a nivel)
-          //   ←→←  DERRAPE: el zigzag con la mano que rola; el primer canto va hacia el primer toque
-          // Mayusculas: con la mano derecha. En minusculas ←→← es el S-TURN, que es otra cosa.
+          // El DERRAPE ya no tiene combo (autor, 24/10): sale solo de sus acordes, ver LOS FRENOS en el update.
           case 'UDU': return moves.startMove('cobra', 1);
           case 'UUD': return moves.startMove('mortal', 1);
           case 'DDU': return moves.startMove('cobrainv', 1);   // ↓↓↑  el MORTAL dado vuelta: la COBRA MORTAL INVERTIDA
-          case 'LRL': return moves.startMove('derrape', -1);
-          case 'RLR': return moves.startMove('derrape', 1);
           // ---- LOS DOS STICKS: EL ASCENSOR ----
           // Mirar hacia donde vas a ir y despues empujar dos veces para alla. Es el unico gesto del
           // juego que usa las dos manos, y por eso es el que mueve el avion de BANDA de altura en
           // vez de hacerle una figura.
           case 'Ddd': return mvOk('mask') && moves.startMove('mask', 1);       // mirar abajo + picar: pegate al piso
-          case 'Uuu':                                          // mirar arriba + trepar: subi de banda
-            return plane.y >= RADAR_ALT - CLIMB_NEAR
-              ? mvOk('climbmax') && moves.startMove('climbmax', 1, FLY_TOP)    // ya estas contra el radar: cruzalo
-              : mvOk('climb') && moves.startMove('climb', 1, RADAR_ALT);       // subi hasta el borde y quedate ahi
-          // CONTEXTUALES por ALTURA: la misma secuencia hace lo que tiene sentido donde estas.
-          // Alto hay cielo debajo para tirarse; bajo no queda mas que pegarse al piso.
-          case 'udd': { const id = plane.y > MV_HI ? 'splits' : 'mask'; return mvOk(id) && moves.startMove(id, 1); }
-          // Bajo trepar es la jugada; alto ya tenes altura para colgarte arriba.
-          case 'duu': { const id = plane.y < MV_LO ? 'popup' : 'hiyo'; return mvOk(id) && moves.startMove(id, 1); }
+          // (el ASCENSO, ⟳↑ ↑↑, paso a ↑↑↑↑ con cualquier mano: ver arriba)
+          // SOLO POR ALTURA, y ya no contextuales (24/10, una forma por maniobra): ↑↓↓ es el SPLIT-S
+          // alto —abajo no hay donde tirarse— y ↓↑↑ el POP-UP bajo. Antes, en la otra altura, la misma
+          // secuencia hacia el TERRAIN MASKING (que es ⟳↓↓↓) y el HIGH YO-YO (que es ↑↓↑).
+          case 'udd': return plane.y > MV_HI && mvOk('splits') && moves.startMove('splits', 1);
+          case 'duu': return plane.y < MV_LO && mvOk('popup') && moves.startMove('popup', 1);
           case 'dud': return mvOk('loyo') && moves.startMove('loyo', 1);       // ↓↑↓  pica, sube, pica
           case 'udu': return mvOk('hiyo') && moves.startMove('hiyo', 1);       // ↑↓↑  sube, pica, sube
           case 'dll': return mvOk('breakt') && moves.startMove('breakt', -1);  // ↓←←  picar y empujar al lado
@@ -5899,20 +5919,33 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // PASADA; en el pasillo no hacia nada. Ahora planta la trompa y frena (data/moves.js `cobra`).
       // En el FLANCO, no mientras se mantiene: es una maniobra, no un pedal. Las averias criticas la
       // apagan como a toda pirueta.
-      // CON UNA DIRECCION APRETADA es EL DERRAPE, el freno de costado: el primer canto va para ese lado.
-      // MIRANDO ARRIBA es EL MORTAL, el freno con vuelta hacia atras.
+      // CON [W] es EL MORTAL, el freno con vuelta hacia atras; CON [S], la COBRA MORTAL INVERTIDA.
       if (inp.brake && !frenoAntes && damage.fx().moves) {
-        // la direccion de CUALQUIERA de las dos manos: A/D (o flechas con la mira movil) o el stick que rola
-        const izq = inp.l > 0.3 || inp.rollL > 0.3 || inp.rollAx < -0.4, der = inp.r > 0.3 || inp.rollR > 0.3 || inp.rollAx > 0.4;
-        const lado = izq && !der ? -1 : der && !izq ? 1 : 0;
-        // …y MIRANDO ARRIBA ([↑] / stick derecho arriba) es EL MORTAL, el freno con vuelta hacia atras.
-        // Con la mano que mira y no con [W]: el gas se mantiene apretado para volar, y asi la cobra
-        // seguiria siendo imposible de pedir.
-        const arriba = inp.camU > 0.3 || inp.camAx < -0.4;
-        // …y MIRANDO ABAJO, LA COBRA MORTAL INVERTIDA (rola panza arriba y la vuelta va hacia abajo)
-        const abajo = inp.camD > 0.3 || inp.camAx > 0.4;
-        moves.startMove(arriba && !lado ? 'mortal' : abajo && !lado ? 'cobrainv' : lado ? 'derrape' : 'cobra', lado || 1);
+        // …CON [W] es EL MORTAL y CON [S] la COBRA MORTAL INVERTIDA (autor, 24/10: "Mortal = G + W and
+        // inverted cobra = G + S, even if it clashes with the throttle"). Es la mano que VUELA (W/S, las
+        // flechas que vuelan, el stick izquierdo), no la que mira. Choca con el gas A SABIENDAS: volando
+        // con [W] apretada, [G] da el mortal; la cobra pide soltar el gas un instante.
+        const arriba = inp.u > 0.3;
+        const abajo = inp.d > 0.3;
+        moves.startMove(arriba ? 'mortal' : abajo ? 'cobrainv' : 'cobra', 1);
       }
+      // EL DERRAPE (autor, 24/10: "derrape solo presionar Q + D, y luego E + A"): ya no sale con [G] ni con
+      // combo. Dos acordes de mandos CRUZADOS, como se tira de costado una moto de agua: el primero ARMA
+      // (y no hace mas que rolar y esquivar, que es lo que ya hacen Q y D) y el otro, si llega a tiempo, lo
+      // dispara. [Q]+[D] y despues [E]+[A]: el primer canto va para la [D]; al reves, para la [A].
+      if (damage.fx().moves) {
+        const rolaIzq = inp.rollL > 0.3 || inp.rollAx < -0.4, rolaDer = inp.rollR > 0.3 || inp.rollAx > 0.4;
+        const qd = rolaIzq && !rolaDer && inp.r > 0.3 && !(inp.l > 0.3);
+        const ea = rolaDer && !rolaIzq && inp.l > 0.3 && !(inp.r > 0.3);
+        if (qd && !qdAntes) {
+          if (derrapeArma < 0) { derrapeArma = 0; moves.startMove('derrape', -1); } else derrapeArma = DERRAPE_ACORDE;
+        }
+        if (ea && !eaAntes) {
+          if (derrapeArma > 0) { derrapeArma = 0; moves.startMove('derrape', 1); } else derrapeArma = -DERRAPE_ACORDE;
+        }
+        qdAntes = qd; eaAntes = ea;
+      }
+      derrapeArma = derrapeArma > 0 ? Math.max(0, derrapeArma - dt) : Math.min(0, derrapeArma + dt);
       moves.stepCobraCam(dt);
       // EL SWOOSH: el avion (lo que se dibuja: el freno, la salida del turbo, el cambio de piloto) se viene
       // hacia la camara rapido → suena una vez, y descansa un momento antes de poder volver a sonar
