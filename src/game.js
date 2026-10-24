@@ -72,12 +72,15 @@ import * as pulsoRender from './render/pulso.js';
 import * as machRender from './render/mach.js';
 import * as cine from './systems/cine.js';
 import { drawCine } from './render/cine.js';
-import { fichinEntero, acercarFichin, setFondo, FONDOS, setZoomFichin, ZOOMS, zoomDePantalla } from './render/ambiente.js';
+import { fichinEntero, acercarFichin, setFondo, FONDOS, setZoomFichin, ZOOMS, zoomDePantalla, salirDelFichin } from './render/ambiente.js';
 import { arrancar, arranqueActivo } from './render/arranque.js';
 import * as muni from './render/municion.js';
 import * as blancoSys from './systems/blanco.js';
 import * as seawolfSys from './systems/seawolf.js';
 import * as artilleria from './systems/artilleria.js';
+import * as capas from './systems/capas.js';
+import { intensidadCruda, suavizar } from './core/intensidad.js';
+import { PISTAS_CAPAS, CAPAS_PRUEBA } from './data/musica_capas.js';
 import { drawArtilleria } from './render/artilleria.js';
 import { drawZonaSW, drawEngancheSW, drawMisilSW, drawHumoSW } from './render/seawolf.js';
 import { drawAim9 } from './render/aim9.js';   // el Sidewinder de los Harrier
@@ -243,12 +246,11 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // menos violento, hoy cambia de un segundo a otro"): se funde a negro medio segundo, recien ahi cambia
         // el fondo (y con el el tamaño y el lugar del juego, que es lo que saltaba), y vuelve del negro con
         // el fundido largo del arranque (#arranque y `fondo-cambio` en styles.css).
+        // (22/10: y no por negro — ACERCANDO: el juego crece hasta su lugar y el gabinete de atras se
+        // agranda, se desenfoca y se va; render/ambiente.js `salirDelFichin`)
         const aplicar = () => {
           fondoEnArranque = false;
-          if (cfg.fondo === 'fichin') return;
-          const b = document.body;
-          b.classList.add('fondo-cambio');
-          setTimeout(() => { setFondo(cfg.fondo); requestAnimationFrame(() => b.classList.remove('fondo-cambio')); }, 520);
+          if (cfg.fondo !== 'fichin') salirDelFichin(cfg.fondo);
         };
         if (!app) { acercarFichin(); fondoEnArranque = false; if (cfg.fondo !== 'fichin') setFondo(cfg.fondo); }
         else if (window.RASANTE_DEV) setTimeout(() => { acercarFichin(); setTimeout(aplicar, 1500); }, 900);
@@ -752,7 +754,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // mismo cursor, mismo teclado/mando/mouse (estado 'quickmenu'); lo que cambia es la lista, que
     // sale de `subMenu`. Asi el MODO DEV no tuvo que cablear un estado nuevo en cada entrada.
     let subMenu = 'quick';
-    const DEV_ROWS = [{ id: 'pruebas' }, { id: 'cines' }, { id: 'maniobras' }, { id: 'misiones' }];
+    // SMALL CON MUSICA (23/10, el autor): la t17 con la MUSICA EN CAPAS siguiendo la intensidad
+    // (docs/produccion/MUSICA_CAPAS.md) — el banco para escuchar si la musica acompaña al juego.
+    const DEV_ROWS = [{ id: 'pruebas' }, { id: 'cines' }, { id: 'maniobras' }, { id: 'misiones' }, { id: 'smallmusica' }];
     const quickRows = () => (subMenu === 'dev' ? DEV_ROWS
       : [{ id: 'cycle' }, { id: 'survival' }, { id: 'persec' }, { id: 'arena' }, { id: 'pasadas' }]
         .filter(r => !modoEnCuarentena(r.id)))
@@ -1723,6 +1727,61 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
     }
+    // ---------- LA MUSICA EN CAPAS (docs/produccion/MUSICA_CAPAS.md) ----------
+    // `capasPista`: la pista en capas de la corrida (null = la musica de siempre). `intens`: la
+    // intensidad suavizada (core/intensidad.js), que se calcula en update() y se le pasa al reproductor
+    // en cada cuadro. La pista es CAPAS_PRUEBA (data/musica_capas.js), o `?capas=<id>`.
+    let capasPista = null, intens = 0;
+    function smallConMusica() {
+      let q = null; try { q = new URLSearchParams(location.search).get('capas'); } catch (e) { }
+      capasPista = q && PISTAS_CAPAS[q] ? q : CAPAS_PRUEBA; intens = 0;
+      beep(700, 0.08, 'square', 0.05);
+      abrirMision(misIdx('t17'), { volver: 'quickmenu' });
+      capas.arrancar(capasPista);
+    }
+    /** LA FOTO DEL JUEGO para la intensidad: lo que pasa ahora, en numeros (core/intensidad.js). */
+    function fotoIntensidad() {
+      const enJuego = S.state === 'play' || S.state === 'relevo' || S.state === 'takeoff' || S.state === 'landing';
+      if (!enJuego) return { estrellas: 0, detection: 0 };
+      let misiles = 0, hostiles = 0;
+      for (const m of missiles) if (!m.done && !m.senuelo && m.z > PZ && m.z < 420) misiles++;
+      for (const o of obstacles) if (o.hp !== undefined && !o.done && o.z > PZ && o.z < 260) hostiles++;
+      const buque = blanco.on && !blanco.hundido && !blanco.escapando && blanco.z > PZ;
+      const lanz = blanco.sistemas.filter(x => /_lanz$/.test(x.tipo) && x.estado !== 'fuera').length;
+      return { estrellas: run.estrellas, detection: run.detection, misiles, hostiles,
+        buqueZ: buque ? blanco.z : null, defensas: blanco.sistemas.length ? lanz : 1,
+        climax: blanco.on && (blanco.lento || blanco.negroT >= 0) && !blanco.hundido,
+        escape: !!blanco.escapando, salud: cfg.dmgMode === 'squad' ? null : run.integ };
+    }
+    function musicaCapas() { if (capasPista) capas.actualizar(intens); }
+    /** [N]/[M] en SMALL CON MUSICA: la pista en capas anterior o siguiente del catalogo, sin salir. */
+    function otraPistaCapas(dir) {
+      const ids = Object.keys(PISTAS_CAPAS);
+      capasPista = ids[(ids.indexOf(capasPista) + dir + ids.length) % ids.length];
+      capas.arrancar(capasPista);
+      cartel(PISTAS_CAPAS[capasPista].nombre, P.accent, 'MUSICA EN CAPAS · [N] [M] CAMBIAR');
+    }
+    /** EL MEDIDOR (solo en SMALL CON MUSICA): la intensidad y cuanto suena cada capa, abajo a la
+     *  derecha, para afinar la tabla volando. Es herramienta, no HUD: no va en el juego de verdad. */
+    function drawMedidorCapas() {
+      const sn = capas.snapshot();
+      const nc = Object.keys(sn.capas || {}).length;
+      const x = W - 112, w = 104, alto = 22 + 9 * nc, y = Math.min(172, 226 - alto);   // crece hacia arriba con las capas
+      ctx.save();
+      ctx.globalAlpha = 0.82; px(x - 4, y - 10, w + 8, alto, '#0b1014'); ctx.globalAlpha = 1;
+      ctx.font = 'bold 7px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = P.accent;
+      ctx.fillText(sn.sonando ? sn.nombre + '  C' + sn.compas : sn.cargando ? 'CARGANDO CAPAS…' : 'CAPAS: ' + (sn.id || '-'), x, y - 2);
+      const barra = (yy, rot, v, col) => {
+        ctx.fillStyle = '#8fa3ab'; ctx.fillText(rot, x, yy + 5);
+        px(x + 34, yy, w - 34, 5, '#26323a'); px(x + 34, yy, Math.round((w - 34) * Math.max(0, Math.min(1, v))), 5, col);
+      };
+      barra(y + 2, 'INTENS', intens, '#e0503a');
+      let k = 0;
+      for (const n in (sn.capas || {})) barra(y + 11 + 9 * k++, n.slice(0, 7).toUpperCase(), sn.capas[n], '#7fe07a');
+      ctx.restore();
+    }
+
     /** Cursor del submenu JUEGO RAPIDO. Sin encabezados: las cuatro filas son elegibles. */
     function quickNav(dir) {
       quickSel = (quickSel + dir + quickRows().length) % quickRows().length;
@@ -1736,6 +1795,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       else if (id === 'cines') { cinSel = 0; setState('cines'); beep(600, 0.08, 'square', 0.05); }
       else if (id === 'maniobras') { mvSel = 0; setState('maniobras'); beep(600, 0.08, 'square', 0.05); }
       else if (id === 'misiones') { setState('misiones'); beep(600, 0.08, 'square', 0.05); }
+      else if (id === 'smallmusica') smallConMusica();
       else if (id === 'cycle') goCycle();
       else if (id === 'arena') goArena();
       else if (id === 'pasadas') goPasadas();
@@ -1895,6 +1955,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  sondas-interruptor que la corrida pudo dejar puestas: ver PRB_NEUTRO. */
     function salirTest() {
       S.test = false; prbTasks.length = 0; prbNeutro();
+      if (capasPista) { capas.parar(); capasPista = null; }   // la musica en capas es de esa corrida
       // el modo DIALOGOS deja el MODO CAMARA puesto: apagarlo es parte de salir. Sin esto, la
       // mision siguiente arrancaba con el mundo congelado y el avion quieto — y el sintoma
       // ("no puedo volar") no se parece en nada a la causa.
@@ -3896,8 +3957,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       },
       // música: tecla 1 / L3 = anterior, tecla 2 / R3 = siguiente. Solo en los modos donde el
       // reproductor está activo — el motor ignora el cambio en historia/lobby.
-      trackPrev: () => { if (canPickMusic()) prevTrack(); },
-      trackNext: () => { if (canPickMusic()) nextTrack(); },
+      // (con la MUSICA EN CAPAS puesta, N y M cambian de pista en capas — para comparar volando)
+      trackPrev: () => { if (capasPista) otraPistaCapas(-1); else if (canPickMusic()) prevTrack(); },
+      trackNext: () => { if (capasPista) otraPistaCapas(1); else if (canPickMusic()) nextTrack(); },
       // MOMENTUM (tecla 4): LANZA el especial si la barra esta llena, SOLO en el pasillo
       // jugable. El feedback va aca (no en systems/tempo.js) por la misma regla que aimChanged:
       // el sistema devuelve la señal y el orquestador pone beep + popup — barra incompleta,
@@ -5081,6 +5143,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       }
       machPrev = run.spd;
       tickDuck(dt);                      // el ducking de la musica se recupera solo
+      if (capasPista) intens = suavizar(intens, intensidadCruda(fotoIntensidad()), dt);
       fadeT = Math.max(0, fadeT - dt);   // fundido desde negro (se pinta al final de draw)
       cargaProgT = Math.max(0, cargaProgT - dt);   // la carga del programa (render/carga.js)
       if (S.state === 'play' && !exocetAvisado && exocetATiro()) {   // EXOCET A TIRO: una vez, al entrar
@@ -7210,6 +7273,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
       // la carga del programa (campaña, al entrar a la mision) — tambien al final de todo
       if (cargaProgT > 0) drawCarga(CARGA_T - cargaProgT, 'RASANTE ' + (curLevel + 1));
+      if (capasPista) drawMedidorCapas();
       // fundido desde negro (al salir de la historia hacia el despegue) — SIEMPRE al final
       if (fadeT > 0) {
         ctx.globalAlpha = Math.min(1, fadeT / 1.4);
@@ -8145,6 +8209,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // LOS SISTEMAS DEL BUQUE (PLAN_DEFENSAS_BUQUE) — QUITAR al cerrar el plan. `__sis()` da el estado de cada
     // pieza; `__sis(i)` ademas pone el avion ENFRENTE de la pieza i (su x, y la altura clavada a la de la
     // pieza): es lo que deja medir "la rafaga la pasa a DAÑADO y despues a FUERA" sin pilotear a ojo.
+    // LA MUSICA EN CAPAS (MUSICA_CAPAS.md) — QUITAR al cerrar la prueba: la intensidad, lo que suena y la foto
+    if (typeof window !== 'undefined') window.__capas = () => JSON.stringify(Object.assign({ intens: +intens.toFixed(2), pista: capasPista },
+      capas.snapshot(), { foto: fotoIntensidad() }));
     if (typeof window !== 'undefined') window.__sisset = (i, e) => blancoSys.sisForzar(i, e);
     if (typeof window !== 'undefined') window.__sis = i => {
       if (i !== undefined && blanco.sistemas[i]) {
@@ -8209,7 +8276,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       pausarAudio(paused);   // la pausa calla todo: musica, ambiente, loops (systems/audio.js)
       if (paused) {
         pauseT += raw;
-        draw(); updateMusic(S.state);
+        draw(); updateMusic(S.state); musicaCapas();
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
         requestAnimationFrame(frame);
         return;
@@ -8229,7 +8296,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (dlgTyped !== Infinity && Math.floor(dlgTyped) > antes && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
         tickRadio(raw, true);
         if (dlgT > DLG_TOPE) dlgAceptar();   // salida de emergencia: sin foco, sin teclado, sin nada
-        draw(); updateMusic(S.state);
+        draw(); updateMusic(S.state); musicaCapas();
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
         requestAnimationFrame(frame);
         return;
@@ -8254,7 +8321,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         engineOff();            // igual que la pausa: el motor no ruge con el mundo quieto
         tickRadio(raw, true);   // ver la nota de arriba: el unico tickRadio del vuelo vive en update()
         pasoCharla(raw);
-        draw(); updateMusic(S.state);
+        draw(); updateMusic(S.state); musicaCapas();
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
         requestAnimationFrame(frame);
         return;
@@ -8358,7 +8425,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // verdadera y `run.spd` vuelve sola) — medido: pedia 240 y el HUD marcaba 118.
       if (machHold) { run.spd = machHold.spd; plane.bank = machHold.bank; run.boost = machHold.boost; }
       if (altHold !== null) { plane.y = altHold; plane.vy = 0; }
-      draw(); updateMusic(S.state);
+      draw(); updateMusic(S.state); musicaCapas();
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
       requestAnimationFrame(frame);
     }

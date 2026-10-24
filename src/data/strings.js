@@ -492,6 +492,7 @@ export const STRINGS = {
     // las fechas de las misiones NO estan aca — viven en data/missions.js, que ya es su casa. Aca
     // esta el MARCO: el rotulo de la pantalla y el pie del toggle de historia.
     modeMisiones: 'MISIONES', modeMisionesDesc: 'Volar una mision suelta, sin campaña alrededor',
+    modeSmallMusica: 'SMALL CON MUSICA', modeSmallMusicaDesc: 'La prueba small con la musica en capas siguiendo la intensidad',
     misTitle: 'MISIONES  ·  ELEGI UNA Y VOLALA SUELTA',
     misClimaxNo: 'SOLO PASILLO',
     misLibreta: 'LIBRETA DEL PICHON  ·  {n}/{m} MEJORAS A ESTA ALTURA DE LA CAMPAÑA',
@@ -1661,6 +1662,7 @@ export const STRINGS = {
     mvVarsBack: 'Back to the maneuver list',
     cinBadge: 'CUTSCENE',
     modeMisiones: 'MISSIONS', modeMisionesDesc: 'Fly a single mission, no campaign around it',
+    modeSmallMusica: 'SMALL WITH MUSIC', modeSmallMusicaDesc: 'The small test with layered music following the intensity',
     misTitle: 'MISSIONS  ·  PICK ONE AND FLY IT ALONE',
     misClimaxNo: 'CORRIDOR ONLY',
     misLibreta: "PICHON'S NOTEBOOK  ·  {n}/{m} UPGRADES AT THIS POINT OF THE CAMPAIGN",

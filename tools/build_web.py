@@ -256,6 +256,11 @@ def main():
     js, ok = sub_path(js, '../assets/portraits/', 'data:,portraits-web-off/')
     if not ok:
         raise SystemExit('ERROR: no encontre la base ../assets/portraits/ en el bundle (cambio screens.js?)')
+    # LA MUSICA EN CAPAS (assets/music/capas/, data/musica_capas.js): stems de ~4 MB cada uno, no entran
+    # en el bundle web. Base muerta: en web el fetch falla y el banco SMALL CON MUSICA queda mudo.
+    js, ok = sub_path(js, '../assets/music/capas/', 'data:,capas-web-off/')
+    if not ok:
+        raise SystemExit('ERROR: no encontre la base ../assets/music/capas/ en el bundle (cambio data/musica_capas.js?)')
     # ICONOS DEL TABLERO (assets/hud/, tabla en data/iconos.js): la ruta la arma el JS concatenando,
     # igual que retratos y placas, asi que en el bundle sobrevive SOLO la base.
     #

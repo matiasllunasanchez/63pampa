@@ -4353,3 +4353,47 @@ test('la oleada de los modos sueltos: arranca en 1, sube cada OLEADA.km y topa e
     }
   });
 }
+
+// ---------- LA MUSICA EN CAPAS (docs/produccion/MUSICA_CAPAS.md, 23/10/2026) ----------
+{
+  const { intensidadCruda, suavizar, nivelCapa, proximoCompas } = await import('../src/core/intensidad.js');
+  const { PISTAS_CAPAS, INTENSIDAD } = await import('../src/data/musica_capas.js');
+
+  test('capas: la intensidad sube con lo que pasa y el climax la clava en 1', () => {
+    const calma = intensidadCruda({ estrellas: 0, detection: 0 });
+    const radar = intensidadCruda({ estrellas: 2, detection: 0.8, misiles: 2 });
+    const buque = intensidadCruda({ estrellas: 2, detection: 0.8, misiles: 2, buqueZ: 300, defensas: 2 });
+    assert.ok(calma < 0.15, 'en calma: ' + calma);
+    assert.ok(radar > calma && buque > radar, `debe crecer: ${calma} < ${radar} < ${buque}`);
+    assert.equal(intensidadCruda({ climax: true }), 1);
+    assert.ok(intensidadCruda({ escape: true }) >= INTENSIDAD.escape);
+  });
+
+  test('capas: el suavizado entra rapido y se va despacio', () => {
+    const sube = suavizar(0, 1, 0.3), baja = suavizar(1, 0, 0.3);
+    assert.ok(sube > 1 - baja, `subir (${sube}) tiene que ser mas rapido que bajar (${1 - baja})`);
+  });
+
+  test('capas: la rampa de cada capa respeta su piso y su tope', () => {
+    const c = { desde: 0.25, hasta: 0.6, min: 0.2 };
+    assert.equal(nivelCapa(c, 0), 0.2);
+    assert.equal(nivelCapa(c, 1), 1);
+    assert.equal(nivelCapa({ siempre: true }, 0), 1);
+  });
+
+  test('capas: el proximo compas cae en la grilla', () => {
+    // 120 BPM, compas de 4 = 2 s; offset 0,5 → bordes en 0,5 · 2,5 · 4,5…
+    assert.ok(Math.abs(proximoCompas(1, 120, 0.5, 4) - 2.5) < 1e-9);
+    assert.ok(Math.abs(proximoCompas(2.5, 120, 0.5, 4) - 4.5) < 1e-9);
+    assert.equal(proximoCompas(0.1, 120, 0.5, 4), 0.5);
+  });
+
+  test('capas: cada stem del catalogo existe en el disco', () => {
+    for (const [id, p] of Object.entries(PISTAS_CAPAS)) {
+      for (const [n, c] of Object.entries(p.capas)) {
+        assert.ok(existsSync(new URL('../assets/music/capas/' + c.archivo, import.meta.url)), `${id}/${n}: falta ${c.archivo}`);
+      }
+      assert.ok(p.bpm > 40 && p.bpm < 240 && p.dur > 0, `${id}: grilla invalida`);
+    }
+  });
+}

@@ -433,6 +433,21 @@ export function updateMusic(state) {
   // (16/10, el autor: "bajemos un poco la musica" — de 0.30 a 0.22, y lo demas en la misma proporcion)
   const tv = (rasOn ? RAS_MUS : state === 'momentum' ? 0.07 : 0.22) * (duckT > 0 ? 0.45 : 1) * busGain('musica');
   gm.volume += (tv - gm.volume) * 0.08;
+  // LA MUSICA EN CAPAS (systems/capas.js) toma el lugar de la pista de la partida: la de siempre se calla
+  if (capasOn && want === gm && !gm.paused) gm.pause();
+}
+
+// ---------- LA MUSICA EN CAPAS (systems/capas.js, docs/produccion/MUSICA_CAPAS.md) ----------
+// El reproductor de capas vive aparte, pero el AudioContext y el volumen son de este modulo: de aca
+// salen el contexto y el volumen de la musica de juego con TODO lo que la mezcla ya sabe (mute,
+// bloqueo, OPCIONES, ducking, RASANTE, MOMENTUM, pausa, tarjeta). Mientras suenan, la pista normal de
+// la partida no arranca (updateMusic).
+let capasOn = false;
+export function capasSonando(v) { capasOn = !!v; }
+export function contextoAudio() { return ctxAudio(); }
+export function volumenMusicaJuego() {
+  if (muted || musicaRetenida || enTarjeta || enPausa || inLobby(lastState)) return 0;
+  return (rasOn ? RAS_MUS : lastState === 'momentum' ? 0.07 : 0.22) * (duckT > 0 ? 0.45 : 1) * busGain('musica');
 }
 function startMusicOnce(state) { if (musicStarted || muted || musicaRetenida) return; musicStarted = true; updateMusic(state || 'modeselect'); }
 

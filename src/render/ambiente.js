@@ -183,6 +183,46 @@ export function setZoomFichin(n) {
   if (fondo === 'fichin') { setAreaJuego(areaFichin); calzarFichin(); }
 }
 
+/** DEL FICHIN AL FONDO `modo`, ACERCANDO (22/10, el autor: "¿y si el cambio lo haces acercando mas la
+ *  pantalla y difuminando la maquinita de atras?"). Es un FLIP: se mide donde esta el juego adentro del
+ *  tubo, se cambia el fondo de verdad (el juego salta a su lugar final), y con transform se lo devuelve
+ *  visualmente al tubo — y de ahi se lo deja crecer hasta su lugar, mientras el gabinete crece con el (el
+ *  tubo siempre rodeando al juego), se desenfoca y se desvanece. `alFin` cuando termino. */
+export function salirDelFichin(modo, alFin) {
+  const f = document.getElementById('fichin'), stage = cv && cv.parentElement;
+  if (!f || !stage || fondo !== 'fichin' || modo === 'fichin') { setFondo(modo); if (alFin) alFin(); return; }
+  const r0 = stage.getBoundingClientRect(), fr = f.getBoundingClientRect();
+  const b = document.body;
+  b.classList.add('fichin-saliendo');            // el gabinete sigue a la vista aunque el fondo cambie
+  setFondo(modo);
+  const r1 = stage.getBoundingClientRect();
+  const sc = r1.width / r0.width;
+  // el juego, devuelto al tubo (sin transicion todavia)
+  stage.style.transformOrigin = '0 0';
+  stage.style.transition = 'none';
+  stage.style.transform = `translate(${r0.left - r1.left}px, ${r0.top - r1.top}px) scale(${1 / sc})`;
+  // el gabinete, quieto donde estaba; el centro del tubo es el punto que no se mueve al escalarlo
+  f.style.transition = 'none';
+  f.style.transformOrigin = `${r0.left + r0.width / 2 - fr.left}px ${r0.top + r0.height / 2 - fr.top}px`;
+  f.style.transform = 'none'; f.style.filter = 'none'; f.style.opacity = '1';
+  const T = SALE_T + 's cubic-bezier(.45,0,.2,1)';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    stage.style.transition = 'transform ' + T;
+    stage.style.transform = 'none';
+    f.style.transition = `transform ${T}, filter ${T}, opacity ${T}`;
+    const dx = (r1.left + r1.width / 2) - (r0.left + r0.width / 2), dy = (r1.top + r1.height / 2) - (r0.top + r0.height / 2);
+    f.style.transform = `translate(${dx}px, ${dy}px) scale(${sc})`;
+    f.style.filter = 'blur(14px)'; f.style.opacity = '0';
+    setTimeout(() => {
+      b.classList.remove('fichin-saliendo');
+      stage.style.transition = stage.style.transform = stage.style.transformOrigin = '';
+      f.style.transition = f.style.transform = f.style.transformOrigin = f.style.filter = f.style.opacity = '';
+      if (alFin) alFin();
+    }, SALE_T * 1000 + 60);
+  }));
+}
+const SALE_T = 1.1;   // segundos de la salida del fichin
+
 /** Pone el fondo `modo` (uno de FONDOS). Lo llaman la fila de OPCIONES y el arranque. */
 export function setFondo(modo) {
   if (typeof document === 'undefined' || !document.body) return;

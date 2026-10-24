@@ -942,6 +942,7 @@ function quickText(r) {
   if (r.id === 'cines') return { name: T('modeCines'), desc: T('modeCinesDesc') };
   if (r.id === 'maniobras') return { name: T('modeManiobras'), desc: T('modeManiobrasDesc') };
   if (r.id === 'misiones') return { name: T('modeMisiones'), desc: T('modeMisionesDesc') };
+  if (r.id === 'smallmusica') return { name: T('modeSmallMusica'), desc: T('modeSmallMusicaDesc') };
   return { name: T('modePasada'), desc: T('modePasadaDesc') };
 }
 // JUEGO RAPIDO tiene GEOMETRIA PROPIA, y es por una cuenta: con la entrada de PERSECUCION son SEIS

@@ -306,11 +306,16 @@
     opacity: 1;
     transition: none;
   }
-  /* DEL FICHIN AL FONDO ELEGIDO, POR NEGRO (22/10, game.js `alTerminar`): entra en medio segundo y sale con
-     el fundido de siempre (el 1.4s de arriba) — el cambio de tamaño del juego pasa con la pantalla en negro */
-  body.fondo-cambio #arranque {
-    opacity: 1;
-    transition: opacity .5s ease-in;
+  /* DEL FICHIN AL FONDO ELEGIDO, ACERCANDO (22/10, render/ambiente.js `salirDelFichin`): mientras dura, el gabinete se sigue viendo
+     —encima del resplandor que ya prendio, debajo del juego— y crece desenfocandose hasta desaparecer */
+  body.fichin-saliendo #fichin {
+    display: block;
+    z-index: 0;
+    will-change: transform, filter, opacity;
+  }
+  body.fichin-saliendo .stage {
+    z-index: 1;
+    will-change: transform;
   }
   #ambiente {
     transition: opacity .8s ease-out;
