@@ -1,0 +1,16 @@
+NEXT STRIP - CON EL COLORADO.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Push every expression big and open - he is eighteen, still a kid, trying to sound fine.
+Always the same shaved head. Readable at 108 px.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - LAUGHING: mouth wide open, eyes shut - a joke in the trench.
+CELL 2 - CHEEKY: a one-sided grin, eyes sliding sideways.
+CELL 3 - SURPRISED: eyebrows shot up, mouth a small O.
+CELL 4 - RELIEVED: eyes closed, a long breath out.
+CELL 5 - HUNGRY: eyes wide on something to eat, mouth open.

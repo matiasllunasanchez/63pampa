@@ -1,0 +1,16 @@
+NEXT STRIP - EL OFICIO.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Gruff and big-featured: the huge eyebrows and the white moustache do the work. Push the
+grumpy ones to the extreme; the warm ones stay gruff underneath. Readable at 108 px.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - PRIDE: chin slightly up, eyes bright, a small closed satisfied smile under the moustache - everyone came back.
+CELL 2 - GRUMBLING: mouth working under the moustache, eyebrows down, eyes rolled to the side.
+CELL 3 - CONCENTRATING ON THE JOB: eyes narrowed, tongue poking out of the corner of the mouth.
+CELL 4 - SUSPICIOUS: one huge eyebrow down, the bulging eyes squinting sideways.
+CELL 5 - "REALLY?": a flat unimpressed stare straight at the camera.

@@ -1,0 +1,16 @@
+NEXT STRIP - FUERTES.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Push every expression to the EXTREME - big, exaggerated and unmistakable, like a 90s
+arcade cut-in portrait, readable at 108 px. Never subtle, even the quiet ones.
+BACKGROUND: the same cockpit as the first strip, and the same headset in every cell.
+
+EXPRESSIONS, left to right:
+CELL 1 - LAUGHING: mouth wide open, eyes squeezed shut.
+CELL 2 - AFRAID: eyes wide with white showing, eyebrows up.
+CELL 3 - SHOUTING: eyebrows hard down, mouth wide open.
+CELL 4 - RELIEVED: eyes closed, a long breath out.
+CELL 5 - DETERMINED: eyebrows low, eyes fixed, jaw set.

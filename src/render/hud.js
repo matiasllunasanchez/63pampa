@@ -1538,14 +1538,23 @@ function gestoDeseado() {
   return 'neutro';
 }
 
+/** Las caras de un piloto, gesto por gesto: las del elenco salen de su nombre (CARA_PILOTO, base +
+ *  '_' + gesto); en los modos sueltos, del avion (data/pilotos_avion.js), que game.js manda resuelto
+ *  en `delAvion`. null = sin cara. */
+function carasDe(nombre, delAvion) {
+  if (delAvion) return delAvion.caras;
+  const base = CARA_PILOTO[sinTilde(nombre)];
+  return base ? Object.fromEntries(GESTOS.map(g => [g, base + '_' + g])) : null;
+}
+
 /** Dibuja la cara y devuelve el x donde sigue el tablero (sin cara: el mismo x, no queda hueco). */
-function drawPiloto(charlaVoz) {
+function drawPiloto(charlaVoz, delAvion) {
   // APARTE DEL TABLERO (11/9): arriba de la esquina izquierda, y no en la fila. La cara no es un
   // instrumento, y a su derecha tiene que quedar lugar para lo que dice (drawVozPropia, en screens).
   const x = MARGEN, y = CUADROS_Y - AIRE - PILOTO.alto;
   const nombre = pilotName(alMando(run));
-  const base = CARA_PILOTO[sinTilde(nombre)];
-  if (!base) return x;
+  const caras = carasDe(nombre, delAvion);
+  if (!caras) return x;
   // el reloj del cuadro sale de `run.t`: el HUD no recibe dt, y una corrida nueva (run.t que
   // vuelve para atras) arranca la cara de cero en vez de heredar la sonrisa de la anterior
   const nueva = ultT < 0 || run.t < ultT;
@@ -1566,12 +1575,12 @@ function drawPiloto(charlaVoz) {
   gestoT += dt;
   // las cinco caras del que vuela se piden juntas la primera vez: si no, el primer gesto de cada
   // una tardaria un cuadro en cargar y se veria la neutra en el momento justo del susto
-  if (precargada !== base) { precargada = base; for (const g of GESTOS) retrato(base + '_' + g); }
+  if (precargada !== caras.neutro) { precargada = caras.neutro; for (const g of GESTOS) retrato(caras[g]); }
 
   plate(x, y, PILOTO.lado, PILOTO.alto);
   // el sacudon tambien lo sufre el piloto: un pixel, nada mas
   const j = run.shake > 2 ? Math.round((Math.random() - 0.5) * 2) : 0;
-  const cara = retrato(base + '_' + gesto) ? base + '_' + gesto : base + '_neutro';
+  const cara = retrato(caras[gesto]) ? caras[gesto] : caras.neutro;
   const im = retrato(cara);
   if (im) ctx.drawImage(im, x + 2 + j, y + 2, PILOTO.cara, PILOTO.cara);
   else silueta(x + 2, y + 2, PILOTO.cara);
@@ -1600,12 +1609,12 @@ function drawPiloto(charlaVoz) {
  *  relevo (game.js): la tarjeta del que entra llega desde la izquierda a SU LUGAR DEL HUD y se queda
  *  ahi, asi que cuando vuelve el HUD la de drawPiloto la reemplaza sin salto (pedido del autor, 4/10).
  *  Devuelve false si ese piloto no tiene retrato. */
-export function tarjetaPiloto(nombre, x, y) {
-  const base = CARA_PILOTO[sinTilde(nombre)];
-  if (!base) return false;
+export function tarjetaPiloto(nombre, x, y, delAvion) {
+  const caras = carasDe(nombre, delAvion);
+  if (!caras) return false;
   x = Math.round(x);
   plate(x, y, PILOTO.lado, PILOTO.alto);
-  const im = retrato(base + '_neutro');
+  const im = retrato(caras.neutro);
   if (im) ctx.drawImage(im, x + 2, y + 2, PILOTO.cara, PILOTO.cara);
   else silueta(x + 2, y + 2, PILOTO.cara);
   ctx.font = F_ROT; ctx.textAlign = 'center'; ctx.fillStyle = P.foam;
@@ -2521,7 +2530,7 @@ export function drawHUD(h) {
   // LA FILA de cuadrados de abajo, en los tres grupos de la cabina (ver CUADRO / X_* arriba).
 
   // LA CARA DEL PILOTO, aparte: arriba de la esquina izquierda (ver drawPiloto).
-  drawPiloto(h.charlaVoz);
+  drawPiloto(h.charlaVoz, h.pilotoAvion);
 
   // ---- LA NAFTA (izquierda, al lado de SALUD) y LA CHANCHA (derecha, con lo que se carga) ------
   // La chancha solo con COMBUSTIBLE: SI — un reloj que nunca se va a poder usar es ruido ocupando

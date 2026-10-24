@@ -954,7 +954,7 @@ export const SCENES = {
         es: 'Plata 2, mantenga rumbo. La Chancha va a buscarlo.', en: '' },
       { id: 'M06_CHANCHA_040', personaje: null, cara: null, hold: 0,
         es: 'Y de la nada, de noche y a metros del mar, aparece la Chancha: el Hércules reabastecedor de combustible. La manguera se conecta en el aire al avión del Gitano.', en: '' },
-      { id: 'M06_CHANCHA_050', personaje: 'LA CHANCHA', cara: null, hold: 0,
+      { id: 'M06_CHANCHA_050', personaje: 'LA CHANCHA', cara: 'chancha_cab_sonrisa', hold: 0,
         es: 'Tranquilo, cordobés. La Chancha no abandona. Servite.', en: '' },
       { id: 'M06_CHANCHA_060', personaje: 'GITANO', cara: 'gitano_llorando', hold: 0,
         accion: 'Con los ojos llorosos y la voz quebrada',

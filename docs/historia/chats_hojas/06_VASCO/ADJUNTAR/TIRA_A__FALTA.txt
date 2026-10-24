@@ -1,0 +1,2 @@
+Cuando la Tira A de este personaje salga bien (CHAT_01), guardala en esta carpeta como TIRA_A.png
+(o mandásela a Claude y la deja acá). Desde el CHAT_02 en adelante se adjunta esa.

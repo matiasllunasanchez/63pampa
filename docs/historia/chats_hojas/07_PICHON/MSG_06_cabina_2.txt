@@ -1,0 +1,16 @@
+NEXT STRIP - CABINA 2.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Push every expression big and open - he is nineteen and hides nothing yet. Readable
+at 108 px, like a 90s arcade cut-in portrait.
+BACKGROUND: the same cockpit as the previous strip, and the same helmet in every cell.
+
+EXPRESSIONS, left to right:
+CELL 1 - PANIC: mouth stretched open in a scream.
+CELL 2 - RELIEVED: a huge breath out, eyes wet.
+CELL 3 - CRYING: tears inside the helmet.
+CELL 4 - IN PAIN: teeth clenched, eyes squeezed.
+CELL 5 - LAUGHING: mouth wide open, eyes shut.

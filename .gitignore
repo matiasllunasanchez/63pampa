@@ -24,3 +24,4 @@ capturas-3d/
 
 # el trailer renderizado (tools/trailer.js): artefacto, pesa y se rehace
 trailer/
+.env

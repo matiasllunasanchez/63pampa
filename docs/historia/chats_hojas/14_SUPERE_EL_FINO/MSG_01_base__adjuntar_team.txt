@@ -1,0 +1,58 @@
+Detailed 90s arcade run-and-gun pixel art in the style of Metal Slug on SNK Neo Geo
+hardware. Hand-drawn sprite look: chunky dark pixel outlines around every shape,
+rich dithered shading in visible pixel clusters, a small disciplined palette, hard
+crisp pixel edges, readable silhouette first and detail second.
+No anti-aliasing, no smooth gradients, no soft airbrush, no photorealism, no 3D
+render lighting, no bloom, no lens flare, no drop shadow, no modern vector or
+flat-illustration look.
+
+SHEET LAYOUT: a single horizontal strip of FIVE SQUARE cells in one row, edge to
+edge, no gaps, no borders drawn between them. The finished image is exactly five
+times as wide as it is tall. Each cell contains the SAME character as a portrait
+bust - chest up, three-quarter view facing slightly LEFT, eyes toward camera.
+Identical framing and identical scale in every cell: the head is the same size and
+the eyes sit at the same height in all of them. The bottom edge cuts across the
+upper chest; arms and hands are outside the frame. Leave a little clear space
+above the head. The ONLY difference between cells is the facial expression.
+BUST ONLY: nothing below the upper chest - no legs, no boots, no full bodies, even
+if the attached images show full figures.
+BACKGROUND - INSIDE THE AIRCRAFT: behind him, the cramped single-seat cockpit of a Dassault Super Etendard naval strike jet,
+1970s: the metal canopy frame, a dark instrument coaming with round analogue dials,
+grey South Atlantic sky through the canopy.
+Dark, simple, slightly blurred big pixel shapes, so the face reads first. The SAME
+background in every cell.
+SCALE NOTE: this will be displayed very small (108x108). Build every expression out
+of EYEBROW DIRECTION, MOUTH SHAPE and HEAD ANGLE. Do not rely on fine wrinkles,
+freckles, small scars or eye colour - at final size they do not exist.
+
+IMAGE 1 is the cast line-up of this game. Copy its RENDERING ONLY: line weight,
+dithered shading, palette. This man is NOT any of the eight people in it and must
+not resemble any of them.
+
+INTENT, and this matters more than any feature below: the refined one: Navy, trained in France, calm and precise like a surgeon. Never a hair
+out of place, never a wasted word.
+
+CHARACTER, identical in every cell:
+Argentine navy pilot, about 35. A NARROW REFINED face, a thin straight nose, finely
+arched eyebrows, a SMALL NEAT TRIMMED MOUSTACHE, light olive skin, a white silk scarf at
+the collar of his flight suit.
+In EVERY cell he wears a white flight helmet with the visor up and the oxygen mask
+unclipped and hanging to one side. The helmet must not hide his eyes or eyebrows.
+
+EXPRESSIONS, left to right:
+CELL 1 - NEUTRAL: level eyebrows, mouth closed and relaxed.
+CELL 2 - SMILE: the smile that is his, as warm as it gets.
+CELL 3 - WORRIED: inner ends of the eyebrows up, mouth a tight line.
+CELL 4 - ANGER: eyebrows hard down, eyes narrowed, mouth flat or bared.
+CELL 5 - ON THE RADIO: mouth open mid-word, eyes fixed ahead, eyebrows slightly raised.
+
+PERIOD LOCK - Argentina, 1982. Nothing modern may appear: no modern avionics, no
+digital or woodland camouflage, no NATO or United States markings, no invented
+squadron patches, no modern eyewear, no modern haircuts.
+
+ABSOLUTELY NO TEXT of any kind anywhere: no name tapes, no rank lettering, no
+labels, no cell numbers, no captions under the faces, no watermark, no signature.
+If you feel the urge to label anything, leave it blank.
+
+This is the FIRST strip of a series. In my next messages I will ask for more strips of
+this SAME man in this SAME format. Keep him identical in all of them.

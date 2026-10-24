@@ -102,6 +102,7 @@ const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
 import { drawBlanco, drawBlancoHud } from './render/blanco.js';
 import { drawRotuloVuelo, ROTULO, ROTULO_T, ROTULO_NOMBRE, ROTULO_ESCAPE, ROTULO_FALLO } from './render/rotulo.js';
 import { tarjetaPiloto, TARJETA_LADO, tarjetaLugar, NUMEROS } from './render/hud.js';
+import { PILOTOS_AVION } from './data/pilotos_avion.js';
 import { PULSO } from './data/pulso.js';
 import { spawnSystem, sembrarAmenaza } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
@@ -1009,11 +1010,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  reproductor, es la unica que esta libre durante la cita. */
     function radioCh(key, args) { popup(W / 2, 38, T(key, args), P.crest, true); }
     /** LA VOZ DE LA CHANCHA (27/9, el autor: "la Chancha no es manejada por Condor, es otro que no
-     *  conocemos"). Habla su piloto, por la caja de radio y con el INDICATIVO del avion: no tiene
-     *  nombre ni cara, porque no es de los nuestros. Lo que no es de ella —tu pedido, el cartel del
-     *  radar, la negativa del guion— sigue en el popup de radioCh. */
+     *  conocemos"). Habla su piloto, por la caja de radio y con el INDICATIVO del avion. Desde el 24/10
+     *  tiene CARA: la Chancha es el unico personaje cruzado (campaña y modos sueltos) y en el aire
+     *  habla con chancha_cab_radio, la de la cabina del Hercules. Lo que no es de ella —tu pedido, el
+     *  cartel del radar, la negativa del guion— sigue en el popup de radioCh. */
     const CHANCHA_VOZ = 'CHANCHA';
-    function chanchaDice(key, args) { decirRadio(CHANCHA_VOZ + ': ' + T(key, args), () => null); }
+    /** LA CARA DEL QUE VUELA EN LOS MODOS SUELTOS (data/pilotos_avion.js): en POR LA PATRIA y CICLO DE
+     *  MUERTE, sin Fieles, el piloto sale del avion elegido. null en los demas modos y con roster (ahi
+     *  manda el nombre, data/gestos.js), o si ese avion todavia no tiene retratos. */
+    const pilotoAvion = () => (gameMode === 'survival' || gameMode === 'cycle') && !squad.rosterActive()
+      ? PILOTOS_AVION[(PLANES[selPlane] || {}).key] || null : null;
+    function chanchaDice(key, args) { decirRadio(CHANCHA_VOZ + ': ' + T(key, args), () => 'chancha_cab_radio'); }
 
     /** LA RADIO DE UN TRAMO (SPEC_TRAMOS RF-03). Mismo tono que la radio de la Chancha —centrada,
      *  color de cresta, en negrita— porque es la MISMA voz: Condor hablandole al vuelo.
@@ -6895,7 +6902,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // fundido y la RADIO, y la primera version apagaba el bloque entero — medido, el avion se
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
-        ctx.save(); ctx.scale(U, U); if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
+        ctx.save(); ctx.scale(U, U); if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT),
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
@@ -7256,7 +7263,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
             const { ENTRA } = ROTULO, L = tarjetaLugar(), fuera = -TARJETA_LADO - 2;
             const x = tr < ENTRA ? fuera + (L.x - fuera) * (1 - Math.pow(1 - tr / ENTRA, 3)) : L.x;
             // en las coordenadas del HUD (que se dibuja escalado por U): mismo lugar y mismo tamaño
-            ctx.save(); ctx.scale(U, U); tarjetaPiloto(pil, x, L.y); ctx.restore();
+            ctx.save(); ctx.scale(U, U); tarjetaPiloto(pil, x, L.y, pilotoAvion()); ctx.restore();
           }
         }
       }

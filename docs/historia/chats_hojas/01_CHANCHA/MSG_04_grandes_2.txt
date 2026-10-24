@@ -1,0 +1,16 @@
+NEXT STRIP - GRANDES 2.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same flight suit, same pixel-art
+style, same framing, the head the same size in every cell. Bust only - nothing below
+the upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Push every expression to the EXTREME - big, exaggerated and unmistakable, like a 90s
+arcade cut-in portrait, readable at 108 px. Never subtle, even the quiet ones.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - DISGUSTED: nose wrinkled hard, upper lip curled up to the nose, eyes squinting, head pulled far back.
+CELL 2 - IN SHOCK: frozen, face drained pale, eyes wide and fixed on nothing, mouth slightly open.
+CELL 3 - IN PAIN: eyes squeezed shut, teeth clenched, the whole face scrunched to one side.
+CELL 4 - EUPHORIC: shouting with joy, mouth wide open, eyes shut, eyebrows up, head tipped back.
+CELL 5 - STARTLED: head jerked back, eyes popping, mouth snapped open, shoulders up to the ears.

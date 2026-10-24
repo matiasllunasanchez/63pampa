@@ -1,0 +1,16 @@
+NEXT STRIP - LA ALEGRIA.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Push every expression big and open - he is nineteen and hides nothing yet. Readable
+at 108 px, like a 90s arcade cut-in portrait.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - LAUGHING: mouth wide open, eyes shut, head back.
+CELL 2 - EUPHORIC: shouting with joy, eyes shut.
+CELL 3 - AMAZED: jaw dropped, eyes shining.
+CELL 4 - ASHAMED: head down, cheeks red, eyebrows up in the middle.
+CELL 5 - FIGHTING TEARS: chin trembling, lips pressed, trying to look like a man.

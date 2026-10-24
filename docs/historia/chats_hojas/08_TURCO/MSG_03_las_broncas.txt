@@ -1,0 +1,16 @@
+NEXT STRIP - LAS BRONCAS.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Gruff and big-featured: the huge eyebrows and the white moustache do the work. Push the
+grumpy ones to the extreme; the warm ones stay gruff underneath. Readable at 108 px.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - FURY: a job done badly - shouting, eyebrows crushed down, the moustache bristling.
+CELL 2 - DISGUSTED: nose wrinkled, the moustache pushed up, head back.
+CELL 3 - EYE ROLL: the bulging eyes rolled all the way up.
+CELL 4 - DOUBTFUL: one eyebrow up, mouth twisted under the moustache.
+CELL 5 - KNOWS BETTER: chin up, eyelids half down, a smirk under the moustache.

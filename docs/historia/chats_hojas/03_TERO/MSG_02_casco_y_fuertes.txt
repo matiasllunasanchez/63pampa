@@ -1,0 +1,16 @@
+NEXT STRIP - CASCO Y FUERTES.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Push each expression as far as THIS man goes: deep and raw in grief, fear and rage;
+his joy is always small and tired. Readable at 108 px. Never comic.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - HELMETED: the neutral face, now wearing the white flight helmet with the green oxygen mask unclipped and hanging to one side. Eyes and eyebrows visible.
+CELL 2 - AFRAID: eyes wide with white showing, eyebrows up and pulled together, mouth open.
+CELL 3 - SHOUTING IN ANGER: eyebrows hard down, mouth wide open, teeth showing.
+CELL 4 - CRYING: eyebrows high and pinched, eyes squeezed, tears on the hollow cheeks.
+CELL 5 - DETERMINED: eyebrows low and level, eyes fixed ahead, jaw set.

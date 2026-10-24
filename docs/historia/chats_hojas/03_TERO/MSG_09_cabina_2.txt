@@ -1,0 +1,16 @@
+NEXT STRIP - CABINA 2.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Push each expression as far as THIS man goes: deep and raw in grief, fear and rage;
+his joy is always small and tired. Readable at 108 px. Never comic.
+BACKGROUND: the same cockpit as the previous strip, and the same helmet in every cell.
+
+EXPRESSIONS, left to right:
+CELL 1 - STRAINING UNDER G: teeth clenched, eyes squeezed, face pulled.
+CELL 2 - RELIEVED: eyes closed, a long breath out.
+CELL 3 - BROKEN: eyebrows collapsed, eyes unfocused - he has just heard something on the radio.
+CELL 4 - PANIC: eyes huge, mouth open in a scream.
+CELL 5 - RAGE: teeth bared, eyebrows crushed down.
