@@ -82,7 +82,10 @@ export const MOVES = {
   // el jugador vive como la misma cosa (dar vuelta el avion).
   splits: { dur: 1.15, name: 'SPLIT-S', steer: 'x', fire: true, turbo: false, tight: true, drift: 24 },
   // viraje quebrado: tiron lateral violento sostenido, banqueo a fondo
-  breakt: { dur: 1.0, name: 'BREAK TURN', steer: 'y', fire: true, turbo: false, tight: true },
+  // BREAK TURN: 1.0 → 1.4 s (autor, 11/11: "esta bueno pero me gustaria poder mantenerlo mas en
+  // horizontal"). Lo que se estira es el DASH —el tramo plano, ver QUIEBRE.DASH—, no el cuchillo
+  // ni la salida: el gesto termina igual, pero se vuela de costado el doble de tiempo.
+  breakt: { dur: 1.4, name: 'BREAK TURN', steer: 'y', fire: true, turbo: false, tight: true },
   // sube, cuelga y recae: esquive vertical que sangra velocidad
   hiyo: { dur: 1.0, name: 'HIGH YO-YO', steer: 'x', fire: true, turbo: false, tight: false },
   // pica y remonta: convierte altura en VELOCIDAD (el unico combo que acelera)
@@ -103,6 +106,15 @@ export const MOVES = {
   //                     asi que cruzarlo es una segunda decision y nunca un accidente.
   climb: { dur: 1.2, name: 'ASCENSO', steer: 'x', fire: true, turbo: true, tight: false },
   climbmax: { dur: 2.0, name: 'SOBRE EL RADAR', steer: 'x', fire: true, turbo: true, tight: false },
+  // …Y EL ASCENSOR PARA ABAJO (autor, 11/11: "ademas del ascenso hay que hacer el equivalente
+  // inverso, el descenso y debajo del radar"). Mismo motor, mismo "llevame y sostenela", al reves:
+  //   DESCENSO          → baja hasta el techo del radar y se queda. Es SALIR de lo expuesto.
+  //   DEBAJO DEL RADAR  → sigue hasta la banda del x10, donde no te pintan y el multiplicador paga.
+  //                       Solo se ofrece si YA venis contra el radar, por el mismo criterio que
+  //                       SOBRE EL RADAR: cruzar la linea nunca puede ser un accidente.
+  // Duran MENOS que sus espejos (0,9 / 1,6 contra 1,2 / 2,0): bajar es a favor de la gravedad.
+  dive: { dur: 0.9, name: 'DESCENSO', steer: 'x', fire: true, turbo: true, tight: false },
+  divemax: { dur: 1.6, name: 'DEBAJO DEL RADAR', steer: 'x', fire: true, turbo: true, tight: false },
   // TIRABUZON: rola sobre su propio eje picando. No deja controlar nada (steer null): lo que la
   // define es que el jugador no la corrige, no que el avion no se mueva.
   // OJO: antes tenia `plane.vx = 0` clavado y el comentario decia que NO irse de costado era "el
@@ -173,10 +185,11 @@ export const MV_HI = 18, MV_LO = 14;
 const COMBO = {
   splits: '↑↓↓ (alto)', breakt: '↓←← · ↓→→', hiyo: '↑↓↑', loyo: '↓↑↓',
   jink: '↑←→ · ↑→←', sturn: '←→← · →←→', mask: '⟳↓↓↓', popup: '↓↑↑ (bajo)',
-  climb: '↑↑↑↑', climbmax: '↑↑↑↑↑↑', spin: 'Q S E · E S Q',
+  dive: 'mirar ↓ ⟶ ↓↓', divemax: 'mirar ↓ ⟶ ↓↓ (contra el radar)',
+  climb: 'mirar ↑ ⟶ ↑↑', climbmax: 'mirar ↑ ⟶ ↑↑ (contra el radar)', spin: 'Q S E · E S Q',
   barrel: '↓→↑← · ↓←↑→', tonel: '→→ · ←←',
   // LOS FRENOS (4/10): la tecla de freno ([G] / L2), sola o con la mano derecha, y su combo
-  cobra: '[G] · ⟳↑↓↑', mortal: '[G]+W · ⟳↑↑↓', cobrainv: '[G]+S · ⟳↓↓↑',
+  cobra: '[G] · ⟳↑↓↑', mortal: '[G] → ↑↓ · ⟳↑↑↓', cobrainv: '[G]+S · ⟳↓↓↑',
   derrape: '[Q]+[D] y [E]+[A] · [E]+[A] y [Q]+[D]',
 };
 

@@ -162,6 +162,33 @@ function vueltaMortal(p, K = MORTAL.VUELTA) {
   return 360;
 }
 
+/** ¿La COBRA del jugador ya tiene la trompa PLANTADA? Es la ventana en la que se puede encadenar
+ *  el MORTAL: antes de `COBRA.SUBE` la trompa todavia esta subiendo y convertir ahi saltaria de
+ *  pose. A la duracion de hoy (1,4 s) la ventana abre a los 0,17 s y dura hasta el final. */
+export const enCobraPlantada = () => run.mv === 'cobra' && run.mvT / MOVES.cobra.dur >= COBRA.SUBE;
+
+/** CONVIERTE LA COBRA EN MORTAL sin cortar la maniobra: no es una pirueta nueva, es la misma que
+ *  NO SE DETIENE EN LA VERTICAL (ver el caso 'mortal'). Por eso no pasa por `startMove` —que la
+ *  rechazaria, hay una pirueta corriendo— ni cobra nafta de nuevo: ya se cobro al entrar a la cobra.
+ *
+ *  SE ENTRA POR LA MESETA. El perfil del mortal (`MORTAL.VUELTA`) llega a 100° a p=0,12 y se queda
+ *  rondando los 100-115° hasta p=0,45: esa meseta ES la pose plantada de la cobra. Entrando ahi la
+ *  trompa no se mueve en el cuadro del cambio — sigue de largo, que es exactamente lo que se ve.
+ *
+ *  Y LA ALTURA SE REFERENCIA AL REVES: el mortal pide `mvY0 + SUBE·((1−cos θ)/2)^FORMA`, asi que
+ *  `mvY0` tiene que ser la altura de AHORA menos lo que a ese angulo ya deberia haber subido. Sin
+ *  esta resta el avion pega un salto vertical de un cuadro al convertir. */
+export function cobraAlMortal() {
+  if (!enCobraPlantada()) return false;
+  const P_ENTRA = 0.12;                                   // el arranque de la meseta de MORTAL.VUELTA
+  run.mv = 'mortal';
+  run.mvT = MOVES.mortal.dur * P_ENTRA;
+  const th = vueltaMortal(P_ENTRA) * Math.PI / 180;
+  run.mvY0 = plane.y - MORTAL.SUBE * Math.pow((1 - Math.cos(th)) / 2, MORTAL.FORMA);
+  run.mvFase = '';
+  return true;
+}
+
 // perfil suave 0→1→0 (campana) — la base de los empujes que entran y salen con peso
 const bell = p => Math.sin(Math.PI * Math.max(0, Math.min(1, p)));
 
@@ -503,16 +530,24 @@ export function movesSystem(dt, inp, act) {
       E.spd = Math.max(40, E.spd * Math.exp(-POPUP.FRENO * frenoP * dt) - E.spd * 0.10 * dt);
       break;
     }
-    case 'climb': case 'climbmax': {
+    case 'climb': case 'climbmax': case 'dive': case 'divemax': {
       // ASCENSOR: la misma cinematica del TERRAIN MASKING pero hacia arriba y contra un techo que
       // no es fijo (E.mvTgt). Persigue la altura y SE QUEDA — el tope de vy es lo unico que la
       // separa de un teletransporte, y es lo que hace que se lea como una trepada.
+      //
+      // Y PARA ABAJO ES EL MISMO CASO, no uno nuevo: perseguir una altura no sabe de signos. Lo
+      // unico que cambia es de que lado queda `mvTgt`, y eso ya lo decide quien la dispara. Lo que
+      // SI distingue es la energia: trepar cuesta y bajar REGALA (ver `sube`).
       B.vy = Math.max(-20, Math.min(CLIMB_VY, (E.mvTgt - B.y) * 3.2));
       B.vx = sx * 1.6;                                       // lateral CASI pleno, como el mask
       B.bank = B.vx / 40;
-      B.pitch = B.y < E.mvTgt - 2 ? 1 : 0;
-      E.mvSteep = B.y < E.mvTgt - 4 ? 1 : 0;
-      E.spd = Math.max(40, E.spd - E.spd * 0.13 * dt);     // trepar CUESTA energia
+      // LA TROMPA MIRA A DONDE VA, y por eso se compara contra el objetivo en vez de clavar un 1:
+      // bajando, `mvTgt` queda DEBAJO y la trompa tiene que ir abajo o el avion desciende de culata.
+      B.pitch = B.y < E.mvTgt - 2 ? 1 : B.y > E.mvTgt + 2 ? -1 : 0;
+      E.mvSteep = B.y < E.mvTgt - 4 ? 1 : B.y > E.mvTgt + 4 ? -1 : 0;
+      // trepar CUESTA energia; bajar la REGALA, que es la mitad de por que se baja
+      const sube = E.mv === 'climb' || E.mv === 'climbmax';
+      E.spd = sube ? Math.max(40, E.spd - E.spd * 0.13 * dt) : E.spd + E.spd * 0.10 * dt;
       break;
     }
   }

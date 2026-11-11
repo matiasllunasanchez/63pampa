@@ -163,6 +163,10 @@ import { MSL_MAX, GEAR_T, RADAR_ALT, FLY_TOP, FLY_X, VEIL_IN, VEIL_FULL, VEIL_OU
 // borde y pasa a ofrecerte cruzarlo. 4 unidades: lo justo para que salga del ASCENSO anterior y
 // repetir el combo, sin que se dispare desde una altura donde todavia tenias margen.
 const CLIMB_NEAR = 4;
+// DONDE DEJA EL DESCENSO: adentro de la banda del x10 (multOf: alt <= 4.5) pero sin pegarse al
+// agua — ahi abajo esta el roce y la maniobra no deberia matarte por llegar. Es el espejo de
+// RADAR_ALT: el BORDE de la banda a la que te lleva, no el fondo.
+const DIVE_RAS = 4;
 import { MV_HI, MV_LO, maniobras, MV_VISTAS, MOVES, WINGMV } from './data/moves.js';
 import * as moves from './systems/moves.js';
 import * as squad from './systems/squad.js';
@@ -3485,6 +3489,36 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // negativo = [E]+[A]) y el otro lo dispara
     let qdAntes = false, eaAntes = false, derrapeArma = 0;
     const DERRAPE_ACORDE = 0.6;
+    // EL MORTAL SE ENCADENA A LA COBRA (autor, 11/11: "G y luego de un segundo, cuando el avion esta
+    // cerca, apretar arriba y luego abajo"). Ya no es un acorde que se decide en el instante de la
+    // [G]: la COBRA es la toma de impulso —planta la trompa y se viene hacia la camara— y DURANTE
+    // esa pose, ARRIBA y despues ABAJO la convierten en la vuelta entera.
+    /** ¿ESTA MANIOBRA SE PUEDE? La regla unica de que pirueta sale: junta TENERLA (el banco del
+     *  Pichon, en campaña) con QUERERLA (el menu). Vivia adentro del dispatcher de combos; se saco
+     *  porque el ASCENSOR ya no es un combo —es mirada sostenida + dos toques, en el update del
+     *  vuelo— y las dos vias tienen que preguntar lo MISMO. Duplicarla era la forma segura de que
+     *  un dia una maniobra saliera por un camino y no por el otro. */
+    const mvOk = id => moveAllowed(id, { campaign: conLibreta(), owned: pichon, off: cfg.movesOff });
+    let uAntes = false, dAntes = false;
+    let mortalArma = false;   // ya se toco ARRIBA dentro de la cobra: falta el ABAJO
+    // EL ASCENSOR, AHORA POR MANTENIDO (autor, 11/11: "cambiala por un mantenido… lo mismo para
+    // arriba"). Antes era `↑↑↑↑`: cuatro toques repetidos, y el espejo `↓↓↓↓` encima CHOCABA con el
+    // TERRAIN MASKING (⟳↓↓↓), que en minusculas es la misma secuencia.
+    //
+    // EL MANTENIDO VA EN EL EJE DE **MIRAR**, no en el de volar, y es lo que hace que el gesto
+    // exista: sostener ABAJO en la mano que vuela es PICAR. Medido contra el integrador real, con
+    // [S] apretada se cae a 20 u/s — desde 30 tocas el suelo a los 1,70 s, asi que un mantenido de
+    // dos segundos te mata antes de completarse. El eje de mirar no mueve el avion: se puede
+    // sostener lo que haga falta. Y de paso no choca con nada: el masking son cuatro toques
+    // rapidos, esto es un mantenido y dos toques.
+    //
+    // Es ademas el idioma que el ascensor ya tenia escrito: "mira hacia donde vas a ir y empuja dos
+    // veces para alla". Sostener la mirada ES comprometerse.
+    const MIRA_HOLD = 0.6;    // s de mirada sostenida que ARMAN el ascensor
+    const MIRA_VENT = 1.2;    // s que la ventana queda armada despues (alcanza para dos toques)
+    let miraArT = 0, miraAbT = 0;     // cuanto se viene sosteniendo cada mirada
+    let ascVent = 0, descVent = 0;    // ventana armada, en segundos
+    let ascTaps = 0, descTaps = 0;    // toques dados dentro de la ventana
     // LOS ROTULOS GRANDES DEL DESENLACE (¡LE DISTE! ¡ESCAPÁ YA!, ¡MUY LARGA! ¡FALLASTE!, ¡LE ERRASTE!):
     // OCULTOS por ahora (autor, 8/10: "creo que no quedan bien los mensajes grandes, ocultalos y
     // manejemos todo en el cuadrado de arriba"). El codigo queda: `true` los vuelve a mostrar.
@@ -3889,8 +3923,6 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (!damage.fx().moves) return false;
         // EL HERCULES NO HACE PIRUETAS (16/10, el autor): un transporte de 70 toneladas no rola (`sinPiruetas`)
         if (PLANES[selPlane] && PLANES[selPlane].sinPiruetas) return false;
-        const mvOk = id => moveAllowed(id,
-          { campaign: conLibreta(), owned: pichon, off: cfg.movesOff });
         // CON CUALQUIER MANO (autor, 24/10: "en todas las maniobras las flechitas y WASD es lo mismo"): estas
         // se comparan en minusculas, asi que da igual si el toque vino de WASD, de las flechas o del stick
         // que rola, y como se lea la mira. A PROPOSITO fuera de la gramatica de `npm run maniobras` (3-4
@@ -3905,14 +3937,21 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           case 'll': return startRoll(-1);
           case 'drul': return mvOk('barrel') && moves.startMove('barrel', 1);
           case 'dlur': return mvOk('barrel') && moves.startMove('barrel', -1);
-          case 'uuuu':
-            return plane.y >= RADAR_ALT - CLIMB_NEAR
-              ? mvOk('climbmax') && moves.startMove('climbmax', 1, FLY_TOP)    // ya estas contra el radar: cruzalo
-              : mvOk('climb') && moves.startMove('climb', 1, RADAR_ALT);       // subi hasta el borde y quedate ahi
+          // EL ASCENSOR YA NO ES UN COMBO (autor, 11/11: "cambiala por un mantenido… para no repetir
+          // tanta combinacion"). `↑↑↑↑` y su espejo `↓↓↓↓` se fueron: ahora es MIRADA SOSTENIDA y
+          // dos toques, y vive en el update del vuelo (buscar MIRA_HOLD). El espejo encima no
+          // entraba aca: `↓↓↓↓` en minusculas ES el TERRAIN MASKING (⟳↓↓↓), que se resuelve en el
+          // switch de abajo — el gesto nuevo no lo pisa porque un mantenido no es un toque.
           case 'uu':
+            // LA SEGUNDA DECISION, que sigue siendo un combo porque son dos toques y no cuatro:
+            // cruzar el radar MIENTRAS trepas. Su espejo, `dd`, hunde el descenso hasta la banda.
             if (run.mv !== 'climb' || !mvOk('climbmax')) return false;
             run.mv = null;
             return moves.startMove('climbmax', 1, FLY_TOP);
+          case 'dd':
+            if (run.mv !== 'dive' || !mvOk('divemax')) return false;
+            run.mv = null;
+            return moves.startMove('divemax', 1, DIVE_RAS);
         }
         switch (seq) {
           // ---- STICK DERECHO (mayusculas): LAS QUE ROLAN ----
@@ -5921,13 +5960,57 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // apagan como a toda pirueta.
       // CON [W] es EL MORTAL, el freno con vuelta hacia atras; CON [S], la COBRA MORTAL INVERTIDA.
       if (inp.brake && !frenoAntes && damage.fx().moves) {
-        // …CON [W] es EL MORTAL y CON [S] la COBRA MORTAL INVERTIDA (autor, 24/10: "Mortal = G + W and
-        // inverted cobra = G + S, even if it clashes with the throttle"). Es la mano que VUELA (W/S, las
-        // flechas que vuelan, el stick izquierdo), no la que mira. Choca con el gas A SABIENDAS: volando
-        // con [W] apretada, [G] da el mortal; la cobra pide soltar el gas un instante.
-        const arriba = inp.u > 0.3;
-        const abajo = inp.d > 0.3;
-        moves.startMove(arriba ? 'mortal' : abajo ? 'cobrainv' : 'cobra', 1);
+        // CON [S] sale la COBRA MORTAL INVERTIDA, que sigue siendo un acorde: la vuelta invertida no
+        // tiene de donde encadenarse —arranca rolando panza arriba— asi que o se pide al entrar o no
+        // se pide. EL MORTAL ya NO esta aca: se encadena a la cobra, mas abajo.
+        //
+        // Y la [G] SOLA volvio a ser la cobra limpia, aunque vengas con el gas apretado. El acorde
+        // [G]+[W] chocaba con el gas A SABIENDAS (autor, 24/10) y el precio era que volando normal
+        // —o sea con [W] puesta— la cobra no salia nunca: salia el mortal.
+        mortalArma = false;
+        moves.startMove(inp.d > 0.3 ? 'cobrainv' : 'cobra', 1);
+      }
+      // …Y LA VUELTA, DENTRO DE LA COBRA. Dos toques en la mano que vuela: ARRIBA arma y ABAJO
+      // dispara. Solo mientras la trompa YA esta plantada (`COBRA.SUBE`): antes de eso el avion
+      // todavia la esta levantando y convertir ahi daria un salto de pose.
+      if (damage.fx().moves) {
+        const u = inp.u > 0.3, d = inp.d > 0.3;
+        const flU = u && !uAntes, flD = d && !dAntes;
+        if (moves.enCobraPlantada()) {
+          if (flU) mortalArma = true;
+          else if (flD && mortalArma) { mortalArma = false; moves.cobraAlMortal(); }
+        } else mortalArma = false;
+
+        // ---- EL ASCENSOR: mirada sostenida y despues dos toques ----
+        // MIRAR arriba/abajo son los MISMOS campos que lee el paneo de camara del pasillo: las
+        // flechas con mira fija, [R]/[F] y el stick derecho vertical. Se aceptan los tres por el
+        // mismo motivo que el resto de las maniobras: "las flechitas y WASD es lo mismo".
+        const miraAr = inp.camU > 0.3 || inp.sink > 0.3 || (inp.camAx || 0) < -0.4;
+        const miraAb = inp.camD > 0.3 || inp.rise > 0.3 || (inp.camAx || 0) > 0.4;
+        miraArT = miraAr ? miraArT + dt : 0;
+        miraAbT = miraAb ? miraAbT + dt : 0;
+        if (miraArT >= MIRA_HOLD) { ascVent = MIRA_VENT; descVent = 0; descTaps = 0; }
+        if (miraAbT >= MIRA_HOLD) { descVent = MIRA_VENT; ascVent = 0; ascTaps = 0; }
+        ascVent = Math.max(0, ascVent - dt); descVent = Math.max(0, descVent - dt);
+        if (!ascVent) ascTaps = 0;
+        if (!descVent) descTaps = 0;
+        // UN TOQUE PARA EL OTRO LADO DESARMA. Si mirabas arriba y picas, no querias subir: el
+        // gesto se cancela en vez de quedar colgado esperando el segundo toque.
+        if (ascVent && flD) { ascVent = 0; ascTaps = 0; }
+        if (descVent && flU) { descVent = 0; descTaps = 0; }
+        if (ascVent && flU && ++ascTaps >= 2) {
+          ascVent = 0; ascTaps = 0;
+          // el mismo criterio de siempre: contra el radar lo CRUZA, lejos sube hasta el borde
+          if (plane.y >= RADAR_ALT - CLIMB_NEAR) { if (mvOk('climbmax')) moves.startMove('climbmax', 1, FLY_TOP); }
+          else if (mvOk('climb')) moves.startMove('climb', 1, RADAR_ALT);
+        }
+        if (descVent && flD && ++descTaps >= 2) {
+          descVent = 0; descTaps = 0;
+          // …y el espejo: ya debajo del radar, se va a la banda del x10; arriba, baja hasta el borde
+          if (plane.y <= RADAR_ALT + CLIMB_NEAR) { if (mvOk('divemax')) moves.startMove('divemax', 1, DIVE_RAS); }
+          else if (mvOk('dive')) moves.startMove('dive', 1, RADAR_ALT);
+        }
+        uAntes = u; dAntes = d;
       }
       // EL DERRAPE (autor, 24/10: "derrape solo presionar Q + D, y luego E + A"): ya no sale con [G] ni con
       // combo. Dos acordes de mandos CRUZADOS, como se tira de costado una moto de agua: el primero ARMA

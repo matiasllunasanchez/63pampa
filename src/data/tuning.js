@@ -1178,7 +1178,11 @@ export const CHAPITAS = {
 //       atras: TIRON u/s² le come la velocidad lateral y lo devuelve un poco. Esa es la U. Frena el
 //       avance (FRENO 1/s) y la camara-dron se acerca (CORTE, como la cobra).
 //     · y vuelve a nivel, con la velocidad lateral apagandose (ROCE_SALE 1/s).
-export const QUIEBRE = { DASH: 0.33, CANTO: 0.75, BANK_DASH: 0.25, ROLA: 14, EMPUJE: 230, ROCE: 2.5,
+// DASH/CANTO son FRACCIONES de la duracion, asi que al estirar el break turn a 1,4 s hay que
+// correrlas o el cuchillo y la salida se estirarian con el. Con 0,5 / 0,82 sobre 1,4 s quedan:
+// dash 0,70 s (era 0,33 — es el tramo plano que el autor pidio sostener), cuchillo 0,45 s (era
+// 0,42) y salida 0,25 s (igual). O sea: se duplico lo horizontal y el resto no se movio.
+export const QUIEBRE = { DASH: 0.5, CANTO: 0.82, BANK_DASH: 0.25, ROLA: 14, EMPUJE: 230, ROCE: 2.5,
   GIRA_RATE: 16, TIRON: 190, ROCE_SALE: 3, FRENO: 1.0, CORTE: 0.2 };
 //   JINK: QUIEBRES alternados (el lado del primero lo pide el combo), cada uno con su fuerza (0.75-1 de
 //     alabeo, por la semilla); en la ultima fraccion (desde FIN) nivela. ACEL crece con la velocidad
