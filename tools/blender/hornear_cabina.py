@@ -229,7 +229,56 @@ def cabina(T, K):
     G['palanca'] = grupo('g_palanca', (0, -0.80, -0.33), palanca)
     # EL PISO entre las piernas, al fondo
     pieza('piso', raiz, m['piso'], (0.40, 0.01, 0.40), (0, -0.70, -0.45))
+    tina(raiz, K)
     return raiz
+
+# LA TINA (el autor, 14/11: "la parte de abajo se ve transparente, rellenar con material"): la cabina es
+# una bañera cerrada — el mamparo detras del tablero, las paredes bajo las consolas y el piso — en chapa
+# gris oscuro con cuadernas, larguerillos, remaches, mazos de cables y los pedales. Abajo no se ve el
+# mundo: solo el parabrisas y el canopy dejan pasar.
+CHAPA, CUADERNA, REMACHE, CABLE, CABLE2 = '#2f363b', '#22282c', '#5b656b', '#1a1c1d', '#6b5a2e'
+
+def tina(raiz, K):
+    m = {n: K['mat_cel']('tina_' + n, c) for n, c in (('chapa', CHAPA), ('cuaderna', CUADERNA), ('remache', REMACHE),
+                                                      ('cable', CABLE), ('cable2', CABLE2), ('piso', PISO), ('metal', METAL))}
+    ZM = -0.60                                                    # el mamparo, detras del tablero
+    pieza('mamparo', raiz, m['chapa'], (1.04, 0.74, 0.02), (0, -0.62, ZM))
+    for sg in (-1, 1):
+        pieza('pared', raiz, m['chapa'], (0.02, 0.80, 0.90), (sg * 0.48, -0.61, -0.15))   # sube hasta el zocalo
+        pieza('bajo_consola', raiz, m['cuaderna'], (0.16, 0.02, 0.90), (sg * 0.42, -0.40, -0.15))
+    pieza('piso_tina', raiz, m['piso'], (1.0, 0.02, 0.90), (0, -0.90, -0.15))
+    # las CUADERNAS del mamparo (verticales) y los LARGUERILLOS (horizontales), con sus remaches
+    for i in range(-4, 5):
+        x = i * 0.115
+        if abs(x) < 0.05: continue                                # el hueco de la palanca
+        pieza('cuaderna', raiz, m['cuaderna'], (0.022, 0.70, 0.02), (x, -0.62, ZM + 0.015))
+        for k in range(10):
+            pieza('remache', raiz, m['remache'], (0.006, 0.006, 0.004), (x + 0.017, -0.30 - k * 0.065, ZM + 0.012))
+    for y in (-0.55, -0.74):
+        pieza('larguerillo', raiz, m['cuaderna'], (1.02, 0.018, 0.016), (0, y, ZM + 0.024))
+    # las paredes de los costados: cuadernas que bajan y remaches en fila
+    for sg in (-1, 1):
+        for k in range(8):
+            z = 0.22 - k * 0.11
+            pieza('cuaderna_l', raiz, m['cuaderna'], (0.02, 0.76, 0.022), (sg * 0.468, -0.61, z))
+            for j in range(7):
+                pieza('remache_l', raiz, m['remache'], (0.004, 0.006, 0.006), (sg * 0.469, -0.30 - j * 0.08, z + 0.03))
+        # los MAZOS DE CABLES que corren por la pared, con sus abrazaderas
+        for (y0, mat) in ((-0.47, 'cable'), (-0.50, 'cable2'), (-0.53, 'cable')):
+            tubo('mazo', raiz, m[mat], [(sg * 0.455, y0, 0.25), (sg * 0.455, y0 - 0.02, -0.30),
+                                      (sg * 0.46, y0 - 0.06, ZM + 0.04)], 0.009)
+        for k in range(4):
+            pieza('abrazadera', raiz, m['remache'], (0.03, 0.10, 0.012), (sg * 0.45, -0.51, 0.15 - k * 0.20))
+    # el mazo grande que cruza el mamparo bajo el tablero
+    tubo('mazo_m', raiz, m['cable'], [(-0.48, -0.58, ZM + 0.04), (-0.15, -0.60, ZM + 0.04), (0.15, -0.60, ZM + 0.04),
+                                      (0.48, -0.58, ZM + 0.04)], 0.014)
+    tubo('mazo_m2', raiz, m['cable'], [(-0.48, -0.62, ZM + 0.05), (0.48, -0.62, ZM + 0.05)], 0.008)
+    # LOS PEDALES del timon, al fondo
+    for sg in (-1, 1):
+        tubo('brazo_pedal', raiz, m['metal'], [(sg * 0.17, -0.70, ZM + 0.02), (sg * 0.17, -0.80, -0.50)], 0.010)
+        bloque('pedal', raiz, m['cuaderna'], (sg * 0.17, -0.81, -0.50), (0.10, 0.12, 0.02), bisel=0.006)
+        for k in range(3):
+            pieza('estria', raiz, m['remache'], (0.08, 0.008, 0.004), (sg * 0.17, -0.77 - k * 0.035, -0.488))
 
 def anclas(cam):
     """El centro y el radio de cada reloj (y el colimador), proyectados con LA camara: pixeles de 480x270."""
