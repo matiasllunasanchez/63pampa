@@ -12,6 +12,7 @@ import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafi
 import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T } from './data/fallas.js';
 import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
 import { leeDe } from './data/cartas_lee.js';
+import { perfilDe, puedeManiobra } from './data/perfiles.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -111,7 +112,7 @@ import * as persec from './systems/persec.js';
 import { drawCaza, zv as zvCaza, setLucesCaza } from './render/caza.js';
 import { drawPersec, drawCinta, cintaRect } from './render/persec.js';
 import { drawChancha } from './render/chancha.js';
-import { inp, mouse, pointer, flags, padInfo, initInput } from './core/input.js';
+import { inp, mouse, pointer, puntero, flags, padInfo, initInput } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
 import { drawPlane } from './render/plane.js';
 import { drawBullet } from './render/ammo.js';
@@ -195,6 +196,7 @@ import { pose as poseSenal } from './core/senales.js';
 import * as zigzag from './systems/zigzag.js';
 import * as zigzagCore from './core/zigzag.js';
 import { drawParedes, drawBarreras, techoLadera } from './render/paredes.js';
+import { techoCol } from './render/oclusion.js';
 import { drawIslas } from './render/islas.js';   // PLAN_GEOGRAFIA G4: la tierra que cruza el carril y se levanta
 // LAS CHARLAS EN VUELO (docs/sistemas/SPEC_CHARLAS_VUELO.md): dialogo durante la mision jugable.
 // El sistema es dueño de la FASE y nada mas; el que arranca el motor de lineas, el que apaga el
@@ -209,7 +211,7 @@ import * as wingmv from './systems/wingmv.js';
 import { drawActores } from './render/wingmv.js';
 import * as teatro from './systems/teatro.js';
 import { drawTiros } from './render/teatro.js';
-import { canRelevo, pilotIdx, formationSlots, puestoFormacion, naftaCompanero, alMando, detras, RELEVO_WRECK } from './core/squad.js';
+import { canRelevo, pilotIdx, formationSlots, puestoFormacion, naftaCompanero, alMando, detras, RELEVO_WRECK, RELEVO_DUR } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
   (() => {
@@ -573,7 +575,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // los KILOMETROS de la corrida (los del ciclo se suman de blanco a blanco en kmPrevios)
       stepHistoria(dt);
       const km = kmPrevios + Math.max(0, run.dist) / 1000;
-      while (km >= bancoProx) { bancoPend++; bancoProx += BANCO_KM; }
+      while (km >= bancoProx) { bancoPend++; bancoProx += bancoKm(); }
       if (bancoPend > 0 && bancoSeguro()) abrirBanco();
     }
 
@@ -586,7 +588,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     /** UNA SALIDA NUEVA: cada avion tira su dado (suma a lo que ya traia; los de la base vuelven sanos). */
     function tirarFlota() {
       if (!run.fallasFlota) run.fallasFlota = [];
-      for (let i = 0; i < run.squad; i++) run.fallasFlota[i] = tirarFallas(run.fallasFlota[i] || {});
+      const fk = perfilDe(PLANES[selPlane] && PLANES[selPlane].key).fallasK;   // el A-4 falla mas, el Super Etendard menos
+      for (let i = 0; i < run.squad; i++) run.fallasFlota[i] = tirarFallas(run.fallasFlota[i] || {}, Math.random, fk);
     }
     /** El cartel con las fallas del numeral `n` (al cambiar de avion, al arrancar). */
     function avisarFallas(n) {
@@ -885,6 +888,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // EL BANCO DE LOS MODOS SUELTOS (docs/sistemas/PLAN_ROGUELIKE_SUELTOS.md): cada BANCO_KM km —y en
     // el ciclo, al vencer cada objetivo— una carta. `bancoPend` cuenta las que se deben; se abren de a una
     // en un momento SEGURO (ver bancoSeguro), con el mundo en pausa (estado 'banco').
+    /** Cada cuantos km se abre el banco con ESTE avion (data/perfiles.js: los livianos mas seguido). */
+    const bancoKm = () => perfilDe(PLANES[selPlane] && PLANES[selPlane].key).bancoKm || BANCO_KM;
     let bancoProx = BANCO_KM, bancoPend = 0, bancoOffer = null, bancoSel = 0, bancoT = 0;
     let cartasRun = [];   // TODAS las elegidas en la corrida, en orden (las de uso tambien): VER CARTAS de la pausa
     let cartasCrece = 0;   // la grande de VER CARTAS crece desde su mini (0..1)
@@ -2376,9 +2381,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     function libroDespegar() {
       const m = LIBRO_VUELO[libro.k], av = m.aviones[libroAvSel];
       if (!av) return;
-      libro.av = libroAvSel; libro.tramo = null;
+      // EL TRAMO de una salida con `lanzamiento` (EL INVINCIBLE) sale del ROL del avion elegido: el que
+      // lanza arranca en 'super'; el que escolta, en 'sigue' (detras de los Super Etendard)
+      libro.av = libroAvSel;
+      libro.tramo = !m.lanzamiento ? null : av.rol === 'escolta' ? 'sigue' : 'super';
       selPlane = Math.max(0, PLANES.findIndex(p => p.key === av.plane));
       cfg.carga = av.carga;
+      if (av.squad) cfg.squad = av.squad;   // cada avion trae su escuadrilla (la de la salida si no dice)
       reset(); setRunObjective();
       run.t = 0; fadeT = 1.0; sfxOne('lv1');
       setState(afterBrief());
@@ -2390,12 +2399,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // la elegida al mando y despues las demas en el orden de la lista, dando la vuelta si volaron
       // mas aviones que chapas (la PLYMOUTH: cinco Dagger y dos escuadrillas — se alternan, porque no
       // se sabe de cual era el que volvio por el parabrisas)
-      const ch = m.aviones.map(a => a.chapa), i0 = libro.av || 0;
+      // (un avion con `chapas` propias —EL INVINCIBLE: los cuatro A-4C— trae su escuadrilla entera)
+      const av = m.aviones[libro.av || 0];
+      // (si no, las chapas de los aviones de su mismo TIPO: un Super Etendard no lleva la placa de un A-4C)
+      const igual = m.aviones.filter(a => !av || a.plane === av.plane);
+      const ch = av && av.chapas ? av.chapas : igual.map(a => a.chapa), i0 = av && av.chapas ? 0 : Math.max(0, igual.indexOf(av));
       const orden = Array.from({ length: n }, (_, i) => ch[(i0 + i) % ch.length]);
       return { roster: Array.from({ length: n }, () => 'PILOTO'), chapas: orden };
     }
-    /** EN QUE TRAMO va una salida de DOS AVIONES (`escolta` en libro_vuelo.js, hoy EL INVINCIBLE):
-     *  'super' antes del Pulso, 'escolta' despues. null en las salidas de un solo avion. */
+    /** EN QUE TRAMO va una salida con `lanzamiento` (hoy EL INVINCIBLE): 'super' si se eligio el Super
+     *  Etendard (hasta el Pulso, que cierra la mision); con el A-4C, 'sigue' detras de los Super Etendard
+     *  y 'escolta' desde que sueltan el Exocet. null en las salidas comunes. */
     /** EL BUQUE DE LEJOS en el Pulso del Super Etendard (`pulsoLejos`): el Exocet se suelta a 20-30
      *  millas, y en el parabrisas el blanco tiene que verse chico. */
     // ---------- EL EXOCET (autor, 16/10) ----------
@@ -2444,31 +2458,34 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       return fx;
     }
     function libroEnTramo() {
-      const m = libro && LIBRO_VUELO[libro.k];
-      return m && m.escolta ? libro.tramo || 'super' : null;
+      return (libro && libro.tramo) || null;
     }
-    /** EL CAMBIO (PLAN_INVINCIBLE I2): el Exocet ya salio; el Super Etendard se va y el jugador pasa a
-     *  ser un A-4C de la escuadrilla, SIN CORTAR LA MISION — mismo pasillo, misma distancia. El misil
-     *  vuela adelante como lider de PERSECUCION y hay que llevarlo hasta el portaaviones. */
-    function cambioAEscolta() {
-      const m = LIBRO_VUELO[libro.k], e = m.escolta;
+    /** DETRAS DE LOS SUPER ETENDARD (el A-4C de EL INVINCIBLE, autor 13/11): despues de cargar del
+     *  Hercules —o al cruzar la linea del radar, si no cargaste— los Super Etendard se ponen adelante y
+     *  hay que seguirlos (la PERSECUCION de siempre, con su banda). En `lanzamiento` sueltan el Exocet:
+     *  el lider pasa a ser el misil y empieza la escolta. */
+    function pasoSigue() {
+      if (!persec.active() && !chancha.snapshot() && (chIdaLlena || rutaSys.enAlcance())) {
+        const su = LIBRO_VUELO[libro.k].aviones.find(a => a.rol === 'lanza');
+        persec.startPersec({ nombre: su ? su.chapa : 'SUPER ÉTENDARD', plane: su ? su.plane : 'supere', mudo: true });
+      }
+      if (run.dist >= objectiveDist * (curMission().lanzamiento || 0)) {
+        // EL EXOCET SALE DE DONDE IBA EL SUPER ETENDARD (o de adelante tuyo, si nunca lo alcanzaste)
+        const s = persec.snapshot();
+        persec.resetPersec();
+        empezarEscolta(s ? { x: s.x, y: s.y, d: s.d } : null);
+        if (s) explodeAt(s.x, s.y, s.z, false, true, true);   // el fogonazo del disparo (chispas, sin bola)
+        sfxOne('misil');
+      }
+    }
+    /** EMPIEZA LA ESCOLTA (PLAN_INVINCIBLE I3): el Exocet vuela adelante como lider de PERSECUCION y hay
+     *  que llevarlo hasta el portaaviones. `desde` = de donde sale el misil (el Super Etendard lider). */
+    function empezarEscolta(desde) {
       libro.tramo = 'escolta';
-      selPlane = Math.max(0, PLANES.findIndex(p => p.key === e.plane));
-      cfg.carga = e.carga;
-      prepararCarga();   // el A-4C tambien cargo de los KC-130: sale con su tanque
-      run.squad = run.lives = e.squad;
-      squad.setRoster(Array.from({ length: e.squad }, () => 'PILOTO'), e.chapas);
-      squad.resetFila(); squad.resetSquad();
-      persec.resetPersec();
       // CERCA, a 25-40: el misil va en el medio de la formacion y se tiene que ver la escuadrilla
       // alrededor. A la distancia de la persecucion de siempre (60-140) los compañeros eran puntos.
-      persec.startPersec({ nombre: 'EXOCET', tipo: 'exocet', banda: [25, 40] });
+      persec.startPersec({ nombre: 'EXOCET', tipo: 'exocet', banda: [25, 40], desde });
       escolta.amenazaT = ESCOLTA_GRACIA; escolta.cayeron = 0; escolta.final = 0;
-      // el corte, como el de la vuelta: negro, y del otro lado ya volando el otro avion
-      setState('play'); fadeT = 2.2;
-      plane.y = Math.max(plane.y, 10); plane.vy = 0;
-      run.nextSpawn = 320; run.nextBomb = 260; run.nextSoldier = 60;
-      beep(560, 0.12, 'square', 0.05);
     }
     // ---------- LA ESCOLTA DEL EXOCET (PLAN_INVINCIBLE I4-I6) ----------
     // Cada ESCOLTA_AMENAZA segundos algo se le cruza al misil en su linea; si lo toca, el misil cae y la
@@ -2812,6 +2829,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // null y la de siempre. La bodega solo fuera de LA SUELTA, que arma sus bombas por pasada.
       const avSel = PLANES[selPlane];
       run.vuelo = (avSel && avSel.vuelo) || null;
+      run.rolidoK = perfilDe(avSel && avSel.key).rolido;   // el giro libre [Q]/[E] de ESTE avion (data/perfiles.js)
       run.canon = (avSel && avSel.canon) || null;
       run.calibre = calibreDe(avSel && avSel.key);   // 20 o 30 mm contra los sistemas del buque (PLAN_DEFENSAS_BUQUE)
       run.sinCanon = !!(avSel && avSel.sinCanon);   // los que no tenian armas (el Fenix, el Neptune): sin cañon
@@ -3498,7 +3516,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
      *  porque el ASCENSOR ya no es un combo —es mirada sostenida + dos toques, en el update del
      *  vuelo— y las dos vias tienen que preguntar lo MISMO. Duplicarla era la forma segura de que
      *  un dia una maniobra saliera por un camino y no por el otro. */
-    const mvOk = id => moveAllowed(id, { campaign: conLibreta(), owned: pichon, off: cfg.movesOff });
+    // …y que ESTE avion la pueda hacer (data/perfiles.js: el Hercules no rola, el Dagger no hace las de giro largo)
+    const avionPuede = id => puedeManiobra(PLANES[selPlane] && PLANES[selPlane].key, id);
+    const mvOk = id => moveAllowed(id, { campaign: conLibreta(), owned: pichon, off: cfg.movesOff }) && avionPuede(id);
     let uAntes = false, dAntes = false;
     let mortalArma = false;   // ya se toco ARRIBA dentro de la cobra: falta el ABAJO
     // EL ASCENSOR, AHORA POR MANTENIDO (autor, 11/11: "cambiala por un mantenido… lo mismo para
@@ -3568,7 +3588,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (gameMode !== 'campaign' && gameMode !== 'cycle') soltarMision();
       // CORRIDA NUEVA DE UN MODO SUELTO: la libreta vacia (las cartas duran la corrida; y sin esto se heredaba
       // la de la ultima campaña, MOMENTUM incluido). El salto de un blanco al otro del ciclo no cuenta.
-      if (suelto() && !encadena) { oleadaVista = 0; pichon = []; cartasRun = []; bancoProx = BANCO_KM; bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
+      if (suelto() && !encadena) { oleadaVista = 0; pichon = []; cartasRun = []; bancoProx = bancoKm(); bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
       // LAS FALLAS Y LA BASE son de la corrida (resetRun no los conoce: sin esto pasaban a la campaña)
       if (!encadena) { run.fallasFlota = null; run.enBase = null; run.esquirlas = 0; run.esquirlaT = undefined; }
       // LOS MODOS SUELTOS (16/10): mundo al azar en cada corrida, y la barra del radar SUMA ESTRELLAS
@@ -3921,8 +3941,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // AVERIAS: en el escalon CRITICO no salen piruetas. El avion queda en "lo basico" —
         // volar y disparar— que es exactamente lo que pidio el modelo de daño progresivo.
         if (!damage.fx().moves) return false;
-        // EL HERCULES NO HACE PIRUETAS (16/10, el autor): un transporte de 70 toneladas no rola (`sinPiruetas`)
-        if (PLANES[selPlane] && PLANES[selPlane].sinPiruetas) return false;
+        // EL HERCULES NO HACE PIRUETAS (16/10, el autor): un transporte de 70 toneladas no rola. Desde el 13/11 lo
+        // dice el PERFIL de cada avion (data/perfiles.js), maniobra por maniobra — ver `mvOk` y `avionPuede`
         // CON CUALQUIER MANO (autor, 24/10: "en todas las maniobras las flechitas y WASD es lo mismo"): estas
         // se comparan en minusculas, asi que da igual si el toque vino de WASD, de las flechas o del stick
         // que rola, y como se lea la mira. A PROPOSITO fuera de la gramatica de `npm run maniobras` (3-4
@@ -3970,9 +3990,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           //   ↑↓↑  COBRA: levantar la trompa, plantarla y volver a levantar — se planta
           //   ↑↑↓  MORTAL: arriba, arriba (pasa por encima) y abajo (vuelve a nivel)
           // El DERRAPE ya no tiene combo (autor, 24/10): sale solo de sus acordes, ver LOS FRENOS en el update.
-          case 'UDU': return moves.startMove('cobra', 1);
-          case 'UUD': return moves.startMove('mortal', 1);
-          case 'DDU': return moves.startMove('cobrainv', 1);   // ↓↓↑  el MORTAL dado vuelta: la COBRA MORTAL INVERTIDA
+          case 'UDU': return avionPuede('cobra') && moves.startMove('cobra', 1);
+          case 'UUD': return avionPuede('mortal') && moves.startMove('mortal', 1);
+          case 'DDU': return avionPuede('cobrainv') && moves.startMove('cobrainv', 1);   // ↓↓↑  el MORTAL dado vuelta: la COBRA MORTAL INVERTIDA
           // ---- LOS DOS STICKS: EL ASCENSOR ----
           // Mirar hacia donde vas a ir y despues empujar dos veces para alla. Es el unico gesto del
           // juego que usa las dos manos, y por eso es el que mueve el avion de BANDA de altura en
@@ -4619,7 +4639,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // aca es SU FIRMA SONORA, que no es la de las demas — por eso entra `mudo` y los sonidos se
     // tocan abajo, iguales a los de siempre.
     function startRoll(dir) {
-      if (S.state !== 'play') return false;
+      if (S.state !== 'play' || !avionPuede('tonel')) return false;
       if (!moves.startMove('tonel', dir, 0, { mudo: true })) return false;
       run.rollDir = dir;                        // lo lee el horizonte giratorio (core/horizon.js)
       sfxOne('waveFly');                        // rafaga de aire de la pirueta
@@ -4996,6 +5016,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         golpesPopa = 0;                // el que entra trae la chapa sana
         squad.startRelevo(cause, undefined, perdido);   // la mision sigue: descuenta y prepara al companero
         relevoSuelto(caido);
+        rebobinarSiCerca();
         setState('relevo');
       } else die(cause);
     }
@@ -5016,6 +5037,30 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       else { rr.sigue = true; rr.t = rr.t0 = RELEVO_WRECK * 0.5; }
     }
     const RELEVO_VER_EYEC = 1.0;   // segundos de camara frenada despues del salto del piloto
+
+    /** MORIR ENCARANDO EL BUQUE TAMBIEN REBOBINA (13/11, el autor: "en CICLO DE MUERTE cuando mi avion muere a
+     *  veces aparece otro inmediatamente al lado; tiene que ir la camara hacia atras y continuar con el
+     *  siguiente, para darle tiempo de apuntar la bomba — no pasa siempre"). No pasaba siempre porque lejos del
+     *  buque daba igual, y CERCA el que entraba lo hacia encima del blanco, sin ventana para soltar (el `sigue`
+     *  de relevoSuelto lo pone al lado en el acto). Ahora, si el buque estaba adelante y a menos de la FILA, el
+     *  de atras encara desde la fila (`enFila`, lo mismo que tras errar la suelta) y la camara vuelve por el
+     *  pasillo: se ve el derribo un momento, y despues el REBOBINADO (el bloque del relevo, `rr.reb`). */
+    function rebobinarSiCerca() {
+      const rr = squad.relevo();
+      if (!rr || !suelto() || runClimax() !== 'suelta' || !blanco.on) return;
+      const est = blancoSys.estado(), d = blanco.z - PZ;
+      // (…Y SI MURIO EN EL CRUCE MISMO, con el buque ya atras y sin veredicto, tambien — 13/11: si no, el buque
+      // quedaba detras de la camara sin cruzarse y el pasillo seguia para siempre, "5.0 / 3.4 km")
+      if (blancoSys.escapando() || est.hundido || blanco.negroT >= 0 || !(d > -BL_BLANCO.FILA_M) || d >= BL_BLANCO.FILA_M) return;
+      if (d <= 0 && est.res) return;   // ya cruzado CON veredicto: eso lo cierra su propio sistema
+      blancoSys.enFila();
+      rr.reb = BL_BLANCO.FILA_M - d;
+      run.dist += rr.reb; rr.off = rr.reb; blancoSys.alOdometro();   // el mundo, todavia donde murio
+      rr.sigue = false;                                              // la camara mira el derribo y despues vuelve
+      rr.rebA = Math.max(rr.t, rr.verHasta || 0) + 0.45;
+      rr.rebB = Math.min(rr.rebA + 1.1, RELEVO_DUR - 0.3); rr.rebA = Math.min(rr.rebA, rr.rebB - 0.6);
+    }
+    const RELEVO_ANTES_BUQUE = 150;   // metros: hasta aca puede llevar el relevo al que entra, nunca encima del buque
 
     /** El golpe que no mata: chispas y sacudon (el mismo `dmgFX` del avion que vuelve averiado),
      *  chapa que baja hasta el piso, y el margen del roce devuelto para que el agua no vuelva a
@@ -5500,9 +5545,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           const sig = pulso.update(dtReal, dt);
           // EL PREMIO entra al recuento como una fila mas (freezeRun lo suma al total, y de ahi
           // salen las estrellas de la mision): el climax no tiene una moneda propia.
-          // EL INVINCIBLE: el Pulso del Super Etendard no cierra la mision — la sigue el A-4C (el cambio)
-          if (sig === 'objective' && libroEnTramo() === 'super') { cobrarPulso(); cambioAEscolta(); }
-          else if (sig === 'objective') { cobrarPulso(); finishObjective(); }
+          if (sig === 'objective') { cobrarPulso(); finishObjective(); }
           // 2º FALLO: cuesta un avion del escuadron (mismo camino que la pasada gastada — no te
           // derribaron, se te fue la pasada). Volando solo no hay avion que cobrar: se sigue.
           else if (sig && sig.spent) { if (canRelevo(run.lives)) onPassSpent(sig); else pulso.reencarar(); }
@@ -5616,10 +5659,17 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // relevo"): tras un choque retoma a la velocidad de VUELO —no a la media maquina— y TODO lo
           // del choque (los restos, la bola de fuego, lo que se choco, el buque) se mueve con el mundo
           // y queda atras. Antes los restos no avanzaban y quedaban clavados mientras el mar corria.
-          const adv = run.spd * (choque || (rr0 && rr0.sigue) ? 1 : 0.4) * dt * retoma;
+          let adv = run.spd * (choque || (rr0 && rr0.sigue) ? 1 : 0.4) * dt * retoma;
+          // …PERO NUNCA HASTA EL BUQUE (13/11): si el relevo lo dejara atras de la camara sin cruzarlo, no habria
+          // veredicto y el pasillo seguiria para siempre sin barco. El escuadron se frena RELEVO_ANTES_BUQUE antes.
+          if (blanco.on && !blancoSys.escapando() && objectiveDist > 0 && run.dist < objectiveDist)
+            adv = Math.min(adv, Math.max(0, objectiveDist - RELEVO_ANTES_BUQUE - run.dist));
           run.dist += adv;                     // la mision sigue: el escuadron no deja de volar
           for (const o of obstacles) if (choque || (rr0 && rr0.sigue) || (o.type !== 'chunk' && o.type !== 'airboom')) o.z -= adv;
-          if (choque && adv > 0 && blanco.on) blancoSys.alOdometro();
+          // EL BUQUE SIGUE AL ODOMETRO EN TODO RELEVO QUE AVANZA (13/11, el autor: "si moris cerca del barco
+          // podes seguir avanzando infinitamente y desaparece el barco"): solo se resincronizaba en el
+          // choque, y el relevo que sigue de largo (modos sueltos) corria la distancia con el buque quieto
+          if (adv > 0 && blanco.on) blancoSys.alOdometro();
           for (const sd of soldiers) sd.z -= adv;
           popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
           prune(popups, p => p.life > 0);
@@ -5631,10 +5681,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           // corren para atras, el buque se achica en el horizonte, y recien ahi entra el siguiente.
           // Arranca y termina suave (smoothstep): la camara despega, vuela para atras y se asienta.
           const rr = squad.relevo();
-          if (rr && rr.solo && rr.reb) {
-            const u = Math.max(0, Math.min(1, (rr.t - rr.t0) / (RELEVO_WRECK - rr.t0)));
-            const off = rr.reb * (1 - u * u * (3 - 2 * u));
-            run.dist += off - rr.off; rr.off = off;
+          // (…y tras MORIR cerca del buque en los modos sueltos — rebobinarSiCerca, 13/11 —: con su propia
+          // ventana `rebA..rebB`, y lo que hay en el mundo (los restos, la bola) se queda atras con el)
+          if (rr && rr.reb && (rr.solo || rr.rebA !== undefined)) {
+            const a = rr.rebA !== undefined ? rr.rebA : rr.t0, b2 = rr.rebB !== undefined ? rr.rebB : RELEVO_WRECK;
+            const u = Math.max(0, Math.min(1, (rr.t - a) / (b2 - a)));
+            const off = rr.reb * (1 - u * u * (3 - 2 * u)), dd = off - rr.off;
+            run.dist += dd; rr.off = off;
+            if (!rr.solo && dd) { for (const o of obstacles) o.z -= dd; for (const sd of soldiers) sd.z -= dd; }
             blancoSys.alOdometro();
           }
           // EL SEÑUELO DEL CAMBIO DE PILOTO (28/9): los misiles que venian hacia vos persiguen al que
@@ -5968,7 +6022,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // [G]+[W] chocaba con el gas A SABIENDAS (autor, 24/10) y el precio era que volando normal
         // —o sea con [W] puesta— la cobra no salia nunca: salia el mortal.
         mortalArma = false;
-        moves.startMove(inp.d > 0.3 ? 'cobrainv' : 'cobra', 1);
+        const fr = inp.d > 0.3 ? 'cobrainv' : 'cobra';
+        if (avionPuede(fr)) moves.startMove(fr, 1);   // (el Hercules no planta la trompa: data/perfiles.js)
       }
       // …Y LA VUELTA, DENTRO DE LA COBRA. Dos toques en la mano que vuela: ARRIBA arma y ABAJO
       // dispara. Solo mientras la trompa YA esta plantada (`COBRA.SUBE`): antes de eso el avion
@@ -5978,7 +6033,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const flU = u && !uAntes, flD = d && !dAntes;
         if (moves.enCobraPlantada()) {
           if (flU) mortalArma = true;
-          else if (flD && mortalArma) { mortalArma = false; moves.cobraAlMortal(); }
+          else if (flD && mortalArma) { mortalArma = false; if (avionPuede('mortal')) moves.cobraAlMortal(); }
         } else mortalArma = false;
 
         // ---- EL ASCENSOR: mirada sostenida y despues dos toques ----
@@ -6021,10 +6076,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const qd = rolaIzq && !rolaDer && inp.r > 0.3 && !(inp.l > 0.3);
         const ea = rolaDer && !rolaIzq && inp.l > 0.3 && !(inp.r > 0.3);
         if (qd && !qdAntes) {
-          if (derrapeArma < 0) { derrapeArma = 0; moves.startMove('derrape', -1); } else derrapeArma = DERRAPE_ACORDE;
+          if (derrapeArma < 0) { derrapeArma = 0; if (avionPuede('derrape')) moves.startMove('derrape', -1); } else derrapeArma = DERRAPE_ACORDE;
         }
         if (ea && !eaAntes) {
-          if (derrapeArma > 0) { derrapeArma = 0; moves.startMove('derrape', 1); } else derrapeArma = -DERRAPE_ACORDE;
+          if (derrapeArma > 0) { derrapeArma = 0; if (avionPuede('derrape')) moves.startMove('derrape', 1); } else derrapeArma = -DERRAPE_ACORDE;
         }
         qdAntes = qd; eaAntes = ea;
       }
@@ -6042,7 +6097,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // en la escolta del A-4C no hay climax — llegar al portaaviones con el misil ES el objetivo.
       const lr = libroEnTramo();
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist,
-        needsMomentum: lr === 'escolta' ? false : needsMomentum, climax: runClimax(),
+        needsMomentum: lr === 'escolta' || lr === 'sigue' ? false : needsMomentum, climax: runClimax(),
         climaxDist: lr === 'super' ? objectiveDist * curMission().lanzamiento : objectiveDist });
       squad.gastoLider(fuelAntes - run.fuel);
       damage.humoAveria(dt);   // el avion roto larga humo (por debajo de AVERIA_HUMO de integridad)
@@ -6287,6 +6342,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (ps && ps.death) { onDeath(ps.death); return; }
       // LA ESCOLTA DEL EXOCET (libro r5): amenazas al misil, compañeros que caen, y el misil derribado
       if (libroEnTramo() === 'escolta' && pasoEscolta(dt)) return;
+      if (libroEnTramo() === 'sigue') pasoSigue();
       // EL GUION SE LLEVO AL LIDER (LA REGLA DEL AMIGO, systems/persec.js). No es tu muerte: es la
       // de el, y el pasillo sigue. Se anuncia y nada mas — si el guion quiere que ademas te cueste
       // algo, es el guion el que lo escribe.
@@ -6528,7 +6584,13 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // borde (ver UNDER en render/world.js) y pinta ENCIMA de este piso; el piso queda para lo que
       // el raster 2D no cubre — el momentum, y el mar puesto por three.
       if (S.state === 'momentum' || mundoGira) px(-70, H, W + 140, 150, cfg.terrain === 'land' ? theme.land.near : theme.water.base2);
-      if (!world3D.isSea()) world.drawSea();   // el mar 2D solo cuando three no lo esta poniendo
+      // EL BUQUE DE LA APROXIMACION va EN EL HORIZONTE: adentro del suelo, antes de las lomadas (13/11 — ver
+      // `alHorizonte` en render/world.js drawSea), asi todo lo que se levanta lo tapa
+      const barcoHorizonte = runClimax() === 'suelta' ? null : () => world.drawApproachBarge(objectiveDist, objectiveShip,
+        S.state === 'pulso' ? fxLejos(pulso.shipFx(pulsoRender.ventana(cine.state(), run.t))) : null,
+        runClimax() === 'pasada' && S.state !== 'pulso');
+      if (!world3D.isSea()) world.drawSea(barcoHorizonte);   // el mar 2D solo cuando three no lo esta poniendo
+      else if (barcoHorizonte) barcoHorizonte();
       // la barcaza objetivo creciendo en el horizonte. El tercer parametro es lo que EL PULSO le
       // esta haciendo en la cinematica del premio (crecer, escorar, hundirse) — null el resto del
       // tiempo: el buque del pasillo es el mismo, y solo el climax lo mata.
@@ -6544,10 +6606,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // render de la cabina, lo decide el sistema, y los junta aca — que es el trabajo de este
       // archivo. Se pide ANTES de dibujar porque el buque va primero: es mundo.
       // LA SUELTA: el buque es MUNDO (render/blanco.js) y reemplaza al de la aproximacion pintada.
-      if (runClimax() === 'suelta') { drawBlanco(); drawRecibe(); const sws = seawolfSys.snapshot(PZ); drawHumoSW(sws); drawZonaSW(sws, PZ); drawArtilleria(artilleria.snapshot()); }
-      else world.drawApproachBarge(objectiveDist, objectiveShip,
-        S.state === 'pulso' ? fxLejos(pulso.shipFx(pulsoRender.ventana(cine.state(), run.t))) : null,
-        runClimax() === 'pasada' && S.state !== 'pulso');
+      // (el buque de LA SUELTA va despues del terreno, recortado por lo que tiene delante: ver mas abajo)
       // LAS PAREDES DEL CALLEJON (zigzag Z3) van DESPUES del buque de aproximacion, y esto es
       // orden de profundidad, no capricho: el buque objetivo esta a UN KILOMETRO y las laderas
       // dentro de los 260 m, asi que los cerros TAPAN al buque y a los hongos de flak que lo
@@ -6561,6 +6620,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       drawIslas();
       drawParedes();
       drawBarreras();   // cruza el pasillo entero: va DESPUES de las laderas y antes de lo que vuela
+      // LA SUELTA: el buque es MUNDO (render/blanco.js). Va DESPUES del terreno (13/11): lo de atras queda
+      // detras de el, y lo de adelante lo tapa con su filo (drawBlanco se recorta solo)
+      if (runClimax() === 'suelta') { drawBlanco(); drawRecibe(); const sws = seawolfSys.snapshot(PZ); drawHumoSW(sws); drawZonaSW(sws, PZ); drawArtilleria(artilleria.snapshot()); }
       // cuña roja en el horizonte: hacia donde vamos. En LA SUELTA no: el buque ya esta en el mundo y
       // lleva su propia flecha de cerca — dos marcas para lo mismo eran "muchas flechas" (23/9).
       if (runClimax() !== 'suelta') world.drawObjectiveMarker(objectiveDist, { nombre: nombreObjetivo(), km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null });
@@ -6766,6 +6828,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // LOS PIQUES DE LAS MUNICIONES (render/world.js): encima del suelo, sus matas y lo que esta
       // plantado — si iban con el suelo, el pasto los tapaba (3/10) —, y debajo de la niebla
       world.drawPiques();
+      // (SONDA, 13/11: `window.__verOclusion = z` dibuja en rojo el filo del terreno que tapa a esa profundidad
+      // — render/oclusion.js —, para compararlo contra el terreno pintado)
+      if (typeof window !== 'undefined' && window.__verOclusion) {
+        ctx.fillStyle = '#ff2a2a';
+        for (let sx = 0; sx < W; sx += 2) { const t = techoCol(sx, +window.__verOclusion); if (t !== null && t < H) ctx.fillRect(sx, t, 2, 1); }
+      }
       world.drawFog();
       }   // ---- fin mundo 2D ----
 
@@ -7155,7 +7223,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       });
       if (S.state === 'relevo' && squad.relevo()) squadRender.drawRelevo(squad.relevo());
       if (S.state === 'menu') {
-        menus.drawMenu({ selPlane, gameMode, t: run.t, scroll: fichaScroll });
+        menus.drawMenu({ selPlane, gameMode, t: run.t, scroll: fichaScroll, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
         // ahora se hace aca, antes de dibujar
       }
       // EL DERRIBO SE FUNDE A NEGRO mientras el mundo sigue (8/10, el autor: "meter fade negro"): de
@@ -8394,6 +8462,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // vive solo en un estado pausable, y la de dialogo solo en el vuelo (o la corta final) y con su
       // caja a la vista. Si el estado cambio por debajo, o la radio ya no se ve, se sueltan: un mundo
       // congelado sin menu ni caja que lo explique ES un cuelgue, aunque el codigo este esperando.
+      // (SONDA, 13/11: `window.__congelado` frena el mundo sin menu, para comparar dibujos cuadro contra cuadro)
+      if (typeof window !== 'undefined' && window.__congelado) { draw(); requestAnimationFrame(frame); return; }
       if (paused && !PAUSABLE()) paused = false;
       if (dlgPausa && ((S.state !== 'play' && S.state !== 'landing') || (dlgT > 1 && !radioVis()))) { dlgPausa = false; lecFoco = null; }
       pausarAudio(paused);   // la pausa calla todo: musica, ambiente, loops (systems/audio.js)

@@ -25,6 +25,7 @@
 //   peso      cuanto sale en el sorteo (1 por defecto)
 import { UPGRADES, CHAFITAS, METRALLA, CINTA, BOMBA_BRP } from './upgrades.js';
 import { RADAR_PROPIO } from './radar_propio.js';
+import { perfilDe, puedeManiobra } from './perfiles.js';
 
 /** CADA CUANTOS KILOMETROS se abre el banco (17/10, el autor: "deberia ser por kilometros": con puntos, gastarlos
  *  en la Chancha bajaba el puntaje y al volver a juntarlos se cobraba el mismo umbral otra vez). Los km volados
@@ -179,7 +180,9 @@ export function motivoRota(c, av) {
   }
   if (c.necesita === 'sonda' && av.sonda === false) return c.rota || 'Tu avion no tiene sonda de reabastecimiento';
   if (c.necesita === 'canon' && av.sinCanon) return null;   // (las de la metralla: piden el CAÑON antes, no se rompen)
-  if (c.necesita === 'piruetas' && av.sinPiruetas) return 'Tu avion no hace piruetas';
+  // las piruetas, una por una contra el PERFIL del avion (data/perfiles.js): el Hercules ninguna, el Dagger no las de giro largo
+  if (c.necesita === 'piruetas' && !puedeManiobra(av.key, c.id)) return av.sinPiruetas || perfilDe(av.key).maniobras === 'pesado'
+    ? 'Tu avion no hace piruetas' : 'Tu avion no puede hacer esta pirueta';
   if (c.necesita === 'radar' && !RADAR_PROPIO.AVIONES.includes(av.key)) return c.rota || 'Tu avion no lleva radar';
   return null;
 }
@@ -203,12 +206,15 @@ export function ofertaSuelta(owned, ctx, n = BANCO_N, rnd = Math.random) {
     if (!ofrecible(c, owned, ctx)) continue;
     (motivoRota(c, ctx.avion) ? rotas : buenas).push(c);
   }
+  // EL SESGO DEL AVION (data/perfiles.js `grupos`): el A-4 ve mas bombas y taller, el Super Etendard inteligencia…
+  const sesgo = perfilDe(ctx.avion && ctx.avion.key).grupos;
+  const peso = c => (c.peso || 1) * (sesgo[c.grupo] || 1);
   const elegir = (lista, k) => {
     const pool = lista.slice(), out = [];
     while (out.length < k && pool.length) {
-      const tot = pool.reduce((s, c) => s + (c.peso || 1), 0);
+      const tot = pool.reduce((s, c) => s + peso(c), 0);
       let x = rnd() * tot, i = 0;
-      while (i < pool.length - 1 && (x -= (pool[i].peso || 1)) > 0) i++;
+      while (i < pool.length - 1 && (x -= peso(pool[i])) > 0) i++;
       out.push(pool.splice(i, 1)[0]);
     }
     return out;

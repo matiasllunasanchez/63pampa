@@ -13,7 +13,8 @@ import { MISSIONS, climaxOf } from '../data/missions.js';
 import { LIBRO_VUELO, LIBRO_PROXIMAS } from '../data/libro_vuelo.js';
 import { BANCO, loadoutAt } from '../data/upgrades.js';
 import { fmtDate } from '../systems/saves.js';
-import { iconoDe, ICONO_FW, ICONO_COLS } from '../data/iconos_cartas.js';
+import { iconoDe, ICONO_FW, ICONO_COLS, ICONOS } from '../data/iconos_cartas.js';
+import { capacidadesDe } from '../data/perfiles.js';
 
 // ELECCION DE AVION — la pantalla previa de CICLO DE MUERTE y POR LA PATRIA. Usa los MISMOS
 // roles tipograficos que el lobby (logotipo / rotulo / nombre / texto corrido), para que las dos
@@ -90,20 +91,30 @@ export function drawMenu(w) {
   ctx.fillText((pl.desc[getLang()] || pl.desc.es).toUpperCase(), lx, F.y + 21, F.x + F.w - 6 - lx);
   const ficha = pl.ficha && (pl.ficha[getLang()] || pl.ficha.es);
   FICHA_INFO.max = 0;
-  if (ficha) {
+  {   // (la ficha de la guerra puede faltar; la CONFIGURACION se dice siempre)
     // en JOSEFIN SANS (16/10, el autor: "otra font mas comoda de leer"): la de esténcil en mayusculas no se leia
     ctx.fillStyle = P.foam; ctx.font = rotuloChicoFont(7);
     // SE DESPLAZA (16/10, el autor: "las flechas arriba/abajo van en el texto de la derecha; si es largo, una
     // flecha arriba o abajo tipo barra para leerlo completo"): se parte en renglones, se ven los que entran y
     // `w.scroll` (las flechas, en game.js) dice desde cual. Si no entra entero, la barra a la derecha.
-    const LH = 8.5, y0 = F.y + 32, anchoT = F.w - 18;
-    const lineas = renglones(ficha, anchoT);
-    const caben = Math.floor((F.y + F.h - 6 - y0) / LH) + 1;
+    // EL PIE DE LA FICHA es la CONFIGURACION (13/11, el autor: "como footer debajo de la descripcion, el texto
+    // por detras, y que el scroll deje ver todo"): el texto corre por detras del pie, pero el desplazamiento se
+    // cuenta hasta el borde de arriba del pie — el ultimo renglon siempre se puede subir hasta verse entero
+    const LH = 8.5, y0 = F.y + 32, anchoT = F.w - 18, fondo = F.y + F.h - FICHA_PIE;
+    const lineas = ficha ? renglones(ficha, anchoT).map(t => ({ t })) : [];
+    const caben = Math.floor((fondo - 4 - y0) / LH) + 1;
     FICHA_INFO.max = Math.max(0, lineas.length - caben);
     const desde = Math.max(0, Math.min(FICHA_INFO.max, w.scroll | 0));
-    for (let i = 0; i < caben && desde + i < lineas.length; i++) ctx.fillText(lineas[desde + i], F.x + 6, y0 + i * LH);
+    ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y + 24, F.w, F.h - 25); ctx.clip();
+    for (let i = 0; i < caben + 2 && desde + i < lineas.length; i++) {   // (dos de mas: los que asoman por detras del pie)
+      const l = lineas[desde + i];
+      ctx.fillStyle = l.rot ? P.accent : P.foam;
+      ctx.fillText(l.t, F.x + 6, y0 + i * LH);
+    }
+    ctx.restore();
+    ctx.fillStyle = P.foam;
     if (FICHA_INFO.max > 0) {
-      const bx = F.x + F.w - 6, top = F.y + 30, bot = F.y + F.h - 6;
+      const bx = F.x + F.w - 6, top = F.y + 30, bot = fondo - 3;
       ctx.fillStyle = '#2e3c45'; ctx.fillRect(bx - 0.5, top + 6, 1, bot - top - 12);   // el riel
       const alto = (bot - top - 12) * caben / lineas.length, pos = (bot - top - 12 - alto) * desde / FICHA_INFO.max;
       ctx.fillStyle = P.accent; ctx.fillRect(bx - 1, top + 6 + pos, 2, alto);       // la barra
@@ -115,9 +126,51 @@ export function drawMenu(w) {
     }
   }
 
+  // LA CONFIGURACION DEL AVION (13/11, el autor: "un panel separado, con iconos y un hover"): una tira de
+  // iconos debajo del avion — los dibujos de las cartas —, con su rotulo corto y, al pasar el mouse, el detalle
+  panelCapacidades(pl, { x: L.ficha.x + 1, y: L.ficha.y + L.ficha.h - FICHA_PIE, w: L.ficha.w - 2, h: FICHA_PIE - 1 }, w.mouse);
+
   // PIE: una sola linea de teclas (mitad de cuerpo: es ayuda, no contenido)
   ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(4.5);
   ctx.fillText(T('selKeys'), W / 2, H - 6);
+}
+/** El alto del pie de la ficha: la tira de la CONFIGURACION. */
+const FICHA_PIE = 21;
+/** La tira de capacidades del avion `pl` (data/perfiles.js capacidadesDe) en el rectangulo `R` (el pie de la
+ *  ficha), con el texto de la historia corriendo por detras. `m` = el mouse en la grilla de diseño ({x, y, on}). */
+function panelCapacidades(pl, R, m) {
+  const caps = capacidadesDe(pl, getLang());
+  if (!caps.length) return;
+  // el fondo del pie, casi opaco: lo que corre por detras se adivina, no se lee encima de los iconos
+  ctx.fillStyle = '#0a0f12'; ctx.globalAlpha = 0.9; ctx.fillRect(R.x, R.y, R.w, R.h); ctx.globalAlpha = 1;
+  ctx.fillStyle = '#3a464c'; ctx.fillRect(R.x + 3, R.y, R.w - 6, 0.6);   // la raya que lo separa del texto
+  const paso = (R.w - 4) / caps.length, S = Math.min(11, paso - 3), yI = R.y + 2.5;
+  let sobre = -1;
+  caps.forEach((c, i) => {
+    const cx = R.x + 2 + paso * (i + 0.5), x = Math.round(cx - S / 2);
+    const hov = m && m.on && m.x >= cx - paso / 2 && m.x < cx + paso / 2 && m.y >= R.y && m.y <= R.y + R.h;
+    if (hov) { sobre = i; ctx.fillStyle = P.accent; ctx.globalAlpha = 0.2; ctx.fillRect(cx - paso / 2 + 0.5, R.y + 1, paso - 1, R.h - 1.5); ctx.globalAlpha = 1; }
+    if (CARTAS_IMG.complete && CARTAS_IMG.naturalWidth) {
+      const n = Math.max(0, ICONOS.indexOf(c.icono)), sx = (n % ICONO_COLS) * ICONO_FW, sy = Math.floor(n / ICONO_COLS) * ICONO_FW;
+      const suave = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true;   // 96 → 11: achicado, no pixelado
+      // lo que NO tiene: en gris y apagado, sin tachar (13/11, el autor: "con baja opacidad solamente se entiende")
+      if (!c.ok) { ctx.filter = 'grayscale(1)'; ctx.globalAlpha = 0.35; }
+      ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, x, yI, S, S);
+      ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = suave;
+    }
+    ctx.textAlign = 'center'; ctx.font = labelFont(3.2); ctx.fillStyle = hov ? P.accent : c.ok ? P.foam : '#5d6a70';
+    ctx.fillText(c.r, cx, yI + S + 4.2, paso - 1);
+  });
+  // EL DETALLE de la que esta debajo del mouse, en un globo arriba del pie (sobre el texto)
+  if (sobre >= 0) {
+    const c = caps[sobre];
+    ctx.font = rotuloChicoFont(6);
+    const lineas = renglones(c.t, R.w - 10), LH = 7, h = lineas.length * LH + 5, by = R.y - 2 - h;
+    ctx.fillStyle = '#0a0f12'; ctx.globalAlpha = 0.95; ctx.fillRect(R.x, by, R.w, h); ctx.globalAlpha = 1;
+    ctx.strokeStyle = P.accent; ctx.lineWidth = 0.6; ctx.strokeRect(R.x + 0.5, by + 0.5, R.w - 1, h - 1); ctx.lineWidth = 1;
+    ctx.textAlign = 'left'; ctx.fillStyle = P.foam;
+    lineas.forEach((l, k) => ctx.fillText(l, R.x + 4, by + 6.5 + k * LH));
+  }
 }
 /** LA FRANJA DE LA FUERZA del avion `pl` en (x, y), de ancho `w`: fondo como el de la ficha, el escudo a la
  *  izquierda y a su derecha el nombre de la fuerza (naranja el Fenix, acento los demas) y el detalle. */
@@ -922,10 +975,22 @@ export function drawLibroAvion(w) {
     const PW = 170, PH = Math.round(PW * pl.h / pl.w);
     ctx.drawImage(pl.img, NW - PW - 24, Math.round(150 - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
   }
+  // …Y DEBAJO, QUE HACE ESE AVION EN LA SALIDA (autor, 13/11: "elegir entre los aviones que participaron,
+  // con sus pros, contras y roles"): el papel, lo que tiene a favor y lo que tiene en contra. Solo si la
+  // salida lo trae escrito (`papel`, `pro`, `contra` en data/libro_vuelo.js).
+  if (a && (a.papel || a.pro || a.contra)) {
+    const x = NW - 194, mw = 178;
+    let y = 196;
+    ctx.textAlign = 'left';
+    if (a.papel) { ctx.font = labelFont(8); ctx.fillStyle = P.accent; y = wrapText(a.papel, x, y, mw, 10) + 2; }
+    ctx.font = descFont(8);
+    if (a.pro) { ctx.fillStyle = P.ink; y = wrapText('+ ' + a.pro, x, y, mw, 10); }
+    if (a.contra) { ctx.fillStyle = P.warn; wrapText('- ' + a.contra, x, y, mw, 10); }
+  }
   ctx.font = labelFont(8); ctx.fillStyle = P.dim;
   ctx.fillText(m.escuadrilla, 40, NH - 26);
   ctx.font = descFont(9);
-  ctx.fillText(T('libroPie', { n: m.cfg.squad }), 40, NH - 14);
+  ctx.fillText(T('libroPie', { n: (a && a.squad) || m.cfg.squad }), 40, NH - 14);   // la escuadrilla del avion marcado
 }
 
 // ---------- JUEGO RAPIDO (submenu de los modos sueltos) ----------

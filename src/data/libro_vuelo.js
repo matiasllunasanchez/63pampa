@@ -331,12 +331,16 @@ const r4 = {
 // al Invincible. Version britanica: el Exocet cayo al mar, dos A-4C derribados (Sea Dart) y los otros
 // dos atacaron a la HMS Avenger sin acertar.
 //
-// SE JUEGAN LOS DOS AVIONES, UNO DETRAS DEL OTRO, SIN CORTAR LA MISION (autor, 15/10):
-//   1. el SUPER ETENDARD vuela la ida con el Hercules y, en `lanzamiento` (una fraccion de la ida, y no
-//      en el blanco: el Exocet se suelta LEJOS), juega EL PULSO con el buque chico (`pulsoLejos`);
-//   2. EL CAMBIO: el jugador pasa a ser un A-4C de la escuadrilla (`escolta`) y la mision SIGUE: el
-//      Exocet vuela adelante y hay que custodiarlo — tirarle a todo lo que se le cruce — hasta el
-//      portaaviones. El A-4C no suelta nada: su trabajo es que el misil llegue.
+// SE ELIGE UNO DE LOS DOS AVIONES, y cada uno es otra mision (autor, 13/11: "si usamos un skyhawk la
+// mision arranca persiguiendo a los superetendard, y cuando lanzan el exocet la mision es DEFENDERLO;
+// si es con el superetendard, es llegar sin que nos maten y lanzar el exocet"). El `rol` de cada avion:
+//   'lanza'   el SUPER ETENDARD vuela la ida con el Hercules y, en `lanzamiento` (una fraccion de la
+//             ida, y no en el blanco: el Exocet se suelta LEJOS), juega EL PULSO con el buque chico
+//             (`pulsoLejos`). El Pulso bien hecho cierra la mision, como en el Sheffield;
+//   'escolta' el A-4C carga del Hercules, despues SIGUE a los Super Etendard (lider de PERSECUCION con el
+//             sprite del Super Etendard) y en `lanzamiento` el lider se vuelve el Exocet: hay que
+//             custodiarlo —tirarle a todo lo que se le cruce— hasta el portaaviones. No suelta nada.
+// (Hasta el 13/11 se jugaban los dos, uno detras del otro; game.js `empezarEscolta` sigue siendo el cambio.)
 const r5 = {
   id: 'r5', name: 'EL INVINCIBLE',
   fecha: '30 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
@@ -358,15 +362,14 @@ const r5 = {
   fases: fases({ cerca: FLOTA, casa: false }),
   par: Math.round(PAR * 1.2),
   escuadrilla: '2ª ESCUADRILLA AERONAVAL Y GRUPO 4 DE CAZA',
+  // `squad` y `chapas` por avion: cada eleccion es su propia escuadrilla — dos Super Etendard, o cuatro
+  // A-4C con el indicativo de ASN («Zonda», a confirmar) en la placa.
   aviones: [
-    { chapa: 'SUPER ÉTENDARD', plane: 'supere', carga: 'exocet', cargaTxt: 'EL ÚLTIMO EXOCET + 1 TANQUE' },
+    { chapa: 'SUPER ÉTENDARD', plane: 'supere', carga: 'exocet', cargaTxt: 'EL ÚLTIMO EXOCET + 1 TANQUE',
+      rol: 'lanza', squad: 2 },
+    { chapa: 'ZONDA 1', plane: 'sky', carga: 'tanques', cargaTxt: '2 TANQUES',
+      rol: 'escolta', squad: 4, chapas: ['ZONDA 1', 'ZONDA 2', 'ZONDA 3', 'ZONDA 4'] },
   ],
-  // EL SEGUNDO AVION DE LA SALIDA: lo que pasa a volar el jugador despues del Pulso. Cuatro A-4C
-  // (`squad`), todos PILOTO, con el indicativo de escuadrilla de ASN («Zonda», a confirmar) en la placa.
-  escolta: {
-    plane: 'sky', carga: 'tanques', squad: 4,
-    chapas: ['ZONDA 1', 'ZONDA 2', 'ZONDA 3', 'ZONDA 4'],
-  },
   contexto: 'R5_CONTEXTO', epi: 'R5_LO_QUE_PASO',
 };
 

@@ -284,17 +284,26 @@ const TIPS = ANCLAS.base.tips;
 
 
 /** Las luces de navegacion del avion del jugador, en PANTALLA (las puntas ya resueltas con su giro). */
+// (las puntas que llegan son las de la ESTELA, corridas TIP_OUT afuera del ala: las luces van EN la punta)
 function navMias(lx, ly, rx, ry, cx, cy, k) {
-  const ySup = proj(plane.x, 0, PZ).y, sobreAgua = !esTierraEn(plane.x, run.dist + PZ);
-  const t = 2;
+  const en = (p, c) => c + (p - c) / TIP_OUT;
+  navLuces(en(lx, cx), en(ly, cy), en(rx, cx), en(ry, cy), cx, cy, k, plane.x, PZ, 1, 0);
+}
+/** LAS LUCES DE NAVEGACION de un avion propio en PANTALLA: roja a la izquierda, verde a la derecha y el
+ *  destello blanco, con su reflejo si abajo hay agua. `wx, wz` = donde esta en el mundo (para el agua de
+ *  abajo), `f` = su escala relativa al lider, `ph` = la fase del destello (que no titilen todos juntos).
+ *  La usan el lider y la formacion del despegue (render/squad.js, 13/11). */
+export function navLuces(lx, ly, rx, ry, cx, cy, k, wx, wz, f = 1, ph = 0) {
+  const ySup = proj(wx, 0, wz).y, sobreAgua = !esTierraEn(wx, run.dist + wz);
+  const t = Math.max(1, 2 * f), R = Math.max(4, 9 * f);
   const una = (x, y, hex, rgb, a) => {
     ctx.globalAlpha = Math.min(1, a * 1.6); px(x - t / 2, y - t / 2, t, t, hex); ctx.globalAlpha = 1;
-    luz(ctx, x, y, 9, rgb, Math.min(1, a));
-    if (sobreAgua) reflejoLuz(x, y, ySup, F / PZ, hex, rgb, a * 0.8);
+    luz(ctx, x, y, R, rgb, Math.min(1, a));
+    if (sobreAgua) reflejoLuz(x, y, ySup, F / wz, hex, rgb, a * 0.8);
   };
   una(lx, ly, '#ff4a3a', [255, 70, 50], 0.6 * k);
   una(rx, ry, '#4aff7a', [70, 255, 120], 0.6 * k);
-  if (Math.sin(run.t * 1.3 * 6.283) > 0.82) una(cx, cy - 2, '#f4f8ff', [230, 240, 255], 0.9 * k);
+  if (Math.sin(run.t * 1.3 * 6.283 + ph) > 0.82) una(cx, cy - 2 * f, '#f4f8ff', [230, 240, 255], 0.9 * k);
 }
 
 /** VORTICES DE PUNTA DE ALA. `f` es la FUERZA (0 = nada): con un booleano no se podia pedir

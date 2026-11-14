@@ -84,7 +84,11 @@ function cinta(o) {
   // EL NOMBRE DEL BLANCO, en SU cuadro y en rojo, pegado a los kilometros (playtest 11/9). Estaba a la
   // izquierda de la ruta, en gris: lejos del numero con el que se asocia. Pegado al total, y del color
   // del total, el cuadro se lee de un tiron — «2.6 km hasta el HMS SHEFFIELD».
+  // (MEDIDO Y DIBUJADO CON LA MISMA LETRA, F_VAL — 13/11, el autor: "el texto OBJETIVO se ve cortado": se
+  // medía con la del rotulo y se dibujaba con la que dejara puesta la placa del escuadron, mas grande)
+  ctx.font = F_VAL;
   const nomW = o.nombre ? Math.round(ctx.measureText(o.nombre).width) + 8 : 0;
+  ctx.font = F_ROT;
   let linea = CINTA_LINEA;
   let ancho = 4 + rotW + iconoW + (conLinea ? linea + 5 + 5 : 0) + aW + (o.b ? 3 + bW : 0) + uniW + 4;
   const conNombre = () => ancho + (nomW ? nomW - 1 : 0);   // el instrumento entero: cinta + cuadro
@@ -118,7 +122,7 @@ function cinta(o) {
   if (o.nombre) {
     // comparte el canto con la cinta: se lee como una pestaña del mismo instrumento, no como otro
     plate(bx0 + ancho - 1, py, nomW, 11);
-    ctx.textAlign = 'left'; ctx.fillStyle = P.warn;
+    ctx.font = F_VAL; ctx.textAlign = 'left'; ctx.fillStyle = P.warn;
     ctx.fillText(o.nombre, bx0 + ancho + 3, py + 7);
   }
   if (o.rot) {

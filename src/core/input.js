@@ -34,6 +34,9 @@ export const inp = { l: 0, r: 0, u: 0, d: 0, rise: 0, sink: 0, brake: 0, fire: f
   // systems/flight.js sumandolo al `camLift` de la camara.
   camU: 0, camD: 0, camAx: 0 };
 export const mouse = { x: W / 2, y: H * 0.4, on: false };
+// EL PUNTERO DE LOS MENUS (13/11): donde esta el mouse, SIEMPRE — `mouse` es la mira, que se suelta y se apaga
+// sola; para un hover de menu hace falta la posicion cruda. `t` = cuando se movio por ultima vez (ms).
+export const puntero = { x: -1, y: -1, t: -1e9 };
 export const pointer = { steer: null };   // arrastre de vuelo tactil (null fuera de arrastre)
 // `backReq`: pidieron VOLVER a la linea anterior del dialogo. Es un pulso aparte de `anyPress` y
 // no un caso del mapeo de teclas porque la misma flecha izquierda, en vuelo, mueve el avion — el
@@ -490,6 +493,7 @@ export function initInput(cv, a) {
     // MIRA_SUELTA, asi un movimiento lento (muchos eventos chicos) tambien la suelta.
     if (e.pointerType === 'mouse') {
       const p = canvasPos(e);
+      puntero.x = p.x; puntero.y = p.y; puntero.t = performance.now();
       if (mouse.on || Math.hypot(p.x - mouse.x, p.y - mouse.y) >= MIRA_SUELTA) {
         mouse.x = p.x; mouse.y = p.y; mouse.on = true;
         miraActiva();

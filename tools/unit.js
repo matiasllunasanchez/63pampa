@@ -14,6 +14,9 @@ import {
 
 import { PRUEBAS, momentos } from '../src/data/pruebas.js';
 import { oleadaDe, RAMPA, OLEADA } from '../src/data/modos_sueltos.js';
+import { perfilDe, puedeManiobra } from '../src/data/perfiles.js';
+import { tirarFallas as tirarFallasP } from '../src/data/fallas.js';
+import { motivoRota as motivoRotaP, cartaDe as cartaDeP } from '../src/data/banco_suelto.js';
 
 const near = (a, b, tol = 1e-6) => assert.ok(Math.abs(a - b) <= tol, `${a} != ${b}`);
 
@@ -4397,3 +4400,18 @@ test('la oleada de los modos sueltos: arranca en 1, sube cada OLEADA.km y topa e
     }
   });
 }
+
+test('los perfiles de avion: el Hercules no hace piruetas ni frenos, el Dagger no las de giro largo, el A-4 todo', () => {
+  for (const id of ['cobra', 'tonel', 'barrel', 'breakt', 'mortal']) assert.equal(puedeManiobra('herc', id), false, 'herc ' + id);
+  assert.ok(puedeManiobra('herc', 'mask'), 'pegarse al piso no es acrobacia');
+  for (const id of ['cobra', 'tonel', 'barrel', 'spin', 'mortal']) assert.ok(puedeManiobra('sky', id), 'sky ' + id);
+  assert.equal(puedeManiobra('dagger', 'barrel'), false); assert.ok(puedeManiobra('dagger', 'breakt'));
+  assert.ok(perfilDe('herc').rolido < perfilDe('sky').rolido && perfilDe('pucara').rolido > perfilDe('sky').rolido);
+  assert.equal(perfilDe('desconocido').rolido, 1, 'sin perfil: el de siempre');
+  // las cartas de pirueta, rotas segun el perfil
+  assert.ok(motivoRotaP(cartaDeP('splits'), { key: 'herc', sinPiruetas: true }));
+  assert.ok(motivoRotaP(cartaDeP('barrel'), { key: 'dagger' }));
+  assert.equal(motivoRotaP(cartaDeP('breakt'), { key: 'dagger' }), null);
+  // las fallas: con k = 0 no sale ninguna; con k alto, mas
+  assert.deepEqual(tirarFallasP({}, () => 0.01, 0), {});
+});

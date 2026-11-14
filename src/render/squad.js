@@ -13,7 +13,7 @@ import { proj } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF } from '../data/planes.js';
-import { tobera, llama, PLANE_SCALE, drawGear, drawTren, drawShadow } from './plane.js';
+import { tobera, llama, PLANE_SCALE, drawGear, drawTren, drawShadow, navLuces } from './plane.js';
 import { drawBorde } from './borde.js';
 import { ANCLAS } from '../data/anclas.js';
 import { drawSquadPips, anchoSquad } from './hud.js';
@@ -100,6 +100,13 @@ export function drawFormation({ selPlane, exit }) {
       drawBorde(ctx, hoja, col * SHEET_FW * (pl.px || 1), row * SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), s.x - w / 2, s.y - h / 2, w, h);
       const tb = ANCLAS.base.tob[row] && ANCLAS.base.tob[row][col];
       if (tb && !pl.sinTobera) { ctx.save(); ctx.translate(s.x, s.y); tobera(tb[0] * w, tb[1] * h, llama(), w / 84 * 2.4); ctx.restore(); }
+      // LAS LUCES DE TODA LA ESCUADRILLA EN EL DESPEGUE, SI ES DE NOCHE (13/11, el autor: "que las luces se
+      // muestren en todo el escuadron durante el despegue, siempre que sea de noche"): las mismas del lider
+      // (render/plane.js navLuces), en las puntas medidas de esta pose y a la escala de este compañero
+      const tp = ANCLAS.base.tips[row] && ANCLAS.base.tips[row][col];
+      // (EN la punta, sin el TIP_OUT de la estela: ese la saca afuera del ala a proposito)
+      if ((run.lucesK || 0) > 0.02 && tp) navLuces(s.x + tp[0] * w, s.y + tp[1] * h, s.x + tp[2] * w, s.y + tp[3] * h,
+        s.x, s.y, run.lucesK, x, z, f, i * 1.9 + 0.7);
     } else if (pl.ready) {
       const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
       ctx.drawImage(pl.img, s.x - w / 2, s.y - h / 2, w, h);

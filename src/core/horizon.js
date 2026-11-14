@@ -191,7 +191,8 @@ export function stepHorizon(dt, d) {
     run.freeRoll = 0; run.freeRollV = 0;
     return;
   }
-  run.freeRollV += (d * FREE_ROLL_V - run.freeRollV) * Math.min(1, dt * 2.8);
+  // (cada avion rola a su paso: `run.rolidoK`, data/perfiles.js — el Hercules casi nada, el Pucara mas rapido)
+  run.freeRollV += (d * FREE_ROLL_V * (run.rolidoK || 1) - run.freeRollV) * Math.min(1, dt * 2.8);
   run.freeRoll += run.freeRollV * dt;
   // SIN tecla se endereza solo, y por el CAMINO CORTO. Primero se DESCARTAN las vueltas enteras
   // —2*PI es el mismo angulo que 0, asi que restarlas no se ve— y recien despues se interpola a

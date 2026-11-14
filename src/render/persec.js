@@ -82,7 +82,10 @@ export function drawPersec(selPlane) {
   if (!L) return;
   const s = proj(L.x, L.y, L.z);
   const kRef = proj(0, 0, PZ).k;
-  const pl = PLANES[selPlane] || PLANES[0];
+  const yo = PLANES[selPlane] || PLANES[0];
+  // el lider es tu mismo avion, salvo que la persecucion diga otro (EL INVINCIBLE: el A-4C detras de
+  // los Super Etendard). Los compañeros de la escolta del Exocet son siempre el tuyo.
+  const pl = (L.plane && PLANES.find(p => p.key === L.plane)) || yo;
   // PISO DE TAMAÑO, y no es una licencia: es la misma regla que la cabeza de las trazadoras ("nunca
   // menos de 2 px"). La banda del §4 va de 60 a 140 unidades, o sea que el lider proyecta entre 11
   // y 5 px de los 480 del mundo — a ese tamaño no se le puede leer el BANQUEO, y leerle el banqueo
@@ -121,13 +124,13 @@ export function drawPersec(selPlane) {
     // LOS COMPAÑEROS, alrededor del misil en los puestos del despegue: del mas lejano al mas cercano,
     // para que el de adelante tape al de atras. Mismo avion que el tuyo, de cola y nivelado.
     const pts = puestosEscolta().slice().sort((a, b) => b.z - a.z);
-    if (pl.sheetOk) {
+    if (yo.sheetOk) {
       const sm0 = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
       const col = (SHEET_NF - 1) / 2;
       for (const p of pts) {
         const q = proj(p.x, p.y, p.z), fq = Math.max(PURS_F_MIN, q.k / kRef);
-        const w = SHEET_FW * PLANE_SCALE * fq * (pl.escala || 1), h = SHEET_FH * PLANE_SCALE * fq * (pl.escala || 1);
-        ctx.drawImage(pl.sheetImg, col * SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), q.x - w / 2, q.y - h / 2, w, h);
+        const w = SHEET_FW * PLANE_SCALE * fq * (yo.escala || 1), h = SHEET_FH * PLANE_SCALE * fq * (yo.escala || 1);
+        ctx.drawImage(yo.sheetImg, col * SHEET_FW * (yo.px || 1), SHEET_FH * (yo.px || 1), SHEET_FW * (yo.px || 1), SHEET_FH * (yo.px || 1), q.x - w / 2, q.y - h / 2, w, h);
       }
       ctx.imageSmoothingEnabled = sm0;
     }

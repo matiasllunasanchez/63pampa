@@ -91,6 +91,12 @@ export function startPersec(opts = {}) {
     // QUE ES EL LIDER: 'avion' (un numeral) o 'exocet' (EL INVINCIBLE, libro r5: el misil que el A-4C
     // escolta). Solo cambia como se dibuja; la banda y el vuelo son los mismos.
     tipo: opts.tipo || 'avion',
+    // QUE AVION SE DIBUJA de lider (la clave de PLANES). null = el tuyo, como siempre; EL INVINCIBLE con
+    // el A-4C sigue a los Super Etendard ('supere').
+    plane: opts.plane || null,
+    // MUDO: el lider no habla por radio (EL INVINCIBLE va en SILENCIO DE RADIO: los avisos de la banda
+    // quedan en la cinta y en el banqueo)
+    mudo: !!opts.mudo,
     // INFINITO = el modo de menu (N2): la banda se aprieta y el lider se releva con la distancia.
     // En CAMPAÑA (N3) esto va APAGADO — ahi el tramo tiene largo conocido y una intencion escrita,
     // y una dificultad que trepa sola convertiria un tutorial en una prueba de resistencia.
@@ -119,6 +125,9 @@ export function startPersec(opts = {}) {
     cierre: 0,                  // u/s a las que te acercas (>0) o te alejas (<0), suavizado
     v: null,                    // SU velocidad, con inercia (PURS_V_INERCIA): null = arranca a tu par
   };
+  // DE DONDE SALE (`opts.desde` = {x, y, d}): el Exocet del Invincible nace donde iba el Super Etendard
+  const de = opts.desde;
+  if (de) { L.x = L.tx = de.x; L.y = L.ty = de.y; L.d = Math.max(L.lo, Math.min(L.hi, de.d)); L.z = PZ + L.d; }
   return true;
 }
 
@@ -166,7 +175,7 @@ function stepTiron(dt) {
   if (L.tirF === 0) {
     if (L.tirT > 0) return;
     L.tirF = 1; L.tirT = PURS_TIRON_AVISO;
-    hablar('PUMA', T('purs_tiron'));   // dialogos de Puma, no carteles (28/9)
+    if (!L.mudo) hablar('PUMA', T('purs_tiron'));   // dialogos de Puma, no carteles (28/9)
     beep(760, 0.1, 'square', 0.05, 900);
     duck(0.25);
     return;
@@ -184,7 +193,7 @@ function stepTiron(dt) {
   L.tirF = 0; L.tirT = rnd(PURS_TIRON_T);
   if (L.tirOk) {
     run.score += PURS_TIRON_PTS * multOf(plane.y);
-    hablar('PUMA', T('purs_pegado'));
+    if (!L.mudo) hablar('PUMA', T('purs_pegado'));
     beep(880, 0.12, 'square', 0.05, 1180);
   }
 }
@@ -362,7 +371,7 @@ function banda(dt) {
   if (!dentro && (L.enBanda || L.avisoT <= 0)) {
     L.avisoT = PURS_AVISO_T;
     const lejos = L.d > L.hi;
-    hablar('PUMA', lejos ? T('purs_lejos', { c: pilotName(alMando(run)) }) : T('purs_cerca'));
+    if (!L.mudo) hablar('PUMA', lejos ? T('purs_lejos', { c: pilotName(alMando(run)) }) : T('purs_cerca'));
     beep(lejos ? 520 : 380, 0.1, 'square', 0.045, lejos ? 620 : 300);
     if (L.enBanda) duck(0.25);
   }
@@ -427,7 +436,7 @@ export function caerLider(motivo) {
 export function snapshot() {
   if (!L) return null;
   return {
-    nombre: L.nombre, tipo: L.tipo, d: L.d, x: L.x, y: L.y, z: L.z, bank: L.bank, t: L.t,
+    nombre: L.nombre, tipo: L.tipo, plane: L.plane, d: L.d, x: L.x, y: L.y, z: L.z, bank: L.bank, t: L.t,
     lo: L.lo, hi: L.hi, fuera: L.fuera, gracia: PURS_GRACE, banda: L.banda,
     // N5: `tir` es la fase del tiron (1 = avisado, 2 = quemando) y `cierre` la lectura anticipada
     tir: L.tirF, cierre: L.cierre, cmax: PURS_CIERRE_MAX,

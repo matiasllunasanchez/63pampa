@@ -56,11 +56,12 @@ export function recortar(f) {
 }
 
 /** LA TIRADA DE UNA SALIDA para un avion: suma a lo que ya traia (`previas`), sin bajar nada. */
-export function tirarFallas(previas = {}, rnd = Math.random) {
+/** `k`: cuanto mas (o menos) probable es cada falla con este avion (data/perfiles.js `fallasK`). */
+export function tirarFallas(previas = {}, rnd = Math.random, k = 1) {
   const f = { ...previas };
   for (const id of SISTEMAS_ID) {
     const s = SISTEMAS[id];
-    if (rnd() >= s.base) continue;
+    if (rnd() >= s.base * k) continue;
     const g = pesado(s.grados, rnd) + 1;
     f[id] = Math.max(f[id] || 0, g);
   }
