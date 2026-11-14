@@ -32,42 +32,38 @@
 export const PRUEBAS = [
   { head: 'prSecMision' },
   {
-    id: 'idayvuelta', titulo: 'IDA Y VUELTA', desc: 'Las cinco fases: sigilo, blanco y regreso · ~6 min',
-    // LA UNICA FILA DEL CATALOGO QUE SE VUELA ENTERA, y por eso arranca distinto a todas las
-    // demas: los otros momentos te ponen EN un instante, y este existe para medir el TIEMPO — que
-    // el transito respire, que el silencio se note, que la vuelta no se sienta un epilogo. Saltar
-    // a una parte seria medir otra cosa, asi que no lleva ni una sonda diferida.
-    // `start: 'runway'` —contra el `aire: true` que el verbo pone por defecto— porque la mision
-    // termina aterrizando: la unica prueba del juego que se cierra con las ruedas tiene que
-    // empezar con las ruedas.
-    setup: a => a.mision('t15', { start: 'runway' }),
-  },
-  {
-    id: 'idayvueltaSmall', titulo: 'IDA Y VUELTA SMALL', desc: 'La misma mision entera, a distancia corta · ~4 min',
-    // t17: todo el flujo de t15 —despegue, ida, Chancha, suelta, escape, viraje, vuelta, CAP y
-    // aterrizaje— con 6 km por tramo en vez de 29. Arranca en la pista por lo mismo que la otra.
+    id: 'idayvuelta', titulo: 'IDA Y VUELTA', desc: 'Todas las etapas de un nivel, corta, con el blanco al final · ~4 min',
+    // (13/11, el autor: "una mision basica de prueba corta con un objetivo al final, con todas las etapas de
+    // un nivel de campaña") t17: despegue, ida, Chancha, descenso, rasante, blanco, escape y vuelta, con 6 km
+    // por tramo y sin lo del trailer (los negros con texto y la linea que congela). Arranca en la pista.
     setup: a => a.mision('t17', { start: 'runway' }),
   },
   {
-    id: 'idayvueltaSmall2', titulo: 'IDA Y VUELTA SMALL 2', desc: 'Una BASE en tierra de blanco, y toda la geografia · ~4 min',
+    id: 'idayvueltaSmall2', titulo: 'IDA Y VUELTA · BASE EN TIERRA', desc: 'Una BASE en tierra de blanco, y toda la geografia · ~4 min',
     // t18: la t17 con una estructura de blanco (la BASE COSTERA, en su explanada) y la geografia
     // escrita en km — niebla, costa, isla, acantilados con puente, y en la vuelta canal y farallon.
     setup: a => a.mision('t18', { start: 'runway' }),
   },
   {
-    id: 'idayvueltaNoche', titulo: 'IDA Y VUELTA NOCHE', desc: 'La IDA Y VUELTA de noche; se vuelve con luna · ~6 min',
+    id: 'idayvueltaNoche', titulo: 'IDA Y VUELTA LARGA DE NOCHE', desc: 'La distancia completa, de noche; se vuelve con luna · ~6 min',
     // t19: la t15 con el cielo de noche (4/10). La vuelta pasa sola a luna.
     setup: a => a.mision('t19', { start: 'runway' }),
   },
   {
-    id: 'idayvueltaSmallNoche', titulo: 'IDA Y VUELTA SMALL NOCHE', desc: 'La SMALL de noche; se vuelve con luna · ~4 min',
+    id: 'idayvueltaSmallNoche', titulo: 'IDA Y VUELTA DE NOCHE', desc: 'La IDA Y VUELTA de noche; se vuelve con luna · ~4 min',
     // t20: la t17 con el cielo de noche (4/10).
     setup: a => a.mision('t20', { start: 'runway' }),
   },
   {
-    id: 'idayvueltaSmallLuna', titulo: 'IDA Y VUELTA SMALL LUNA', desc: 'La SMALL de noche CON luna: se ve el mar y el reflejo · ~4 min',
+    id: 'idayvueltaSmallLuna', titulo: 'IDA Y VUELTA CON LUNA', desc: 'De noche CON luna: se ve el mar y el reflejo · ~4 min',
     // t21: la t17 con luna desde el despegue (4/10), para comparar con la SIN luna (t20)
     setup: a => a.mision('t21', { start: 'runway' }),
+  },
+  {
+    id: 'idayvueltaTrailer', titulo: 'IDA Y VUELTA TRAILER', desc: 'La larga, con los negros y los textos del trailer · ~6 min',
+    // (13/11) t15 tal cual se armo para el trailer: distancia completa, el negro de la trepada y el de la
+    // bajada, y la linea de salida que congela el juego. Lo que se mide y se prueba va en IDA Y VUELTA.
+    setup: a => a.mision('t15', { start: 'runway' }),
   },
 
   { head: 'prSecClimax' },

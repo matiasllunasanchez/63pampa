@@ -58,7 +58,9 @@ const IDA_DEFENSA = ['ola', 'birds', 'balloon', 'poles'];
 // vuele el jugador (la racha rasante acelera hasta un 48%, el viento en altura frena hasta un
 // 35%). Los segundos de verdad salen del playtest y estas fracciones se corrigen con lo medido.
 const t15 = {
-  id: 't15', name: 'IDA Y VUELTA',
+  // (13/11: t15 queda como IDA Y VUELTA TRAILER — larga, con los negros de la trepada y la bajada y la linea
+  // de salida que congela. La de PRUEBA es t17, con las mismas fases sin eso: ver `sinTrailer`.)
+  id: 't15', name: 'IDA Y VUELTA TRAILER',
   // HMS SHEFFIELD por dos motivos y ninguno es historico: es clase `t42`, que es el layout de
   // zonas POR DEFECTO (el fallback de `setLayout`), asi que lo que se mida aca vale para la
   // mayoria de las misiones; y es el buque que la fila de LA PASADA ya usa en este mismo
@@ -243,7 +245,7 @@ const t16 = {
 };
 
 // ---------------------------------------------------------------------------------------------
-// t17 · IDA Y VUELTA SMALL — la t15 entera, a distancia de prueba (pedido del autor 25/9: "que
+// t17 · IDA Y VUELTA (era la SMALL; desde el 13/11 la de prueba, sin lo del trailer) — la t15 entera, a distancia de prueba (pedido del autor 25/9: "que
 // tenga todo el flow completo de una mision real y todo lo que sucede, pero con distancias cortas").
 //
 // ES t15 Y NO UNA COPIA: mismas fases, radio, ruta, Chancha, CAP y suelta; lo unico que cambia son
@@ -257,9 +259,15 @@ const t16 = {
 // LO QUE SE COMPRIME DE MAS: los tramos cortos quedan MUY cortos (el descenso son ~240 m, 4 s), y
 // las lineas de radio de fases vecinas se pisan. Es un banco para recorrer el flujo, no para medir
 // tiempos — para eso esta t15.
+// LA IDA Y VUELTA DE PRUEBA (13/11, el autor: "una mision basica de prueba, corta, con un objetivo al final
+// para no tener que hacer todo el recorrido largo, pero con todas las etapas de un nivel de campaña; los
+// textos y las pantallas negras quedan para el TRAILER"). Las fases de t15 SIN lo del trailer: sin los
+// negros con texto (`corte`) ni la linea que congela el juego (`pausa`). La radio de cada fase queda.
+const sinTrailer = fases => fases.map(({ corte, pausa, ...f }) => f);
 const t17 = {
   ...t15,
-  id: 't17', name: 'IDA Y VUELTA SMALL',
+  id: 't17', name: 'IDA Y VUELTA',
+  fases: sinTrailer(t15.fases),
   // SIN EL COMPAÑERO QUE TE SEÑA "MAS ABAJO" al entrar al radar (8/10, el autor). Lo heredan t18, t20 y t21.
   senaRadar: false,
   goal: { ...t15.goal, dist: 6000 },
@@ -267,7 +275,7 @@ const t17 = {
 };
 
 // ---------------------------------------------------------------------------------------------
-// t18 · IDA Y VUELTA SMALL 2 — la t17 con UNA BASE EN TIERRA de blanco y un poco de toda la
+// t18 · IDA Y VUELTA · BASE EN TIERRA (era la SMALL 2) — la t17 con UNA BASE EN TIERRA de blanco y un poco de toda la
 // geografia (pedido del autor 29/9: "hagamos el objetivo estructura en otra mision small que contenga
 // un poco de todo esto").
 //
@@ -283,7 +291,7 @@ const t17 = {
 // definire bien yo cada mision, mas o menos la distancia total y en que zona poner que cosa").
 const t18 = {
   ...t17,
-  id: 't18', name: 'IDA Y VUELTA SMALL 2',
+  id: 't18', name: 'IDA Y VUELTA · BASE EN TIERRA',
   goal: { kind: 'estructura', nombre: 'BASE COSTERA', dist: 6000 },
   climax: 'suelta',
   geografia: {
@@ -314,17 +322,17 @@ const t18 = {
 };
 
 // ---------------------------------------------------------------------------------------------
-// t19 · IDA Y VUELTA NOCHE y t20 · IDA Y VUELTA SMALL NOCHE (pedido del autor 4/10: "armemos una
+// t19 · IDA Y VUELTA LARGA DE NOCHE y t20 · IDA Y VUELTA DE NOCHE (pedido del autor 4/10: "armemos una
 // mision ida y vuelta noche… small tambien"). Son t15 y t17 tal cual —fases, radio, ruta, Chancha,
 // CAP, suelta, mar variado y sin globos— con el cielo de NOCHE. El mar sigue al cielo (`water:
 // 'auto'`), y la vuelta pasa sola a cielo de LUNA (CIELO_VUELTA en data/blanco.js: night → moon) y al
 // video del viraje de noche.
 const noche = cfg => ({ ...cfg, sky: 'night' });
-const t19 = { ...t15, id: 't19', name: 'IDA Y VUELTA NOCHE', cfg: noche(t15.cfg) };
-const t20 = { ...t17, id: 't20', name: 'IDA Y VUELTA SMALL NOCHE', cfg: noche(t17.cfg) };
+const t19 = { ...t15, id: 't19', name: 'IDA Y VUELTA LARGA DE NOCHE', cfg: noche(t15.cfg), fases: sinTrailer(t15.fases) };
+const t20 = { ...t17, id: 't20', name: 'IDA Y VUELTA DE NOCHE', cfg: noche(t17.cfg) };
 // t21 · CON LUNA (4/10: "haria una prueba CON y SIN luna"): la SMALL con luna desde el despegue. La de
 // arriba es la SIN luna (la ida; la vuelta ya sale con luna por CIELO_VUELTA).
-const t21 = { ...t17, id: 't21', name: 'IDA Y VUELTA SMALL LUNA', cfg: { ...t17.cfg, sky: 'moon' } };
+const t21 = { ...t17, id: 't21', name: 'IDA Y VUELTA CON LUNA', cfg: { ...t17.cfg, sky: 'moon' } };
 
 /** Las misiones que NO son la campaña. `game.js` las concatena a `MISSIONS` para resolver una
  *  mision por id o por indice; nada que recorra la campaña las mira. */
