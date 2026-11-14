@@ -4,6 +4,7 @@
 // que tiene cerca se ilumina un poco.
 import { ctx } from './ctx.js';
 import { luz } from './brillo.js';
+import { techoGigante } from './world.js';
 
 function trazo(pts, a, ancho) {
   ctx.beginPath();
@@ -23,7 +24,13 @@ export function drawRayos(rs) {
     trazo(r.tronco, r.a, 1.2);
     for (const rama of r.ramas) trazo(rama, r.a * 0.7, 0.8);
     // el hueco en la noche, a lo largo del tronco (cada tantos puntos, para no pagar uno por quiebre)
-    for (let i = 0; i < r.tronco.length; i += 2) luz(ctx, r.tronco[i][0], r.tronco[i][1], 10 + 8 * r.k, [190, 205, 255], 0.55 * r.a);
+    // (lo que cae DETRAS de la ola gigante no abre la noche sobre su cara: la pared la tapa — 14/11. Su filo es
+    // el del cuadro anterior, que el mar se dibuja despues: un cuadro de atraso no se ve)
+    for (let i = 0; i < r.tronco.length; i += 2) {
+      const [x, y] = r.tronco[i], tg = techoGigante(x);
+      if (tg !== null && y + 10 + 8 * r.k > tg) continue;
+      luz(ctx, x, y, 10 + 8 * r.k, [190, 205, 255], 0.55 * r.a);
+    }
   }
   ctx.restore();
   ctx.globalAlpha = 1; ctx.beginPath();

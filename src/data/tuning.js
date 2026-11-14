@@ -905,6 +905,27 @@ export const OLA_ROMP_Z = 60;       // z donde EMPIEZA A ROMPER (se enrula y rug
 // LA OLA REBELDE (F7). El evento del temporal: ancho completo, sin brecha, una sola viva, y
 // nunca en los primeros metros de la corrida — una pared de 8 m a los diez segundos de despegar
 // no es un evento, es una emboscada.
+// LA OLA GIGANTE (13/11/2026, el autor: "cuando es NOCHE Y TORMENTA, al azar, una OLA MUY GRANDE — que crezca
+// desde atras, que de lejos se vea formando que es gigante, que el rayo de atras la ILUMINE cada tanto, y que
+// sea bastante alta, que te obligue a subir al radar"). Solo con el cielo de tormenta (de noche), en el mar.
+//   H        altura final de la cresta (m): mas que RADAR_ALT (20) — pasarla limpio es subir al radar
+//   WZ       su espesor (la raiz de la gaussiana): una mole, no una pared flaca
+//   Z_NACE   donde aparece: en el horizonte, chica; Z_LLENA donde ya tiene la altura entera; H0 la fraccion
+//            con la que nace (crece mientras se acerca)
+//   CADA     segundos entre una y la siguiente (sorteado); D0 metros de vuelo antes de la primera
+//   (14/11, el autor: "una pared gigante negra donde el usuario no entiende bien que es, que crezca de a poco
+//   como si estuviese creciendo el horizonte con negro, y cuando esta cada vez mas cerca un par de truenos y
+//   rayos que se nota que es una ola"; "nada debe traspasar la ola y si la choco muero")
+//   REVELA   a cuantos metros se la DESCUBRE: el primer rayo detras, el cartel y su ruido; antes es solo negro
+//   RAYOS    cuantos rayos la iluminan desde ahi (el primero incluido); RAYO, cada cuanto (s)
+//   VEL      a que fraccion de la velocidad del avion se acerca: de lejos (VEL[0]) a formada (VEL[1]) — de lejos
+//            casi te acompaña, que es lo que la deja crecer de a poco en el horizonte
+//   PREVIA   los segundos antes de que nazca en que el mar se va poniendo bravo: solo olas y pajaros, cada
+//            vez mas seguidas y mas altas ("ir mostrando cada vez mas cantidad de olas y mas grandes hasta
+//            que de repente la gigante"); PREVIA_CADA el intervalo entre olas al empezar y al final (s);
+//            PREVIA_ALTO cuanto mas altas al final (x)
+export const OLA_GIGANTE = { H: 27, WZ: 22, Z_NACE: 1150, Z_LLENA: 330, H0: 0.18, CADA: [55, 110], D0: 900,
+  REVELA: 600, RAYOS: 3, RAYO: [1.0, 1.5], VEL: [0.14, 1], PREVIA: 28, PREVIA_CADA: [2.6, 0.8], PREVIA_ALTO: 2.2 };
 export const OLA_REB_P = 0.22;      // fraccion de las olas de TORMENTA que salen rebeldes
 export const OLA_REB_D0 = 400;      // m de vuelo antes de la primera posible (§F7.1)
 /** EL MAR VARIADO (`mar: 'variado'` en el cfg de la mision; pedido del autor 2/10: "quitar globos y

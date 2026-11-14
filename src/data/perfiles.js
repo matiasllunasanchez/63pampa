@@ -75,33 +75,34 @@ export function capacidadesDe(pl, lang = 'es') {
   const en = lang === 'en', pf = perfilDe(pl.key), out = [];
   const pz = (icono, ok, r, es, eng) => out.push({ icono, ok, r, t: en ? eng : es });
   const cal = CALIBRE_AVION[pl.key] || '20';
-  if (pl.sinArmas) pz('canon', false, en ? 'NONE' : 'NO', 'Sin armas: ni cañon, ni bombas, ni chafitas', 'No weapons: no gun, bombs or chaff');
-  else if (pl.sinCanon) pz('canon', false, en ? 'UPGR.' : 'MEJORA', 'Sin cañon: se gana como mejora', 'No gun: earned as an upgrade');
-  else if (pl.canon) pz('canon', true, en ? 'OWN' : 'PROPIO', 'Su propio cañon', 'Its own gun');
-  else pz('canon', true, cal + ' MM', 'Dos cañones de ' + cal + ' mm', 'Two ' + cal + ' mm guns');
-  if (pl.key === 'supere') pz('exocet', true, 'AM39', 'Puede llevar el Exocet AM39 (se gana como mejora)', 'Can carry the Exocet AM39 (earned as an upgrade)');
-  pz('hercules', pl.sonda !== false, pl.sonda === false ? (en ? 'NO' : 'NO') : (en ? 'YES' : 'SI'),
+  if (pl.sinArmas) pz('canon', false, en ? 'NO GUN' : 'SIN CAÑON', 'Sin armas: ni cañon, ni bombas, ni chafitas', 'No weapons: no gun, bombs or chaff');
+  else if (pl.sinCanon) pz('canon', false, en ? 'GUN: UPGR.' : 'CAÑON: MEJORA', 'Sin cañon: se gana como mejora', 'No gun: earned as an upgrade');
+  else if (pl.canon) pz('canon', true, en ? 'OWN GUN' : 'CAÑON PROPIO', 'Su propio cañon', 'Its own gun');
+  else pz('canon', true, (en ? 'GUNS ' : 'CAÑON ') + cal + ' MM', 'Dos cañones de ' + cal + ' mm', 'Two ' + cal + ' mm guns');
+  if (pl.key === 'supere') pz('exocet', true, 'EXOCET', 'Puede llevar el Exocet AM39 (se gana como mejora)', 'Can carry the Exocet AM39 (earned as an upgrade)');
+  // (13/11, el autor: "no se entiende que es SI / NO"): el rotulo NOMBRA la cosa; si no la tiene, va en gris
+  pz('hercules', pl.sonda !== false, en ? 'TANKER' : 'CHANCHA',
     pl.sonda === false ? 'Sin sonda de reabastecimiento: no hay Chancha' : 'Reabastece en vuelo de la Chancha (el KC-130)',
     pl.sonda === false ? 'No refuelling probe: no tanker' : 'Refuels in flight from the tanker (the KC-130)');
   const radar = RADAR_PROPIO.AVIONES.includes(pl.key);
-  pz('radar', radar, radar ? (en ? 'YES' : 'SI') : 'NO', radar ? 'Radar propio de busqueda' : 'Sin radar propio', radar ? 'Own search radar' : 'No search radar');
+  pz('radar', radar, 'RADAR', radar ? 'Radar propio de busqueda' : 'Sin radar propio', radar ? 'Own search radar' : 'No search radar');
   const man = pf.maniobras;
-  pz('pirueta', man !== 'pesado', man === 'agil' ? (en ? 'ALL' : 'TODAS') : man === 'rigido' ? (en ? 'SOME' : 'ALGUNAS') : 'NO',
+  pz('pirueta', man !== 'pesado', man === 'rigido' ? (en ? 'SOME MANOEUV.' : 'PIRUETAS LIMIT.') : (en ? 'MANOEUVRES' : 'PIRUETAS'),
     man === 'pesado' ? 'Ninguna pirueta ni freno: solo pegarse al piso y trepar o picar' : man === 'rigido' ? 'Piruetas y frenos, sin TONEL BARRIL, TIRABUZON ni los mortales' : 'Todas las piruetas y los frenos',
     man === 'pesado' ? 'No piruetas or brakes: only hugging the ground and climbing or diving' : man === 'rigido' ? 'Piruetas and brakes, without BARREL ROLL, CORKSCREW or back flips' : 'Every pirueta and brake');
   const rol = pf.rolido < 0.5 ? ['MUY LENTO', 'VERY SLOW'] : pf.rolido < 0.95 ? ['LENTO', 'SLOW'] : pf.rolido > 1.1 ? ['RAPIDO', 'FAST'] : ['NORMAL', 'NORMAL'];
   const vel = pl.vuelo && pl.vuelo.vel ? Math.round(pl.vuelo.vel * 100) : 100;
-  pz('reloj', true, vel + '%', 'Velocidad ' + vel + '% del Skyhawk · rolido con Q / E ' + rol[0].toLowerCase(),
+  pz('reloj', true, (en ? 'SPEED ' : 'VEL. ') + vel + '%', 'Velocidad ' + vel + '% del Skyhawk · rolido con Q / E ' + rol[0].toLowerCase(),
     'Speed ' + vel + '% of the Skyhawk · Q / E roll ' + rol[1].toLowerCase());
   // lo de los modos sueltos (el banco y las fallas): se aclara que es de ahi
   const G = { armas: ['armas', 'weapons'], defensa: ['defensa', 'defence'], alcance: ['alcance', 'range'], poderes: ['poderes', 'powers'],
     taller: ['taller', 'workshop'], inteligencia: ['inteligencia', 'intelligence'], piruetas: ['piruetas', 'manoeuvres'] };
   const mas = Object.keys(pf.grupos).filter(g => pf.grupos[g] > 1).map(g => G[g] ? G[g][en ? 1 : 0] : g);
   const km = pf.bancoKm || 6;
-  pz('cajon', true, km + ' KM', 'En POR LA PATRIA y CICLO: una mejora cada ' + km + ' km' + (mas.length ? ', con mas cartas de ' + mas.join(' y ') : ''),
+  pz('cajon', true, (en ? 'UPGR. ' : 'MEJORA ') + km + ' KM', 'En POR LA PATRIA y CICLO: una mejora cada ' + km + ' km' + (mas.length ? ', con mas cartas de ' + mas.join(' y ') : ''),
     'In POR LA PATRIA and CICLO: an upgrade every ' + km + ' km' + (mas.length ? ', with more ' + mas.join(' and ') + ' cards' : ''));
   const fk = pf.fallasK;
-  pz('caja_herr', true, fk > 1.05 ? (en ? 'MORE' : 'MAS') : fk < 0.95 ? (en ? 'FEW' : 'POCAS') : 'NORMAL',
+  pz('caja_herr', true, fk > 1.05 ? (en ? 'FAULTS +' : 'FALLAS +') : fk < 0.95 ? (en ? 'FAULTS -' : 'FALLAS -') : (en ? 'FAULTS' : 'FALLAS'),
     fk > 1.05 ? 'Fallas mas frecuentes (POR LA PATRIA y CICLO): avion viejo, repuestos cortados por el embargo' : fk < 0.95 ? 'Casi no falla (POR LA PATRIA y CICLO)' : 'Fallas normales (POR LA PATRIA y CICLO)',
     fk > 1.05 ? 'More frequent faults (POR LA PATRIA and CICLO): old airframe, spares cut by the embargo' : fk < 0.95 ? 'Rarely fails (POR LA PATRIA and CICLO)' : 'Normal faults (POR LA PATRIA and CICLO)');
   return out;

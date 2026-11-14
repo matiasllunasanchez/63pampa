@@ -36,7 +36,7 @@ export const METRALLA_TONO = 0.03;
 export const BUS_DE = {
   engN: 'vuelo', engN2: 'vuelo', turbo: 'vuelo', abInicio: 'vuelo', abSostenido: 'vuelo', lv1: 'vuelo',
   waterNear: 'vuelo', waveFly: 'vuelo', graze: 'vuelo', swoosh: 'vuelo',
-  ambRain: 'ambiente', ambStorm: 'ambiente', ambWarFar: 'ambiente', ambWarNear: 'ambiente', ambWind: 'ambiente',
+  ambRain: 'ambiente', ambStorm: 'ambiente', olaGigante: 'ambiente', truenoDoble: 'enemigo', truenoLargo: 'enemigo', truenoCorto: 'enemigo', ambWarFar: 'ambiente', ambWarNear: 'ambiente', ambWind: 'ambiente',
   exXheavy: 'enemigo', exHeavy: 'enemigo', exHeavyDist: 'enemigo', exMedium: 'enemigo', exSmall: 'enemigo', exXsmall: 'enemigo',
   lanzaMisil: 'enemigo',
   radarAzul: 'atencion', radarDetecta: 'atencion', radarVerde: 'atencion', radarVerdeInicio: 'atencion',

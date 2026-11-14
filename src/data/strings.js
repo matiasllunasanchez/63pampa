@@ -210,6 +210,7 @@ export const STRINGS = {
     // PLAN_VUELTA_REAL V5: la palabra clave adentro del radar te delata, y el remolque con fuga
     ch_upa: 'NO TE SUELTES. TE LLEVAMOS A UPA.',
     ch_broken: 'LA CHANCHA NO BAJA MAS AL SUR.',
+    ola_gigante: '¡OLA GIGANTE!', ola_gigante_sub: 'SUBÍ — POR ENCIMA DEL RADAR',
     ch_sinsonda: 'EL DAGGER NO TIENE SONDA: NO HAY CHANCHA PARA VOS.',
     // LA RADIO DEL TRANSITO DEL NARWAL (M4 / m3) — SPEC_TRAMOS T4. Son cuatro claves porque el
     // transito son cuatro tramos: la conversacion entera de GUION_3 no entra en un popup, y lo
@@ -1462,6 +1463,7 @@ export const STRINGS = {
     ch_aca: 'HERE I AM. TO THE BASKET.',
     ch_upa: 'DON\'T LET GO. WE\'LL CARRY YOU HOME.',
     ch_broken: 'THE OLD SOW DOES NOT COME SOUTH ANYMORE.',
+    ola_gigante: 'ROGUE WAVE!', ola_gigante_sub: 'CLIMB — ABOVE THE RADAR',
     ch_sinsonda: 'THE DAGGER HAS NO PROBE: NO SOW FOR YOU.',
     m5_boca: 'PUMA: THERE IT IS. THE WOLF\'S MOUTH. WE GO IN, WE DROP, WE GET OUT.',
     m5_salida: 'PUMA: IT OPENS UP. OPEN SEA AHEAD — AND THE ARDENT WAITING.',

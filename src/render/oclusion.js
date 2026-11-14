@@ -26,6 +26,7 @@ import { olaBump } from '../core/sea.js';
 import { GEO_ISLA_Z, COLINA_Z, COLINA_X0 } from '../data/tuning.js';
 import { techoColinasCol, hayColinas, tierraAdentro } from './colinas.js';
 import { colinaH } from '../core/tierra.js';
+import { techoGigante } from './world.js';
 
 const ZMAX = 2000;
 
@@ -107,7 +108,7 @@ function columna(sx, hasta) {
 
 /** ¿Hay algo que pueda tapar en este cuadro? La pregunta barata antes de todo. */
 export function hayTerreno() {
-  return !!pared() || geo.islas.length > 0 || hayColinas() || obstacles.some(o => o.type === 'ola' && o.z > 3);
+  return !!pared() || geo.islas.length > 0 || hayColinas() || obstacles.some(o => o.type === 'ola' && o.z > 3);   // (la gigante es una 'ola')
 }
 
 /** EL FILO DEL TERRENO por delante de la profundidad `camZ`, en la columna de pantalla `sx`: la `y` de
@@ -121,11 +122,13 @@ export function techoCol(sx, camZ) {
   if (lo > 0 && (hayPared || hayIsla || hayCol)) t = columna(sx, lo).min[lo - 1];
   // LAS OLAS que pasan por delante (son pocas y se mueven: sin guardar)
   for (const w of obstacles) {
-    if (w.type !== 'ola' || !(w.z > 3) || w.z >= camZ - 1) continue;
+    if (w.type !== 'ola' || !(w.z > 3) || w.z >= camZ - 1 || w.kind === 'gigante') continue;   // (la gigante: abajo)
     const wx = cam.x + (sx - W / 2) * w.z / F;
     const h = olaBump(w, wx - w.x, 0);
     if (h > 0.3) { const y = HOR + (cam.y - h) * F / w.z; if (y < t) t = y; }
   }
+  const tg = techoGigante(sx, camZ);
+  if (tg !== null && tg < t) t = tg;
   return t === Infinity ? null : t;
 }
 

@@ -20,6 +20,7 @@ import { capaLuz, luz } from './brillo.js';
 import { NOCHE } from '../data/noche.js';
 import { tapaHorizonte } from './paredes.js';
 import { tapaColinas } from './colinas.js';
+import { techoGigante, trazarGigantes, oscuroGigante } from './world.js';
 
 /** Que noche hace con el cielo `sky` (null = de dia, no se oscurece nada). */
 export const nocheDe = sky => NOCHE.CIELOS[sky] || null;
@@ -75,6 +76,33 @@ export function drawNoche(n, astro, giro) {
     gd.fillRect(-D.width, -D.height, D.width * 3, D.height * 3);
     gd.restore();
   } else gd.fillRect(0, 0, D.width, D.height);
+  // …MENOS SOBRE LA OLA GIGANTE (14/11, el autor: "la ola TAPA el horizonte y las luces, da OSCURIDAD"; "no debe
+  // estar blureado"): la franja clara del horizonte es del cielo y del mar lejano, no de la pared que los tapa.
+  // Sobre su contorno la oscuridad se completa hasta la de arriba —la misma cuenta al reves—, y la mole queda
+  // como un recorte negro y neto contra el horizonte
+  {
+    // (…y el MAR DE ADELANTE tambien pierde la franja: la luz que reflejaba venia del horizonte, y la pared lo
+    // tapa — 14/11, el autor: "la luz o niebla deberia verse afectada por la ola". Crece con `oscuroGigante`)
+    const comp = ah => Math.max(0, Math.min(1, (a - ah) / (1 - ah)));
+    const banda = k => {
+      const gc = gd.createLinearGradient(0, 0, 0, D.height);
+      gc.addColorStop(0, `rgba(${r},${g},${b},0)`);
+      gc.addColorStop(Math.max(0, hy / D.height - 0.05), `rgba(${r},${g},${b},${k * comp(a * n.horiz)})`);
+      gc.addColorStop(hy / D.height, `rgba(${r},${g},${b},${k * comp(a * n.horiz * 0.97)})`);
+      gc.addColorStop(Math.min(1, hy / D.height + 0.12), `rgba(${r},${g},${b},0)`);
+      return gc;
+    };
+    gd.save();
+    gd.globalCompositeOperation = 'source-over';
+    if (giro) { gd.translate(giro.cx * sx, giro.cy * sy); gd.rotate(giro.a); gd.translate(-giro.cx * sx, -giro.cy * sy); }
+    gd.beginPath();
+    if (trazarGigantes(gd, sx, sy)) {
+      gd.fillStyle = banda(1); gd.fill();
+      const og = oscuroGigante();
+      if (og > 0.01) { gd.fillStyle = banda(og); gd.fillRect(-D.width, hy, D.width * 3, D.height * 2); }
+    }
+    gd.restore();
+  }
   // …Y LA LUZ LA ABRE: la capa de brillo del cuadro, como mascara (dos pasadas: el centro de una
   // explosion queda limpio y el borde en penumbra)
   const L = capaLuz();
@@ -131,7 +159,8 @@ export function drawNoche(n, astro, giro) {
 
 /** ¿Hay una ladera entre el ojo y la luz lejana de la pantalla (x, y)? (render/paredes.js) */
 // …o una LOMA de la tierra (render/colinas.js, 22/10): las lomas cercanas tambien las esconden
-const tapada = (x, y) => tapaHorizonte(x, y + 0.5) || tapaColinas(x, y + 0.5);
+// …o la OLA GIGANTE de la tormenta (render/world.js, 13/11): sus luces quedan detras de la mole
+const tapada = (x, y) => tapaHorizonte(x, y + 0.5) || tapaColinas(x, y + 0.5) || (y > (techoGigante(x) ?? Infinity));
 
 /** EL REFLEJO DE LA LUNA en el agua: una columna que tiembla debajo del astro, hecha de rayas.
  *

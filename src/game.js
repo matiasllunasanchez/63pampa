@@ -5283,6 +5283,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         misilCerca(dm); }
       // LA TORMENTA: relampagos, rayos y truenos mientras se vuela (systems/tormenta.js)
       if (cfg.sky === 'storm' && !paused && (S.state === 'play' || S.state === 'takeoff' || S.state === 'relevo' || S.state === 'landing')) stepTormenta(dt, HOR, W);
+      run.fgzTormenta = cfg.sky === 'storm' ? fogonazoTormenta() : 0;   // (lo lee la ola gigante: render/world.js)
       detectando(S.state === 'play' && rutaSys.enAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
       { const techo = fases.techoRadar(RADAR_ALT), RV_RANGO = 14;
         zonaRadar(S.state === 'play' && rutaSys.enAlcance() && (rutaSys.hay() || suelto()), radarScanT >= 0 ? run.t - radarScanT : 99,
@@ -6680,6 +6681,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // misiles (y trazadoras del fuego de tierra: mas chicas, amarillas y con cola corta)
       for (const m of missiles) {
         if (m.z <= 3) continue;
+        // detras de la ola gigante no se ve nada (14/11: "nada debe traspasar la ola")
+        { const tg = world.techoGigante(proj(m.x, m.y, m.z).x, m.z); if (tg !== null && proj(m.x, m.y, m.z).y > tg) continue; }
         if (m.tipo === 'wolf') { drawMisilSW(m); continue; }   // el Sea Wolf, blanco y celeste (render/seawolf.js)
         // el SIDEWINDER de los Harrier (render/aim9.js): aca solo el que esta mas lejos que vos —
         // el de frente, y el de atras que perdio el blanco y se te adelanto. El que viene de atras
@@ -7051,6 +7054,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // (LA TORMENTA: con cada relampago la noche se abre de golpe — systems/tormenta.js)
       const fgz = cfg.sky === 'storm' ? fogonazoTormenta() : 0;
       drawNoche(noche && fgz > 0 ? { ...noche, a: noche.a * (1 - 0.6 * fgz) } : noche, solPant, hzW ? { a: hzW, cx: W / 2 + cm.x, cy: H / 2 + cm.y } : null);
+      // LA OLA GIGANTE DA OSCURIDAD (14/11): mientras se viene encima, el cuadro se apaga (el relampago lo abre)
+      { const sg = cfg.sky === 'storm' ? world.sombraGigante() : 0;
+        if (sg > 0.01) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.72 * sg * (1 - 0.75 * fgz); ctx.fillStyle = '#010204'; ctx.fillRect(0, 0, cv.width, cv.height); ctx.restore(); } }
       drawBrillo(noche ? NOCHE.BRILLO : undefined, !!noche);
       // (de noche la luna no es el sol: su aureola va apenas — NOCHE.AUREOLA)
       drawAureola(solPant, (rasante.active() ? 1 : AURA_NORMAL) * (noche ? NOCHE.AUREOLA : 1));

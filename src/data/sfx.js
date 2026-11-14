@@ -72,6 +72,17 @@ export const SFX_DEF = {
   // ambiente de terreno (loop por contexto)
   ambRain: { f: ['terrain/rain.mp3'], v: 0.35, loop: true },           // tormenta en tierra
   ambStorm: { f: ['terrain/storm_sea_1.mp3'], v: 0.4, loop: true },    // tormenta en mar
+  // LA OLA GIGANTE (13/11): el rugido cuando aparece en el horizonte. Provisorio: el mar de tormenta, fuerte —
+  // el autor busca un sonido propio; cuando llegue, va aca (y nada mas cambia)
+  olaGigante: { f: ['terrain/storm_sea_1.mp3'], v: 0.9 },
+  // LOS TRUENOS DE LA OLA GIGANTE (14/11, los que dejo el autor en terrain/thunder): el rayo que cae detras de la
+  // ola suena con uno de estos, elegido y afinado segun lo cerca que este (systems/audio.js `truenoOla`)
+  //   doble  el estallido doble, seco y fuerte: la ola ya esta encima
+  //   largo  el que crece y RUEDA (con un segundo retumbe a los 11 s): la ola a media distancia
+  //   corto  el de lejos, breve
+  truenoDoble: { f: ['terrain/thunder/trueno_doble.mp3'], v: 1 },
+  truenoLargo: { f: ['terrain/thunder/trueno_largo.mp3'], v: 1 },
+  truenoCorto: { f: ['terrain/thunder/trueno_corto.mp3'], v: 1 },
   ambWarFar: { f: ['terrain/war_distant.mp3'], v: 0.32, loop: true },  // tierra, guerra lejana
   ambWarNear: { f: ['terrain/war_near_soldats.mp3'], v: 0.42, loop: true }, // soldados corriendo abajo
   ambWind: { f: ['terrain/terrain_wind.mp3'], v: 0.3, loop: true },    // tierra vacia (tutorial/pruebas)

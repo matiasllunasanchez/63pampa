@@ -66,6 +66,12 @@ export const PRUEBAS = [
     setup: a => a.mision('t15', { start: 'runway' }),
   },
 
+  {
+    id: 'olaGigante', titulo: 'OLA GIGANTE', desc: 'Noche de tormenta: la ola gigante seguido, con sus rayos y truenos',
+    // (14/11) t22: mar abierto y la ola cada 20-35 s. Sin buque al final: se puede subir al radar sin que nadie tire
+    setup: a => a.mision('t22'),
+  },
+
   { head: 'prSecClimax' },
   {
     id: 'suelta', titulo: 'LA SUELTA', desc: 'El buque al final del pasillo: altura, soltar y embocarla',

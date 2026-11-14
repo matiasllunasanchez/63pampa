@@ -334,6 +334,17 @@ const t20 = { ...t17, id: 't20', name: 'IDA Y VUELTA DE NOCHE', cfg: noche(t17.c
 // arriba es la SIN luna (la ida; la vuelta ya sale con luna por CIELO_VUELTA).
 const t21 = { ...t17, id: 't21', name: 'IDA Y VUELTA CON LUNA', cfg: { ...t17.cfg, sky: 'moon' } };
 
+// t22 · OLA GIGANTE (14/11, el autor: "una mision especifica para probar esto en vivo"): mar abierto, noche de
+// tormenta y la OLA GIGANTE seguido — la primera a los 300 m y despues cada 20 a 35 s (`gigante: 'seguido'`,
+// lo lee systems/spawn.js). Sin buque al final (nadie te dispara por subir al radar), sin nafta y con poco
+// en el camino: para mirarla crecer, ver los rayos detras, oir los truenos y probar pasarla por arriba.
+const t22 = {
+  id: 't22', name: 'OLA GIGANTE',
+  goal: { kind: 'distance', meters: 30000 },
+  cfg: P({ sky: 'storm', water: 'auto', terrain: 'sea', wind: true, rain: 1, fog: 0, obstacles: 0.35, bombs: 0, caza: 0,
+    globos: false, fuelOn: false, gigante: 'seguido' }),
+};
+
 /** Las misiones que NO son la campaña. `game.js` las concatena a `MISSIONS` para resolver una
  *  mision por id o por indice; nada que recorra la campaña las mira. */
-export const MISIONES_PRUEBA = [t15, t16, t17, t18, t19, t20, t21];
+export const MISIONES_PRUEBA = [t15, t16, t17, t18, t19, t20, t21, t22];

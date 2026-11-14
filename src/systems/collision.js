@@ -32,7 +32,9 @@ import { topeCarril } from '../core/zigzag.js';
 import { ZZ_PARED_TALUD, ZZ_LADERA_RAFAGA, ZZ_LADERA_RAF_CD, AVES_PISO, AVES_TECHO } from '../data/tuning.js';
 import { DEFENSAS } from '../data/defensas.js';
 import { AA_Z0, AA_Z1, AA_CD, MANPAD_Z0, MANPAD_Z1, MANPAD_CD, shoreAt, SAND_W, SPAWN_X,
-  OLA_SPD, OLA_FACE_KILL, OLA_SCRAPE_FRAC, OLA_ROMP_Z } from '../data/tuning.js';
+  OLA_SPD, OLA_FACE_KILL, OLA_SCRAPE_FRAC, OLA_ROMP_Z, OLA_GIGANTE } from '../data/tuning.js';
+import { descargaEn } from './tormenta.js';
+import { cartel } from '../core/cartel.js';
 // LAS OLAS USAN EL ROCE QUE YA EXISTE, no uno nuevo (SPEC_AGUA_OLAS §6.1): `scrapeLimit` es la
 // misma funcion que mide el margen contra el agua en el vuelo normal, y por eso `npm run feel`
 // sigue dando los mismos numeros — la ola no recalibra nada, solo adelanta donde esta el agua.
@@ -138,7 +140,12 @@ export function collisionSystem(dt) {
   for (const o of obstacles) {
     // el jet viene de frente (cierra mas rapido) y la OLA RUEDA hacia vos: su velocidad propia se
     // SUMA a la relativa, que es lo que hace que una ola se te venga encima aunque frenes
-    o.z -= (run.spd + (o.type === 'jet' ? 45 : o.type === 'ola' ? OLA_SPD : 0)) * dt;
+    // (la OLA GIGANTE viene con el temporal: de lejos casi acompaña al avion —el horizonte que se levanta de a
+    // poco— y se le viene encima a la velocidad de todo recien cuando ya esta formada; ver OLA_GIGANTE.VEL)
+    if (o.kind === 'gigante') {
+      const G = OLA_GIGANTE, u = Math.max(0, Math.min(1, (G.Z_NACE - o.z) / (G.Z_NACE - G.Z_LLENA)));
+      o.z -= run.spd * (G.VEL[0] + (G.VEL[1] - G.VEL[0]) * u * u) * dt;
+    } else o.z -= (run.spd + (o.type === 'jet' ? 45 : o.type === 'ola' ? OLA_SPD : 0)) * dt;
     // ESCOMBRO EN VUELO (PLAN_DESTRUCCION D0): el pedazo ademas de retroceder con el mundo lleva
     // SU inercia — el `vz` es velocidad RELATIVA al mundo, por eso se suma encima del scroll. Es
     // lo que hace que lo que reventaste salga disparado hacia adelante en vez de quedarse clavado.
@@ -170,6 +177,24 @@ export function collisionSystem(dt) {
     //
     // El rugido es lo que la separa de la marejada ANTES de que se vea la forma: la marejada
     // viene callada y esta se anuncia. Es la misma regla del telegrafo, pero por el oido.
+    // LA OLA GIGANTE CRECE MIENTRAS SE ACERCA (13/11): nace chica en el horizonte y llega a su altura entera
+    // en Z_LLENA. Viene CALLADA y NEGRA (14/11): recien a G.REVELA se descubre — el primer rayo detras, el
+    // cartel y su ruido — y despues un par de rayos mas (G.RAYOS en total) que la recortan de contraluz.
+    if (o.type === 'ola' && o.kind === 'gigante') {
+      const G = OLA_GIGANTE, u = Math.max(0, Math.min(1, (G.Z_NACE - o.z) / (G.Z_NACE - G.Z_LLENA)));
+      o.h = o.hMax * (G.H0 + (1 - G.H0) * u * u * (3 - 2 * u));
+      if (!o.revelada && o.z < G.REVELA) {
+        o.revelada = true; o.reveladaT = run.t; o.rayoT = run.t;
+        sfxOne('olaGigante');
+        cartel(T('ola_gigante'), '#9fc3ff', T('ola_gigante_sub'), { alerta: true });
+      }
+      if (o.rayos < G.RAYOS && o.z > 120 && run.t >= o.rayoT) {
+        descargaEn(0.2 + Math.random() * 0.6, o.z);
+        o.rayos++;
+        o.rayoT = run.t + G.RAYO[0] + Math.random() * (G.RAYO[1] - G.RAYO[0]);
+      }
+      if (!o.ruge && o.z < 260) { o.ruge = true; sfxOne('olaGigante', 1); run.shake = Math.min(7, run.shake + 2); }
+    }
     if (o.type === 'ola' && o.kind === 'rompiente' && !o.breakT && o.z < OLA_ROMP_Z) {
       o.breakT = run.t;
       explodeAt(o.x, o.h * 0.8, o.z, false, true);   // sin bola de fuego: es agua, no un impacto
@@ -262,6 +287,12 @@ export function collisionSystem(dt) {
         // MANTENER RASANTE TE SALVA DE LAS OLAS (8/10, el autor: "mantener rasante debe evitar daños de
         // olas, no de objetos como barcazas"): con el poder o el estado RASANTE la ola se atraviesa —
         // espuma y sacudon, sin cara que mate ni cresta que cobre. Lo demas sigue chocando igual.
+        // LA GIGANTE NO PERDONA (14/11, el autor: "si la choco muero"): ni rasante, ni aguante, ni roce de la
+        // cresta — o la pasas por arriba (el radar) o te traga
+        if (o.kind === 'gigante') {
+          if (plane.y < hAqui + 1.2) return { death: 'death_sea' };
+          continue;
+        }
         if (hAqui > 0.25 && (rasante.active() || run.aguante === 1)) {
           if (plane.y < hAqui + 1.2) { run.shake = Math.min(7, run.shake + 1.2); if (!sfxOne('waterNear')) boom(0.06); }
           continue;

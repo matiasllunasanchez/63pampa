@@ -12,7 +12,7 @@ import { cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
 import { obstacles, soldiers, popups, bullets, missiles, pmissiles, estallidos } from '../core/world.js';
 import { OLA_MAS, OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0,
-  OLA_COSTA_P, OLA_COSTA_OFF } from '../data/tuning.js';
+  OLA_COSTA_P, OLA_COSTA_OFF, OLA_GIGANTE } from '../data/tuning.js';
 import { inBank } from './fog.js';
 // TRAMOS (SPEC_TRAMOS RF-02): el guion de spawn por mision. Se LEE, nunca se escribe: `val`
 // devuelve lo que rige a esta altura del vuelo y cae al cfg cuando la mision no tiene tramos —
@@ -522,7 +522,79 @@ export function tirarSlug(xFin, z) {
 // la sonda: un Sea Slug adelante del avion, para mirarlo (QUITAR con el resto)
 if (typeof window !== 'undefined') window.__slug = (x, z) => { tirarSlug(x === undefined ? 0 : +x, z === undefined ? 170 : +z); return true; };
 
+// ---------- LA OLA GIGANTE (OLA_GIGANTE en data/tuning.js, 13/11) ----------
+// Con el cielo de TORMENTA (la noche de tormenta), en el mar, cada tanto: nace en el horizonte, chica, y crece
+// mientras se acerca (systems/collision.js), con rayos que caen detras de ella. La dibuja render/world.js.
+let gigProx = null, gigUlt = -1;
+/** Siembra una ola gigante (la usan el sorteo y la sonda `__olaGigante`). */
+export function sembrarOlaGigante() {
+  const G = OLA_GIGANTE;
+  // NACE CALLADA (14/11): sin cartel, sin ruido y sin rayo — de lejos es solo el horizonte que se levanta en
+  // negro. La descubre systems/collision.js al llegar a G.REVELA (`revelada`), con sus rayos detras.
+  const o = { type: 'ola', kind: 'gigante', hMax: G.H, h: G.H * G.H0, x: 0, z: G.Z_NACE, done: false,
+    ph: Math.random() * 6, nace: run.t, wz: G.WZ, rayoT: Infinity, rayos: 0, revelada: false };
+  obstacles.push(o);
+  return o;
+}
+/** La gigante viva (la mas cercana), o null. */
+export function giganteViva() {
+  let g = null;
+  for (const o of obstacles) if (o.kind === 'gigante' && o.z > 0 && (!g || o.z < g.z)) g = o;
+  return g;
+}
+/** LA PREVIA, 0..1: cuanto falta para la gigante, en los ultimos G.PREVIA s (1 = ya esta). 0 sin tormenta. */
+function previaGigante() {
+  if (gigProx === null) return 0;
+  return Math.max(0, Math.min(1, 1 - (gigProx - run.t) / OLA_GIGANTE.PREVIA));
+}
+/** EL MAR DE LA GIGANTE (14/11, el autor: "no debe haber ningun vehiculo ni avion ni nada en frente, porque no
+ *  seria logico que sobreviva con esa ola"; "la idea es ir mostrando cada vez mas cantidad de olas y mas grandes
+ *  hasta que de repente la gigante"). En la PREVIA y con la gigante viva el sembrador de siempre se calla: solo
+ *  olas —cada vez mas seguidas y mas altas— y algun pajaro. Y nada nace DETRAS de la gigante: lo de atras no
+ *  sobrevive a la ola (y quedaria escondido detras de su pared). */
+let marT = 0;
+function marDeGigante(dt, p, gig) {
+  if (gig && gig.z < SPAWN_Z + 60) return;
+  marT -= dt;
+  if (marT > 0) return;
+  const G = OLA_GIGANTE;
+  marT = G.PREVIA_CADA[0] + (G.PREVIA_CADA[1] - G.PREVIA_CADA[0]) * p + Math.random() * 0.6;
+  const lane = (Math.random() * 2 - 1) * SPAWN_X, ph = Math.random() * 6;
+  if (Math.random() < 0.2) {
+    obstacles.push({ type: 'birds', x: lane, y: spawnY('birds'), z: SPAWN_Z, ...rumboAve(), white: Math.random() < 0.5, done: false, ph });
+    return;
+  }
+  if (inBank()) return;
+  let n = 0;
+  for (const o of obstacles) if (o.type === 'ola' && o.kind !== 'gigante' && (++n >= 4 || Math.abs(o.z - SPAWN_Z) < OLA_GAP_MIN)) return;
+  const o = spawnOla(Math.random() < 0.3 * p ? 'rebelde' : 'marejada');
+  const alto = 1 + (G.PREVIA_ALTO - 1) * p * (0.6 + 0.4 * Math.random());
+  o.h *= alto; o.wz *= Math.sqrt(alto);
+}
+function sorteoOlaGigante(objectiveDist) {
+  if (cfg.sky !== 'storm') { gigProx = null; return; }
+  // (`cfg.gigante: 'seguido'` — la prueba OLA GIGANTE, t22 —: la primera pasada la previa y despues cada 45-70 s)
+  const G = OLA_GIGANTE, seguido = cfg.gigante === 'seguido', cada = seguido ? [45, 70] : G.CADA, d0 = seguido ? 300 : G.D0;
+  if (gigProx === null || run.t < gigUlt) gigProx = run.t + (seguido ? G.PREVIA + 4 : cada[0] + Math.random() * (cada[1] - cada[0]));
+  gigUlt = run.t;
+  if (run.t < gigProx || run.dist < d0) return;
+  // ni sobre tierra, ni con otra viva, ni encima de la aproximacion final al blanco
+  const zN = run.dist + G.Z_NACE;
+  const cercaBlanco = objectiveDist > 0 && run.dist < objectiveDist && objectiveDist - run.dist < G.Z_NACE * 1.6;
+  if (cercaBlanco || esTierraEn(0, zN) || esTierraEn(0, zN - 300) || obstacles.some(o => o.kind === 'gigante')) {
+    // (si no la deja la tierra o el blanco, la previa se suelta: se vuelve a intentar mas adelante, entera)
+    gigProx = run.t + (obstacles.some(o => o.kind === 'gigante') ? 8 : G.PREVIA + 8); return;
+  }
+  sembrarOlaGigante();
+  gigProx = run.t + cada[0] + Math.random() * (cada[1] - cada[0]);
+}
+if (typeof window !== 'undefined') window.__olaGigante = () => { const o = sembrarOlaGigante(); return JSON.stringify({ z: o.z, h: o.h, hMax: o.hMax }); };
+if (typeof window !== 'undefined') window.__olaGiganteDbg = () => JSON.stringify({ previa: +previaGigante().toFixed(2), fg: +(run.fgzTormenta || 0).toFixed(2), gig: obstacles.filter(o => o.kind === 'gigante').map(o => ({ z: Math.round(o.z), h: +o.h.toFixed(1), done: o.done, revelada: o.revelada, rayos: o.rayos })), olas: obstacles.filter(o => o.type === 'ola' && o.kind !== 'gigante').map(o => o.kind[0] + Math.round(o.h)), otros: obstacles.filter(o => o.type !== 'ola').map(o => o.type) });
+
 export function spawnSystem(dt, objectiveDist) {
+  sorteoOlaGigante(objectiveDist);
+  { const gig = giganteViva(), p = gig ? 1 : previaGigante();
+    if (p > 0) { marDeGigante(dt, p, gig); return; } }
   // CHARLA EN VUELO: el corredor se vacia SOLO. No se borra nada de lo que ya esta (eso seria
   // ver desaparecer una fragata delante de los ojos): se deja de sembrar y lo sembrado pasa de
   // largo, que es el DRENAJE del RF-01. Va antes que todo lo demas porque es la mas fuerte de

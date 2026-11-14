@@ -34,6 +34,7 @@ import { geoActiva, sueloEn, orillaS, ladoEn, playaCerca, playaClase, alturaSuel
 import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R, EYEC_ASIENTO_T } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
+import { OLA_GIGANTE } from '../data/tuning.js';
 import { MAR_HONDO, MAR_GRANO, OLA_CRESTA, PIQUE, SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, RADAR_MARCO_LIBRE, RADAR_MARCO_LLENO, RADAR_MARCO_LINEAS, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
   ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD, ESTELA_TURBO, ESTELA_TURBO_A } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
@@ -685,6 +686,7 @@ export function drawSea(alHorizonte) {
     if (nTierra || nCosta || nPlaya) drawLand(false, true);
     if (nMar || nCosta || nPlaya) drawSeaDots(landVisible, false, true);
     if (alHorizonte) alHorizonte();
+    olasGigantes(dv);
     lomadas();
     return;
   }
@@ -695,6 +697,7 @@ export function drawSea(alHorizonte) {
     drawFleet();                       // la flota de desembarco en el horizonte
   } else drawSeaDots(landVisible);
   if (alHorizonte) alHorizonte();
+  olasGigantes(run.dist);
   lomadas();
 }
 
@@ -1470,13 +1473,144 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
   ctx.globalAlpha = 1;
 }
 
+/** LA OLA GIGANTE (13/11, OLA_GIGANTE en data/tuning.js; el autor mando dos fotos desde un barco de noche: una
+ *  pared negra que se levanta en el horizonte, con la espuma blanca en el filo y el rayo detras). La dibuja
+ *  como una MOLE: el frente, del mar (delante de ella) a la cresta, en un azul casi negro; la espuma del filo,
+ *  irregular y con rocio; y con cada relampago (`run.fgzTormenta`) la cara se aclara y el filo brilla de
+ *  contraluz. Cuando llega encima, si vas por arriba, pasa por debajo como una cosa negra que llena el cuadro.
+ *  Va con el mar: despues del buque del horizonte y antes de lo que se levanta. */
+// EL FILO DIBUJADO de cada ola gigante en este cuadro (con su exageracion de lejos): lo que esta DETRAS —las
+// luces del horizonte de la noche, los enemigos lejanos— se esconde contra ESTE filo, no contra el de la colision
+const gigVis = [];
+/** El filo de la ola gigante por delante de `camZ` en la columna `sx` (la `y` de pantalla), o null. */
+export function techoGigante(sx, camZ = Infinity) {
+  let t = null;
+  for (const g of gigVis) {
+    if (g.z >= camZ - 1) continue;
+    const ts = g.tops;
+    for (let i = 0; i < ts.length - 1; i++) {
+      const a = ts[i], b = ts[i + 1];
+      if (sx < a.x || sx > b.x) continue;
+      const y = a.y + (b.y - a.y) * (b.x === a.x ? 0 : (sx - a.x) / (b.x - a.x));
+      if (t === null || y < t) t = y;
+      break;
+    }
+  }
+  return t;
+}
+/** Traza en `c` (escalado a `sx`,`sy`) el contorno de cada ola gigante dibujada en este cuadro — render/noche.js
+ *  lo usa para que la noche no le aclare la cara con la franja del horizonte. Devuelve si trazo algo. */
+export function trazarGigantes(c, sx, sy) {
+  for (const g of gigVis) {
+    c.moveTo(g.tops[0].x * sx, g.tops[0].y * sy);
+    for (const p of g.tops) c.lineTo(p.x * sx, p.y * sy);
+    for (let i = g.bots.length - 1; i >= 0; i--) c.lineTo(g.bots[i].x * sx, Math.min(H + 60, g.bots[i].y) * sy);
+    c.closePath();
+  }
+  return gigVis.length > 0;
+}
+/** CUANTO SE COME LA OLA GIGANTE LA LUZ DEL HORIZONTE, 0..1: de que se levanta (1000 m) a que esta encima (350 m). La
+ *  BRUMA de los costados (render/marco.js) se apaga con esto (14/11, el autor: "la niebla de los costados en la
+ *  noche debe mantenerse en la ola o desaparecer debido a la OSCURIDAD que genera la ola"). */
+export function oscuroGigante() {
+  let s = 0;
+  for (const o of obstacles) {
+    if (o.type !== 'ola' || o.kind !== 'gigante' || !(o.z > 0)) continue;
+    const u = Math.max(0, Math.min(1, (1000 - o.z) / 650));
+    s = Math.max(s, u * u * (3 - 2 * u));
+  }
+  return s;
+}
+/** LA SOMBRA DE LA OLA GIGANTE, 0..1 (14/11, el autor: "la ola TAPA el horizonte y las luces, da OSCURIDAD"):
+ *  cuando se viene encima y su cresta esta por encima de tus ojos, la mole se come la poca luz que queda —
+ *  game.js oscurece el cuadro con esto (el relampago la abre un instante). */
+export function sombraGigante() {
+  let s = 0;
+  for (const o of obstacles) {
+    if (o.type !== 'ola' || o.kind !== 'gigante' || !(o.z > 0)) continue;
+    // (14/11, el autor: "el usuario debe sentir oscuridad y no entender muy bien que pasa, hasta notar que es una
+    // OLA GIGANTE"): la oscuridad llega ANTES que la ola se entienda — empieza apenas se levanta (900 m)
+    const cerca = Math.max(0, Math.min(1, (900 - o.z) / 820)), arriba = Math.max(0, Math.min(1, (o.h - cam.y + 6) / 10));
+    s = Math.max(s, cerca * cerca * (3 - 2 * cerca) * arriba);
+  }
+  return s;
+}
+function olasGigantes(dv) {
+  gigVis.length = 0;
+  for (const o of obstacles) {
+    if (o.type !== 'ola' || o.kind !== 'gigante' || !(o.z > 4)) continue;
+    const z = o.z, k = F / z, zf = Math.max(3.2, z - o.wz * 1.25);
+    const N = 56, fg = Math.min(1, run.fgzTormenta || 0);
+    const xa = (-90 - W / 2) / k + cam.x - bendW(z), xb = (W + 90 - W / 2) / k + cam.x - bendW(z);
+    // DE LEJOS SE VE GIGANTE (el autor: "que de lejos se vea formando, que es gigante"). Con la perspectiva
+    // de verdad una ola de 27 m a un kilometro mide tres pixeles: el filo se dibuja a una altura de PANTALLA que
+    // crece mientras se forma (`crece`, la misma de systems/collision.js) y se sostiene, y de cerca se funde con
+    // la altura real — que es la que choca (de ahi para adentro manda la cuenta de siempre).
+    const G = OLA_GIGANTE, crece = Math.max(0, Math.min(1, (G.Z_NACE - z) / (G.Z_NACE - G.Z_LLENA)));
+    // (si estas por ENCIMA de la cresta se la ve por arriba: el filo baja del horizonte, como de verdad)
+    // (…salvo que vueles por debajo de su altura final: de lejos SIEMPRE se levanta, como el horizonte que crece)
+    const sobre = Math.max(cam.y < o.hMax + 4 ? 0.35 : -0.4, Math.min(1, (o.h - cam.y) / 12));
+    const pxLejos = (6 + 64 * crece * crece * (3 - 2 * crece)) * sobre;
+    const cerca = Math.max(0, Math.min(1, (z - 40) / 110));      // 0 a 40 m (real) … 1 desde 150 m (la de lejos)
+    const tops = [], bots = [];
+    for (let i = 0; i <= N; i++) {
+      const x = xa + (xb - xa) * i / N;
+      // el filo no es parejo: ondula a lo largo y respira
+      const on = 0.96 + 0.05 * Math.sin(x * 0.045 + o.ph) + 0.04 * Math.sin(x * 0.13 + run.t * 0.9 + o.ph * 2);
+      const real = proj(x, o.h * on, z);
+      const yLejos = HOR - pxLejos * on;
+      tops.push({ x: real.x, y: Math.min(real.y, real.y + (yLejos - real.y) * cerca) });
+      const xf = cam.x - bendW(zf) + (proj(x, 0, z).x - W / 2) * zf / F;   // la misma columna, al pie de adelante
+      bots.push(proj(xf, 0, zf));
+    }
+    ctx.save();
+    // EL CUERPO: NEGRO Y DE BORDE NETO (14/11, el autor: "una pared gigante negra donde el usuario no entiende
+    // bien que es, que crezca de a poco casi como si estuviese creciendo el horizonte con negro"; "no debe
+    // estar blureado"). Ni degrade ni resplandor: un recorte duro contra el cielo. El rayo de atras la RECORTA
+    // (el cielo se prende, ella no) y, ya descubierta, apenas le aclara la cara para que se lea el agua.
+    ctx.beginPath();
+    ctx.moveTo(tops[0].x, tops[0].y);
+    for (const p of tops) ctx.lineTo(p.x, p.y);
+    for (let i = bots.length - 1; i >= 0; i--) ctx.lineTo(bots[i].x, Math.min(H + 60, bots[i].y));
+    ctx.closePath();
+    gigVis.push({ z, tops, bots });
+    const rv = o.revelada ? Math.min(1, (run.t - (o.reveladaT ?? run.t)) / 0.6) : 0;   // 0 negro … 1 descubierta
+    const cara = rv * fg;
+    ctx.fillStyle = cara > 0.02 ? `rgb(${2 + 16 * cara | 0},${4 + 22 * cara | 0},${8 + 34 * cara | 0})` : '#020407';
+    ctx.fill();
+    // LA ESPUMA DEL FILO, solo una vez descubierta: una linea FINA y cortada, y el rocio en puntos de un pixel
+    // (14/11: "los puntos de espuma son demasiado grandes, tienen que ser mucho mas chicos")
+    if (rv > 0) {
+      const grosor = Math.max(0.6, o.h * 0.012 * k);
+      ctx.fillStyle = fg > 0.2 ? '#e6eeff' : '#8f9fb4';
+      for (let i = 0; i < N; i++) {
+        const a = tops[i], b = tops[i + 1], hv = Math.sin(i * 2.7 + run.t * 3 + o.ph);
+        if (hv < -0.55) continue;                                   // la espuma se corta: no es una regla
+        ctx.globalAlpha = rv * Math.min(1, 0.35 + 0.65 * fg);
+        ctx.fillRect(Math.round(a.x), Math.round(Math.min(a.y, b.y) - grosor * 0.5), Math.ceil(b.x - a.x) + 1, Math.max(1, Math.round(grosor * (0.6 + 0.5 * hv))));
+        if ((i * 7 + Math.floor(run.t * 6)) % 4 === 0) {
+          ctx.globalAlpha = rv * (0.25 + 0.5 * fg);
+          ctx.fillRect(Math.round(a.x + (b.x - a.x) * 0.5), Math.round(a.y - 2 - 2 * (1 + Math.sin(i + run.t * 2))), 1, 1);
+        }
+      }
+    }
+    // EL CONTRALUZ del relampago: el filo se prende, finito y duro
+    if (fg > 0.15) {
+      ctx.globalAlpha = (0.25 + 0.5 * rv) * fg; ctx.strokeStyle = '#dfe7ff'; ctx.lineWidth = 1;
+      ctx.beginPath(); tops.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y - 0.5) : ctx.moveTo(p.x, p.y - 0.5))); ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1; ctx.beginPath();
+  }
+}
+
 /** Las olas cuya cresta se dibuja: TODAS hasta OLA_CRESTA.Z_MAX, no solo las del campo de puntos
  *  (SEA_FAR_Z): de lejos la ola es eso, una raya de espuma en el horizonte (2/10: "que se vean
  *  desde mas lejos"). Array reusado. */
 const conCresta = [];
 function olasConCresta() {
   conCresta.length = 0;
-  for (const o of obstacles) if (o.type === 'ola' && o.z > 3 && o.z < OLA_CRESTA.Z_MAX) conCresta.push(o);
+  for (const o of obstacles) if (o.type === 'ola' && o.kind !== 'gigante' && o.z > 3 && o.z < OLA_CRESTA.Z_MAX) conCresta.push(o);   // (la gigante tiene su propio filo)
   return conCresta;
 }
 
@@ -3509,12 +3643,17 @@ export function drawRadarNet(techo, forzar) {
   const col = inside ? NET_ADENTRO : NET_AFUERA;
   const pulse = (inside ? 0.55 + 0.45 * Math.abs(Math.sin(run.t * 6)) : 1) * netVis * lean;
   // el BARRIDO recorre la profundidad en bucle; `sweepZ` es donde esta ahora
+  // NADA TRASPASA LA OLA GIGANTE (14/11, el autor: "el radar se ve por encima de la ola"): la malla termina
+  // en su cara — lo de atras queda escondido detras de la pared
+  let Z1 = NET_Z1;
+  for (const g of gigVis) Z1 = Math.min(Z1, g.z - 1);
   const sweepZ = NET_Z1 - ((run.t / SWEEP_DUR) % 1) * (NET_Z1 - NET_Z0);
 
   // SUPERFICIE: el techo se rellena tenue para que se lea como un PLANO y no como un puñado de
   // lineas sueltas. Es lo que hace visible "la zona": por encima de esta chapa te detectan.
+  if (Z1 > NET_Z0 + 2) {
   const nl = proj(-FLY_X, A, NET_Z0), nr = proj(FLY_X, A, NET_Z0);
-  const fl = proj(-FLY_X, A, NET_Z1), fr = proj(FLY_X, A, NET_Z1);
+  const fl = proj(-FLY_X, A, Z1), fr = proj(FLY_X, A, Z1);
   ctx.fillStyle = col;
   ctx.globalAlpha = (inside ? 0.13 : 0.07) * pulse;
   ctx.beginPath();
@@ -3525,7 +3664,7 @@ export function drawRadarNet(techo, forzar) {
   // TRAVESAÑOS (lineas de z constante). Se anclan al mundo con run.dist: el primero no esta a una
   // distancia fija de la camara sino en el proximo multiplo de NET_STEP del terreno.
   const off = run.dist % NET_STEP;
-  for (let z = NET_Z0 - off; z <= NET_Z1; z += NET_STEP) {
+  for (let z = NET_Z0 - off; z <= Z1; z += NET_STEP) {
     if (z < NET_Z0) continue;
     const l = proj(-FLY_X, A, z), r = proj(FLY_X, A, z);
     // el travesaño mas cercano al barrido se enciende: es el frente de onda del radar
@@ -3537,22 +3676,23 @@ export function drawRadarNet(techo, forzar) {
   // LARGUEROS (lineas de x constante) fugando al horizonte
   ctx.globalAlpha = 0.34 * pulse;
   for (let x = -FLY_X; x <= FLY_X; x += 9.5) {
-    const a = proj(x, A, NET_Z0), b = proj(x, A, NET_Z1);
+    const a = proj(x, A, NET_Z0), b = proj(x, A, Z1);
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   }
   // BORDES del techo: los dos largueros extremos, bien marcados — son "la linea que no hay que cruzar"
   ctx.globalAlpha = 0.8 * pulse;
   for (const sgn of [-1, 1]) {
-    const a = proj(sgn * FLY_X, A, NET_Z0), b = proj(sgn * FLY_X, A, NET_Z1);
+    const a = proj(sgn * FLY_X, A, NET_Z0), b = proj(sgn * FLY_X, A, Z1);
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   }
   // FRENTE DE BARRIDO: la linea viva, mas gruesa, con estela hacia atras (como el haz del radar)
   for (let i = 0; i < 5; i++) {
     const z = sweepZ + i * 7;
-    if (z > NET_Z1) break;
+    if (z > Z1) break;
     const l = proj(-FLY_X, A, z), r = proj(FLY_X, A, z);
     ctx.globalAlpha = (0.55 - i * 0.11) * pulse;
     ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(r.x, r.y); ctx.stroke();
+  }
   }
   // LINEA DE UMBRAL a la profundidad del AVION: "por encima de esto, te ven". Es la lectura que
   // convierte la malla en informacion util y no en decoracion. Solo entra en pantalla cuando el

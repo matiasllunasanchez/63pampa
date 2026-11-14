@@ -134,8 +134,18 @@ export function drawMenu(w) {
   ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(4.5);
   ctx.fillText(T('selKeys'), W / 2, H - 6);
 }
+/** Un rotulo corto centrado en `cx`: si no entra en `ancho`, en DOS renglones partido en el espacio mas cercano
+ *  al medio (con la fuente activa). */
+function rotulo2(txt, cx, y, ancho) {
+  if (ctx.measureText(txt).width <= ancho || txt.indexOf(' ') < 0) { ctx.fillText(txt, cx, y, ancho); return; }
+  const mid = txt.length / 2;
+  let corte = -1;
+  for (let i = 0; i < txt.length; i++) if (txt[i] === ' ' && (corte < 0 || Math.abs(i - mid) < Math.abs(corte - mid))) corte = i;
+  ctx.fillText(txt.slice(0, corte), cx, y, ancho);
+  ctx.fillText(txt.slice(corte + 1), cx, y + 3.4, ancho);
+}
 /** El alto del pie de la ficha: la tira de la CONFIGURACION. */
-const FICHA_PIE = 21;
+const FICHA_PIE = 24;
 /** La tira de capacidades del avion `pl` (data/perfiles.js capacidadesDe) en el rectangulo `R` (el pie de la
  *  ficha), con el texto de la historia corriendo por detras. `m` = el mouse en la grilla de diseño ({x, y, on}). */
 function panelCapacidades(pl, R, m) {
@@ -144,33 +154,41 @@ function panelCapacidades(pl, R, m) {
   // el fondo del pie, casi opaco: lo que corre por detras se adivina, no se lee encima de los iconos
   ctx.fillStyle = '#0a0f12'; ctx.globalAlpha = 0.9; ctx.fillRect(R.x, R.y, R.w, R.h); ctx.globalAlpha = 1;
   ctx.fillStyle = '#3a464c'; ctx.fillRect(R.x + 3, R.y, R.w - 6, 0.6);   // la raya que lo separa del texto
-  const paso = (R.w - 4) / caps.length, S = Math.min(11, paso - 3), yI = R.y + 2.5;
+  const paso = (R.w - 4) / caps.length, S = Math.min(10, paso - 3), yI = R.y + 2;
+  // EL FOCO (13/11, el autor: "que el item se corra hacia la izquierda y a la derecha la seccion de texto; cuando
+  // se quita el foco vuelve al listado normal"): con el mouse sobre el pie, la pieza que queda debajo — contada
+  // con las posiciones de la lista normal, asi moverse por el pie va pasando de una a otra — se dibuja sola a la
+  // izquierda y su detalle a la derecha, adentro del mismo pie. Sin mouse encima, la lista.
   let sobre = -1;
-  caps.forEach((c, i) => {
-    const cx = R.x + 2 + paso * (i + 0.5), x = Math.round(cx - S / 2);
-    const hov = m && m.on && m.x >= cx - paso / 2 && m.x < cx + paso / 2 && m.y >= R.y && m.y <= R.y + R.h;
-    if (hov) { sobre = i; ctx.fillStyle = P.accent; ctx.globalAlpha = 0.2; ctx.fillRect(cx - paso / 2 + 0.5, R.y + 1, paso - 1, R.h - 1.5); ctx.globalAlpha = 1; }
-    if (CARTAS_IMG.complete && CARTAS_IMG.naturalWidth) {
-      const n = Math.max(0, ICONOS.indexOf(c.icono)), sx = (n % ICONO_COLS) * ICONO_FW, sy = Math.floor(n / ICONO_COLS) * ICONO_FW;
-      const suave = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true;   // 96 → 11: achicado, no pixelado
-      // lo que NO tiene: en gris y apagado, sin tachar (13/11, el autor: "con baja opacidad solamente se entiende")
-      if (!c.ok) { ctx.filter = 'grayscale(1)'; ctx.globalAlpha = 0.35; }
-      ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, x, yI, S, S);
-      ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = suave;
-    }
-    ctx.textAlign = 'center'; ctx.font = labelFont(3.2); ctx.fillStyle = hov ? P.accent : c.ok ? P.foam : '#5d6a70';
-    ctx.fillText(c.r, cx, yI + S + 4.2, paso - 1);
-  });
-  // EL DETALLE de la que esta debajo del mouse, en un globo arriba del pie (sobre el texto)
+  if (m && m.on && m.x >= R.x && m.x <= R.x + R.w && m.y >= R.y && m.y <= R.y + R.h)
+    sobre = Math.max(0, Math.min(caps.length - 1, Math.floor((m.x - R.x - 2) / paso)));
+  const icono = (c, x, y, tam) => {
+    if (!(CARTAS_IMG.complete && CARTAS_IMG.naturalWidth)) return;
+    const n = Math.max(0, ICONOS.indexOf(c.icono)), sx = (n % ICONO_COLS) * ICONO_FW, sy = Math.floor(n / ICONO_COLS) * ICONO_FW;
+    const suave = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true;   // 96 → 11: achicado, no pixelado
+    // lo que NO tiene: en gris y apagado, sin tachar (13/11, el autor: "con baja opacidad solamente se entiende")
+    if (!c.ok) { ctx.filter = 'grayscale(1)'; ctx.globalAlpha = 0.35; }
+    ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, x, y, tam, tam);
+    ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = suave;
+  };
   if (sobre >= 0) {
-    const c = caps[sobre];
-    ctx.font = rotuloChicoFont(6);
-    const lineas = renglones(c.t, R.w - 10), LH = 7, h = lineas.length * LH + 5, by = R.y - 2 - h;
-    ctx.fillStyle = '#0a0f12'; ctx.globalAlpha = 0.95; ctx.fillRect(R.x, by, R.w, h); ctx.globalAlpha = 1;
-    ctx.strokeStyle = P.accent; ctx.lineWidth = 0.6; ctx.strokeRect(R.x + 0.5, by + 0.5, R.w - 1, h - 1); ctx.lineWidth = 1;
-    ctx.textAlign = 'left'; ctx.fillStyle = P.foam;
-    lineas.forEach((l, k) => ctx.fillText(l, R.x + 4, by + 6.5 + k * LH));
+    const c = caps[sobre], ancho = 22;
+    ctx.fillStyle = P.accent; ctx.globalAlpha = 0.2; ctx.fillRect(R.x + 1, R.y + 1, ancho, R.h - 1.5); ctx.globalAlpha = 1;
+    icono(c, Math.round(R.x + 1 + ancho / 2 - S / 2), yI, S);
+    ctx.textAlign = 'center'; ctx.font = labelFont(3.2); ctx.fillStyle = P.accent;
+    rotulo2(c.r, R.x + 1 + ancho / 2, yI + S + 3.6, ancho - 1);
+    ctx.textAlign = 'left'; ctx.fillStyle = P.foam; ctx.font = rotuloChicoFont(5.2);
+    const lineas = renglones(c.t, R.w - ancho - 7).slice(0, 3), LH = 6;
+    const y0 = R.y + R.h / 2 - (lineas.length * LH) / 2 + 4.3;
+    lineas.forEach((l, k) => ctx.fillText(l, R.x + ancho + 4, y0 + k * LH));
+    return;
   }
+  caps.forEach((c, i) => {
+    const cx = R.x + 2 + paso * (i + 0.5);
+    icono(c, Math.round(cx - S / 2), yI, S);
+    ctx.textAlign = 'center'; ctx.font = labelFont(3.2); ctx.fillStyle = c.ok ? P.foam : '#5d6a70';
+    rotulo2(c.r, cx, yI + S + 3.6, paso - 1);
+  });
 }
 /** LA FRANJA DE LA FUERZA del avion `pl` en (x, y), de ancho `w`: fondo como el de la ficha, el escudo a la
  *  izquierda y a su derecha el nombre de la fuerza (naranja el Fenix, acento los demas) y el detalle. */

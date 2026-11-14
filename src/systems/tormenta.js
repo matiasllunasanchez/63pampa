@@ -10,7 +10,7 @@
 // recibe la oscuridad ya aflojada). El TRUENO llega despues, con el retraso de la distancia — cuanto mas
 // tarde, mas lejos y mas bajo.
 import { run } from '../core/run.js';
-import { trueno } from './audio.js';
+import { trueno, truenoOla } from './audio.js';
 
 const T = {
   cada: [2.6, 8],        // segundos entre descargas
@@ -52,13 +52,38 @@ function descargar(hor, ancho) {
   truenos.push({ t: run.t + T.retraso[0] + (T.retraso[1] - T.retraso[0]) * lejos, k });
 }
 
+/** UN RAYO A PEDIDO (la ola gigante, 13/11): cae en la fraccion `fx` (0..1) del ancho de la pantalla, detras
+ *  de lo que este ahi. El horizonte y el ancho son los del ultimo cuadro (`stepTormenta`). */
+let ultHor = 96, ultAncho = 480;
+export function descargaEn(fx, z) {
+  const k = 0.95, hor = ultHor, ancho = ultAncho, x = fx * ancho;
+  fogonazo = Math.max(fogonazo, 0.9);
+  const y0 = Math.max(-10, hor - 120 - Math.random() * 30);
+  const tronco = zigzag(Math.max(10, Math.min(ancho - 10, x)), y0, hor - 1, 6);
+  const ramas = [];
+  for (let i = 0, n = 1 + (Math.random() * 2 | 0); i < n; i++) {
+    const p = tronco[1 + (Math.random() * (tronco.length - 3) | 0)];
+    ramas.push(zigzag(p[0], p[1], p[1] + 14 + Math.random() * 24, 4));
+  }
+  rayos.push({ tronco, ramas, t0: run.t, k });
+  // EL TRUENO DE LA OLA (14/11): con los samples del autor, y con el retraso de la distancia — la ola a un
+  // kilometro tarda casi dos segundos en sonar; encima, casi junto con el rayo
+  if (z !== undefined) truenos.push({ t: run.t + 0.2 + Math.max(0, z) / 650 + Math.random() * 0.25, k, ola: true, z });
+  else truenos.push({ t: run.t + 0.3 + Math.random() * 0.5, k });
+}
+
 /** Un cuadro de vuelo con tormenta. `hor`/`ancho` de la pantalla (render/ctx.js). */
 export function stepTormenta(dt, hor, ancho) {
+  ultHor = hor; ultAncho = ancho;
   proxima -= dt;
   if (proxima <= 0) { descargar(hor, ancho); proxima = T.cada[0] + Math.random() * (T.cada[1] - T.cada[0]); }
   fogonazo = Math.max(0, fogonazo - dt * 3.2);
   for (let i = rayos.length - 1; i >= 0; i--) if (run.t - rayos[i].t0 > T.vida) rayos.splice(i, 1);
-  for (let i = truenos.length - 1; i >= 0; i--) if (run.t >= truenos[i].t) { trueno(truenos[i].k); truenos.splice(i, 1); }
+  for (let i = truenos.length - 1; i >= 0; i--) if (run.t >= truenos[i].t) {
+    const tr = truenos[i];
+    if (tr.ola) truenoOla(tr.z); else trueno(tr.k);
+    truenos.splice(i, 1);
+  }
 }
 
 /** Sin tormenta (o al cambiar de corrida): nada en el aire. */

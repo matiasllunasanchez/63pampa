@@ -207,7 +207,20 @@ const sfxTurn = {};
  *  con la distancia hasta un piso, para que lo lejano se siga oyendo apenas. */
 export const cercania = z => Math.min(1.8, Math.max(0.15, 45 / (Math.max(0, z || 0) + 25)));
 export function sfxEn(key, z) { const d = SFX_DEF[key]; return sfxOne(key, d ? d.v * cercania(z) : undefined); }
-export function sfxOne(key, vol, forzar) {
+/** EL TRUENO DE LA OLA GIGANTE (14/11): un sample del autor (terrain/thunder), elegido, afinado y medido por
+ *  la DISTANCIA de la ola `z` (m). Encima: el doble, seco, fuerte y apenas agudo. A media distancia: el largo
+ *  que rueda. Lejos: el largo o el corto, mas bajo de volumen y mas GRAVE (lo agudo se pierde en la
+ *  distancia). Cada uno con su variacion al azar, asi dos seguidos nunca suenan iguales. El retraso desde el
+ *  rayo lo pone systems/tormenta.js. */
+export function truenoOla(z) {
+  const cerca = Math.max(0, Math.min(1, 1 - (z - 150) / 900));       // 1 encima … 0 a 1050 m
+  const key = z < 330 ? 'truenoDoble' : z < 750 ? (Math.random() < 0.6 ? 'truenoLargo' : 'truenoDoble')
+    : (Math.random() < 0.55 ? 'truenoLargo' : 'truenoCorto');
+  const rate = (0.84 + 0.18 * cerca) * (0.95 + Math.random() * 0.1);
+  return sfxOne(key, 0.75 + 1.5 * cerca, true, rate);
+}
+
+export function sfxOne(key, vol, forzar, rate) {
   const d = sfxSrc(key); if (!d || muted) return false;
   // (`forzar`: la explosion de MI avion no la saltea el tope — 21/10: es la que tiene que sonar siempre)
   if (!forzar && key.startsWith('ex') && key !== 'exocetSale' && explosionesSonando() >= EXPLOSIONES_MAX) return true;   // ya hay bastantes
@@ -221,6 +234,8 @@ export function sfxOne(key, vol, forzar) {
   const v = Math.min(1, (vol !== undefined ? vol : d.v) * gainDe(key));
   const t0 = d.offset || 0;
   try { a.currentTime = t0; } catch (e) { }   // offset: arranca N segundos adentro del sample
+  // (`rate`: el tono — el trueno de la ola baja de tono con la distancia; sin el, el de siempre)
+  a.preservesPitch = false; a.playbackRate = rate || 1;
   playFaded(a, v, d.fi || 0, d.fo || 0, t0);
   return true;
 }

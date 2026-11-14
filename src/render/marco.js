@@ -26,6 +26,7 @@ import { MARCO_X, MARCO_REACH, MARCO_A, MARCO_COL, MARCO_SKY } from '../data/tun
 import { bendW, paredesTapan } from '../core/zigzag.js';
 import { run } from '../core/run.js';
 import { lomadasDe } from '../core/geografia.js';
+import { oscuroGigante } from './world.js';
 
 // margen de dibujo hacia afuera de la pantalla: con el HORIZONTE GIRATORIO el mundo rota y las
 // esquinas dejan de estar tapadas por el borde. Mismo motivo que el -70/W+140 del cielo.
@@ -54,7 +55,10 @@ const marcoOn = () => (cfg.marco === 'bruma' || cfg.marco === 'focus') && Math.m
  *  ANTES del avion, la lluvia y los popups: el marco esta afuera, nunca sobre tu propio avion. */
 export function drawMarco() {
   if (!marcoOn()) return;
-  const col = MARCO_COL[cfg.marco], aL = MARCO_A[cfg.marco] * (1 - tapaLado(-1)), aR = MARCO_A[cfg.marco] * (1 - tapaLado(1));
+  // (la OLA GIGANTE se come la bruma: con la pared encima no queda luz que la haga blanca — world.js oscuroGigante)
+  const og = 1 - oscuroGigante();
+  if (og <= 0.01) return;
+  const col = MARCO_COL[cfg.marco], aL = MARCO_A[cfg.marco] * (1 - tapaLado(-1)) * og, aR = MARCO_A[cfg.marco] * (1 - tapaLado(1)) * og;
   const reachMax = W * MARCO_REACH;
 
   if (cam.y <= 0.1) return;   // camara al ras: la fila no tiene profundidad y la cuenta se dispara
