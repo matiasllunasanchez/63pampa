@@ -17,8 +17,8 @@ import { proj, piques } from '../core/fx.js';
 import { radarP } from '../core/radarPropio.js';   // el radar propio: la cuña solo con eco (15/10)
 import { hzWorld, tiltFade } from '../core/horizon.js';
 import { bendW, paredH } from '../core/zigzag.js';
-import { techoLadera, mez } from './paredes.js';
-import { techoIsla } from './islas.js';
+import { mez } from './paredes.js';
+import { recorteDetras, soltarRecorte } from './oclusion.js';
 import { drawColinas } from './colinas.js';   // las lomadas de afuera del carril (30/9)
 import { drawDerribado } from './squad.js';   // el avion propio que se pierde (16/10)
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
@@ -495,7 +495,10 @@ export function drawFog() {
   ctx.globalAlpha = 1;
 }
 
-export function drawSea() {
+// `alHorizonte` (13/11): lo que esta en el horizonte —el buque de la aproximacion— se dibuja DESPUES del suelo y
+// ANTES de las lomadas: todo lo que se levanta esta mas cerca que el horizonte y lo tiene que tapar (el autor:
+// "el barco del horizonte aparece por encima de algo fisico del pasillo")
+export function drawSea(alHorizonte) {
   refreshGround();   // el suelo es TEMA: si cambio el cielo, cambian sus tablas
   rowH = hzWorld() ? 2 : 1;   // ver rowH: con el mundo derecho no cambia NADA del dibujo de siempre
   const landMode = cfg.terrain === 'land';
@@ -681,6 +684,7 @@ export function drawSea() {
     // puntos del oleaje donde hay agua. Se saltean enteras si en pantalla no hay nada de lo suyo.
     if (nTierra || nCosta || nPlaya) drawLand(false, true);
     if (nMar || nCosta || nPlaya) drawSeaDots(landVisible, false, true);
+    if (alHorizonte) alHorizonte();
     lomadas();
     return;
   }
@@ -690,6 +694,7 @@ export function drawSea() {
     drawSeaDots(landVisible, true);    // oleaje solo del lado del agua (limite por fila)
     drawFleet();                       // la flota de desembarco en el horizonte
   } else drawSeaDots(landVisible);
+  if (alHorizonte) alHorizonte();
   lomadas();
 }
 
@@ -1669,51 +1674,16 @@ function hitFlash(sx, sy, k, o, w, h) {
  *  columnas por cuadro; esto es un recorrido grueso por antiaereo de ladera, y ninguno para el
  *  resto del mundo. */
 export function drawObstacle(o) {
-  // UNA ISLA EN EL MEDIO (PLAN_GEOGRAFIA G4) tambien corta: lo que esta pasando la isla asoma por
-  // encima de su lomo, no se pinta encima de la tierra que tiene delante
-  const trasIsla = o.z > 8 && hayIslaAntes(o.z);
-  // …Y UNA OLA DELANTE TAMBIEN (19/10, el autor: "los barcos que debian estar detras de la ola, tapados, estaban
-  // por encima"): la ola es parte del mar, que se dibuja antes que todo, asi que sin esto nada quedaba detras
-  const co = o.type !== 'ola' && o.z > 8 ? techoOla(o.x, o.z) : null;
-  if (!o.enLadera && !trasIsla && co === null) return dibujarObstaculo(o);
-  const cl = o.enLadera ? techoLadera(o.x, o.z) : null, ci = trasIsla ? techoIsla(o.x, o.z) : null;
-  let corte = cl === null ? ci : ci === null ? cl : Math.min(cl, ci);
-  if (co !== null) corte = corte === null ? co : Math.min(corte, co);
-  if (corte === null) return dibujarObstaculo(o);
-  const kk = F / o.z, base = HOR + (cam.y - (o.gy || 0)) * kk;
-  if (corte >= base) return dibujarObstaculo(o);              // el filo le queda por debajo: entero
-  if (corte <= base - (o.h || 3) * kk) return;                // tapado hasta la punta: nada que ver
-  ctx.save();
-  ctx.beginPath(); ctx.rect(-80, -200, W + 160, corte + 200); ctx.clip();
-  // ⚠ EL PATH NO SE VA CON EL `restore()`. `save`/`restore` guardan el ESTADO, no el camino: el
-  // rectangulo del recorte queda de camino actual, y el primer `stroke()` de mas adelante que
-  // dibuje sin abrir el suyo lo arrastra — un borde de recorte pintado cruzando la pantalla.
-  ctx.beginPath();
+  // (13/11: TODO obstaculo se recorta contra el terreno de adelante — laderas, islas, lomadas y olas —, no
+  // solo el antiaereo de ladera; el filo es por columna, con la forma de la tierra: render/oclusion.js)
+  if (o.type === 'ola' || !(o.z > 8)) return dibujarObstaculo(o);
+  const kk = F / o.z, gy = o.gy || 0, y = o.y != null ? o.y : gy, h = o.h || 3;
+  const sx = proj(o.x, gy, o.z).x, med = (Math.max(o.w || 0, h, 5) * 1.3) * kk + 4;
+  const yBase = HOR + (cam.y - Math.min(gy, y)) * kk, yTop = HOR + (cam.y - (Math.max(gy, y) + h + 3)) * kk;
+  const r = recorteDetras(sx - med, sx + med, yTop, yBase, o.z);
+  if (r === 'oculto') return;
   dibujarObstaculo(o);
-  ctx.restore();
-  ctx.beginPath();
-}
-
-/** EL FILO DE LA OLA MAS ALTA QUE LE PASA POR DELANTE a un obstaculo en (x, camZ): la `y` de pantalla de su
- *  cresta en la columna del obstaculo, o null si ninguna lo cubre. */
-function techoOla(x, camZ) {
-  let techo = null;
-  const sx = proj(x, 0, camZ).x;
-  for (const w of obstacles) {
-    if (w.type !== 'ola' || !(w.z > 3) || w.z >= camZ - 1) continue;
-    const wx = cam.x + (sx - W / 2) * w.z / F;                      // la columna del obstaculo, a la altura de la ola
-    const h = olaBump(w, wx - w.x, 0);
-    if (!(h > 0.3)) continue;
-    const y = HOR + (cam.y - h) * F / w.z;
-    if (techo === null || y < techo) techo = y;
-  }
-  return techo;
-}
-
-/** ¿Hay una isla entre la camara y `camZ`? La pregunta barata antes de la cara (`techoIsla`). */
-function hayIslaAntes(camZ) {
-  for (const r of geo.islas) if (r.d0 < run.dist + camZ && r.d1 > run.dist + 4) return true;
-  return false;
+  if (r === 'clip') soltarRecorte();
 }
 
 /** EL SEA SLUG en picada (28/9): un misil GRANDE y claro — cuerpo largo blanco con la franja

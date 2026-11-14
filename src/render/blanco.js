@@ -22,13 +22,21 @@ import { drawMira } from './miras.js';
 import * as fuego from './fuego.js';
 import { nocheDe, luzNoche } from './noche.js';
 import { reflejoLuz } from './luces_enemigos.js';
+import { detras } from './oclusion.js';
 // EL VERDE DE LA SUELTA, el mismo que titila en el tablero (SUELTA_COL de render/hud.js).
 const VERDE_SUELTA = '#7fe07a';
 
 /** El buque, en el mundo. Va ANTES de los obstaculos del pasillo: casi siempre es lo mas lejano. */
+/** EL BLANCO, RECORTADO POR LO QUE TIENE DELANTE (13/11): se dibuja DESPUES del terreno (game.js), asi lo que
+ *  esta mas lejos queda detras de el, y lo que esta mas cerca —una isla, una ladera, una loma, una ola— lo
+ *  tapa con su propio filo (render/oclusion.js). */
 export function drawBlanco() {
   if (!blanco.on) return;
   if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ * 0.5) return;
+  const z = zVista(blanco.z), s = proj(BL.X, blanco.base, z), m = BL.LEN * s.k * 0.7 + 8;
+  detras(s.x - m, s.x + m, s.y - BL.LEN * s.k * 0.6 - 8, s.y + 4, z, dibujarBlanco);
+}
+function dibujarBlanco() {
   const z = zVista(blanco.z);   // se DIBUJA a la profundidad comprimida (ver zVista)
   const s = proj(BL.X, blanco.base, z), k = s.k;
   const len = BL.LEN * k;

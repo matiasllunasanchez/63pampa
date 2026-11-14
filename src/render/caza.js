@@ -16,6 +16,7 @@
 // linea: los dos pueden aparecer en el mismo cuadro y se distinguen sin leyenda.
 
 import { lucesEnemigo } from './luces_enemigos.js';
+import { detras } from './oclusion.js';
 import { ctx, px, PZ } from './ctx.js';
 import { CABINA } from '../core/cabina.js';
 // EN PRIMERA PERSONA (core/cabina.js) el ojo se mete en el avion, pero LA COLA sigue pensada con el
@@ -168,9 +169,14 @@ export function drawCaza(lejos) {
     // `enCola` lo decide el sistema: ya te paso y esta detras tuyo, asi que no hay nada que
     // dibujar — la estela y el humo si siguen, porque esos quedaron en el aire delante tuyo.
     if (!H.enCola && (H.z > corte) === !!lejos && H.z > 1.5) {
-      drawCazaSprite(H);
-      // de noche o en la niebla, con sus luces de navegacion (render/luces_enemigos.js)
-      if (lucesK > 0) lucesEnemigo({ type: 'jet', x: H.x, y: H.y, z: zv(H.z), seed: H.id || 0 }, lucesK);
+      // DETRAS DE LA MONTAÑA, TAPADO (13/11, el autor: "aviones que pasan por encima de montañas cuando
+      // deberian estar detras"): el Harrier y sus luces, recortados contra el terreno de adelante
+      const zz = zv(H.z), sp = proj(H.x, H.y, zz), m = 5.5 * sp.k + 6;
+      detras(sp.x - m, sp.x + m, sp.y - m, sp.y + m * 0.6, zz, () => {
+        drawCazaSprite(H);
+        // de noche o en la niebla, con sus luces de navegacion (render/luces_enemigos.js)
+        if (lucesK > 0) lucesEnemigo({ type: 'jet', x: H.x, y: H.y, z: zz, seed: H.id || 0 }, lucesK);
+      });
     }
   }
 }

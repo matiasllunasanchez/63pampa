@@ -39,7 +39,7 @@ const MATA_PASO = 7, MATA_Z = 130;
  *  Ese borde ademas SERPENTEA a lo largo de z — con un si/no de "hay tierra" la lomada terminaba en
  *  una pared vertical contra el mar y se leia como un bloque (30/9). En el resto, tierra o no. */
 const suave = u => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
-function tierraAdentro(x, wz, costa) {
+export function tierraAdentro(x, wz, costa) {
   if (costa) {
     const d = orillaS(wz) - ladoEn(wz) * x;          // metros tierra adentro desde la orilla
     // siempre >= 0: el borde se aleja de la orilla, nunca se mete en el agua
@@ -67,11 +67,11 @@ const cuadro = { activo: false, camZ: 0, pintadas: 0, T: null, L: null, lejos: '
  *  levanta; pinta hasta `zCorte` (lo que queda mas cerca lo pinta `colinasHasta`). */
 export function drawColinas(zCorte) {
   const t0 = performance.now();
-  cuadro.activo = false; cuadro.pintadas = 0;
+  cuadro.activo = false; cuadro.hubo = false; cuadro.pintadas = 0;
   const dv = run.dist;
   // ¿hay tierra en algun lado de lo que se ve? Barato y primero: el mapa de mar no paga nada.
   if (!(sueloEn(dv + 60) === 'sea' && sueloEn(dv + 400) === 'sea' && sueloEn(dv + COLINA_Z) === 'sea')) {
-    cuadro.activo = true; cuadro.camZ = COLINA_Z;
+    cuadro.activo = true; cuadro.hubo = true; cuadro.camZ = COLINA_Z;
     cuadro.T = tierraArriba(); cuadro.L = caraLadera();
     cuadro.lejos = sueloEn(dv + COLINA_Z) === 'land' ? theme.land.far : theme.water.base0;
     for (const S of POR_LADO) { S.hay = false; S.zPrev = 0; S.izPrev = null; }
@@ -87,9 +87,20 @@ export function drawColinas(zCorte) {
  *  x de mundo que cae ahi, la altura de la loma con la MISMA cuenta con la que se dibuja, y si su cresta queda
  *  por encima de `sy`, la tapa. Barato: sin tierra a la vista no hace nada. */
 export function tapaColinas(sx, sy) {
-  if (!cuadro.activo) return false;
+  const t = techoColinasCol(sx, Infinity);
+  return t !== null && t <= sy;
+}
+/** ¿Hay lomadas en este cuadro? (render/oclusion.js) */
+// (`hubo` y no `activo`: `activo` se apaga cuando el recorrido termina de pintar, y estas preguntas se hacen
+// DESPUES — con `activo` contestaban siempre que no, y las luces de la noche y el recorte no veian las lomas)
+export const hayColinas = () => !!cuadro.hubo;
+/** EL FILO DE LAS LOMADAS por delante de `camZ` en la columna `sx`: la `y` de pantalla mas alta, o null.
+ *  La misma cuenta que el dibujo (render/oclusion.js la junta con las laderas, las islas y las olas). */
+export function techoColinasCol(sx, camZ) {
+  if (!cuadro.hubo) return null;
   const dv = run.dist;
-  for (let z = 6; z < COLINA_Z; z += Math.max(3, z * 0.035)) {
+  let techo = null;
+  for (let z = 6; z < Math.min(COLINA_Z, camZ); z += Math.max(3, z * 0.035)) {
     const wz = dv + z, rampa = rampaTierra(wz);
     if (rampa <= 0.01 || islaEn(wz)) continue;
     const k = F / z, x = (sx - W / 2) / k + cam.x - bendW(z);
@@ -99,9 +110,9 @@ export function tapaColinas(sx, sy) {
     const t = tierraAdentro(x, wz, sueloEn(wz) === 'coast');
     if (t <= 0) continue;
     const h = colinaH(x, wz) * rampa * t;
-    if (h > 0.05 && proj(x, h, z).y <= sy) return true;
+    if (h > 0.05) { const y = proj(x, h, z).y; if (techo === null || y < techo) techo = y; }
   }
-  return false;
+  return techo;
 }
 
 /** Sigue pintando las lomadas del cuadro, de donde quedaron, hasta `zCorte` (camZ). */
