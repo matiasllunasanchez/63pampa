@@ -4255,7 +4255,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     const TBACK_MAP = {
       dusk:    { f: 'sunrise.png',      hor: 0.72, sol: { x: 0.485, y: 0.518 }, col: '255,178,96' },
       night:   { f: 'night.png',        hor: 0.72 },   // auroras, sin luna en cuadro
-      storm:   { f: 'night_storm.png',  hor: 0.72 },   // relampagos, sin astro
+      storm:   { f: 'night_storm.jpg',  hor: 0.72 },   // relampagos, sin astro
       clear:   { f: 'day_argentday.png', hor: 0.72, sol: { x: 0.498, y: 0.484 }, col: '255,236,180' },
       cloudy:  { f: 'day_cloudy.png',   hor: 0.72 },   // dia nublado (desembarco): el sol esta tapado
       // --- los tres marinos nuevos: otra proporcion (menos altos) y el astro mas arriba ---

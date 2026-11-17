@@ -213,6 +213,7 @@ en varias fuerzas aéreas (entre ellas la de Perú).
 **PENDIENTE (pedido del autor 29/9/2026): el avión concreto es el MB-339A matrícula 4-A-115.**
 No un MB-339 genérico: se modela y se hornea ESE ejemplar, con su matrícula pintada, igual que
 el nombre pintado de los aviones del escuadrón. Falta:
+
 - modelo procedural en `tools/models/planes.js` y sus tres hojas (base, cabeceos y poder RASANTE),
   más sus capas de carga (`CELULA` / `PUNTOS` de `colgar`), para que entre al sistema de cargas;
 - la pintura y los números del 4-A-115 (relevar fotos del ejemplar: esquema de la Aviación Naval
@@ -280,19 +281,19 @@ Agregar **recarga de combustible en el aire**, acoplándose al KC-130H.
 > **personaje**, se **rompe salvando a alguien** en M6, y su rotura es lo que arma la trama
 > del tercer acto. Esta versión es esa, y además está atada a las perillas reales.
 
-### Lo que la Chancha ES en el guion *(y por qué eso manda sobre el diseño)*
+### Lo que la Chancha ES en el guion _(y por qué eso manda sobre el diseño)_
 
-En M6 el Gitano se queda sin nafta de noche y aparece —*"gorda, lenta, hermosa"*—. La
+En M6 el Gitano se queda sin nafta de noche y aparece —_"gorda, lenta, hermosa"_—. La
 manguera se conecta a metros del mar. Y entonces los ilumina un reflector y empieza el fuego
 antiaéreo: **la Chancha no se desconecta.** Aguanta, enorme y lenta, hasta que el cordobés
 termina de cargar. Recién ahí rompe: un impacto le arranca un pedazo de ala y se va al oeste
 tosiendo.
 
-> **VOZ DE LA CHANCHA:** *Tranquilo, cordobés. La Chancha no abandona. Servite.*
+> **VOZ DE LA CHANCHA:** _Tranquilo, cordobés. La Chancha no abandona. Servite._
 
 Desde esa noche **vuela corto**: no sostiene las corridas largas al sur. En M10 Puma lo dice
-seco — *"La Chancha no baja más al sur. Lo que llevamos es lo que hay"* — y en M13 esa
-frase es el nudo entero: *"Sin Chancha no hay nafta de vuelta."*
+seco — _"La Chancha no baja más al sur. Lo que llevamos es lo que hay"_ — y en M13 esa
+frase es el nudo entero: _"Sin Chancha no hay nafta de vuelta."_
 
 **Consecuencia de diseño:** la Chancha no puede ser un pickup. Un pickup que se rompe no le
 duele a nadie. Tiene que ser algo que el jugador **aprenda a hacer y después extrañe.**
@@ -303,8 +304,8 @@ La tentación es hacer un minijuego de acople y listo. La decisión que lo vuelv
 otra: **la Chancha vuela arriba.** Para cargar, el A-4 tiene que **subir por encima de
 `RADAR_ALT = 20`** — el techo que todo el juego te enseñó a no cruzar.
 
-Eso convierte el reabastecimiento en la pregunta que el juego quiere hacer: *¿vale la pena
-que te vean, para tener con qué volver?* Es la misma tensión de #27 (techo de radar variable)
+Eso convierte el reabastecimiento en la pregunta que el juego quiere hacer: _¿vale la pena
+que te vean, para tener con qué volver?_ Es la misma tensión de #27 (techo de radar variable)
 y de la NIEBLA (#29.1), y sale gratis: no hay que inventar un sistema, hay que **poner la
 manguera arriba del techo.**
 
@@ -354,7 +355,7 @@ obligación durante todo el Movimiento III.
 - **`cfg.enemyMove` no la debe apagar.** Esa llave es de enemigos; la Chancha es de los
   nuestros. Si se apaga con esa llave, la primera prueba va a parecer un bug.
 - **No hay arte de Hércules.** Hay que hornearlo (`tools/bake_enemies.html` → `npx electron
-  tools/bake_enemies_run.js`) y volver a medir la caja en `render/enemies.js`. Es el modelo
+tools/bake_enemies_run.js`) y volver a medir la caja en `render/enemies.js`. Es el modelo
   más grande del juego: la caja va a doler.
 
 ### Ya tiene música y ya tiene mejora
@@ -362,7 +363,7 @@ obligación durante todo el Movimiento III.
 No hay que inventarlas, están escritas:
 
 - **Pista 16 `chancha.mp3` — "La Chancha no abandona"** en [SOUNDTRACK.md](../historia/SOUNDTRACK.md):
-  el tema sube sin acelerar mientras entra el antiaéreo —*la máquina se niega a moverse*—
+  el tema sube sin acelerar mientras entra el antiaéreo —_la máquina se niega a moverse_—
   hasta un impacto metálico, y después sigue tocando herida y más grave.
 - **"LA CHANCHA"** como mejora del banco del Pichón: un punto de reabastecimiento extra en el
   nivel. Ver el pool de mejoras.
@@ -453,13 +454,13 @@ Los datos, con una idea de cómo podría expresarse cada uno **dentro de la part
 que hace falta para que no queden en texto de menú). **Verificar antes de publicar** — ver la
 nota en [PREGUNTAS_HISTORICAS.md](PREGUNTAS_HISTORICAS.md).
 
-| País                | Qué aportó                                                                    | Posible expresión en el juego                                                                                                           |
-| ------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| País                | Qué aportó                                                                    | Posible expresión en el juego                                                                                                                                                                                                                                                                                    |
+| ------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Perú**            | **10 Dassault Mirage 5** entregados                                           | 🟨 **RESUELTO en 3.5 — ojo, NO es como decía esta fila.** Los Mirage **nunca combatieron** (llegaron a Tandil el 5/6 y quedaron ahí), así que **no entran a la campaña**: el desbloqueo del Mirage «Mara» es para **CICLO / ARENA / MINUTOS SAGRADOS**, con placa honesta. Ver PLAN_CAMPANA_001 §7 y GUION_3 M10 |
-| **Venezuela**       | Apoyo militar inmediato y **combustible**                                     | Bidones extra / autonomía: toca directo el reloj del run (#26 depende del combustible)                                                  |
-| **Libia**           | Misiles soviéticos, armamento pesado y minas terrestres, de forma **secreta** | Armamento extra que aparece **sin anuncio** — encaja con que fue clandestino                                                            |
-| **España**          | Filtró extraoficialmente información y **manuales técnicos de los Harrier**   | El Harrier enemigo pasa a mostrar sus **puntos débiles** (marcador de zona vulnerable, como el momentum)                                |
-| **Unión Soviética** | **Inteligencia satelital** de los movimientos de la flota británica           | Aviso previo de dónde está la flota: el marcador de objetivo aparece antes / se ve el rumbo enemigo                                     |
+| **Venezuela**       | Apoyo militar inmediato y **combustible**                                     | Bidones extra / autonomía: toca directo el reloj del run (#26 depende del combustible)                                                                                                                                                                                                                           |
+| **Libia**           | Misiles soviéticos, armamento pesado y minas terrestres, de forma **secreta** | Armamento extra que aparece **sin anuncio** — encaja con que fue clandestino                                                                                                                                                                                                                                     |
+| **España**          | Filtró extraoficialmente información y **manuales técnicos de los Harrier**   | El Harrier enemigo pasa a mostrar sus **puntos débiles** (marcador de zona vulnerable, como el momentum)                                                                                                                                                                                                         |
+| **Unión Soviética** | **Inteligencia satelital** de los movimientos de la flota británica           | Aviso previo de dónde está la flota: el marcador de objetivo aparece antes / se ve el rumbo enemigo                                                                                                                                                                                                              |
 
 El patrón: cada ayuda debería tocar **un sistema distinto** (roster, combustible, armamento,
 información del enemigo, información del objetivo) para que se noten como cosas separadas.
@@ -884,7 +885,7 @@ Tres razones, y la primera es la que más pesa:
 2. **Una opción que cambia la dificultad no es una preferencia, es un handicap.** El récord
    (`rasante_frontal_best`) es un número pelado en localStorage: no guarda con qué configuración se
    hizo. Prenderla o apagarla sería puntaje gratis.
-3. **La versión de dos filos es un proyecto de balance, no un toggle.** Tocar la detección *y* la
+3. **La versión de dos filos es un proyecto de balance, no un toggle.** Tocar la detección _y_ la
    distancia a la que se ven los obstáculos se mete con el presupuesto de tiempo de reacción, que
    #29.1 dice que hay que medir **en segundos con `feeltest`**.
 
@@ -907,11 +908,11 @@ es indistinguible: la lluvia es un campo de rayas iguales y lo único que se lee
 
 > Medido, aislando la lluvia (mismo cuadro con y sin, y midiendo la diferencia):
 >
-> | estado | giro del mundo | ángulo esperado | medido |
-> |---|---|---|---|
-> | nivelado | 0° | −5,5° | **−5°** |
-> | banqueando derecha | −23,1° | +17,6° | **+18°** |
-> | banqueando izquierda | +23,1° | −28,6° | **−30°** |
+> | estado               | giro del mundo | ángulo esperado | medido   |
+> | -------------------- | -------------- | --------------- | -------- |
+> | nivelado             | 0°             | −5,5°           | **−5°**  |
+> | banqueando derecha   | −23,1°         | +17,6°          | **+18°** |
+> | banqueando izquierda | +23,1°         | −28,6°          | **−30°** |
 
 ### Cómo quedó
 
@@ -943,7 +944,7 @@ se leen como dos capas que no se conocen. Lo que las une es que el agua **pegue*
   sigue al avión cuando el sprite rota (que es cuando más se nota).
 - **La silueta es una elipse ancha y chata** (0,34 × 0,09 del frame): visto desde atrás, el avión es
   sobre todo ala. Los factores salen de medir el sprite contra su frame de 84 px — con 0,40/0,13 el
-  agua rebotaba *al lado* del avión, no sobre él.
+  agua rebotaba _al lado_ del avión, no sobre él.
 - **La cadencia sigue a la intensidad y a la velocidad**: `7/17/34` impactos por segundo por
   `(1 + spd/150)`, vida 0,28 s → del orden de 6 / 14 / 27 gotas vivas a velocidad de crucero.
 
@@ -964,7 +965,7 @@ alguna vez se toca el aspecto de una hay que mirar la otra.
 ## 29-bis. LLUVIA como mecánica (pendiente)
 
 Que llueva. Hoy el mal tiempo está **pintado, no simulado**: `storm` existe como fondo
-(`night_storm.png`) y como paleta (`data/palette.js`), pero **no hay una sola gota en pantalla ni
+(`night_storm.jpg`) y como paleta (`data/palette.js`), pero **no hay una sola gota en pantalla ni
 un sistema de clima**. La lluvia sería **lo primero que el cielo le hace al juego** en vez de
 solo mirarlo de fondo.
 
@@ -975,11 +976,11 @@ tiempo, y eso no era decorado — era parte de la misión.
 
 Hay dos lluvias posibles y conviene elegir a propósito, porque son features distintas:
 
-| | **lluvia de ambiente** | **lluvia como mecánica** |
-|---|---|---|
-| qué es | efecto visual y sonoro | un parámetro más del mapa, como el viento |
-| qué cambia | la sensación | **cuánto ves y cuánto te ven** |
-| costo | 1 sesión | varias, y toca balance |
+|            | **lluvia de ambiente** | **lluvia como mecánica**                  |
+| ---------- | ---------------------- | ----------------------------------------- |
+| qué es     | efecto visual y sonoro | un parámetro más del mapa, como el viento |
+| qué cambia | la sensación           | **cuánto ves y cuánto te ven**            |
+| costo      | 1 sesión               | varias, y toca balance                    |
 
 **La versión mecánica es la interesante** porque toca la pinza que el juego ya tiene: la lluvia
 **te tapa a vos y te tapa el mundo al mismo tiempo**. Baja el alcance del radar enemigo (te
@@ -1035,7 +1036,7 @@ radar variable) y #19 (radares ingleses).
 
 > **Estado (agosto 2026): hecho, con la «versión fuerte» —el banco por debajo del radar— desde el
 > primer día.** `NIEBLA: NO · VISIBLE · CASI NULA` y `LARGO DE NIEBLA: CORTO · MEDIO · LARGO · MUY
-> LARGO` en OPCIONES → **MAPA** (con VIENTO y OBSTÁCULOS, porque cambia cómo se juega — no es
+LARGO` en OPCIONES → **MAPA** (con VIENTO y OBSTÁCULOS, porque cambia cómo se juega — no es
 > ambiente como la lluvia). Sistema en [`src/systems/fog.js`](../src/systems/fog.js), velo en
 > `drawFog()` de `render/world.js`.
 >
@@ -1057,13 +1058,13 @@ así que el aviso que da el juego solo ya se achica con la velocidad.
 La versión que quedó son **dos números y se toma el mayor**: una fracción de `SPAWN_Z` (aprieta a
 cualquier velocidad) y un piso en segundos (nunca te deja sin maniobra).
 
-| | sin niebla | VISIBLE | CASI NULA |
-|---|---|---|---|
-| spd 60 | 5,10 s | 2,93 s | 1,49 s |
-| spd 110 *(crucero)* | 2,78 s | **1,60 s** | **0,81 s** |
-| spd 180 | 1,70 s | 0,98 s | 0,55 s |
-| spd 280 | 1,09 s | 0,90 s | 0,55 s |
-| spd 344 *(a fondo)* | 0,89 s | 0,90 s | 0,55 s |
+|                     | sin niebla | VISIBLE    | CASI NULA  |
+| ------------------- | ---------- | ---------- | ---------- |
+| spd 60              | 5,10 s     | 2,93 s     | 1,49 s     |
+| spd 110 _(crucero)_ | 2,78 s     | **1,60 s** | **0,81 s** |
+| spd 180             | 1,70 s     | 0,98 s     | 0,55 s     |
+| spd 280             | 1,09 s     | 0,90 s     | 0,55 s     |
+| spd 344 _(a fondo)_ | 0,89 s     | 0,90 s     | 0,55 s     |
 
 A crucero manda la fracción y la niebla **muerde** (58% y 29% del aviso normal); a fondo manda el
 piso y la niebla **protege** — a 344 el juego ya te da menos margen que la propia niebla.
@@ -1078,12 +1079,12 @@ Se pierde rigor; se gana que el tramo se juegue.
 
 ### Cómo quedó, en números
 
-| | |
-|---|---|
-| techo del banco | **17** (radar en 20 → **rendija de 3** donde ves *y* no te pintan) |
-| largos | 500 · 900 · 1500 · 2300 → ~5 / 8 / 14 / 21 s a crucero |
-| hueco entre bancos | 2,2 × el largo |
-| dispersión | ±18% en largo y hueco, para que no se aprenda de memoria |
+|                    |                                                                    |
+| ------------------ | ------------------------------------------------------------------ |
+| techo del banco    | **17** (radar en 20 → **rendija de 3** donde ves _y_ no te pintan) |
+| largos             | 500 · 900 · 1500 · 2300 → ~5 / 8 / 14 / 21 s a crucero             |
+| hueco entre bancos | 2,2 × el largo                                                     |
+| dispersión         | ±18% en largo y hueco, para que no se aprenda de memoria           |
 
 - **El velo tapa los obstáculos** porque se dibuja al final del mundo, después de ellos y adentro
   del giro del horizonte. Eso es lo único que lo vuelve una mecánica y no un filtro de color.
@@ -1094,8 +1095,8 @@ Se pierde rigor; se gana que el tramo se juegue.
   parejo y claro (probado con `#a3b3bb`).
 - **El HUD sí atraviesa la niebla y el mundo no**, como decía el diseño. Y la barra de NIEBLA se
   **vacía**: se lee de un vistazo que esto se termina. Cambia de rojo a blanco cuando estás por
-  encima del techo. *(La barra se fue el 29/9/2026, a pedido del autor: no hace falta
-  mostrar cuánto tarda en irse, el jugador se da cuenta cuando se va.)*
+  encima del techo. _(La barra se fue el 29/9/2026, a pedido del autor: no hace falta
+  mostrar cuánto tarda en irse, el jugador se da cuenta cuando se va.)_
 
 ### Falta
 
@@ -1129,7 +1130,7 @@ z = 120", esa misma niebla te da **medio segundo** de reacción a toda velocidad
 segundos** volando lento: sería una dificultad distinta según lo que estés haciendo, y encima
 castigaría exactamente lo que el juego premia (ir rápido y a ras).
 
-**Definila al revés:** el velo es *N segundos de reacción*, y la distancia visible se calcula desde
+**Definila al revés:** el velo es _N segundos de reacción_, y la distancia visible se calcula desde
 la velocidad (`zVelo ≈ spd × N`). Así la niebla es la **misma** dificultad a cualquier velocidad, y
 el número tiene sentido para un humano: "en niebla cerrada ves lo que viene con 0,9 s de aviso".
 
@@ -1148,28 +1149,28 @@ La niebla no ocupa todo el cielo: se acuesta **abajo**, justo en la franja donde
 y **su techo queda apenas por debajo del techo del radar** (`RADAR_ALT = 20`). El resultado invierte
 la pinza del juego:
 
-| | normalmente | dentro del banco de niebla |
-|---|---|---|
-| **abajo** | seguro y rentable (racha ×10, afterburner) | **ciego**: no ves lo que viene |
-| **arriba** | te pinta el radar: oleadas de misiles | el único lugar donde **ves** |
+|            | normalmente                                | dentro del banco de niebla     |
+| ---------- | ------------------------------------------ | ------------------------------ |
+| **abajo**  | seguro y rentable (racha ×10, afterburner) | **ciego**: no ves lo que viene |
+| **arriba** | te pinta el radar: oleadas de misiles      | el único lugar donde **ves**   |
 
 O sea: **el banco de niebla te expulsa hacia arriba**, al radar, a aguantar misiles **por un tiempo
 determinado**, hasta que la niebla se termina y podés volver a bajar a lo seguro.
 
 **Por qué esto es mucho mejor que "niebla = ves menos":** es un tramo que **te saca la herramienta
-principal del juego**. RASANTE entero es "volá bajo"; acá el juego te dice, por dos minutos, *no
-podés*. Eso es un momento de nivel, no un modificador — y resuelve solo el problema de que una
+principal del juego**. RASANTE entero es "volá bajo"; acá el juego te dice, por dos minutos, _no
+podés_. Eso es un momento de nivel, no un modificador — y resuelve solo el problema de que una
 niebla pareja durante todo el mapa se vuelve monótona: **la niebla es temporal porque tiene que
 serlo**, es un obstáculo con principio y fin.
 
 **Y arriba de todo, el filo:** si el techo de la niebla queda **apenas debajo** del piso del radar,
-entre los dos queda una **rendija de dos o tres metros** donde ves *y* no te pintan. El jugador
+entre los dos queda una **rendija de dos o tres metros** donde ves _y_ no te pintan. El jugador
 común sube y come misiles; el que la encuentra, la hilvana. Es una línea de habilidad que no hay
 que programar aparte — **sale sola de poner los dos umbrales cerca**.
 
 **Contrajugada que ya existe:** el TERRAIN MASKING (ver [PIRUETAS.md](PIRUETAS.md)) clava el avión a
-ras y **descarga el radar**. En este tramo pasa a significar *zambullirse a ciegas en la niebla para
-sacarte los misiles de encima*: riesgo altísimo, premio inmediato. Una maniobra que hoy es un lujo
+ras y **descarga el radar**. En este tramo pasa a significar _zambullirse a ciegas en la niebla para
+sacarte los misiles de encima_: riesgo altísimo, premio inmediato. Una maniobra que hoy es un lujo
 se vuelve una decisión.
 
 ### Cómo podría entrar
@@ -1204,7 +1205,7 @@ se vuelve una decisión.
   esquivar misiles con turbo **quema combustible** — que con #28 es lo que te queda para el
   enfrentamiento final. Un tramo de niebla es caro en tres monedas a la vez (puntaje, nafta,
   riesgo): buenísimo como clímax, veneno si se repite tres veces por nivel.
-- **El largo del banco es el balance entero.** Es *cuánto tiempo te obliga a comer misiles*: unos
+- **El largo del banco es el balance entero.** Es _cuánto tiempo te obliga a comer misiles_: unos
   segundos de más lo vuelven una condena. Definilo en segundos de aguante, igual que el velo.
 
 - [ ] Definir el velo en segundos de reacción y medir el piso con feeltest.
@@ -1244,10 +1245,10 @@ el hitbox, cambian el rumbo, congelan el roce. **Ninguna le miente a un enemigo.
 La gambeta debería ser **la primera cuyo efecto está en el que te persigue**: el amague es
 información falsa, y el que la compra es el misil guiado o el caza que te está siguiendo el carril.
 
-| | qué hace | sobre quién |
-|---|---|---|
-| **JINK** | 4 quiebres impredecibles, perdés el control del rumbo | vos |
-| **S-TURN** | te abrís y volvés al carril | vos |
+|             | qué hace                                                               | sobre quién    |
+| ----------- | ---------------------------------------------------------------------- | -------------- |
+| **JINK**    | 4 quiebres impredecibles, perdés el control del rumbo                  | vos            |
+| **S-TURN**  | te abrís y volvés al carril                                            | vos            |
 | **GAMBETA** | amagás a un lado, **el que te sigue se compromete**, salís por el otro | **el enemigo** |
 
 Eso le da un lugar propio que ninguna otra ocupa, y engancha con cosas que ya existen: los misiles
@@ -1326,11 +1327,11 @@ Lo que queda para después:
 - [x] Opción de menú, HUD (tablero de pips con caídos tachados + indicativo), relevo, formación,
       salida de plano, gracia, herencia, indicativos, línea de radio (es/en), sonido reusado.
 - [x] **Voz de piloto en el relevo**: una grabación al azar de `assets/sfx/audios/pilots` (14
-      archivos, 1,42–4,73 s) suena en el *handoff* — el momento en que el compañero asume el mando,
+      archivos, 1,42–4,73 s) suena en el _handoff_ — el momento en que el compañero asume el mando,
       el mismo en que aparece «PATRIA n ASUME EL MANDO». La música se agacha mientras habla
       (`PILOT_DUCK`) y la voz **saltea el `SFX_MASTER`** (`m: 1` en el catálogo): medida contra el
       motor sonando, le gana 5,3× (0,95 contra 0,18). Se puede porque suena una vez por relevo — el
-      maestro existe para que lo que suena *todo el tiempo* no tape la música. El pool es la carpeta entera; recortarlo es borrar renglones del array
+      maestro existe para que lo que suena _todo el tiempo_ no tape la música. El pool es la carpeta entera; recortarlo es borrar renglones del array
       `pilot` en `data/sfx.js`. Los `woho*` son festejos y quedan raros justo después de perder a
       alguien — candidatos a salir si el tono no cierra.
 - [ ] Que la muerte del líder cueste algo más que la racha: ¿moral del escuadrón? ¿los numerales
@@ -1361,21 +1362,21 @@ Es **100 % cosmético**: `proj()` se resuelve antes de que el canvas rote, así 
 spawn, hitboxes y dificultad no cambian. Por eso se puede prender y apagar volando.
 
 Cuatro posiciones en **OPCIONES** (no en el menú `[M]`, que la campaña nunca abre), y **persiste**.
-Cada una contiene a la anterior, así que la lista se lee como una perilla de *cuánto se mueve el
-mundo*:
+Cada una contiene a la anterior, así que la lista se lee como una perilla de _cuánto se mueve el
+mundo_:
 
-| valor | qué hace |
-|---|---|
-| `FIJO` | el mundo nunca se inclina. La salida para quien se marea |
-| `EN PIRUETAS` | solo durante tonel/maniobra: el giro es un evento, no un fondo móvil |
-| `TOTAL` | **default** — además el alabeo continuo inclina el horizonte (amortiguado: `BANK_TILT`, ~2/5 del real). Doblar inclina el mundo **25°**: es *la* sensación que da todo esto, y con `EN PIRUETAS` de default la mayoría no la veía nunca. *(Arrancó en 12,6° y se duplicó a pedido: a esa altura se leía como un temblor, no como una virada.)* |
-| `LIBRE 360°` | además `[Q]`/`[E]` rolan a voluntad **sin tope**: el suelo puede quedar en el techo y quedarse ahí. Al soltar se endereza solo, por el camino corto |
+| valor         | qué hace                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FIJO`        | el mundo nunca se inclina. La salida para quien se marea                                                                                                                                                                                                                                                                                       |
+| `EN PIRUETAS` | solo durante tonel/maniobra: el giro es un evento, no un fondo móvil                                                                                                                                                                                                                                                                           |
+| `TOTAL`       | **default** — además el alabeo continuo inclina el horizonte (amortiguado: `BANK_TILT`, ~2/5 del real). Doblar inclina el mundo **25°**: es _la_ sensación que da todo esto, y con `EN PIRUETAS` de default la mayoría no la veía nunca. _(Arrancó en 12,6° y se duplicó a pedido: a esa altura se leía como un temblor, no como una virada.)_ |
+| `LIBRE 360°`  | además `[Q]`/`[E]` rolan a voluntad **sin tope**: el suelo puede quedar en el techo y quedarse ahí. Al soltar se endereza solo, por el camino corto                                                                                                                                                                                            |
 
 `[Q]`/`[E]` van aparte de `←`/`→` a propósito: esas mueven el avión de carril **y** alimentan el
 detector de combos, así que rolar con ellas sería rolar sin querer cada vez que esquivás.
 
 La **red de radar** se funde con la inclinación (`tiltFade`). Es un plano horizontal: se entiende
-como *techo* solo vista desde abajo, y rolada pasa a ser una pared de líneas naranjas sobre el mar.
+como _techo_ solo vista desde abajo, y rolada pasa a ser una pared de líneas naranjas sobre el mar.
 El fundido termina en 0,21 rad — **por debajo** de `BANK_TILT` (0,22), así que banquear a fondo la
 apaga del todo en vez de dejar un fantasma. Al nivelar vuelve entera. Medido con la red forzada a
 SIEMPRE y el avión a 30 m: 11376 px nivelado → 612 px (el piso de fondo) banqueando → 11652 al
@@ -1400,20 +1401,21 @@ pueden solaparse: el solape se pintaría dos veces y la costura volvería, ahora
 Medido como fracción de píxeles cálidos en el cuarto inferior de la pantalla (mar seguro en todos
 los casos), con el mundo girado 26°:
 
-| filas | nivelado | girado, atardecer | girado, nublado |
-|---|---|---|---|
-| 1 px (antes) | 0,5 % | **4,5 %** | 0,5 % |
-| 2 px (ahora) | 0,5 % | **0,8 %** | 0,5 % |
+| filas        | nivelado | girado, atardecer | girado, nublado |
+| ------------ | -------- | ----------------- | --------------- |
+| 1 px (antes) | 0,5 %    | **4,5 %**         | 0,5 %           |
+| 2 px (ahora) | 0,5 %    | **0,8 %**         | 0,5 %           |
 
-La columna de *nublado* es el control: con un fondo gris no hay nada cálido que filtrarse, y da lo
+La columna de _nublado_ es el control: con un fondo gris no hay nada cálido que filtrarse, y da lo
 mismo antes que después. Eso es lo que prueba que la fuga venía de la imagen de fondo. Y ahora la red se puede **apagar del todo desde OPCIONES** (`RED DE RADAR: NO · AL
 ENTRAR · SIEMPRE`), que persiste — antes solo estaba en el menú `[M]`, o sea inalcanzable jugando
 la campaña.
 
 > ⚠️ **Costó tres intentos, y los dos primeros fallaron por lo mismo.**
+>
 > 1. Se medía la inclinación total con el fundido de 0,30 a 0,95: a 20° de tonel la red seguía al
 >    70% y se veía igual.
-> 2. Se separó la *maniobra* (pirueta + giro libre) del *banqueo* y se dejó el banqueo afuera, para
+> 2. Se separó la _maniobra_ (pirueta + giro libre) del _banqueo_ y se dejó el banqueo afuera, para
 >    poder ser agresivo sin apagarla al doblar en `TOTAL`. Peor: con `CONTROL POR ALABEO` el avión
 >    banquea todo el tiempo, así que la red se quedaba entera justo mientras el mundo estaba
 >    torcido.
@@ -1423,7 +1425,7 @@ la campaña.
 > mide `hzWorld()` y punto.
 
 El **horizonte artificial** del HUD (abajo a la izquierda, en espejo del panel de estado) se
-dibuja *siempre*, incluso con `FIJO`: es el único lugar donde ver dónde está el suelo cuando el
+dibuja _siempre_, incluso con `FIJO`: es el único lugar donde ver dónde está el suelo cuando el
 fondo no se mueve. Lee `attitude()` — el alabeo **real**, no el amortiguado del fondo.
 
 Lo que queda para después:
@@ -1448,7 +1450,7 @@ Lo que queda para después:
 
 ## 31. Control POR ALABEO: las flechas rolan y el desplazamiento es la consecuencia ✔ (implementado)
 
-El esquema de siempre (`DIRECTO`) es un *shoot'em up*: `←`/`→` empujan al avión de costado y el
+El esquema de siempre (`DIRECTO`) es un _shoot'em up_: `←`/`→` empujan al avión de costado y el
 alabeo del sprite es una animación que acompaña. Con `POR ALABEO` se invierte la causa: las flechas
 **rolan**, y moverse de costado es lo que produce estar banqueado — `plane.vx = sin(alabeo) × V`.
 
@@ -1462,16 +1464,16 @@ En `DIRECTO`, soltar la flecha frena el desplazamiento en medio segundo. Con `PO
 banqueado, y banqueado seguís virando: para cortar el viraje hay que **contra-rolar**. Medido con
 0,7 s de viraje sostenido:
 
-| | soltando: t en frenar | deriva | contra-rolando: t hasta cortar | tope lateral |
-|---|---|---|---|---|
-| `DIRECTO` | 0,74 s | 6,4 | 0,27 s | 30,0 |
-| `POR ALABEO` | 1,71 s | 20,1 | 0,31 s | 30,0 |
+|              | soltando: t en frenar | deriva | contra-rolando: t hasta cortar | tope lateral |
+| ------------ | --------------------- | ------ | ------------------------------ | ------------ |
+| `DIRECTO`    | 0,74 s                | 6,4    | 0,27 s                         | 30,0         |
+| `POR ALABEO` | 1,71 s                | 20,1   | 0,31 s                         | 30,0         |
 
 Soltás y te vas **3,2× más lejos**; contra-rolás y cortás igual de rápido. El **techo lateral es el
 mismo**, y eso es lo que la mantiene como opción de manejo y no de dificultad — lo cuida un test.
 
 > ⚠️ **La primera versión no se notaba.** Salió con `BANK_BACK = 4.5`, el mismo número con el que
-> decae la deriva del control directo, *"para no cambiar la dificultad"*: las alas se nivelaban
+> decae la deriva del control directo, _"para no cambiar la dificultad"_: las alas se nivelaban
 > solas en 0,2 s y soltar cortaba el viraje igual que siempre. Los dos esquemas medían
 > prácticamente lo mismo porque se le había calibrado la diferencia hasta hacerla desaparecer.
 > Hay un test que ahora exige que medio segundo después de soltar sigas banqueado.
@@ -1483,7 +1485,7 @@ Detalles que salieron del camino:
 
 - **La turbulencia entra por las alas.** Con `POR ALABEO`, la ráfaga de viento sacude `run.bankA`
   en vez de escribir `plane.vx` — si no, la línea que recalcula `vx` desde el alabeo la borraba.
-  Además queda mejor: el viento te mueve *porque* te desnivela, y se ve.
+  Además queda mejor: el viento te mueve _porque_ te desnivela, y se ve.
 - **Las alas vuelven solas, pero lento** (~1,8 s): perdona al que se distrae sin regalarle el
   nivelado a quien está volando. Contra-rolar es 3× más rápido que esperar.
 - **El sprite muestra el ángulo real**, no la mezcla de intención y velocidad que usa `DIRECTO`.
@@ -1510,7 +1512,7 @@ Lo que queda para después:
 
 La configuración estaba partida en dos, y la división no era por tema sino por accidente histórico:
 **OPCIONES** (idioma y poco más), alcanzable desde la selección de modo, y el menú **`[M]`**, que se
-abría *solo* desde la selección de avión — una pantalla por la que **la campaña nunca pasa**.
+abría _solo_ desde la selección de avión — una pantalla por la que **la campaña nunca pasa**.
 
 Eso dejaba un agujero concreto: `ESCUADRÓN`, `COMBUSTIBLE`, `ENERGÍA` y `PIRUETAS` **sí afectan a la
 campaña** (`CAMPAIGN_CFG` únicamente pisa `sky/water/wind/obstacles/coast`), pero jugando la
@@ -1518,17 +1520,17 @@ historia no había forma de tocarlas.
 
 Ahora hay **una** pantalla, con secciones, y las de prototipado dicen en qué modos sirven:
 
-| sección | filas |
-|---|---|
-| `JUEGO` | idioma |
-| `CONTROL Y VISTA` | control, horizonte, piruetas, mira, red de radar |
-| `CONTROLES` | teclado y joystick, **solo lectura** |
-| `PARTIDA` | escuadrón, combustible, energía, enemigos |
-| `AMBIENTE · no en la campaña` | fondo, agua |
+| sección                                       | filas                                                                      |
+| --------------------------------------------- | -------------------------------------------------------------------------- |
+| `JUEGO`                                       | idioma                                                                     |
+| `CONTROL Y VISTA`                             | control, horizonte, piruetas, mira, red de radar                           |
+| `CONTROLES`                                   | teclado y joystick, **solo lectura**                                       |
+| `PARTIDA`                                     | escuadrón, combustible, energía, enemigos                                  |
+| `AMBIENTE · no en la campaña`                 | fondo, agua                                                                |
 | `MAPA · solo POR LA PATRIA y CICLO DE MUERTE` | terreno, viento, obstáculos, bombardeo, costa, pista, acantilado, arranque |
-| `SOLO CICLO DE MUERTE` | metros |
-| `SOLO MINUTOS SAGRADOS` | buque |
-| `DEPURACIÓN` | hitboxes, modo cámara |
+| `SOLO CICLO DE MUERTE`                        | metros                                                                     |
+| `SOLO MINUTOS SAGRADOS`                       | buque                                                                      |
+| `DEPURACIÓN`                                  | hitboxes, modo cámara                                                      |
 
 - **Todo persiste menos `DEPURACIÓN`**, y eso es deliberado: `MODO CÁMARA` deja el mundo sin avanzar
   solo, y encontrárselo puesto al abrir el juego se leería como que el juego se rompió.
@@ -1546,8 +1548,8 @@ Dos cosas que salieron de acá:
 - **El joystick no tenía manejo para la pantalla de OPCIONES.** Con `[M]` vivo casi no importaba;
   al ser la única pantalla de configuración, jugando con mando te quedabas sin poder tocar nada.
 - **La música del lobby se cortaba al entrar a OPCIONES.** `inLobby()` en `systems/audio.js` no
-  incluía ese estado — y el comentario de esa misma función ya lo había anticipado: *«si se agrega
-  un estado previo al juego, va acá»*. Ahora la música sigue por portada → modos → opciones →
+  incluía ese estado — y el comentario de esa misma función ya lo había anticipado: _«si se agrega
+  un estado previo al juego, va acá»_. Ahora la música sigue por portada → modos → opciones →
   selección de avión sin un solo corte; el único corte a propósito es el arranque de la campaña,
   donde entra el himno.
 
@@ -1571,20 +1573,20 @@ Lo que queda para después:
 Medido lanzando cada maniobra desde el centro y siguiendo `plane.x`: **las dos únicas que rolan
 360° eran las dos únicas que no se movían un milímetro.**
 
-| maniobra | rola | Δx antes | Δx ahora |
-|---|---|---|---|
-| SPLIT-S | 360° | **0,0** | 17,6 |
-| TIRABUZÓN | 348° | **0,0** | 7,6 |
-| TONEL BARRIL | 351° | 0,0 (círculo, vuelve) | sin cambios |
-| BREAK TURN | 17° | 29,7 | sin cambios |
-| S-TURN | 0° | 0,0 (vuelve al carril) | sin cambios |
+| maniobra     | rola | Δx antes               | Δx ahora    |
+| ------------ | ---- | ---------------------- | ----------- |
+| SPLIT-S      | 360° | **0,0**                | 17,6        |
+| TIRABUZÓN    | 348° | **0,0**                | 7,6         |
+| TONEL BARRIL | 351° | 0,0 (círculo, vuelve)  | sin cambios |
+| BREAK TURN   | 17°  | 29,7                   | sin cambios |
+| S-TURN       | 0°   | 0,0 (vuelve al carril) | sin cambios |
 
 Un avión que rola inclina su vector de sustentación y se va para ese lado; sin eso, la maniobra se
 leía como una animación del sprite. Se agregó `drift` al catálogo (`data/moves.js`): velocidad
 lateral de pico hacia el lado del rolido, con perfil de campana — arranca y termina en cero, así no
 queda velocidad colgada al devolver el control.
 
-> El `TIRABUZÓN` tenía `plane.vx = 0` clavado y el comentario decía que *no* irse de costado era «el
+> El `TIRABUZÓN` tenía `plane.vx = 0` clavado y el comentario decía que _no_ irse de costado era «el
 > punto» de la maniobra. Se cambió a pedido, con la mitad del drift del SPLIT-S para que siga
 > leyéndose más axial. Ponerlo en `0` devuelve el comportamiento anterior.
 
@@ -1597,7 +1599,7 @@ que el teclado no puede dar.
 
 ### La mira, a OPCIONES
 
-`MIRA: FIJA · MOVIL (mouse)`, default **MOVIL**. Con mando es siempre fija *por construcción*: ya no
+`MIRA: FIJA · MOVIL (mouse)`, default **MOVIL**. Con mando es siempre fija _por construcción_: ya no
 tiene con qué moverla. `CAPS LOCK` la sigue alternando en vivo desde el teclado.
 
 > **CAPS LOCK pasó de nivel a flanco**, y era necesario: como nivel pisaba lo elegido en OPCIONES —
@@ -1625,11 +1627,11 @@ Los combos de pirueta **son las teclas de volar**. Con los rolidos en el stick i
 caso de laboratorio: es exactamente lo que hacés en el PASILLO. Mudarlos al stick derecho no es
 reasignar botones, es **sacar los rolidos del camino de esquivar**.
 
-| maniobra | antes (stick izq) | ahora (stick der) |
-|---|---|---|
-| TONEL | `←←←` / `→→→` | ⟳`←←←` / ⟳`→→→` |
-| TONEL BARRIL | `↓→↑←` / `↓←↑→` | ⟳`↓→↑←` / ⟳`↓←↑→` |
-| TIRABUZÓN | `←↓←↓` / `→↓→↓` | `↓`+⟳`←←` / `↓`+⟳`→→` |
+| maniobra     | antes (stick izq) | ahora (stick der)     |
+| ------------ | ----------------- | --------------------- |
+| TONEL        | `←←←` / `→→→`     | ⟳`←←←` / ⟳`→→→`       |
+| TONEL BARRIL | `↓→↑←` / `↓←↑→`   | ⟳`↓→↑←` / ⟳`↓←↑→`     |
+| TIRABUZÓN    | `←↓←↓` / `→↓→↓`   | `↓`+⟳`←←` / `↓`+⟳`→→` |
 
 El zigzag —break turn, S-turn, jink, los dos yo-yos, split-s, pop-up, masking— **no se movió**.
 
@@ -1641,30 +1643,30 @@ El zigzag —break turn, S-turn, jink, los dos yo-yos, split-s, pop-up, masking�
 ### El ascensor: el único gesto de dos manos
 
 `⟳↓ + ↓↓` clava el rasante. `⟳↑ + ↑↑` trepa. Mirás hacia donde vas a ir y empujás dos veces para
-allá — y a diferencia del resto de las piruetas, no te hace una *figura*: te cambia de **banda de
+allá — y a diferencia del resto de las piruetas, no te hace una _figura_: te cambia de **banda de
 altura**, que es la decisión estratégica del juego.
 
 `⟳↑ + ↑↑` es **contextual como `↑↓↓`**, pero por una razón distinta:
 
-| desde dónde | qué sale | a dónde te deja |
-|---|---|---|
-| a menos de 16 m | **ASCENSO** (1.2 s) | el techo del radar, **20 m** |
-| a 16 m o más | **SOBRE EL RADAR** (2.0 s) | el techo de vuelo, **68 m** |
+| desde dónde     | qué sale                   | a dónde te deja              |
+| --------------- | -------------------------- | ---------------------------- |
+| a menos de 16 m | **ASCENSO** (1.2 s)        | el techo del radar, **20 m** |
+| a 16 m o más    | **SOBRE EL RADAR** (2.0 s) | el techo de vuelo, **68 m**  |
 
-Cruzar el techo del radar te pinta. Que solo se ofrezca cuando *ya estás pegado* al techo lo
+Cruzar el techo del radar te pinta. Que solo se ofrezca cuando _ya estás pegado_ al techo lo
 convierte en una **segunda decisión consciente**: llegás al borde, ves que estás ahí, y volvés a
 pedirlo. Nunca podés cruzarlo de un gesto sin haber pasado por el borde.
 
 Medido: desde `y=3` el ASCENSO deja el avión en **18,6**; repetido desde 18, SOBRE EL RADAR llega a
 **66,1**. Ninguna de las dos sostiene la altura sola — sin gas el avión cae igual apenas termina.
-La maniobra te *lleva*, no te *cuelga*.
+La maniobra te _lleva_, no te _cuelga_.
 
 ### Paneo de cámara: mirar sin volar
 
 El eje vertical del stick derecho (`W`/`S` · `R`/`F`) corre el encuadre ±6 unidades de mundo. Usa
 el **mismo mecanismo que el turbo** —subir la cámara en el mundo, no escalar el raster— así que la
 proyección se recalcula sola y entra más mundo por abajo. Empujar el stick **abajo** sube la
-cámara: mirar hacia abajo *es* ver más abajo. Vuelve solo al soltar; no toca el vuelo.
+cámara: mirar hacia abajo _es_ ver más abajo. Vuelve solo al soltar; no toca el vuelo.
 
 ### El mando: R1 y L1 son las armas
 
@@ -1678,14 +1680,14 @@ Acá apareció el límite real, y lo dijo el propio pedido: **con la mira móvil
 mouse**, así que no hay dos manos para dos racimos de teclas. La resolución no es una opción nueva
 sino leer lo que la mira **ya dice**.
 
-Lo que **no** se negocia: `W A S D` es el stick izquierdo *siempre*, en los dos modos. La mano que
+Lo que **no** se negocia: `W A S D` es el stick izquierdo _siempre_, en los dos modos. La mano que
 vuela nunca cambia de trabajo — que eso dependa de una configuración es exactamente lo que hace
 que un juego se sienta impredecible.
 
-| `cfg.aim` | `WASD` | flechas | rolar | cámara |
-|---|---|---|---|---|
-| **FIJA** (default; dos manos en el teclado) | volar | **stick derecho** | `←` `→` · `Q` `E` | `↑` `↓` · `R` `F` |
-| **MÓVIL** (una mano en el mouse) | volar | **volar** | `Q` `E` | `R` `F` |
+| `cfg.aim`                                   | `WASD` | flechas           | rolar             | cámara            |
+| ------------------------------------------- | ------ | ----------------- | ----------------- | ----------------- |
+| **FIJA** (default; dos manos en el teclado) | volar  | **stick derecho** | `←` `→` · `Q` `E` | `↑` `↓` · `R` `F` |
+| **MÓVIL** (una mano en el mouse)            | volar  | **volar**         | `Q` `E`           | `R` `F`           |
 
 Con la mira móvil el stick derecho **es el mouse**; las flechas quedan sin dueño y vuelven a volar,
 así que quien jugaba con flechas sigue jugando igual. Lo que el mouse no cubre —rolar y panear—
@@ -1702,7 +1704,7 @@ queda en `Q E` / `R F`, dentro del mismo racimo que `WASD`: una sola mano llega 
 
 `BANK_TILT` pasó de `0.22` a `0.44`: doblar a fondo inclina el mundo **25,2°** medidos (antes
 12,6°). `TILT_FADE0/1` —el fundido de la red de radar— **no se tocaron**, y no es un olvido: miden
-una inclinación *en pantalla*, no una fracción de la palanca. La pregunta que responden ("¿a qué
+una inclinación _en pantalla_, no una fracción de la palanca. La pregunta que responden ("¿a qué
 ángulo deja de leerse un plano horizontal?") no cambia porque el avión llegue antes a ese ángulo.
 Lo único que cambia es que ahora la red se apaga a media palanca en vez de a palanca llena.
 
@@ -1711,14 +1713,14 @@ Lo único que cambia es que ahora la red se apaga a media palanca en vez de a pa
 Con **MIRA MÓVIL** apuntar se volvía imposible apenas doblabas. La causa no estaba en el mouse:
 `viewMouse()` devolvía **una** coordenada donde hacen falta **dos**.
 
-| | qué es | quién la usa |
-|---|---|---|
-| `x, y` | **a qué le apuntás** — el cursor con el giro del horizonte deshecho, para desproyectar al mundo | las balas, el guiado del misil |
-| `sx, sy` | **dónde está en pantalla** — el cursor crudo | el dibujo del retículo |
+|          | qué es                                                                                          | quién la usa                   |
+| -------- | ----------------------------------------------------------------------------------------------- | ------------------------------ |
+| `x, y`   | **a qué le apuntás** — el cursor con el giro del horizonte deshecho, para desproyectar al mundo | las balas, el guiado del misil |
+| `sx, sy` | **dónde está en pantalla** — el cursor crudo                                                    | el dibujo del retículo         |
 
 Son distintas porque el mundo se dibuja **rotado** y el retículo no: va después del `restore()`,
 junto al avión, que hace de cabina. Deshacer el giro sirve para saber qué hay abajo del cursor;
-usar *esa* coordenada para dibujar arrastraba el retículo lejos del mouse.
+usar _esa_ coordenada para dibujar arrastraba el retículo lejos del mouse.
 
 El bug existía desde que existe el horizonte giratorio, pero a 12,6° el corrimiento pasaba por
 imprecisión. Al duplicar `BANK_TILT` se volvió imposible de ignorar.
@@ -1743,7 +1745,7 @@ Dos cambios, y el segundo importa más que el primero:
 1. **CAPS LOCK se lee solo de eventos de teclado.** Los de puntero no saben.
 2. **Se aplica el ESTADO, no un toggle.** Antes invertía `cfg.aim` en cada flanco, así que el valor
    podía quedar al revés de lo que dice la luz de la tecla y ya no había forma de saber qué iba a
-   hacer la próxima pulsación. Ahora CAPS *es* el modo —prendida móvil, apagada fija— y eso es
+   hacer la próxima pulsación. Ahora CAPS _es_ el modo —prendida móvil, apagada fija— y eso es
    auto-corrector: no puede desincronizarse. Que se aplique solo cuando **cambia** es lo que deja
    convivir a OPCIONES, que manda entre cambio y cambio.
 
@@ -1764,7 +1766,7 @@ La solución no es tapar sino **seguir dibujando**. `drawSea()` ahora extiende s
 debajo del borde cuando el mundo está girado: la misma geometría, un poco más abajo. Es suelo que
 de verdad está ahí —más cerca de la cámara—, solo que fuera de cuadro con el mundo derecho. Mar,
 tierra, costa y puerto se continúan solos, sin casos nuevos. El relleno plano quedó como **piso**
-(se dibuja *antes* del mundo, no después) para lo que el raster 2D no cubre: el momentum y el mar
+(se dibuja _antes_ del mundo, no después) para lo que el raster 2D no cubre: el momentum y el mar
 puesto por three.
 
 Los 150 px salen de la geometría: rotando alrededor del centro, la esquina más lejana queda a
@@ -1793,8 +1795,8 @@ columnas, y el cursor las saltea igual que a los encabezados.
 
 ## 35. 💡 Música que sigue al juego (idea, 19/10/2026)
 
-> *"me gustaria coordinar la musica con los enemigos en pantalla y quiza los movimientos del avion,
-> anotar como idea nomas"* — el autor.
+> _"me gustaria coordinar la musica con los enemigos en pantalla y quiza los movimientos del avion,
+> anotar como idea nomas"_ — el autor.
 
 **Solo idea, nada decidido ni empezado.** Que la música no sea una pista fija de fondo, sino que
 **reaccione a lo que pasa**:
