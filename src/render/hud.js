@@ -24,6 +24,7 @@ import { T } from '../core/i18n.js';
 import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu,
   concentracion as concSeg } from '../core/aguante.js';
 import { P, RADAR_VERDE, RADAR_OPACO, RADAR_GRIS, colDefensa } from '../data/palette.js';
+import { ALTO } from '../data/tuning.js';
 import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT, ZONAS_GASTO, METRALLAS } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
 import { alMando, filaOk, filaDeVidas } from '../core/squad.js';
@@ -1681,24 +1682,33 @@ export function anchoSquad() {
   return Math.max(ALERTA_MIN_W, Math.round(wFila) + 6);
 }
 
-// EL RELOJ DEL TALLER (16/11, el autor: "pone el avion y arriba un circulo que se va llenando con una
-// tuerquita en el medio" — reemplaza a la llave inglesa y a la rayita de abajo): un circulo sobre el avion,
-// medio afuera de la placa, que se llena en sentido horario de 0 a `f` (1 = listo), con una tuerca al medio.
+// EL RELOJ DEL TALLER (16/11, el autor: "avion gris atras, tuerca completamente naranja sin opacidad, circulo
+// con opacidad al 50%"): encima del avion, un circulo naranja a media luz que se llena en sentido horario de 0
+// a `f` (1 = listo), y el engranaje naranja macizo al medio.
 function relojTaller(cx, cy, f) {
-  const R = 3.3, OSC = '#0d1318', TINTA = '#eef3f5';
+  const R = 4, NAR = P.accent;
   ctx.save();
-  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = OSC; ctx.fill();
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.arc(cx, cy, R - 0.25, 0, Math.PI * 2); ctx.lineWidth = 0.5; ctx.strokeStyle = NAR; ctx.stroke();
   if (f > 0) {
+    // (16/11, el autor: "a medida que se va llenando el naranja es mas fuerte, pero sigue siendo transparente")
+    ctx.globalAlpha = 0.2 + 0.45 * Math.min(1, f);
     ctx.beginPath(); ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, R - 0.6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, f));
-    ctx.closePath(); ctx.fillStyle = '#5f9fc4'; ctx.fill();
+    ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, f));
+    ctx.closePath(); ctx.fillStyle = NAR; ctx.fill();
+    ctx.globalAlpha = 0.5;
   }
-  ctx.beginPath(); ctx.arc(cx, cy, R - 0.3, 0, Math.PI * 2); ctx.lineWidth = 0.5; ctx.strokeStyle = '#9fc3d8'; ctx.stroke();
-  // la tuerca: un hexagono blanco con contorno oscuro y el agujero
+  // COMO UN RELOJITO (16/11, el autor): las cuatro horas marcadas y la aguja donde va el llenado
+  for (let q = 0; q < 4; q++) { const a = q * Math.PI / 2; ctx.beginPath(); ctx.moveTo(cx + Math.sin(a) * (R - 1.1), cy - Math.cos(a) * (R - 1.1)); ctx.lineTo(cx + Math.sin(a) * R, cy - Math.cos(a) * R); ctx.lineWidth = 0.5; ctx.strokeStyle = NAR; ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  const ag = Math.PI * 2 * Math.min(1, f);
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.sin(ag) * (R - 0.4), cy - Math.cos(ag) * (R - 0.4));
+  ctx.lineWidth = 0.6; ctx.strokeStyle = NAR; ctx.stroke();
   ctx.beginPath();
-  for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 + Math.PI / 6; ctx[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * 1.5, cy + Math.sin(a) * 1.5); }
-  ctx.closePath(); ctx.fillStyle = TINTA; ctx.fill(); ctx.lineWidth = 0.45; ctx.strokeStyle = OSC; ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx, cy, 0.55, 0, Math.PI * 2); ctx.fillStyle = OSC; ctx.fill();
+  // EL ENGRANAJE (16/11, el autor: "cambiemos la tuerca por un engranaje"): ocho dientes
+  for (let i = 0; i < 32; i++) { const a = i * Math.PI / 16, r = (i >> 1) % 2 ? 1.25 : 1.95; ctx[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+  ctx.closePath(); ctx.fillStyle = NAR; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, 0.6, 0, Math.PI * 2); ctx.fillStyle = '#0d1318'; ctx.fill();
   ctx.restore();
 }
 
@@ -1730,7 +1740,7 @@ export function drawSquadPips(x, y) {
     if (i === manda) { px(ax + 3, y + SQUAD_H - 2, 1, 1, P.accent); px(ax + 2, y + SQUAD_H - 1, 3, 1, P.accent); }   // la flechita, sobre el borde de la placa
     // …Y EL RELOJ DEL TALLER ENCIMA (16/11, antes una llave inglesa y una rayita de progreso abajo): el gris
     // solo se confundia con un caido; el circulo dice "en el taller" y cuanto le falta
-    if (base) relojTaller(ax + 3, y + 1, Math.max(0, Math.min(1, 1 - base.t / BASE_T)));
+    if (base) relojTaller(ax + 3, y + 5, Math.max(0, Math.min(1, 1 - base.t / BASE_T)));
   }
   // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
@@ -2702,7 +2712,11 @@ export function drawHUD(h) {
   // primeros veinte metros, y con una escala lineal el rasante eran dos marcas. Rojo el agua, acento
   // la franja del rasante (x10), y la marca larga roja es el techo del radar DE LA FASE (llega en `h`).
   // La aguja se pone roja y parpadea con cualquiera de los dos peligros de altura: te ven, o rozas.
-  const fA = a => Math.sqrt(Math.max(0, Math.min(1, a / FLY_TOP)));
+  // …Y HASTA ARRIBA DE TODO (16/11, el autor: "que el altimetro tambien marque hasta arriba"): el carril
+  // (hasta FLY_TOP) se queda con las tres cuartas partes del dial, con su raiz de siempre, y LO ALTO
+  // (ALTO.TECHO) entra en el ultimo cuarto. La marca blanca es la capa de nubes.
+  const fA = a => a <= FLY_TOP ? 0.75 * Math.sqrt(Math.max(0, a / FLY_TOP))
+    : 0.75 + 0.25 * Math.sqrt(Math.min(1, (a - FLY_TOP) / (ALTO.TECHO - FLY_TOP)));
   const techo = h.radarAlt === undefined ? RADAR_ALT : h.radarAlt;
   const rozando = run.scrapeVib > 0.6, visto = plane.y > techo || rozando;
   // …Y EN LA SUELTA (data/blanco.js), LA ALTURA DE SOLTAR en verde: la franja del dial, la marca
@@ -2737,7 +2751,7 @@ export function drawHUD(h) {
     // sin marca de techo FUERA DE RADAR: no hay techo (PLAN_NAFTA_ALCANCE N2)
     marcas: divNafta.concat(h.fueraRadar ? [] : [[fA(techo), P.warn]]).concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
       // EL SALTO: la altura del buque debajo de tu linea, en amarillo, desde que soltas hasta el cruce
-      .concat(h.saltoAlt != null ? [[fA(h.saltoAlt), SALTO_COL]] : []),
+      .concat(h.saltoAlt != null ? [[fA(h.saltoAlt), SALTO_COL]] : []).concat([[fA(ALTO.NUBES), P.foam]]),
     // …y EL BORDE DE LA PLACA en verde, FIJO mientras estes en altura de soltar (se lee de reojo sin
     // buscar la aguja, como el borde del turbo en el velocimetro) y TITILANDO cuando ademas es el
     // momento de soltar: el mismo latido que la cinta y el estante.

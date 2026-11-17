@@ -626,7 +626,7 @@ function sorteoPedida(objectiveDist) {
   sembrarOlaGigante();
 }
 if (typeof window !== 'undefined') window.__olaGigante = () => { const o = sembrarOlaGigante(); return JSON.stringify({ z: o.z, h: o.h, hMax: o.hMax }); };
-if (typeof window !== 'undefined') window.__olaGiganteDbg = () => JSON.stringify({ modo: gigModo, pedida: gigPedida, previa: +previaGigante().toFixed(2), fg: +(run.fgzTormenta || 0).toFixed(2), gig: obstacles.filter(o => o.kind === 'gigante').map(o => ({ z: Math.round(o.z), h: +o.h.toFixed(1), done: o.done, revelada: o.revelada, rayos: o.rayos })), olas: obstacles.filter(o => o.type === 'ola' && o.kind !== 'gigante').map(o => o.kind[0] + Math.round(o.h)), otros: obstacles.filter(o => o.type !== 'ola').map(o => o.type) });
+if (typeof window !== 'undefined') window.__olaGiganteDbg = () => JSON.stringify({ modo: gigModo, pedida: gigPedida, d: Math.round(run.dist), tierraN: esTierraEn(0, run.dist + OLA_GIGANTE.Z_NACE), mar: marAdelante(OLA_GIGANTE.SUELTO.MAR_M), sky: cfg.sky, previa: +previaGigante().toFixed(2), fg: +(run.fgzTormenta || 0).toFixed(2), gig: obstacles.filter(o => o.kind === 'gigante').map(o => ({ z: Math.round(o.z), h: +o.h.toFixed(1), done: o.done, revelada: o.revelada, rayos: o.rayos })), olas: obstacles.filter(o => o.type === 'ola' && o.kind !== 'gigante').map(o => o.kind[0] + Math.round(o.h)), otros: obstacles.filter(o => o.type !== 'ola').map(o => o.type) });
 
 export function spawnSystem(dt, objectiveDist) {
   sorteoOlaGigante(objectiveDist);
