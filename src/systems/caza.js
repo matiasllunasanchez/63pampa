@@ -91,6 +91,8 @@ import { enPared, paredH } from '../core/zigzag.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 import { alMando } from '../core/squad.js';
 import { PATRULLA } from '../data/patrullas.js';
+import { dado } from '../core/azar.js';
+const rnd = dado('caza');   // el azar FIJO del libro de vuelo (core/azar.js)
 
 // ---- estado privado ----
 // FLOTA DE HARRIERS. Cada elemento es un Harrier independiente que cicla hasta eliminarse.
@@ -100,7 +102,7 @@ let fleet = [];
 let C = null;
 
 /** Sorteo en un rango [lo, hi]. Se llama al ENTRAR a una fase, nunca por cuadro. */
-const entre = ([lo, hi]) => lo + Math.random() * (hi - lo);
+const entre = ([lo, hi]) => lo + rnd() * (hi - lo);
 
 // MEDIA ENVERGADURA del Harrier, en unidades de mundo — de donde salen los dos hilos de estela.
 // Sale de medir la hoja `jet_rear` (10,5 unidades de ancho util) y descontar lo que el extremo del
@@ -143,8 +145,8 @@ export function start(opts = {}) {
     // NACE POR DEBAJO: sube a tu altura mientras se acerca (ver la fase 'aviso')
     bx: plane.x, by: Math.max(0.8, plane.y - CAZA_Y_ENTRA),
     x: plane.x, y: Math.max(0.8, plane.y - CAZA_Y_ENTRA), z: CAZA_Z_LEJOS,
-    lado: opts.lado || (Math.random() < 0.5 ? -1 : 1),
-    seed: Math.random() * 6.283,   // desfase propio: dos Harriers de la flota no bandean igual
+    lado: opts.lado || (rnd() < 0.5 ? -1 : 1),
+    seed: rnd() * 6.283,   // desfase propio: dos Harriers de la flota no bandean igual
     bank: 0, xPrev: plane.x,
     // EL CABECEO, leido del movimiento vertical como el alabeo del horizontal: elige la FILA de la hoja
     // de cola (`harrier_cola`, horneada como la del jugador: trepa / nivelado / pica, y las piruetas)
@@ -162,7 +164,7 @@ export function start(opts = {}) {
     amague: 0, asoma: false, asomaK: 0, amT: entre(CAZA_AMAGUE_GAP),
     // COMO VA A CAER, sorteado ACA y no al morir: asi el final es del avion y no del momento, y
     // una sonda puede fijarlo antes de matarlo para fotografiar los tres.
-    final: CAZA_FINALES[(Math.random() * CAZA_FINALES.length) | 0],
+    final: CAZA_FINALES[(rnd() * CAZA_FINALES.length) | 0],
     vyC: 0, vzC: 0,   // velocidad de la caida (ver stepCaida)
     muerto: false,
     // DE UNA PATRULLA (la arma el director): se va cuando gasto sus misiles o sus pasadas
@@ -246,8 +248,8 @@ export function cazaDirector(dt, o) {
   // Es lo que hace que el silencio de radio de una fase (PLAN_MISION_CINCO_FASES §11.2) alcance
   // tambien a LA COLA sin que este archivo tenga que saber que es una fase: le llega un valor ya
   // resuelto en el mismo paquete que la intensidad, igual que `ciego` o `jets`.
-  const mudo = o.voces === false || Math.random() < CAZA_MUDO_P[int];
-  const lado = Math.random() < 0.5 ? -1 : 1;
+  const mudo = o.voces === false || rnd() < CAZA_MUDO_P[int];
+  const lado = rnd() < 0.5 ? -1 : 1;
   start({ mudo, lado, patrulla: true });
   // …y su numeral, por el otro lado y un poco mas atras (callado: el aviso ya lo dio el primero)
   if (fleet.length < tope) start({ mudo: true, lado: -lado, atras: 70, patrulla: true });
@@ -397,15 +399,15 @@ function stepFx(dt) {
     const ca = Math.cos(ang) * CAZA_SEMI, sa = Math.sin(ang) * CAZA_SEMI;
     for (const s of [-1, 1]) C.fx.push({
       k: 'estela', x: C.x + s * ca, y: C.y - s * sa, z: C.z,
-      vida0: 0.8, life: 0.8, r: 0.2 + Math.random() * 0.12,
+      vida0: 0.8, life: 0.8, r: 0.2 + rnd() * 0.12,
     });
   }
   if (C.humo) {
     C.humoT -= dt;
     if (C.humoT <= 0) {
       C.humoT = 0.05;
-      C.fx.push({ k: 'humo', x: C.x + (Math.random() - 0.5) * 1.2, y: C.y + (Math.random() - 0.5) * 1.2,
-        z: C.z, life: 1.4 + Math.random() * 0.8, r: 0.8 + Math.random() * 1.2 });
+      C.fx.push({ k: 'humo', x: C.x + (rnd() - 0.5) * 1.2, y: C.y + (rnd() - 0.5) * 1.2,
+        z: C.z, life: 1.4 + rnd() * 0.8, r: 0.8 + rnd() * 1.2 });
     }
   }
 }
@@ -455,8 +457,8 @@ function golpeDelPase() {
   run.shake = Math.min(8, run.shake + 5);
   for (let i = 0; i < 14; i++) C.fx.push({
     k: 'estela',
-    x: plane.x + C.lado * (4 + i * 1.1), y: plane.y + 2.5 + (Math.random() - 0.5) * 1.5,
-    z: CAZA_Z_COLA + i * 3.5, life: 0.8 + Math.random() * 0.5, r: 0.5 + Math.random(),
+    x: plane.x + C.lado * (4 + i * 1.1), y: plane.y + 2.5 + (rnd() - 0.5) * 1.5,
+    z: CAZA_Z_COLA + i * 3.5, life: 0.8 + rnd() * 0.5, r: 0.5 + rnd(),
   });
 }
 
@@ -708,7 +710,7 @@ function avanzar() {
       ir('ventana', CAZA_WINDOW);
       return false;
     case 'ventana':
-      C.lado = Math.random() < 0.5 ? -1 : 1;
+      C.lado = rnd() < 0.5 ? -1 : 1;
       // LA PATRULLA SE VA (3/10): sin Sidewinder (y sin uno suyo todavia en el aire) o con sus
       // pasadas cumplidas, termina la pasada y se va en vez de volver a tu cola
       if (C.patrulla && ((C.aim9 <= 0 && !misilVivo()) || C.pase >= PATRULLA.PASES)) { ir('salida', CAZA_SALIDA_T); return false; }

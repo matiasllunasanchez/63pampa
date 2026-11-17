@@ -271,7 +271,7 @@ export const STRINGS = {
     campC1Desc: 'Mayo 1982',
     campC2Desc: 'CAMPANA 2',
     campSoon: 'PROXIMAMENTE',
-    libroEnDesarrollo: 'EN DESARROLLO', libroSinFecha: 'FECHA A CONFIRMAR',
+    libroEnDesarrollo: 'EN DESARROLLO', libroProximamente: 'PRÓXIMAMENTE', libroSinFecha: 'FECHA A CONFIRMAR',
     // HISTORIA EN LA DEMO (12/10): dos secciones — las campañas (la de Mateo, bloqueada) y el LIBRO DE
     // VUELO con las salidas reales (data/libro_vuelo.js).
     campSecCampanas: 'CAMPAÑAS', campSecLibro: 'LIBRO DE VUELO',
@@ -456,6 +456,11 @@ export const STRINGS = {
     ctrlInv: 'INVERTIR EL EJE Y', ctrlInvK: 'OPCIONES: EJE Y',  ctrlInvP: '△',
     ctrlMusic: 'PISTA MUSICAL (solo POR LA PATRIA)', ctrlMusicK: 'N   ·   M',        ctrlMusicP: 'L3 · R3',
     ctrlPause: 'PAUSA',         ctrlPauseK: 'ESC',              ctrlPauseP: 'START',
+    // LA PANTALLA DE CONTROLES por categorias (17/11, data/controles.js)
+    ctrlCat_movilidad: 'MOVILIDAD', ctrlCat_armas: 'ARMAS', ctrlCat_piruetas: 'PIRUETAS', ctrlCat_escuadrilla: 'ESCUADRILLA', ctrlCat_general: 'GENERAL',
+    ctrlColAccion: 'ACCION', ctrlColPirueta: 'PIRUETA', ctrlColCombo: 'COMO SE PIDE', ctrlColDur: 'DURA',
+    ctrlPirNota: 'las flechas son la mano derecha (en el joystick, el stick derecho) · ⟳ = rolando · [G] = freno',
+    ctrlHint: '◄ ►  CATEGORIA     ·     ESC  VOLVER', optCtrlVer: 'VER',
     ctrlMenu: 'EN LOS MENUS',   ctrlMenuK: 'flechas · ENTER · ESC', ctrlMenuP: 'cruceta · ✕ · ◯',
     selKeys: '[ESC] ATRAS      [ENTER] SELECCIONAR',
     escFenix: 'ESCUADRÓN FÉNIX',   // la ficha del avion de un avion del Fenix (render/menus.js)
@@ -527,6 +532,8 @@ export const STRINGS = {
     arena_low: '! EL MAR — ARRIBA !',
     arena_sunk: 'BUQUE FUERA DE COMBATE!', arena_squad: 'ESCUADRON',
     arena_v1: 'CABINA', arena_v3: 'TERCERA PERSONA',
+    avionBloqueado: 'PRÓXIMAMENTE',
+    cabinaProx: 'CÁMARA EN PRIMERA PERSONA · PRÓXIMAMENTE', ctrlCabinaProx: 'CÁMARA EN PRIMERA PERSONA (V / cruceta ABAJO): PRÓXIMAMENTE',
     // ---------- EL PULSO (el climax como prueba de destreza) ----------
     // Sin acentos ni Ñ: la fuente del juego no los tiene (regla del repo).
     pulso_ya: 'AHORA', pulso_soltar: 'SOLTAR',
@@ -1493,7 +1500,7 @@ export const STRINGS = {
     campC1Desc: 'CAMPAIGN 1 — MAY 1982',
     campC2Desc: 'CAMPAIGN 2',
     campSoon: 'COMING SOON',
-    libroEnDesarrollo: 'IN DEVELOPMENT', libroSinFecha: 'DATE TO BE CONFIRMED',
+    libroEnDesarrollo: 'IN DEVELOPMENT', libroProximamente: 'COMING SOON', libroSinFecha: 'DATE TO BE CONFIRMED',
     campSecCampanas: 'CAMPAIGNS', campSecLibro: 'FLIGHT LOG',
     campAtrasDesc: 'BACK TO STORY',
     campCampanasDesc: 'THE STORY, MISSION BY MISSION', campLibroDesc: 'REAL SORTIES OF THE WAR, ONE BY ONE',
@@ -1639,6 +1646,10 @@ export const STRINGS = {
     ctrlInv: 'INVERT Y AXIS',   ctrlInvK: 'OPTIONS: Y AXIS',    ctrlInvP: '△',
     ctrlMusic: 'MUSIC TRACK (only SURVIVAL)', ctrlMusicK: 'N   ·   M',        ctrlMusicP: 'L3 · R3',
     ctrlPause: 'PAUSE',         ctrlPauseK: 'ESC',              ctrlPauseP: 'START',
+    ctrlCat_movilidad: 'MOVEMENT', ctrlCat_armas: 'WEAPONS', ctrlCat_piruetas: 'STUNTS', ctrlCat_escuadrilla: 'FLIGHT', ctrlCat_general: 'GENERAL',
+    ctrlColAccion: 'ACTION', ctrlColPirueta: 'STUNT', ctrlColCombo: 'INPUT', ctrlColDur: 'TIME',
+    ctrlPirNota: 'arrows are the right hand (on a gamepad, the right stick) · ⟳ = rolling · [G] = brake',
+    ctrlHint: '◄ ►  CATEGORY     ·     ESC  BACK', optCtrlVer: 'VIEW',
     ctrlMenu: 'IN MENUS',       ctrlMenuK: 'arrows · ENTER · ESC', ctrlMenuP: 'd-pad · ✕ · ◯',
     selKeys: '[ESC] BACK      [ENTER] SELECT',
     escFenix: 'FÉNIX SQUADRON',
@@ -1694,6 +1705,8 @@ export const STRINGS = {
     arena_low: '! SEA — PULL UP !',
     arena_sunk: 'SHIP OUT OF ACTION!', arena_squad: 'SQUADRON',
     arena_v1: 'COCKPIT', arena_v3: 'THIRD PERSON',
+    avionBloqueado: 'COMING SOON',
+    cabinaProx: 'FIRST-PERSON CAMERA · COMING SOON', ctrlCabinaProx: 'FIRST-PERSON CAMERA (V / d-pad DOWN): COMING SOON',
     pulso_ya: 'NOW', pulso_soltar: 'RELEASE',
     pulso_ok: 'TARGET HIT',
     pulso_pasaste: 'YOU OVERSHOT', pulso_otra: 'COMING AROUND AGAIN',

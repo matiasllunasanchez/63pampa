@@ -25,6 +25,8 @@ import { cargaDe } from '../data/cargas.js';
 import { bombaInfo, chanceDetona } from '../data/bombas.js';
 import { buqueTanque } from '../core/nafta.js';
 import { beep, boom } from './audio.js';
+import { dado } from '../core/azar.js';
+const rnd = dado('blanco');   // el azar FIJO del libro de vuelo (core/azar.js)
 
 let objetivo = 0;   // objectiveDist de la corrida: el buque pasa por el avion cuando dist llega ahi
 let mslAntes = 0;   // para notar la suelta: la bomba que falta desde el cuadro anterior
@@ -212,7 +214,7 @@ export function tomarBomba() {
     // `traba`; la sonda `?traba=1` la traba siempre). game.js pregunta `trabada()` para decirlo.
     if (blanco.trabada) return false;
     let q = null; try { q = new URLSearchParams(location.search).get('traba'); } catch (e) { }
-    if (q === '1' || Math.random() < (bombaInfo(blanco.bomba).traba || 0)) {
+    if (q === '1' || rnd() < (bombaInfo(blanco.bomba).traba || 0)) {
       blanco.trabada = true;
       seña('trabada');
       return false;
@@ -294,7 +296,7 @@ export function golpe(pm, z0) {
       bombaSistemas(pm.x, 3, false);   // la que no detona igual atraviesa: lo que toca queda DAÑADO
       if (r === 'tarde') {
         const [a, b] = bi.tardeT;
-        blanco.tardeT = a + Math.random() * (b - a);
+        blanco.tardeT = a + rnd() * (b - a);
         blanco.tardeX = pm.x; blanco.tardeY = Math.max(blanco.base + 1, pm.y);
       }
       // DOS FALLAS DISTINTAS para Puma: si cayo lo que tenia que caer, "fue la bomba" (la
@@ -344,9 +346,9 @@ function sorteo(t) {
   if (q === 'explota' || q === 'tarde' || q === 'falla') return q;
   const bi = bombaInfo(blanco.bomba);
   const topo = bi.racha > 0 && fallidas >= bi.racha;
-  if (!topo && Math.random() >= Math.min(1, chanceDetona(blanco.bomba, t) + 0.2 * espoletas)) { fallidas++; return 'falla'; }
+  if (!topo && rnd() >= Math.min(1, chanceDetona(blanco.bomba, t) + 0.2 * espoletas)) { fallidas++; return 'falla'; }
   fallidas = 0;
-  return Math.random() < bi.tarde ? 'tarde' : 'explota';
+  return rnd() < bi.tarde ? 'tarde' : 'explota';
 }
 let fallidas = 0;   // armadas seguidas que no detonaron (ver `racha` en data/bombas.js)
 let espoletas = 0;  // el nivel de ESPOLETAS de la corrida (ver preparar)
@@ -371,8 +373,8 @@ function estalla(x, y, grande) {
   // …y las secundarias corriendo por la eslora, cada vez mas lejos del impacto
   for (let i = 0; i < 7; i++) obstacles.push({
     type: 'sec', done: true,
-    x: x + (i % 2 ? 1 : -1) * (4 + i * 4 + Math.random() * 4), y: B + 2 + Math.random() * 10, z: blanco.z,
-    t: 0.1 + i * 0.13 + Math.random() * 0.08, grande: i < 4,
+    x: x + (i % 2 ? 1 : -1) * (4 + i * 4 + rnd() * 4), y: B + 2 + rnd() * 10, z: blanco.z,
+    t: 0.1 + i * 0.13 + rnd() * 0.08, grande: i < 4,
   });
   obstacles.push({ type: 'humo', done: true, x, y: B - AGUA, z: blanco.z, humoT: 0, humoMax: 8 });
   boom(0.28); run.shake = Math.min(9, run.shake + 5);

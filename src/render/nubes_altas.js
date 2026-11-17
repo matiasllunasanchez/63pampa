@@ -129,10 +129,6 @@ export function drawNubesAltas() {
       ctx.fillRect(-80, HOR - alto, W + 160, alto + 1);
     }
     ctx.restore();
-    // EL CUERPO (16/11, el autor: "las nubes no tienen tanto cuerpo"): sobre la alfombra, CUPULAS de verdad —
-    // cumulos que se levantan del plano, de lejos a cerca, con la luz arriba y la base en sombra. Son los
-    // que rompen el horizonte: las lejanas, chiquitas, lo dejan desparejo
-    drawCupulas(h, capa);
   }
   if (blanco > 0) {
     ctx.save();
@@ -141,71 +137,5 @@ export function drawNubesAltas() {
     ctx.fillRect(-80, -150, W + 160, H + 300);
     ctx.restore();
   }
-}
-// LAS CUPULAS: hojitas pre-dibujadas (4 formas), tenidas con el cielo, y una grilla del mundo donde cada
-// celda tiene (o no) la suya — fija en el mundo, asi pasan con el avance como el resto
-const CELDA = 210, VARIANTES = 4, CW = 64, CH = 36;
-let cupulas = null, siluetas = null, cupDe = '';
-function hojasCupulas() {
-  const hz = theme.sky.horizon;
-  if (cupulas && cupDe === hz) return cupulas;
-  cupDe = hz; cupulas = []; siluetas = [];
-  const bruma = mezclaCss(hz, '#c4ccd6', 0.2);
-  const H0 = hex(hz);
-  const css = c => `rgb(${c[0]},${c[1]},${c[2]})`;
-  const sombra = css(mezcla([140, 152, 172], H0, 0.32)), medio = css(mezcla([198, 207, 220], H0, 0.24)),
-    luz = css(mezcla([238, 241, 246], H0, 0.16)), cresta = css(mezcla([255, 255, 255], H0, 0.08));
-  for (let v = 0; v < VARIANTES; v++) {
-    const c = document.createElement('canvas'); c.width = CW; c.height = CH;
-    const g = c.getContext('2d');
-    const rnd = i => { const r = Math.sin((v + 1) * 53.1 + i * 17.3) * 43758.5453; return r - Math.floor(r); };
-    const bolas = [];
-    for (let i = 0; i < 6; i++) {
-      const r = 7 + rnd(i) * 9, x = 12 + rnd(i + 9) * (CW - 24);
-      bolas.push([x, CH - r * (0.75 + rnd(i + 20) * 0.5), r]);
-    }
-    const capa = (col, dx, dy, s) => { g.fillStyle = col; for (const [x, y, r] of bolas) { g.beginPath(); g.arc(x + dx, y + dy, r * s, 0, Math.PI * 2); g.fill(); } };
-    capa(sombra, 0, 0, 1);            // la masa, en sombra
-    capa(medio, -1.5, -1.5, 0.86);    // el cuerpo
-    capa(luz, -2.5, -3, 0.66);        // la cara al sol (arriba a la izquierda)
-    capa(cresta, -3.5, -4.5, 0.38);   // las crestas
-    g.clearRect(0, CH - 2, CW, 2);    // la base recta, hundida en la alfombra
-    cupulas.push(c);
-    // la misma silueta en el color de la bruma: lo que se le pone encima a las lejanas
-    const sl = document.createElement('canvas'); sl.width = CW; sl.height = CH;
-    const gs = sl.getContext('2d'); gs.drawImage(c, 0, 0); gs.globalCompositeOperation = 'source-in';
-    gs.fillStyle = bruma; gs.fillRect(0, 0, CW, CH);
-    siluetas.push(sl);
-  }
-  return cupulas;
-}
-function drawCupulas(h, capa) {
-  const hojas = hojasCupulas();
-  const zMin = h * F / (H + 40 - HOR), zMax = Math.min(5200, h * 9);
-  const i0 = Math.ceil((run.dist + zMin) / CELDA), i1 = Math.floor((run.dist + zMax) / CELDA);
-  ctx.save();
-  ctx.imageSmoothingEnabled = false;
-  for (let i = i1; i >= i0; i--) {                     // de lejos a cerca
-    const z = i * CELDA - run.dist; if (z < zMin) continue;
-    const k = F / z, ancho = W * 0.5 / k + CELDA * 2;
-    const j0 = Math.floor((cam.x - ancho) / CELDA), j1 = Math.ceil((cam.x + ancho) / CELDA);
-    const yb = HOR + h * k;                            // la alfombra a esa distancia
-    const niebla = Math.min(1, z / zMax);
-    for (let j = j0; j <= j1; j++) {
-      const r = Math.sin(i * 12.9898 + j * 78.233) * 43758.5453, u = r - Math.floor(r);
-      if (u < 0.3) continue;                           // celda sin cupula
-      const u2 = (u - 0.3) / 0.7;
-      const x = j * CELDA + (u2 - 0.5) * CELDA * 0.8, tam = (230 + u2 * 300) * k;   // grandes y pisandose: masas, no copos
-      const sx = W / 2 + (x - cam.x) * k;
-      if (sx + tam < -80 || sx - tam > W + 80) continue;
-      ctx.globalAlpha = capa;
-      ctx.drawImage(hojas[(i * 7 + j) & 3], sx - tam / 2, yb - tam * CH / CW + 1, tam, tam * CH / CW);
-      if (niebla > 0.25) {                             // las lejanas se van con la bruma
-        ctx.globalAlpha = capa * Math.min(0.85, (niebla - 0.25) * 1.3);
-        ctx.drawImage(siluetas[(i * 7 + j) & 3], sx - tam / 2, yb - tam * CH / CW + 1, tam, tam * CH / CW);
-      }
-    }
-  }
-  ctx.restore();
 }
 const mezclaCss = (a, b, t) => { const c = mezcla(hex(a), hex(b), t); return `rgb(${c[0]},${c[1]},${c[2]})`; };

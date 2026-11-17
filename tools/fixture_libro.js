@@ -112,8 +112,9 @@ app.whenReady().then(async () => {
     const m = await js(`String(JSON.stringify((() => { const r = __librodbg(); return r; })()))`);
     ok(`despega: ${d.plane} · ${d.carga} · escuadron ${d.squad} · climax ${d.climax} · chancha ${d.chancha} · test=${d.test}`);
     if (d.test) bad('la salida real corre con el sello de PRUEBA');
-    if (!d.pilotos.every(p => p === 'PILOTO')) bad('pilotos: ' + d.pilotos.join(','));
-    else ok('pilotos: ' + d.pilotos.length + ' × PILOTO · chapas: ' + d.chapas.join(', '));
+    // 17/11: ya no todos PILOTO — pilotos generales (data/pilotos_generales.js), todos distintos
+    if (d.pilotos.some(p => p === 'PILOTO') || new Set(d.pilotos).size !== d.pilotos.length) bad('pilotos: ' + d.pilotos.join(','));
+    else ok('pilotos: ' + d.pilotos.join(', ') + ' · chapas: ' + d.chapas.join(', '));
     if (k === 2) { await sleep(2500); await shot('4_vuelo'); for (let i = 0; i < 40; i++) { win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'w' }); await sleep(100); } await shot('5_hud'); }
     // FIN: por la misma puerta del juego (el recuento → lo que pasó)
     await js('window.__finMision()');

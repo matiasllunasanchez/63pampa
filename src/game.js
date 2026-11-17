@@ -186,7 +186,7 @@ import { piso as pisoEstrella } from './core/estrellas.js';
 import { EST_MAX } from './data/tuning.js';
 import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T, SENAS_COMP } from './data/senales.js';
 import { cartel, cartelSostenido, tickCarteles, limpiarCarteles } from './core/cartel.js';
-import { CARA_DE_RADIO } from './core/voz.js';
+import { CARA_DE_RADIO, decirLinea, setVozLibro } from './core/voz.js';
 import { derrota, esChoque, tipoDerribo } from './data/derrotas.js';
 import { DEV } from './core/dev.js';
 import { defensaDe } from './data/defensas.js';
@@ -214,6 +214,8 @@ import * as teatro from './systems/teatro.js';
 import { drawTiros } from './render/teatro.js';
 import { canRelevo, pilotIdx, formationSlots, puestoFormacion, naftaCompanero, alMando, detras, RELEVO_WRECK, RELEVO_DUR } from './core/squad.js';
 import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
+import { sembrarAzar, hashTexto } from './core/azar.js';
+import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 
   (() => {
     'use strict';
@@ -796,6 +798,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // funciona igual en PASILLO, despegue, climax y ARENA sin tocar ningun camino de dibujo.
     let paused = false;
     let pauseView = 'menu';          // 'menu' · 'controls' · 'save'
+    // CONTROLES POR CATEGORIAS (17/11, menus.drawControles): la pestaña que se ve, compartida por la PAUSA y
+    // OPCIONES; `optCtrl` = OPCIONES tiene la pantalla de controles abierta encima
+    let ctrlTab = 0, optCtrl = false;
+    function ctrlTabMover(dir) { ctrlTab = (ctrlTab + dir + menus.CTRL_N) % menus.CTRL_N; beep(520, 0.05, 'square', 0.04); }
     let pauseSel = 0, saveSel = 0;   // cursor del menu y de la lista de guardado
     let pauseT = 0;                  // reloj propio (run.t esta congelado): parpadeos del overlay
     let pauseMsgT = -9;              // cuando se guardo por ultima vez (flash "PARTIDA GUARDADA")
@@ -949,6 +955,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // seguiria apuntando "al primero" — que el dia que alguien mueva una linea es otro avion.
     // La campaña vuela A-4B y la decision esta escrita: docs/historia/AVIONES_ESCUADRON.md.
     const CAMPAIGN_PLANE = Math.max(0, PLANES.findIndex(p => p.key === 'sky'));
+    /** EN PROD, SOLO EL A-4B (17/11, el autor: "en POR LA PATRIA y CICLO DE MUERTE, en modo productivo dejar
+     *  solo el Skyhawk A-4B, pero permitir recorrer todos los otros aviones… sin poder seleccionarlos"). Los
+     *  demas se ven en el carrusel —en gris, con candado— y ENTER no arranca. En DEV se eligen todos. */
+    const avionBloqueado = i => !DEV && i !== CAMPAIGN_PLANE;
 
     // ---------- TIPOS DE OBJETIVO ----------
     // Un objetivo es ENCHUFABLE: agregar un tipo nuevo (base, convoy, escolta...) es agregar
@@ -1069,7 +1079,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           : ev.tipo === 'canon_45' ? 'sis_r_45' : /_lanz$/.test(ev.tipo) ? 'sis_r_lanz' : 'sis_r_aa';
         sisRadioT = run.t;
         beep(430, 0.06, 'square', 0.04);
-        decirRadio((libro ? 'PATRIA 2' : 'PUMA') + ': ' + T(key).replace('{n}', ev.nombre), n => CARA_DE_RADIO[n] || null);
+        decirLinea((libro ? 'PATRIA 2' : 'PUMA') + ': ' + T(key).replace('{n}', ev.nombre));
       }
     }
     /** LA PLACA DEL SIGUIENTE DE LA FILA: como encuentra el buque. Es el momento en que se entiende que
@@ -1090,7 +1100,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // los demas— esa voz no existe y la linea se calla (autor, 14/10: "siempre que haya al menos uno").
       if (String(T(key)).startsWith('PATRIA 2:') && run.lives < 2) return;
       beep(430, 0.06, 'square', 0.04);
-      decirRadio(T(key), n => CARA_DE_RADIO[n] || null);
+      decirLinea(T(key));
     }
 
     /** QUIEN TIENE CARA EN LA RADIO. El texto de los tramos ya viene como 'CONDOR: ...', asi que
@@ -1754,7 +1764,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // HISTORIA ya no arranca directo: pasa por su submenu (CONTINUAR / campañas)
       if (m === 'campaign') { campIr('raiz'); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'quick' || m === 'dev') { subMenu = m; quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
-      else if (m === 'options') { setState('options'); beep(600, 0.06, 'square', 0.05); }
+      else if (m === 'options') { optCtrl = false; setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
     }
     // ---------- LA MUSICA EN CAPAS (docs/produccion/MUSICA_CAPAS.md) ----------
@@ -2221,6 +2231,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     }
     /** Izquierda / derecha en la pausa: en VER CARTAS, pasar de carta (en el menu no hacen nada). */
     function pauseLado(dir) {
+      if (pauseView === 'controls') { ctrlTabMover(dir); return; }
       if (pauseView !== 'cartas' || cartasN < 2) return;
       const s2 = Math.max(0, Math.min(cartasN - 1, cartasSel + dir));
       if (s2 === cartasSel) return;
@@ -2419,7 +2430,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const igual = m.aviones.filter(a => !av || a.plane === av.plane);
       const ch = av && av.chapas ? av.chapas : igual.map(a => a.chapa), i0 = av && av.chapas ? 0 : Math.max(0, igual.indexOf(av));
       const orden = Array.from({ length: n }, (_, i) => ch[(i0 + i) % ch.length]);
-      return { roster: Array.from({ length: n }, () => 'PILOTO'), chapas: orden };
+      // LOS PILOTOS (17/11, data/pilotos_generales.js): ya no todos PILOTO con la cara de Esteban — cada
+      // salida baraja los generales con su id (siempre la misma escuadrilla) y reparte uno por avion
+      const pool = PILOTOS_GENERALES.map(p => p.nombre);
+      for (let h = Math.abs(hashTexto(m.id)) || 1, i = pool.length - 1; i > 0; i--) {
+        h = (Math.imul(h, 1103515245) + 12345) >>> 0;
+        const j = h % (i + 1); [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      return { roster: Array.from({ length: n }, (_, i) => pool[i % pool.length]), chapas: orden };
     }
     /** EN QUE TRAMO va una salida con `lanzamiento` (hoy EL INVINCIBLE): 'super' si se eligio el Super
      *  Etendard (hasta el Pulso, que cierra la mision); con el A-4C, 'sigue' detras de los Super Etendard
@@ -2929,17 +2947,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // CONTROLES: filas de solo LECTURA. No se cambian (el remapeo no existe todavia): estan para
       // que las teclas y los botones se puedan CONSULTAR sin salir del juego ni abrir el README.
       // El cursor las saltea igual que a los encabezados.
-      { head: 'optSecCtrl' },
-      { cols: true },   // rotulos TECLADO / JOYSTICK de las dos columnas
-      ...[['Fly'], ['Gas'], ['Dive'], ['Gun'], ['Msl'], ['Secund'], ['Boost'], ['Brake'], ['Turn'], ['Pips'], ['Roll'], ['Pan'], ['Moves']]
-        .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
-      // NOTAS al pie de la tabla: no son controles ni opciones, son las dos reglas que la tabla
-      // sola no alcanza a explicar. Van como tipo aparte (`note`) porque puestas como filas de
-      // control se leian como si fueran configurables — el cursor se paraba encima y daban ganas
-      // de apretarles izquierda/derecha a ver que cambiaba.
-      { note: 'ctrlHands' }, { note: 'ctrlWasd' }, { note: 'ctrlArena' }, { note: 'ctrlBombs' }, { note: 'ctrlSame' }, { note: 'ctrlBoth' },
-      ...[['Aim'], ['Cam'], ['Tempo'], ['Chancha'], ['Tanques'], ['Chapitas'], ['Cambio'], ['Inv'], ['Music'], ['Pause'], ['Menu']]
-        .map(([k]) => ({ ctrl: 'ctrl' + k, kb: 'ctrl' + k + 'K', pad: 'ctrl' + k + 'P' })),
+      // CONTROLES (17/11): ya no es una tabla de treinta renglones aca adentro — es su propia pantalla, por
+      // categorias (menus.drawControles). Esta fila la abre.
+      { label: () => T('optSecCtrl'), value: () => T('optCtrlVer'), open: 'controles' },
 
       { head: 'optSecPartida' },
       // ESCUADRÓN: las VIDAS, contadas como aviones de la formación (ver systems/squad.js).
@@ -3279,6 +3289,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     /** ENTER en OPCIONES. Hay filas que ABREN una sub-pantalla; el resto sale, como siempre. */
     function optConfirm() {
       const r = OPT_ROWS[optRow];
+      if (optCtrl) { optCtrl = false; beep(400, 0.06, 'square', 0.05); return; }
+      if (r && r.open === 'controles') { optCtrl = true; beep(600, 0.06, 'square', 0.05); return; }
       if (r && r.open === 'mejoras') {
         mejSel = mejRows().findIndex(x => !x.head);
         setState('mejoras'); beep(600, 0.06, 'square', 0.05);
@@ -3599,6 +3611,14 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 
     let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
+      // EL AZAR FIJO (17/11, core/azar.js): una salida del libro siembra con su id y su avion, asi que
+      // cada vez que se vuela es la misma (enemigos, olas, cazas, defensas). Fuera del libro, Math.random.
+      sembrarAzar(libro && libro.av !== null ? LIBRO_VUELO[libro.k].id + '/' + libro.av : null);
+      // …y LA RADIO DEL LIBRO (core/voz.js): lo que diria el elenco lo dice el numeral, con su apodo y su cara
+      setVozLibro(libro && libro.av !== null ? {
+        numeral: () => (run.lives >= 2 ? squad.pilotName(detras(run)) : null),
+        piloto: () => squad.pilotName(alMando(run)),
+      } : null);
       if (gameMode !== 'campaign' && gameMode !== 'cycle') soltarMision();
       // CORRIDA NUEVA DE UN MODO SUELTO: la libreta vacia (las cartas duran la corrida; y sin esto se heredaba
       // la de la ultima campaña, MOMENTUM incluido). El salto de un blanco al otro del ciclo no cuenta.
@@ -3900,8 +3920,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       cargaNav: dir => cargaNav(dir),
       cargaConfirm: () => cargaConfirm(),
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
-      optNav: dir => { optNav(dir); beep(500, 0.04, 'square', 0.03); },
-      optChange: dir => { optChange(dir); beep(560, 0.05, 'square', 0.04); },
+      optNav: dir => { if (optCtrl) return; optNav(dir); beep(500, 0.04, 'square', 0.03); },
+      optChange: dir => { if (optCtrl) { ctrlTabMover(dir); return; } optChange(dir); beep(560, 0.05, 'square', 0.04); },
+      // ESC en OPCIONES: si estan abiertos los CONTROLES, los cierra (devuelve true); si no, sale como siempre
+      optBack: () => { if (!optCtrl) return false; optCtrl = false; beep(400, 0.06, 'square', 0.05); return true; },
       optConfirm,
       mejNav: dir => { mejNav(dir); beep(500, 0.04, 'square', 0.03); },
       mejChange: dir => { mejChange(dir); beep(560, 0.05, 'square', 0.04); },
@@ -4049,6 +4071,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (S.state === 'pasada') { pasada.toggleView(); return; }
         // EN EL PASILLO, la PRIMERA PERSONA (core/cabina.js, espiga F0 del 14/10): tercera ↔ cabina
         if (S.state === 'play' || S.state === 'takeoff') {
+          // FUERA DE PROD POR AHORA (17/11, el autor: "le falta pulir"): la tecla avisa que viene
+          if (!DEV) { beep(440, 0.05, 'square', 0.04); cartel(T('cabinaProx'), P.dim); return; }
           cabina.on = !cabina.on;
           beep(cabina.on ? 660 : 440, 0.05, 'square', 0.04);
           cartel(cabina.on ? 'CABINA' : 'TERCERA', P.accent);
@@ -4431,7 +4455,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       if (canRelevo(run.lives)) {
         const seco = alMando(run);   // el que vuela ahora
         beep(430, 0.06, 'square', 0.04);
-        decirRadio(T('seco_radio', { c: squad.pilotName(seco) }), n => CARA_DE_RADIO[n] || null);
+        decirLinea(T('seco_radio', { c: squad.pilotName(seco) }));
         // FUERA DE LA CAMPAÑA EL SECO SE VE (16/10, el autor: "me desaparece el avion de la nada, sin
         // explosion"): el avion sin nafta no se esfuma — planea apagado, el piloto se eyecta y cae al
         // agua. En campaña sigue siendo el que vuelve a la base en reserva (el guion).
@@ -5594,7 +5618,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           if (briefT > 0.6 && flags.anyPress) trasBrief(1.0);
         } else if (S.state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
-          if (flags.startReq) {
+          if (flags.startReq && avionBloqueado(selPlane)) beep(180, 0.12, 'square', 0.05);   // el candado ya lo dice
+          else if (flags.startReq) {
             // MINUTOS SAGRADOS / PASADAS MORTALES: derecho al climax, con el buque elegido en OPCIONES
             if (gameMode === 'arena') startArenaBattle(false);
             else if (gameMode === 'pasadas') startPasadaBattle(false);
@@ -7255,7 +7280,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       });
       if (S.state === 'relevo' && squad.relevo()) squadRender.drawRelevo(squad.relevo());
       if (S.state === 'menu') {
-        menus.drawMenu({ selPlane, gameMode, t: run.t, scroll: fichaScroll, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
+        menus.drawMenu({ selPlane, bloqueado: avionBloqueado(selPlane), gameMode, t: run.t, scroll: fichaScroll, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
         // ahora se hace aca, antes de dibujar
       }
       // EL DERRIBO SE FUNDE A NEGRO mientras el mundo sigue (8/10, el autor: "meter fade negro"): de
@@ -7319,7 +7344,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         cartas: pauseView === 'cartas' ? cartasDeLaCorrida() : null, lee: leeDe,
         cartasSel, cartasCrece: (cartasCrece = Math.min(1, cartasCrece + 0.12)), cartasLeer: (cartasLeerV += (cartasLeer - cartasLeerV) * 0.22),
         alto: (m, n) => { cartasLeerMax = m; cartasN = n; },
-        saveRows: pauseSaveRows(), t: pauseT, msg: pauseT - pauseMsgT,
+        saveRows: pauseSaveRows(), t: pauseT, msg: pauseT - pauseMsgT, ctrlTab, padTxt: padInfo.conectado ? padTexto : null,
       });
       // PAUSA DE DIALOGO: velo y CAJA DE LAS PANTALLAS, sin una sola fila de menu. El mundo queda
       // abajo como contexto —igual que en la pausa— y lo unico que se lee es quien habla: busto,
@@ -7388,6 +7413,8 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
           return { label: r.label(), value: r.names()[i], preview: r.preview, raw: r.opts[i] };
         }),
       });
+      // LOS CONTROLES abiertos desde OPCIONES: encima, con su propio panel
+      if (S.state === 'options' && optCtrl) menus.drawControles({ tab: ctrlTab, padTxt: padInfo.conectado ? padTxt : null, velo: false });
       // MEJORAS DEL PICHON: mismo snapshot de solo lectura que OPCIONES. `card` se resuelve acá
       // (es una función en la fila) para que el render siga sin tocar nada del juego.
       if (S.state === 'mejoras') menus.drawMejoras({
@@ -7769,6 +7796,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // entraba a OTRA pantalla, fallando mas abajo con un mensaje que no hablaba de menus. Paso
       // dos veces (PERSECUCION y PRUEBAS): ahora se puede navegar HASTA una fila por nombre.
       modo: MODES[modeSel], quick: (quickRows()[quickSel] || {}).id || null,
+      opt: (OPT_ROWS[optRow] || {}).open || null, optCtrl, ctrlTab,
       prueba: (prbRows()[prbSel] || {}).id || null, test: S.test,
       // …y OPCIONES, por la misma razon. Las filas no tienen `id`, pero si un nombre estable: la que
       // abre una sub-pantalla dice cual (`open`) y la que se guarda, su clave (`save`). Paso el
@@ -8016,7 +8044,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
     // __decir: dispara UNA linea de radio ya, sin esperar al tramo que la trae. Existe para medir
     // donde cuelga la voz (debajo de la cinta, con su ancho) en una captura: el toast aparece y se
     // va, y esperar al tramo de verdad son minutos de vuelo. QUITAR con el resto.
-    if (typeof window !== 'undefined') window.__decir = raw => { decirRadio(String(raw), n => CARA_DE_RADIO[n] || null); return JSON.stringify(screens.toastBanda()); };
+    if (typeof window !== 'undefined') window.__decir = raw => { decirLinea(String(raw)); return JSON.stringify(screens.toastBanda()); };
     if (typeof window !== 'undefined') window.__radiodbg = () => JSON.stringify({
       visible: radioVis(), personaje: radioBox.personaje, cara: radioBox.cara,
       txt: radioBox.wrap.join(' '), resta: +radioRest().toFixed(2),

@@ -177,8 +177,11 @@ export const cfg = {
   // del autor). En false el escuadron es, cuadro por cuadro, el de antes de que existiera.
   cambioPiloto: true,
   // EL FONDO ALREDEDOR DEL JUEGO (3/10): 'negro' | 'resplandor' | 'fichin' — ver render/ambiente.js.
-  // EL FICHIN DE FABRICA, siempre (pedido del autor): los otros dos se eligen en OPCIONES.
-  fondo: 'fichin',
+  // EL RESPLANDOR DE FABRICA (17/11, el autor: "el modo default debe ser el que agarra casi el 100% de
+  // pantalla y desaparece el marco… repliquemos a prod"). Antes era el FICHIN, y una instalacion nueva
+  // quedaba con el gabinete de marco. El ARRANQUE sigue siendo en el fichin (game.js, 21/10): al echar la
+  // ficha se acerca y pasa a este.
+  fondo: 'resplandor',
   // …y cuan cerca se lo mira: 1 el gabinete entero, 2 hasta la mitad de las manos, 3 un poco mas.
   // El 2 de fabrica el 3/10; el 3 desde el 4/10 (autor).
   fichinZoom: 3,   // al arrancar lo pisa zoomDePantalla() (render/ambiente.js): notebook 3, 1920 el 2, 4K el 1

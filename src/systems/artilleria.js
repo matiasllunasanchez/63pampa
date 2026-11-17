@@ -17,6 +17,8 @@ import { run } from '../core/run.js';
 import { missiles } from '../core/world.js';
 import { blanco, cajaSistema } from '../core/blanco.js';
 import { ARTILLERIA } from '../data/sistemas_buque.js';
+import { dado } from '../core/azar.js';
+const rnd = dado('artilleria');   // el azar FIJO del libro de vuelo (core/azar.js)
 
 const C = ARTILLERIA.C45;
 let PZ = 14;
@@ -25,7 +27,7 @@ const fogonazos = [];     // { x, t } — el fogonazo en la torre al tirar (la s
 const relojes = new Map();
 let salvas = 0, rumbo = 0;
 
-const gauss = s => s * Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+const gauss = s => s * Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd());
 const reloj = (k, ini) => { if (!relojes.has(k)) relojes.set(k, ini); return relojes.get(k); };
 
 export function reset() { cols.length = 0; fogonazos.length = 0; relojes.clear(); salvas = 0; rumbo = 0; }
@@ -39,7 +41,7 @@ function salva(sis) {
   if (r && rumbo && r !== rumbo) salvas = 0;
   if (r) rumbo = r;
   const lat = salvas < C.horquilla ? C.r * (4 - salvas * 1.6) : 0;
-  const lado = Math.random() < 0.5 ? 1 : -1;
+  const lado = rnd() < 0.5 ? 1 : -1;
   for (let i = 0; i < n; i++) {
     const tt = C.t0 + i * C.paso;
     const off = lat * (i % 2 ? 1 : -1) * lado;
@@ -83,9 +85,9 @@ export function step(dt, e) {
     }
     const A = ARTILLERIA.AA[sis.tipo];
     if (!A || blanco.z < A.desde || blanco.z > A.hasta) continue;
-    const t = reloj(sis, A.cada * Math.random()) - dt * (e.k || 1);
+    const t = reloj(sis, A.cada * rnd()) - dt * (e.k || 1);
     if (t > 0) { relojes.set(sis, t); continue; }
-    relojes.set(sis, A.cada * (0.8 + Math.random() * 0.4));
+    relojes.set(sis, A.cada * (0.8 + rnd() * 0.4));
     const cj = cajaSistema(sis), disp = A.disp * (sis.estado === 'danado' ? 1.6 : 1);
     // `ox`/`oy`: el error de punteria de ESTE tiro. collision.js lo respeta al corregir, asi que la
     // dispersion no se la come el guiado de las trazadoras (casi rectas, pero corrigen un poco)

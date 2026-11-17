@@ -224,7 +224,8 @@ export function initInput(cv, a) {
       // ENTER dejo de significar SALIR: hay filas que ABREN una sub-pantalla (MEJORAS DEL PICHON).
       // Si no abre nada, optConfirm() sale igual que antes, asi que no cambia el habito.
       if (isConfirm(e.code)) { a.optConfirm(); e.preventDefault(); return; }
-      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+      // ESC: si estan abiertos los CONTROLES (17/11) los cierra; si no, sale
+      if (isBack(e.code)) { if (!(a.optBack && a.optBack())) a.escToMenu(); e.preventDefault(); return; }
       return;
     }
     // MEJORAS DEL PICHON: la sub-pantalla de OPCIONES con todo lo que toca al avion. ENTER acá
@@ -881,7 +882,7 @@ export function initInput(cv, a) {
         if (nl && !nav.l) a.optChange(-1);
         if (nr && !nav.r) a.optChange(1);
         if (confirm) a.optConfirm();                           // puede ABRIR una sub-pantalla
-        if (hit(1)) a.escToMenu();                             // B = volver
+        if (hit(1) && !(a.optBack && a.optBack())) a.escToMenu();   // B = volver (o cerrar CONTROLES)
       } else if (S.state === 'mejoras') {
         if (nu && !nav.u) a.mejNav(-1);
         if (nd && !nav.d) a.mejNav(1);

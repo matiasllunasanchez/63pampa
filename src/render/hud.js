@@ -36,6 +36,7 @@ import { retrato, silueta } from './retratos.js';
 import { icono, iconoEn, tonos } from './iconos.js';
 import { ICONO_BUQUE, ICONO_BUQUE_NOMBRE, CANON_METAL } from '../data/iconos.js';
 import { SHIP_CLASS } from '../data/ships.js';
+import { carasGeneral } from '../data/pilotos_generales.js';
 import { CARA_PILOTO, GESTOS, GESTO_SOSTEN, SONRISA_PTS, SONRISA_T } from '../data/gestos.js';
 import { radio, visible as radioVisible } from '../core/radioVN.js';
 import { radarP } from '../core/radarPropio.js';
@@ -1558,6 +1559,8 @@ function gestoDeseado() {
  *  en `delAvion`. null = sin cara. */
 function carasDe(nombre, delAvion) {
   if (delAvion) return delAvion.caras;
+  const gen = carasGeneral(nombre);   // los pilotos generales del libro de vuelo (data/pilotos_generales.js)
+  if (gen) return gen;
   const base = CARA_PILOTO[sinTilde(nombre)];
   return base ? Object.fromEntries(GESTOS.map(g => [g, base + '_' + g])) : null;
 }

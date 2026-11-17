@@ -67,19 +67,24 @@ const TIERRA_NUESTRA = ['birds', 'poles', 'tree', 'tower', 'flag'];         // l
  *    casa     false = sin vuelta: el climax cierra la mision (el Pulso del Sheffield)
  */
 const VUELTA_TRANQUILA = [{ hasta: 1.5, obstacles: 0.7, caza: 0 }, { hasta: 2.0, obstacles: 0.5, caza: 0 }];
+// MAS QUE ESQUIVAR EN LA IDA (17/11, el autor: "la parte donde el avion solo vuela tiene pocas
+// complicaciones, pocas olas, pocos pajaros… hay que meterle mas"). Con `solo: MAR` el sorteo de la mezcla
+// de mar descarta casi todo lo que no es ola ni bandada y deja huecos: la densidad se sube a mano en el
+// transito y el descenso, y un poco en la primera mitad del rasante. (1 = la de siempre.)
+const IDA_DENSA = 2.2, RASANTE_DENSO = 1.5;
 function fases({ lejos = MAR, cerca = DEFENSA, blanco = {}, vuelta = VUELTA_TRANQUILA, grito = {}, casa = true } = {}) {
   // EL TRANSITO ALTO ES UN CUARTO DE LA IDA (en t17 era 16%): es donde ocurre la cita con el Hercules,
   // y tiene que alcanzar para que llegue, te enganche y te llene ANTES de la linea del radar (que se
   // ancla al comienzo del descenso). Con 16% pasaba de largo (autor, 12/10).
   const ida = [
-    { tipo: 'transito', hasta: 0.12, solo: MAR, bombs: 0, bidones: false },
-    { tipo: 'transito', hasta: 0.19, solo: MAR, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: 0.12, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: 0.19, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
     // EL SILENCIO DE RADIO (autor, 14/10): unos km antes de la linea del radar (~110 reales, 7-8 s de
     // vuelo: la linea es larga y tiene que poder leerse entera ANTES de entrar; al 0.22 eran 4 s) el amigo lo
     // dice. Si ya no queda ningun amigo en el aire, la linea no suena (ver radioTramo en game.js).
-    { tipo: 'transito', hasta: 0.25, solo: MAR, bombs: 0, bidones: false, radio: 'libro_radar_silencio' },
-    { tipo: 'descenso', hasta: 0.30, solo: MAR, bombs: 0, bidones: false },
-    { tipo: 'rasante', hasta: 0.55, solo: lejos, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: 0.25, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false, radio: 'libro_radar_silencio' },
+    { tipo: 'descenso', hasta: 0.30, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
+    { tipo: 'rasante', hasta: 0.55, solo: lejos, obstacles: RASANTE_DENSO, bombs: 0, bidones: false },
     { tipo: 'rasante', hasta: 0.82, solo: cerca, bombs: 0, bidones: false },
     { tipo: 'filo', hasta: 0.88, radar: 6, bombs: 0, bidones: false },
     { tipo: 'blanco', hasta: 1, solo: cerca, bombs: 0, bidones: false, ...blanco },

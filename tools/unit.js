@@ -4197,7 +4197,7 @@ test('estructura · la cuenta ve las lomas, y en el terreno de t18 igual hay sue
   test('sidewinder: uno, o como mucho DOS por Harrier', () => {
     assert.ok(P9.POR_HARRIER >= 1 && P9.POR_HARRIER <= 2, `la cola carga ${P9.POR_HARRIER}`);
     const spawn = readFileSync(new URL('../src/systems/spawn.js', import.meta.url), 'utf8');
-    assert.match(spawn, /aim9: Math\.random\(\) < AIM9\.FRENTE_P2 \? 2 : 1/, 'el caza de frente tiene que cargar 1 o 2');
+    assert.match(spawn, /aim9: rnd\(\) < AIM9\.FRENTE_P2 \? 2 : 1/, 'el caza de frente tiene que cargar 1 o 2');
     // y lo que se fue, no vuelve: ni rafagas que erran en la cola ni trazadoras en el caza de frente
     const caza = readFileSync(new URL('../src/systems/caza.js', import.meta.url), 'utf8');
     assert.ok(!/function rafaga\(/.test(caza), 'volvio la rafaga que erra en la cola');

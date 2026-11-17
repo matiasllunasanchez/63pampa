@@ -15,6 +15,8 @@ import { BANCO, loadoutAt } from '../data/upgrades.js';
 import { fmtDate } from '../systems/saves.js';
 import { iconoDe, ICONO_FW, ICONO_COLS, ICONOS } from '../data/iconos_cartas.js';
 import { capacidadesDe } from '../data/perfiles.js';
+import { CTRL_CATEGORIAS } from '../data/controles.js';
+import { MOVES, COMBO } from '../data/moves.js';
 
 // ELECCION DE AVION — la pantalla previa de CICLO DE MUERTE y POR LA PATRIA. Usa los MISMOS
 // roles tipograficos que el lobby (logotipo / rotulo / nombre / texto corrido), para que las dos
@@ -58,8 +60,13 @@ export function drawMenu(w) {
     ctx.imageSmoothingEnabled = false;
     // (17/10, el autor: "que no lo tape el cuadro… centralo en el contenido libre que tiene"): centrado entre el
     // pie de la franja y el pie de la ficha
-    ctx.drawImage(ilus, cx - PW / 2, (pieFranja + L.ficha.y + L.ficha.h) / 2 - PH / 2 + Math.sin(w.t * 1.3) * 1.5, PW, PH);
+    const ya = (pieFranja + L.ficha.y + L.ficha.h) / 2 - PH / 2 + Math.sin(w.t * 1.3) * 1.5;
+    // BLOQUEADO (prod, 17/11): en gris, apagado, con el candado arriba — se recorre pero no se elige
+    if (w.bloqueado) { ctx.save(); ctx.filter = 'grayscale(1) brightness(0.55)'; ctx.globalAlpha = 0.35; }
+    ctx.drawImage(ilus, cx - PW / 2, ya, PW, PH);
+    if (w.bloqueado) ctx.restore();
     ctx.imageSmoothingEnabled = smooth;
+    if (w.bloqueado) candado(cx, ya + PH / 2 - 4, T('avionBloqueado'));
   }
   // flechas de seleccion (parpadean), a los costados del avion
   ctx.textAlign = 'center';
@@ -133,6 +140,18 @@ export function drawMenu(w) {
   // PIE: una sola linea de teclas (mitad de cuerpo: es ayuda, no contenido)
   ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(4.5);
   ctx.fillText(T('selKeys'), W / 2, H - 6);
+}
+/** EL CANDADO de un avion bloqueado (prod): arco y cuerpo, centrado en (cx, cy), con su rotulo debajo. */
+function candado(cx, cy, txt) {
+  ctx.save();
+  ctx.strokeStyle = P.ink; ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.arc(cx, cy - 6, 5.5, Math.PI, 0); ctx.lineTo(cx + 5.5, cy - 1); ctx.moveTo(cx - 5.5, cy - 6); ctx.lineTo(cx - 5.5, cy - 1); ctx.stroke();
+  ctx.fillStyle = '#0a0f12'; ctx.fillRect(cx - 9, cy - 1, 18, 14);
+  ctx.fillStyle = P.ink; ctx.fillRect(cx - 8, cy, 16, 12);
+  ctx.fillStyle = '#0a0f12'; ctx.fillRect(cx - 1, cy + 3, 2, 5);
+  ctx.textAlign = 'center'; ctx.font = labelFont(7); ctx.fillStyle = P.ink;
+  ctx.fillText(txt, cx, cy + 24);
+  ctx.restore();
 }
 /** Un rotulo corto centrado en `cx`: si no entra en `ancho`, en DOS renglones partido en el espacio mas cercano
  *  al medio (con la fuente activa). */
@@ -807,7 +826,7 @@ function campText(r) {
   if (r.id === 'proxima') {
     const m = LIBRO_PROXIMAS[r.k], es = getLang() !== 'en';
     const f = m.fecha ? (es ? m.fecha.es : m.fecha.en) : T('libroSinFecha');
-    return { name: es ? m.es : m.en, desc: f + '  ·  ' + T('libroEnDesarrollo'), compacta: true };
+    return { name: es ? m.es : m.en, marca: T('libroProximamente'), desc: f + '  ·  ' + T('libroEnDesarrollo'), compacta: true };
   }
   return { name: CAMPAIGNS[1].name, desc: T('campC2Desc') + '  ·  ' + T('campSoon') };
 }
@@ -924,6 +943,13 @@ function drawRowMenu(w, titleKey, textOfBase, geo) {
     ctx.textAlign = 'left';
     ctx.fillStyle = col; ctx.font = menuFont(12);
     ctx.fillText(t.name, x, y);
+    // LA MARCA CHICA al lado del nombre (17/11, el autor: las salidas en gris del libro dicen PROXIMAMENTE)
+    if (t.marca) {
+      const wn = ctx.measureText(t.name).width;
+      ctx.font = labelFont(7); ctx.globalAlpha = 0.85;
+      ctx.fillText(t.marca, x + wn + 6, y - 1);
+      ctx.globalAlpha = 1;
+    }
     ctx.fillStyle = r.disabled ? '#4a565c' : on ? P.ink : P.dim; ctx.globalAlpha = on ? 0.9 : 0.6;
     // LA MISMA fuente de descripcion que el selector de modos (rowFont, hoy filaFont): los
     // submenus se leian con la tipografia de rotulo y quedaban como otra pantalla de otro juego.
@@ -1208,12 +1234,94 @@ export function drawSaves(w) {
   }
 }
 
+// ---------- CONTROLES, POR CATEGORIAS (17/11, data/controles.js) ----------
+// Una pestaña por categoria (◄ ►), y adentro una tabla corta: lo que hace · TECLADO · JOYSTICK, con las
+// teclas en TECLAS DIBUJADAS (una cajita por alternativa) para que se lean de un vistazo. PIRUETAS es otra
+// forma: el catalogo de maniobras en dos columnas, cada una con su combo. La comparten OPCIONES y la PAUSA:
+// `w.tab` es la pestaña, `w.padTxt` traduce los botones al mando conectado, `w.velo` = sobre el juego.
+export const CTRL_N = CTRL_CATEGORIAS.length;
+/** Una tecla dibujada: el texto adentro de una cajita. Devuelve el ancho que ocupo. */
+function teclaCaja(txt, xDer, y, on) {
+  ctx.font = labelFont(8);
+  const w = Math.ceil(ctx.measureText(txt).width) + 8, x = xDer - w;
+  ctx.fillStyle = '#0d1418'; ctx.globalAlpha = 0.9; ctx.fillRect(x, y - 8, w, 11); ctx.globalAlpha = 1;
+  ctx.strokeStyle = on ? P.accent : '#4c5b62'; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y - 8.5, w - 1, 11);
+  ctx.fillStyle = on ? P.foam : P.ink; ctx.textAlign = 'left';
+  ctx.fillText(txt, x + 4, y);
+  return w;
+}
+/** Una fila de alternativas ('X · ESPACIO · K') como teclas, alineadas a la derecha en `xDer`. */
+function teclas(txt, xDer, y) {
+  if (!txt || txt === '—') { ctx.textAlign = 'right'; ctx.fillStyle = '#4a565c'; ctx.font = labelFont(8); ctx.fillText('—', xDer, y); return; }
+  const alts = String(txt).split('·').map(t => t.trim()).filter(Boolean);
+  let x = xDer;
+  for (let i = alts.length - 1; i >= 0; i--) {
+    x -= teclaCaja(alts[i], x, y, false);
+    if (i > 0) { ctx.textAlign = 'center'; ctx.fillStyle = P.dim; ctx.font = labelFont(7); ctx.fillText('o', x - 6, y - 1); x -= 12; }
+  }
+}
+export function drawControles(w) {
+  // OPACO abajo: se abre ENCIMA de OPCIONES o de la pausa, y lo de atras no puede trasluzarse
+  ctx.fillStyle = '#0b1013'; ctx.fillRect(0, 0, NW, NH); panel();
+  const cat = CTRL_CATEGORIAS[(w.tab + CTRL_N) % CTRL_N], padTxt = w.padTxt || (t => t);
+  ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = titleFont(22);
+  ctx.fillText(T('optSecCtrl'), NW / 2, 36);
+  // LAS PESTAÑAS: todas a la vista, la elegida encendida y subrayada
+  ctx.font = labelFont(9);
+  const anchos = CTRL_CATEGORIAS.map(c => ctx.measureText(T('ctrlCat_' + c.id)).width), sep = 18;
+  let x = NW / 2 - (anchos.reduce((a, b) => a + b, 0) + sep * (CTRL_N - 1)) / 2;
+  CTRL_CATEGORIAS.forEach((c, i) => {
+    const on = c === cat;
+    if (on) { ctx.fillStyle = P.accent; ctx.globalAlpha = 0.14; ctx.fillRect(x - 5, 47, anchos[i] + 10, 14); ctx.globalAlpha = 1; ctx.fillRect(x - 5, 60, anchos[i] + 10, 1.5); }
+    ctx.textAlign = 'left'; ctx.fillStyle = on ? P.accent : P.dim; ctx.globalAlpha = on ? 1 : 0.7;
+    ctx.fillText(T('ctrlCat_' + c.id), x, 57); ctx.globalAlpha = 1;
+    x += anchos[i] + sep;
+  });
+  ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(40, 64.5); ctx.lineTo(NW - 40, 64.5); ctx.stroke(); ctx.globalAlpha = 1;
+
+  const xa = 52, xv = NW - 52, xk = xv - 150;
+  let yFin;
+  if (cat.piruetas) {
+    // DOS COLUMNAS de piruetas: el nombre y, debajo, como se pide
+    const ids = Object.keys(MOVES), mitad = Math.ceil(ids.length / 2), colW = (NW - 2 * xa) / 2, rh = 15;
+    ids.forEach((id, i) => {
+      const c = i < mitad ? 0 : 1, f = i % mitad, x0 = xa + c * colW, y = 74 + f * rh;
+      ctx.textAlign = 'left'; ctx.fillStyle = P.body; ctx.font = menuFont(9);
+      ctx.fillText(MOVES[id].name, x0, y);
+      ctx.fillStyle = P.accent; ctx.globalAlpha = 0.9; ctx.font = labelFont(8);
+      ctx.fillText(COMBO[id] || '—', x0 + 8, y + 7.5); ctx.globalAlpha = 1;
+    });
+    yFin = 74 + mitad * rh + 2;
+  } else {
+    ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(7);
+    ctx.fillText(T('ctrlColAccion'), xa, 78);
+    ctx.textAlign = 'right'; ctx.fillText(T('optColKb'), xk, 78); ctx.fillText(T('optColPad'), xv, 78);
+    const rh = 18;
+    cat.filas.forEach((k, i) => {
+      const y = 96 + i * rh;
+      if (i % 2) { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.025; ctx.fillRect(xa - 8, y - 11, xv - xa + 16, rh); ctx.globalAlpha = 1; }
+      ctx.textAlign = 'left'; ctx.fillStyle = P.body; ctx.font = menuFont(10);
+      ctx.fillText(T('ctrl' + k), xa, y, xk - xa - 120);
+      teclas(T('ctrl' + k + 'K'), xk, y);
+      teclas(padTxt(T('ctrl' + k + 'P')), xv, y);
+    });
+    yFin = 96 + cat.filas.length * rh;
+  }
+  // LAS ACLARACIONES de la categoria, apagadas: se leen, no se tocan
+  ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(8); ctx.globalAlpha = 0.8;
+  cat.notas.forEach((n, i) => ctx.fillText('· ' + T(n), xa, Math.min(NH - 34, yFin + 4) + i * 11));
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(7);
+  ctx.fillText(T('ctrlHint'), NW / 2, NH - 10);
+  ctx.textAlign = 'left';
+}
+
 // ---------- MENU DE PAUSA (overlay sobre la partida congelada) ----------
 // El mundo quedo dibujado DEBAJO tal cual estaba (frame() saltea update, ver game.js): esto es
 // un velo + el menu, en coordenadas nativas. `w.t` es pauseT — run.t esta congelado y los
 // parpadeos tienen que seguir latiendo.
-const CTRL_KEYS = ['Fly', 'Gas', 'Dive', 'Gun', 'Msl', 'Boost', 'Roll', 'Pan', 'Moves',
-  'Aim', 'Cam', 'Tempo', 'Inv', 'Music', 'Menu'];
 // EL BANCO DEL PICHON (estado 'upgrade'): entre mision y mision de campaña se elige UNA de
 // las dos mejoras ofrecidas. Con `libreta` (el Pichon ya murio, M8+) cambian titulo y ritual:
 // las mejoras salen de su libreta de bocetos y las construye el Turco solo.
@@ -1562,25 +1670,7 @@ export function drawPause(w) {
   ctx.fillStyle = P.accent; ctx.font = titleFont(24);
   ctx.fillText(T('pauseTitle'), NW / 2, 56);
 
-  if (w.view === 'controls') {
-    // la tabla de OPCIONES, compactada: accion · teclado · joystick, solo lectura
-    const x = 52, xv = NW - 52, xk = xv - 148, y0 = 88, rh = 11.5;
-    ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = labelFont(7);
-    ctx.fillText(T('optColKb'), xk, y0 - 12); ctx.fillText(T('optColPad'), xv, y0 - 12);
-    for (let i = 0; i < CTRL_KEYS.length; i++) {
-      const y = y0 + i * rh, k = CTRL_KEYS[i];
-      ctx.textAlign = 'left'; ctx.fillStyle = P.body; ctx.font = menuFont(9);
-      ctx.fillText(T('ctrl' + k), x, y);
-      ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = labelFont(8);
-      ctx.fillText(T('ctrl' + k + 'K'), xk, y);
-      const pad = T('ctrl' + k + 'P');
-      ctx.fillStyle = pad === '—' ? '#4a565c' : P.dim;
-      ctx.fillText(pad, xv, y);
-    }
-    ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(7);
-    ctx.fillText('[ESC]', NW / 2, NH - 12);
-    return;
-  }
+  if (w.view === 'controls') { drawControles({ tab: w.ctrlTab | 0, padTxt: w.padTxt, velo: false }); return; }
 
   if (w.view === 'save') {
     const x = 52, y0 = 96, rh = 17;

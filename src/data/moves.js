@@ -182,7 +182,7 @@ export const MV_HI = 18, MV_LO = 14;
 // verifica es `npm run maniobras` (lee los `case` de ahi y prueba la gramatica). Estan escritos
 // pegados al bloque de prosa de arriba —que dice lo mismo— para que un cambio en uno deje al otro
 // a la vista.
-const COMBO = {
+export const COMBO = {
   splits: '↑↓↓ (alto)', breakt: '↓←← · ↓→→', hiyo: '↑↓↑', loyo: '↓↑↓',
   jink: '↑←→ · ↑→←', sturn: '←→← · →←→', mask: '⟳↓↓↓', popup: '↓↑↑ (bajo)',
   dive: 'mirar ↓ ⟶ ↓↓', divemax: 'mirar ↓ ⟶ ↓↓ (contra el radar)',
