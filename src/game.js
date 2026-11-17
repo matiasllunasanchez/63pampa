@@ -92,7 +92,7 @@ import { stepRecibe } from './systems/recibe.js';
 import { resetRecibe } from './core/recibe.js';
 import { drawRecibe } from './render/recibe.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
-import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A, CAIDA } from './data/tuning.js';
+import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A, CAIDA, OLA_GIGANTE } from './data/tuning.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE, cargaParaAvion, EXOCET_ALCANCE_KM } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
 import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque, proximoPilon } from './core/nafta.js';
@@ -105,7 +105,7 @@ import { drawRotuloVuelo, ROTULO, ROTULO_T, ROTULO_NOMBRE, ROTULO_ESCAPE, ROTULO
 import { tarjetaPiloto, TARJETA_LADO, tarjetaLugar, NUMEROS } from './render/hud.js';
 import { PILOTOS_AVION } from './data/pilotos_avion.js';
 import { PULSO } from './data/pulso.js';
-import { spawnSystem, sembrarAmenaza } from './systems/spawn.js';
+import { spawnSystem, sembrarAmenaza, modoGigante, pedirOlaGigante } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
 import * as caza from './systems/caza.js';
 import * as persec from './systems/persec.js';
@@ -135,6 +135,7 @@ import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
 import { drawBrillo, inicioLuz, luz } from './render/brillo.js';
 import { lucesEnemigo } from './render/luces_enemigos.js';
+import { drawNubesAltas } from './render/nubes_altas.js';
 import { drawRayos } from './render/rayos.js';
 import { stepTormenta, resetTormenta, fogonazoTormenta, rayosVivos } from './systems/tormenta.js';
 import { nocheDe, drawNoche, tableroNoche, luzNoche, drawReflejoLuna } from './render/noche.js';
@@ -354,6 +355,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       cfg.sky = SKY_PRESETS[cielo] ? cielo : 'dusk';
       cfg.water = 'auto';
       cfg.terrain = pesado(ENTORNO.terrenos);
+      // LA OLA GIGANTE arranca el nivel (16/11, OLA_GIGANTE.SUELTO): a veces la corrida —o el blanco nuevo del
+      // CICLO— sale de noche y tormenta, con mar adelante, y la gigante viene en el arranque, sin enemigos
+      // (SONDA: `window.__gigForzar = true/false` fija el sorteo — para probarla sin esperar el 30%)
+      const gf = typeof window !== 'undefined' ? window.__gigForzar : undefined;
+      gigNivel = gf !== undefined ? !!gf : Math.random() < OLA_GIGANTE.SUELTO.P;
+      if (gigNivel) { cfg.sky = 'storm'; cfg.terrain = 'sea'; }
       cfg.rain = cfg.sky === 'storm' || Math.random() < ENTORNO.lluvia ? 1 : 0;
       cfg.fog = Math.random() < ENTORNO.niebla ? 1 : 0;
       cfg.wind = Math.random() < ENTORNO.viento;
@@ -380,6 +387,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         if (suelo === 'mar' && prev !== null && Math.random() < MAPA.paredes) t.paredes = ['izq', 'der', 'ambos'][(Math.random() * 3) | 0];
         if (prev !== null && Math.random() < MAPA.niebla) t.niebla = 1;
         d += (suelo === 'isla' ? 0.5 : az(MAPA.tramoKm)) * 1000;
+        if (prev === null && gigNivel && suelo === 'mar') d = Math.max(d, OLA_GIGANTE.SUELTO.MAR_M + 1500);   // (el mar de la gigante)
         t.hasta = Math.min(finMar, d / largo);
         if (lista.length && t.hasta <= lista[lista.length - 1].hasta) break;
         lista.push(t); prev = suelo;
@@ -392,6 +400,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       return { lista, obj: largo };
     }
     let climaKm = Infinity;   // el km en que se vuelve a sortear el clima (lluvia y viento)
+    let gigNivel = false;     // este nivel (la corrida de POR LA PATRIA, el blanco del CICLO) arranca con la OLA GIGANTE
     /** LA PRESION, cuadro a cuadro: dificultad × rampa de km × alarma, sobre la base de cada perilla. */
     function aplicarPresion() {
       const km = kmPrevios + Math.max(0, run.dist) / 1000, est = run.estrellas | 0;
@@ -405,7 +414,12 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       const niv = nivelCorrida(km);
       // LA OLEADA QUE SUBE se anuncia (el HUD la muestra siempre: drawOleada en render/hud.js)
       const ol = oleadaDe(km);
-      if (ol.n > oleadaVista) { if (oleadaVista > 0 && S.state === 'play') cartel(ol.max ? T('hud_oleadaTope') : T('hud_oleadaSube', { n: ol.n }), P.warn); oleadaVista = ol.n; }
+      if (ol.n > oleadaVista) {
+        if (oleadaVista > 0 && S.state === 'play') cartel(ol.max ? T('hud_oleadaTope') : T('hud_oleadaSube', { n: ol.n }), P.warn);
+        // (POR LA PATRIA: la oleada nueva es el nivel que arranca — con tormenta, a veces trae la gigante)
+        if (oleadaVista > 0 && gameMode !== 'cycle' && cfg.sky === 'storm' && Math.random() < OLA_GIGANTE.SUELTO.P_OLEADA) pedirOlaGigante();
+        oleadaVista = ol.n;
+      }
       const golpe = ALARMA.golpe[0] + (ALARMA.golpe[1] - ALARMA.golpe[0]) * niv;
       const alarma = est > 0 ? golpe * (1 + ALARMA.porEstrella * (est - 1)) : 1;
       // …la barra del radar: lenta al arrancar, la de siempre recien con el nivel pleno (flight.js)
@@ -2768,7 +2782,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         const m = curMission(), g = goalOf(m);
         objectiveDist = g.dist(m.goal) * QA_DIST;
         // CICLO DE MUERTE (PLAN_ROGUELIKE_SUELTOS §4, el autor 17/10: "aprox 3 o 4 km"): un objetivo cada 3 a 4 km
-        if (gameMode === 'cycle' && suelto()) objectiveDist = (3000 + Math.random() * 1000) * QA_DIST;
+        if (gameMode === 'cycle' && suelto()) objectiveDist = (3000 + Math.random() * 1000 + (gigNivel ? OLA_GIGANTE.SUELTO.MAR_M : 0)) * QA_DIST;
         objectiveShip = g.label(m.goal);
         objectiveKind = m.goal.kind || 'ship';
         g.setup(m.goal);
@@ -3595,7 +3609,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // (la alarma) como en las misiones con fases. PERSECUCION usa la cfg cruda: se le devuelve lo
       // que el azar piso. Un blanco encadenado del CICLO conserva el arranque en vuelo (siguienteBlanco).
       if (suelto()) sortearEntorno();
-      else if (cfgPersec && gameMode === 'persec') { Object.assign(cfg, cfgPersec); cfgPersec = null; applyCfg(); }
+      else gigNivel = false;
+      modoGigante(suelto() ? 'pedida' : null);
+      if (gigNivel) pedirOlaGigante();
+      if (!suelto() && cfgPersec && gameMode === 'persec') { Object.assign(cfg, cfgPersec); cfgPersec = null; applyCfg(); }
       cfg.pintaSuelto = suelto() ? 'cap' : null;
       if (!suelto()) { cfg.detCargaS = null; cfg.bidonSolo = null; }   // (los pone aplicarPresion, solo en los modos sueltos)
       // …y CON COMBUSTIBLE (autor, 16/10): la nafta es el reloj, y sin ella la Chancha no existe
@@ -6672,6 +6689,9 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       run.lucesK = lucesK;   // (las luces de MI avion las lee render/plane.js — solo de noche o niebla, 22/10)
       setLucesCaza(lucesK);
       for (const o of all) if (o.z > 3) { world.drawObstacle(o); if (lucesK > 0) lucesEnemigo(o, lucesK); }
+      // LO ALTO (14/11): la capa de nubes vista desde arriba tapa todo lo de abajo; adentro, el blanco
+      // (render/nubes_altas.js). Lo que vuela cerca —cazas, misiles, el avion— va encima
+      drawNubesAltas();
 
       // LA COLA, primera pasada: lo que esta MAS LEJOS que el avion (la ventana frontal, la
       // salida, las trazadoras que ya te pasaron). Lo que quedo mas cerca se dibuja despues del
@@ -7734,8 +7754,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       escena: dialogue.scene() && dialogue.scene().id,
       causa: S.state === 'dead' ? deathCause : null, tramo: libroEnTramo(), cayeron: escolta.cayeron, persec: persec.active() ? JSON.parse(persec.dbgPersec()) : null,
     });
+    // LO ALTO (sonda, 14/11): pone el avion (y la camara) a `y` metros, para mirar la capa de nubes
+    if (typeof window !== 'undefined') window.__alto = y => { plane.y = y; plane.vy = 0; cam.y = y + 2.6; return y; };
     if (typeof window !== 'undefined') window.__pausedbg = () => JSON.stringify({
-      paused, dlg: dlgPausa, dlgT: +dlgT.toFixed(2), view: pauseView, sel: pauseSel, saveSel, state: S.state,
+      paused, dlg: dlgPausa, dlgT: +dlgT.toFixed(2), view: pauseView, sel: pauseSel, saveSel, state: S.state, planeY: +plane.y.toFixed(1),
       // EL CURSOR DE LOS MENUS, para que el smoke deje de navegar a ciegas. Agregar una fila al
       // selector principal corria los indices que tools/smoke.js apretaba de memoria y la prueba
       // entraba a OTRA pantalla, fallando mas abajo con un mensaje que no hablaba de menus. Paso

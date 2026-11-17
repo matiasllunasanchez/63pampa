@@ -25,7 +25,12 @@ import { proj, popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
-import { TURBO } from '../data/tuning.js';
+import { TURBO, ALTO } from '../data/tuning.js';
+// LO ALTO (14/11, data/tuning.js ALTO): arriba del carril (FLY_TOP) la trepada y la picada se van soltando
+// a lo largo de ALTO.RAMPA metros, de los 18/20 m/s de siempre a los de arriba. Abajo, identico.
+const kAlto = y => Math.max(0, Math.min(1, (y - FLY_TOP) / ALTO.RAMPA));
+const topeSube = y => 18 + (ALTO.VY_SUBE - 18) * kAlto(y);
+const topeBaja = y => -(20 + (ALTO.VY_BAJA - 20) * kAlto(y));
 import { MSL_MAX, MSL_REGEN_HERC, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE, GEO_ISLA_IMPACTO,
          METRALLAS, calorTiro, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
          FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
@@ -315,7 +320,7 @@ export function flightSystem(dt, deps) {
     else if (agu.activo()) agu.vertClavado(dt);
     else {
       plane.vy += (((inp.u && run.fuel > 0) ? TH * reac : 0) - G - (inp.d ? DIVE * reac : 0)) * dt;
-      plane.vy = Math.max(-20, Math.min(18, plane.vy));
+      plane.vy = Math.max(topeBaja(plane.y), Math.min(topeSube(plane.y), plane.vy));   // (LO ALTO: mas rapido arriba del carril)
     }
   } else {
     plane.vx += (inp.r - inp.l) * 115 * reac * dt;
@@ -330,7 +335,7 @@ export function flightSystem(dt, deps) {
     else if (agu.activo()) agu.vertClavado(dt);
     else {
       plane.vy += (((inp.u && run.fuel > 0) ? TH * reac : 0) - G - (inp.d ? DIVE * reac : 0)) * dt;
-      plane.vy = Math.max(-20, Math.min(18, plane.vy));
+      plane.vy = Math.max(topeBaja(plane.y), Math.min(topeSube(plane.y), plane.vy));   // (LO ALTO: mas rapido arriba del carril)
     }
   }
   // LA RAFAGA DEL TONEL, devuelta despues del control (ver `rollVx` arriba). La curva y las

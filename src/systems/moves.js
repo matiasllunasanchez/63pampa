@@ -17,7 +17,7 @@ import { proj, popup } from '../core/fx.js';
 import { sfxOne, beep } from './audio.js';
 import { P } from '../data/palette.js';
 import { PZ, W, H } from '../render/ctx.js';
-import { FLY_X, FLY_TOP, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, COBRA_INV, POPUP, QUIEBRE, JINK, PIQUE } from '../data/tuning.js';
+import { FLY_X, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, COBRA_INV, POPUP, QUIEBRE, JINK, PIQUE, ALTO } from '../data/tuning.js';
 import { MOVES } from '../data/moves.js';
 
 const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
@@ -570,7 +570,8 @@ export function movesSystem(dt, inp, act) {
   if (B === plane) {
     if (B.x < -FLY_X) { B.x = -FLY_X; if (B.vx < 0) B.vx = 0; }
     if (B.x > FLY_X) { B.x = FLY_X; if (B.vx > 0) B.vx = 0; }
-    if (B.y > FLY_TOP) { B.y = FLY_TOP; if (B.vy > 0) B.vy = 0; }
+    // (14/11: el techo ya es LO ALTO — una pirueta a 1000 m no puede teletransportar el avion al carril)
+    if (B.y > ALTO.TECHO) { B.y = ALTO.TECHO; if (B.vy > 0) B.vy = 0; }
   }
 
   if (E.mvT >= M.dur) {                       // fin: devuelve el avion y arranca el cooldown

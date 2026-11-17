@@ -22,12 +22,12 @@ import { wake, parts, prune } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { PZ, W } from '../render/ctx.js';
-import { FLY_X, FLY_TOP, ALA_PX, ROCIO_ABRE, ROCIO_BAJA, ROCIO_RAS_ABRE, ROCIO_RAS_BAJA,
+import { FLY_X, ALA_PX, ROCIO_ABRE, ROCIO_BAJA, ROCIO_RAS_ABRE, ROCIO_RAS_BAJA,
          ROCIO_BARRIDO, ROCIO_PUNTA, ROCIO_COLUMNA, ROCIO_RAS_COLUMNA,
          AGUA_RAS_GRADOS, ESTELA_ALT, ROCIO_TURBO, BANDA_ALT, RAS_POLVO, PIQUE } from '../data/tuning.js';
 import { sueloEn } from '../core/geografia.js';
 import { PITCH_LERP } from '../core/physics.js';
-import { TURBO } from '../data/tuning.js';
+import { TURBO, ALTO } from '../data/tuning.js';
 
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
 export const BOOST_LIFT = 2.2;
@@ -65,7 +65,8 @@ export const turboDz = () => turboZ;
 export function stepVuelo(dt, o) {
   o = o || {};
   turboZ += ((run.boost ? TURBO.ALEJA : 0) - turboZ) * Math.min(1, dt * TURBO.CAM_RATE);
-  const techo = o.techo === undefined ? FLY_TOP : o.techo;
+  // (14/11: el techo de siempre ya no es el carril sino LO ALTO — data/tuning.js ALTO)
+  const techo = o.techo === undefined ? ALTO.TECHO : o.techo;
   // ---- INTEGRAR. `moves.js` y el bloque de control escriben VELOCIDADES; la posicion se integra
   // en un solo lugar, y este es. Sin esto una pirueta es un sprite rotando sobre una foto.
   // LA DERIVA DE LA CURVA (zigzag Z2) se suma ACA, en la integracion, y NUNCA a `plane.vx`.

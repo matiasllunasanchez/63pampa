@@ -14,6 +14,7 @@ import { obstacles, soldiers, popups, bullets, missiles, pmissiles, estallidos }
 import { OLA_MAS, OLA_H, OLA_RATE, OLA_GAP_MIN, OLA_H_VAR, OLA_WZ, OLA_WZ_VAR, OLA_ROMP_P, OLA_ROMP_HW, OLA_REB_P, OLA_REB_D0,
   OLA_COSTA_P, OLA_COSTA_OFF, OLA_GIGANTE } from '../data/tuning.js';
 import { inBank } from './fog.js';
+import { active as cazaActiva } from './caza.js';
 // TRAMOS (SPEC_TRAMOS RF-02): el guion de spawn por mision. Se LEE, nunca se escribe: `val`
 // devuelve lo que rige a esta altura del vuelo y cae al cfg cuando la mision no tiene tramos —
 // que es como se cumple RF-04 (sin tramos, este archivo se comporta exactamente igual que ayer).
@@ -545,7 +546,24 @@ export function giganteViva() {
 /** LA PREVIA, 0..1: cuanto falta para la gigante, en los ultimos G.PREVIA s (1 = ya esta). 0 sin tormenta. */
 function previaGigante() {
   if (gigProx === null) return 0;
-  return Math.max(0, Math.min(1, 1 - (gigProx - run.t) / OLA_GIGANTE.PREVIA));
+  return Math.max(0, Math.min(1, 1 - (gigProx - run.t) / previaS()));
+}
+const previaS = () => (gigModo === 'pedida' ? OLA_GIGANTE.SUELTO.PREVIA : OLA_GIGANTE.PREVIA);
+/** EL MODO DE LA GIGANTE: null = por reloj (las misiones con tormenta, la prueba t22), 'pedida' = solo cuando se
+ *  la pide (POR LA PATRIA y CICLO, game.js: al arrancar un nivel). */
+let gigModo = null, gigPedida = null;
+export function modoGigante(m) { gigModo = m || null; gigPedida = null; gigProx = null; }
+/** Pide una gigante (modo 'pedida'): queda esperando el mar libre — sin cazas y con mar adelante — y ahi arranca
+ *  la previa. Se olvida si en OLA_GIGANTE.SUELTO.VENCE_M no lo encuentra. */
+export function pedirOlaGigante() {
+  if (gigPedida || gigProx !== null || giganteViva()) return false;
+  gigPedida = { hasta: null };
+  return true;
+}
+/** ¿Hay mar adelante, de punta a punta de lo que dura la ola (la previa, su llegada)? */
+function marAdelante(m) {
+  for (let d = 0; d <= m; d += 400) if (esTierraEn(0, run.dist + d)) return false;
+  return true;
 }
 /** EL MAR DE LA GIGANTE (14/11, el autor: "no debe haber ningun vehiculo ni avion ni nada en frente, porque no
  *  seria logico que sobreviva con esa ola"; "la idea es ir mostrando cada vez mas cantidad de olas y mas grandes
@@ -572,7 +590,8 @@ function marDeGigante(dt, p, gig) {
   o.h *= alto; o.wz *= Math.sqrt(alto);
 }
 function sorteoOlaGigante(objectiveDist) {
-  if (cfg.sky !== 'storm') { gigProx = null; return; }
+  if (cfg.sky !== 'storm') { gigProx = null; gigPedida = null; return; }
+  if (gigModo === 'pedida') { sorteoPedida(objectiveDist); return; }
   // (`cfg.gigante: 'seguido'` — la prueba OLA GIGANTE, t22 —: la primera pasada la previa y despues cada 45-70 s)
   const G = OLA_GIGANTE, seguido = cfg.gigante === 'seguido', cada = seguido ? [45, 70] : G.CADA, d0 = seguido ? 300 : G.D0;
   if (gigProx === null || run.t < gigUlt) gigProx = run.t + (seguido ? G.PREVIA + 4 : cada[0] + Math.random() * (cada[1] - cada[0]));
@@ -588,8 +607,26 @@ function sorteoOlaGigante(objectiveDist) {
   sembrarOlaGigante();
   gigProx = run.t + cada[0] + Math.random() * (cada[1] - cada[0]);
 }
+/** La gigante PEDIDA (POR LA PATRIA y CICLO): espera el mar libre, corre la previa y la larga. */
+function sorteoPedida(objectiveDist) {
+  const G = OLA_GIGANTE, S = G.SUELTO;
+  if (gigProx === null) {
+    if (!gigPedida) return;
+    if (gigPedida.hasta === null) gigPedida.hasta = run.dist + S.VENCE_M;
+    if (run.dist > gigPedida.hasta) { gigPedida = null; return; }
+    // MOMENTOS DONDE NO HAY ENEMIGOS: ni cazas encima, ni el blanco cerca, y mar por todo lo que dura
+    const cercaBlanco = objectiveDist > 0 && run.dist < objectiveDist && objectiveDist - run.dist < S.MAR_M;
+    if (cazaActiva() || cercaBlanco || !marAdelante(S.MAR_M)) return;
+    gigPedida = null; gigProx = run.t + S.PREVIA;     // arranca la previa: el sembrador se calla
+    return;
+  }
+  if (run.t < gigProx || giganteViva()) return;
+  gigProx = null;
+  if (esTierraEn(0, run.dist + G.Z_NACE)) return;     // (la tierra se metio: se pierde, no se fuerza)
+  sembrarOlaGigante();
+}
 if (typeof window !== 'undefined') window.__olaGigante = () => { const o = sembrarOlaGigante(); return JSON.stringify({ z: o.z, h: o.h, hMax: o.hMax }); };
-if (typeof window !== 'undefined') window.__olaGiganteDbg = () => JSON.stringify({ previa: +previaGigante().toFixed(2), fg: +(run.fgzTormenta || 0).toFixed(2), gig: obstacles.filter(o => o.kind === 'gigante').map(o => ({ z: Math.round(o.z), h: +o.h.toFixed(1), done: o.done, revelada: o.revelada, rayos: o.rayos })), olas: obstacles.filter(o => o.type === 'ola' && o.kind !== 'gigante').map(o => o.kind[0] + Math.round(o.h)), otros: obstacles.filter(o => o.type !== 'ola').map(o => o.type) });
+if (typeof window !== 'undefined') window.__olaGiganteDbg = () => JSON.stringify({ modo: gigModo, pedida: gigPedida, previa: +previaGigante().toFixed(2), fg: +(run.fgzTormenta || 0).toFixed(2), gig: obstacles.filter(o => o.kind === 'gigante').map(o => ({ z: Math.round(o.z), h: +o.h.toFixed(1), done: o.done, revelada: o.revelada, rayos: o.rayos })), olas: obstacles.filter(o => o.type === 'ola' && o.kind !== 'gigante').map(o => o.kind[0] + Math.round(o.h)), otros: obstacles.filter(o => o.type !== 'ola').map(o => o.type) });
 
 export function spawnSystem(dt, objectiveDist) {
   sorteoOlaGigante(objectiveDist);

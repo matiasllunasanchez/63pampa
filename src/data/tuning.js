@@ -925,7 +925,15 @@ export const OLA_ROMP_Z = 60;       // z donde EMPIEZA A ROMPER (se enrula y rug
 //            que de repente la gigante"); PREVIA_CADA el intervalo entre olas al empezar y al final (s);
 //            PREVIA_ALTO cuanto mas altas al final (x)
 export const OLA_GIGANTE = { H: 27, WZ: 22, Z_NACE: 1150, Z_LLENA: 330, H0: 0.18, CADA: [55, 110], D0: 900,
-  REVELA: 600, RAYOS: 3, RAYO: [1.0, 1.5], VEL: [0.14, 1], PREVIA: 28, PREVIA_CADA: [2.6, 0.8], PREVIA_ALTO: 2.2 };
+  REVELA: 600, RAYOS: 3, RAYO: [1.0, 1.5], VEL: [0.14, 1], PREVIA: 28, PREVIA_CADA: [2.6, 0.8], PREVIA_ALTO: 2.2,
+  // EN POR LA PATRIA Y CICLO (16/11, el autor: "en lugares aleatorios pero en momentos donde no hay enemigos,
+  // generalmente donde arranca el siguiente nivel"): no va por reloj, se PIDE al arrancar un nivel —
+  //   P        la chance de que una corrida (POR LA PATRIA) o un blanco nuevo (CICLO) arranque con ella: ese
+  //            tramo sale de noche y tormenta, con mar adelante (MAR_M metros) y, en CICLO, MAR_M mas de camino
+  //   P_OLEADA la chance en cada oleada nueva de POR LA PATRIA, si ya hay tormenta (y mar: si no, espera)
+  //   PREVIA   la previa, mas corta que la de la prueba; VENCE_M cuanto espera un pedido que no encuentra
+  //            el mar libre (sin cazas, sin tierra adelante) antes de olvidarse
+  SUELTO: { P: 0.3, P_OLEADA: 0.4, PREVIA: 14, MAR_M: 5500, VENCE_M: 3000 } };
 export const OLA_REB_P = 0.22;      // fraccion de las olas de TORMENTA que salen rebeldes
 export const OLA_REB_D0 = 400;      // m de vuelo antes de la primera posible (§F7.1)
 /** EL MAR VARIADO (`mar: 'variado'` en el cfg de la mision; pedido del autor 2/10: "quitar globos y
@@ -2563,3 +2571,21 @@ export const AVERIA_FOCO = {
 //   ESPERA  s que el ala lleva en pantalla antes de fijar (primero se lo ve, despues apunta)
 //   T       s que tarda un tiro desde el cañon hasta tu profundidad (despues sigue de largo PASA s)
 export const ADEN = { ESPERA: 0.35, AVISO: 0.6, N: 2, GAP: 0.14, T: 0.16, PASA: 0.45, R_X: 1.8, R_Y: 1.4, PTS: 60 };
+
+// LO ALTO (14/11/2026, el autor: "que el avion pueda subir bastante mas de lo que sube hoy, y que se puedan
+// ver las nubes desde arriba asi, pasando lentamente, pero cuando se va MUUUUY arriba").
+//
+// FLY_TOP (68) sigue siendo EL CARRIL: hasta ahi trepa el ASCENSO MAXIMO, ahi topan las piruetas, la
+// escuadrilla y la escala del altimetro. Arriba de eso ya no hay vidrio: el gas sostenido sigue subiendo
+// hasta `TECHO`, y cada vez mas rapido (el tope de la trepada y de la picada pasa de 18/20 m/s a `VY_SUBE`
+// /`VY_BAJA` a lo largo de `RAMPA` metros) — si no, llegar arriba tardaba un minuto. Arriba no hay nada
+// que hacer y el radar te ve: es la vista, y se paga.
+//
+// LA CAPA DE NUBES (render/nubes_altas.js): una alfombra a `NUBES` metros con huecos por donde se ve el
+// mar; se atraviesa en `ESPESOR` (el blanco) y desde arriba tapa todo lo de abajo. Pasa lenta sola: esta
+// lejos. `TEXEL` = metros por pixel de la textura (256 de lado: un mosaico de ~2 km).
+export const ALTO = {
+  TECHO: 1500,
+  VY_SUBE: 75, VY_BAJA: 95, RAMPA: 220,
+  NUBES: 480, ESPESOR: 70, TEXEL: 6,
+};

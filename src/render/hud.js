@@ -1151,13 +1151,17 @@ function vidrioRoto(x, y) {
  *  cinta (se dibuja antes, asi que la cinta la tapa mientras entra y sale), se queda y vuelve. El
  *  borde va en el color del aviso: rojo es peligro, ambar es informacion. */
 const CARTEL_Y = 13;   // cuanto baja: justo debajo de la cinta (11 de alto) con aire
+// LA PLACA DEL RADAR, arriba a la izquierda (la anota drawAlerta cada cuadro). 16/11, el autor: "se pisan
+// los UI" — un cartel ancho (ARRANCASTE CON N CON FALLAS + su linea) le comia el borde: si no entra al lado,
+// baja hasta debajo de ella.
+const cajaIzq = { der: 0, abajo: 0 };
 function drawCartel() {
   // LA PILA (8/10): el primero va arriba, debajo de la cinta, y cada uno se apoya debajo del anterior.
   // La altura de cada lugar se SUAVIZA (c.y): cuando entra uno nuevo, los demas bajan, no saltan.
   let techo = MARGEN + CARTEL_Y;
   for (const a of cartelesAhora(performance.now() / 1000)) {
     if (a.k <= 0) continue;
-    const h = drawUnCartel(a, techo);
+    const h = drawUnCartel(a, techo);   // (devuelve lo que ocupo, contando si tuvo que bajar)
     techo += (h + 2) * a.k;
   }
 }
@@ -1181,15 +1185,20 @@ function drawUnCartel(a, techo) {
   const w2 = c.sub ? ctx.measureText(c.sub).width : 0;
   const w = Math.round(Math.max(w1, w2) + (c.alerta ? 20 : 12)), h = c.sub ? 12 + SUB_PX + 2 : 12;
   // el lugar en la pila, suavizado (lo guarda el propio cartel del store: es estado de dibujo, nada mas)
+  const x = Math.round(W / 2 - w / 2), techo0 = techo;
+  if (x < cajaIzq.der + 3 && techo < cajaIzq.abajo + 3) techo = cajaIzq.abajo + 3;
   if (a.c.y == null) a.c.y = techo;
   a.c.y += (techo - a.c.y) * 0.25;
-  const x = Math.round(W / 2 - w / 2), y = Math.round(a.c.y - CARTEL_Y + CARTEL_Y * k - (1 - k) * h);
+  // ENTRA Y SALE FUNDIDO, en su lugar (16/11): antes subia por detras de la placa de km y puntos y la pisaba
+  const y = Math.round(a.c.y);
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, k));
   plate(x, y, w, h);
   // LA ALERTA (8/10): la caja late en su color, el borde va doble, y dos flechas a los costados
   // apuntan a la caja titilando — lo que antes hacia el rotulo grande, adentro del cuadrado de arriba
   const late = c.alerta ? 0.5 + 0.5 * Math.sin(performance.now() / 70) : 0;
   if (c.alerta) {
-    ctx.globalAlpha = 0.14 + 0.16 * late; ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, w - 2, h - 2); ctx.globalAlpha = 1;
+    ctx.globalAlpha = 0.14 + 0.16 * late; ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, w - 2, h - 2); ctx.globalAlpha = Math.max(0, Math.min(1, k));
     bordePlaca(x - 1, y - 1, w + 2, h + 2, col);
     if (late > 0.35) {
       const my = Math.round(y + h / 2);
@@ -1209,7 +1218,8 @@ function drawUnCartel(a, techo) {
     conApertura(c.sub, W / 2, y + 11 + SUB_PX - (c.alerta ? 1 : 0), SUB_PX);
   }
   ctx.textAlign = 'left';
-  return h;
+  ctx.restore();
+  return h + (techo - techo0);
 }
 
 /** Escribe `t` centrado en `cx`. LA LETRA DE LOS AVISOS NO TRAE "¡" (8/10): si el texto la lleva,
@@ -1671,13 +1681,25 @@ export function anchoSquad() {
   return Math.max(ALERTA_MIN_W, Math.round(wFila) + 6);
 }
 
-// LA LLAVE INGLESA, 4x4: la boca abierta arriba a la derecha y el mango en diagonal hacia abajo. Va
-// CHICA y en la esquina del avion: de 5x5 y al centro tapaba la silueta entera y ya no se leia avion.
-const LLAVE = ['.X.X', '.XXX', 'XX..', 'X...'];
-function llaveInglesa(x, y) {
-  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]])          // el contorno, primero
-    LLAVE.forEach((fila, j) => { for (let i = 0; i < 4; i++) if (fila[i] === 'X') px(x + i + dx, y + j + dy, 1, 1, '#0d1318'); });
-  LLAVE.forEach((fila, j) => { for (let i = 0; i < 4; i++) if (fila[i] === 'X') px(x + i, y + j, 1, 1, '#eef3f5'); });
+// EL RELOJ DEL TALLER (16/11, el autor: "pone el avion y arriba un circulo que se va llenando con una
+// tuerquita en el medio" — reemplaza a la llave inglesa y a la rayita de abajo): un circulo sobre el avion,
+// medio afuera de la placa, que se llena en sentido horario de 0 a `f` (1 = listo), con una tuerca al medio.
+function relojTaller(cx, cy, f) {
+  const R = 3.3, OSC = '#0d1318', TINTA = '#eef3f5';
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = OSC; ctx.fill();
+  if (f > 0) {
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R - 0.6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, f));
+    ctx.closePath(); ctx.fillStyle = '#5f9fc4'; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(cx, cy, R - 0.3, 0, Math.PI * 2); ctx.lineWidth = 0.5; ctx.strokeStyle = '#9fc3d8'; ctx.stroke();
+  // la tuerca: un hexagono blanco con contorno oscuro y el agujero
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3 + Math.PI / 6; ctx[i ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * 1.5, cy + Math.sin(a) * 1.5); }
+  ctx.closePath(); ctx.fillStyle = TINTA; ctx.fill(); ctx.lineWidth = 0.45; ctx.strokeStyle = OSC; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, 0.55, 0, Math.PI * 2); ctx.fillStyle = OSC; ctx.fill();
+  ctx.restore();
 }
 
 export function drawSquadPips(x, y) {
@@ -1706,11 +1728,9 @@ export function drawSquadPips(x, y) {
     // esperan, su color.
     iconoEn(ax + 3, y + 5, 'avion', base ? '#5d7686' : down ? '#3a4750' : i === manda ? P.accent : (colFalla || P.foam));
     if (i === manda) { px(ax + 3, y + SQUAD_H - 2, 1, 1, P.accent); px(ax + 2, y + SQUAD_H - 1, 3, 1, P.accent); }   // la flechita, sobre el borde de la placa
-    if (base) { const f = Math.max(0, Math.min(1, 1 - base.t / BASE_T)); px(ax, y + SQUAD_H - 3, SQ_PASO - 2, 1, '#2c3a44'); px(ax, y + SQUAD_H - 3, Math.max(1, (SQ_PASO - 2) * f), 1, '#9fc3d8'); }
-    // …Y LA LLAVE INGLESA ENCIMA (21/10, el autor: "el iconito de reparacion, una llave inglesa encima del
-    // avion, en blanco"): el gris solo se confundia con un caido. Blanca con contorno oscuro, para que se
-    // lea sobre la silueta gris en una placa de 11 px.
-    if (base) llaveInglesa(ax + 4, y + 1);
+    // …Y EL RELOJ DEL TALLER ENCIMA (16/11, antes una llave inglesa y una rayita de progreso abajo): el gris
+    // solo se confundia con un caido; el circulo dice "en el taller" y cuanto le falta
+    if (base) relojTaller(ax + 3, y + 1, Math.max(0, Math.min(1, 1 - base.t / BASE_T)));
   }
   // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
@@ -1952,6 +1972,7 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   const wz = Math.max(w - RADAR_W + 1, ...['hud_detectando', 'hud_fuera_radar', 'hud_zona_radar']
     .map(k => Math.ceil(ctx.measureText(T(k)).width) + 10));
   const wTot = RADAR_W - 1 + wz;
+  cajaIzq.der = x + wTot; cajaIzq.abajo = y + ALERTA_H;   // (los carteles no la pisan: drawCartel)
   if (alertaK < 1) {
     plate(x + RADAR_W - 1, y, wz, ALERTA_H);
     // TRES COSAS QUE PUEDE DECIR, y las tres son el mismo dato en tres momentos:
