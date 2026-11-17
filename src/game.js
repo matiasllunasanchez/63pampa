@@ -6445,6 +6445,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // Zoom-in siempre muestra un SUBCONJUNTO de la pantalla ya pintada: no descubre bordes.
       // Se deshace antes del HUD (el HUD no se agranda).
       const zoomOn = camZoomOn();
+      let turboHecho = false;   // (el barrido del turbo ya se dibujo debajo de la cabina: ver enCabina mas abajo)
+      const drawTurbo = () => drawDesenfoque(S.state === 'play' && run.boost && run.fuel > 0 ? 1 : 0,
+        S.state === 'play' && (tempo.active() || blancoSys.lento()) ? 1 : 0,   // + el MOMENTUM OBLIGADO de la suelta
+        S.state === 'play' && rasante.active() ? 1 : 0);
       if (zoomOn) {
         const zc = proj(plane.x, plane.y, PZ);
         ctx.save();
@@ -7013,6 +7017,10 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
         // proyeccion del juego, clavada a la pantalla (la cabina es el avion; lo que rola y cabecea es el
         // mundo de atras), y la MIRA en el colimador, donde van las balas.
         if (enCabina()) {
+          // EL TURBO SE VE AFUERA (17/11, el autor: "al poner turbo, el turbo deberia verse FUERA de la cabina"):
+          // en primera persona el barrido va ANTES de la cabina — barre el mundo por el vidrio, no la chapa
+          // ni el tablero (encima los dejaba corridos y con pinta de agujereados)
+          if (!zoomOn) { drawTurbo(); turboHecho = true; }
           drawCabina();
           const apunta = proj(plane.x, plane.y + plane.pitch * 5, 70);   // la mira va SOBRE el vidrio
           drawMira(cfg.mira, W / 2 + cm.x, apunta.y + (hzP || 0) + cm.y, 17, 0.9);
@@ -7037,9 +7045,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
       // EL MOMENTUM TRAE EL MISMO BARRIDO Y OTRO MARCO — mucho mas cerrado (ver desenfoque.js). Va
       // ANTES del tinte frio y la viñeta de aca abajo, que siguen intactos: aquello es el color del
       // tiempo partido, esto es el encierro. Se ven los dos.
-      drawDesenfoque(S.state === 'play' && run.boost && run.fuel > 0 ? 1 : 0,
-                     S.state === 'play' && (tempo.active() || blancoSys.lento()) ? 1 : 0,   // + el MOMENTUM OBLIGADO de la suelta
-                     S.state === 'play' && rasante.active() ? 1 : 0);
+      if (!turboHecho) drawTurbo();
       // LA AUREOLA DEL SOL, encima del barrido: el destello vive en la LENTE, o sea despues de
       // todo lo que la lente esta mirando.
       //
