@@ -8480,6 +8480,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // al final de M1 disparaba nueve pausas seguidas esperando una tecla que la sonda no aprieta.
         const L = curMission() && curMission().lecciones;
         if (L) while (lecIdx < L.length && typeof L[lecIdx].en === 'number' && L[lecIdx].en <= p) lecIdx++;
+        // …Y EL BANCO TAMPOCO COBRA LOS KM SALTEADOS (19/11): en los modos sueltos el banco se abre cada tantos km,
+        // y saltar al 98 % lo abria en plena aproximacion — el smoke de la pasada quedaba en 'banco' en vez de entrar
+        const km = kmPrevios + Math.max(0, run.dist) / 1000;
+        while (km >= bancoProx) bancoProx += bancoKm();
       }
       return JSON.stringify({
         p: objectiveDist ? +(run.dist / objectiveDist).toFixed(3) : 0,
