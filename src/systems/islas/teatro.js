@@ -1,0 +1,259 @@
+// LAS ISLAS REALES — EL TEATRO (prototipo I1, docs/proyecto/PLAN_TEATRO_MALVINAS.md): las bases britanicas y
+// argentinas, los buques de la Bahia San Carlos y las PAC de Harriers del 24 de mayo, puestos sobre el mapa real.
+// El orden de batalla vive en data/islas_teatro.js; esto lo ARMA (cada pieza acomodada al terreno), lo MUEVE
+// (las PAC en circulo u ocho, los buques de piquete, los soldados en ronda), decide los TIROS (los britanicos te
+// tiran con las armas del pasillo) y recibe los GOLPES (balas y bombas). Lo dibuja teatro3d.js.
+//
+// COMO TIRA UN BRITANICO: el pasillo resuelve los misiles en SU carril, que va pegado al avion y mira a donde mira
+// el. Asi que el tiro sale del punto del carril donde cae la pieza (la cuenta de islas.js `aMundo`, al reves) y de
+// ahi en mas es un misil del pasillo: se mueve, se esquiva y pega como siempre (systems/collision.js). Solo tira lo
+// que esta ADELANTE y en un cono: lo de atras no te alcanza (el misil del pasillo viene de frente).
+//
+// LA PAC te ve a PAC_VE metros: rompe el circulo y te toma la cola — es el DUELO DEL PASILLO (systems/caza.js,
+// dos Harriers de patrulla). Los que bajes no vuelven; si se van, la PAC vuelve a su circulo PAC_VUELVE s despues.
+import * as mundo from './mundo.js';
+import { BASES, BUQUES, PAC, ARMAS, PAC_VE, PAC_VUELVE } from '../../data/islas_teatro.js';
+import { missiles, pmissiles, bullets } from '../../core/world.js';
+import * as caza from '../caza.js';
+import { posBomba } from './objetivo.js';
+
+// LA HUELLA de cada pieza en metros (radio para balas y bombas, alto) y sus golpes
+const HUELLA = {
+  carpa: { r: 7, h: 4, hp: 2 }, deposito: { r: 11, h: 7, hp: 4 }, puesto: { r: 6, h: 6, hp: 3 }, radar: { r: 7, h: 8, hp: 2 },
+  rapier: { r: 8, h: 4, hp: 2 }, manpad: { r: 4, h: 2, hp: 1 }, canon: { r: 6, h: 4, hp: 2 }, camion: { r: 6, h: 4, hp: 2 },
+  pucara: { r: 9, h: 5, hp: 2 }, herc: { r: 18, h: 11, hp: 4 },
+};
+// la MALLA de cada pieza (assets/mallas)
+const MALLA = { carpa: 'carpa', deposito: 'deposito', puesto: 'puesto', radar: 'radar', rapier: 'nido_rapier', manpad: 'manpad',
+  canon: 'camion_aa', camion: 'camion_aa', pucara: 'pucara', herc: 'herc', soldado: 'soldado_corre', harrier: 'harrier' };
+export const mallaDe = tipo => MALLA[tipo] || tipo;
+
+const T = { armado: false, piezas: [], buques: [], pac: [], soldados: [], t: 0 };
+let semilla = 1;
+const rnd = () => ((semilla = (semilla * 16807) % 2147483647) / 2147483647);
+
+export function reiniciar() {
+  // (los grupos 3D que dejo teatro3d.js se sacan de la escena: el teatro nuevo arma los suyos)
+  const fuera = o => { if (o && o.__g && o.__g.parent) o.__g.parent.remove(o.__g); };
+  for (const o of [...T.piezas, ...T.buques]) fuera(o);
+  for (const x of [...T.soldados, ...T.pac]) for (const o of x.__gs || []) fuera(o);
+  T.armado = false; T.piezas.length = T.buques.length = T.pac.length = T.soldados.length = 0; T.t = 0; T.bases = [];
+}
+
+const plano = (x, z, rad) => {
+  const h = mundo.sueloH(x, z);
+  if (h < 1.5) return -1;
+  let d = 0;
+  for (const [a, b] of [[rad, 0], [-rad, 0], [0, rad], [0, -rad]]) d = Math.max(d, Math.abs(mundo.sueloH(x + a, z + b) - h));
+  return d < Math.max(3, rad * 0.35) ? h : -1;
+};
+/** Suelo plano cerca de (x, z): busca en anillos hasta `max` metros. */
+function tierraCerca(x, z, rad, max = 900) {
+  for (let r = 0; r <= max; r += 40) {
+    const n = r ? Math.max(8, Math.round(r / 25)) : 1;
+    const a0 = rnd() * 6.283;
+    for (let k = 0; k < n; k++) {
+      const a = a0 + k / n * 6.283, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r, h = plano(px, pz, rad);
+      if (h >= 0) return [px, pz, h];
+    }
+  }
+  return null;
+}
+const hondo = (x, z) => { const o = mundo.org(); return mundo.mapH(x + o[0], z + o[1]); };
+/** Agua cerca de (x, z) para un buque de `largo` m con rumbo `rot`: agua en el centro y en proa y popa. En la
+ *  BAHIA (`bahia`) alcanza con que no sea tierra: en el DEM la Bahia San Carlos es un canal bajo. */
+function aguaCerca(x, z, largo, rot, bahia, max = 2500) {
+  const fx = Math.sin(rot) * largo * 0.5, fz = -Math.cos(rot) * largo * 0.5, centro = bahia ? -0.5 : -6, punta = bahia ? 0 : -2;
+  for (let r = 0; r <= max; r += bahia ? 25 : 60) {
+    const n = r ? Math.max(8, Math.round(r / 20)) : 1;
+    for (let k = 0; k < n; k++) {
+      const a = k / n * 6.283, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+      if (hondo(px, pz) < centro && hondo(px + fx, pz + fz) < punta && hondo(px - fx, pz - fz) < punta) return [px, pz];
+    }
+  }
+  return null;
+}
+
+/** Arma el teatro una vez (con el mundo cargado y el origen puesto). */
+export function armar() {
+  if (T.armado || !mundo.listo()) return;
+  T.armado = true; semilla = 1982;
+  for (const b of BASES) {
+    const [cx, cz] = mundo.lonLatLocal(b.lon, b.lat);
+    const base = { n: b.n, bando: b.bando, x: cx, z: cz, visto: b.bando === 'arg' };
+    for (const [tipo, n] of Object.entries(b.piezas)) {
+      for (let i = 0; i < n; i++) {
+        const a = rnd() * 6.283, d = b.r * (0.25 + 0.75 * Math.sqrt(rnd()));
+        if (tipo === 'soldados') {
+          const p = tierraCerca(cx + Math.cos(a) * d, cz + Math.sin(a) * d, 6, 500);
+          if (p) T.soldados.push({ x: p[0], z: p[1], g: p[2], r: 8 + rnd() * 10, n: 3 + ((rnd() * 3) | 0), fase: rnd() * 6.283, v: 1.6 + rnd() * 0.8, base, vivo: true });
+          continue;
+        }
+        const H = HUELLA[tipo] || { r: 6, h: 4, hp: 2 };
+        const p = tierraCerca(cx + Math.cos(a) * d, cz + Math.sin(a) * d, H.r);
+        if (!p) continue;
+        T.piezas.push({ tipo, malla: mallaDe(tipo), x: p[0], z: p[1], g: p[2], rot: rnd() * 6.283, bando: b.bando, base,
+          r: H.r, h: H.h, hp: H.hp, vivo: true, cd: 2 + rnd() * ARMA_CD(tipo) });
+      }
+    }
+    T.bases = T.bases || []; T.bases.push(base);
+  }
+  for (const s of BUQUES) {
+    const [x0, z0] = mundo.lonLatLocal(s.lon, s.lat), largo = s.malla === 't21' ? 117 : 125, rot = s.rumbo * Math.PI / 180;
+    const p = aguaCerca(x0, z0, largo, rot, !!s.bahia);
+    if (!p) continue;
+    T.buques.push({ n: s.n, malla: s.malla, x: p[0], z: p[1], x0: p[0], z0: p[1], rot, largo, manga: 14, h: 22, hp: 3, vivo: true,
+      patrulla: s.patrulla || 0, fase: rnd() * 6.283, cd: 3 + rnd() * 4, cdT: 1 + rnd() * 2, visto: false });
+  }
+  for (const c of PAC) {
+    const [x, z] = mundo.lonLatLocal(c.lon, c.lat);
+    T.pac.push({ n: c.n, x, z, r: c.r, alt: c.alt, forma: c.forma, s: rnd() * 6.283, quedan: 2, estado: 'orbita', t: 0, cay: 0, bajados: 0, aviones: [{}, {}] });
+  }
+}
+const ARMA_CD = tipo => (ARMAS[tipo] ? ARMAS[tipo].cada : 3);
+
+/** Donde va una PAC sobre su recorrido `s` (rad): circulo, u ocho (la lemniscata de Gerono, que tiene la misma
+ *  vuelta); devuelve posicion y rumbo. */
+function enRecorrido(c, s) {
+  const p = c.forma === 'ocho' ? [c.r * Math.sin(s), c.r * Math.sin(s) * Math.cos(s)] : [c.r * Math.cos(s), c.r * Math.sin(s)];
+  const s2 = s + 0.01, q = c.forma === 'ocho' ? [c.r * Math.sin(s2), c.r * Math.sin(s2) * Math.cos(s2)] : [c.r * Math.cos(s2), c.r * Math.sin(s2)];
+  return { x: c.x + p[0], z: c.z + p[1], yaw: Math.atan2(q[0] - p[0], -(q[1] - p[1])) };
+}
+
+/** UN CUADRO. `P` = el avion en el mapa ({ x, z, g, yaw, y }: y = su altura sobre el suelo), `pz` = a cuanto va
+ *  delante de la camara en el carril, `boom(x, y, z, esc, tipo)` = la explosion 3D (islas.js `estallido`). */
+export function paso(dt, P, pz, boom, jugando) {
+  if (!T.armado) return;
+  T.t += dt;
+  const sy = Math.sin(P.yaw), cy = Math.cos(P.yaw), alto = P.g + P.y;
+  // el punto del CARRIL donde cae algo del mapa (la cuenta de islas.js `aMundo`, al reves): d adelante, l de costado
+  const carril = (x, z) => { const dx = x - P.x, dz = z - P.z; return { d: sy * dx - cy * dz, l: cy * dx + sy * dz, dist: Math.hypot(dx, dz) }; };
+  const tira = (x, z, y, tipo, tiro) => {
+    const c = carril(x, z);
+    if (c.d < pz + 40 || c.d > tiro || Math.abs(c.l) > c.d * 0.8) return false;   // atras, lejos o de costado
+    missiles.push({ x: c.l, y: Math.max(1, y - P.g), z: c.d + pz, done: false, tracer: tipo === 'traza', teatro: true });
+    return true;
+  };
+  // (sonda: lo britanico mas cercano, en el carril)
+  { let m = null; for (const o of [...T.piezas, ...T.buques]) { if (!o.vivo || (o.bando && o.bando !== 'gb')) continue; const c = carril(o.x, o.z); if (!m || c.dist < m.dist) m = { ...c, n: o.n || o.tipo }; } T.cerca = m; }
+  // ---- LOS ANTIAEREOS BRITANICOS ----
+  for (const e of T.piezas) {
+    if (!e.vivo || e.bando !== 'gb') continue;
+    const A = ARMAS[e.tipo];
+    if (!A) continue;
+    e.cd -= dt;
+    if (e.cd > 0 || !jugando) continue;
+    const dist = Math.hypot(e.x - P.x, e.z - P.z, e.g - alto);
+    if (dist > A.alcance) { e.cd = 0.5; continue; }
+    e.base.visto = true;
+    e.cd = tira(e.x, e.z, e.g + 3, A.tipo, A.tiro) ? A.cada * (0.8 + rnd() * 0.4) : 0.3;
+  }
+  // ---- LOS BUQUES: los de piquete van y vienen; todos tiran misil y cañon ----
+  for (const b of T.buques) {
+    if (!b.vivo) continue;
+    if (b.patrulla) {
+      b.fase += dt * 7 / b.patrulla;   // ~7 m/s
+      const k = Math.sin(b.fase) * b.patrulla * 0.5, rumbo = b.rot0 === undefined ? (b.rot0 = b.rot) : b.rot0;
+      b.x = b.x0 + Math.sin(rumbo) * k; b.z = b.z0 - Math.cos(rumbo) * k;
+      b.rot = rumbo + (Math.cos(b.fase) < 0 ? Math.PI : 0);
+    }
+    const dist = Math.hypot(b.x - P.x, b.z - P.z);
+    if (dist < 6000) b.visto = true;
+    if (!jugando) continue;
+    const A = ARMAS.buque;
+    b.cd -= dt; b.cdT -= dt;
+    if (b.cd <= 0) b.cd = dist < A.alcance && tira(b.x, b.z, 14, 'misil', A.tiro) ? A.cada * (0.8 + rnd() * 0.4) : 0.3;
+    if (b.cdT <= 0) b.cdT = dist < A.traza.alcance && tira(b.x, b.z, 10, 'traza', A.traza.tiro) ? A.traza.cada : 0.3;
+  }
+  // ---- LAS PAC ----
+  const snap = caza.snapshot();
+  for (const c of T.pac) {
+    if (c.estado === 'muerta') continue;
+    if (c.estado === 'orbita') {
+      c.s += dt * 150 / c.r;   // ~150 m/s sobre el recorrido
+      if (Math.hypot(c.x - P.x, c.z - P.z) < c.r + 6000) c.vista = true;   // (el mapa de la pausa la marca)
+      const a = enRecorrido(c, c.s), b = enRecorrido(c, c.s - 260 / c.r);
+      c.aviones[0] = { x: a.x, z: a.z, y: c.alt, yaw: a.yaw };
+      c.aviones[1] = { x: b.x + Math.cos(b.yaw) * 60, z: b.z + Math.sin(b.yaw) * 60, y: c.alt + 20, yaw: b.yaw };
+      c.aviones.length = c.quedan;
+      if (jugando && !caza.active() && Math.hypot(a.x - P.x, a.z - P.z) < PAC_VE) {
+        // TE VIO: rompe el circulo y te toma la cola (el duelo del pasillo)
+        c.estado = 'caza'; c.cay = 0; c.bajados = 0;
+        for (let i = 0; i < c.quedan; i++) caza.start({ patrulla: true, atras: i ? 60 : 0, mudo: i > 0 });
+      }
+    } else if (c.estado === 'caza') {
+      // los que BAJASTE: cada vez que sube la cuenta de los que estan cayendo (la foto del duelo es nueva cada
+      // cuadro: no sirve guardar los objetos)
+      const cay = snap.filter(h => h.fase === 'cayendo').length;
+      if (cay > c.cay) c.bajados += cay - c.cay;
+      c.cay = cay;
+      if (!caza.active()) {
+        c.quedan = Math.max(0, c.quedan - c.bajados);
+        c.estado = c.quedan ? 'fuera' : 'muerta'; c.t = 0;
+      }
+    } else if (c.estado === 'fuera') {
+      c.t += dt;
+      if (c.t > PAC_VUELVE) c.estado = 'orbita';
+    }
+  }
+  // ---- LAS BASES que pasaste cerca quedan en el mapa ----
+  for (const b of T.bases || []) if (!b.visto && Math.hypot(b.x - P.x, b.z - P.z) < 4500) b.visto = true;
+  // ---- LOS SOLDADOS caminan en ronda ----
+  for (const s of T.soldados) s.fase += dt * s.v / s.r;
+  // ---- TUS BALAS sobre el mapa (islas.js las ancla: `__islasB`) ----
+  for (const bl of bullets) {
+    const q = bl.__islasB;
+    if (!q || bl.done) continue;
+    const by = P.g + (bl.y || 0);
+    for (const e of T.piezas) {
+      if (!e.vivo || Math.abs(q.x - e.x) > e.r || Math.abs(q.z - e.z) > e.r || by > e.g + e.h + 2) continue;
+      bl.done = true; golpe(e, 1, boom); break;
+    }
+    if (bl.done) continue;
+    for (const b of T.buques) {
+      if (!b.vivo || by > b.h + 4) continue;
+      if (enCasco(b, q.x, q.z)) { bl.done = true; if (rnd() < 0.15) golpe(b, 1, boom); break; }
+    }
+  }
+  // ---- TUS BOMBAS contra los buques (las de tierra las resuelve `impacto`) ----
+  for (let i = pmissiles.length - 1; i >= 0; i--) {
+    const pm = pmissiles[i], q = posBomba(pm);
+    if (!q) continue;
+    for (const b of T.buques) {
+      if (!b.vivo || q.alto > b.h || !enCasco(b, q.x, q.z)) continue;
+      pmissiles.splice(i, 1); golpe(b, 2, boom, q.alto); break;
+    }
+  }
+}
+function enCasco(b, x, z) {
+  const ex = x - b.x, ez = z - b.z, c = Math.cos(b.rot), s = Math.sin(b.rot);
+  const lado = ex * c + ez * s, largo = -ex * s + ez * c;
+  return Math.abs(lado) < b.manga * 0.6 && Math.abs(largo) < b.largo * 0.5;
+}
+function golpe(e, n, boom, y) {
+  e.hp -= n;
+  if (e.hp > 0) { boom(e.x, (y !== undefined ? y : (e.g || 0) + 2), e.z, 0.35, 'fuego'); return; }
+  e.vivo = false;
+  const grande = e.largo ? 2.4 : e.tipo === 'deposito' || e.tipo === 'herc' ? 1.6 : 1;
+  boom(e.x, (e.g || 0) + (e.h || 4) * 0.4, e.z, grande, 'fuego');
+}
+
+/** Una bomba que pego en tierra (islas.js `bombas`): rompe lo que haya en el radio. */
+export function impacto(x, z, boom) {
+  for (const e of T.piezas) if (e.vivo && Math.hypot(e.x - x, e.z - z) < e.r + 22) golpe(e, 3, boom);
+  for (const s of T.soldados) if (s.vivo && Math.hypot(s.x - x, s.z - z) < s.r + 25) s.vivo = false;
+}
+
+/** Lo que dibuja teatro3d.js (y el mapa de la pausa). */
+export function escena() {
+  if (!T.armado) return null;
+  return { piezas: T.piezas, buques: T.buques, pac: T.pac, soldados: T.soldados, t: T.t };
+}
+export const bases = () => (T.armado ? T.bases || [] : []);
+
+// SONDA (consola y PRUEBAS): cuanto se armo y lo mas cercano a (x, z)
+if (typeof window !== 'undefined') window.__teatroIslas = () => JSON.stringify({ armado: T.armado, piezas: T.piezas.length, buques: T.buques.length,
+  pac: T.pac.map(c => c.estado + ':' + c.quedan), soldados: T.soldados.length,
+  conGrupo: T.piezas.filter(e => e.__g).length, visibles: T.piezas.filter(e => e.__g && e.__g.visible).length,
+  buqueGrupo: T.buques.filter(e => e.__g).length, cerca: T.cerca && [T.cerca.n, T.cerca.d | 0, T.cerca.l | 0, T.cerca.dist | 0],
+  ej: T.piezas.slice(0, 2).map(e => [e.tipo, e.x | 0, e.z | 0, e.g | 0]), bq: T.buques.map(e => [e.n, e.x | 0, e.z | 0, !!e.__g, e.__g ? e.__g.visible : null]) });

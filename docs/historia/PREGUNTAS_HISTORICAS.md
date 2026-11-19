@@ -1700,3 +1700,13 @@ el autor cuenta que el A-4B no tenía sistema propio y que usaban un lubricante 
 5. **EMPAÑADO (19/11):** ¿se empañaba el parabrisas o la cúpula del A-4B por dentro? Lo típico es al bajar rápido
    desde la altura fría al aire húmedo de abajo. ¿Tenía desempañador (aire caliente)? ¿Hay testimonios de Malvinas?
    Si se confirma, podría ser mecánica: al bajar de la nube, el vidrio se empaña un rato.
+
+## El teatro de las islas (24 de mayo de 1982) — 19/11
+
+Del orden de batalla de `src/data/islas_teatro.js` (plan: `docs/proyecto/PLAN_TEATRO_MALVINAS.md`). Hoy va como ejemplo del tipo, no como registro:
+
+- **¿Que buques estaban fondeados en la Bahia San Carlos el 24 de mayo?** Puestos: Plymouth, Stromness, Sir Galahad, Sir Lancelot, Sir Geraint, Antelope (que exploto la noche del 23 al 24: ¿va hundiendose o no va?). Broadsword y Yarmouth de piquete en la boca; Coventry al norte de Isla Borbon (hundido el 25).
+- **Las mallas no son las de cada clase:** el Plymouth y el Yarmouth (clase Rothesay) y el Broadsword (Tipo 22) usan la fragata Tipo 21; el Stromness (abastecimiento) usa el buque de desembarco.
+- **Las PAC:** ¿donde estaban de verdad las estaciones de patrulla de los Sea Harrier ese dia? Puestas: Estrecho norte y sur, Gran Malvina y norte de la Soledad.
+- **Las bases argentinas en la Gran Malvina** (Puerto Yapeyu, Bahia Fox): ¿antiaereo de tubo, cuanto y donde?
+- **Las posiciones** de todo son aproximadas (~1 km) y se acomodan al terreno del DEM.

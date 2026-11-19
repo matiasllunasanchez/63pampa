@@ -67,7 +67,16 @@ K = dict(mat_cel=emisivo, mat_cel_nodo=emisivo_nodo, mat_emisivo=H.mat_emisivo, 
 # LOS DE TIERRA (tools/blender/modelos_tierra.py: la BASE COSTERA del pasillo, los blancos de las islas)
 # vienen de su modulo y con su escala: `--k` = unidades del modelo por metro
 TIERRA = arg('--tierra')
-if TIERRA:
+# `--modulo enemigos|buques|tierra|soldados` (19/11, el teatro de las islas — docs/proyecto/PLAN_TEATRO_MALVINAS.md):
+# cualquier modelo de tools/blender/modelos_<modulo>.py, en sus unidades (`--k 1`); el juego lo lleva a metros
+# por su medida real (systems/islas/teatro3d.js MEDIDA)
+MODULO = arg('--modulo')
+if MODULO:
+    spec6 = importlib.util.spec_from_file_location('modelos_md', os.path.join(AQUI, 'modelos_%s.py' % MODULO))
+    mmd = importlib.util.module_from_spec(spec6); spec6.loader.exec_module(mmd)
+    raiz = getattr(mmd, MODELO)(T, K)
+    TIERRA = TIERRA or 'modulo'
+elif TIERRA:
     spec5 = importlib.util.spec_from_file_location('modelos_ti', os.path.join(AQUI, 'modelos_tierra.py'))
     mti = importlib.util.module_from_spec(spec5); spec5.loader.exec_module(mti)
     raiz = getattr(mti, MODELO)(T, K)

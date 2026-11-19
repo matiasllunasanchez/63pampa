@@ -7800,7 +7800,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (S.state === 'carga') menus.drawCarga({ rows: filasCarga(), sel: cargaSel, t: cargaT, bomba: fichaBomba() });
       // PAUSA: overlay en nativas, encima de todo lo del mundo (el fade de historia va despues,
       // pero con el juego pausado nunca conviven)
-      if (paused && pauseView === 'mapa') drawMapaIslas(islas.mapaDatos(mapaCur), pauseT);
+      // (LAS ISLAS CARGANDO: va aparte de la cadena de abajo — el mapa y el menu de la pausa son uno u otro)
       if (islas.enPasillo() && !islas.listo()) {
         ctx.fillStyle = '#05080a'; ctx.fillRect(0, 0, W, H);
         ctx.fillStyle = P.accent; ctx.font = titleFont(14); ctx.textAlign = 'center';
@@ -7809,6 +7809,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         ctx.fillStyle = P.accent; ctx.fillRect(W / 2 - 60, H / 2 + 4, Math.round(120 * Math.max(0, Math.min(1, islas.progreso()))), 3);
         ctx.textAlign = 'left';
       }
+      if (paused && pauseView === 'mapa') drawMapaIslas(islas.mapaDatos(mapaCur), pauseT);
       else if (paused) menus.drawPause({
         view: pauseView === 'opciones' ? 'menu' : pauseView, titulo: pauseView === 'opciones' ? T('optTitle') : null,
         sel: pauseView === 'opciones' ? Math.min(opcSel, opcRows().length - 1) : pauseSel, saveSel, rows: pauseView === 'opciones' ? opcRows() : pauseRows(),

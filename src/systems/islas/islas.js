@@ -14,6 +14,8 @@ import { popup, explodeAt, columnaBomba } from '../../core/fx.js';
 import { cartel } from '../../core/cartel.js';
 import { T } from '../../core/i18n.js';
 import * as objetivo from './objetivo.js';
+import * as teatro from './teatro.js';
+import * as caza from '../caza.js';
 import * as mapa from './mapa.js';
 import { P } from '../../data/palette.js';
 // la mitad de la grilla del juego (480 de ancho): systems no importa render (tools/lint_layers.js)
@@ -72,7 +74,7 @@ export const progreso = () => mundo.progreso();
 /** Prende (o apaga) las islas para la PROXIMA entrada al arena, y empieza a cargar el mundo. */
 export function activar(on = true) {
   I.on = !!on; I.puesto = false; I.lugar = null;
-  objetivo.reiniciar();
+  objetivo.reiniciar(); teatro.reiniciar();
   if (I.on) mundo.cargar();
   return I.on;
 }
@@ -207,6 +209,9 @@ export function pasoPasillo(dt) {
   P3.x += Math.sin(P3.yaw) * m; P3.z -= Math.cos(P3.yaw) * m;
   P3.od += m;   // el cuentakilometros: con el, las balas siguen sobre el mapa (`proyectiles`)
   bombas(dt, m);
+  // EL TEATRO (teatro.js, docs/proyecto/PLAN_TEATRO_MALVINAS.md): las bases, los buques y las PAC del 24 de mayo
+  teatro.armar();
+  teatro.paso(dt, { x: P3.x, z: P3.z, g: P3.g, yaw: P3.yaw, y: plane.y }, enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, estallido, S.state === 'play');
   // EL SUELO QUE SUBE se come la altura; el que baja te la devuelve (y la gravedad del pasillo hace el resto)
   const g = Math.max(mundo.sueloH(P3.x, P3.z), 0), dg = g - P3.g;
   P3.g = g;
@@ -255,6 +260,7 @@ function bombas(dt, m) {
     // LA EXPLOSION EN 3D (estallido3d.js): la ven todas las camaras, tambien la de arriba
     estallido(x, alto, z, que === 'blanco' ? 2.2 : que === 'agua' ? 0.8 : 1, que === 'agua' ? 'agua' : 'fuego');
     if (que === 'agua') continue;   // (el agua la resolvio el pasillo: la bomba ya no esta)
+    teatro.impacto(x, z, estallido);   // lo del teatro que estaba ahi
     const i = pmissiles.indexOf(pm); if (i >= 0) pmissiles.splice(i, 1);
     if (que === 'blanco') {
       explodeAt(pm.x, Math.max(pm.y, 2), pm.z, true);
@@ -279,6 +285,20 @@ export function estallarAvion(misil) {
   const v = run.spd * U * VEL_MAPA * 0.5;
   estallido(P3.x, P3.g + Math.max(plane.y, 0.5), P3.z, misil ? 2 : 1.5, 'avion', Math.sin(P3.yaw) * v, -Math.cos(P3.yaw) * v);
   P3.muerto = true;
+}
+/** EL TEATRO para la escena 3D (teatro3d.js), o null fuera de las islas. */
+export const teatroEscena = () => (enPasillo() ? teatro.escena() : null);
+/** …y para apagarlo al salir (three-arena.js), aunque ya no se este en las islas. */
+export const teatroTodo = () => teatro.escena();
+/** LOS HARRIERS DEL DUELO puestos en el mapa (los del pasillo, systems/caza.js, viven en el carril): solo los
+ *  dibuja la vista de arriba. */
+export function cazasEnMapa() {
+  if (!enPasillo() || !I.puesto) return [];
+  return caza.snapshot().filter(h => h.z > 1).map(h => {
+    const p = aMundo(h.x, h.y, h.z, {});
+    // (de frente solo mientras ENTRA —el aviso, que viene del horizonte hacia vos—; despues vuela con vos)
+    return { x: p.x, y: P3.g + h.y, z: p.z, yaw: P3.yaw + (h.fase === 'aviso' ? Math.PI : 0), roll: (h.bank || 0) * 0.6 };
+  });
 }
 /** ¿El avion ya revento? (three-arena.js deja de dibujar la malla) */
 export const avionMuerto = () => P3.muerto;
@@ -317,8 +337,15 @@ export function mapaDatos(cursor) {
   const obj = O.on ? { ...mapa.aUV(O.x + o[0], O.z + o[1]), vivo: O.vivo, n: O.nombre, d: Math.hypot(O.x - P3.x, O.z - P3.z) } : null;
   let cur = null;
   if (cursor) { const [cx, cz] = mapa.deUV(cursor.u, cursor.v); const [clon, clat] = mapa.lonLat(cx, cz); cur = { ...cursor, lat: mapa.gm(clat, 'N', 'S'), lon: mapa.gm(clon, 'E', 'O'), h: Math.round(mundo.mapH(cx, cz)) }; }
+  // EL TEATRO (teatro.js): lo nuestro siempre; lo britanico, cuando ya lo pasaste cerca (era dificil encontrarlos)
+  const E = teatro.escena(), teat = [];
+  if (E) {
+    for (const b of teatro.bases()) if (b.visto) teat.push({ k: 'base', bando: b.bando, n: b.n, ...mapa.aUV(b.x + o[0], b.z + o[1]) });
+    for (const b of E.buques) if (b.visto) teat.push({ k: 'buque', bando: 'gb', vivo: b.vivo, n: b.n, ...mapa.aUV(b.x + o[0], b.z + o[1]) });
+    for (const c of E.pac) if (c.vista && c.estado !== 'muerta') teat.push({ k: 'pac', bando: 'gb', n: c.n, ...mapa.aUV(c.x + o[0], c.z + o[1]), r: c.r / mundo.MAP_W });
+  }
   return {
-    img: mapa.imagen(), avion: { ...mapa.aUV(ax, az), rumbo: P3.yaw }, obj, lugares: lug, cursor: cur,
+    img: mapa.imagen(), avion: { ...mapa.aUV(ax, az), rumbo: P3.yaw }, obj, lugares: lug, cursor: cur, teatro: teat,
     lat: mapa.gm(lat, 'N', 'S'), lon: mapa.gm(lon, 'E', 'O'), alt: Math.round(P3.g + plane.y), suelo: Math.round(P3.g),
     rumbo: Math.round(((P3.yaw * 180 / Math.PI) % 360 + 360) % 360), cerca,
   };

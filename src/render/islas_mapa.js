@@ -35,6 +35,17 @@ export function drawMapaIslas(d, t) {
     puestos.push(r);
     ctx.fillStyle = '#c9c2a8cc'; ctx.fillText(l.n, Math.round(x) + 2, Math.round(y) + 1.5);
   }
+  // EL TEATRO (systems/islas/teatro.js): las bases (celeste lo nuestro, rojo lo britanico), los buques (un
+  // trazo) y las PAC (su circulo, punteado). Lo britanico aparece recien cuando lo pasaste cerca.
+  for (const q of d.teatro || []) {
+    const [x, y] = aP(q), col = q.bando === 'arg' ? '#8fc8ec' : '#e0503c';
+    ctx.fillStyle = ctx.strokeStyle = col;
+    if (q.k === 'base') { ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
+    else if (q.k === 'buque') { if (q.vivo) ctx.fillRect(Math.round(x) - 1, Math.round(y), 3, 1); else ctx.fillRect(Math.round(x), Math.round(y), 1, 1); }
+    else if (q.k === 'pac') {
+      ctx.setLineDash([1, 2]); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, Math.max(2, q.r * m.w), 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
   // EL OBJETIVO: un cuadro naranja (tachado si ya cayo) que late
   if (d.obj) {
     const [x, y] = aP(d.obj), r = 3 + (d.obj.vivo ? Math.sin(t * 6) * 0.8 : 0);
