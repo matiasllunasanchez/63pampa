@@ -1656,6 +1656,14 @@ const avisoReloj = () => performance.now() / 1000;
 export function avisoCaja(id, txt, col = P.warn, dur = AVISO_T) {
   avisos[id] = { txt, col, t0: avisoReloj(), hasta: dur, sost: false };
 }
+// LA PILA DE SALUD (19/11, el autor: "que salgan de ultima 2, una arriba de la otra"): un golpe nuevo con el
+// anterior todavia arriba lo EMPUJA un piso (queda en `id~1`, encima) y el nuevo sale de atras de la caja.
+// El tercero pisa al de arriba: se ven siempre los dos ultimos.
+function avisoApilado(id, txt, col = P.warn, dur = AVISO_T) {
+  const a = avisos[id];
+  if (a && avisoVivo(id)) avisos[id + '~1'] = { ...a, base: id, nivel: 1 };
+  avisoCaja(id, txt, col, dur);
+}
 /** Un cartel SOSTENIDO: aparece mientras `on`, y baja al apagarse. Se llama cada cuadro. */
 function avisoSostenido(id, on, txt, col = P.warn) {
   const a = avisos[id];
@@ -1675,10 +1683,10 @@ function drawAvisosCaja() {
   // los que mira el tablero solo: el CAÑON trabado, el ROCE del agua (el mismo ¡PELIGRO! BAJA ALTURA de arriba)
   avisoSostenido('canon', !!run.overheat && !run.sinCanon, T('bar_overheat'));
   avisoSostenido('alt', run.scrapeVib > 0.6, T('scrapeSub'));
-  if ((run.golpeN | 0) !== golpeVisto) { golpeVisto = run.golpeN | 0; if (golpeVisto) avisoCaja('salud', causaCorta(run.golpeCausa)); }
+  if ((run.golpeN | 0) !== golpeVisto) { golpeVisto = run.golpeN | 0; if (golpeVisto) avisoApilado('salud', causaCorta(run.golpeCausa)); }
   const ahora = avisoReloj();
   for (const id in avisos) {
-    const a = avisos[id], z = zonaHud(id);
+    const a = avisos[id], z = zonaHud(a.base || id);
     const vida = ahora - a.t0, resto = a.hasta - vida;
     if (resto < -AVISO_SUBE || !z) { delete avisos[id]; continue; }
     // sube en AVISO_SUBE, se queda, y baja en AVISO_SUBE al final
@@ -1698,9 +1706,13 @@ function drawAvisosCaja() {
     const ancho = () => Math.max(...filas.map(f => ctx.measureText(f).width));
     while (fs > 2.5 && ancho() > w - 3) { fs -= 0.25; ctx.font = 'bold ' + labelFont(fs); }
     const LH = 4.5, hh = filas.length * LH + 1, x = z.x;
-    const y = Math.round(z.y - e * (hh + 1));
+    a.hh = e * (hh + 1);   // lo que asoma ahora (el de arriba sube con el)
+    // el de ARRIBA de la pila sale de atras del de abajo (su alto, si sigue vivo)
+    const abajo = a.nivel ? avisos[a.base] : null;
+    const y0 = z.y - (abajo && abajo.hh ? abajo.hh : 0);
+    const y = Math.round(y0 - e * (hh + 1));
     ctx.save();
-    ctx.beginPath(); ctx.rect(0, 0, W, z.y); ctx.clip();          // sale DE ATRAS del canto de la caja
+    ctx.beginPath(); ctx.rect(0, 0, W, y0); ctx.clip();           // sale DE ATRAS del canto de la caja
     ctx.fillStyle = '#0a0e11ee'; ctx.fillRect(x, y, w, hh + 2);
     // (sin borde: 19/11, el autor: "quitemosle borde, dejemos la letra en rojo")
     ctx.fillStyle = a.col; ctx.textAlign = 'center';
@@ -1712,7 +1724,7 @@ function drawAvisosCaja() {
 function bordesAvisos() {
   if (Math.floor(performance.now() / 140) % 2) return;
   for (const id in avisos) {
-    if (!avisoVivo(id)) continue;
+    if (!avisoVivo(id) || avisos[id].nivel) continue;
     const z = zonaHud(id); if (!z) continue;
     ctx.strokeStyle = avisos[id].col; ctx.lineWidth = 1;
     ctx.strokeRect(z.x + 0.5, z.y + 0.5, z.w - 1, z.h - 1);
@@ -2766,6 +2778,9 @@ export function drawHUD(h) {
     txt: nf ? String(Math.round(nf.km)) : Math.round(run.fuel) + '%', txtCol: bajo ? P.warn : P.dim });
     if (nf && h.zonaGasto) flechasGasto(xNafta + CUADRO - 6, CUADROS_Y + 3, h.zonaGasto);
   }
+  // NAFTA BAJA (19/11, el autor): la caja de la nafta larga su cartel mientras estes bajo el critico (25%, o el
+  // BINGO con ruta) y la Chancha no este cargando. Se dibuja con los demas en drawAvisosCaja (al cuadro siguiente).
+  avisoSostenido('nafta', bajo && !cargando, T('bar_fuelLow'));
   const ch = chSnap(), cv = chMeter(), gastada = chGastada();
   // …y solo si la mision la TIENE (`h.chanchaViva`, por snapshot): una mision con `chancha: false`
   // no puede pedirla, y un reloj lleno y en verde ahi es un boton que miente.
