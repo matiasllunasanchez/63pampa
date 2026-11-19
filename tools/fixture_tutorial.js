@@ -50,8 +50,8 @@ app.whenReady().then(async () => {
   if (d.fila.id === 'tut' && d.fila.k === 0) ok('el cursor arranca en la etapa 1'); else bad('el cursor arranca en ' + JSON.stringify(d.fila));
 
   // LAS ETAPAS, con teclas: el piloto automatico (ver `volar`) — cada una con los pasos que tiene que ver
-  const ETAPAS = [{ k: 0, pasos: 12, nombre: 'la etapa 1 (despegar y volar)' }, { k: 1, pasos: 7, nombre: 'la etapa 2 (pelear)' },
-    { k: 2, pasos: 7, nombre: 'la etapa 3 (la pasada y la vuelta)' }];
+  const ETAPAS = [{ k: 0, pasos: 12, nombre: 'la etapa 1 (despegar y volar)' }, { k: 1, pasos: 9, nombre: 'la etapa 2 (pelear)' },
+    { k: 2, pasos: 9, nombre: 'la etapa 3 (la pasada y la vuelta)' }];
   // TUT_DESDE=<k>: vuela solo desde esa etapa (para iterar sobre una; en DEV estan todas abiertas)
   const DESDE = +process.env.TUT_DESDE || 0;
   for (const et of ETAPAS.filter(e => e.k >= DESDE)) {
@@ -62,6 +62,7 @@ app.whenReady().then(async () => {
     console.log('   pasos: ' + r.vistos.join(' → '));
     if (r.terminada) ok(`se termino en ${r.seg} s (consignas cumplidas: ${r.consignas})`);
     else bad(`no termino en ${r.seg} s (quedo en ${JSON.stringify(await TD())})`);
+    if (r.felicito) ok('al final, la pantalla de ganaste'); else bad('no aparecio la pantalla de ganaste');
     if (r.vistos.length === et.pasos) ok(`pasaron los ${et.pasos} pasos`); else bad('pasos vistos: ' + r.vistos.length);
     if (et.k < 2) { if (!r.jetsVistos) ok('ningun caza enemigo en la etapa (solo los de practica)'); else bad('aparecieron ' + r.jetsVistos + ' cazas enemigos'); }
     if (et.k === 0) { if (r.fallasPista === 0) ok('despego a la primera, con el gas a fondo'); else bad('se quedo sin pista ' + r.fallasPista + ' veces'); }
@@ -84,7 +85,7 @@ async function volar(k) {
   const abajo = {};                                          // las teclas sostenidas, por eje
   const sostener = async (eje, k2) => { if (abajo[eje] === k2) return; if (abajo[eje]) key(abajo[eje], false); abajo[eje] = k2; if (k2) key(k2, true); };
   const soltarTodo = async () => { for (const e of Object.keys(abajo)) await sostener(e, null); };
-  let ultimoPaso = -1, terminada = false, fallasPista = 0, s = null, jetsVistos = 0;
+  let ultimoPaso = -1, terminada = false, fallasPista = 0, s = null, jetsVistos = 0, felicito = false;
   while (Date.now() - t0 < 300000) {
     s = await TD();
     if (s.st === 'campmenu') break;
@@ -97,6 +98,12 @@ async function volar(k) {
       console.log('   · ' + JSON.stringify({ t: Math.round((Date.now() - t0) / 1000), st: s.st, paso: s.id, fase: s.fase, sub: s.sub, alt: s.alt, bl: s.bl, res: su.res, d: su.d, hund: su.hundido, esc: su.esc }));
     }
     if (s.finT >= 0) { terminada = true; await soltarTodo(); await sleep(300); continue; }
+    // LA PANTALLA DE GANASTE (18/11): felicita, y ENTER sigue al menu del tutorial
+    if (s.st === 'results') {
+      terminada = true; felicito = true; await soltarTodo();
+      if (OUT && !fotos.has('fin')) { fotos.add('fin'); await sleep(2500); await shot('e' + (k + 1) + '_fin'); }
+      await tap('Return', 700); continue;
+    }
     if (s.paso !== ultimoPaso && s.id) { ultimoPaso = s.paso; vistos.push(s.id); }
     const pre = 'e' + (k + 1) + '_' + String(s.paso).padStart(2, '0');
     if (OUT && s.dlg && !fotos.has('d' + s.paso)) { fotos.add('d' + s.paso); await sleep(900); await shot(pre + 'a_' + s.id); }
@@ -128,6 +135,10 @@ async function volar(k) {
       } else { if (s.alt < 9) await sostener('alt', 'W'); else if (s.alt > 14) await sostener('alt', null); }
       await sleep(60); continue;
     }
+    if (clave === 'tutC_secTanque') await tap('1', 300);
+    if (clave === 'tutC_secBomba') await tap('2', 300);
+    if (clave === 'tutC_momentum') await tap('4', 400);
+    if (clave === 'tutC_chancha') await tap('J', 400);
     if (clave === 'tutC_tonel') { await sostener('lado', null); await tap('Left', 70); await tap('Left', 70); await tap('Left', 600); }
     if (clave === 'tutC_subi' || clave === 'tutC_radarSube') await sostener('alt', 'W');
     else if (clave === 'tutC_baja' || clave === 'tutC_radarBaja') await sostener('alt', 'S');
@@ -150,7 +161,7 @@ async function volar(k) {
     await sleep(60);
   }
   await soltarTodo();
-  return { jetsVistos, vistos, terminada, fallasPista, seg: Math.round((Date.now() - t0) / 1000), consignas: consignas.size, rotos: s ? s.rotos : 0 };
+  return { felicito, jetsVistos, vistos, terminada, fallasPista, seg: Math.round((Date.now() - t0) / 1000), consignas: consignas.size, rotos: s ? s.rotos : 0 };
 }
 
 function fin() {

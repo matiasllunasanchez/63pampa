@@ -136,7 +136,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
          setRasante, sfxStop } from './systems/audio.js';
 import * as world3D from './legacy/three-world.js';
-import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, probarFuente, setPZ } from './render/ctx.js';
+import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, labelFont, probarFuente, setPZ } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
@@ -912,7 +912,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // EL TUTORIAL: obstaculos que pasaron al costado en esta corrida (la condicion `pasa`) y la cuenta
     // para volver a su menu una vez dicho todo (ver stepTutorial)
     // `tutAterrizo`: las ruedas tocaron en la etapa 3 — el avion rueda hasta parar y el tutorial dice lo ultimo
-    let tutPasados = 0, tutRotos = 0, tutFinT = -1, tutSiembraT = 0, tutAterrizo = false;
+    let tutPasados = 0, tutRotos = 0, tutFinT = -1, tutSiembraT = 0, tutAterrizo = false, tutGolpes = 0, tutRoceT = 0;
     let libroAvSel = 0;              // cursor de la pantalla ELEGI TU AVION ('libroavion')
 
     // ---------- EL BANCO DEL PICHON (mejoras de campaña, GUION_2 §2c) ----------
@@ -2773,7 +2773,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       escapeSys.resetFuga(); senas = null;
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
         // (en el TUTORIAL pegarle no abre el escape: sin radar no hay estrellas que perder, y la vuelta arranca de corrido)
-        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta() && !(libro && libro.tut),
+        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta(),
           dificultad: curMission() && curMission().dificultad, bomba: bombaDeLaMision(),
           espoletas: suelto() ? espoletasDe(pichon) : 0,   // las del banco suelto
           // el piso de una ESTRUCTURA: la explanada que la geografia le aplana debajo (0 sin geografia)
@@ -3666,6 +3666,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // (lo que apretaste); `run.gear` es el tren REAL, que tarda GEAR_T en llegar — la distancia
     // entre los dos es media mecanica.
     let landT = 0, landDown = false, landGearT = -1;
+    const ATERRIZAJE = false;   // la aproximacion final jugable (ver el bloque de `fases.llegaste`), apagada desde el 18/11
     let levelT = 0;   // temporizador de las tarjetas de transición de nivel / victoria (campaña)
     let briefT = 0;   // temporizador de la tarjeta de briefing corto (ciclo de muerte)
     // Los CONTADORES de la corrida viven en core/state.js (`stats`), porque los escriben varios
@@ -3703,7 +3704,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       sembrarAzar(libro && libro.av !== null ? libroDef().id + '/' + libro.av : null);
       // …y LA RADIO DEL LIBRO (core/voz.js): lo que diria el elenco lo dice el numeral, con su apodo y su cara
       // EL TUTORIAL arranca sus pasos (systems/tutorial.js) con cada corrida
-      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null); tutPasados = 0; tutRotos = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false;
+      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null); tutPasados = 0; tutRotos = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false; tutGolpes = 0; tutRoceT = 0;
       setVozLibro(libro && libro.av !== null && !libro.tut ? {
         numeral: () => (run.lives >= 2 ? squad.pilotName(detras(run)) : null),
         piloto: () => squad.pilotName(alMando(run)),
@@ -5219,6 +5220,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (graciaGolpeT > run.t + sm.gracia) graciaGolpeT = -1;
       if (run.t < graciaGolpeT) return;
       graciaGolpeT = run.t + sm.gracia;
+      if (libro && libro.tut) tutGolpes++;   // (las estrellas del final del tutorial)
       dmgFX();
       const antes = run.integ;
       run.integ = Math.max(sm.piso, run.integ - sm.golpe);
@@ -5304,8 +5306,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  mientras el dialogo esta congelado, asi que cada linea sale cuando se acepto la anterior. */
     function stepTutorial(dt) {
       if (!libro || !libro.tut) return;
-      if (tutFinT >= 0) { tutFinT -= dt; if (tutFinT < 0) irAlEpilogo(); return; }
+      if (tutFinT >= 0) { tutFinT -= dt; if (tutFinT < 0) tutFelicitar(); return; }
       if ((S.state !== 'play' && S.state !== 'landing' && !(S.state === 'takeoff' && carrera)) || dlgPausa || !tutSys.activo()) return;
+      // LOS DIALOGOS REACCIONAN (18/11, el autor: "si me choco, que me diga 'tene cuidado'"): los golpes ya tienen
+      // su banco (`avisos`, via aguantarGolpe); ROZAR EL AGUA sin chocar tambien se comenta, cada tanto
+      if (S.state === 'play' && run.scrapeVib > 0.6 && run.t > tutRoceT && !radioVis()) {
+        tutRoceT = run.t + 9;
+        const sc = SCENES.AV_TUT_ROCE, ln = sc && sc.lineas[(Math.random() * sc.lineas.length) | 0];
+        if (ln) decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
+      }
       for (const o of obstacles) {
         if (o.practica && !o._tutRoto && o.hp <= 0) { o._tutRoto = true; tutRotos++; }
         if (!o._tutPaso && o.z < PZ - 3) { o._tutPaso = true; if (!(o.hp <= 0) && !o.practica) tutPasados++; }
@@ -5324,7 +5333,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         pasados: tutPasados, rotos: tutRotos, overheat: !!run.overheat, enVuelo: S.state === 'play',
         mv: run.mv || null, bombasVuelo: pmissiles.filter(p => !p.tanque).length, climaxHecho: !!run.climaxHecho,
         faltan: objectiveDist > 0 ? (objectiveDist - run.dist) / objectiveDist : 1, aterrizando: S.state === 'landing', tren: landDown, aterrizo: tutAterrizo,
-        pausado: paused }, SCENES);
+        pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), chancha: chancha.enCurso() }, SCENES);
       if (!a) return;
       const decirLn = ln => ln && decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
       if (a.tipo === 'decir') {
@@ -5338,6 +5347,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // lo que quedo de la practica anterior se va: cada paso arranca con sus blancos
         for (const o of obstacles) if (o.practica && !o.done) { o.done = true; o.z = -99; }
         if (a.paso.blancos) sembrarBlancos(a.paso.blancos);
+        // lo que el paso necesita listo para enseñarse sin hacer esperar: las barras llenas, el RASANTE puesto
+        // (para verlo), la nafta baja (para que la Chancha tenga sentido)
+        for (const b of a.paso.llena || []) { if (b === 'momentum') tempo.llenar(); else if (b === 'chancha') chancha.llenarBarra(); }
+        if (a.paso.muestra === 'rasante') rasante.cargar();
+        if (a.paso.nafta != null && cfg.fuelOn) run.fuel = Math.min(run.fuel, a.paso.nafta);
         // LA PAUSA GUIADA (`abre`): el juego abre la pausa sola, en CONTROLES y en la pestaña que se explica
         if (a.paso.abre) {
           paused = true; pauseSel = 0; pauseView = 'controls'; pauseMsgT = -9;
@@ -5378,6 +5392,20 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         ctx.beginPath(); ctx.moveTo(s.x, ya); ctx.lineTo(s.x - 4, ya - 6); ctx.lineTo(s.x + 4, ya - 6); ctx.closePath(); ctx.fill();
         ctx.restore();
       }
+    }
+    /** LA PANTALLA DE GANASTE DEL TUTORIAL (18/11, el autor: "al finalizar, la pantalla de ganaste, que te felicite,
+     *  con estrellas y algunos mensajes recomendados"): el recuento de siempre (screens.drawResults) con un `tut`
+     *  adentro — titular, estrellas por los golpes y los consejos de la etapa. La tecla sigue a irAlEpilogo, que
+     *  tilda la etapa y vuelve al menu del tutorial. */
+    function tutFelicitar() {
+      const m = libroDef(), ultima = libro.k === TUTORIAL_ETAPAS.length - 1;
+      engineOff();
+      lastRun = { mission: m, rows: [], stars: tutGolpes === 0 ? 3 : tutGolpes <= 2 ? 2 : 1,
+        tut: { titulo: ultima ? 'tutFinTodo' : 'tutFinEtapa', golpes: tutGolpes,
+          consejos: (m.consejos && (m.consejos[getLang()] || m.consejos.es)) || [] } };
+      resT = 0; resRow = 0;
+      setState('results');
+      sfxOne('lv1'); beep(880, 0.16, 'square', 0.06, 1200);
     }
     function stepLecciones() {
       if (suelto()) return;   // SIN DIALOGOS en los modos sueltos (autor, 16/10: "al menos por ahora")
@@ -6420,7 +6448,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // fases esto es siempre falso y el pasillo cierra donde cerro siempre — en el objetivo.
       // (…no durante el ESCAPE ni su viraje: ahi el final es VOLVISTE A SALVO, no la pista — 8/10)
       // (en el TUTORIAL la vuelta se estira hasta que se practico lo que va en ella: ver tutSys.antesDeAterrizar)
-      if (fases.llegaste() && !blancoSys.escapando() && !vir && !virVid && !(libro && libro.tut && tutSys.antesDeAterrizar())) { iniciarAterrizaje(); return; }
+      // EL ATERRIZAJE, APAGADO POR AHORA (18/11, el autor: "la mecanica de aterrizaje quitemosla del tutorial y del juego;
+      // despues la mejoramos"): al llegar a casa se cierra la mision como VOLVISTE A SALVO. `ATERRIZAJE` la vuelve a prender.
+      // (en el TUTORIAL no se cierra por llegar: la etapa termina con sus pasos)
+      if (fases.llegaste() && !blancoSys.escapando() && !vir && !virVid && !(libro && libro.tut)) {
+        if (ATERRIZAJE) iniciarAterrizaje(); else { volvioSalvo = true; finishObjective(); }
+        return;
+      }
       // RF-01: con clímax PASADA, los spawns se cortan ENTRY_CLEAR_M antes del buque. El último
       // tramo del pasillo se vacía y lo único que queda adelante es el blanco — es la mitad de
       // "sin corte": no hay obstáculos que desaparezcan de golpe al abrirse el mundo.
@@ -6500,7 +6534,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // satisfactoria"). Con ruta, la linea es el horizonte de radar de la vuelta; sin ruta, perder las
         // estrellas, como antes.
         const salio = rutaSys.hay() ? !rutaSys.enAlcance() : run.estrellas <= 0;
-        if (blancoSys.escapando() && salio && !vir) { vir = { fase: 'perdimos', t: 0 }; radioTramo('vir_perdimos'); missiles.length = 0; }
+        // (en el TUTORIAL el escape no lo narra el elenco de la campaña: el video del viraje y listo)
+        if (blancoSys.escapando() && salio && !vir) { vir = { fase: 'perdimos', t: 0 }; if (!(libro && libro.tut)) radioTramo('vir_perdimos'); missiles.length = 0; }
         // LA LINEA RECTA (V2): la artilleria de popa tira mientras escapas. Un tiro que pega es un
         // golpe de chapa; si el avion no aguanta, entra el siguiente — y el escape sigue.
         const es = blancoSys.escapando() && !vir ? escapeSys.step(dt) : null;
@@ -6524,7 +6559,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         stepCap(dt);
         if (vir) {
           vir.t += dt;
-          if (vir.fase === 'perdimos' && vir.t >= BL_BLANCO.VIR_LEER) { vir = { fase: 'rumbo', t: 0 }; radioTramo('vir_casa'); }
+          if (vir.fase === 'perdimos' && vir.t >= (libro && libro.tut ? 0.6 : BL_BLANCO.VIR_LEER)) { vir = { fase: 'rumbo', t: 0 }; if (!(libro && libro.tut)) radioTramo('vir_casa'); }
           else if (vir.fase === 'rumbo') {
             // bajo el negro nadie maneja: nada puede pegarte ni podes irte al agua sin verlo
             for (const o of obstacles) o.done = true;
@@ -7636,6 +7671,22 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           ctx.globalAlpha = 0.55 + 0.45 * Math.sin(dlgT * 5);
           ctx.strokeStyle = P.accent; ctx.lineWidth = U;
           for (const z of zonas) ctx.strokeRect((z.x - PADZ) * U, (z.y - PADZ) * U, (z.w + 2 * PADZ) * U, (z.h + 2 * PADZ) * U);
+          ctx.restore();
+        }
+        // EL NOMBRE DE CADA RECUADRO (18/11, el autor: "en cada cuadrado un texto que aclare VELOCIDAD, GAS, etc."):
+        // arriba de los relojes de abajo, debajo de lo de arriba (la ruta), sobre una placa para que se lea
+        if (lecFoco && lecFoco.foco.length) {
+          ctx.save(); ctx.scale(U, U);
+          ctx.font = labelFont(7); ctx.textAlign = 'center';
+          lecFoco.foco.forEach(id => {
+            const z = zonaLeccion(id);
+            if (!z) return;
+            const txt = T('foco_' + id), w = ctx.measureText(txt).width + 6;
+            const cx = z.x + z.w / 2, abajo = z.y > DH / 2, y = abajo ? z.y - PADZ - 3 : z.y + z.h + PADZ + 8;
+            ctx.globalAlpha = 0.9; ctx.fillStyle = '#0a0e11'; ctx.fillRect(cx - w / 2, y - 7, w, 9);
+            ctx.globalAlpha = 0.85 + 0.15 * Math.sin(dlgT * 5); ctx.fillStyle = P.accent; ctx.fillText(txt, cx, y);
+            ctx.globalAlpha = 1;
+          });
           ctx.restore();
         }
         // LA CAJA NO PUEDE TAPAR LO QUE SE EXPLICA: si alguna zona esta en la mitad de abajo —la fila

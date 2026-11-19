@@ -38,6 +38,16 @@ DESTINO = {
     'mu2': ('mitsubishi-mu2', 'sheet'), 'aerostar': ('aerostar-601', 'sheet'), 'commander': ('turbo-commander', 'sheet'),
     'guarani': ('ia50-guarani', 'sheet'), 'pucara': ('ia58-pucara', 'sheet'), 'mb339': ('mb-339a', 'sheet'),
     'neptune': ('sp2h-neptune', 'sheet'),
+    # LOS QUE FALTABAN DE LAS ISLAS (18/11): los helicopteros, el T-34C y el Skyvan
+    'chinook_faa': ('ch47c-chinook-faa', 'sheet'),
+    'chinook_ej': ('ch47c-chinook-ejercito', 'sheet'),
+    'uh1h': ('uh-1h', 'sheet'),
+    'bell212': ('bell-212', 'sheet'),
+    'puma_ej': ('sa330-puma-ejercito', 'sheet'),
+    'puma_pna': ('sa330-puma-prefectura', 'sheet'),
+    'a109': ('a109-hirundo', 'sheet'),
+    't34c': ('t34c-turbo-mentor', 'sheet'),
+    'skyvan': ('sc7-skyvan', 'sheet'),
 }
 CELULAS = ('sky', 'a4q', 'dagger', 'supere', 'pampa', 'mirage')
 # LAS VARIANTES DEL ESCUADRON (modelos.py, 8/10): var_<celula>_<n> -> <carpeta>/variante<n>.png. Solo
@@ -57,10 +67,10 @@ CAPAS_EXTRA = {'dagger': ('bombas_ext',),   # el ala media de la «configuracion
 # las capas de UN SOLO LADO no se simetrizan: la simetria copiaria el Exocet bajo el ala izquierda
 ASIMETRICAS = ('exocet', 'tanque_babor')
 NUEVAS = ('hercules-bombardero', 'learjet-35a', 'cessna-citation', 'swearingen-merlin', 'mitsubishi-mu2', 'aerostar-601',
-          'turbo-commander', 'ia50-guarani', 'ia58-pucara', 'mb-339a', 'sp2h-neptune')
-PX = {'herc': 2, 'neptune': 2, 'guarani': 2}   # las claves horneadas al doble de resolucion (hornear_todo.py)   # las que nacieron en Blender: three.js nunca las horneo, no hay que archivar
+          'turbo-commander', 'ia50-guarani', 'ia58-pucara', 'mb-339a', 'sp2h-neptune') + ('ch47c-chinook-faa', 'ch47c-chinook-ejercito', 'uh-1h', 'bell-212', 'sa330-puma-ejercito', 'sa330-puma-prefectura', 'a109-hirundo', 't34c-turbo-mentor', 'sc7-skyvan')
+PX = {'herc': 2, 'neptune': 2, 'guarani': 2, 'chinook_faa': 2, 'chinook_ej': 2, 'skyvan': 2}   # las claves horneadas al doble de resolucion (hornear_todo.py)   # las que nacieron en Blender: three.js nunca las horneo, no hay que archivar
 CAPAS_SOLO = {'herc': ('herc_250', 'herc_500')}   # las cargas propias del Hercules (hornear_todo.py)
-for _k in ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'neptune'): CAPAS_SOLO[_k] = ()   # los que no cuelgan nada
+for _k in ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'neptune') + ('chinook_faa', 'chinook_ej', 'uh1h', 'bell212', 'puma_ej', 'puma_pna', 'a109', 't34c', 'skyvan'): CAPAS_SOLO[_k] = ()   # los que no cuelgan nada
 CAPAS_ESTANDAR = ('pucara', 'mb339')   # los de las secundarias con las cuatro capas de siempre
 VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     'base': (3, 84, '', True), 'empinada': (2, 84, '2', True), 'ras': (3, 168, '3', False),
@@ -208,7 +218,7 @@ export const HORNO = {
 # LAS ANCLAS PROPIAS (16/10): la tabla de arriba es UNA para todo el roster porque los cazas tienen el
 # mismo tamaño en el cuadro. El HERCULES BOMBARDERO no: el ala alta y el doble de envergadura ponen las
 # puntas en otro lado, y no tiene tobera. Sus anclas se miden en su hoja y van a anclas_aviones.js.
-ANCLAS_PROPIAS = ('herc', 'learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'pucara', 'mb339', 'neptune')
+ANCLAS_PROPIAS = ('herc', 'learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'pucara', 'mb339', 'neptune') + ('chinook_faa', 'chinook_ej', 'uh1h', 'bell212', 'puma_ej', 'puma_pna', 'a109', 't34c', 'skyvan')
 
 def escribir_propias(propias):
     ruta = os.path.join(RAIZ, 'src', 'data', 'anclas_aviones.js')
@@ -248,8 +258,10 @@ if __name__ == '__main__':
                     c = hoja(cdir, filas, fw, sim and capa not in ASIMETRICAS, cols)
                     con_contorno(c, filas, fw).save(os.path.join(dest, 'carga_%s%s.png' % (capa, suf)))
             if clave in ANCLAS_PROPIAS and vista in ('base', 'ras', 'cobra', 'fino'):
-                tips = json.load(open(os.path.join(OUT, clave, vista, 'tips.json')))['tips']
-                propias.setdefault(clave, {})[vista] = anclas(h, fw, filas, tips, cols, nivel=2 if vista == 'fino' else 1)
+                tj = json.load(open(os.path.join(OUT, clave, vista, 'tips.json')))
+                propias.setdefault(clave, {})[vista] = anclas(h, fw, filas, tj['tips'], cols, nivel=2 if vista == 'fino' else 1)
+                if tj.get('rot'):                   # los rotores que gira el juego (helicopteros, 18/11)
+                    propias[clave][vista].update(rot=tj['rot'], rotn=tj['rotn'])
             if clave == 'sky' and vista in ('base', 'ras', 'cobra', 'fino'):
                 tips = json.load(open(os.path.join(OUT, clave, vista, 'tips.json')))['tips']
                 medidas[vista] = anclas(h, fw, filas, tips, cols, nivel=2 if vista == 'fino' else 1)

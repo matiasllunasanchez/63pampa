@@ -22,7 +22,8 @@ CARPETA = {'sky': 'a4-skyhawk', 'dagger': 'iai-dagger', 'supere': 'super-etendar
            'mirage': 'mirage-5p', 'pampa': 'pampa-63', 'herc': 'hercules-bombardero',
            'learjet': 'learjet-35a', 'citation': 'cessna-citation', 'merlin': 'swearingen-merlin', 'mu2': 'mitsubishi-mu2',
            'aerostar': 'aerostar-601', 'commander': 'turbo-commander', 'guarani': 'ia50-guarani', 'pucara': 'ia58-pucara',
-           'mb339': 'mb-339a', 'neptune': 'sp2h-neptune'}
+           'mb339': 'mb-339a', 'neptune': 'sp2h-neptune',
+           'chinook_faa': 'ch47c-chinook-faa', 'chinook_ej': 'ch47c-chinook-ejercito', 'uh1h': 'uh-1h', 'bell212': 'bell-212', 'puma_ej': 'sa330-puma-ejercito', 'puma_pna': 'sa330-puma-prefectura', 'a109': 'a109-hirundo', 't34c': 't34c-turbo-mentor', 'skyvan': 'sc7-skyvan'}
 X = 2          # 195 → 390 (14/10: de tres cuartos y al doble de detalle; antes 130 x3, de cola)
 AIRE = 4       # px (antes de agrandar) de aire arriba y abajo del avion
 
@@ -77,7 +78,7 @@ for clave, carpeta in CARPETA.items():
 # horneada directo a su tamaño (hornear.py --vista seleccion --px 495, o 540 los grandes) en
 # out/aviones/<clave>/seleccion_g/. Solo la arman los aviones de las misiones secundarias y el Pampa (16/10):
 # las de los demas ya estan hechas.
-GRANDES = ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'pucara', 'mb339', 'neptune', 'pampa')
+GRANDES = ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'pucara', 'mb339', 'neptune', 'pampa') + ('chinook_faa', 'chinook_ej', 'uh1h', 'bell212', 'puma_ej', 'puma_pna', 'a109', 't34c', 'skyvan')
 for clave in GRANDES:
     f = os.path.join(AQUI, 'out', 'aviones', clave, 'seleccion_g', 'f_0_0.png')
     if not os.path.exists(f):

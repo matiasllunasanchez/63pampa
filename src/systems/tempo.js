@@ -73,6 +73,8 @@ export const active = () => on;
 export const meterVal = () => meter;
 
 /** arranque de partida: barra vacia, poder apagado. */
+/** Llena la barra (el TUTORIAL, para enseñarlo sin hacer esperar: data/tutorial.js `llena`). */
+export function llenar() { meter = 1; }
 export function resetTempo() { on = false; meter = 0; dur = tempoNivel(0).dur; }
 
 // sondas para las pruebas headless (mismo patron que __adbg/__aset del arena)

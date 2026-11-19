@@ -28,7 +28,11 @@ CELULAS = CELULAS + ('herc',)
 for _k in ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'neptune'): CAPAS_SOLO[_k] = ()
 CELULAS = CELULAS + ('pucara', 'mb339') + ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'neptune')
 # …y se hornea al DOBLE de resolucion (el juego lo dibuja al doble que un caza: data/planes.js `escala`/`px`)
-PX = {'herc': 2, 'neptune': 2, 'guarani': 2}
+# LOS QUE FALTABAN DE LAS ISLAS (18/11): los siete helicopteros, el T-34C y el Skyvan — no cuelgan nada
+NUEVOS_1811 = ('chinook_faa', 'chinook_ej', 'uh1h', 'bell212', 'puma_ej', 'puma_pna', 'a109', 't34c', 'skyvan')
+for _k in NUEVOS_1811: CAPAS_SOLO[_k] = ()
+CELULAS = CELULAS + NUEVOS_1811
+PX = {'herc': 2, 'neptune': 2, 'guarani': 2, 'chinook_faa': 2, 'chinook_ej': 2, 'skyvan': 2}
 PX_VISTA = {'base': 84, 'empinada': 84, 'fino': 84, 'ras': 168, 'cobra': 126}
 capas_de = lambda k: CAPAS_SOLO[k] if k in CAPAS_SOLO else CAPAS + CAPAS_EXTRA.get(k, ())
 TODAS = CELULAS + ('skin_tero', 'skin_puma', 'skin_gitano', 'skin_pichon', 'skin_vasco')

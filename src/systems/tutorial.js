@@ -85,6 +85,9 @@ function cumple(c, s, dt) {
   if (c.tren) return !!s.tren;
   if (c.aterriza) return !!s.aterrizo;
   if (c.cierra) return !s.pausado;
+  if (c.secundaria) return s.secundaria === c.secundaria;
+  if (c.momentum) return !!s.momentum;
+  if (c.chancha) return !!s.chancha;
   return true;
 }
 

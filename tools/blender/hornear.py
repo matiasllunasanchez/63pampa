@@ -418,6 +418,9 @@ def hornear(raiz):
     mz = mat_profundidad() if PROFUNDIDAD else None
     L, R = puntas(raiz) if not CAPA else (Vector((0, 0, 0)), Vector((0, 0, 0)))
     tips = []
+    # LOS ROTORES de los helicopteros (modelos_aviones._helicoptero): por pose, donde caen el cubo y la punta
+    # de una pala a lo ancho (x) y a lo largo (z) — el juego arma con eso la elipse por donde giran las palas
+    rots = json.loads(raiz.get('rotores', '[]')); rot = []
     for row, pa in enumerate(PITCHES):
         tips.append([])
         for col, a in enumerate(ANGLES):
@@ -427,6 +430,10 @@ def hornear(raiz):
             bpy.context.view_layer.update()
             mw = raiz.matrix_world
             tips[-1].append(al_cuadro(mw @ L) + al_cuadro(mw @ R))
+            if rots:
+                if col == 0: rot.append([])
+                rot[-1].append([al_cuadro(mw @ Vector((x, y, z))) + al_cuadro(mw @ Vector((x + rr, y, z))) + al_cuadro(mw @ Vector((x, y, z + rr)))
+                                for x, y, z, rr, _n, _c in rots])
             sc.render.filepath = os.path.join(OUT, 'f_%d_%d.png' % (row, col))
             bpy.ops.render.render(write_still=True)
             if mz:
@@ -435,7 +442,8 @@ def hornear(raiz):
                 sc.render.filepath = os.path.join(OUT, 'f_%d_%d_z.png' % (row, col))
                 bpy.ops.render.render(write_still=True)
                 vl.material_override = None
-    json.dump({'tips': tips}, open(os.path.join(OUT, 'tips.json'), 'w'))
+    json.dump(dict({'tips': tips}, **({'rot': rot, 'rotn': [[n, c / rr] for _x, _y, _z, rr, n, c in rots]} if rots else {})),
+              open(os.path.join(OUT, 'tips.json'), 'w'))
 
 # ============================ EL .blend PARA MIRARLO ============================
 NO_CONTORNO = ('boca', 'fondo', 'medio', 'nucleo', 'sonda')   # discos planos y la lanza: sin casco

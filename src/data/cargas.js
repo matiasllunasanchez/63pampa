@@ -77,7 +77,9 @@ export const CAPAS_EXTRA = { dagger: ['carga_bombas_ext'], supere: ['carga_tanqu
 export const CAPAS_SOLO = { herc: ['carga_herc_250', 'carga_herc_500'] };
 // LOS QUE NO CUELGAN NADA (16/10, los de las misiones secundarias: el Escuadron Fenix y el Neptune): sin
 // pilones, vuelan con la carga 'nada' (data/planes.js; las bombas de la tecla son las de todos)
-for (const k of ['learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'neptune']) {
+for (const k of ['learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'neptune',
+  // (18/11: los helicopteros, el T-34C y el Skyvan)
+  'chinook_faa', 'chinook_ej', 'uh1h', 'bell212', 'puma_ej', 'puma_pna', 'a109', 't34c', 'skyvan']) {
   CAPAS_SOLO[k] = []; CARGA_PROPIA[k] = 'nada';
 }
 /** Las capas que se cargan para el avion `key`. */

@@ -8,7 +8,8 @@
 // `notas` son ids de la misma tabla que se leen como aclaracion al pie, no como fila.
 
 export const CTRL_CATEGORIAS = [
-  { id: 'movilidad', filas: ['Fly', 'Gas', 'Dive', 'Roll', 'Pan', 'Boost', 'Brake', 'Turn', 'Tren'], notas: ['ctrlHands', 'ctrlArena'] },
+  // (MOVILIDAD sin TREN: el aterrizaje esta apagado, 18/11)
+  { id: 'movilidad', filas: ['Fly', 'Gas', 'Dive', 'Roll', 'Pan', 'Boost', 'Brake', 'Turn'], notas: ['ctrlHands', 'ctrlArena'] },
   { id: 'armas', filas: ['Gun', 'Msl', 'MiraB', 'TiraB', 'Secund', 'Tanques', 'Chapitas', 'Aim'], notas: ['ctrlBombs', 'ctrlWasd'] },
   { id: 'piruetas', piruetas: true, notas: ['ctrlPirNota'] },
   { id: 'escuadrilla', filas: ['Chancha', 'Rasante', 'Radar', 'Cambio', 'Pips', 'Tempo', 'Cam'], notas: ['ctrlCabinaProx'] },

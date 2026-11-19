@@ -306,6 +306,37 @@ export function navLuces(lx, ly, rx, ry, cx, cy, k, wx, wz, f = 1, ph = 0) {
   if (Math.sin(run.t * 1.3 * 6.283 + ph) > 0.82) una(cx, cy - 2 * f, '#f4f8ff', [230, 240, 255], 0.9 * k);
 }
 
+/** LOS ROTORES de un helicoptero: por cada uno, las palas girando sobre la elipse medida en la hoja (`r` =
+ *  [cubo x, y, punta a lo ancho x, y, punta a lo largo x, y], en fraccion del cuadro desde el centro) y un
+ *  disco apenas marcado — lo que el ojo ve de un rotor a fondo. Cada pala deja dos fantasmas atras: a 60 cuadros
+ *  por segundo, sin estela, unas palas que giran rapido parecen quietas o para atras. */
+function rotores(w, h, R, N) {
+  if (!R || !N) return;
+  for (let i = 0; i < R.length; i++) {
+    const [hx, hy, ax, ay, bx, by] = R[i], n = N[i][0];
+    const cx = hx * w, cy = hy * h, ux = (ax - hx) * w, uy = (ay - hy) * h, vx = (bx - hx) * w, vy = (by - hy) * h;
+    const at = (a, f = 1) => [cx + (ux * Math.cos(a) + vx * Math.sin(a)) * f, cy + (uy * Math.cos(a) + vy * Math.sin(a)) * f];
+    // el disco
+    ctx.globalAlpha = 0.10; ctx.fillStyle = '#c9d2d6'; ctx.beginPath();
+    for (let k = 0; k <= 32; k++) { const [x, y] = at(k / 32 * Math.PI * 2); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.fill();
+    // las palas (los dos rotores del Chinook giran al reves uno del otro)
+    const giro = run.t * 9.5 * (i % 2 ? -1 : 1) + i * 0.7;
+    ctx.strokeStyle = '#1d2124'; ctx.lineCap = 'round';
+    ctx.lineWidth = Math.max(1, Math.hypot(ux, uy, vx, vy) * 0.7 * N[i][1]);
+    for (const [atras, al] of [[0.34, 0.18], [0.17, 0.35], [0, 0.85]]) {
+      ctx.globalAlpha = al; ctx.beginPath();
+      for (let p = 0; p < n; p++) {
+        const a = giro - atras * (i % 2 ? -1 : 1) + p * Math.PI * 2 / n;
+        const [x, y] = at(a);
+        ctx.moveTo(cx, cy); ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+}
+
 /** VORTICES DE PUNTA DE ALA. `f` es la FUERZA (0 = nada): con un booleano no se podia pedir
  *  "fuerte en la pirueta y suave con turbo", que es exactamente para lo que existe. */
 function tipTrail(lx, ly, rx, ry, f) {
@@ -1128,6 +1159,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     const conBase = !F3 && !hoja4 && img !== hoja2;
     if (!(conBase && drawTren(pl, run.gear, col, row, -dW / 2, -dH / 2, dW, dH, fino))) drawGear(run.gear, 1);
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
+    // LAS PALAS DE LOS HELICOPTEROS, girando (18/11): la hoja trae el rotor sin palas y el horno midio, pose
+    // por pose, el cubo y la elipse por donde giran (`AN.rot`, tools/blender/hornear.py)
+    if (AN.rot && !hoja4 && img !== hoja2) rotores(dW, dH, AN.rot[rowPose] && AN.rot[rowPose][colPose], AN.rotn);
     // EL FUNDIDO DE FILA: el cabeceo de recien se apaga ENCIMA del nuevo (solo entre filas de la
     // misma hoja; las poses de pirueta y la cobra cambian de hoja y ahi manda la maniobra)
     if (fundeFila > 0 && !hoja4 && img !== hoja2 && row === rowPose && filaFundida !== row) {

@@ -211,6 +211,23 @@ export function drawResults(w) {
   // FONDO: ilustracion de victoria (antes era un relleno opaco para tapar el mundo del juego,
   // que se colaba entre las filas y lo hacia ilegible; la foto tapa igual y ambienta)
   drawEndBg(WIN_BG, w.bg || 0);
+  // EL FINAL DE UNA ETAPA DEL TUTORIAL (18/11): felicitacion, las estrellas (por los golpes, no por puntos) y los
+  // consejos de lo que sigue. Sin total ni desglose: en el tutorial no se juega por puntaje.
+  if (R.tut) {
+    const stT2 = w.resT - 0.3;
+    ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = titleFont(18);
+    ctx.fillText(T(R.tut.titulo), W / 2, 22);
+    ctx.font = finFont(9); bloque([R.mission.name], 36, 11, P.ink);
+    drawAward(W / 2, 64, R.stars, stT2, w.t, 1.6);
+    ctx.font = labelFont(7); ctx.fillStyle = P.dim;
+    ctx.fillText(R.tut.golpes ? T('tutGolpes', { n: R.tut.golpes }) : T('tutSinGolpes'), W / 2, 96);
+    if (stT2 > 0.8) {
+      ctx.font = finFont(8); ctx.fillStyle = P.accent; ctx.fillText(T('tutConsejos'), W / 2, 116);
+      bloque(R.tut.consejos.map(c => '· ' + c), 130, 12, P.ink);
+    }
+    if (stT2 > 1.4 && Math.sin(w.t * 4) > -0.3) { ctx.font = finFont(8); bloque([T('continuePrompt')], H - 7, 10, P.accent); }
+    return;
+  }
   // ORDEN DE LECTURA: el PREMIO (estrellas + Malvinas) arriba de todo y grande, después el TOTAL,
   // y el desglose abajo como detalle. El desglose sigue entrando fila por fila en su lugar; cuando
   // termina, el premio y el total caen arriba — el remate va donde primero se mira.

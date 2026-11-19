@@ -702,7 +702,9 @@ herc = hercules_bombardero        # la clave del juego (hornear_todo.py hornea p
 
 # LOS AVIONES DE LAS MISIONES SECUNDARIAS (16/10): viven en modelos_aviones.py; hornear.py los pide por su
 # clave (getattr), y el modulo los resuelve aca
-AVIONES_SECUNDARIAS = ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'pucara', 'mb339', 'neptune')
+AVIONES_SECUNDARIAS = ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'pucara', 'mb339', 'neptune',
+                       # (18/11: los helicopteros y los dos que faltaban de las islas)
+                       'chinook_faa', 'chinook_ej', 'uh1h', 'bell212', 'puma_ej', 'puma_pna', 'a109', 't34c', 'skyvan')
 def __getattr__(nombre):
     if nombre in AVIONES_SECUNDARIAS:
         import importlib.util, os

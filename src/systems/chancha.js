@@ -222,6 +222,10 @@ export const gastada = () => usada;
 export const usosDe = m => usos[m];
 
 /** LO QUE VE EL RENDER (convencion 4: el dibujo lee, no manda). */
+/** Llena la barra (el TUTORIAL, para enseñarla sin hacer esperar: data/tutorial.js `llena`). */
+export function llenarBarra() { meter = 1; }
+/** ¿Se pidio y esta en camino o cargando? (cualquier fase que no sea 'idle') */
+export const enCurso = () => fase !== 'idle';
 export function snapshot() {
   if (fase === 'idle') return null;
   const c = canasta();

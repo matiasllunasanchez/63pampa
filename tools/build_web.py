@@ -30,7 +30,8 @@ PLANE_PREVIEW_EXT = {'mirage': 'png'}     # el resto es webp
 PLANE_DIRS_BLENDER = {'herc': 'hercules-bombardero', 'learjet': 'learjet-35a', 'citation': 'cessna-citation',
                       'merlin': 'swearingen-merlin', 'mu2': 'mitsubishi-mu2', 'aerostar': 'aerostar-601',
                       'commander': 'turbo-commander', 'guarani': 'ia50-guarani', 'pucara': 'ia58-pucara',
-                      'mb339': 'mb-339a', 'neptune': 'sp2h-neptune'}
+                      'mb339': 'mb-339a', 'neptune': 'sp2h-neptune',
+                      'chinook_faa': 'ch47c-chinook-faa', 'chinook_ej': 'ch47c-chinook-ejercito', 'uh1h': 'uh-1h', 'bell212': 'bell-212', 'puma_ej': 'sa330-puma-ejercito', 'puma_pna': 'sa330-puma-prefectura', 'a109': 'a109-hirundo', 't34c': 't34c-turbo-mentor', 'skyvan': 'sc7-skyvan'}
 # El juego usa mp3 originales; para la web se re-embebe la m4a comprimida de assets/music/web/.
 # Las pistas de adrenaline que no entran en el límite de 16 MB se DESCARTAN del build web ('').
 WEB_AUDIO = {

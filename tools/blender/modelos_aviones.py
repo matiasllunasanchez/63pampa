@@ -60,9 +60,16 @@ def _km(F):
     S['motores'] = [dict(m, **{q: m[q] * k for q in ('x', 'y', 'z0', 'z1', 'r', 'helice', 'pilon_x') if q in m}) for m in F.get('motores', [])]
     S['tanques'] = [dict(t, **{q: t[q] * k for q in ('x', 'y', 'z', 'largo', 'r')}) for t in F.get('tanques', [])]
     S['extras'] = [dict(e, centro=v(e['centro']), radios=v(e['radios'])) if e['tipo'] == 'elipsoide'
-                   else dict(e, est=s4(e['est'])) for e in F.get('extras', [])]
+                   else dict(e, est=s4(e['est']), x0=e.get('x0', 0.0) * k) for e in F.get('extras', [])]
     S['tomas'] = [dict(t, est=s4(t['est']), x0=t['x0'] * k) for t in F.get('tomas', [])]
     S['aletas'] = [dict(a, x=a['x'] * k, est=s5([(y, z, c, t, 0.0) for (y, z, c, t) in a['est']])) for a in F.get('aletas', [])]
+    if F.get('derivas'): S['derivas'] = [s5(d) for d in F['derivas']]
+    S['rotores'] = [dict(r, **{q: r[q] * k for q in ('x', 'y', 'z', 'r', 'cuerda', 'mastil') if q in r}) for r in F.get('rotores', [])]
+    if F.get('rotor_cola'): S['rotor_cola'] = dict(F['rotor_cola'], **{q: F['rotor_cola'][q] * k for q in ('x', 'y', 'z', 'r', 'cuerda')})
+    if F.get('patines'): S['patines'] = {q: ([u * k for u in w] if isinstance(w, list) else w * k) for q, w in F['patines'].items()}
+    S['ruedas'] = [tuple(w * k for w in r) for r in F.get('ruedas', [])]
+    S['puntales'] = [(v(a), v(b), r * k) for a, b, r in F.get('puntales', [])]
+    if F.get('helice_nariz'): S['helice_nariz'] = dict(F['helice_nariz'], **{q: F['helice_nariz'][q] * k for q in ('y', 'z', 'r')})
     if F.get('tren'):
         S['tren'] = {q: (w * k if isinstance(w, float) else w) for q, w in F['tren'].items()}
     if F.get('carga'):
@@ -151,9 +158,11 @@ def avion(T, K, F):
     _subdiv(loft('fuselaje', S['fuselaje'], raiz, piel, n=24, expo=F.get('expo', 2.2), cerrar=(True, True)), 2)
     for c, r in S['cabinas']:                       # burbujas (los de entrenamiento y ataque)
         elipsoide('cabina', c, r, raiz, vidrio)
-    superficie('ala', S['ala'], raiz, alas, eje='x', espejo=True)
+    if S.get('ala'): superficie('ala', S['ala'], raiz, alas, eje='x', espejo=True)
     if S.get('estab'): superficie('estab', S['estab'], raiz, alas, eje='x', espejo=True)
-    superficie('deriva', S['deriva'], raiz, deriva, eje='y')
+    if S.get('deriva'): superficie('deriva', S['deriva'], raiz, deriva, eje='y')
+    for d in S.get('derivas', []):                  # las DOS derivas de punta del Skyvan
+        superficie('deriva', d, raiz, deriva, eje='y')
     if S.get('dorsal'): superficie('dorsal', S['dorsal'], raiz, deriva, eje='y')
     # LAS ALETAS chicas (16/10, "mas fieles"): las dos ventrales bajo la cola del Learjet, las de los
     # tanques de punta. Verticales, en ±x; `est` = (y, z del borde de ataque, cuerda, espesor)
@@ -195,10 +204,23 @@ def avion(T, K, F):
                          n=14, expo=2.0, cerrar=(True, True), x0=x), 1)
     for e in S['extras']:                           # radomos, el aguijon del MAD, la tobera del jet
         mat = {'negro': negro, 'metal': metal, 'piel': piel, 'vidrio': vidrio}.get(e.get('mat', 'piel')) or K['mat_cel']('extra_' + e['mat'], e['mat'])
-        if e['tipo'] == 'elipsoide':
-            elipsoide(e.get('nombre', 'extra'), e['centro'], e['radios'], raiz, mat, seg=18, anillos=10)
-        else:
-            _subdiv(loft(e.get('nombre', 'extra'), e['est'], raiz, mat, n=16, expo=2.0, cerrar=(True, True)), 1)
+        if e.get('mat') == 'deriva': mat = deriva
+        for sg in ((-1, 1) if e.get('par') else (1,)):
+            if e['tipo'] == 'elipsoide':
+                c = e['centro']
+                elipsoide(e.get('nombre', 'extra'), (sg * c[0], c[1], c[2]), e['radios'], raiz, mat, seg=18, anillos=10)
+            else:
+                _subdiv(loft(e.get('nombre', 'extra'), e['est'], raiz, mat, n=16, expo=e.get('expo', 2.0), cerrar=(True, True),
+                             x0=sg * e['x0']), 1)
+    # LO DE LOS HELICOPTEROS (18/11): los rotores, el de cola, los patines y las ruedas fijas
+    _helicoptero(raiz, K, S, pala, metal, negro)
+    # los PUNTALES del ala alta (el Skyvan)
+    for a, b, r in S['puntales']:
+        for sg in (-1, 1):
+            _tubo('puntal', raiz, alas, (sg * a[0], a[1], a[2]), (sg * b[0], b[1], b[2]), r)
+    if S.get('helice_nariz'):                       # la helice en la trompa (el T-34C)
+        h = S['helice_nariz']
+        _helice(raiz, K, 0.0, h['y'], h['z'], h['r'], h.get('palas', 3), pala, cono, 1)
     # LAS LETRAS de la FAA y la escarapela del fuselaje, de los dos lados (las letras: modelos_hercules._texto,
     # que las pasa a malla; `x` = el costado del fuselaje en esa estacion)
     k = S['k']
@@ -234,8 +256,66 @@ def avion(T, K, F):
             disco('fuego%d' % i, (0, y, z + 0.01 * i), r * f, raiz, K['mat_emisivo']('fuego%d' % i, c))
     if K.get('cargas'):
         if S.get('carga'): K['piezas'] = M.cargas(raiz, K, S)
-        else: K['piezas'] = {'tren': M.tren(raiz, K, S)}
+        elif S.get('tren'): K['piezas'] = {'tren': M.tren(raiz, K, S)}
+        else: K['piezas'] = {'tren': []}           # (los helicopteros: los patines y las ruedas van siempre)
     return raiz
+
+def _tubo(nombre, padre, mat, p0, p1, r, seg=8):
+    """Un caño redondo de p0 a p1 (los puntales, los patines)."""
+    import bpy, bmesh
+    from mathutils import Vector
+    v = Vector(p1) - Vector(p0)
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=seg, radius1=r, radius2=r, depth=v.length)
+    me = bpy.data.meshes.new(nombre); bm.to_mesh(me); bm.free()
+    ob = M._obj(nombre, me, padre, mat)
+    ob.rotation_mode = 'QUATERNION'
+    ob.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(v.normalized())
+    ob.location = (Vector(p0) + Vector(p1)) / 2
+    return ob
+
+def _helicoptero(raiz, K, S, pala, metal, negro):
+    """LOS ROTORES: el mastil, el cubo y las palas QUIETAS (como las helices: a este tamaño un disco girando
+    no se lee, y las palas dicen "helicoptero"). El `giro` deja las palas SIMETRICAS de izquierda a derecha:
+    armar_juego.py espeja la mitad de la pose nivelada, y una pala cruzada salia en X.
+    El rotor de cola en un costado, los patines (Huey, Bell, el Agusta no) y las ruedas fijas (Chinook, Puma)."""
+    # LAS PALAS GIRAN EN EL JUEGO (18/11, el autor: "quiza las helices deberian ser independientes y girar
+    # solas"): en las hojas de vuelo el rotor se hornea SIN PALAS — solo el mastil y el cubo — y el horno anota
+    # donde cae cada rotor en cada pose (`raiz['rotores']`, hornear.py → tips.json `rot`); render/plane.js
+    # dibuja las palas encima, girando. Solo el selector (una foto) las lleva horneadas.
+    import json
+    raiz['rotores'] = json.dumps([[r.get('x', 0.0), r['y'], r['z'], r['r'], r['palas'], r['cuerda']] for r in S['rotores']])
+    for r in S['rotores']:
+        x, y, z, R, n = r.get('x', 0.0), r['y'], r['z'], r['r'], r['palas']
+        m = r.get('mastil', 0.0)
+        if m: caja('mastil', (x, y - m / 2, z), (R * 0.02 + 0.03, m, R * 0.02 + 0.03), raiz, metal)
+        elipsoide('cubo', (x, y, z), (R * 0.05, R * 0.03, R * 0.05), raiz, metal, seg=12, anillos=6)
+        if not K.get('insignias'): continue
+        for i in range(n):
+            a = math.radians(r.get('giro', 45) + i * 360 / n)
+            p = caja('pala', (0, 0, 0), (R, R * 0.008 + 0.012, r['cuerda']), raiz, pala)
+            p.rotation_euler = (0, a, 0)
+            p.location = (x + math.cos(a) * R / 2, y + 0.01 * i, z - math.sin(a) * R / 2)
+    c = S.get('rotor_cola')
+    if c:
+        elipsoide('cubo_cola', (c['x'], c['y'], c['z']), (0.05, c['r'] * 0.12, c['r'] * 0.12), raiz, metal, seg=10, anillos=6)
+        for i in range(c['palas']):
+            a = math.radians(c.get('giro', 30) + i * 360 / c['palas'])
+            p = caja('pala_cola', (0, 0, 0), (0.025, c['r'], c['cuerda']), raiz, pala)
+            p.rotation_euler = (a, 0, 0)
+            p.location = (c['x'] + 0.02 * i, c['y'] + math.cos(a) * c['r'] / 2, c['z'] + math.sin(a) * c['r'] / 2)
+    P = S.get('patines')
+    if P:
+        x, y, z0, z1, r = P['x'], P['y'], P['z0'], P['z1'], P['r']
+        for sg in (-1, 1):
+            _tubo('patin', raiz, metal, (sg * x, y, z0 + r * 6), (sg * x, y, z1), r)
+            _tubo('patin', raiz, metal, (sg * x, y + r * 4, z0), (sg * x, y, z0 + r * 6), r)      # la punta levantada
+            for zc in P['cruces']:                  # los dos arcos que lo cuelgan del fuselaje
+                _tubo('cruz', raiz, metal, (sg * x, y, zc), (sg * x * 0.55, P['y_fus'], zc), r * 0.9)
+    for (x, y, z, rr, ancho) in S['ruedas']:
+        for sg in ((-1, 1) if x else (1,)):
+            elipsoide('rueda', (sg * x, y, z), (ancho / 2, rr, rr), raiz, negro, seg=14, anillos=8)
+            caja('pata', (sg * x * 0.92, y + rr * 1.1, z), (ancho * 0.5, rr * 1.4, rr * 0.5), raiz, metal)
 
 # ---------------- las pinturas ----------------
 def ventanillas(z0, z1, n, y0, y1, x=(0.3, 9.0), ancho=0.42):
@@ -478,6 +558,162 @@ FICHAS['neptune'] = dict(
     letras=[('112', -9.20, 0.10, 0.70)],
     bandera=(5.50, 6.60), escarapelas=(10.0, -0.8, 1.30),
     tren=dict(x=4.60, nariz=-10.0, suelo=-3.20, r=0.65, ancho=0.40),
+)
+
+# ============================ LOS QUE FALTABAN (18/11/2026) ============================
+# El autor: "agreguemos los que faltan horneados para que puedan ser jugables", con los dos cuadros de lo que
+# hubo EN LAS ISLAS (docs/historia/HELICOPTEROS_ARGENTINOS.md): los siete helicopteros (dos Chinook, el Bell 212,
+# dos Puma, el UH-1H y el Agusta) y los dos aviones que no estaban (el T-34C de la Armada y el Skyvan de
+# Prefectura). Los helicopteros usan el mismo armador: sin ala, con `rotores`, `rotor_cola`, `patines` o
+# `ruedas`; la `k` sale del DIAMETRO DEL ROTOR (lo que abre en el cuadro, como la envergadura).
+OLIVA_EJ, AMARILLO = '#535c30', '#e8c21e'
+def bandera_marca(z0, z1, y0, y1):
+    """La bandera pintada en el costado (el pilon de cola del Chinook): tres franjas, celeste-blanca-celeste."""
+    h = (y1 - y0) / 3
+    return [dict(z=(z0, z1), y=(y0 + h * i, y0 + h * (i + 1)), color=c, arriba=False)
+            for i, c in enumerate((M.CELESTE, M.BLANCO, M.CELESTE))]
+
+# ---- BOEING CH-47C CHINOOK (FAA Grupo 7: 2; Ejercito, Batallon de Aviacion de Combate 601: 2). 15,54 m de
+# fuselaje, 30,1 con los rotores, rotores de 18,29 m. El tandem: dos rotores de tres palas, el de atras ALTO
+# sobre el pilon de cola con los dos motores colgados a los costados, las barquillas de combustible a lo largo
+# de la panza y cuatro ruedas fijas.
+def _chinook(nombre, pintura, letras=(), escarapela=None):
+    return dict(
+        nombre=nombre, k=k_de(25.0), expo=3.2,
+        fuselaje=[(-7.80, 0.30, 0.35, -0.10), (-7.55, 0.85, 0.85, 0.0), (-6.90, 1.15, 1.20, 0.10), (-6.00, 1.25, 1.30, 0.15),
+                  (6.00, 1.25, 1.30, 0.15), (7.00, 1.20, 1.20, 0.25), (7.75, 1.05, 0.85, 0.55)],
+        extras=[dict(tipo='loft', nombre='pilon_delantero', est=[(-7.10, 0.05, 0.05, 1.25), (-6.50, 0.55, 0.45, 1.35), (-4.80, 0.55, 0.45, 1.40), (-3.90, 0.15, 0.10, 1.40)]),
+                dict(tipo='loft', nombre='lomo', est=[(-4.20, 0.05, 0.05, 1.40), (-3.80, 0.45, 0.25, 1.45), (4.00, 0.45, 0.25, 1.45), (4.30, 0.05, 0.05, 1.45)]),
+                dict(tipo='loft', nombre='pilon_trasero', expo=2.8, est=[(3.00, 0.10, 0.10, 1.50), (4.20, 0.70, 0.40, 1.80), (6.00, 0.65, 1.05, 2.40), (7.40, 0.50, 1.00, 2.55), (7.90, 0.08, 0.10, 2.70)]),
+                dict(tipo='loft', nombre='motor', par=True, x0=0.95, est=[(4.00, 0.05, 0.05, 2.10), (4.40, 0.35, 0.35, 2.10), (6.60, 0.35, 0.35, 2.15), (7.10, 0.20, 0.20, 2.15)]),
+                dict(tipo='loft', nombre='barquilla', par=True, x0=1.30, est=[(-3.80, 0.05, 0.10, -0.55), (-3.20, 0.32, 0.45, -0.55), (3.20, 0.32, 0.45, -0.55), (4.00, 0.05, 0.10, -0.50)])],
+        rotores=[dict(y=2.05, z=-5.95, r=9.15, palas=3, cuerda=0.81, mastil=0.5, giro=90),
+                 dict(y=3.40, z=5.95, r=9.15, palas=3, cuerda=0.81, mastil=0.6, giro=270)],
+        ruedas=[(1.35, -2.00, -3.20, 0.42, 0.30), (1.35, -2.00, 4.30, 0.42, 0.30)],
+        pintura=dict(pintura, marcas=[dict(z=(-7.70, -6.90), y=(0.15, 1.00), color=VIDRIO, arriba=False)]
+                     + ventanillas(-5.0, 4.6, 6, 0.40, 0.75, ancho=0.30) + bandera_marca(5.4, 6.6, 2.70, 3.20) + list(pintura.get('marcas', []))),
+        letras=list(letras), escarapela_fus=escarapela,
+    )
+FICHAS['chinook_faa'] = _chinook('CH-47C Chinook FAA', dict(arriba=['#3f6b2a', '#c4a468'], corte=0.5, escala=0.45, panza='#c4a468'),
+                                 letras=[('FUERZA AEREA ARGENTINA', -1.0, 0.55, 0.32)], escarapela=(1.9, -0.30, 0.50))
+FICHAS['chinook_ej'] = _chinook('CH-47C Chinook Ejercito', dict(arriba=[OLIVA_EJ], panza=OLIVA_EJ, marcas=[dict(z=(1.30, 1.95), color=AMARILLO, arriba=False)]),
+                                letras=[('EJERCITO', -0.4, -0.55, 0.50)])
+
+# ---- BELL UH-1H "HUEY" (Ejercito, Batallon 601: 9; el de la S-11). 12,77 m de fuselaje, rotor de 14,63 de
+# dos palas, la "casita" del motor sobre la cabina, el botalon largo con la deriva y el rotor de cola, patines.
+def _huey(nombre, pintura, largo=0.0, motor=0.55, bandera=(1.40, 1.90), letras=(), escarapela=None, extras=()):
+    n = -largo                                  # (el Bell 212: la trompa un poco mas larga)
+    return dict(
+        nombre=nombre, k=k_de(14.7), expo=2.8,
+        fuselaje=[(-5.45 + n, 0.10, 0.15, -0.20), (-5.25 + n, 0.55, 0.60, -0.15), (-4.70 + n * 0.5, 0.95, 0.95, -0.05), (-3.80, 1.20, 1.05, 0.0),
+                  (-1.00, 1.25, 1.05, 0.0), (0.60, 1.15, 0.95, 0.05), (1.80, 0.70, 0.60, 0.35), (2.60, 0.40, 0.38, 0.50),
+                  (6.80, 0.20, 0.22, 0.62), (7.30, 0.14, 0.16, 0.64)],
+        extras=[dict(tipo='loft', nombre='motor', expo=2.5, est=[(-1.60, 0.05, 0.05, 1.05), (-1.30, motor, 0.35, 1.05), (1.60, motor, 0.38, 1.00), (2.40, 0.25, 0.20, 0.85)])] + list(extras),
+        deriva=[(0.55, 6.30, 1.20, 0.12, 0.0), (2.00, 7.10, 0.70, 0.10, 0.0)],
+        estab=[(0.0, 3.60, 0.65, 0.10, 0.55), (1.45, 3.80, 0.45, 0.08, 0.55)],
+        rotores=[dict(y=1.95, z=-0.90, r=7.32, palas=2, cuerda=0.53, mastil=0.55, giro=0)],
+        rotor_cola=dict(x=0.30, y=1.85, z=7.00, r=1.30, palas=2, cuerda=0.22),
+        patines=dict(x=1.20, y=-1.75, z0=-3.60 + n * 0.5, z1=1.60, r=0.09, cruces=[-2.40, 0.60], y_fus=-1.00),
+        pintura=dict(pintura, marcas=[dict(z=(-5.35 + n, -4.30 + n * 0.5), y=(-0.35, 0.95), color=VIDRIO, arriba=False),
+                                      dict(z=(-5.30 + n, -4.65 + n * 0.5), y=(-0.95, -0.50), color=VIDRIO, arriba=False),
+                                      dict(z=(-3.20, -1.80), y=(0.15, 0.60), color=VIDRIO, arriba=False)] + list(pintura.get('marcas', []))),
+        bandera=bandera, letras=list(letras), escarapela_fus=escarapela,
+    )
+FICHAS['uh1h'] = _huey('Bell UH-1H', dict(arriba=[OLIVA_EJ], panza=OLIVA_EJ, marcas=[dict(z=(2.70, 3.30), color=AMARILLO, arriba=False)]),
+                       letras=[('EJERCITO', 4.6, 0.55, 0.30)])
+# ---- BELL 212 (FAA Grupo 7: 2). El Huey de dos motores: la casita mas ancha (el Twin-Pac), la trompa un poco
+# mas larga; camuflaje verde y arena de la Fuerza Aerea.
+FICHAS['bell212'] = _huey('Bell 212', dict(arriba=['#4b6a2e', '#a58c58'], corte=0.5, escala=0.40, panza='#a58c58'),
+                          largo=0.25, motor=0.70, letras=[('FUERZA AEREA', 4.4, 0.55, 0.28)], escarapela=(-1.20, -0.30, 0.38))
+
+# ---- AEROSPATIALE SA-330L PUMA (Ejercito, Batallon 601: 5; Prefectura Naval: 1). 14,06 m de fuselaje, rotor
+# de 15 m y cuatro palas, los dos turboejes encima de la cabina, las barquillas del tren principal a los
+# costados y el rotor de cola de cinco palas a la derecha de la deriva.
+def _puma(nombre, pintura, bandera=(1.55, 2.05), letras=()):
+    return dict(
+        nombre=nombre, k=k_de(15.0), expo=2.6,
+        fuselaje=[(-6.70, 0.10, 0.15, -0.30), (-6.45, 0.55, 0.55, -0.25), (-5.80, 0.95, 0.95, -0.10), (-4.80, 1.05, 1.10, 0.0),
+                  (1.20, 1.05, 1.10, 0.0), (2.60, 0.70, 0.80, 0.25), (3.60, 0.40, 0.45, 0.50), (6.60, 0.28, 0.30, 0.65), (7.40, 0.20, 0.22, 0.70)],
+        extras=[dict(tipo='loft', nombre='motores', expo=2.4, est=[(-4.20, 0.05, 0.05, 1.05), (-3.60, 0.80, 0.40, 1.15), (1.20, 0.80, 0.42, 1.15), (2.40, 0.30, 0.25, 1.05)]),
+                dict(tipo='loft', nombre='barquilla', par=True, x0=1.05, est=[(-0.80, 0.05, 0.05, -0.75), (-0.40, 0.35, 0.35, -0.75), (1.00, 0.35, 0.35, -0.75), (1.60, 0.05, 0.05, -0.70)])],
+        deriva=[(0.60, 6.40, 1.30, 0.12, 0.0), (2.40, 7.50, 0.70, 0.10, 0.0)],
+        estab=[(0.0, 6.00, 0.60, 0.08, 0.65), (1.00, 6.20, 0.40, 0.08, 0.65)],
+        rotores=[dict(y=2.05, z=-1.00, r=7.50, palas=4, cuerda=0.60, mastil=0.45, giro=45)],
+        rotor_cola=dict(x=0.35, y=2.00, z=7.30, r=1.50, palas=5, cuerda=0.18),
+        ruedas=[(1.30, -1.55, 0.30, 0.33, 0.25), (0.25, -1.55, -4.60, 0.25, 0.18)],
+        pintura=dict(pintura, marcas=[dict(z=(-6.55, -5.40), y=(0.0, 0.95), color=VIDRIO, arriba=False)]
+                     + ventanillas(-3.5, 0.2, 3, 0.15, 0.50, ancho=0.45) + list(pintura.get('marcas', []))),
+        bandera=bandera, letras=list(letras),
+    )
+FICHAS['puma_ej'] = _puma('SA-330L Puma Ejercito', dict(arriba=['#4d5a2b'], panza='#4d5a2b', marcas=[dict(z=(5.40, 6.10), color=AMARILLO, arriba=False)]),
+                          letras=[('EJERCITO', 3.0, 0.20, 0.36)])
+# (Prefectura: blanco, el lomo y una mancha de la panza en azul, la franja amarilla cruzada, PA-12)
+FICHAS['puma_pna'] = _puma('SA-330L Puma Prefectura', dict(arriba=['#e9edef'], panza='#e9edef', marcas=[
+    dict(y=(0.80, 9.0), color='#1f3a7a'), dict(y=(-9.0, -0.70), z=(-3.0, 1.2), color='#1f3a7a', arriba=False),
+    dict(z=(-0.40, 0.70), y=(-0.70, 0.80), color=AMARILLO, arriba=False)]),
+    bandera=(1.55, 2.05), letras=[('PREFECTURA', 3.3, 0.15, 0.30), ('PA-12', -2.3, -0.35, 0.40)])
+
+# ---- AGUSTA A-109A HIRUNDO (Ejercito, Batallon 601: 3). 10,7 m de fuselaje, rotor de 11 m y cuatro palas:
+# fino, la trompa en punta, el tren que se esconde, la deriva arriba y abajo del botalon. Los unicos armados:
+# los lanzacohetes a los costados.
+FICHAS['a109'] = dict(
+    nombre='Agusta A-109A', k=k_de(11.0), expo=2.2,
+    fuselaje=[(-4.90, 0.05, 0.05, -0.25), (-4.60, 0.40, 0.35, -0.20), (-3.90, 0.70, 0.65, -0.05), (-3.00, 0.80, 0.75, 0.05),
+              (0.20, 0.80, 0.75, 0.05), (1.20, 0.55, 0.55, 0.20), (2.00, 0.30, 0.32, 0.40), (5.60, 0.14, 0.18, 0.50), (6.00, 0.10, 0.12, 0.52)],
+    extras=[dict(tipo='loft', nombre='motor', est=[(-1.90, 0.05, 0.05, 0.75), (-1.50, 0.45, 0.30, 0.80), (0.90, 0.45, 0.30, 0.80), (1.80, 0.10, 0.10, 0.65)]),
+            dict(tipo='elipsoide', nombre='cohetes', mat='metal', par=True, centro=(1.05, -0.45, -1.00), radios=(0.18, 0.18, 0.70))],
+    deriva=[(-0.60, 5.50, 0.90, 0.10, 0.0), (1.30, 5.90, 0.60, 0.08, 0.0)],
+    estab=[(0.0, 4.40, 0.50, 0.08, 0.50), (1.40, 4.50, 0.35, 0.07, 0.50)],
+    rotores=[dict(y=1.40, z=-0.90, r=5.50, palas=4, cuerda=0.33, mastil=0.30, giro=45)],
+    rotor_cola=dict(x=-0.25, y=0.75, z=5.95, r=1.00, palas=2, cuerda=0.16),
+    ruedas=[(0.90, -1.05, 0.20, 0.25, 0.15), (0.0, -1.05, -3.40, 0.18, 0.12)],
+    pintura=dict(arriba=['#5b5d34', '#8a7a4c'], corte=0.5, escala=0.45, panza='#5b5d34',
+                 marcas=[dict(z=(-4.70, -3.70), y=(-0.10, 0.70), color=VIDRIO, arriba=False),
+                         dict(z=(-3.20, -1.60), y=(0.10, 0.55), color=VIDRIO, arriba=False),
+                         dict(z=(2.80, 3.40), color=AMARILLO, arriba=False)]),
+    bandera=(0.60, 1.00),
+)
+
+# ---- BEECHCRAFT T-34C TURBO MENTOR (Armada, COAN: 4 en las islas). 8,75 m de largo, 10,16 de envergadura:
+# el entrenador de la Armada, una turbohelice en la trompa larga, la cabina en tandem bajo un vidrio largo,
+# ala baja recta. Verde claro con las bandas naranja de escuela.
+FICHAS['t34c'] = dict(
+    nombre='Beechcraft T-34C Turbo Mentor', k=k_de(10.16), expo=2.2,
+    fuselaje=[(-4.35, 0.10, 0.10, 0.0), (-4.10, 0.38, 0.40, 0.0), (-3.40, 0.50, 0.55, 0.02), (-2.20, 0.52, 0.62, 0.08),
+              (-0.50, 0.50, 0.62, 0.10), (1.50, 0.38, 0.48, 0.12), (3.40, 0.20, 0.26, 0.25), (4.40, 0.08, 0.10, 0.30)],
+    cabinas=[((0, 0.62, -1.25), (0.42, 0.38, 1.55))],
+    ala=[(0.0, -1.00, 2.00, 0.15, -0.40), (5.08, -0.60, 1.05, 0.12, -0.40 + 5.08 * td(7))],
+    deriva=[(0.30, 3.00, 1.60, 0.10, 0.0), (1.75, 3.70, 0.85, 0.09, 0.0)],
+    dorsal=[(0.25, 1.90, 1.40, 0.05, 0.0), (0.60, 3.00, 0.50, 0.15, 0.0)],
+    estab=[(0.0, 3.30, 1.05, 0.09, 0.20), (1.80, 3.60, 0.65, 0.08, 0.20)],
+    helice_nariz=dict(y=0.0, z=-4.40, r=1.15, palas=3),
+    pintura=dict(arriba=['#a6b08a'], panza='#b4bc9c', marcas=[dict(z=(1.60, 2.05), color='#d95f2a', arriba=False)]),
+    pintura_alas=dict(arriba=['#a6b08a'], panza='#b4bc9c', marcas=[dict(x=(4.2, 9.0), color='#d95f2a')]),
+    letras=[('ARMADA', 0.55, 0.0, 0.28)],
+    bandera=(1.05, 1.50), escarapelas=(3.6, -0.3, 0.40),
+    tren=dict(x=1.65, nariz=-3.30, suelo=-1.25, r=0.25, ancho=0.14),
+)
+
+# ---- SHORT SC.7 SKYVAN (Prefectura Naval: 2; el PA-54). 12,21 m de largo, 19,79 de envergadura: la "caja de
+# zapatos" — fuselaje cuadrado, ala ALTA recta con puntales, dos turbohelices Garrett, DOS derivas cuadradas en
+# las puntas del estabilizador y el tren fijo. Verde grisaceo con la banda amarilla de Prefectura.
+FICHAS['skyvan'] = dict(
+    nombre='Short SC.7 Skyvan', k=k_de(19.79), expo=4.0,
+    fuselaje=[(-5.20, 0.20, 0.25, -0.25), (-4.90, 0.75, 0.75, -0.10), (-4.20, 0.98, 1.00, 0.05), (2.20, 0.98, 1.05, 0.05),
+              (4.00, 0.95, 1.00, 0.20), (5.60, 0.90, 0.55, 0.70), (6.00, 0.85, 0.40, 0.85)],
+    ala=[(0.0, -0.90, 1.80, 0.14, 1.15), (9.90, -0.90, 1.78, 0.12, 1.15)],
+    puntales=[((0.95, -0.70, -0.30), (3.60, 1.08, -0.30), 0.07)],
+    motores=[dict(tipo='helice', x=2.20, y=1.10, z0=-2.60, z1=0.60, r=0.42, helice=1.28, palas=3)],
+    estab=[(0.0, 5.00, 1.40, 0.10, 0.95), (2.60, 5.10, 1.30, 0.10, 0.95)],
+    derivas=[[(0.40, 4.60, 1.70, 0.10, 2.60), (2.60, 4.80, 1.50, 0.10, 2.60)],
+             [(0.40, 4.60, 1.70, 0.10, -2.60), (2.60, 4.80, 1.50, 0.10, -2.60)]],
+    extras=[dict(tipo='loft', nombre='barquilla', par=True, x0=1.00, est=[(-0.60, 0.05, 0.05, -0.75), (-0.30, 0.35, 0.30, -0.75), (0.80, 0.35, 0.30, -0.75), (1.10, 0.05, 0.05, -0.75)])],
+    pintura=dict(arriba=['#9cb497'], panza='#a9bfa3', marcas=[dict(z=(1.50, 1.95), color=AMARILLO, arriba=False),
+                                                             dict(z=(-4.95, -4.30), y=(0.10, 0.85), color=VIDRIO, arriba=False)]
+                 + ventanillas(-3.5, 1.2, 5, 0.10, 0.45, ancho=0.50)),
+    letras=[('PA-54', 4.3, 0.0, 0.45), ('PREFECTURA NAVAL ARGENTINA', 3.2, 0.55, 0.14)],
+    bandera=(1.90, 2.40),
+    tren=dict(x=1.35, nariz=-4.00, suelo=-1.55, r=0.35, ancho=0.22, ala=False, z=0.25),
 )
 
 def construir(clave, T, K):

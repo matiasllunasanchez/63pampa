@@ -44,7 +44,9 @@ import { CAMPAIGN_CFG } from './missions.js';
 // …y SIEMPRE DESDE LA PISTA (18/11): ARRANQUE, ACANTILADO y el largo de la costa son preferencias de OPCIONES que
 // la mision no pisaba, y con ARRANQUE en "en vuelo" la etapa 1 empezaba en el aire, sin la carrera del despegue.
 const P = over => ({ ...CAMPAIGN_CFG, fuelOn: false, globos: false, caza: 0, bombs: 0, squad: 1, radar: 'off', obstacles: 0,
-  start: 'runway', cliff: false, coast: 230, ...over });
+  start: 'runway', cliff: false, coast: 230,
+  // SIN PODERES (18/11, el autor: "en la etapa 1 active RASANTE y no se entendio que era"): ni RASANTE ni MOMENTUM
+  poderes: false, ...over });
 
 const MAR = ['ola', 'birds'];
 
@@ -107,6 +109,11 @@ const ETAPA2 = [
     sigue: [{ rompe: 2, consigna: 'tutC_moviles' }], remate: 'TUT2_MOVILES_OK' },
   { dice: 'TUT2_HARRIER', teclas: ['Gun'], blancos: { tipo: 'jet', n: 1 },
     sigue: [{ rompe: 1, consigna: 'tutC_harrier' }], remate: 'TUT2_HARRIER_OK' },
+  // LOS PODERES (18/11, el autor: "falta explicar rasante, falta explicar momentum"): el RASANTE se muestra
+  // prendiendolo (aparece solo, por la racha de vuelo bajo) y el MOMENTUM se usa, con la barra ya llena
+  { dice: 'TUT2_RASANTE', muestra: 'rasante', remate: 'TUT2_RASANTE_OK' },
+  { dice: 'TUT2_MOMENTUM', teclas: ['Tempo'], llena: ['momentum'],
+    sigue: [{ momentum: true, consigna: 'tutC_momentum' }], remate: 'TUT2_MOMENTUM_OK' },
   { dice: 'TUT2_DANO', foco: ['salud', 'nafta'] },
   { dice: 'TUT2_FIN', remate: 'TUT2_FIN_OK' },
 ];
@@ -120,15 +127,19 @@ const ETAPA3 = [
   // de el; aca se prende: la raya roja, la red, la barra. Nadie sale a buscarte (game.js limpia las estrellas).
   { dice: 'TUT3_RADAR', foco: ['alt'], teclas: ['Gas', 'Dive'],
     sigue: [{ altSobre: 24, consigna: 'tutC_radarSube' }, { altBajo: 16, consigna: 'tutC_radarBaja' }], remate: 'TUT3_RADAR_OK' },
+  // EL SECUNDARIO (18/11, "falta explicar cambio de bomba"): el estante, pasar a los tanques y volver a la bomba
+  { dice: 'TUT3_SECUND', foco: ['rack'], teclas: ['Secund'],
+    sigue: [{ secundaria: 'tanque', consigna: 'tutC_secTanque' }, { secundaria: 'bomba', consigna: 'tutC_secBomba' }], remate: 'TUT3_SECUND_OK' },
   { dice: 'TUT3_BLANCO', cuando: { faltan: 0.35 }, foco: ['alt', 'rack'], teclas: ['Msl', 'Aim'],
     sigue: [{ suelta: true, consigna: 'tutC_suelta' }, { hunde: true, consigna: 'tutC_hunde' }], remate: 'TUT3_BLANCO_OK' },
   // EN LA VUELTA (que se estira hasta practicarlo: game.js no deja aterrizar antes)
   { dice: 'TUT3_TONEL', cuando: { vuelta: true }, teclas: ['Tonel'], sigue: [{ maniobra: 'tonel', consigna: 'tutC_tonel' }], remate: 'TUT3_TONEL_OK' },
+  // LA NAFTA Y LA CHANCHA (18/11, "falta explicar combustible y recarga"): el tanque baja y la Chancha lo llena
+  { dice: 'TUT3_NAFTA', foco: ['nafta'], nafta: 35 },
+  { dice: 'TUT3_CHANCHA', foco: ['chancha'], teclas: ['Chancha'], llena: ['chancha'],
+    sigue: [{ chancha: true, consigna: 'tutC_chancha' }], remate: 'TUT3_CHANCHA_OK' },
   { dice: 'TUT3_PIRUETAS', abre: 'piruetas',
     sigue: [{ cierra: true, consigna: 'tutC_pausa' }], remate: 'TUT3_PIRUETAS_OK' },
-  // (sin foco: en la aproximacion el tablero es otro —VEL, DESC, TREN— y los huecos del HUD de vuelo quedan vacios)
-  { dice: 'TUT3_APROX', cuando: { aterrizando: true }, teclas: ['Gas', 'Dive', 'Tren'],
-    sigue: [{ tren: true, consigna: 'tutC_tren' }, { aterriza: true, consigna: 'tutC_aterriza' }], remate: 'TUT3_APROX_OK' },
   { dice: 'TUT3_FIN', remate: 'TUT3_FIN_OK' },
 ];
 
@@ -137,16 +148,23 @@ export const TUTORIAL_ETAPAS = [
     desc: { es: 'Gas, altura, el radar y el agua. Lo justo para no caerse.', en: 'Throttle, altitude, radar and the sea. Just enough not to fall.' },
     // (su propia fase: SOLO OLAS — sin pajaros ni nada mas en la primera etapa)
     fases: [{ tipo: 'rasante', hasta: 1, solo: ['ola'], bombs: 0, bidones: false }],
-    cfg: P({ sky: 'dawn', terrain: 'sea' }), pasos: ETAPA1 },
+    cfg: P({ sky: 'dawn', terrain: 'sea' }), pasos: ETAPA1,
+    // los consejos de la pantalla del final (screens.drawResults)
+    consejos: { es: ['Gas de a toques: así se vuela al ras sin tocar el agua.', 'En PAUSA → CONTROLES están todos los botones.', 'Lo que sigue: ETAPA 2 · PELEAR.'],
+      en: ['Tap the throttle: that is how you fly low without touching the sea.', 'PAUSE → CONTROLS lists every button.', 'Next up: STAGE 2 · FIGHT.'] } },
   // (las etapas 2 y 3 todavia son el tramo vacio de la fase 1: sus pasos llegan en las fases 4 y 5)
   { ...base, id: 'tut2', etapa: 2, name: 'PELEAR',
     desc: { es: 'El cañón, el calor y un Harrier de práctica.', en: 'The cannon, the heat and a practice Harrier.' },
-    cfg: P({ sky: 'clear', terrain: 'sea' }), pasos: ETAPA2 },
+    cfg: P({ sky: 'clear', terrain: 'sea', poderes: true }), pasos: ETAPA2,
+    consejos: { es: ['Ráfagas cortas: el cañón caliente se traba.', 'Ponete en la línea del blanco antes de tirar.', 'Lo que sigue: ETAPA 3 · LA PASADA Y LA VUELTA.'],
+      en: ['Short bursts: a hot cannon jams.', 'Line up with the target before you fire.', 'Next up: STAGE 3 · THE PASS AND THE WAY HOME.'] } },
   { ...base, id: 'tut3', etapa: 3, name: 'LA PASADA Y LA VUELTA',
     desc: { es: 'La bomba, el tonel, la vuelta y el aterrizaje.', en: 'The bomb, the barrel roll, the way home and the landing.' },
     // EL BUQUE: un casco viejo, quieto y sin defensa, y todas las pasadas que hagan falta. Con vuelta: al
     // pegarle se vuelve, y al llegar, la aproximacion final de siempre (systems/fases.js `llegaste`)
     goal: { kind: 'ship', ship: 'CASCO DE PRÁCTICA', dist: 4200 }, climax: 'suelta', pasadas: 99, defensa: null,
+    // la BRP y la ventana mas ancha (18/11, "tiro la bomba bien y no le pega"); con nafta y la Chancha para la vuelta
+    bomba: 'brp', dificultad: 'facil', chancha: true, chanchaMinT: 0,
     fases: [
       { tipo: 'transito', hasta: 0.2, solo: MAR, bombs: 0, bidones: false },
       { tipo: 'rasante', hasta: 0.85, solo: MAR, bombs: 0, bidones: false },
@@ -154,7 +172,9 @@ export const TUTORIAL_ETAPAS = [
       { tipo: 'vuelta', hasta: 1.45, obstacles: 0, caza: 0, bombs: 0, bidones: false },
     ],
     aviones: [{ ...AVION[0], carga: 'tanques_bomba' }],
-    cfg: P({ sky: 'dusk', terrain: 'sea', carga: 'tanques_bomba', radar: 'normal' }), pasos: ETAPA3 },
+    cfg: P({ sky: 'dusk', terrain: 'sea', carga: 'tanques_bomba', radar: 'normal', fuelOn: true, fuelScale: 0.2, poderes: true }), pasos: ETAPA3,
+    consejos: { es: ['Volá abajo de la raya roja: arriba, te ven.', 'Soltá la bomba alta y temprano.', 'Ya podés volar el LIBRO DE VUELO, en HISTORIA.'],
+      en: ['Stay under the red line: above it, they see you.', 'Drop the bomb high and early.', 'You can now fly the FLIGHT LOG, in CAMPAIGN.'] } },
 ];
 
 // ---------------------------------------------------------------------------------------------
@@ -233,6 +253,14 @@ const LISTA = [
     T(TURCO, 'turco_neutro', 'Ahí viene un Harrier de práctica. No tira y vuela derecho.'),
     T(PICHON, 'pichon_neutro', 'Viene de frente y muy rápido. Ponete en su línea y disparale antes de que te pase.')),
   escena('TUT2_HARRIER_OK', T(PICHON, 'pichon_sonrisa', '¡Abajo! Y eso que venía a ochocientos.')),
+  escena('TUT2_RASANTE',
+    T(PICHON, 'pichon_sonrisa', '¿Viste eso? Cuando volás pegado al agua un buen rato, te concentrás y entrás en RASANTE.'),
+    T(TURCO, 'turco_neutro', 'El avión se clava al ras solito y aguanta más. Disfrutalo, que se termina.')),
+  escena('TUT2_RASANTE_OK', T(PICHON, 'pichon_neutro', 'Cuanto más pegado volás, más te dura.')),
+  escena('TUT2_MOMENTUM',
+    T(TURCO, 'turco_neutro', 'Ahora el MOMENTUM: el tiempo se pone lento y te deja pensar. Esa barra ya está llena.'),
+    T(PICHON, 'pichon_neutro', 'Se llena volando bien. Guardalo para cuando se complica.')),
+  escena('TUT2_MOMENTUM_OK', T(PICHON, 'pichon_sonrisa', 'Lindo, ¿no? Como en las películas.')),
   escena('TUT2_DANO',
     T(TURCO, 'turco_neutro', 'Si te pegan, lo sufre la chapa: ese reloj es la salud del avión. Si baja mucho, volvé.'),
     T(PICHON, 'pichon_neutro', 'Y la nafta: hoy no la gastamos, pero en una misión de verdad es lo que te trae de vuelta.'),
@@ -256,10 +284,21 @@ const LISTA = [
     T(TURCO, 'turco_neutro', '…A ver. Mostrame, Tero.')),
   escena('TUT3_TONEL_OK', T(TURCO, 'turco_sonrisa', 'Lo que yo decía. Se puede.')),
   escena('TUT3_RADAR',
-    T(PICHON, 'pichon_neutro', 'Antes del buque, el radar inglés. ¿Ves la raya roja en la altura? Arriba de esa raya, te ven.'),
-    T(TURCO, 'turco_neutro', 'Subí un poquito y mirá cómo se te pone todo rojo. Después bajá, rapidito.'),
-    T(PICHON, 'pichon_sonrisa', 'Por eso volamos al ras, Tero. Es lo único que nos esconde.')),
-  escena('TUT3_RADAR_OK', T(TURCO, 'turco_sonrisa', 'Eso. Abajo de la raya no existís.')),
+    T(PICHON, 'pichon_neutro', 'Antes del buque, el radar inglés. Barre hasta una altura: es esa raya del altímetro.'),
+    T(TURCO, 'turco_neutro', 'Si la cruzás, te quema. Subí un poquito para verlo, y bajá rapidito.'),
+    T(PICHON, 'pichon_sonrisa', 'Por eso volamos al ras, Tero. Abajo de la raya, no existimos.')),
+  escena('TUT3_RADAR_OK', T(TURCO, 'turco_sonrisa', '¿Viste? Te quema.')),
+  escena('TUT3_SECUND',
+    T(TURCO, 'turco_neutro', 'Abajo a la derecha está el estante: tanques, bomba y chafitas. Elegís uno y lo soltás.'),
+    T(PICHON, 'pichon_neutro', 'Probá: pasá a los tanques y volvé a la bomba, que la vas a necesitar.')),
+  escena('TUT3_SECUND_OK', T(TURCO, 'turco_ceno', 'Bien. Y nunca sueltes los tanques arriba del buque, ¿eh?')),
+  escena('TUT3_NAFTA',
+    T(PICHON, 'pichon_preocupado', 'Mirá la nafta: te queda poca. La poscombustión y el vuelo al ras la gastan más rápido.'),
+    T(TURCO, 'turco_neutro', 'Sin nafta no volvés. Pero para eso está la Chancha.')),
+  escena('TUT3_CHANCHA',
+    T(TURCO, 'turco_neutro', 'La Chancha es el Hércules cisterna. La llamás y viene a cargarte en vuelo.'),
+    T(PICHON, 'pichon_neutro', 'Ponete detrás y abajo de la manguera, quietito, y carga sola.')),
+  escena('TUT3_CHANCHA_OK', T(TURCO, 'turco_sonrisa', 'La Chancha no falla nunca. Bueno, casi nunca.')),
   escena('TUT3_BLANCO',
     T(PICHON, 'pichon_neutro', 'Ahí está el buque. La bomba tiene que caer más de un segundo para armarse: soltala alta y temprano.'),
     T(TURCO, 'turco_neutro', 'Elegís la bomba y la soltás. Con la mira apretada ves dónde va a caer.'),
@@ -296,6 +335,11 @@ const LISTA = [
     T(PICHON, 'pichon_preocupado', 'Erraste. Soltala más temprano, que la bomba sigue de largo con tu velocidad.'),
     T(TURCO, 'turco_neutro', 'Otra pasada. El casco no se va a ningún lado.'),
     T(PICHON, 'pichon_neutro', 'Más alto, Tero: si cae menos de un segundo, no se arma.')),
+  // ROZAR EL AGUA (sin chocar): game.js lo comenta cada tanto
+  banco('AV_TUT_ROCE',
+    T(TURCO, 'turco_preocupado', '¡Cuidado con el agua, Tero! Un poquito de gas.'),
+    T(PICHON, 'pichon_preocupado', 'Estás rozando. Subí un palmo.'),
+    T(TURCO, 'turco_ceno', 'Tené cuidado, que la sal se come la chapa.')),
   banco('AV_TUT_PISO',
     T(TURCO, 'turco_preocupado', 'Tero, me lo estás desarmando. Tranquilo, que tenemos tiempo.')),
 ];
