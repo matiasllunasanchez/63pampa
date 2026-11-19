@@ -47,10 +47,8 @@ Todos **dentro de su avión**, en la misma vista de tres cuartos que el elenco. 
 | PUMA | `04_PUMA` | 6 | 30 |
 | GITANO | `05_GITANO` | 7 | 35 |
 | VASCO | `06_VASCO` | 5 | 25 |
-| PICHÓN | `07_PICHON` | 15 | 75 |
-| TURCO | `08_TURCO` | 12 | 60 |
 | MATEO | `09_MATEO` | 5 | 25 |
 | COLORADO | `10_COLORADO` | 4 | 20 |
 | NORMA | `11_NORMA` | 3 | 15 |
 
-**Total: 575 caras.**
+**Total: 440 caras.** (Pichón y Turco ya instalados: sus tiras viven en `assets/source/retratos/tiras/`.)
