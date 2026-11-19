@@ -388,6 +388,9 @@ export function initInput(cv, a) {
     if (isFire(e.code)) { inp.fire = true; if (!e.repeat) flags.anyPress = true; e.preventDefault(); }
     if (isTurbo(e.code)) { inp.turbo = true; if (!e.repeat) flags.anyPress = true; }
     if (e.code === 'KeyV' && !e.repeat) a.cycleCamera();                 // cicla las 4 camaras
+    // EL ZOOM DE LA VISTA DE ARRIBA de las islas (19/11): [+] acerca, [-] aleja (fuera de ahi no hace nada)
+    if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !e.repeat && a.zoomCam) a.zoomCam(-1);
+    if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !e.repeat && a.zoomCam) a.zoomCam(1);
     // EL 3D VUELA CON LOS CONTROLES DEL PASILLO (pedido del autor, 30/9). [R] ya no es la media
     // vuelta del arena: es mirar, como en el pasillo (la media vuelta sale con el combo del SPLIT-S,
     // ↑↓↓, en game.js). Y [G] ya no es el reparto de energia (que paso al boton del poder del modo,

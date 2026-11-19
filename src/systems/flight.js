@@ -62,7 +62,7 @@ import { PORT_H } from '../data/runways.js';
 import { tierraH, hayRelieve } from '../core/tierra.js';
 // LA GEOGRAFIA (G1): que hay BAJO EL AVION, tramo por tramo. Sin ella, esTierraEn y alturaSuelo
 // reproducen exactamente la formula de antes (lo cuida el unit test de la regla suprema).
-import { esTierraEn, alturaSuelo, geoActiva, islaEn } from '../core/geografia.js';
+import { esTierraEn, alturaSuelo, geoActiva, islaEn, geoExterna } from '../core/geografia.js';
 // LA CHANCHA: conectado a la canasta se vuela EN FORMACION, o sea que el mundo avanza menos.
 // Se toca el AVANCE y no `run.spd` a proposito: la velocidad del avion es fisica.
 import { avance as chAvance } from '../systems/chancha.js';
@@ -586,6 +586,9 @@ export function flightSystem(dt, deps) {
 
   // (…y el estado RASANTE tambien, 8/10: mantener rasante no te puede ahogar por las olas del agua)
   const colchon = (rasante.active() || run.aguante === 1) && deathMsg === 'death_sea';
+  // LAS ISLAS NO TIENEN ROCE (core/geografia.js `geoExterna.sinRoce`): el piso que sostiene al avion lo subia y
+  // lo bajaba solo con las olas y el relieve. Alla tocar la superficie es chocar. (Fuera de las islas, nada cambia.)
+  if (geoExterna.on && geoExterna.sinRoce && !colchon && plane.y <= groundY) return { death: deathMsg };
   if (!colchon && plane.y <= (run.scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
     // EL AGUA PERDONA MAS EN UN FILO (§11.1). El tramo es de SIGILO: lo que tiene que matarte es
     // que te vean, no un panzazo. Sin esto el agua se comia casi todas las muertes del filo —el

@@ -10,6 +10,7 @@
 // APAGADO no cambie un solo numero del vuelo — eso ultimo lo juzga `npm run feel`, que corre
 // aparte, pero el fixture verifica la otra mitad: que apagado no haya poder que aplicar.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

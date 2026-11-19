@@ -22,6 +22,7 @@
 //
 // Corre APARTE de `npm run check` (como caza / chancha / agua): es un minuto largo de juego real.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

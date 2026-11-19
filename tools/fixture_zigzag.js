@@ -11,6 +11,7 @@
 // `+ bendW(z) * k` de los sitios de dibujo sea `+ 0` y el mapa recto se dibuje igual que antes de
 // que el item existiera—. Recien despues, que el zigzag encendido haga lo que promete.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

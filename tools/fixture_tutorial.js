@@ -12,6 +12,7 @@
 //
 // Uso: npm run tutorial          (TUT_SHOTS=<carpeta> guarda capturas de cada paso; TUT_DESDE=2 vuela solo la 3)
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

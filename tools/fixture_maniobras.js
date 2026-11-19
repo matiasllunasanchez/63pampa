@@ -24,6 +24,7 @@
 // SE DISPARA POR SONDA y no tecleando el combo: los combos son de 3 toques a menos de 0.28 s uno
 // del otro, y un fixture que dependa de esa ventana mide el foco del teclado, no la maniobra.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

@@ -25,6 +25,7 @@
 // versiones, no como norma — el cabeceo salta 1,0 por las poses de moves.js y eso es el juego, no
 // un defecto de la cinematica (PLAN_CINE_PESO §7, divergencia 11).
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

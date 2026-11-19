@@ -26,8 +26,9 @@ import { S, plane } from '../../core/state.js';
 import { cabina, CABINA, enCabina } from '../../core/cabina.js';
 import { bullets, missiles, pmissiles, streaks } from '../../core/world.js';
 import { geoExterna } from '../../core/geografia.js';
+import { inp } from '../../core/input.js';
 import { KMH_U } from '../../data/tuning.js';
-import { SCRAPE_LIFT } from '../../core/physics.js';
+import { AIR_START_Y } from '../../data/runways.js';
 
 const BORDE = 12000;         // a esta distancia del borde del mapa empieza la vuelta automatica
 // ARRANQUE: sobre el estrecho de San Carlos, rumbo sudoeste (el de Dusk Patrol), bajo.
@@ -137,7 +138,14 @@ const VEL_MAPA = 1 / U;   // 1:1 CON EL PASILLO (19/11, el autor: "equilibralos"
 const TURBO_MAPA = 1;   // (el turbo del pasillo ya sube run.spd: encima, desparejaba los dos modos)
 const PARED = 6;              // un escalon de terreno de mas de esto en un cuadro, por debajo del avion, es pared
 const BANK_FULL = 60 * Math.PI / 180;
-const P3 = { x: 0, z: 0, yaw: 0, g: 0, giro: 0, turbo: 0, altFija: null, A: null };
+const P3 = { x: 0, z: 0, yaw: 0, g: 0, giro: 0, turbo: 0, altFija: null, A: null, sostiene: 0, od: 0, muerto: false };
+// EL ARRANQUE SOSTENIDO (19/11, el autor: "cuando arranca… el avion arriba, como que se descuelga"): la prueba
+// entra en vuelo sin el piloto automatico de los modos sueltos (game.js `autoAire` pide `suelto()`, y una PRUEBA
+// no lo es), asi que sin gas el avion se caia apenas aparecia. Lo sostiene a la altura de salida hasta que des
+// gas o pasen SOSTIENE_T segundos.
+const SOSTIENE_T = 3;
+// desde ARRIBA, cuanto sube el gas y baja la picada (m/s), y el techo sobre el suelo
+const ARRIBA_VY = 10, ARRIBA_TECHO = 120;
 // EL VIRAJE (19/11, el autor: "desde arriba el avion se mueve en un rectangulo/cuadrado"): A/D ponen la
 // velocidad de costado del pasillo en ±30 DE GOLPE, y pasada directo a giro daba un rumbo que cambiaba a
 // tasa fija y cortaba en seco — esquinas. Ahora el giro ENTRA y SALE (GIRO_T) y tiene un tope (GIRO_MAX)
@@ -167,9 +175,15 @@ export function pasoPasillo(dt) {
     geoExterna.tierra = () => mundo.sueloH(P3.x, P3.z) > 0.3;
     // EL OBJETIVO (systems/islas/objetivo.js): la BASE COSTERA, en la tierra plana mas cercana. La brujula lo marca.
     if (objetivo.colocar(P3.x, P3.z)) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
+    P3.sostiene = SOSTIENE_T; plane.y = AIR_START_Y; P3.muerto = false;
   }
+  if (P3.sostiene > 0) {
+    P3.sostiene = run.throttle > 0.3 ? 0 : P3.sostiene - dt;
+    if (P3.sostiene > 0) { plane.y = AIR_START_Y; plane.vy = Math.max(0, plane.vy); }
+  }
+  if (S.state === 'play' && P3.muerto && run.t > 0) P3.muerto = false;   // el relevo: el avion nuevo ya vuela
   if (I.ir) { const q = I.ir; I.ir = null; const [x, z] = mundo.lonLatLocal(q.lon, q.lat); P3.x = x; P3.z = z; if (q.rumbo != null) P3.yaw = q.rumbo * Math.PI / 180; P3.g = Math.max(mundo.sueloH(x, z), 0); if (q.alt) plane.y = q.alt; }
-  geoExterna.on = true;
+  geoExterna.on = true; geoExterna.sinRoce = true;
   // EL VIRAJE: lo de costado se vuelve rumbo, con peso
   const pide = Math.max(-1, Math.min(1, plane.vx / VX_FONDO)) * GIRO_MAX;
   P3.giro += (pide - P3.giro) * Math.min(1, dt / GIRO_T);
@@ -191,6 +205,7 @@ export function pasoPasillo(dt) {
       v: 320 + Math.random() * 200 + 260 * P3.turbo, life: 0.45, L: 9 + 10 * P3.turbo });
   }
   P3.x += Math.sin(P3.yaw) * m; P3.z -= Math.cos(P3.yaw) * m;
+  P3.od += m;   // el cuentakilometros: con el, las balas siguen sobre el mapa (`proyectiles`)
   bombas(dt, m);
   // EL SUELO QUE SUBE se come la altura; el que baja te la devuelve (y la gravedad del pasillo hace el resto)
   const g = Math.max(mundo.sueloH(P3.x, P3.z), 0), dg = g - P3.g;
@@ -201,14 +216,18 @@ export function pasoPasillo(dt) {
   // pasa por una irregularidad; eso solo con la altura trabada desde arriba, en los otros casos debe
   // colisionar si no mantengo gas"): el roce del pasillo LEVANTA al avion al piso, que en el agua es su gracia
   // y en una loma era subirla solo. En las islas tocar la tierra es chocar; el agua sigue con su roce.
-  const trabada = camara.vista() === camara.ARRIBA;
-  // (el roce lo sostiene en piso + SCRAPE_LIFT: a esa altura sobre la tierra, ya la tocaste)
-  if (S.state === 'play' && !trabada && g > 0.3 && plane.y <= 0.5 + SCRAPE_LIFT + 0.05) return 'death_land';
-  // DESDE ARRIBA EL AVION MANTIENE LA ALTURA (autor, 19/11): desde la vista cenital no hay como medirla,
-  // asi que se clava la que tenia al entrar a esa vista (sobre el suelo: sigue el relieve)
+  // (y ya no hay roce que lo levante — flight.js `geoExterna.sinRoce`—: tocar la tierra es chocar, en todas las vistas)
+  if (S.state === 'play' && g > 0.3 && plane.y <= 0.5) return 'death_land';
+  // DESDE ARRIBA EL AVION MANTIENE LA ALTURA (autor, 19/11): desde la vista cenital no hay como medirla, asi que
+  // se traba la que tenia al entrar. Es ALTURA ABSOLUTA (19/11 tarde, el autor: "el avion no puede subir solo cuando
+  // esta cerca de la tierra o de irregularidades… y bajar tampoco, debe poder subir"): no sigue el relieve —una
+  // loma mas alta te choca—, el GAS la sube y la PICADA (S) la baja. Al volver a las otras vistas se SUELTA.
   if (camara.vista() === camara.ARRIBA && S.state === 'play') {
-    if (P3.altFija === null) P3.altFija = Math.max(plane.y, 6);
-    plane.y = P3.altFija; plane.vy = 0;
+    if (P3.altFija === null) P3.altFija = P3.g + Math.max(plane.y, 1);
+    if (inp.u && run.fuel > 0) P3.altFija += ARRIBA_VY * dt;
+    if (inp.d) P3.altFija -= ARRIBA_VY * dt;
+    P3.altFija = Math.min(P3.altFija, P3.g + ARRIBA_TECHO);
+    plane.y = P3.altFija - P3.g; plane.vy = 0;
   } else P3.altFija = null;
   if (P3.A) lugares(P3.A, dt);
   return null;
@@ -232,7 +251,10 @@ function bombas(dt, m) {
     objetivo.soltada(pm, _b.x, _b.z, P3.yaw, P3.g);
   }
   const golpes = objetivo.paso(dt, new Set(pmissiles), m);
-  for (const { pm, que } of golpes) {
+  for (const { pm, que, x, z, alto } of golpes) {
+    // LA EXPLOSION EN 3D (estallido3d.js): la ven todas las camaras, tambien la de arriba
+    estallido(x, alto, z, que === 'blanco' ? 2.2 : que === 'agua' ? 0.8 : 1, que === 'agua' ? 'agua' : 'fuego');
+    if (que === 'agua') continue;   // (el agua la resolvio el pasillo: la bomba ya no esta)
     const i = pmissiles.indexOf(pm); if (i >= 0) pmissiles.splice(i, 1);
     if (que === 'blanco') {
       explodeAt(pm.x, Math.max(pm.y, 2), pm.z, true);
@@ -241,6 +263,25 @@ function bombas(dt, m) {
     } else columnaBomba(pm.x, Math.max(pm.y, 0), pm.z, false);
   }
 }
+
+// LAS EXPLOSIONES EN 3D (19/11, el autor: "mejora las explosiones, el avion debe explotar en todas las
+// camaras"): las del pasillo son de pantalla (core/fx.js, con `proj`) y desde arriba no se veian. Estas van en el
+// MAPA: se anotan aca y las dibuja systems/islas/estallido3d.js (three-arena.js las toma cada cuadro).
+const ESTALLIDOS = [];
+export function estallido(x, y, z, esc = 1, tipo = 'fuego', vx = 0, vz = 0) {
+  if (ESTALLIDOS.length < 16) ESTALLIDOS.push({ x, y, z, esc, tipo, vx, vz });
+}
+/** Los estallidos nuevos de este cuadro (y se vacia la cola). */
+export function tomarEstallidos() { const o = ESTALLIDOS.slice(); ESTALLIDOS.length = 0; return o; }
+/** EL AVION REVIENTA (game.js `crashFX`): en su punto del mapa, con la inercia que traia; la malla se apaga. */
+export function estallarAvion(misil) {
+  if (!enPasillo() || !I.puesto || P3.muerto) return;
+  const v = run.spd * U * VEL_MAPA * 0.5;
+  estallido(P3.x, P3.g + Math.max(plane.y, 0.5), P3.z, misil ? 2 : 1.5, 'avion', Math.sin(P3.yaw) * v, -Math.cos(P3.yaw) * v);
+  P3.muerto = true;
+}
+/** ¿El avion ya revento? (three-arena.js deja de dibujar la malla) */
+export const avionMuerto = () => P3.muerto;
 
 /** El objetivo, para la escena 3D (objetivo3d.js), o null. */
 export const objetivoDe = () => (enPasillo() && objetivo.OBJ.on ? objetivo.OBJ : null);
@@ -332,6 +373,7 @@ export function proyectiles() {
   if (!enPasillo() || !I.puesto) return PROY;
   const add = (o, k, dz) => {
     if (o.done || o.x == null || o.z == null) return;
+    if (k === 'bala') return addBala(o);
     const p = aMundo(o.x, o.y || 0, o.z, {}), c = aMundo(o.x, o.y || 0, o.z + dz, {});
     // LA ESTELA DE LOS MISILES: por donde PASO en el mapa (no en el carril, que gira con el avion)
     let h = null;
@@ -343,9 +385,40 @@ export function proyectiles() {
   };
   for (const b of bullets) add(b, 'bala', -6);
   for (const m of missiles) add(m, m.tracer ? 'traza' : 'misil', 14);
-  for (const m of pmissiles) add(m, 'propio', -14);
+  for (const m of pmissiles) {
+    // LA BOMBA, sobre el mapa (objetivo.js la sigue desde que se suelta) y con su SOMBRA (abajo)
+    const b = objetivo.posBomba(m);
+    if (b) { PROY.push({ k: 'bomba', p: { x: b.x, y: b.alto, z: b.z }, s: { x: b.x, y: b.suelo + 0.3, z: b.z }, alto: b.alto - b.suelo }); continue; }
+    add(m, 'propio', -14);
+  }
   return PROY;
 }
+// LAS BALAS DERECHO (19/11, el autor: "que el avion dispare derecho"): el carril gira con el avion, y una bala
+// dibujada en el carril se iba con el en cada viraje (desde arriba, un abanico). Ahora cada bala se ANCLA al mapa
+// la primera vez que se la ve —punto y rumbo de salida— y avanza lo que avanza en el carril mas lo que avanzo el
+// avion (P3.od). El pasillo la sigue chocando en su carril: esto es solo donde se dibuja.
+function addBala(o) {
+  let a = o.__islasB;
+  if (!a) {
+    const p0 = aMundo(o.x, o.y || 0, o.z, {});
+    a = o.__islasB = { x: p0.x, z: p0.z, dx: Math.sin(P3.yaw), dz: -Math.cos(P3.yaw), zp: o.z, xp: o.x, od: P3.od };
+  }
+  const adv = (o.z - a.zp) + (P3.od - a.od), lat = o.x - a.xp;
+  a.x += a.dx * adv - a.dz * lat; a.z += a.dz * adv + a.dx * lat;
+  a.zp = o.z; a.xp = o.x; a.od = P3.od;
+  const y = P3.g + (o.y || 0);   // (a la altura del avion: el mismo suelo que `estadoA`)
+  PROY.push({ k: 'bala', p: { x: a.x, y, z: a.z }, c: { x: a.x + a.dx * 6, y, z: a.z + a.dz * 6 }, h: null });
+}
+/** LA MIRA de la vista de arriba: adelante del avion, en su rumbo (la dibuja proyectiles3d.js). */
+// (a una distancia que va con el zoom, `d`: asi cae siempre en el mismo lugar de la pantalla, arriba del avion)
+export function mira(d = 60) {
+  if (!enPasillo() || !I.puesto || P3.muerto) return null;
+  return { x: P3.x + Math.sin(P3.yaw) * d, y: P3.g + Math.max(plane.y, 0.3), z: P3.z - Math.cos(P3.yaw) * d, yaw: P3.yaw };
+}
+
+/** La vista de arriba y su zoom (camara.js ZOOMS): [+] / [-]. */
+export const vistaArriba = () => camara.vista() === camara.ARRIBA;
+export const zoom = dir => camara.zoom(dir);
 
 /** LAS VISTAS (Dusk Patrol): la tecla de vista del arena cicla arriba → atras → cabina. */
 export function cambiarVista() {

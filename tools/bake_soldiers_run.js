@@ -8,6 +8,7 @@
 // hace es MEDIR para verificar el encuadre — que el contenido entre con los 2 px de aire de la
 // regla 5 del plan y que los pies caigan donde el render los va a apoyar.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

@@ -139,9 +139,9 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
          setRasante, sfxStop } from './systems/audio.js';
 import * as world3D from './legacy/three-world.js';
-import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, labelFont, probarFuente, setPZ } from './render/ctx.js';
+import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, labelFont, probarFuente, setPZ, titleFont } from './render/ctx.js';
 import * as screens from './render/screens.js';
-import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog } from './core/radioVN.js';
+import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog, retener as retenerRadio } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
@@ -200,7 +200,7 @@ import * as chapitasSys from './systems/chapitas.js';
 import { piso as pisoEstrella } from './core/estrellas.js';
 import { EST_MAX } from './data/tuning.js';
 import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T, SENAS_COMP } from './data/senales.js';
-import { cartel, cartelSostenido, tickCarteles, limpiarCarteles } from './core/cartel.js';
+import { cartel, cartelSostenido, tickCarteles, limpiarCarteles, carteles } from './core/cartel.js';
 import { CARA_DE_RADIO, decirLinea, setVozLibro } from './core/voz.js';
 import { derrota, esChoque, tipoDerribo } from './data/derrotas.js';
 import { DEV } from './core/dev.js';
@@ -882,7 +882,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function dlgFreeze(key) {
       if (suelto()) return;   // SIN DIALOGOS en los modos sueltos (autor, 16/10: "al menos por ahora")
       radioTramo(key);
-      dlgPausa = true; dlgT = 0; dlgTyped = 0;
+      dlgPausa = true; retenerRadio(true); dlgT = 0; dlgTyped = 0;
       engineOff();                   // igual que pauseToggle: el motor no ruge con el mundo quieto
     }
     /** El jugador leyo y sigue. La linea NO se calla: termina su reloj en vuelo y se funde sola,
@@ -898,6 +898,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // vuelo la proxima de la cadena tendria que esperarla — el corte de Condor, lo de Puma y el
       // final de SEGUIR estan escritos en el mismo punto del camino para salir uno detras del otro.
       if (lecFoco) callarRadio();
+      retenerRadio(false);   // lo que pidio hablar durante la pausa sale ahora, de a uno
       lecFoco = null;
       beep(620, 0.06, 'square', 0.05, 80);
     }
@@ -3804,7 +3805,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (suelto() && !encadena && cfg.start === 'air') { startCiclo = 'air'; cfg.start = 'runway'; }
       callarRadio();   // una linea de radio a medio decir no puede sobrevivir a la corrida
       resetTormenta();
-      dlgPausa = false;   // …ni su congelada: morir o salir durante el dialogo dejaria el mundo
+      dlgPausa = false; retenerRadio(false, true);   // …ni su congelada: morir o salir durante el dialogo dejaria el mundo
                           // quieto sin nadie que lo suelte, y eso no se arregla desde adentro
       lecFoco = null; lecIdx = 0;   // las lecciones de la mision vuelven a empezar con la corrida
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
@@ -4228,6 +4229,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // REPARTO DE ENERGIA: tambien solo del ARENA. En el pasillo no hay nada que repartir —
       // el turbo sale del combustible y el cañon no calienta distinto segun donde mires.
       cyclePip: () => { if (S.state === 'arena' && arena.active()) arena.cyclePip(); },
+      // EL ZOOM DE LA VISTA DE ARRIBA de las islas (systems/islas/camara.js ZOOMS): tres niveles
+      zoomCam: dir => {
+        if (!islas.enPasillo() || !islas.vistaArriba()) return;
+        const z = islas.zoom(dir);
+        beep(700 - z * 120, 0.05, 'square', 0.04);
+        // (uno solo: el anterior se va, no se apilan)
+        carteles.vivos = carteles.vivos.filter(c => !/^ZOOM /.test(c.txt));
+        cartel('ZOOM ' + (3 - z) + '/3', P.accent);
+      },
       cycleCamera: () => {
         // en el ARENA la misma tecla conmuta cabina ↔ tercera persona (decision del prompt:
         // toggle EN VIVO, no una opcion de menu)
@@ -5227,6 +5237,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // SECO ES PERDER (PLAN_NAFTA_ALCANCE §3.8, decision del autor): sin relevo, porque el tanque es
       // de la corrida y el compañero heredaria el mismo cero — caerian uno detras del otro.
       if (cause === 'death_seco') { sinCombustible(); return; }
+      // LAS ISLAS: la explosion en 3D (systems/islas/estallido3d.js), que se ve en TODAS las camaras —desde arriba
+      // las del pasillo no existian—. En el prototipo revienta con cualquier causa (19/11, el autor)
+      islas.estallarAvion(tipoDerribo(cause) === 'misil');
       // EN CAMPAÑA, UN CHOQUE NO ES UN AVERIADO (8/10, el autor: "si un avion CHOCA fisicamente un
       // objeto, no puede detenerse ahi la camara y que el avion salga averiado — tiene que EXPLOTAR, y
       // si explota se pierde la mision"). Contra el agua, la tierra, un objeto o los palos del buque, el
@@ -5418,14 +5431,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         mv: run.mv || null, bombasVuelo: pmissiles.filter(p => !p.tanque).length, climaxHecho: !!run.climaxHecho,
         faltan: objectiveDist > 0 ? (objectiveDist - run.dist) / objectiveDist : 1, aterrizando: S.state === 'landing', tren: landDown, aterrizo: tutAterrizo,
         pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), chancha: chancha.enCurso(),
-        aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0 }, SCENES);
+        aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0,
+        radio: radioVis() }, SCENES);
       if (!a) return;
       const decirLn = ln => ln && decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
       if (a.tipo === 'decir') {
         beep(430, 0.06, 'square', 0.04);
         decirLn(a.linea);
         lecFoco = { foco: a.foco, teclas: a.teclas };
-        dlgPausa = true; dlgT = 0; dlgTyped = 0;
+        dlgPausa = true; retenerRadio(true); dlgT = 0; dlgTyped = 0;
         engineOff();
       } else if (a.tipo === 'mundo') {
         cfg.obstacles = a.paso.obstacles || 0;
@@ -5518,7 +5532,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
       if (pausa) {
         lecFoco = { foco: lec.foco || [], teclas: lec.teclas || [] };
-        dlgPausa = true; dlgT = 0; dlgTyped = 0;
+        dlgPausa = true; retenerRadio(true); dlgT = 0; dlgTyped = 0;
         engineOff();
       }
     }
@@ -5603,6 +5617,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // el nombre: `dtReal` no es el reloj de pared del sistema, es "el dt antes de los
       // reescalados de escena" — y por eso el orden de estas dos lineas importa.
       else if (S.state === 'play' && cine.active()) dt *= cine.tempo();
+      // LAS ISLAS TODAVIA CARGANDO (19/11): si el avion se elige antes de que el mapa termine, el vuelo arrancaba
+      // sobre negro y el avion caia. Ahora el cuadro ESPERA (nada corre) y se ve el cartel de carga (render, abajo).
+      if (islas.enPasillo() && !islas.listo()) return;
       run.t += dt;
       prbTick();   // MODO PRUEBAS: las sondas agendadas con a.luego() (no hace nada sin S.test)
       // EL ZIGZAG (PLAN_PASILLO_ZIGZAG Z1): rehace la tabla del carril curvo, o la APAGA.
@@ -7784,6 +7801,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // PAUSA: overlay en nativas, encima de todo lo del mundo (el fade de historia va despues,
       // pero con el juego pausado nunca conviven)
       if (paused && pauseView === 'mapa') drawMapaIslas(islas.mapaDatos(mapaCur), pauseT);
+      if (islas.enPasillo() && !islas.listo()) {
+        ctx.fillStyle = '#05080a'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = P.accent; ctx.font = titleFont(14); ctx.textAlign = 'center';
+        ctx.fillText(T('islasCargando'), W / 2, H / 2 - 6);
+        ctx.fillStyle = '#2a343a'; ctx.fillRect(W / 2 - 60, H / 2 + 4, 120, 3);
+        ctx.fillStyle = P.accent; ctx.fillRect(W / 2 - 60, H / 2 + 4, Math.round(120 * Math.max(0, Math.min(1, islas.progreso()))), 3);
+        ctx.textAlign = 'left';
+      }
       else if (paused) menus.drawPause({
         view: pauseView === 'opciones' ? 'menu' : pauseView, titulo: pauseView === 'opciones' ? T('optTitle') : null,
         sel: pauseView === 'opciones' ? Math.min(opcSel, opcRows().length - 1) : pauseSel, saveSel, rows: pauseView === 'opciones' ? opcRows() : pauseRows(),
@@ -9018,7 +9043,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // (SONDA, 13/11: `window.__congelado` frena el mundo sin menu, para comparar dibujos cuadro contra cuadro)
       if (typeof window !== 'undefined' && window.__congelado) { draw(); requestAnimationFrame(frame); return; }
       if (paused && !PAUSABLE()) paused = false;
-      if (dlgPausa && ((S.state !== 'play' && S.state !== 'landing' && !(S.state === 'takeoff' && carrera)) || (dlgT > 1 && !radioVis()))) { dlgPausa = false; lecFoco = null; }
+      if (dlgPausa && ((S.state !== 'play' && S.state !== 'landing' && !(S.state === 'takeoff' && carrera)) || (dlgT > 1 && !radioVis()))) { dlgPausa = false; lecFoco = null; retenerRadio(false); }
       // …Y EL DIALOGO CONGELADO TAMBIEN (19/11, el autor: "mientras esta en pausa TODO, incluso la musica, debe pausarse"):
       // el mundo quieto del tutorial y las lecciones calla musica y motor igual que la pausa; al seguir, retoma
       pausarAudio(paused || dlgPausa, paused);   // la pausa calla todo; el dialogo calla los efectos pero deja la musica (systems/audio.js)

@@ -3,6 +3,7 @@
 // Abre tools/bake_planes.html en una ventana oculta, ejecuta __bake() y escribe los
 // sprite sheets en assets/planes/<slug>/sheet.png (9 frames, alabeo -60..+60).
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 

@@ -12,6 +12,7 @@
 // COMPARTIR la escena. Por eso se cuenta el escombro ANTES y DESPUES del choque, y se verifica
 // que los pedazos del objeto y los del avion esten vivos AL MISMO TIEMPO.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

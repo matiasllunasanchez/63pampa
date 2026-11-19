@@ -250,7 +250,8 @@ vec3 shadeWater(vec3 p, vec3 rd, float t, float b){
   // la ola; asi el agua pasa a la misma velocidad aparente que en el pasillo.
   vec2 gq = q/vec2(0.93, 1.0), gi = floor(gq), gf = fract(gq) - 0.5;
   // (puntos de UN pixel y tenues, como los del pasillo: un brillo, no nieve)
-  float pz = step(0.80 - 0.15*smoothstep(0.0, 0.9, oh), hash12(gi)) * step(length(gf), clamp(t*0.0036, 0.012, 0.3))
+  // (desde ARRIBA la alfombra no va: mirando para abajo de cerca era nieve — el rayo casi vertical la apaga)
+  float pz = (1.0 - smoothstep(0.55, 0.8, -rd.y)) * step(0.80 - 0.15*smoothstep(0.0, 0.9, oh), hash12(gi)) * step(length(gf), clamp(t*0.0036, 0.012, 0.3))
            * (1.0 - smoothstep(60.0, 190.0, t));
   if (pz > 0.5) wc = mix(wc, vec3(0.78,0.84,0.84), 0.45);
   return wc;

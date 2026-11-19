@@ -10,6 +10,7 @@
 // que la nafta suba SOLO enganchado, que salirse corte, que la ventana venza — y que morir en
 // plena cita no rompa nada ni devuelva el poder.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

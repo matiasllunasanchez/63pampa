@@ -6,6 +6,7 @@
 // parejas se miran juntas y de ahi sale la decision del default. QUITAR junto con la sonda
 // __duo3d cuando el look quede cerrado.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

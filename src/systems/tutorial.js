@@ -126,6 +126,9 @@ export function tick(dt, s, escenas) {
     if (t < (i === 0 ? ESPERA_0 : ESPERA) || !llego(p.cuando, s)) return null;
     fase = 'intro'; linea = 0;
   }
+  // UNO A LA VEZ (19/11): mientras la radio en vuelo esta diciendo algo (el remate, un aviso), la
+  // pausa de dialogo espera a que se calle — si no, la congelada le pisa la linea a mitad de leer
+  if (fase === 'intro' && s.radio) return null;
   if (fase === 'intro') {
     const ls = (escenas[p.dice] || {}).lineas || [];
     if (linea < ls.length) return { tipo: 'decir', linea: ls[linea++], foco: p.foco || [], teclas: p.teclas || [] };

@@ -467,7 +467,9 @@ export function playaClase(x, wz, pl) {
  *  el pasillo vuela sobre el mapa real: `tierra()` dice si hay tierra BAJO EL AVION, y la altura vale 0
  *  porque en las islas `plane.y` se mide DESDE EL SUELO (el relieve le llega al avion por otro lado: el
  *  suelo que sube se le come la altura). Lo prende el sistema de las islas; core no importa systems. */
-export const geoExterna = { on: false, tierra: () => false };
+// `sinRoce` (LAS ISLAS, 19/11): tocar el agua o la tierra es CHOCAR — sin el roce que levanta al avion al piso
+// (systems/flight.js). El autor: "el avion no puede subir solo cuando esta cerca de la tierra o del agua".
+export const geoExterna = { on: false, tierra: () => false, sinRoce: false };
 
 /** ¿HAY TIERRA en este punto del mundo? La pregunta que decide si el avion roza agua o suelo, si
  *  la estela se dibuja, de que color salta el polvo. Sin geografia: la formula de siempre. */

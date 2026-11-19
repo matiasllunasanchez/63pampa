@@ -18,6 +18,7 @@
 // CAPTURAS: hay cosas que ninguna asercion puede juzgar y este proyecto ya se llevo esa leccion
 // puesta (la pantalla de relevo mentia y solo se vio mirandola).
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

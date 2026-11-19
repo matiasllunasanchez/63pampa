@@ -11,6 +11,7 @@
 //
 // Uso: npm run libro          (LIBRO_SHOTS=<carpeta> guarda capturas de los menus)
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

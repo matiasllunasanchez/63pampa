@@ -8,6 +8,7 @@
 //
 // Uso: npm run exocet
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const OUT = process.env.EXO_SHOTS || '';

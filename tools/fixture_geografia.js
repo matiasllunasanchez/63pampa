@@ -22,6 +22,7 @@
 // El avion se sostiene con sondas (`__seaput`) y se lo mueve por el camino con `__wjump`: lo que se
 // mide es el terreno, no el pilotaje.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

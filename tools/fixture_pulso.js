@@ -12,6 +12,7 @@
 // SE TECLEA POR SONDA (__qtap) y no con teclas reales a proposito: el fixture no puede depender
 // del foco del teclado, y los margenes son de decimas — un evento perdido seria un falso fallo.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

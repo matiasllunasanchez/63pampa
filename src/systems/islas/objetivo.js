@@ -52,6 +52,12 @@ export function soltada(pm, x, z, yaw, g0) {
   BOMBAS.set(pm, { x, z, dx: Math.sin(yaw), dz: -Math.cos(yaw), g0, zp: pm.z, xp: pm.x });
 }
 export const seguida = pm => BOMBAS.has(pm);
+/** Donde va la bomba en el mapa y a que altura (la dibuja proyectiles3d.js con su sombra), o null. */
+export function posBomba(pm) {
+  const b = BOMBAS.get(pm);
+  if (!b) return null;
+  return { x: b.x, z: b.z, alto: b.g0 + pm.y, suelo: Math.max(mundo.sueloH(b.x, b.z), 0) };
+}
 
 /** Avanza las bombas sobre el mapa. `vivas` = las que el pasillo todavia tiene; `m` = lo que avanzo el avion
  *  sobre el mapa este cuadro (la bomba avanza eso MAS lo que se corrio en el carril). Devuelve los impactos:
@@ -59,7 +65,8 @@ export const seguida = pm => BOMBAS.has(pm);
 export function paso(dt, vivas, m) {
   const out = [];
   for (const [pm, b] of BOMBAS) {
-    if (!vivas.has(pm)) { BOMBAS.delete(pm); continue; }
+    // (la que el pasillo ya saco: cayo al agua — se avisa donde, para el estallido 3D)
+    if (!vivas.has(pm)) { out.push({ pm, que: 'agua', x: b.x, z: b.z, alto: Math.max(mundo.sueloH(b.x, b.z), 0) }); BOMBAS.delete(pm); continue; }
     const adv = m + (pm.z - b.zp), lat = pm.x - b.xp;
     b.zp = pm.z; b.xp = pm.x;
     b.x += b.dx * adv - b.dz * lat; b.z += b.dz * adv + b.dx * lat;
@@ -70,11 +77,11 @@ export function paso(dt, vivas, m) {
       const lx = ex * c + ez * s, lz = -ex * s + ez * c;
       if (Math.abs(lx) <= MEDIO_X && Math.abs(lz) <= MEDIO_Z) {
         OBJ.vivo = false; OBJ.cayoT = 0;
-        out.push({ pm, que: 'blanco' }); BOMBAS.delete(pm); continue;
+        out.push({ pm, que: 'blanco', x: b.x, z: b.z, alto }); BOMBAS.delete(pm); continue;
       }
     }
     const suelo = mundo.sueloH(b.x, b.z);
-    if (suelo > 0.3 && alto <= suelo + 0.3) { out.push({ pm, que: 'tierra' }); BOMBAS.delete(pm); }
+    if (suelo > 0.3 && alto <= suelo + 0.3) { out.push({ pm, que: 'tierra', x: b.x, z: b.z, alto: suelo }); BOMBAS.delete(pm); }
   }
   if (!OBJ.vivo) OBJ.cayoT += dt;
   return out;

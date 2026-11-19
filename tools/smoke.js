@@ -15,6 +15,7 @@
 // requestAnimationFrame y el juego corre a una fraccion de la velocidad real; sin esto el test
 // da falsos negativos por timeout.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 

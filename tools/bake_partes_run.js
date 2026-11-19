@@ -7,6 +7,7 @@
 // src/render/partes.js. Si alguien agrega una pieza en el medio, el escombro pasa a ser otro y
 // esta salida es lo unico que lo delata antes de verlo en el juego.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 

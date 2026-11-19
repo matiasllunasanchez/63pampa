@@ -44,7 +44,8 @@ import * as islasCam from './islas/camara.js';
 import * as avion3d from './islas/avion3d.js';
 import * as proy3d from './islas/proyectiles3d.js';
 import * as objetivo3d from './islas/objetivo3d.js';
-import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo } from './islas/islas.js';
+import * as estallido3d from './islas/estallido3d.js';
+import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo, mira as islasMira, tomarEstallidos, avionMuerto } from './islas/islas.js';
 import { sueloH as islasSuelo, SUN as ISLAS_SOL } from './islas/mundo.js';
 
 const THREE = window.THREE || null;
@@ -249,8 +250,13 @@ export function frame(w) {
     else islasCam.frame(A3.cam, A, dtI, islasSuelo);
     avion3d.crear(A3.scene, ISLAS_SOL);
     // (en la vista pasillo vuela el SPRITE del pasillo: la malla queda para la vista de arriba)
-    avion3d.frame(A, !pas && islasCam.pesoCabina() < 0.5, res, w.avion, w.cargas, A3.cam);
-    proy3d.crear(A3.scene); proy3d.frame(islasProyectiles(), true);
+    avion3d.frame(A, !pas && islasCam.pesoCabina() < 0.5 && !avionMuerto(), res, w.avion, w.cargas, A3.cam);
+    // (la MIRA solo desde arriba: en las vistas del pasillo esta la del pasillo)
+    const arriba = !pas && islasCam.vista() === islasCam.ARRIBA;
+    proy3d.crear(A3.scene); const zh = islasCam.ZOOMS[islasCam.nivelZoom()];
+    proy3d.frame(islasProyectiles(), true, arriba ? islasMira(zh * 0.42) : null, zh / islasCam.ZOOMS[1]);
+    // LAS EXPLOSIONES EN 3D: en todas las camaras
+    estallido3d.crear(A3.scene); estallido3d.frame(tomarEstallidos(), dtI, (x, z) => Math.max(islasSuelo(x, z), 0));
     objetivo3d.frame(A3.scene, islasObjetivo());
     islas3d.frame(A3.cam, w, A, res);
     rr.render(A3.scene, A3.cam);
@@ -260,6 +266,7 @@ export function frame(w) {
   A3.sea.visible = true;
   avion3d.ver(false);
   proy3d.frame([], false);
+  estallido3d.apagar();
   if (A3.cam.fov !== CAM_FOV) { A3.cam.fov = CAM_FOV; A3.cam.updateProjectionMatrix(); }
 
   // buque de la mision (los otros, invisibles)

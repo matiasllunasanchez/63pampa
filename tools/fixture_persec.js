@@ -17,6 +17,7 @@
 //        que la banda pague, que la gracia avise antes de cobrar, y que el choque sea un choque.
 //        Lo de "tenso" se mira en la captura, como siempre en este repo.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

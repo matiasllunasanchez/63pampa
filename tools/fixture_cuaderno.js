@@ -18,6 +18,7 @@
 // No esta en `npm run check`: son quince escenas con sus tiempos reales. Se corre cuando se toca
 // el cuaderno o cuando se escribe una carta nueva — que es cuando la pregunta "¿entra?" se hace.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path'), fs = require('fs');
 const ROOT = path.join(__dirname, '..');
 const OUT = process.env.CUAD_SHOTS || '';

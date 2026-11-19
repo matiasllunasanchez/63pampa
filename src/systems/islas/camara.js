@@ -11,7 +11,13 @@ const THREE = window.THREE || null;
 export const ARRIBA = 0, ATRAS = 1, CABINA = 2;
 const DEG = Math.PI / 180;
 const CABECEO_ATRAS = 0.4;    // cuanto del cabeceo del avion acompaña la camara de atras
-const C = { vista: ATRAS, previa: ATRAS, mezcla: 1, sig: { yaw: 0, pitch: 0, roll: 0 }, iniciada: false };
+const C = { vista: ATRAS, previa: ATRAS, mezcla: 1, sig: { yaw: 0, pitch: 0, roll: 0 }, iniciada: false, zoom: 1, alto: 0 };
+// LOS TRES ZOOM DE LA VISTA DE ARRIBA (19/11, el autor: "un poco mas cerca… que la vista desde arriba tenga 3
+// niveles de zoom; el que esta ahora es el mas lejos"): metros de la camara sobre el avion. Arranca en el del medio.
+export const ZOOMS = [95, 145, 215];
+/** Acerca (-1) o aleja (+1) la vista de arriba. Devuelve el nivel (0 = el mas cerca). */
+export function zoom(dir) { C.zoom = Math.max(0, Math.min(ZOOMS.length - 1, C.zoom + dir)); return C.zoom; }
+export const nivelZoom = () => C.zoom;
 
 export const vista = () => C.vista;
 /** Cuanto pesa la cabina en el cuadro (0..1): el panel entra y sale deslizandose con esto. */
@@ -40,8 +46,12 @@ function base(f, roll) {
 function pose(v, A, sueloH) {
   const p = [A.pos.x, A.pos.y, A.pos.z];
   if (v === ARRIBA) {
-    const lead = 30;
-    return { p: [p[0] + Math.sin(A.yaw) * lead, p[1] + 215, p[2] - Math.cos(A.yaw) * lead], r: [1, 0, 0], u: [0, 0, -1], f: [0, -1, 0], fov: 58 };
+    // EL RUMBO ARRIBA (19/11, el autor: "que la mira este en frente y el avion dispare derecho"): antes era norte
+    // arriba (Dusk Patrol) y el avion apuntaba a cualquier lado de la pantalla; ahora la pantalla gira con el
+    // rumbo: el avion siempre apunta para arriba, la mira queda adelante y los tiros suben derecho. La camara va
+    // un poco adelantada (el avion abajo del centro, arriba del tablero: se ve lo que viene). La brujula del tablero dice el norte.
+    const h = C.alto || ZOOMS[C.zoom], lead = h * 0.12, sy = Math.sin(A.yaw), cy = Math.cos(A.yaw);
+    return { p: [p[0] + sy * lead, p[1] + h, p[2] - cy * lead], r: [cy, 0, sy], u: [sy, 0, -cy], f: [0, -1, 0], fov: 58 };
   }
   if (v === ATRAS) {
     // (Dusk Patrol acompaña el 85 % del cabeceo; con el gas del pasillo —bombear trepa fuerte— la camara
@@ -82,6 +92,8 @@ export function frame(cam, A, dt, sueloH) {
   C.sig.pitch += (A.pitch - C.sig.pitch) * Math.min(1, dt * 3.2);
   C.sig.roll += ((A.roll || 0) - C.sig.roll) * Math.min(1, dt * 2.5);
   C.mezcla = Math.min(1, C.mezcla + dt / 1.0);
+  // el zoom VIAJA (medio segundo), no salta
+  C.alto = C.alto ? C.alto + (ZOOMS[C.zoom] - C.alto) * Math.min(1, dt * 5) : ZOOMS[C.zoom];
   const s = C.mezcla * C.mezcla * (3 - 2 * C.mezcla);
   const B = pose(C.vista, A, sueloH);
   let P = B, q;

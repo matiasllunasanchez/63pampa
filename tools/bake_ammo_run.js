@@ -4,6 +4,7 @@
 // assets/ammo/: municion.png (6 vistas x 2 municiones, frames de 16x16) y aim9.png (el Sidewinder
 // de los Harrier: 10 vistas de cola a nariz, frames de 32x32).
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

@@ -15,6 +15,7 @@
 // que se manda la tecla y que vuelve la respuesta hay un ida y vuelta de IPC de ~20 ms, y con eso
 // solo se puede afirmar "el silencio duro lo que tenia que durar" con esa granularidad.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 const ROOT = path.join(__dirname, '..');

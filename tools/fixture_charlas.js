@@ -33,6 +33,7 @@
 //
 // Corre APARTE de `npm run check`, como caza / chancha / tramos.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const sleep = ms => new Promise(r => setTimeout(r, ms));

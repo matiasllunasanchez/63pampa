@@ -83,7 +83,24 @@ export function apuntar(personaje, cara, txt) {
   while (log.length > LOG_N) log.shift();
 }
 
+// LA COLA DEL DIALOGO CONGELADO (19/11, el autor: "los dialogos in game se pisan con los de pausa,
+// secuencialos"). Mientras el mundo esta quieto en una pausa de dialogo, la caja es de esa linea: lo
+// que pida hablar en ese rato (un golpe, la Chancha, Puma) NO la pisa — espera aca y sale cuando la
+// pausa se suelta, de a una. Dos como mucho: lo viejo de una cola larga ya no tiene sentido.
+const COLA_MAX = 2;
+const cola = [];
+let retenida = false;
+
+/** `on` = hay una pausa de dialogo en pantalla. Al soltarla sale lo que espero (si la caja quedo libre).
+ *  `vaciar` tira lo que esperaba (fin de corrida: lo de antes no puede hablar en la siguiente). */
+export function retener(on, vaciar) {
+  retenida = !!on;
+  if (vaciar) cola.length = 0;
+  if (!retenida && !radio.activa && cola.length) { const [r, c] = cola.shift(); decir(r, c); }
+}
+
 export function decir(raw, caraDe) {
+  if (retenida) { cola.push([raw, caraDe]); while (cola.length > COLA_MAX) cola.shift(); return; }
   const { personaje, txt } = partirHablante(raw);
   radio.personaje = personaje;
   radio.cara = personaje && caraDe ? caraDe(personaje) || null : null;
@@ -122,6 +139,7 @@ export function tickRadio(dt, congelada) {
   tickLog(dt);                     // el historial envejece SIEMPRE, hable alguien o no
   if (!radio.activa) {
     if (radio.ease > 0) radio.ease = Math.max(0, radio.ease - dt / SALIDA);
+    else if (cola.length && !retenida) { const [r, c] = cola.shift(); decir(r, c); }   // la que esperaba
     return;
   }
   radio.ease = Math.min(1, radio.ease + dt / 0.25);

@@ -17,6 +17,7 @@
 //   node/electron tools/simetriza_skins.js            (dry-run: mide y no escribe)
 //   APLICAR=1 electron tools/simetriza_skins.js       (escribe las hojas)
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path'), fs = require('fs');
 const ROOT = path.join(__dirname, '..');
 const FW = 84, FH = 84, NF = 9, ROWS = 3;

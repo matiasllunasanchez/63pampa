@@ -14,6 +14,7 @@
 //                                        pagina no hay fetch de JSON que sobreviva)
 // Los dos salen de la misma medicion, asi que no pueden divergir; `npm run unit` igual lo revisa.
 const { app, BrowserWindow } = require('electron');
+app.commandLine.appendSwitch('mute-audio');   // las herramientas corren SIN SONIDO (autor, 19/11)
 const path = require('path');
 const fs = require('fs');
 
