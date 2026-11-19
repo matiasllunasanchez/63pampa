@@ -130,7 +130,7 @@ import * as world from './render/world.js';
 import { drawMarco } from './render/marco.js';
 import * as soldierArt from './render/soldiers.js';
 import { theme, applyTheme } from './render/theme.js';
-import { misilCerca, setNivel, retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando } from './systems/audio.js';
+import { misilCerca, setNivel, currentTrackName, retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando } from './systems/audio.js';
 import { drawCarga, CARGA, CARGA_T } from './render/carga.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
@@ -912,7 +912,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // EL TUTORIAL: obstaculos que pasaron al costado en esta corrida (la condicion `pasa`) y la cuenta
     // para volver a su menu una vez dicho todo (ver stepTutorial)
     // `tutAterrizo`: las ruedas tocaron en la etapa 3 — el avion rueda hasta parar y el tutorial dice lo ultimo
-    let tutPasados = 0, tutRotos = 0, tutFinT = -1, tutSiembraT = 0, tutAterrizo = false, tutGolpes = 0, tutRoceT = 0;
+    let tutPasados = 0, tutRotos = 0, tutEsquivados = 0, tutFinT = -1, tutSiembraT = 0, tutAterrizo = false, tutGolpes = 0, tutRoceT = 0;
     let libroAvSel = 0;              // cursor de la pantalla ELEGI TU AVION ('libroavion')
 
     // ---------- EL BANCO DEL PICHON (mejoras de campaña, GUION_2 §2c) ----------
@@ -2233,12 +2233,33 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // Filas del menu principal de la pausa. GUARDAR solo tiene sentido en HISTORIA (el progreso
     // es la mision), asi que fuera de ese modo la fila directamente NO APARECE (pedido 9/8:
     // mostrarla deshabilitada solo agregaba una parada muerta al cursor).
+    // EL PARLANTE Y EL TEMA, FUERA DEL VUELO (19/11, el autor: "el parlante esta encima de otra UI… quitarlo dentro del
+    // juego, y que la musica se pueda mutear o cambiar en la PAUSA"): en vuelo y en la pausa la barra de arriba se
+    // esconde (styles.css, body.en-juego); en los menus sigue.
+    function barraEnJuego() { document.body.classList.toggle('en-juego', PAUSABLE() || paused || dlgPausa); }
+    let musicaAntes = 10;
+    const musicaOn = () => volSel.musica > 0;
+    function musicaToggle() {
+      if (musicaOn()) { musicaAntes = volSel.musica; volSel.musica = 0; } else volSel.musica = musicaAntes || 10;
+      setNivel('musica', volSel.musica / 10);
+      try { localStorage.setItem('rasante_vol_musica', JSON.stringify(volSel.musica)); } catch (e) { }
+      beep(musicaOn() ? 620 : 300, 0.06, 'square', 0.05);
+    }
     const pauseRows = () => [
       { id: 'resume', label: T('pauseResume') },
       ...(suelto() ? [{ id: 'cartas', label: T('pauseCartas') }] : []),   // VER CARTAS: solo PATRIA y CICLO
+      { id: 'opciones', label: T('optTitle') },
       { id: 'controls', label: T('pauseControls') },
       ...(gameMode === 'campaign' ? [{ id: 'save', label: T('pauseSaveRow') }] : []),
       { id: 'quit', label: T('pauseQuit'), quit: true },
+    ];
+    // OPCIONES de la pausa (19/11, el autor: "un menu llamado OPCIONES dentro de PAUSA y ahi adentro la musica
+    // y el tema"): prender o callar la musica, y cambiar de tema con ◄ ► donde se puede elegir
+    let opcSel = 0;
+    const opcRows = () => [
+      { id: 'musica', label: T('pauseMusica') + ':  ' + (musicaOn() ? T('optYes') : T('optNo')) },
+      ...(canPickMusic() && musicaOn() ? [{ id: 'pista', label: T('pausePista') + ':  ◄ ' + currentTrackName() + ' ►' }] : []),
+      { id: 'volver', label: T('menuBack') },
     ];
     // filas de la vista GUARDAR: el slot nuevo (si hay lugar) + los existentes para pisar
     const pauseSaveRows = () => (saves.canSaveNew() ? [{ id: null }] : []).concat(saves.listSaves());
@@ -2255,6 +2276,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     }
     function pauseNav(dir) {
       if (pauseView === 'menu') { const n = pauseRows().length; pauseSel = (pauseSel + dir + n) % n; }
+      else if (pauseView === 'opciones') { const n = opcRows().length; opcSel = Math.min(opcSel, n - 1); opcSel = (opcSel + dir + n) % n; }
       else if (pauseView === 'cartas') { cartasLeer = Math.max(0, Math.min(cartasLeerMax, cartasLeer + dir * 30)); return; }
       else if (pauseView === 'save') {
         const n = pauseSaveRows().length;
@@ -2265,6 +2287,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     /** Izquierda / derecha en la pausa: en VER CARTAS, pasar de carta (en el menu no hacen nada). */
     function pauseLado(dir) {
       if (pauseView === 'controls') { ctrlTabMover(dir); return; }
+      if (pauseView === 'opciones') { const r = opcRows()[opcSel]; if (r && r.id === 'musica') { musicaToggle(); return; } if (r && r.id === 'pista') { (dir < 0 ? prevTrack : nextTrack)(); beep(520, 0.05, 'square', 0.04); return; } }
       if (pauseView !== 'cartas' || cartasN < 2) return;
       const s2 = Math.max(0, Math.min(cartasN - 1, cartasSel + dir));
       if (s2 === cartasSel) return;
@@ -2272,11 +2295,19 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       beep(520, 0.05, 'square', 0.04);
     }
     function pauseConfirm() {
+      if (pauseView === 'opciones') {
+        const r0 = opcRows()[Math.min(opcSel, opcRows().length - 1)];
+        if (r0 && r0.id === 'musica') musicaToggle();
+        else if (r0 && r0.id === 'pista') { nextTrack(); beep(520, 0.05, 'square', 0.04); }
+        else { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); }
+        return;
+      }
       if (pauseView === 'controls' || pauseView === 'cartas') { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
       if (pauseView === 'save') { doSave(); return; }
       const r = pauseRows()[pauseSel];
       if (r.id === 'resume') pauseToggle();
       else if (r.id === 'controls') { pauseView = 'controls'; beep(600, 0.06, 'square', 0.05); }
+      else if (r.id === 'opciones') { pauseView = 'opciones'; opcSel = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'cartas') { pauseView = 'cartas'; cartasSel = 0; cartasCrece = 0; cartasLeer = cartasLeerV = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'save') { pauseView = 'save'; saveSel = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'quit') {
@@ -2374,8 +2405,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       campVista = vista;
       // con la campaña BLOQUEADA (la demo) la raiz arranca sobre el LIBRO DE VUELO: es lo que se juega
       if (!fila && vista === 'raiz' && CAMPANA_BLOQUEADA) fila = r => r.id === 'secLibro';
-      // el tutorial arranca sobre la primera etapa sin hacer
-      if (!fila && vista === 'tutorial') fila = r => r.id === 'tut' && !r.hecha && !r.disabled;
+      // al ENTRAR al tutorial, el cursor va SIEMPRE a la primera etapa (19/11, el autor: "apenas entramos al menu de
+      // tutorial, seleccionar el primer punto"). Al volver de una etapa se queda sobre la siguiente (volverAlLibro).
+      if (!fila && vista === 'tutorial') fila = r => r.id === 'tut' && r.k === 0;
       const rows = campRows(), i = fila ? rows.findIndex(fila) : -1;
       campSel = i >= 0 ? i : campFirstSel();
     }
@@ -3707,7 +3739,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       sembrarAzar(libro && libro.av !== null ? libroDef().id + '/' + libro.av : null);
       // …y LA RADIO DEL LIBRO (core/voz.js): lo que diria el elenco lo dice el numeral, con su apodo y su cara
       // EL TUTORIAL arranca sus pasos (systems/tutorial.js) con cada corrida
-      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null); tutPasados = 0; tutRotos = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false; tutGolpes = 0; tutRoceT = 0;
+      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null); tutPasados = 0; tutRotos = 0; tutEsquivados = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false; tutGolpes = 0; tutRoceT = 0;
       setVozLibro(libro && libro.av !== null && !libro.tut ? {
         numeral: () => (run.lives >= 2 ? squad.pilotName(detras(run)) : null),
         piloto: () => squad.pilotName(alMando(run)),
@@ -3843,7 +3875,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     const playerEl = document.getElementById('player');
     // LA MUSICA SE ELIGE SOLO EN POR LA PATRIA (9/10, el autor): en la campaña y en los demas modos suena
     // la que corresponde y [N]/[M] (L3/R3 fuera de vuelo) no hacen nada.
-    const canPickMusic = () => gameMode === 'survival'
+    // LA MUSICA SE CAMBIA EN TODO MENOS LA CAMPAÑA (19/11, el autor: tutorial, ciclo, por la patria y el libro de vuelo)
+    const canPickMusic = () => gameMode !== 'campaign' && gameMode !== 'arena' && gameMode !== 'pasadas'
       && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options'
       && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'pruebas' && S.state !== 'cines' && S.state !== 'misiones' && S.state !== 'saves' && S.state !== 'story'
       && S.state !== 'epilogue' && S.state !== 'dificultad';
@@ -5225,6 +5258,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       graciaGolpeT = run.t + sm.gracia;
       if (libro && libro.tut) tutGolpes++;   // (las estrellas del final del tutorial)
       dmgFX();
+      run.golpeCausa = cause; run.golpeN = (run.golpeN | 0) + 1;   // (el cartel de la caja de SALUD)
       const antes = run.integ;
       run.integ = Math.max(sm.piso, run.integ - sm.golpe);
       run.hurtT = 0.6;
@@ -5320,7 +5354,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       }
       for (const o of obstacles) {
         if (o.practica && !o._tutRoto && o.hp <= 0) { o._tutRoto = true; tutRotos++; }
-        if (!o._tutPaso && o.z < PZ - 3) { o._tutPaso = true; if (!(o.hp <= 0) && !o.practica) tutPasados++; }
+        if (!o._tutPaso && o.z < PZ - 3) {
+          o._tutPaso = true;
+          if (!(o.hp <= 0) && !o.practica) tutPasados++;
+          // ESQUIVADO: un blanco de practica que paso entero y lejos del avion (19/11, el RASANTE con globos)
+          else if (o.practica && !(o.hp <= 0) && (Math.abs(o.x - plane.x) > 2.8 || Math.abs((o.y || 0) - plane.y) > 3)) tutEsquivados++;
+        }
       }
       // LOS BLANCOS DE PRACTICA (`blancos` del paso): si no queda ninguno adelante, vuelven a salir —
       // errarle a todos no traba el paso
@@ -5333,10 +5372,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // (el mando rola con el stick derecho, que escribe rollAx y no rollL/rollR: cuenta igual — 18/11, "no puedo
         // pasar de rolar")
         inp: Object.assign({}, inp, { rollL: inp.rollL || inp.rollAx < -0.3, rollR: inp.rollR || inp.rollAx > 0.3 }),
-        pasados: tutPasados, rotos: tutRotos, overheat: !!run.overheat, enVuelo: S.state === 'play',
+        pasados: tutPasados, rotos: tutRotos, esquivados: tutEsquivados, overheat: !!run.overheat, enVuelo: S.state === 'play',
         mv: run.mv || null, bombasVuelo: pmissiles.filter(p => !p.tanque).length, climaxHecho: !!run.climaxHecho,
         faltan: objectiveDist > 0 ? (objectiveDist - run.dist) / objectiveDist : 1, aterrizando: S.state === 'landing', tren: landDown, aterrizo: tutAterrizo,
-        pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), chancha: chancha.enCurso() }, SCENES);
+        pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), chancha: chancha.enCurso(),
+        aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0 }, SCENES);
       if (!a) return;
       const decirLn = ln => ln && decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
       if (a.tipo === 'decir') {
@@ -5353,7 +5393,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // lo que el paso necesita listo para enseñarse sin hacer esperar: las barras llenas, el RASANTE puesto
         // (para verlo), la nafta baja (para que la Chancha tenga sentido)
         for (const b of a.paso.llena || []) { if (b === 'momentum') tempo.llenar(); else if (b === 'chancha') chancha.llenarBarra(); }
-        if (a.paso.muestra === 'rasante') rasante.cargar();
+        // los PODERES se prenden recien en el paso que los enseña (`poderes`): antes, volar bajo en la practica del
+        // cañon abria el RASANTE sin que nadie lo explicara
+        if (a.paso.poderes) cfg.poderes = true;
+        // el vidrio ya salado para enseñar a limpiarlo (sin el cartel de la primera vez: lo explican ellos)
+        if (a.paso.sal != null) { run.sal = Math.max(run.sal || 0, a.paso.sal); run.salAviso = true; }
         if (a.paso.nafta != null && cfg.fuelOn) run.fuel = Math.min(run.fuel, a.paso.nafta);
         // LA PAUSA GUIADA (`abre`): el juego abre la pausa sola, en CONTROLES y en la pestaña que se explica
         if (a.paso.abre) {
@@ -5374,8 +5418,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  rasante (el caza, en tu linea: viene de frente). */
     function sembrarBlancos(bl) {
       for (let k = 0; k < (bl.n || 1); k++) {
-        const x = bl.tipo === 'jet' ? plane.x : [-5, 4, -1, 6, -6][k % 5] * (bl.ancho || 1);
-        const y = bl.tipo === 'jet' ? Math.max(8, Math.min(16, plane.y)) : 9 + (k % 3) * 2;
+        // `linea`: en la linea del avion, apenas corridos (para ESQUIVAR, no para tirarles); `y`: a esa altura
+        const x = bl.tipo === 'jet' ? plane.x : bl.linea ? plane.x + [0, -2, 2][k % 3] : [-5, 4, -1, 6, -6][k % 5] * (bl.ancho || 1);
+        const y = bl.y != null ? bl.y : bl.tipo === 'jet' ? Math.max(8, Math.min(16, plane.y)) : 9 + (k % 3) * 2;
         sembrarPractica(bl.tipo, x, y, BOMBA_Z_TOPE + k * (bl.paso || 45), !!bl.mueve);
       }
     }
@@ -7643,7 +7688,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // PAUSA: overlay en nativas, encima de todo lo del mundo (el fade de historia va despues,
       // pero con el juego pausado nunca conviven)
       if (paused) menus.drawPause({
-        view: pauseView, sel: pauseSel, saveSel, rows: pauseRows(),
+        view: pauseView === 'opciones' ? 'menu' : pauseView, titulo: pauseView === 'opciones' ? T('optTitle') : null,
+        sel: pauseView === 'opciones' ? Math.min(opcSel, opcRows().length - 1) : pauseSel, saveSel, rows: pauseView === 'opciones' ? opcRows() : pauseRows(),
         cartas: pauseView === 'cartas' ? cartasDeLaCorrida() : null, lee: leeDe,
         cartasSel, cartasCrece: (cartasCrece = Math.min(1, cartasCrece + 0.12)), cartasLeer: (cartasLeerV += (cartasLeer - cartasLeerV) * 0.22),
         alto: (m, n) => { cartasLeerMax = m; cartasN = n; },
@@ -8122,6 +8168,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     if (typeof window !== 'undefined') window.__alto = y => { plane.y = y; plane.vy = 0; cam.y = y + 2.6; return y; };
     if (typeof window !== 'undefined') window.__pausedbg = () => JSON.stringify({
       paused, dlg: dlgPausa, dlgT: +dlgT.toFixed(2), view: pauseView, sel: pauseSel, saveSel, state: S.state, planeY: +plane.y.toFixed(1),
+      pausaFilas: (pauseView === 'opciones' ? opcRows() : pauseRows()).map(r => r.id),
       // EL CURSOR DE LOS MENUS, para que el smoke deje de navegar a ciegas. Agregar una fila al
       // selector principal corria los indices que tools/smoke.js apretaba de memoria y la prueba
       // entraba a OTRA pantalla, fallando mas abajo con un mensaje que no hablaba de menus. Paso
@@ -8853,7 +8900,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LA CONSIGNA DEL TUTORIAL (systems/tutorial.js): lo que hay que hacer ahora, con la cuenta debajo; cumplida,
       // en verde con BIEN un segundo antes de la que sigue
       { const tc = libro && libro.tut ? tutSys.consigna() : null;
-        const sub = !tc ? null : tc.hecho ? T('tutBien') : tc.prog == null ? null
+        // (sin cuenta, la TECLA del paso — teclado o joystick, segun lo conectado: 19/11, "el tutorial nunca dice con
+        // que tecla se tira el MOMENTUM")
+        const tecla = tc && tc.teclas && tc.teclas.length ? tc.teclas.map(id => padInfo.conectado ? padTexto(T('ctrl' + id + 'P')) : T('ctrl' + id + 'K')).join('   ') : null;
+        const sub = !tc ? null : tc.hecho ? T('tutBien') : tc.prog == null ? tecla
           : Math.floor(tc.prog) + ' / ' + tc.n;
         cartelSostenido('tut', !!tc && (S.state === 'play' || S.state === 'landing' || (S.state === 'takeoff' && !!carrera)) && !dlgPausa && !paused, tc ? T(tc.clave, { n: tc.n }) : '', tc && tc.hecho ? '#8fd16a' : P.accent, null, sub); }
       cartelSostenido('peligro', S.state === 'play' && run.scrapeVib > 0.6, T('scrape'), P.warn, { alerta: true, subCol: P.ink }, T('scrapeSub'));
@@ -8869,11 +8919,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (typeof window !== 'undefined' && window.__congelado) { draw(); requestAnimationFrame(frame); return; }
       if (paused && !PAUSABLE()) paused = false;
       if (dlgPausa && ((S.state !== 'play' && S.state !== 'landing' && !(S.state === 'takeoff' && carrera)) || (dlgT > 1 && !radioVis()))) { dlgPausa = false; lecFoco = null; }
-      pausarAudio(paused);   // la pausa calla todo: musica, ambiente, loops (systems/audio.js)
+      // …Y EL DIALOGO CONGELADO TAMBIEN (19/11, el autor: "mientras esta en pausa TODO, incluso la musica, debe pausarse"):
+      // el mundo quieto del tutorial y las lecciones calla musica y motor igual que la pausa; al seguir, retoma
+      pausarAudio(paused || dlgPausa, paused);   // la pausa calla todo; el dialogo calla los efectos pero deja la musica (systems/audio.js)
       if (paused) {
         pauseT += raw;
         draw(); updateMusic(S.state); musicaCapas();
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
+        barraEnJuego();
         requestAnimationFrame(frame);
         return;
       }
@@ -8894,6 +8947,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (dlgT > DLG_TOPE) dlgAceptar();   // salida de emergencia: sin foco, sin teclado, sin nada
         draw(); updateMusic(S.state); musicaCapas();
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
+        barraEnJuego();
         requestAnimationFrame(frame);
         return;
       }
@@ -8919,6 +8973,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         pasoCharla(raw);
         draw(); updateMusic(S.state); musicaCapas();
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
+        barraEnJuego();
         requestAnimationFrame(frame);
         return;
       }
@@ -9023,6 +9078,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (altHold !== null) { plane.y = altHold; plane.vy = 0; }
       draw(); updateMusic(S.state); musicaCapas();
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
+      barraEnJuego();
       requestAnimationFrame(frame);
     }
     // EL LOOP NO SE MUERE (9/10: "se termina tildando despues de terminar o perder algunos niveles").

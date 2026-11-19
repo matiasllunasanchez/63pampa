@@ -463,9 +463,16 @@ export function playaClase(x, wz, pl) {
 
 // ---------------------------------------------------------------- LO QUE VE, Y LO QUE MATA
 
+/** EL SUELO DE AFUERA (las islas reales, systems/islas/islas.js — prototipo I0). Cuando esta prendido,
+ *  el pasillo vuela sobre el mapa real: `tierra()` dice si hay tierra BAJO EL AVION, y la altura vale 0
+ *  porque en las islas `plane.y` se mide DESDE EL SUELO (el relieve le llega al avion por otro lado: el
+ *  suelo que sube se le come la altura). Lo prende el sistema de las islas; core no importa systems. */
+export const geoExterna = { on: false, tierra: () => false };
+
 /** ¿HAY TIERRA en este punto del mundo? La pregunta que decide si el avion roza agua o suelo, si
  *  la estela se dibuja, de que color salta el polvo. Sin geografia: la formula de siempre. */
 export function esTierraEn(x, wz) {
+  if (geoExterna.on) return geoExterna.tierra();
   if (geo.tramos === null) return cfg.terrain === 'land' || (cfg.terrain === 'coast' && x < shoreAt(wz));
   const r = tramoEn(wz);
   if (r && r.isla) return islaBorde(x, wz, r) >= 0;
@@ -485,6 +492,7 @@ export function esTierraEn(x, wz) {
  *  tramo de tierra ARRANCA PLANA en sus costuras (una playa con lomas no es una playa) y escala con
  *  `lomas`. La tierra de una costa sigue plana, como siempre fue. */
 export function alturaSuelo(x, wz) {
+  if (geoExterna.on) return 0;
   if (geo.tramos === null) return hayRelieve(cfg) ? tierraH(x, wz) : 0;
   const r = tramoEn(wz);
   if (r && r.isla) return islaAltura(x, wz, r);

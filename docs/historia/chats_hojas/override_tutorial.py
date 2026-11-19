@@ -19,12 +19,18 @@ HANG='''BACKGROUND - FROM NOW ON, IN THE HANGAR: behind him, inside an aircraft 
 the grey nose of an A-4 Skyhawk, tool racks, a hanging work lamp. Dark, simple, slightly
 blurred big pixel shapes, so the face reads first. The SAME background in every cell.'''
 HANG2='BACKGROUND: the same hangar as the previous strip.'
+def RADIO(extra=''):
+    return f'''BACKGROUND: the same flat mid-grey as the first strip.
+AT THE RADIO, ON THE GROUND: in EVERY cell he wears a 1970s ground radio headset{extra} -
+padded ear cups on a headband, a boom microphone curving in front of the mouth, the
+cable going down out of frame. He is talking to a pilot who is in the air.'''
 
 OVR={
 'pichon':[
  ('02','tutorial_1',GRIS,[('hablando','TALKING EAGERLY: mouth open mid-word, eyebrows up, leaning in a little.'),('explicando','EXPLAINING, EXCITED: mouth open, eyebrows high, eyes bright - he just understood something and wants to tell you.'),('escucha','LISTENING HARD: head tilted, eyes narrowed in concentration, mouth closed.'),('entendido','UNDERSTOOD: a quick firm nod, small proud smile, eyebrows up.'),('confundido','CONFUSED: one eyebrow up, one down, mouth twisted, head tilted.')]),
  ('03','tutorial_2',GRIS,[('pulgar','THUMBS UP: one thumb raised beside his face, a big grin.'),('saludo','MILITARY SALUTE: hand at the brow, chin up, trying very hard to look serious.'),('orgullo','PROUD LIKE A BOY: chin up, chest out, a grin he cannot hold back.'),('duda','DOUBT: eyebrows pinched, eyes to the side - he is the one who doubts, and he is right.'),('pensativo','THINKING: eyes up, lips pushed out.')]),
  ('04','miedo',GRIS,[('miedo','AFRAID: eyes huge with white showing, eyebrows up, mouth open.'),('panico','PANIC: mouth stretched open in a scream, eyebrows shot up, sweat flying.'),('llanto','CRYING: open face, tears streaming, mouth trembling.'),('llanto_alivio','CRYING WITH RELIEF: tears running, a broken smile.'),('sobresalto','STARTLED: head jerked back, eyes popping, mouth snapped open.')]),
+ ('05','radio',RADIO(),[('radio_neutro','ON THE RADIO: mouth open mid-word, eyebrows up, eager.'),('radio_sonrisa','CELEBRATING ON THE RADIO: a big open grin, eyebrows high - "exactly like the manual!"'),('radio_explicando','EXPLAINING ON THE RADIO, EXCITED: mouth open, eyes bright, one eyebrow higher.'),('radio_escucha','LISTENING HARD: head tilted, eyes narrowed in concentration, mouth closed.'),('radio_preocupado','WORRIED ON THE RADIO: eyebrows high and straight, eyes wide, mouth tight.')]),
  ('05','alegria',GRIS,[('risa','LAUGHING: mouth wide open, eyes shut, head tipped back.'),('euforia','EUPHORIC: shouting with joy, mouth wide open, eyes shut.'),('mandibula','JAW DROP: mouth hanging open, eyes huge and shining.'),('grito','SHOUTING: eyebrows down, mouth wide open - his voice cracking.'),('sorpresa','SURPRISED: eyebrows shot up, mouth a small round O.')]),
  ('06','verguenzas',GRIS,[('timido','SHY BLUSH: cheeks red, a small embarrassed smile, eyes down.'),('verguenza','ASHAMED: head down, cheeks red, eyebrows up in the middle.'),('aguanta_llanto','FIGHTING TEARS: chin trembling, lips pressed, trying to look like a man.'),('puchero','SULKING: bottom lip pushed out, eyebrows up in the middle.'),('incomodo','AWKWARD: eyes sliding sideways toward the camera, lips pressed to one side in a tight uneasy half-smile.')]),
  ('07','cuerpo',GRIS,[('agotado','EXHAUSTED: eyelids almost shut, dark circles, mouth slack.'),('frio','FREEZING: shoulders hunched, teeth chattering, red nose.'),('hambre','HUNGRY: eyes wide on something to eat, mouth open.'),('bostezo','YAWNING: mouth stretched wide open, eyes squeezed shut.'),('dolor','IN PAIN: eyes squeezed shut, teeth clenched.')]),
@@ -35,6 +41,7 @@ OVR={
  ('12','mascara',MASK,[('masc_concentrado','CONCENTRATING: eyes narrowed and fixed ahead.'),('masc_miedo','AFRAID: eyes huge with white showing, eyebrows up.'),('masc_enojo','ANGRY: eyebrows forced down hard.'),('masc_g','STRAINING UNDER G: eyes squeezed almost shut.'),('masc_panico','PANIC: eyes popping, eyebrows shot up.')]),
 ],
 'turco':[
+ ('02','radio',RADIO(' worn over his khaki cap'),[('radio_neutro','ON THE RADIO: unimpressed, mouth working under the moustache, eyebrows down.'),('radio_sonrisa','GRUFF APPROVAL ON THE RADIO: a crooked smile under the moustache, eyes gone warm - "there it is".'),('radio_ceno','SCOLDING ON THE RADIO: eyebrows crushed down, mouth open under the moustache - "listen, kid".'),('radio_explicando','EXPLAINING ON THE RADIO: one finger raised beside his face, mouth open mid-word.'),('radio_escucha','LISTENING, SKEPTICAL: head tilted back, one huge eyebrow down.')]),
  ('02','el_que_ensena',GRIS,[('orgullo','PRIDE: chin slightly up, eyes bright, a small closed satisfied smile under the moustache - everyone came back.'),('explicando','EXPLAINING: one finger raised beside his face, eyebrows up, mouth open mid-word, like a teacher.'),('hablando','TALKING GRUFFLY: mouth working under the moustache, eyebrows level.'),('entendiste','"DID YOU GET IT?": one huge eyebrow raised, chin forward, eyes fixed on you.'),('aprueba','APPROVING: a slow nod, lips pressed, eyes half closed - "good".')]),
  ('03','el_que_corrige',GRIS,[('niega','SHAKING HIS HEAD: eyes closed, mouth twisted - "no, no, no".'),('impaciente','IMPATIENT: eyes rolled up, a long breath out through the moustache.'),('senala','POINTING: one finger pointing off to the side, eyebrows down, mouth open - "look there".'),('pulgar','THUMBS UP: a thumb raised beside his face, a crooked smile under the moustache.'),('escucha','LISTENING, SKEPTICAL: head tilted back, eyes narrowed, one eyebrow down.')]),
  ('04','las_fuertes',GRIS,[('furia','FURY: shouting, eyebrows crushed down, the moustache bristling.'),('carcajada','A RARE BELLY LAUGH: eyes shut, mouth wide open under the moustache, head back.'),('miedo','AFRAID: the bulging eyes huge, eyebrows up, mouth open.'),('shock','IN SHOCK: the bulging eyes wide and fixed, mouth open under the moustache.'),('sobresalto','STARTLED: head jerked back, eyes popping.')]),
@@ -64,4 +71,4 @@ def aplicar(PJ):
     for d in PJ:
         k=d['key']
         if k in OVR:
-            d['packs']=[(n,nom,(CAB(CASCOS[k]) if bg=='CAB' else bg),c) for n,nom,bg,c in OVR[k]]
+            d['packs']=[(f'{i+2:02d}',nom,(CAB(CASCOS[k]) if bg=='CAB' else bg),c) for i,(n,nom,bg,c) in enumerate(OVR[k])]

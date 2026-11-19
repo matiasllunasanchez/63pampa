@@ -28,6 +28,8 @@ import * as world3D from '../systems/three-arena.js';
 import { AR } from '../data/arena.js';
 import { turnGain } from '../core/aero.js';
 import { shown as dmgShown } from '../systems/damage.js';
+// LAS ISLAS REALES (prototipo I0): su cabina y su HUD son los de Dusk Patrol con nuestros indicadores
+import { drawIslas } from './islas_cabina.js';
 
 // DONDE APUNTA ESTE MODO, en Y de pantalla. En 1a persona la mira cae donde apunta el morro, o
 // sea el centro (H/2 = 135). No es un offset del PNG: la cabina se acomoda SOLA para que su visor
@@ -176,6 +178,19 @@ function drawThreats(A) {
 
 export function drawArena(w) {
   const { arena: A, zones, objectiveShip, parts, popups, selPlane } = w;
+
+  // EN LAS ISLAS no va nada del overlay del ring (zonas, sprite, cabina PNG, mira, tablero): va el de
+  // Dusk Patrol entero, y encima los carteles (el nombre del lugar)
+  if (A.islas) {
+    drawIslas(w, world3D.project);
+    ctx.textAlign = 'center';
+    for (const p of popups) {
+      ctx.font = p.big ? 'bold 10px monospace' : '7px monospace';
+      ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillText(p.txt, p.x, p.y);
+    }
+    ctx.globalAlpha = 1;
+    return;
+  }
 
   // ---- zonas: corchetes + etiqueta + HP (vivas); humo (muertas) ----
   for (const z of zones) {

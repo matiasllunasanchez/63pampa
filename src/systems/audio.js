@@ -421,7 +421,7 @@ export function updateMusic(state) {
   // EL ARRANQUE DEL FICHIN retiene la musica hasta que entra la ficha (ver `retenerMusica`)
   // ...y EN PAUSA tampoco suena nada (autor, 16/10: ver pausarAudio)
   // ...y LA TARJETA DE MISION va sin musica (autor, 16/10): solo el zumbido y las teclas (ver zumbido)
-  if (musicaRetenida || enTarjeta || enPausa) { for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (!m.paused) m.pause(); return; }
+  if (musicaRetenida || enTarjeta || musPausa) { for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (!m.paused) m.pause(); return; }
   const want = state === 'story' ? musStory : inLobby(state) ? musLobby : gm;
   for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (m !== want && !m.paused) m.pause();
   if (musicStarted && want.paused && (want !== musStory || MUSIC_STORY)) {
@@ -461,7 +461,7 @@ let capasOn = false;
 export function capasSonando(v) { capasOn = !!v; }
 export function contextoAudio() { return ctxAudio(); }
 export function volumenMusicaJuego() {
-  if (muted || musicaRetenida || enTarjeta || enPausa || inLobby(lastState)) return 0;
+  if (muted || musicaRetenida || enTarjeta || musPausa || inLobby(lastState)) return 0;
   return (rasOn ? RAS_MUS : lastState === 'momentum' ? 0.07 : 0.22) * (duckT > 0 ? 0.45 : 1) * busGain('musica');
 }
 function startMusicOnce(state) { if (musicStarted || muted || musicaRetenida) return; musicStarted = true; updateMusic(state || 'modeselect'); }
@@ -570,11 +570,15 @@ function postcombustion(dt, on) {
 // la lluvia, el agua) quedaban sonando con el ultimo volumen que tenian. Ahora la pausa calla TODO: la
 // musica (updateMusic lee `enPausa`), los loops, la zona de radar y los one-shots que esten sonando. Al
 // volver, los loops y la musica retoman solos en el cuadro siguiente; los one-shots no (eran un instante).
-let enPausa = false;
-/** Lo pide game.js en cada cuadro con el estado de la pausa. Idempotente. */
-export function pausarAudio(v) {
-  v = !!v;
-  if (v === enPausa) return;
+let enPausa = false, musPausa = false;
+/** Lo pide game.js en cada cuadro con el estado de la pausa. Idempotente.
+ *  `musica`: si tambien se calla la musica. La pausa real la calla; el dialogo que congela el juego
+ *  (tutorial, consignas) calla solo los efectos y deja seguir la musica (autor, 19/11). */
+export function pausarAudio(v, musica = v) {
+  v = !!v; musica = !!musica && v;
+  const cambioMus = musica !== musPausa;
+  musPausa = musica;
+  if (v === enPausa) { if (cambioMus) updateMusic(lastState); return; }
   enPausa = v;
   if (v) {
     for (const k of SFX_LOOP_KEYS) { const a = sfxLoopA[k]; if (a && !a.paused) a.pause(); }
@@ -940,7 +944,7 @@ export function setTrack(i) {
 function saltarMision() {
   if (!sortearMision()) return;
   syncPlayerBtn();
-  if (musicStarted && !muted) musMision.play().catch(() => { });
+  if (musicStarted && !muted && !musPausa) musMision.play().catch(() => { });   // (en la pausa suena al seguir)
 }
 export function nextTrack() { if (enMision) return saltarMision(); setTrack(trackIdx + 1); }
 export function prevTrack() { if (enMision) return saltarMision(); setTrack(trackIdx - 1); }

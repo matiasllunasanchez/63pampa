@@ -1516,25 +1516,28 @@ const hablaYo = (yo, nombre) => !!(yo && nombre && sinTilde(nombre) === sinTilde
 
 /** Mi caja, al lado de mi cara. `o` = { filas, font, paso, typed (o null: todo), ease 0..1, barra }. */
 function drawVozPropia(yo, o) {
-  const x0 = yo.x + yo.lado + VOZ.aire, y = yo.y, h = yo.alto || yo.lado;
+  // (19/11: la cara bajo a la fila de los relojes) LA CAJA SALE PARA ARRIBA, DE ATRAS DE LA CARA: a su derecha ahora
+  // estan los relojes, y la voz no puede taparlos
+  const h = yo.alto || yo.lado, x0 = yo.x, y = yo.y - VOZ.aire - h;
   ctx.font = o.font;
   let anchoTxt = 20;
   for (const f of o.filas) anchoTxt = Math.max(anchoTxt, ctx.measureText(f).width);
   const w = Math.min(W - VOZ.margen - x0, Math.ceil(anchoTxt) + PROPIA_PAD * 2);
   const e = 1 - Math.pow(1 - Math.max(0, Math.min(1, o.ease)), 3);     // entra rapido, frena al llegar
-  const bx = x0 + Math.round(-(1 - e) * (w + VOZ.aire));
+  const by = y + Math.round((1 - e) * (h + VOZ.aire));
   ctx.save();
-  ctx.beginPath(); ctx.rect(yo.x + yo.lado, y - 1, W, h + 2); ctx.clip();   // sale DE ATRAS de la cara
-  ctx.globalAlpha = 0.94; ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, y, w, h);
-  ctx.globalAlpha = 0.75; ctx.strokeStyle = P.accent; ctx.strokeRect(bx + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.beginPath(); ctx.rect(0, 0, W, yo.y); ctx.clip();   // sale DE ATRAS de la cara
+  const bx = x0;
+  ctx.globalAlpha = 0.94; ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, w, h);
+  ctx.globalAlpha = 0.75; ctx.strokeStyle = P.accent; ctx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
   ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.fillStyle = P.ink;
-  const n = o.filas.length, ty0 = y + Math.round((h - n * o.paso) / 2) + o.paso - 1;
+  const n = o.filas.length, ty0 = by + Math.round((h - n * o.paso) / 2) + o.paso - 1;
   let left = o.typed == null ? Infinity : o.typed;
   for (let i = 0; i < n && left > 0; i++) {
     ctx.fillText(o.filas[i].slice(0, left), bx + PROPIA_PAD, ty0 + i * o.paso);
     left -= o.filas[i].length + 1;                    // +1: el espacio que se comio el wrap
   }
-  if (o.barra > 0) px(bx + 1, y + h - 2, (w - 2) * o.barra, 1, P.accent);
+  if (o.barra > 0) px(bx + 1, by + h - 2, (w - 2) * o.barra, 1, P.accent);
   ctx.restore();
   subeTecho(y);
 }
@@ -1632,7 +1635,9 @@ function dibujarOtro(v, k, yo) {
   const caraX = Math.round(W - VOZ.margen - CHV_CARA + (1 - eCara) * (CHV_CARA + VOZ.margen));
   const bx = Math.round(caraX - VOZ.aire - tw + (1 - eTxt) * tw);
   // a la altura de mi cara; y si mi voz de radio esta en esa banda, esta sube arriba de la mia
-  const base = yo ? yo.y : HUD_TINTA - VOZ.aire - alto;
+  // (19/11, el autor: "los dialogos arriba de la UI"): la cara bajo a la fila, asi que la caja ya no va a su altura
+  // sino ARRIBA del tablero, como la mia
+  const base = Math.min(yo ? yo.y : Infinity, HUD_TINTA) - VOZ.aire - alto;
   const y = propiaRadio && yo ? base - 2 - alto : base;
   subeTecho(y);
   ctx.save();

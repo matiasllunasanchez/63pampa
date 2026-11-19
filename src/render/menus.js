@@ -17,7 +17,7 @@ import { fmtDate } from '../systems/saves.js';
 import { iconoDe, ICONO_FW, ICONO_COLS, ICONOS } from '../data/iconos_cartas.js';
 import { capacidadesDe } from '../data/perfiles.js';
 import { CTRL_CATEGORIAS } from '../data/controles.js';
-import { MOVES, COMBO } from '../data/moves.js';
+import { MOVES, COMBO, COMBO_PAD } from '../data/moves.js';
 
 // ELECCION DE AVION — la pantalla previa de CICLO DE MUERTE y POR LA PATRIA. Usa los MISMOS
 // roles tipograficos que el lobby (logotipo / rotulo / nombre / texto corrido), para que las dos
@@ -1261,6 +1261,18 @@ function teclaCaja(txt, xDer, y, on) {
   ctx.fillText(txt, x + 4, y);
   return w;
 }
+/** Los iconitos de la pestaña PIRUETAS: un teclado y un joystick, de 8x5, en el acento apagado. */
+function iconoTeclado(x, y) {
+  ctx.fillStyle = '#7d8f95'; ctx.fillRect(x, y, 8, 5);
+  ctx.fillStyle = '#0b1013';
+  for (let i = 0; i < 3; i++) ctx.fillRect(x + 1 + i * 2.2, y + 1, 1.2, 1);
+  ctx.fillRect(x + 2, y + 3, 4, 1);
+}
+function iconoJoy(x, y) {
+  ctx.fillStyle = '#7d8f95';
+  ctx.fillRect(x + 1, y + 1, 7, 3); ctx.fillRect(x, y + 2, 9, 3);
+  ctx.fillStyle = '#0b1013'; ctx.fillRect(x + 2, y + 2, 1, 1); ctx.fillRect(x + 6, y + 2, 1, 1);
+}
 /** Una fila de alternativas ('X · ESPACIO · K') como teclas, alineadas a la derecha en `xDer`. */
 function teclas(txt, xDer, y) {
   if (!txt || txt === '—') { ctx.textAlign = 'right'; ctx.fillStyle = '#4a565c'; ctx.font = labelFont(8); ctx.fillText('—', xDer, y); return; }
@@ -1295,15 +1307,29 @@ export function drawControles(w) {
   let yFin;
   if (cat.piruetas) {
     // DOS COLUMNAS de piruetas: el nombre y, debajo, como se pide
-    const ids = Object.keys(MOVES), mitad = Math.ceil(ids.length / 2), colW = (NW - 2 * xa) / 2, rh = 15;
+    // COMO PODERES DE PELEA (19/11, el autor: "las piruetas inmediatamente al lado del texto, en negrita y mas
+    // espaciado, casi como poderes de Mortal Kombat, con icono de teclado y de joystick, y si son iguales, juntos"):
+    // el nombre y, al lado, el combo en negrita con su icono. Teclado y joystick se piden casi siempre igual (las
+    // flechas son la mano derecha en los dos): entonces van los dos iconos juntos; si no, una linea por cada uno.
+    const sinPar = t => String(t || '—').replace(/\s*\([^)]*\)/g, '');
+    const ids = Object.keys(MOVES), mitad = Math.ceil(ids.length / 2), colW = (NW - 2 * xa) / 2, rh = 16;
     ids.forEach((id, i) => {
-      const c = i < mitad ? 0 : 1, f = i % mitad, x0 = xa + c * colW, y = 74 + f * rh;
-      ctx.textAlign = 'left'; ctx.fillStyle = P.body; ctx.font = menuFont(9);
-      ctx.fillText(MOVES[id].name, x0, y);
-      ctx.fillStyle = P.accent; ctx.globalAlpha = 0.9; ctx.font = labelFont(8);
-      ctx.fillText(COMBO[id] || '—', x0 + 8, y + 7.5); ctx.globalAlpha = 1;
+      const c = i < mitad ? 0 : 1, f = i % mitad, x0 = xa + c * colW, y = 70 + f * rh;
+      ctx.textAlign = 'left'; ctx.fillStyle = P.foam; ctx.font = menuFont(8);
+      ctx.fillText(MOVES[id].name, x0, y, 74);                      // (los nombres largos se aprietan: no tapan el combo)
+      const xc = x0 + 80, kb = sinPar(COMBO[id]), pad = COMBO_PAD[id] ? sinPar(COMBO_PAD[id]) : null;
+      if (!pad) {
+        iconoTeclado(xc, y - 5); iconoJoy(xc + 10, y - 5);
+        ctx.font = 'bold ' + labelFont(8); ctx.fillStyle = P.accent; ctx.fillText(kb, xc + 22, y);
+      } else {
+        // distintos: el de teclado en la linea del nombre y el del joystick apretado debajo, dentro de la fila
+        iconoTeclado(xc, y - 5);
+        ctx.font = 'bold ' + labelFont(7); ctx.fillStyle = P.accent; ctx.fillText(kb, xc + 12, y - 0.5);
+        iconoJoy(xc, y + 1.5);
+        ctx.font = 'bold ' + labelFont(6.5); ctx.fillStyle = P.accent; ctx.fillText(pad, xc + 12, y + 6);
+      }
     });
-    yFin = 74 + mitad * rh + 2;
+    yFin = 70 + mitad * rh + 2;
   } else {
     ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(7);
     ctx.fillText(T('ctrlColAccion'), xa, 78);
@@ -1679,7 +1705,7 @@ export function drawPause(w) {
   }
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(24);
-  ctx.fillText(T('pauseTitle'), NW / 2, 56);
+  ctx.fillText(w.titulo || T('pauseTitle'), NW / 2, 56);
 
   if (w.view === 'controls') { drawControles({ tab: w.ctrlTab | 0, padTxt: w.padTxt, velo: false }); return; }
 

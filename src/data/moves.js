@@ -192,6 +192,14 @@ export const COMBO = {
   cobra: '[G] · ⟳↑↓↑', mortal: '[G] → ↑↓ · ⟳↑↑↓', cobrainv: '[G]+S · ⟳↓↓↑',
   derrape: '[Q]+[D] y [E]+[A] · [E]+[A] y [Q]+[D]',
 };
+/** EL MISMO COMBO EN EL JOYSTICK, solo donde no es igual al teclado (19/11): las flechas son la mano derecha
+ *  en los dos —las flechas del teclado y el stick derecho—, asi que casi todas se piden igual. Las que usan
+ *  letras (Q/E/S/A/D) o el freno [G] (en el joystick, la cruceta ◄) van aca. */
+export const COMBO_PAD = {
+  spin: 'der← izq↓ der→ · der→ izq↓ der←',
+  cobra: '[◄] · ⟳↑↓↑', mortal: '[◄] → ↑↓ · ⟳↑↑↓', cobrainv: '[◄]+izq↓ · ⟳↓↓↑',
+  derrape: 'der←+izq→ y der→+izq← · der→+izq← y der←+izq→',
+};
 
 /** Las filas del menu MANIOBRAS: la pirueta, con que se pide y que hace.
  *

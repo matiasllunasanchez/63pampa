@@ -89,6 +89,10 @@ const ETAPA1 = [
   // (solo OLAS y pocas: sin pajaros ni nada mas, 18/11 — "no tantos enemigos, y menos en la primera etapa")
   { dice: 'TUT1_OLAS', obstacles: 0.9,
     sigue: [{ pasa: 6, consigna: 'tutC_pasa' }], remate: 'TUT1_OLAS_OK' },
+  // LA SAL EN EL PARABRISAS (19/11, el autor: "explicar la mecanica del vidrio empañado con sal, y que para mejorarlo
+  // tiene que subir un poco"): el paso arranca con el vidrio salado (`sal`) y se limpia subiendo (systems/salitre.js)
+  { dice: 'TUT1_SAL', foco: ['alt'], teclas: ['Gas'], sal: 0.45,
+    sigue: [{ salBajo: 0.2, consigna: 'tutC_sal' }], remate: 'TUT1_SAL_OK' },
   { dice: 'TUT1_TURBO', foco: ['vel'], teclas: ['Boost'],
     sigue: [{ usa: ['turbo'], consigna: 'tutC_turbo' }], remate: 'TUT1_TURBO_OK' },
   // LA PAUSA GUIADA: el juego abre la pausa en CONTROLES, y para seguir hay que cerrarla
@@ -111,7 +115,18 @@ const ETAPA2 = [
     sigue: [{ rompe: 1, consigna: 'tutC_harrier' }], remate: 'TUT2_HARRIER_OK' },
   // LOS PODERES (18/11, el autor: "falta explicar rasante, falta explicar momentum"): el RASANTE se muestra
   // prendiendolo (aparece solo, por la racha de vuelo bajo) y el MOMENTUM se usa, con la barra ya llena
-  { dice: 'TUT2_RASANTE', muestra: 'rasante', remate: 'TUT2_RASANTE_OK' },
+  // (19/11, el autor: "me carga el poder de una, eso no sirve; tiene que enseñarme como funciona: como pegarle, que es
+  // la barrita, cuando aparece, como mantenerla" y "mientras va rasante tiene que haber obstaculos para esquivar"):
+  // se gana de verdad, en cuatro pasos — PERFECTO 4 s, la barrita (acertar el azul), soltarlo, y esquivar con el poder
+  // (todo se explica ANTES de bajar: con el estado abierto, cada linea congelaba el juego y lo cortaba. Despues, las
+  // tres consignas seguidas: entrar, acertar el azul, soltarlo)
+  { dice: 'TUT2_RASANTE', foco: ['alt'], teclas: ['Gas', 'Dive'], poderes: true,
+    sigue: [{ aguante: true, consigna: 'tutC_perfecto' }, { aciertos: 4, consigna: 'tutC_aciertos' },
+      { rasante: true, consigna: 'tutC_soltaRas' }], remate: 'TUT2_RASANTE_OK' },
+  // (las olas se atraviesan con el RASANTE y los pajaros vuelan mas alto: lo que se esquiva al ras son GLOBOS bajos,
+  // en tu linea)
+  { dice: 'TUT2_RAS_ESQUIVA', teclas: ['Fly'], blancos: { tipo: 'balloon', n: 3, linea: true, y: 2.6, paso: 70 },
+    sigue: [{ esquiva: 3, consigna: 'tutC_esquiva' }], remate: 'TUT2_RAS_ESQUIVA_OK' },
   { dice: 'TUT2_MOMENTUM', teclas: ['Tempo'], llena: ['momentum'],
     sigue: [{ momentum: true, consigna: 'tutC_momentum' }], remate: 'TUT2_MOMENTUM_OK' },
   { dice: 'TUT2_DANO', foco: ['salud', 'nafta'] },
@@ -155,7 +170,7 @@ export const TUTORIAL_ETAPAS = [
   // (las etapas 2 y 3 todavia son el tramo vacio de la fase 1: sus pasos llegan en las fases 4 y 5)
   { ...base, id: 'tut2', etapa: 2, name: 'PELEAR',
     desc: { es: 'El cañón, el calor y un Harrier de práctica.', en: 'The cannon, the heat and a practice Harrier.' },
-    cfg: P({ sky: 'clear', terrain: 'sea', poderes: true }), pasos: ETAPA2,
+    cfg: P({ sky: 'clear', terrain: 'sea' }), pasos: ETAPA2,   // (los poderes los prende el paso del RASANTE)
     consejos: { es: ['Ráfagas cortas: el cañón caliente se traba.', 'Ponete en la línea del blanco antes de tirar.', 'Lo que sigue: ETAPA 3 · LA PASADA Y LA VUELTA.'],
       en: ['Short bursts: a hot cannon jams.', 'Line up with the target before you fire.', 'Next up: STAGE 3 · THE PASS AND THE WAY HOME.'] } },
   { ...base, id: 'tut3', etapa: 3, name: 'LA PASADA Y LA VUELTA',
@@ -207,6 +222,11 @@ const LISTA = [
     T(PICHON, 'pichon_neutro', 'Ahora bajito, pegado al agua. Así se vuela acá: al ras.'),
     T(TURCO, 'turco_neutro', 'Pero sin tocarla, que el mar te come entero. Gas de a toques.')),
   escena('TUT1_RASANTE_OK', T(TURCO, 'turco_sonrisa', 'Así se vuela, changuito. Como si el agua te debiera plata.')),
+  escena('TUT1_SAL',
+    T(TURCO, 'turco_neutro', 'Mirá el vidrio. Volando pegado al agua se te llena de sal y cada vez ves menos.'),
+    T(PICHON, 'pichon_neutro', 'Para limpiarlo, subí un poco: arriba de veinte metros el viento lo va limpiando.'),
+    T(TURCO, 'turco_ceno', 'En una misión de verdad, allá arriba te ve el radar. Subís, limpiás y volvés a bajar.')),
+  escena('TUT1_SAL_OK', T(PICHON, 'pichon_sonrisa', 'Ahí está. Ahora sí se ve algo.')),
   escena('TUT1_TABLERO',
     T(TURCO, 'turco_neutro', 'Ahora el tablero. En el medio, lo que cambia rápido: velocidad, horizonte, altura y gas.'),
     T(PICHON, 'pichon_neutro', 'Lo demás se mira de reojo. Si algo se prende, es porque hay que mirarlo.'),
@@ -254,9 +274,14 @@ const LISTA = [
     T(PICHON, 'pichon_neutro', 'Viene de frente y muy rápido. Ponete en su línea y disparale antes de que te pase.')),
   escena('TUT2_HARRIER_OK', T(PICHON, 'pichon_sonrisa', '¡Abajo! Y eso que venía a ochocientos.')),
   escena('TUT2_RASANTE',
-    T(PICHON, 'pichon_sonrisa', '¿Viste eso? Cuando volás pegado al agua un buen rato, te concentrás y entrás en RASANTE.'),
-    T(TURCO, 'turco_neutro', 'El avión se clava al ras solito y aguanta más. Disfrutalo, que se termina.')),
-  escena('TUT2_RASANTE_OK', T(PICHON, 'pichon_neutro', 'Cuanto más pegado volás, más te dura.')),
+    T(PICHON, 'pichon_sonrisa', 'Ahora el RASANTE. Bajá hasta que arriba del avión diga PERFECTO y aguantá cuatro segundos sin tocar el agua.'),
+    T(TURCO, 'turco_neutro', 'Ahí aparece una barrita: un pedazo azul y una aguja que va y viene. Dale un toque de gas cuando pasa por el azul.'),
+    T(PICHON, 'pichon_neutro', 'Cada toque bueno es un segundo de poder y vuelve a llenar la raya naranja de abajo. Tocar afuera la quema.'),
+    T(TURCO, 'turco_neutro', 'Después lo soltás: picá, o mantené el gas un segundo. Si se vacía la raya, sale solo.')),
+  escena('TUT2_RASANTE_OK', T(PICHON, 'pichon_sonrisa', '¡Eso es RASANTE! El avión se queda al ras solo. Dura lo que juntaste: mirá la barra azul.')),
+  escena('TUT2_RAS_ESQUIVA',
+    T(TURCO, 'turco_neutro', 'Las olas chicas las cruzás, pero no te hace inmortal: ahí vienen unos globos al ras. Esquivalos.')),
+  escena('TUT2_RAS_ESQUIVA_OK', T(TURCO, 'turco_neutro', 'Bien. Más aciertos, más rasante. Ese es el negocio.')),
   escena('TUT2_MOMENTUM',
     T(TURCO, 'turco_neutro', 'Ahora el MOMENTUM: el tiempo se pone lento y te deja pensar. Esa barra ya está llena.'),
     T(PICHON, 'pichon_neutro', 'Se llena volando bien. Guardalo para cuando se complica.')),

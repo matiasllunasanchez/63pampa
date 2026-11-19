@@ -213,8 +213,14 @@ Las que están en `LIBRO_PROXIMAS` y pasan **sobre tierra**, donde el pasillo pi
 - **El mareo a 480×270** sigue sin medir (el ARENA lo dejó pendiente). Dusk Patrol se ve bien a 340
   px de alto, así que es esperable que ande, pero hay que jugarlo.
 - **Rendimiento**: el CDLOD de whitepass es liviano y el DEM pesa entre 1 y 3,5 MB. En Electron no es
-  problema. El *ray march* de Dusk Patrol es más caro y no se mezcla con las mallas de three.js: por
-  eso se trae **su look, no su motor**.
+  problema. **Corrección (19/11):** el *ray march* de Dusk Patrol **sí se puede traer entero**. Calcula
+  la profundidad con la misma proyección que las mallas y la escribe (`gl_FragDepth`), así que en
+  three.js entra como una pasada de pantalla completa (`ShaderMaterial` en GLSL3) dibujada antes que
+  los aviones, buques y soldados, que quedan bien tapados por los cerros. A 480×270 se dibujan menos
+  píxeles que en Dusk Patrol (~340 px de alto), así que el costo es menor. Lo que hay que mirar: de
+  cerca, con el helicóptero en hover a 2 m, el detalle procedural (tile de 10 m) podría no aguantar
+  tan bien como la malla de 25 m de whitepass; y el cálculo de altura en CPU (`groundH`) tiene que dar
+  lo mismo que el shader, como ya pasa en Dusk Patrol.
 - **El refactor**: todo esto va en módulos nuevos (`systems/islas/…`, `render/islas.js`,
   `data/islas_*.js`) y **no le suma líneas a `game.js`**. La fase entra por el registro de fases, no
   con otro `S.state ===`.
@@ -230,17 +236,82 @@ probar si se siente bien.
 
 | Etapa | Qué | Cuándo se da por buena |
 |---|---|---|
-| **I0 · Prototipo descartable** | DEM + CDLOD de whitepass adentro del renderer de three.js de RASANTE, a 480×270, con la paleta y el dither; un A-4B con el vuelo del ARENA + *pull-up*; techo de nubes. Sin enemigos. Detrás de una sonda (`?islas`) | el autor vuela el estrecho y dice "esto sí" |
+| **I0 · Prototipo descartable** | **adentro de RASANTE desde el primer día** (se entra desde su menú, con su avión, sus controles, su cabina, su HUD y su paleta); nunca "Dusk Patrol con un A-4B adentro", que se sentiría otro juego. Por debajo, el terreno de Dusk Patrol (*ray march*, su shader tal cual) como pasada de fondo del renderer de three.js de RASANTE, a 480×270; el CDLOD de whitepass solo si el *ray march* no aguanta de cerca; un A-4B con el vuelo del ARENA + *pull-up*; techo de nubes. Sin enemigos. Detrás de una sonda (`?islas`) | el autor vuela el estrecho y dice "esto sí" |
 | **I1 · El look** | luz en escalones, estratocúmulos con sombra, rompiente, aguanieve, nieve en lo alto, nombre del lugar en el radar, minimapa | capturas en los lugares reales (estrecho, Usborne, Puerto Argentino, Lafonia, San Carlos) |
 | **I2 · VUELO LIBRE** | datos del conflicto por fecha (verificados), AA y tropas que disparan, radar arriba de las nubes, multiplicador rasante, placas para encontrar, aterrizar en pista propia | entra a JUEGO RÁPIDO |
 | **I3 · S-11 Colgado del patín** | UH-1H en GLB, vuelo de helicóptero, péndulo medido en Node, búsqueda, patrulla de Harriers, tarjetas | entra al LIBRO DE VUELO |
 | **I4 · El PASILLO con mapa real** | geografía derivada de rutas reales + siluetas de los cerros en el horizonte | `npm run feel` idéntico |
 | **I5 · Más salidas** | S-09, S-07/S-14, S-13 | una por una |
 
+### I0 — hecho el 19/11 (prototipo), rehecho el mismo día a pedido del autor
+
+**Decisiones del autor (19/11), que corrigen la §7.b para las islas:**
+- *"Se ve horrible: ¿por qué no se ve TAL CUAL el otro juego, con el avión cambiado nada más?"* → el
+  mundo es **Dusk Patrol tal cual**: su shader, sus colores y su pasada final de paleta con dither. No se
+  recolorea con la turba de RASANTE.
+- *"Los dos juegos no tienen colisión con nada, eso tiene que estar"* → **el terreno mata**
+  (`death_land`), sin tirón automático. Avisan la lámpara y el HUD: ARRIBA.
+- *"La cabina del otro juego está mejor, usemos esa con nuestros indicadores"* → **la cabina y el HUD
+  son los de Dusk Patrol**, en km/h y metros y en castellano, con nuestros indicadores: nafta,
+  calor del cañón, misiles (Z), reparto de energía, escuadrón y turbo.
+- *"Las vistas primera persona, tercera y desde arriba me encantan"* → **las tres vistas de Dusk Patrol**
+  con su viaje de cámara de ~1 s. Se cambian con la tecla de vista del arena ([V]).
+- *"La misma lógica que el avioncito de Dusk Patrol, pero con los nuestros desde Blender"* → **el A-4B
+  como malla low-poly** (1.530 triángulos, pintura horneada a un color por cara) dibujado como el caza de
+  Dusk Patrol: tres tonos, contorno oscuro y la misma paleta.
+
+**Cómo se entra:** menú **PRUEBAS → LAS ISLAS · PROTOTIPO**. Por consola: `__malvinas()` prende,
+`__malvinas(false)` apaga, `__malvinas('?')` informa y `__malvinas({ lon, lat, alt, rumbo })` lleva el
+avión a un lugar.
+
+| Archivo | Qué hace |
+|---|---|
+| `src/data/islas_dem.js` | el mapa de alturas real (1,25 MB, generado por Dusk Patrol) |
+| `src/data/mallas/sky.json` | el A-4B low-poly (lo genera `tools/blender/exportar_malla.py`) |
+| `src/systems/islas/mundo.js` | decodifica y arma relieve fino, nubes, sombras y bioma en workers (0,5 s); altura del suelo en CPU |
+| `src/systems/islas/terreno3d.js` | el shader del mundo de Dusk Patrol y su paleta |
+| `src/systems/islas/avion3d.js` | el avión 3D al estilo Dusk Patrol |
+| `src/systems/islas/camara.js` | las tres vistas y la transición |
+| `src/systems/islas/islas.js` | la fase: arranque, correa del borde, choque, lugares, el snapshot de la cabina, la sonda |
+| `src/render/islas_cabina.js` | cabina, HUD, radar y aguanieve de Dusk Patrol con nuestros indicadores |
+| `systems/arena.js`, `systems/three-arena.js`, `render/arena.js` | los enganches (solo actúan con las islas prendidas) |
+
+Para exportar otro avión: `Blender --background --factory-startup --python tools/blender/exportar_malla.py -- --modelo <clave> --out src/data/mallas/<clave>.json --max-tris 1500`.
+
+**Pendiente:**
+- el avión 3D es siempre el A-4B (falta exportar los demás y elegir según el avión de la salida);
+- falta medir el vuelo bajo entre cerros jugándolo: si morir contra el terreno es justo con la vista
+  de atrás;
+- los nombres TEAL INLET y PUERTO YAPEYU, a verificar;
+- el bundle pesa 1,4 MB más aunque no se entre a las islas (se puede cargar aparte más adelante).
+
 **D (la ruta real en el contexto y en "lo que pasó")** se puede hacer en cualquier momento después
 de I1.
 
 ---
+
+## 7.b La regla que manda: un solo juego *(autor, 19/11)*
+
+> *"Lo que importa es que el juego se sienta parte de un todo y se sienta el mismo juego y no
+> juegos diferentes; después si los módulos usan cosas distintas no importa mucho."*
+
+El motor de cada fase es libre (three.js, el *ray march* de Dusk Patrol, lo que ande mejor). Lo que
+**no** es libre es lo que el jugador toca, ve y oye. La fase de las islas usa, sin excepción, lo de
+RASANTE:
+
+| Capa | Qué se usa | Qué se descarta de los otros juegos |
+|---|---|---|
+| Aviones y helicópteros | los modelos horneados de RASANTE, con sus perfiles, cargas y fallas | el caza y el helicóptero ficticios |
+| Manejo | los mismos controles y tiempos del PASILLO (la lección del ARENA, 27/7: cuando el vuelo libre tuvo su propio manejo se sintió tosco; cuando copió las constantes del pasillo, mejoró) | el mouse de Dusk Patrol, W/S/A/D/Q/E de whitepass |
+| Paleta y terminación | la paleta Atlántico Sur, el acento `#e8a33d` y el duotono de RASANTE. Del clima y de la luz de Dusk Patrol se toma **cómo** se ve (nubes, bruma, aguanieve, luz en escalones), recoloreado con los tonos de RASANTE | la paleta propia de Dusk Patrol |
+| Cabina y HUD | las cabinas de autor y el HUD de relojes (intencional) | el panel y el HUD de Dusk Patrol, la barra de ayudas en inglés |
+| Reglas | multiplicador rasante, escuadrón y relevo, eyección, derribo por causa, fichas al morir | "nada es blanco" |
+| Enemigos | Rapier, manpad, Harriers con Sidewinder, Sea Dart: los mismos de siempre | — |
+| Pantallas | menú, tarjetas de contexto y de "lo que pasó", placas, fichas, tipografía | títulos y textos de ellos |
+| Sonido y música | los de RASANTE | su sonido sintetizado |
+
+**Prueba de fuego para cada etapa:** una captura de la fase de las islas al lado de una del PASILLO
+tiene que leerse como el mismo juego.
 
 ## 8. Lo que tiene que decidir el autor
 

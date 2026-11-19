@@ -50,7 +50,7 @@ app.whenReady().then(async () => {
   if (d.fila.id === 'tut' && d.fila.k === 0) ok('el cursor arranca en la etapa 1'); else bad('el cursor arranca en ' + JSON.stringify(d.fila));
 
   // LAS ETAPAS, con teclas: el piloto automatico (ver `volar`) — cada una con los pasos que tiene que ver
-  const ETAPAS = [{ k: 0, pasos: 12, nombre: 'la etapa 1 (despegar y volar)' }, { k: 1, pasos: 9, nombre: 'la etapa 2 (pelear)' },
+  const ETAPAS = [{ k: 0, pasos: 13, nombre: 'la etapa 1 (despegar y volar)' }, { k: 1, pasos: 10, nombre: 'la etapa 2 (pelear)' },
     { k: 2, pasos: 9, nombre: 'la etapa 3 (la pasada y la vuelta)' }];
   // TUT_DESDE=<k>: vuela solo desde esa etapa (para iterar sobre una; en DEV estan todas abiertas)
   const DESDE = +process.env.TUT_DESDE || 0;
@@ -142,12 +142,38 @@ async function volar(k) {
       } else { if (s.alt < 9) await sostener('alt', 'W'); else if (s.alt > 14) await sostener('alt', null); }
       await sleep(60); continue;
     }
+    // EL RASANTE (19/11): PERFECTO a 3–5 m; en el estado, un toque de gas cuando la aguja cruza el medio del azul;
+    // y soltarlo picando
+    if (clave === 'tutC_perfecto') {
+      await sostener('lado', null); await sostener('fuego', null);
+      if (process.env.TUT_AGU && Date.now() - (volar.aguT || 0) > 400) { volar.aguT = Date.now(); console.log('   perf ' + await js('String(window.__agudbg())') + ' alt ' + s.alt); }
+      await sostener('alt', s.alt < 3.6 && (Date.now() % 260) < 110 ? 'W' : null); await sleep(30); continue;
+    }
+    if (clave === 'tutC_aciertos') {
+      await sostener('lado', null); await sostener('fuego', null);
+      const g = JSON.parse(await js('String(window.__agudbg())'));
+      if (process.env.TUT_AGU && Date.now() - (volar.aguT || 0) > 250) { volar.aguT = Date.now(); console.log('   agu ' + JSON.stringify(g) + ' alt ' + s.alt + ' st ' + s.st); }
+      if (!g.on) { await sostener('alt', s.alt < 3.6 && (Date.now() % 260) < 110 ? 'W' : null); await sleep(30); continue; }
+      await sostener('alt', null);
+      if (g.armado && g.pos > g.sec + g.w * 0.2 && g.pos < g.sec + g.w * 0.8) { key('W', true); await sleep(35); key('W', false); await sleep(60); }
+      else await sleep(8);
+      continue;
+    }
+    if (clave === 'tutC_esquiva') {
+      // al costado de los globos (vienen en tu linea): lejos de la x del mas cercano
+      await sostener('fuego', null);
+      const g = s.blanco; const dx = g ? g.x - s.x : 0;
+      await sostener('lado', g && Math.abs(dx) < 4 ? (dx > 0 ? 'A' : 'D') : null);
+      await sostener('alt', s.alt < 2.5 ? 'W' : null); await sleep(40); continue;
+    }
+    if (clave === 'tutC_soltaRas') { await sostener('alt', null); await tap('S', 400); await sleep(100); continue; }
     if (clave === 'tutC_secTanque') await tap('1', 300);
     if (clave === 'tutC_secBomba') await tap('2', 300);
     if (clave === 'tutC_momentum') await tap('4', 400);
     if (clave === 'tutC_chancha') await tap('J', 400);
     if (clave === 'tutC_tonel') { await sostener('lado', null); await tap('Left', 70); await tap('Left', 70); await tap('Left', 600); }
-    if (clave === 'tutC_subi' || clave === 'tutC_radarSube') await sostener('alt', 'W');
+    if (clave === 'tutC_sal') await sostener('alt', s.alt < 26 ? 'W' : null);
+    else if (clave === 'tutC_subi' || clave === 'tutC_radarSube') await sostener('alt', 'W');
     else if (clave === 'tutC_baja' || clave === 'tutC_radarBaja') await sostener('alt', 'S');
     else if (b && clave) {
       // A UN BLANCO: a su costado y a su altura, y fuego cuando esta en la linea

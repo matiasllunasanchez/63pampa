@@ -743,7 +743,9 @@ export function initInput(cv, a) {
       // ademas el eje ya no se guarda. Se deja la llamada por si el gancho vuelve a usarse.
       // △ EN VUELO = EL PODER RASANTE, como la [5] (18/11): el boton no hacia nada (throttleInvert esta vacio) y
       // el rasante era de las ultimas acciones solo de teclado. El eje Y se invierte en OPCIONES.
-      if (hit(3) && S.state === 'play') a.rasanteToggle();
+      // (19/11, el autor: "el momentum NO PUEDE ser select" — y △ no hacia nada: RASANTE ya no se lanza a mano, lo
+      // dispara la racha, y la tecla solo lo corta). △ = MOMENTUM; el corte de RASANTE pasa a SELECT.
+      if (hit(3) && S.state === 'play') a.tempoToggle();
       // (◯ ya no es la media vuelta del arena: el 3D vuela con los controles del pasillo, y la media
       // vuelta sale con el combo del SPLIT-S, ↑↓↓ — con los sticks, igual que en el teclado)
       // CRUCETA ARRIBA = EL PODER DEL RECURSO DEL MODO: reparto de energia en el arena, LA CHANCHA
@@ -756,7 +758,7 @@ export function initInput(cv, a) {
       // SELECT / BACK / VIEW = MOMENTUM (camara lenta). Era la ultima accion del juego que solo
       // existia en el teclado: se podia jugar TODO con el mando menos bajar el tiempo, que es un
       // poder y no un ajuste. Es el unico boton que estaba libre.
-      if (hit(8)) a.tempoToggle();
+      if (hit(8) && S.state === 'play') a.rasanteToggle();
       // CRUCETA ABAJO = CAMARA (lo mismo que [V]). Era la ultima direccion de la cruceta sin dueño
       // en juego, y hacia falta: en el ARENA y en la PASADA esa tecla conmuta CABINA ↔ TERCERA
       // PERSONA en vivo, y con el mando no habia forma de cambiar de vista.
@@ -765,7 +767,9 @@ export function initInput(cv, a) {
       // L3 (CLIC DEL STICK IZQUIERDO) = SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5), solo en vuelo. L3 era
       // la pista anterior en todas las pantallas (arriba): en 'play' cede, porque el mando no tiene
       // otro boton libre y es la mano que vuela — soltar es una decision de vuelo.
-      if (hit(10) && S.state === 'play') a.soltarTanques();
+      // (19/11, el autor: "no entiendo por que L3 lanzo algo si no estaba seleccionado… cualquier arma secundaria se
+      // lanza igual que una bomba"): L3 YA NO SUELTA LOS TANQUES. Todo secundario sale de la misma forma: se elige
+      // con ▲ y se lanza con R3 (o L1), sea bomba, tanques o chafitas.
       // ◯ = LAS CHAPITAS en vuelo (8/10). Era el unico boton sin dueño en 'play' (en los menus y la
       // pausa sigue siendo volver: esas pantallas lo leen antes y no llegan aca).
       if (hit(1) && S.state === 'play') a.chapitas();
@@ -801,7 +805,8 @@ export function initInput(cv, a) {
       // sostenerlo tiene que valer una sola suelta, como una tecla que no repite.
       if (S.state === 'pulso' && (hit(4) || hit(2))) a.pulsoTap('Z');
       // ◯ (B) = EL FRENO en el 3D (lo leen ARENA y PASADA; 18/11: L2 paso a ser el gas). En el pasillo ◯ son las chafitas.
-      setPad('brake', S.state === 'arena' || S.state === 'pasada' ? (down(1) ? 1 : 0) : 0);
+      // …y EN EL PASILLO, la cruceta ◄ (19/11): las piruetas de freno —cobra, mortal— lo piden, y ◄ quedo libre
+      setPad('brake', S.state === 'arena' || S.state === 'pasada' ? (down(1) ? 1 : 0) : enPasillo && down(14) ? 1 : 0);
 
       // ---- STICK DERECHO ----
       // X = GIRO LIBRE DEL HORIZONTE (lo que en teclado son [Q]/[E]).

@@ -32,6 +32,13 @@
 export const PRUEBAS = [
   { head: 'prSecMision' },
   {
+    id: 'islas', titulo: 'LAS ISLAS · PROTOTIPO', desc: 'Vuelo libre sobre las Malvinas reales, desde el estrecho de San Carlos',
+    // PROTOTIPO I0 (19/11, docs/proyecto/ANALISIS_ISLAS_REALES.md): el vuelo, la cabina y el HUD del
+    // ARENA sobre el mapa real con el terreno de Dusk Patrol. Sin enemigos: es para medir si se siente.
+    // La sonda __malvinas deja prendido el mapa para la proxima entrada al arena.
+    setup: a => { a.sonda('malvinas', true); a.arena('m4'); },
+  },
+  {
     id: 'idayvuelta', titulo: 'IDA Y VUELTA', desc: 'Todas las etapas de un nivel, corta, con el blanco al final · ~4 min',
     // (13/11, el autor: "una mision basica de prueba corta con un objetivo al final, con todas las etapas de
     // un nivel de campaña") t17: despegue, ida, Chancha, descenso, rasante, blanco, escape y vuelta, con 6 km
@@ -212,11 +219,12 @@ export const PRUEBAS = [
   { head: 'prSecViejas' },
   {
     id: 'arena', titulo: 'EL ARENA', desc: 'Vuelo libre alrededor del buque · HMS ARDENT',
-    setup: a => a.arena('m4'),
+    // apaga LAS ISLAS por si se vino de ahi: las dos entradas comparten el arena
+    setup: a => { a.sonda('malvinas', false); a.arena('m4'); },
   },
   {
     id: 'arenaBurbuja', titulo: 'ARENA · DEFENSA CERCANA', desc: 'Adentro de la burbuja, con todo el fuego encima',
-    setup: a => { a.arena('m4'); a.luego(1.5, g => g.sonda('aset', 190, 70, 0, 0)); },
+    setup: a => { a.sonda('malvinas', false); a.arena('m4'); a.luego(1.5, g => g.sonda('aset', 190, 70, 0, 0)); },
   },
   {
     id: 'pulso', titulo: 'EL PULSO', desc: 'El QTE de destreza y su cinematica',

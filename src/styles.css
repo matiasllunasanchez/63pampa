@@ -543,6 +543,8 @@
     background: radial-gradient(circle at 35% 35%, #8a949c, #3a4248 60%, #1a1e22);
     box-shadow: 0 1px 1px rgba(0, 0, 0, .8);
   }
+  /* EN VUELO Y EN LA PAUSA, sin la barra (19/11): tapaba el HUD; la musica se maneja desde la pausa */
+  body.en-juego .barra { display: none; }
   .barra::before { left: 6px; }
   .barra::after { right: 6px; }
   body.arranque-negro .barra,

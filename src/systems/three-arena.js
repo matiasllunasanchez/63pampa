@@ -37,6 +37,13 @@ import * as aves3d from './aves3d.js';
 import * as tierra3d from './tierra3d.js';
 import { forward } from '../core/aero.js';   // la camara de atras: el rumbo con MEDIO cabeceo (AR.CAM_PITCH_K)
 import { AR } from '../data/arena.js';   // LOOK_MAX: cuanto inclina la camara el mirar (controles del pasillo)
+// LAS ISLAS REALES (prototipo I0, docs/proyecto/ANALISIS_ISLAS_REALES.md): cuando la sonda __malvinas las
+// prende, el mundo de la escena deja de ser el ring sobre el mar y pasa a ser el mapa real.
+import { activa as islasActiva } from './islas/islas.js';
+import * as islas3d from './islas/terreno3d.js';
+import * as islasCam from './islas/camara.js';
+import * as avion3d from './islas/avion3d.js';
+import { sueloH as islasSuelo, SUN as ISLAS_SOL } from './islas/mundo.js';
 
 const THREE = window.THREE || null;
 
@@ -210,6 +217,37 @@ export function frame(w) {
 
   const A = w.arena, px = A.pos.x, py = A.pos.y, pz = A.pos.z;
 
+  // LAS ISLAS: el terreno real hace de cielo, mar y tierra a la vez (es una sola pasada que pinta
+  // todo el fondo), asi que el domo, el sol, el mar, la alfombra, la bruma y la bahia se apagan.
+  // La camara ve mas lejos: la niebla del terreno cierra a 14 km.
+  const enIslas = islasActiva() && !!islas3d.crear(A3.scene);
+  islas3d.ver(enIslas);
+  const far = enIslas ? 16000 : DOME_R * 2.2;
+  if (A3.cam.far !== far) { A3.cam.far = far; A3.cam.updateProjectionMatrix(); }
+  A3.dome.visible = A3.sun.visible = !enIslas;
+  if (enIslas) {
+    for (const k in A3.ships) A3.ships[k].visible = false;
+    A3.sea.visible = false; A3.dots.visible = false;
+    if (A3.agua) agua3d.ver(A3.agua, false);
+    bruma3d.frame(A3.bruma, px, py, pz, false);
+    aves3d.frame(A3.aves, w.t || 0, px, py, pz, false);
+    if (A3.tierra) A3.tierra.visible = false;
+    // LAS TRES VISTAS de Dusk Patrol (systems/islas/camara.js) y EL AVION EN 3D, que se ve desde arriba y
+    // desde atras (en la cabina, no: estas adentro)
+    const dtI = Math.max(0, Math.min(0.05, w.t - (A3.lastTI || w.t))); A3.lastTI = w.t;
+    islasCam.frame(A3.cam, A, dtI, islasSuelo);
+    avion3d.crear(A3.scene, ISLAS_SOL);
+    avion3d.frame(A, islasCam.pesoCabina() < 0.5, { x: AW, y: AH });
+    if (A.islas) A.islas.camP = [A3.cam.position.x, A3.cam.position.y, A3.cam.position.z];
+    islas3d.frame(A3.cam, w, A, { x: AW, y: AH });
+    r.render(A3.scene, A3.cam);
+    A3.on = true;
+    return true;
+  }
+  A3.sea.visible = true;
+  avion3d.ver(false);
+  if (A3.cam.fov !== CAM_FOV) { A3.cam.fov = CAM_FOV; A3.cam.updateProjectionMatrix(); }
+
   // buque de la mision (los otros, invisibles)
   const cls = SHIP_CLASS[w.objectiveShip] || 't42';
   for (const k in A3.ships) A3.ships[k].visible = k === cls;
@@ -308,6 +346,17 @@ export function frame(w) {
     p.needsUpdate = true; c.needsUpdate = true;
   }
 
+  camara(w, A, px, py, pz);
+  A3.sun.quaternion.copy(A3.cam.quaternion);   // billboard: el sol siempre de frente
+
+  r.render(A3.scene, A3.cam);
+  A3.on = true;
+  return true;
+}
+
+/** LA CAMARA del avion (1a persona clavada al morro, 3a con resorte). La comparten el arena de
+ *  siempre y las islas. */
+function camara(w, A, px, py, pz) {
   // CAMARA. En 1a persona va CLAVADA al morro (es tu cabeza: la rigidez ahi es natural) y rola
   // entera con el avion. En 3a va detras y arriba CON RESORTE: perseguir la posicion objetivo
   // con retardo es lo que absorbe cada sacudon del avion — la camara rigida era la mitad de lo
@@ -339,11 +388,6 @@ export function frame(w) {
     A3.cam.rotateZ(-A.roll);
     mirarCam(A);
   }
-  A3.sun.quaternion.copy(A3.cam.quaternion);   // billboard: el sol siempre de frente
-
-  r.render(A3.scene, A3.cam);
-  A3.on = true;
-  return true;
 }
 
 /** MIRAR ARRIBA / ABAJO (los controles del pasillo en 3D, core/aero.js `mirar`): la camara se

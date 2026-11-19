@@ -8,7 +8,7 @@
 // objectiveDist, objectiveShip, goalKind) vive en game.js y entra por parametro, igual que las
 // otras pantallas (render/screens.js, render/menus.js).
 
-import { ctx, px, DW as W, DH as H, PZ, U, SC, avisoFont, uiFont } from './ctx.js';
+import { ctx, px, DW as W, DH as H, PZ, U, SC, avisoFont, uiFont, labelFont } from './ctx.js';
 import { enCabina } from '../core/cabina.js';
 import { CABINA_ANCLAS } from '../data/cabina_anclas.js';
 import { cartelesAhora } from '../core/cartel.js';
@@ -312,6 +312,8 @@ export function drawLanding(d) {
 
 /** `dsp` = el `despegue` de la mision ({ desde, rumbo }), o null fuera de una mision — ahi queda el
  *  cartel generico de siempre. Un rumbo vacio no se escribe: la placa se achica a un renglon. */
+const DSP_DURA = 4, DSP_FUNDE = 0.8;   // el renglon del despegue jugable: cuanto se lee y cuanto tarda en irse
+let dspT0 = 0, dspUlt = -9;
 export function drawTakeoff(toT, dsp, auto = 0, suelto = false, sinCuenta) {
   ctx.textAlign = 'center';
   // los modos sueltos no salen de una base real ni van a un blanco dicho (18/10, el autor: "eso es mentira,
@@ -322,7 +324,26 @@ export function drawTakeoff(toT, dsp, auto = 0, suelto = false, sinCuenta) {
   // placa oscura detras del encabezado: cae sobre el amanecer y sin esto no se lee
   // (en el DESPEGUE JUGABLE el encabezado baja al medio, donde iba la cuenta que ahi no hay: arriba van los carteles —la
   // consigna del tutorial— y lo tapaba. 19/11, el autor: "el cartel de despegue tapa el cartel de arriba")
-  const dy = sinCuenta ? 44 : 0;
+  // EN EL DESPEGUE JUGABLE: un solo renglon chico, abajo sobre la pista y arriba del tablero, con una placa
+  // del ancho del texto (19/11, el autor: "medio al pedo... tapa todo el avion"). Sin franja ni rumbo.
+  if (sinCuenta && !enAuto) {
+    // (19/11, el autor: "y que no quede siempre"): se lee unos segundos al empezar la carrera y se va
+    const ahora = performance.now() / 1000;
+    if (ahora - dspUlt > 0.5) dspT0 = ahora;   // una carrera nueva (no se dibujo hace rato): arranca de cero
+    dspUlt = ahora;
+    const a = Math.max(0, Math.min(1, (DSP_DURA + DSP_FUNDE - (ahora - dspT0)) / DSP_FUNDE));
+    if (a <= 0) return;
+    ctx.save(); ctx.globalAlpha = a;
+    const txt = rumbo ? titulo + ' · ' + rumbo : titulo, y = HUD_TECHO - 16;
+    // (19/11, el autor: "del mismo ancho que la barra de objetivo"): la placa va a lo largo de la cinta de arriba
+    const c = cajaCinta, x0 = c ? c.x : 8, w = c ? c.w : W - 16;
+    ctx.font = '6px monospace';
+    ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(x0, y - 6, w, 9);
+    ctx.fillStyle = '#9fb3c0'; ctx.fillText(txt, x0 + w / 2, y + 1, w - 6);
+    ctx.restore();
+    return;
+  }
+  const dy = 0;
   if (!enAuto) {
     ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17 + dy, W, rumbo ? 23 : 13);
     ctx.fillStyle = P.ink; ctx.font = '7px monospace';
@@ -647,7 +668,11 @@ const RELOJ_Y = 15;                  // la placa del reloj del rasante: 15..25
 const CUADRO = 26, CUADROS_Y = H - MARGEN - CUADRO;
 /** El x del cuadrado `i` de la fila, contando desde el margen izquierdo. Los cuatro de la izquierda
  *  salian de cuentas sueltas y el piloto y la nafta quedaron pisandose un pixel. */
-const COL = i => MARGEN + i * (CUADRO + AIRE);
+// (19/11, el autor: "correr todos los cuadrados y dejar al piloto al mismo nivel inferior que el resto"): LA CARA
+// BAJO A LA FILA, en la esquina, y los cuadrados empiezan despues de ella. Arriba de cada caja queda el lugar
+// para los carteles que salen de atras (drawAvisosCaja). PIL_W = PILOTO.lado (que se declara mas abajo).
+const PIL_W = 26;
+const COL = i => MARGEN + PIL_W + AIRE + i * (CUADRO + AIRE);
 // LOS RELOJES DEL VUELO (ver drawHUD): hasta donde llega cada escala, y el ancho del estante de
 // misiles que les hizo lugar.
 const SALTO_COL = '#ffd479';        // LA SUELTA: la altura que hay que saltar para pasar el buque
@@ -687,7 +712,8 @@ const X_CARGA = W - MARGEN - (2 * CUADRO + RACK_W + 2 * AIRE);  // el grupo que 
 const X_CHANCHA = X_CARGA, X_CANON = X_CARGA + (CUADRO + AIRE), X_RACK = X_CANON + (CUADRO + AIRE);
 // (corrido 6 a la izquierda, 15/10, el autor: "corre un poco los elementos del medio a la izquierda" — para que
 // el radar propio entre en el hueco de la derecha, entre el vuelo y lo que se carga)
-const X_VUELO = Math.round((COL(2) + CUADRO + X_CARGA - (4 * CUADRO + 3 * AIRE)) / 2) - 6;
+// (19/11: centrado en el hueco, sin el corrimiento del radar propio — el radar subio arriba del grupo de la derecha)
+const X_VUELO = Math.round((COL(2) + CUADRO + X_CARGA - (4 * CUADRO + 3 * AIRE)) / 2);
 const FIN_VUELO = X_VUELO + 4 * CUADRO + 3 * AIRE;
 const xVuelo = i => X_VUELO + i * (CUADRO + AIRE);              // VELOCIDAD, horizonte, ALTITUD, GAS
 
@@ -1542,6 +1568,8 @@ function relojCanonFila(x, y, metralla) {
 // `alto` (27/9, autor): la caja crece hacia abajo para llevar el NOMBRE DEL PILOTO bajo la cara —
 // arriba, en la placa del escuadron, va el nombre pintado del avion—. El ancho sigue siendo `lado`.
 const PILOTO = { lado: 26, cara: 22, alto: 32 };
+/** El canto de arriba de la cara: apoyada en el piso de la fila, como los cuadrados (19/11). */
+const PIL_Y = () => CUADROS_Y + CUADRO - PILOTO.alto;
 let gesto = 'neutro', gestoT = 0, ultPts = 0, sonrisaT = 0, ultT = -1, precargada = null;
 // EL GOLPE, con reloj PROPIO. `run.hurtT` parecia servir ("fogonazo rojo en el HUD") pero nada en el
 // juego lo baja ni lo lee: damage.js lo pone en 0,6 y queda ahi para siempre. Apoyarse en el dejaba
@@ -1584,10 +1612,85 @@ function carasDe(nombre, delAvion) {
 }
 
 /** Dibuja la cara y devuelve el x donde sigue el tablero (sin cara: el mismo x, no queda hueco). */
+// LOS CARTELES DE CAJA (19/11, el autor: "los cuadraditos tienen que largar un texto que aparezca desde atras, con
+// el mismo mensaje que muestra arriba — BAJA ALTURA en rojo, con la aguja titilando y los bordes de la caja tambien";
+// "cuando recalienta, desde abajo de la cosa del cañon aparece SOBRECALENTADO"; "la VIDA puede informar igual:
+// ONDA EXPANSIVA me daño, los pajaros"). Una lengueta con el texto que SUBE desde atras del canto de la caja, se
+// queda y vuelve a bajar. Los sostenidos (calor, altura) viven mientras dure la causa; los de un golpe, AVISO_T.
+const AVISO_T = 1.8, AVISO_SUBE = 0.18;
+const avisos = {};          // id de caja → { txt, col, t (s de vida), hasta (s; Infinity = sostenido), on }
+const avisoReloj = () => performance.now() / 1000;
+/** Un cartel de un golpe sobre la caja `id` (zonaHud). Pisa al anterior de esa caja. */
+export function avisoCaja(id, txt, col = P.warn, dur = AVISO_T) {
+  avisos[id] = { txt, col, t0: avisoReloj(), hasta: dur, sost: false };
+}
+/** Un cartel SOSTENIDO: aparece mientras `on`, y baja al apagarse. Se llama cada cuadro. */
+function avisoSostenido(id, on, txt, col = P.warn) {
+  const a = avisos[id];
+  if (on) { if (!a || !a.sost || a.txt !== txt) avisos[id] = { txt, col, t0: avisoReloj(), hasta: Infinity, sost: true }; }
+  else if (a && a.sost) { a.sost = false; a.hasta = avisoReloj() - a.t0; }
+}
+/** ¿Esta caja tiene un cartel ARRIBA ahora? (para titilar su borde) */
+const avisoVivo = id => { const a = avisos[id]; return !!a && avisoReloj() - a.t0 < a.hasta; };
+// LA CAUSA DEL GOLPE, en corto (la ultima `run.golpeCausa`; ver systems/damage.js takeHit)
+let golpeVisto = 0;
+function causaCorta(c) {
+  const k = 'golpe_' + String(c || '').replace(/^death_/, '');
+  const t = T(k);
+  return t && t !== k ? t : T('golpe_generico');
+}
+function drawAvisosCaja() {
+  // los que mira el tablero solo: el CAÑON trabado, el ROCE del agua (el mismo ¡PELIGRO! BAJA ALTURA de arriba)
+  avisoSostenido('canon', !!run.overheat && !run.sinCanon, T('bar_overheat'));
+  avisoSostenido('alt', run.scrapeVib > 0.6, T('scrapeSub'));
+  if ((run.golpeN | 0) !== golpeVisto) { golpeVisto = run.golpeN | 0; if (golpeVisto) avisoCaja('salud', causaCorta(run.golpeCausa)); }
+  const ahora = avisoReloj();
+  for (const id in avisos) {
+    const a = avisos[id], z = zonaHud(id);
+    const vida = ahora - a.t0, resto = a.hasta - vida;
+    if (resto < -AVISO_SUBE || !z) { delete avisos[id]; continue; }
+    // sube en AVISO_SUBE, se queda, y baja en AVISO_SUBE al final
+    const u = Math.max(0, Math.min(1, Math.min(vida, resto + AVISO_SUBE) / AVISO_SUBE));
+    const e = 1 - Math.pow(1 - u, 3);
+    // (19/11, el autor: "tiene que entrar en el ancho total del cuadrado"): la lengueta mide lo que la caja, y el
+    // texto se achica hasta entrar
+    // texto en DOS RENGLONES si no entra en uno ("BAJA" / "ALTURA"), y la letra se achica si aun asi no entra
+    const w = z.w;
+    // (19/11, el autor: "mas chico, como el texto de ALTURA en el tutorial, igual"): la misma letra que los rotulos
+    let fs = 3.5; ctx.font = 'bold ' + labelFont(fs);
+    let filas = [a.txt];
+    if (ctx.measureText(a.txt).width > w - 3 && a.txt.includes(' ')) {
+      const p = a.txt.split(' '), m = Math.ceil(p.length / 2);
+      filas = [p.slice(0, m).join(' '), p.slice(m).join(' ')];
+    }
+    const ancho = () => Math.max(...filas.map(f => ctx.measureText(f).width));
+    while (fs > 2.5 && ancho() > w - 3) { fs -= 0.25; ctx.font = 'bold ' + labelFont(fs); }
+    const LH = 4.5, hh = filas.length * LH + 1, x = z.x;
+    const y = Math.round(z.y - e * (hh + 1));
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, W, z.y); ctx.clip();          // sale DE ATRAS del canto de la caja
+    ctx.fillStyle = '#0a0e11ee'; ctx.fillRect(x, y, w, hh + 2);
+    // (sin borde: 19/11, el autor: "quitemosle borde, dejemos la letra en rojo")
+    ctx.fillStyle = a.col; ctx.textAlign = 'center';
+    filas.forEach((f, i) => ctx.fillText(f, x + w / 2, y + 5 + i * LH, w - 2));
+    ctx.restore();
+  }
+}
+/** EL BORDE QUE TITILA de una caja con cartel (despues de la fila: va encima del marco). */
+function bordesAvisos() {
+  if (Math.floor(performance.now() / 140) % 2) return;
+  for (const id in avisos) {
+    if (!avisoVivo(id)) continue;
+    const z = zonaHud(id); if (!z) continue;
+    ctx.strokeStyle = avisos[id].col; ctx.lineWidth = 1;
+    ctx.strokeRect(z.x + 0.5, z.y + 0.5, z.w - 1, z.h - 1);
+  }
+}
+
 function drawPiloto(charlaVoz, delAvion) {
   // APARTE DEL TABLERO (11/9): arriba de la esquina izquierda, y no en la fila. La cara no es un
   // instrumento, y a su derecha tiene que quedar lugar para lo que dice (drawVozPropia, en screens).
-  const x = MARGEN, y = CUADROS_Y - AIRE - PILOTO.alto;
+  const x = MARGEN, y = PIL_Y();
   const nombre = pilotName(alMando(run));
   const caras = carasDe(nombre, delAvion);
   if (!caras) return x;
@@ -1660,7 +1763,7 @@ export function tarjetaPiloto(nombre, x, y, delAvion) {
 }
 export const TARJETA_LADO = PILOTO.lado;
 /** Donde va la tarjeta del piloto en el HUD (la misma cuenta que drawPiloto). */
-export const tarjetaLugar = () => ({ x: MARGEN, y: CUADROS_Y - AIRE - PILOTO.alto });
+export const tarjetaLugar = () => ({ x: MARGEN, y: PIL_Y() });
 
 // TABLERO DEL ESCUADRON: un avion por vida — los caidos quedan TACHADOS, no desaparecen.
 // Que el avion siga ahi, oscuro y cruzado, es lo que hace que una vida menos sea un companero
@@ -2590,7 +2693,9 @@ export function drawHUD(h) {
 
   // LA FILA de cuadrados de abajo, en los tres grupos de la cabina (ver CUADRO / X_* arriba).
 
-  // LA CARA DEL PILOTO, aparte: arriba de la esquina izquierda (ver drawPiloto).
+  // LOS CARTELES QUE SALEN DE ATRAS DE CADA CAJA (antes de la fila: quedan detras y asoman por arriba)
+  drawAvisosCaja();
+  // LA CARA DEL PILOTO, en la esquina de la fila (ver drawPiloto).
   drawPiloto(h.charlaVoz, h.pilotoAvion);
 
   // ---- LA NAFTA (izquierda, al lado de SALUD) y LA CHANCHA (derecha, con lo que se carga) ------
@@ -2667,8 +2772,9 @@ export function drawHUD(h) {
   // la silueta del avion en el medio, arriba de las armas a la derecha")
   // (…y despues: "o ponelo entre medio de los elementos de abajo, en esos espacios": en el hueco entre el
   // grupo del vuelo y el de lo que se carga, centrado en la fila)
-  if (radarP.tiene) radarPropio(FIN_VUELO + Math.round((X_CARGA - FIN_VUELO - RADAR_W) / 2), CUADROS_Y + Math.round((CUADRO - ALERTA_H) / 2));
-  donde.radar = [FIN_VUELO + Math.round((X_CARGA - FIN_VUELO) / 2), CUADROS_Y];
+  // (19/11: arriba del grupo de la derecha — el hueco de la fila se lo llevo la cara del piloto)
+  if (radarP.tiene) radarPropio(X_CARGA, CUADROS_Y - AIRE - ALERTA_H);
+  donde.radar = [X_CARGA + Math.round(RADAR_W / 2), CUADROS_Y - AIRE - ALERTA_H];
   donde.chancha = [X_CHANCHA + CUADRO / 2, CUADROS_Y];
   donde.chapitas = [X_RACK + RACK_W / 2, CUADROS_Y];
 
@@ -2805,7 +2911,7 @@ export function drawHUD(h) {
   // descubre bajando — que es el juego.
   const tv = tempoMeter();
   const altoPod = PODER_H + 2;                                   // la placa de la barra
-  const yPod = CUADROS_Y - AIRE - PILOTO.alto - AIRE - altoPod;   // pegada a la cara, con el mismo aire
+  const yPod = PIL_Y() - AIRE - altoPod;   // pegada a la cara, con el mismo aire
   // …y en una mision SIN PODERES no esta: una barra que no se puede usar es un boton que miente
   if (cfg.poderes !== false) {
     barraPoder(MARGEN, yPod, tv, MOM_COL, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
@@ -2844,5 +2950,6 @@ export function drawHUD(h) {
     }); }
 
   // (LA PALANCA DE GAS del borde derecho se fue al reloj de GAS, en el centro de la fila: 11/9.)
+  bordesAvisos();   // el borde de la caja con cartel titila (19/11)
 }
 

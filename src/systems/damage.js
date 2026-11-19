@@ -75,6 +75,8 @@ export function humoAveria(dt) {
  */
 export function takeHit(cause) {
   const before = run.integ;
+  // LA CAUSA, para el cartel que sale de atras de la caja de SALUD (render/hud.js drawAvisosCaja, 19/11)
+  run.golpeCausa = cause; run.golpeN = (run.golpeN | 0) + 1;
   let r;
   // CHOCAR, o cualquier cosa en ESCUADRON: como siempre, abajo. Lo demas pasa por el ESCUDO.
   if (isFatal(cause) || !shown()) r = applyHit(run.integ, cause, cfg.dmgMode);

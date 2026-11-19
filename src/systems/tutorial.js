@@ -40,12 +40,14 @@ export function consigna() {
   if (fin || fase !== 'practica') return null;
   const c = (pasos[i].sigue || [])[sub];
   if (!c) return null;
-  const n = c.altSobre ?? c.altBajo ?? c.bajoTecho ?? c.pasa ?? c.rompe ?? (c.usa ? c.usa.length : null);
+  const n = c.altSobre ?? c.altBajo ?? c.bajoTecho ?? c.pasa ?? c.rompe ?? c.aciertos ?? c.esquiva ?? (c.usa ? c.usa.length : null);
   const prog = c.bajoTecho != null ? Math.min(c.bajoTecho, acum)
     : c.pasa != null ? Math.min(c.pasa, acum)
     : c.rompe != null ? Math.min(c.rompe, acum)
+    : c.aciertos != null ? Math.min(c.aciertos, acum)
+    : c.esquiva != null ? Math.min(c.esquiva, acum)
     : c.usa ? c.usa.filter(k => vistos[k]).length : null;
-  return { clave: c.consigna, n, prog, hecho: okT > 0 };
+  return { clave: c.consigna, n, prog, hecho: okT > 0, teclas: pasos[i].teclas || [] };
 }
 
 /** ¿Faltan pasos ANTES de la aproximacion final? Mientras si, game.js no deja empezar el aterrizaje: la vuelta
@@ -75,6 +77,7 @@ function cumple(c, s, dt) {
   }
   if (c.pasa != null) { acum = s.pasados - base.pasados; return acum >= c.pasa; }
   if (c.rompe != null) { acum = s.rotos - base.rotos; return acum >= c.rompe; }
+  if (c.esquiva != null) { acum = (s.esquivados || 0) - (base.esquivados || 0); return acum >= c.esquiva; }
   // EL CALOR: hay que trabarlo (overheat) y esperar a que se destrabe
   if (c.calienta) { if (s.overheat) vistos.over = true; return !!vistos.over && !s.overheat; }
   // LA ETAPA 3: una pirueta hecha (run.mv), una bomba en el aire, el buque hundido, el tren abajo, las ruedas
@@ -87,6 +90,17 @@ function cumple(c, s, dt) {
   if (c.cierra) return !s.pausado;
   if (c.secundaria) return s.secundaria === c.secundaria;
   if (c.momentum) return !!s.momentum;
+  // EL RASANTE (19/11, el autor: "tiene que enseñarme como funciona"): entrar al estado (4 s de PERFECTO),
+  // acertar el azul de la barrita (se suman entre entradas: perder el estado no borra lo hecho) y soltarlo
+  if (c.aguante) return !!s.aguante;
+  if (c.aciertos != null) {
+    const k = s.aguante ? s.aguN || 0 : 0;
+    if (k > (vistos.aguN || 0)) acum += k - (vistos.aguN || 0);
+    vistos.aguN = k;
+    return acum >= c.aciertos;
+  }
+  if (c.rasante) return !!s.rasante;
+  if (c.salBajo != null) return (s.sal || 0) <= c.salBajo;
   if (c.chancha) return !!s.chancha;
   return true;
 }
@@ -115,7 +129,7 @@ export function tick(dt, s, escenas) {
   if (fase === 'intro') {
     const ls = (escenas[p.dice] || {}).lineas || [];
     if (linea < ls.length) return { tipo: 'decir', linea: ls[linea++], foco: p.foco || [], teclas: p.teclas || [] };
-    fase = 'practica'; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: s.pasados, rotos: s.rotos };
+    fase = 'practica'; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: s.pasados, rotos: s.rotos, esquivados: s.esquivados || 0 };
     return { tipo: 'mundo', paso: p };
   }
   if (fase === 'practica') {
@@ -123,7 +137,7 @@ export function tick(dt, s, escenas) {
     if (c) {
       if (okT > 0) {
         okT -= dt;
-        if (okT <= 0) { sub++; acum = 0; vistos = {}; base = { pasados: s.pasados, rotos: s.rotos }; }
+        if (okT <= 0) { sub++; acum = 0; vistos = {}; base = { pasados: s.pasados, rotos: s.rotos, esquivados: s.esquivados || 0 }; }
         return null;
       }
       if (cumple(c, s, dt)) okT = OK_T;
