@@ -1530,6 +1530,38 @@ function relojFila(x, y, o) {
   }
 }
 
+// ---------- LA BRUJULA (las islas) ----------
+function drawBrujula(x, y, b) {
+  alTablero(x, y, () => {
+    plate(x, y, CUADRO, CUADRO);
+    const cx = x + 13, cy = y + 12, r = 9;
+    const angDe = rumbo => -Math.PI / 2 + rumbo - b.rumbo;   // arriba = el morro
+    for (let i = 0; i < 12; i++) {
+      const larga = i % 3 === 0;
+      marcaFina(cx, cy, angDe(i * Math.PI / 6), larga ? r - 1.6 : r - 0.7, r + 0.6, larga ? 2 : 1, larga ? ESCALA_LARGA : ESCALA_COL);
+    }
+    ctx.font = 'bold 4px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    [['N', 0], ['E', Math.PI / 2], ['S', Math.PI], ['O', Math.PI * 1.5]].forEach(([l, a]) => {
+      const t = angDe(a);
+      ctx.fillStyle = l === 'N' ? P.accent : P.dim;
+      ctx.fillText(l, cx + Math.cos(t) * (r - 4.2), cy + Math.sin(t) * (r - 4.2));
+    });
+    // la rayita fija del morro
+    px(cx, y + 1, 1, 3, P.foam);
+    if (b.obj !== null) {
+      const t = angDe(b.obj), tx = cx + Math.cos(t) * (r + 0.5), ty = cy + Math.sin(t) * (r + 0.5);
+      ctx.fillStyle = P.accent; ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(tx - Math.cos(t - 0.5) * 4, ty - Math.sin(t - 0.5) * 4);
+      ctx.lineTo(tx - Math.cos(t + 0.5) * 4, ty - Math.sin(t + 0.5) * 4);
+      ctx.closePath(); ctx.fill();
+      ctx.font = uiFont(NUMEROS.fam, 4.5, ''); ctx.fillStyle = P.accent;
+      ctx.fillText((b.dist / 1000).toFixed(1) + 'km', cx, y + CUADRO - 3);
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  });
+}
+
 // ---------- EL CAÑON (9/10) ----------
 // Uno por METRALLA (data/upgrades.js): la COMUN es el reloj simple; la de PLATA y la de ORO llevan la
 // terminacion de metal. Las tres llevan, en vez del icono, tres balas finas y largas con borde ("las
@@ -2837,7 +2869,7 @@ export function drawHUD(h) {
   // MACH, aparte, como en el A-4. Lo que esta en acento es el regimen del cono (core/mach.js) y la
   // marca larga, otra vez, Mach 1.
   const fM = m => (m - MACH_DE) / (MACH_A - MACH_DE);
-  reloj(X_MACH, CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
+  if (!h.brujula) reloj(X_MACH, CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
     zonas: [[fM(M_CONO), 1, P.accent]], marcas: [[fM(1), P.foam]],
     txt: mach.toFixed(2), txtCol: mach >= M_CONO ? P.accent : P.dim });
   // ALTITUD, en metros y con la escala ESTIRADA ABAJO (raiz cuadrada): el juego entero pasa en los
@@ -2890,6 +2922,21 @@ export function drawHUD(h) {
     // momento de soltar: el mismo latido que la cinta y el estante.
     borde: h.sueltaYa ? (titilaSuelta() ? SUELTA_COL : null) : enSuelta ? SUELTA_COL : null,
     txt: Math.round(altVista) + 'm', txtCol: visto ? P.warn : P.dim }, gAl));
+  // LA ALTURA TRABADA (LAS ISLAS desde arriba, autor 19/11: "marcar locked o un candado en el marcador de
+  // altura"): desde la vista cenital la altura queda clavada, y el reloj lo dice con un CANDADO en la punta
+  // de arriba a la derecha y el borde fijo en el color del candado
+  if (h.altFija) alTablero(xVuelo(2), CUADROS_Y, () => {
+    const x = xVuelo(2) + CUADRO - 8, y = CUADROS_Y + 2, c = P.accent;
+    px(x + 1, y, 3, 1, c); px(x + 1, y + 1, 1, 2, c); px(x + 3, y + 1, 1, 2, c);   // el arco
+    px(x, y + 3, 5, 3, c); px(x + 2, y + 4, 1, 1, '#0b0f12');                    // el cuerpo y el ojo de la llave
+    bordePlaca(xVuelo(2), CUADROS_Y, CUADRO, CUADRO, c);
+  });
+  // LA BRUJULA (LAS ISLAS, autor 19/11: "poner la brujula como control adicional, que en pasillo practicamente no
+  // se usa, es relleno, pero aca si"): solo cuando viene `h.brujula` (islas.js `brujula`), en el hueco entre el
+  // vuelo y lo que se carga (no: en el del MACH, ver abajo). La rosa GIRA (arriba es hacia donde va el morro, la rayita fija), N en acento, y el
+  // OBJETIVO es un triangulo naranja en el borde con su distancia abajo.
+  // (VA EN EL LUGAR DEL MACH: el hueco de al lado del gas es el de la Chancha, que en las islas tambien va)
+  if (h.brujula) drawBrujula(X_MACH, CUADROS_Y, h.brujula);
   marcaFalla(xVuelo(2), CUADROS_Y, gAl);
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).

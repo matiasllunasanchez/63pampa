@@ -105,7 +105,7 @@ import { resetRecibe } from './core/recibe.js';
 import { drawRecibe } from './render/recibe.js';
 import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/blanco.js';
 import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A, CAIDA, OLA_GIGANTE } from './data/tuning.js';
-import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE, cargaParaAvion, EXOCET_ALCANCE_KM } from './data/cargas.js';
+import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE, cargaParaAvion, EXOCET_ALCANCE_KM, capasDe, capasAvion } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
 import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque, proximoPilon } from './core/nafta.js';
 import { trayectoria } from './core/balistica.js';
@@ -156,6 +156,7 @@ import { nocheDe, drawNoche, tableroNoche, luzNoche, drawReflejoLuna } from './r
 import { NOCHE } from './data/noche.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
 import * as menus from './render/menus.js';
+import { drawMapaIslas } from './render/islas_mapa.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
 import { setNiebla, luzDelCielo } from './render/borde.js';
@@ -737,6 +738,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let modeSel = 1;                 // pantalla inicial (se corrige con modeInicial al salir de la portada)
     let quickSel = 0;                // cursor del submenu JUEGO RAPIDO
     let prbSel = 0;                  // cursor del catalogo de PRUEBAS
+    let prbTrasAvion = null;         // PRUEBAS que piden avion (verbo `avion`): lo que arranca al elegirlo
     let cinSel = 0;                  // cursor del catalogo de CINEMATICAS
     let mvSel = 0, mvVarSel = 0, mvPick = null;   // MANIOBRAS: cursor de la lista, de las variantes, y la elegida
     // A DONDE VUELVE una corrida de herramienta (PRUEBAS o el SELECTOR DE MISIONES) cuando se
@@ -1180,6 +1182,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       beep(520, 0.09, 'square', 0.05, 160); cartel(T('rasOff'), P.dim);
     }
 
+    let islasChanchaT = -1e9;            // LAS ISLAS: cuando se pidio la ultima Chancha (run.t)
+    const ISLAS_CHANCHA_CADA = 60;        // s entre una y la otra
     function pedirChancha() {
       // LOS DOS PODERES NO CONVIVEN (RF-06), y la razon es de geografia: la canasta esta ARRIBA
       // (CH_ALT 48) y el RASANTE existe para tenerte abajo. Pedirla con el poder puesto seria
@@ -1202,8 +1206,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         beep(150, 0.09, 'square', 0.05); cartel(T('ch_radar'), P.warn);
         return;
       }
-      if (cfg.fuelOn && !chancha.activa() && !alcanza('chancha')) return;   // USAR CUESTA (modos sueltos, 16/10)
-      const r = chancha.pedir({
+      // LAS ISLAS (19/11, el autor: "la dinamica de la chancha y el combustible, pudiendola pedir cada cierto tiempo
+      // y recargando en el aire"): sin barra ni costo, y se vuelve a pedir ISLAS_CHANCHA_CADA segundos despues
+      // de la anterior. La cita es la del pasillo de siempre: el Hercules arriba, la canasta, la caja.
+      const enIslas = islas.enPasillo();
+      if (islasChanchaT > run.t) islasChanchaT = -1e9;   // (de una corrida anterior: run.t volvio a cero)
+      if (!enIslas && cfg.fuelOn && !chancha.activa() && !alcanza('chancha')) return;   // USAR CUESTA (modos sueltos, 16/10)
+      const r = chancha.pedir(enIslas ? { fuelOn: cfg.fuelOn, enPasillo: S.state === 'play' && !cfg.devcam, viva: true, t: run.t,
+        minT: islasChanchaT + ISLAS_CHANCHA_CADA, mitad: 'ida', max: 999, sinBarra: true } : {
         fuelOn: cfg.fuelOn,
         // EL PASILLO DE VERDAD, y por MODO ademas de por estado (RF-07). Mirar solo `S.state`
         // dejaba un agujero: PASADAS MORTALES arranca con setState('play') —es una aproximacion
@@ -1246,6 +1256,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       });
       if (r === 'nofuel') return;                                    // sin combustible el poder no existe
       if (r === 'nozone' && chancha.meterVal() < 1) return;          // ni siquiera la tenia lista
+      if (r === 'ok' && enIslas) islasChanchaT = run.t;
       if (r === 'ok') { cobrar('chancha'); beep(520, 0.07, 'square', 0.05, 120); if (conRuta) chanchaDice('ch_viene'); else radioCh('ch_call'); return; }
       // las otras dos lineas del ritual (Condor y la Chancha) las dispara el sistema por dt:
       // ver el bloque 'ack'/'come' de chancha.tick — aca solo suena el pedido.
@@ -2061,7 +2072,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       const r = prbRows()[prbSel];
       if (!r || r.head) return;
       if (r.back) { S.test = false; volverADev('pruebas'); return; }
-      prbTasks.length = 0;
+      prbTasks.length = 0; prbTrasAvion = null;
+      islas.activar(false);                // cada momento arranca SIN las islas: solo las suyas las prenden
       prbNeutro();
       S.test = true;                       // el sello del HUD y el candado de records (S2)
       testBack = 'pruebas';                // el momento vuelve AL CATALOGO, no al menu principal
@@ -2189,6 +2201,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       return {
         mision: (id, over) => abrir(id, over),
         patria: over => abrir('m1', over, 'survival'),
+        // ELEGIR AVION ANTES (19/11, el autor: "un selector de avion en la mision de prueba de las islas"):
+        // abre el selector de siempre (el de JUEGO RAPIDO) y al confirmar corre `fn` con ese avion puesto
+        avion: fn => { prbTrasAvion = fn; gameMode = 'survival'; setState('menu'); },
         persec: over => abrir('m1', over, 'persec'),
         arena: id => { gameMode = 'arena'; cfg.arenaShip = idx(id); loadLevel(cfg.arenaShip); startArenaBattle(false); },
         pasada: id => { gameMode = 'cycle'; loadLevel(idx(id)); reset(); setRunObjective(); run.dist = objectiveDist; pasada.enter(false); },
@@ -2251,6 +2266,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     const pauseRows = () => [
       { id: 'resume', label: T('pauseResume') },
       ...(suelto() ? [{ id: 'cartas', label: T('pauseCartas') }] : []),   // VER CARTAS: solo PATRIA y CICLO
+      // EL MAPA DE LAS ISLAS (desarrollo, 19/11): arriba de OPCIONES, solo volando las islas
+      ...(islas.enPasillo() ? [{ id: 'mapa', label: T('pauseMapa') }] : []),
       { id: 'opciones', label: T('optTitle') },
       { id: 'controls', label: T('pauseControls') },
       ...(gameMode === 'campaign' ? [{ id: 'save', label: T('pauseSaveRow') }] : []),
@@ -2277,7 +2294,16 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         beep(430, 0.07, 'square', 0.05, -80);
       } else beep(620, 0.06, 'square', 0.05, 80);
     }
+    // EL CURSOR DEL MAPA DE LAS ISLAS (u, v: fraccion del mapa); arranca sobre el avion
+    let mapaCur = null;
+    const MAPA_PASO = 0.012;
+    function mapaMover(du, dv) {
+      if (!mapaCur) { const d = islas.mapaDatos(null); mapaCur = d ? { u: d.avion.u, v: d.avion.v } : { u: 0.5, v: 0.5 }; }
+      mapaCur = { u: Math.max(0, Math.min(1, mapaCur.u + du)), v: Math.max(0, Math.min(1, mapaCur.v + dv)) };
+      beep(520, 0.03, 'square', 0.02);
+    }
     function pauseNav(dir) {
+      if (pauseView === 'mapa') { mapaMover(0, dir * MAPA_PASO); return; }
       if (pauseView === 'menu') { const n = pauseRows().length; pauseSel = (pauseSel + dir + n) % n; }
       else if (pauseView === 'opciones') { const n = opcRows().length; opcSel = Math.min(opcSel, n - 1); opcSel = (opcSel + dir + n) % n; }
       else if (pauseView === 'cartas') { cartasLeer = Math.max(0, Math.min(cartasLeerMax, cartasLeer + dir * 30)); return; }
@@ -2289,6 +2315,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     }
     /** Izquierda / derecha en la pausa: en VER CARTAS, pasar de carta (en el menu no hacen nada). */
     function pauseLado(dir) {
+      if (pauseView === 'mapa') { mapaMover(dir * MAPA_PASO * 0.6, 0); return; }
       if (pauseView === 'controls') { ctrlTabMover(dir); return; }
       if (pauseView === 'opciones') { const r = opcRows()[opcSel]; if (r && r.id === 'musica') { musicaToggle(); return; } if (r && r.id === 'pista') { (dir < 0 ? prevTrack : nextTrack)(); beep(520, 0.05, 'square', 0.04); return; } }
       if (pauseView !== 'cartas' || cartasN < 2) return;
@@ -2307,9 +2334,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       }
       if (pauseView === 'controls' || pauseView === 'cartas') { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
       if (pauseView === 'save') { doSave(); return; }
+      // ENTER en el mapa: si hay cursor, el avion va ahi y se sigue volando
+      if (pauseView === 'mapa') { if (mapaCur) { islas.mapaIr(mapaCur.u, mapaCur.v); mapaCur = null; pauseView = 'menu'; pauseToggle(); } beep(600, 0.06, 'square', 0.05); return; }
       const r = pauseRows()[pauseSel];
       if (r.id === 'resume') pauseToggle();
       else if (r.id === 'controls') { pauseView = 'controls'; beep(600, 0.06, 'square', 0.05); }
+      else if (r.id === 'mapa') { pauseView = 'mapa'; mapaCur = null; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'opciones') { pauseView = 'opciones'; opcSel = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'cartas') { pauseView = 'cartas'; cartasSel = 0; cartasCrece = 0; cartasLeer = cartasLeerV = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'save') { pauseView = 'save'; saveSel = 0; beep(600, 0.06, 'square', 0.05); }
@@ -3845,7 +3875,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // relevo cambia de tono y probar la mision dejaria de parecerse a jugarla.
       // EL LIBRO DE VUELO trae su escuadrilla: todos PILOTO, distinguidos por la chapa (ver libroRoster)
       if (libro && libro.av !== null) { const lr = libroRoster(); squad.setRoster(lr.roster, lr.chapas); }
-      else squad.setRoster(gameMode === 'campaign' || S.test ? (curMission().roster || FIELES) : null);
+      // (LAS ISLAS, 19/11: "un solo piloto por ahora, y el generico" — sin los Fieles de las pruebas)
+      else squad.setRoster((gameMode === 'campaign' || S.test) && !islas.activa() ? (curMission().roster || FIELES) : null);
       // EL LIDER, RECIEN AHORA: `startPersec` bautiza al lider con `pilotName(1)`, que lee el roster.
       // Armado antes de `setRoster` (como estaba), el tutorial le decia «PATRIA 2» a Puma — el
       // indicativo del arcade — hasta que algo lo rearmaba.
@@ -3856,6 +3887,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // sistema) porque lo leen HUD + relevo + este archivo.
       run.squad = run.lives = cfg.squad;
       if (suelto()) run.squad = run.lives = DIFICULTADES[dificultad].aviones;   // la dificultad es el escuadron
+      if (islas.activa()) run.squad = run.lives = 1;   // LAS ISLAS: un solo avion, sin relevos (el generico, PILOTOS_AVION)
       squad.resetFila();   // la fila de pilotos, en orden (core/squad.js)
       squad.resetSquad();
       toT = 0; toCount = 4;
@@ -5946,8 +5978,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
           if (flags.startReq && avionBloqueado(selPlane)) beep(180, 0.12, 'square', 0.05);   // el candado ya lo dice
           else if (flags.startReq) {
+            // UNA PRUEBA QUE PIDIO AVION (verbo `avion` de PRUEBAS): sigue con el elegido
+            if (S.test && prbTrasAvion) { const f = prbTrasAvion; prbTrasAvion = null; f(); }
             // MINUTOS SAGRADOS / PASADAS MORTALES: derecho al climax, con el buque elegido en OPCIONES
-            if (gameMode === 'arena') startArenaBattle(false);
+            else if (gameMode === 'arena') startArenaBattle(false);
             else if (gameMode === 'pasadas') startPasadaBattle(false);
             // LOS MODOS SUELTOS pasan antes por la DIFICULTAD, en su propia pantalla (16/10)
             else if ((gameMode === 'survival' || gameMode === 'cycle') && !S.test) {
@@ -6503,6 +6537,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (fs && fs.death) { onDeath(fs.death); return; }
       // LAS ISLAS: el rumbo y el suelo real, despues del vuelo de siempre (no hace nada fuera de ellas)
       { const mi = islas.pasoPasillo(dt); if (mi) { onDeath(mi); return; } }
+      // LAS ISLAS: la base cayo y paso el festejo → la mision termina y se vuelve a PRUEBAS
+      if (islas.misionCumplida()) { freezeRun(); engineOff(); salirTest(); return; }
       // SECO (V6, rehecho 25/9): relevo con "me quede sin combustible", o eyeccion si era el ultimo
       if (cfg.fuelOn && run.fuel <= 0) { sinCombustible(); return; }
       // LLEGASTE A CASA (PLAN_MISION_CINCO_FASES §11): la VUELTA se termino. En una mision sin
@@ -6870,7 +6906,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // la ESCENA es la misma para las dos fases del climax 3D: lo que cambia es de que sistema
       // sale el avion que se le pasa (SPEC_MODO_PASADA §3).
       // (LAS ISLAS: la misma escena 3D, con el avion del pasillo puesto sobre el mapa real)
-      arena3D.frame({ state: S.state, islas: islas.enPasillo(),
+      // (y la MALLA del avion que vuela: el elegido, y en el relevo la VARIANTE de su numeral —como los
+      // sprites del pasillo, render/squad.js—: el compañero que entra no es el mismo avion)
+      // (LA VISTA PASILLO de las islas: la camara del pasillo misma —`cam`, PZ y el marco del avion en el mapa)
+      arena3D.frame({ state: S.state, islas: islas.enPasillo(), vistaPasillo: islas.vistaPasillo(), pasCam: cam, pz: PZ, marco: islas.marco(), avion: islas.enPasillo() ? islas.mallaDe(PLANES[selPlane].key, alMando(run)) : null,
+                      // (y LA CARGA que cuelga: las mismas capas que pinta el pasillo, data/cargas.js)
+                      cargas: islas.enPasillo() ? capasDe(cfg.carga).filter(n => capasAvion(PLANES[selPlane].key).includes(n)) : null,
                       arena: islas.enPasillo() ? islas.estadoA() : S.state === 'pasada' ? pasada.camState() : arena.active(),
                       view: S.state === 'pasada' ? pasada.view() : arena.view(), cfg, t: run.t,
                       // LAND va con el resto de la paleta: el terreno 3D (P4) se pinta con la
@@ -6880,12 +6921,22 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (arena3D.isOn()) {
         const sm = ctx.imageSmoothingEnabled;
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(arena3D.view(), 0, 0, W, H);
+        // (LAS ISLAS: en la vista pasillo el cuadro trae margen y va donde va el mar 3D del pasillo, adentro del
+        // giro del mundo; DESDE ARRIBA no hay giro de mundo que valga, asi que se deshace para ese blit)
+        const bl = arena3D.blit(), deshace = islas.enPasillo() && !bl.pasillo && mundoGira;
+        if (deshace) { ctx.save(); const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y; ctx.translate(hcx, hcy); ctx.translate(0, -hzP); ctx.rotate(-hzW); ctx.translate(-hcx, -hcy); }
+        ctx.drawImage(arena3D.view(), bl.x, bl.y, bl.w, bl.h);
+        if (deshace) ctx.restore();
         ctx.imageSmoothingEnabled = sm;
+        // …y lo que el pasillo pinta SOBRE EL AGUA (la estela, el rocio, los piques): en la vista pasillo cae
+        // exacto, porque la camara es la misma
+        if (bl.pasillo) { world.drawWake(); world.drawPiques(); }
         solPant = null;   // sin telon 2D no hay sol que anclar: el destello no puede quedar del cuadro anterior
       }
 
-      if (!world3D.isOn() && !arena3D.isOn()) {   // ---- mundo 2D: en el climax 3D lo reemplaza el blit de arriba ----
+      // LAS ISLAS TODAVIA CARGANDO (la primera vez, medio segundo): negro, nunca el pasillo 2D de fondo
+      if (islas.enPasillo() && !arena3D.isOn()) { ctx.fillStyle = '#000'; ctx.fillRect(-300, -300, W + 600, H + 600); }
+      if (!world3D.isOn() && !arena3D.isOn() && !islas.enPasillo()) {   // ---- mundo 2D: en el climax 3D lo reemplaza el blit de arriba ----
       // cielo y sol 2D: en mar-abierto-3D los pone three (nubes/islas siguen 2D encima)
       // EL FONDO GIRA CON EL RUMBO (zigzag Z2). Es lo mas barato del item y lo que mas vende que
       // doblaste: las sierras y el telon se corren al virar. Sin esto el mundo dobla y el
@@ -7250,8 +7301,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 
       // CORDON DE BRUMA: el telon del final del pasillo. Va afuera del bloque 2D (tiene que tapar
       // igual si el fondo lo pone three) pero ADENTRO del giro: es aire del mundo, rola con el.
-      drawFrenteNiebla();   // la niebla del cruce del FRENTE y su penumbra (render/frente.js)
-      if (S.state !== 'arena' && S.state !== 'momentum') world.drawVeil(veilNow());
+      if (!islas.enPasillo()) drawFrenteNiebla();   // la niebla del cruce del FRENTE y su penumbra (render/frente.js)
+      if (S.state !== 'arena' && S.state !== 'momentum' && !islas.enPasillo()) world.drawVeil(veilNow());
 
       // NIEBLA DE GUERRA (cfg.marco, render/marco.js): el velo de los COSTADOS, lo que no es
       // pasillo. Mismo lugar que el cordon —afuera del bloque 2D, adentro del giro— y por la
@@ -7260,7 +7311,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // SOLO EN EL PASILLO, y la lista es explicita: en el ARENA y en la PASADA se vuela libre
       // alrededor del buque, no hay carril, y un marco ahi seria una viñeta mintiendo sobre
       // una zona jugable que no existe.
-      if (MARCO_STATES.includes(S.state)) drawMarco();
+      // (en LAS ISLAS no hay carril: el marco dibujaba un rectangulo alrededor del avion sobre el mapa)
+      if (MARCO_STATES.includes(S.state) && !islas.enPasillo()) drawMarco();
 
       // fin del HORIZONTE GIRATORIO: de aca en adelante todo va NIVELADO — el avion, su mira, la
       // formacion y los popups son el lado "cabina", igual que en el momentum.
@@ -7270,7 +7322,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // avion al ras) van DETRAS del avion y al 60% (pedido del autor 3/10: "estan POR ENCIMA del
       // avion"). El resto de las particulas sigue encima, mas abajo.
       if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') {
-        for (const p of parts) if (p.fondo) { ctx.globalAlpha = Math.min(1, p.life * 2) * PARTS_FONDO_A; pxFino(p.x, p.y, p.r, p.r, p.c); }
+        for (const p of (islas.enPasillo() && !islas.vistaPasillo() ? [] : parts)) if (p.fondo) { ctx.globalAlpha = Math.min(1, p.life * 2) * PARTS_FONDO_A; pxFino(p.x, p.y, p.r, p.r, p.c); }
         ctx.globalAlpha = 1;
       }
 
@@ -7287,10 +7339,27 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         squadRender.drawFallen({ selPlane, rv: squad.relevo() });
       // EL LIDER de la PERSECUCION: siempre esta mas lejos que vos (es la definicion del modo), asi
       // que va antes del avion y no necesita el reparto en dos pasadas que si necesita LA COLA.
-      drawPersec(selPlane);
+      if (!islas.enPasillo()) drawPersec(selPlane);
       // LA CHANCHA: siempre esta MAS LEJOS y mas arriba que vos (sostiene formacion adelante), asi
       // que va antes del avion — pintor correcto respecto del que entra a la canasta.
-      drawChancha();
+      if (!(islas.enPasillo() && !islas.vistaPasillo())) drawChancha();   // (en las islas, en las vistas del pasillo)
+      // LAS ISLAS: LA MARCA DEL OBJETIVO en las vistas del pasillo (islas.js `objetivoPasillo`): cuatro
+      // esquinas naranjas donde cae la base en el carril y, abajo, el nombre y a cuanto esta
+      { const ob = islas.objetivoPasillo();
+        if (ob) {
+          const q = proj(ob.x, ob.y, ob.z), k = Math.max(5, Math.min(26, 1200 / ob.z)), c = P.accent;
+          if (q.x > -20 && q.x < W + 20 && q.y > -20 && q.y < H + 20) {
+            ctx.fillStyle = c;
+            for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+              const ex = Math.round(q.x + sx * k), ey = Math.round(q.y + sy * k * 0.7);
+              ctx.fillRect(sx < 0 ? ex : ex - 3, ey, 4, 1); ctx.fillRect(ex, sy < 0 ? ey : ey - 2, 1, 3);
+            }
+            ctx.font = '5px monospace'; ctx.textAlign = 'center';
+            ctx.fillText(T('islasObjetivoCorto') + ' ' + (ob.dist / 1000).toFixed(1) + ' km', Math.round(q.x), Math.round(q.y + k * 0.7 + 7));
+            ctx.textAlign = 'left';
+          }
+        }
+      }
       // en el climax (arena, pasada o fallback) el avion lo pone su propio render. EL PULSO se ve
       // DESDE LA CABINA y tampoco lo dibuja —el sprite en tercera quedaba a la vista en cuanto la
       // cinematica baja el canopy: dos camaras del mismo avion— SALVO cuando la cinematica pide
@@ -7304,19 +7373,19 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LOS ACTORES, ANTES del avion del jugador: vuelan MAS LEJOS (z mayor), asi que el pintor
       // correcto los pone atras. Van adentro del giro del horizonte por la misma razon que el
       // resto del mundo — si el mundo se inclina, ellos se inclinan con el.
-      drawActores(selPlane, wingmv.state());
+      if (!islas.enPasillo()) drawActores(selPlane, wingmv.state());
       // "MIRAME LA PANZA" (V4): el compañero va mas lejos que vos (apenas adelante): antes del avion
       if (S.state === 'play' && senas) squadRender.drawSenas(senas, selPlane);
       // LA CAP (V5): la patrulla cruzando a lo lejos
-      if (S.state === 'play' && capPaso) drawCap(capPaso);
+      if (S.state === 'play' && capPaso && !islas.enPasillo()) drawCap(capPaso);
       // …y sus tiros, en el mismo plano y con el mismo criterio de pintor. Se dibujan FRIOS: el
       // naranja es de lo que lastima, y esto no puede lastimar a nadie (ver render/teatro.js).
-      drawTiros(teatro.state());
+      if (!islas.enPasillo()) drawTiros(teatro.state());
       // LA MIRA DE BOMBARDEO (27/9), DETRAS DEL AVION (8/10, el autor: "la linea blanca por detras
       // del avion, el png del avion por encima"): con la tecla de la bomba o la de los tanques apretada, el camino
       // hasta donde cae (core/balistica.js). Adentro del giro del horizonte: es mundo.
       // LA ONDA AZUL DEL RADAR PROPIO (15/10), detras del avion: sale de el
-      if (S.state === 'play') drawRadarOndas();
+      if (S.state === 'play' && !islas.enPasillo()) drawRadarOndas();
       // los blancos de practica del TUTORIAL, marcados (en la pausa de una linea se dibujan encima del velo)
       if (S.state === 'play' && !dlgPausa) marcasTutorial(run.t);
       if (S.state === 'play' && (run.apuntaBomba || run.apuntaTanque)) {
@@ -7337,7 +7406,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         else if (run.apuntaTanque) drawTrayectoria(trayectoria(Object.assign(tanquesSalen('centro', 1)[0], { x: plane.x }), run.spd, suelo), hayTanque);
         if (hzW) ctx.restore();
       }
-      if (!rasante.enCabina() && !enCabina() && !islas.enPasillo()
+      if (!rasante.enCabina() && !enCabina() && !(islas.enPasillo() && !islas.vistaPasillo())
         && (chase || ((S.state !== 'dead' || caida) && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz() + turboDz());
       // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
       // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
@@ -7375,7 +7444,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // líneas de velocidad — MAS TENUES (8/10, el autor: "transparencia al 50%; algunas mas fuertes si
       // queres, pero que no tapen tanto, cargan mucho la pantalla"): a la mitad de lo que eran, y una de
       // cada cinco (fija por su angulo, no sorteada por cuadro) un poco mas marcada
-      for (const s of streaks) {
+      // (en LAS ISLAS solo desde la cabina: afuera y desde arriba no hay punto de fuga del pasillo)
+      for (const s of (islas.enPasillo() && !islas.vistaPasillo() ? [] : streaks)) {
         ctx.globalAlpha = (s.a * 7.31) % 1 < 0.2 ? 0.42 : 0.25;
         // el LARGO del trazo lo trae la linea (9 por omision, lo de siempre). Lo estira quien la
         // creo: en primera persona el punto de fuga esta en tu cara y una raya de nueve pixeles no
@@ -7397,7 +7467,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // en momentum/arena, particulas y popups los dibuja su propio render (nivelados, sobre el
       // barco); dibujarlos tambien aca dejaria una copia fantasma
       if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') {
-        for (const p of parts) { if (p.fondo) continue; ctx.globalAlpha = Math.min(1, p.life * 2); pxFino(p.x, p.y, p.r, p.r, p.c); }
+        for (const p of (islas.enPasillo() && !islas.vistaPasillo() ? [] : parts)) { if (p.fondo) continue; ctx.globalAlpha = Math.min(1, p.life * 2); pxFino(p.x, p.y, p.r, p.r, p.c); }
         ctx.globalAlpha = 1;
         // (la cabina va DESPUES de las particulas —el rocio es de afuera— y antes de los carteles)
         // LA CABINA (PRIMERA PERSONA — core/cabina.js, render/cabina.js): la horneada en Blender con la
@@ -7432,7 +7502,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // EL MOMENTUM TRAE EL MISMO BARRIDO Y OTRO MARCO — mucho mas cerrado (ver desenfoque.js). Va
       // ANTES del tinte frio y la viñeta de aca abajo, que siguen intactos: aquello es el color del
       // tiempo partido, esto es el encierro. Se ven los dos.
-      if (!turboHecho) { drawTurbo(); if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') { drawSalitre(run.sal); drawLavado(run.lavaK || 0); } }
+      // (LAS ISLAS desde ARRIBA: sin punto de fuga, el barrido radial del turbo era un circulo en el mar)
+      if (!turboHecho && !(islas.enPasillo() && !islas.vistaPasillo())) { drawTurbo(); if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') { drawSalitre(run.sal); drawLavado(run.lavaK || 0); } }
       // LA AUREOLA DEL SOL, encima del barrido: el destello vive en la LENTE, o sea despues de
       // todo lo que la lente esta mirando.
       //
@@ -7456,7 +7527,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // NO EN EL PULSO, por lo mismo que la red (ver drawRadarNet): con ruta, el blanco siempre esta
         // adentro del radar, y el velo cubria el buque de la cabina con una cupula palida (autor, 12/10:
         // "se ve horrible el barco"). Se le habia sacado la red al Pulso y se le olvido el tinte.
-        if (cfg.radarNet && cfg.radar !== 'voz' && cfg.radar !== 'off' && S.state !== 'pulso' && rutaSys.enAlcance()) {
+        if (cfg.radarNet && cfg.radar !== 'voz' && cfg.radar !== 'off' && S.state !== 'pulso' && rutaSys.enAlcance()
+            && !(islas.enPasillo() && (!islas.vistaPasillo() || islas.sinRadar()))) {   // (islas desde arriba o sin radar: sin tinte)
           world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
           // EL ESCANEO al entrar a la zona: la linea que barre y el velo que deja (world.ESC_*)
           if (radarScanT >= 0) world.drawRadarEscaneo(run.t - radarScanT);
@@ -7507,7 +7579,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
         ctx.save(); ctx.scale(U, U); if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
-        radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off',
+        radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(),
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
         // …el MOMENTO de soltar (titila en verde: la cinta, su avion, el altimetro y el estante) y
@@ -7711,7 +7783,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (S.state === 'carga') menus.drawCarga({ rows: filasCarga(), sel: cargaSel, t: cargaT, bomba: fichaBomba() });
       // PAUSA: overlay en nativas, encima de todo lo del mundo (el fade de historia va despues,
       // pero con el juego pausado nunca conviven)
-      if (paused) menus.drawPause({
+      if (paused && pauseView === 'mapa') drawMapaIslas(islas.mapaDatos(mapaCur), pauseT);
+      else if (paused) menus.drawPause({
         view: pauseView === 'opciones' ? 'menu' : pauseView, titulo: pauseView === 'opciones' ? T('optTitle') : null,
         sel: pauseView === 'opciones' ? Math.min(opcSel, opcRows().length - 1) : pauseSel, saveSel, rows: pauseView === 'opciones' ? opcRows() : pauseRows(),
         cartas: pauseView === 'cartas' ? cartasDeLaCorrida() : null, lee: leeDe,
@@ -8231,7 +8304,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     };
     // sonda: POR LA PATRIA ya volando, con el avion elegido (__avion antes). Para mirar un avion en juego
     // sin pasar por los menues: __avion(4); __patria()
-    if (typeof window !== 'undefined') window.__patria = () => { pruebasApi().patria({}); return PLANES[selPlane].key; };
+    if (typeof window !== 'undefined') window.__patria = (over = {}) => { pruebasApi().patria(over); return PLANES[selPlane].key; };
     if (typeof window !== 'undefined') window.__mision = (id, o) => {
       const i = misIdx(id === undefined ? 0 : id);
       if (i < 0) return null;
@@ -8930,7 +9003,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         const sub = !tc ? null : tc.hecho ? T('tutBien') : tc.prog == null ? tecla
           : Math.floor(tc.prog) + ' / ' + tc.n;
         cartelSostenido('tut', !!tc && (S.state === 'play' || S.state === 'landing' || (S.state === 'takeoff' && !!carrera)) && !dlgPausa && !paused, tc ? T(tc.clave, { n: tc.n }) : '', tc && tc.hecho ? '#8fd16a' : P.accent, null, sub); }
-      cartelSostenido('peligro', S.state === 'play' && run.scrapeVib > 0.6, T('scrape'), P.warn, { alerta: true, subCol: P.ink }, T('scrapeSub'));
+      // ¡PELIGRO! BAJA ALTURA ARRIBA, APAGADO PARA PROBAR (19/11, el autor: "por ahora quitemos el cartel de peligro
+      // baja altura arriba y dejemos solo el que sale de cada control (comentemoslo, no lo borremos)"). Queda el del
+      // altimetro (render/hud.js `avisoSostenido('alt', …)`). Para volver: descomentar la linea de abajo.
+      // cartelSostenido('peligro', S.state === 'play' && run.scrapeVib > 0.6, T('scrape'), P.warn, { alerta: true, subCol: P.ink }, T('scrapeSub'));
       tickCarteles(now / 1000);   // los carteles del pasillo (core/cartel.js): reloj de pared
       // PAUSA: se saltea update() ENTERO (y el reloj del momentum, y el del telon) — el mundo
       // queda clavado tal cual se ve. draw() sigue corriendo: dibuja el frame congelado y el
@@ -9025,6 +9101,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // tiempo de juego— y en TODOS los estados, que es lo que le permite despedirse sola cuando
       // el pasillo se termina (muerte, relevo, climax, devcam). El sistema devuelve señales y el
       // % de tanque del cuadro; escribir `run.fuel` es del orquestador, como corresponde.
+      chancha.centrar(islas.enPasillo());   // LAS ISLAS: la canasta en el eje del avion (systems/chancha.js)
       const ch = chancha.tick(dt, {
         rateK: suelto() && run.kc130 ? 1.6 : 1,   // (SEGUNDO KC-130: carga mas rapido)
         inPlay: S.state === 'play' && !cfg.devcam,

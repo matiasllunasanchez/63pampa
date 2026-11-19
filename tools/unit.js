@@ -800,11 +800,12 @@ test('pruebas: el catalogo es data bien formada', () => {
 // interfaz sobre las sondas") sin arrancar el juego. Si alguien mete logica de juego en un setup,
 // se cae aca y no tres semanas despues cuando el catalogo diverja del juego real.
 test('pruebas: ningun momento tiene logica propia — todos llaman a la capa de sondas', () => {
-  const VERBOS = ['mision', 'patria', 'persec', 'arena', 'pasada', 'pulso', 'escena', 'recarga', 'luego', 'sonda', 'cfg'];
+  // `avion` (19/11, LAS ISLAS) abre el selector y corre su funcion al elegir: el espia la corre de una
+  const VERBOS = ['mision', 'patria', 'persec', 'arena', 'pasada', 'pulso', 'escena', 'recarga', 'luego', 'sonda', 'cfg', 'avion'];
   for (const m of momentos()) {
     const llamadas = [];
     const espia = {};
-    for (const v of VERBOS) espia[v] = (...a) => { llamadas.push(v); if (v === 'luego') a[1](espia); };
+    for (const v of VERBOS) espia[v] = (...a) => { llamadas.push(v); if (v === 'luego') a[1](espia); if (v === 'avion') a[0](); };
     m.setup(espia);
     assert.ok(llamadas.length, `${m.id}: el setup no llamo a la api`);
     // todo momento tiene que ARRANCAR algo: una sonda suelta sin destino no lleva a ningun lado

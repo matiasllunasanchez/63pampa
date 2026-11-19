@@ -60,7 +60,7 @@ precision highp float;
 uniform sampler2D uHeight; uniform sampler2D uBiome; uniform sampler2D uCloud; uniform sampler2D uDetail;
 uniform vec2 uMap; uniform vec2 uOrg;
 uniform vec3 uCam; uniform vec3 uCR; uniform vec3 uCU; uniform vec3 uCF;
-uniform vec2 uTan; uniform vec2 uRes; uniform vec2 uNF;
+uniform vec2 uTan; uniform vec2 uRes; uniform vec2 uNF; uniform vec2 uPP; uniform float uFoc;
 uniform float uTime; uniform float uTile; uniform float uHMax;
 uniform vec3 uSun; uniform vec3 uJSd;
 uniform vec3 uJP; uniform vec3 uJR; uniform vec3 uJU; uniform vec3 uJF; uniform float uJS;
@@ -189,6 +189,21 @@ vec3 shadeLand(vec3 p, float t, float b){
   L = stepq(L, 4.0, b);
   return mix(alb*SHDT, alb*SUNT, L);
 }
+// LAS OLAS (autor, 19/11: "no hay olas, el agua parece un piso"): una superficie de verdad, no el plano
+// y = 0 con dibujo encima. Tres trenes cruzados que vienen del oeste y un poco de ruido; se achican en el
+// bajo (la costa no rompe a un metro de altura). Alrededor de un metro: el oleaje del pasillo.
+float olaAmp(vec2 q){ return smoothstep(0.5, 8.0, max(-hgt(q), 0.0)); }
+float ola(vec2 q){
+  float tt = uTime;
+  float h = 0.55*sin(q.x*0.060 + q.y*0.018 - tt*1.40) + 0.35*sin(q.x*0.110 - q.y*0.070 - tt*2.10 + 1.3)
+          + 0.22*sin(q.x*0.023 + q.y*0.051 - tt*0.85) + (vnoise(q*0.12 - vec2(tt*0.5, 0.0)) - 0.5)*0.45;
+  return h;
+}
+vec3 olaNormal(vec2 q, float a){
+  float e = 0.8;
+  float hx = ola(q + vec2(e, 0.0)) - ola(q - vec2(e, 0.0)), hz = ola(q + vec2(0.0, e)) - ola(q - vec2(0.0, e));
+  return normalize(vec3(-hx*a/(2.0*e), 1.0, -hz*a/(2.0*e)));
+}
 vec3 shadeWater(vec3 p, vec3 rd, float t, float b){
   vec4 hs = textureLod(uHeight, muv(p.xz), 0.0);
   float dep = max(-hgt(p.xz), 0.0);
@@ -207,7 +222,10 @@ vec3 shadeWater(vec3 p, vec3 rd, float t, float b){
   // wind-driven swell from the west
   vec2 q = p.xz; float tt = uTime;
   float w1 = sin(q.x*0.045 + q.y*0.012 - tt*1.6), w2 = sin(q.x*0.11 - q.y*0.05 - tt*2.3 + 1.3);
-  vec3 n = normalize(vec3(w1*0.10 + w2*0.05 + (vnoise(q*0.08 - vec2(tt*0.6, 0.0))-0.5)*0.2, 1.0, w2*0.04 + (vnoise(q*0.08 + 3.7)-0.5)*0.2));
+  float oa = olaAmp(q), oh = ola(q)*oa;
+  vec3 n = normalize(olaNormal(q, oa) + vec3((vnoise(q*0.08 - vec2(tt*0.6, 0.0))-0.5)*0.12, 0.0, (vnoise(q*0.08 + 3.7)-0.5)*0.12));
+  // la luz de la ola: el seno oscuro, la cara que mira al cielo clara (como el mar del pasillo: valle, cuerpo, cresta)
+  wc *= mix(0.80, 1.18, smoothstep(-0.9, 0.9, oh)) * (0.88 + 0.12*n.y);
   vec3 rf = reflect(rd, n);
   rf.y = abs(rf.y);
   float cosT = clamp(-rd.y, 0.0, 1.0);
@@ -225,6 +243,16 @@ vec3 shadeWater(vec3 p, vec3 rd, float t, float b){
   float band = sin(dep*2.4 - tt*2.0 + nzf*4.0);
   float foam = dep < 0.6 + nzf*0.8 ? 1.0 : ((dep < 5.0 && band > 0.7) ? 0.8 : 0.0);
   if (foam > b*0.9) wc = mix(wc, vec3(0.90,0.91,0.90)*mix(0.8, 1.0, sh), 0.9);
+  // LA ESPUMA EN PUNTOS sobre las crestas, fija al MAPA (la alfombra de puntos del pasillo): de cerca pasa
+  // rapido bajo el avion y es lo que cuenta la velocidad. Solo cerca: lejos seria ruido. El radio crece con la
+  // distancia: la mota mide ~1 pixel en pantalla (si no, al lado de la camara son manchas blancas enormes).
+  // LA ALFOMBRA DEL PASILLO (render/world.js drawSeaDots): un punto por metro (SPZ 1, SPX 0.93), prendido por
+  // la ola; asi el agua pasa a la misma velocidad aparente que en el pasillo.
+  vec2 gq = q/vec2(0.93, 1.0), gi = floor(gq), gf = fract(gq) - 0.5;
+  // (puntos de UN pixel y tenues, como los del pasillo: un brillo, no nieve)
+  float pz = step(0.80 - 0.15*smoothstep(0.0, 0.9, oh), hash12(gi)) * step(length(gf), clamp(t*0.0036, 0.012, 0.3))
+           * (1.0 - smoothstep(60.0, 190.0, t));
+  if (pz > 0.5) wc = mix(wc, vec3(0.78,0.84,0.84), 0.45);
   return wc;
 }
 float depthFor(float t, vec3 rd){
@@ -235,8 +263,9 @@ float depthFor(float t, vec3 rd){
 void main(){
   vec2 fc = gl_FragCoord.xy;
   float b = bayer(fc);
-  vec2 uv = fc/uRes*2.0-1.0;
-  vec3 rd = normalize(uCF + uv.x*uTan.x*uCR + uv.y*uTan.y*uCU);
+  // el rayo por pixel con PUNTO PRINCIPAL y FOCAL explicitos: la camara del pasillo tiene el horizonte en la
+  // fila 96 (no en el centro) y el lienzo con margen para el giro del mundo
+  vec3 rd = normalize(uCF + ((fc.x - uPP.x)/uFoc)*uCR + ((fc.y - uPP.y)/uFoc)*uCU);
   vec3 ro = uCam;
   const float FARD = 14000.0;   // overcast: short visibility
   float tW = rd.y < -1e-5 ? ro.y/(-rd.y) : 1e9;
@@ -284,7 +313,11 @@ void main(){
   vec3 col; float tHit = 1e9; vec3 hp = ro;
   if (tc < 1e8) { hp = cp; col = shadeCloud(cp, ccov, b); tHit = tc; }
   else if (hitL) { hp = ro + rd*t; col = shadeLand(hp, t, b); tHit = t; }
-  else if (water) { hp = ro + rd*t; hp.y = 0.0; col = shadeWater(hp, rd, t, b); tHit = t; }
+  else if (water) {
+    // del plano a la OLA: unas vueltas de punto fijo (la ola es suave y el rayo baja de frente)
+    for (int k = 0; k < 4; k++) { vec3 q = ro + rd*t; float hy = ola(q.xz)*olaAmp(q.xz); t = (ro.y - hy)/max(-rd.y, 1e-4); }
+    hp = ro + rd*t; col = shadeWater(hp, rd, t, b); tHit = t;
+  }
   else col = sky(rd, b);
   if (tHit < 1e8) {
     float avgY = max(0.5*(ro.y + hp.y), 0.0);
@@ -325,10 +358,13 @@ export function crear(escena) {
     uMap: { value: new THREE.Vector2(mundo.MAP_W, mundo.MAP_D) }, uOrg: { value: new THREE.Vector2() },
     uCam: { value: vec() }, uCR: { value: vec() }, uCU: { value: vec() }, uCF: { value: vec() },
     uTan: { value: new THREE.Vector2() }, uRes: { value: new THREE.Vector2() }, uNF: { value: new THREE.Vector2() },
+    uPP: { value: new THREE.Vector2() }, uFoc: { value: 1 },
     uTime: { value: 0 }, uTile: { value: mundo.TILE }, uHMax: { value: mundo.hmax() },
     uSun: { value: new THREE.Vector3(...mundo.SUN) },
     uJSd: { value: new THREE.Vector3(mundo.SUN[0] * 0.5, 1, mundo.SUN[2] * 0.5).normalize() },
-    uJP: { value: vec() }, uJR: { value: vec() }, uJU: { value: vec() }, uJF: { value: vec() }, uJS: { value: 1 },
+    uJP: { value: vec() }, uJR: { value: vec() }, uJU: { value: vec() }, uJF: { value: vec() },
+    // la SILUETA FIJA de Dusk Patrol (`jetSh`) queda apagada: la sombra la pone avion3d.js con la malla real
+    uJS: { value: 0 },
   };
   U.uPal = paletaUniform();
   const mat = new THREE.RawShaderMaterial({
@@ -356,6 +392,10 @@ export function frame(cam, w, A, res) {
   const tanY = Math.tan(cam.fov * Math.PI / 360);
   U.uTan.value.set(tanY * cam.aspect, tanY);
   U.uRes.value.set(res.x, res.y);
+  // punto principal y focal: los de la camara del pasillo si los trae (camara.js `proyeccionPasillo`); si no,
+  // los de una camara simetrica
+  if (cam.userData.pp) { U.uPP.value.set(cam.userData.pp[0], cam.userData.pp[1]); U.uFoc.value = cam.userData.foc; }
+  else { U.uPP.value.set(res.x / 2, res.y / 2); U.uFoc.value = (res.y / 2) / tanY; }
   U.uNF.value.set(cam.near, cam.far);
   U.uTime.value = w.t || 0;
   // la sombra del avion: su posicion y su base (derecha, arriba, adelante) con el alabeo
@@ -370,3 +410,15 @@ export function frame(cam, w, A, res) {
 }
 
 export function ver(on) { if (T.malla) T.malla.visible = on; }
+
+/** El SUELO para otros shaders (la sombra del avion, avion3d.js): los mismos uniforms del terreno —el mapa,
+ *  el relieve fino, el origen—, compartidos por referencia, y el GLSL de la altura (`hgt`), el mismo que
+ *  marcha el terreno. null hasta que el terreno exista. */
+export function suelo() {
+  if (!T.mat) return null;
+  const U = T.mat.uniforms;
+  return { uniforms: { uHeight: U.uHeight, uDetail: U.uDetail, uMap: U.uMap, uOrg: U.uOrg, uTile: U.uTile },
+    glsl: `uniform sampler2D uHeight; uniform sampler2D uDetail; uniform vec2 uMap; uniform vec2 uOrg; uniform float uTile;
+${mundo.DET_AMP_GLSL}
+float hgt(vec2 xz){ float c = textureLod(uHeight, (xz + uOrg)/uMap, 0.0).r; return c + detAmp(c)*textureLod(uDetail, xz/uTile, 0.0).r; }` };
+}

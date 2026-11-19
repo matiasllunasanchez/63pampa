@@ -9,7 +9,13 @@ coaming with round analogue dials, grey South Atlantic sky through the canopy. D
 simple, slightly blurred big pixel shapes, so the face reads first. The SAME
 background in every cell.
 In EVERY cell he wears {casco} with the visor up and the green oxygen mask unclipped
-and hanging to one side. The helmet must not hide his eyes or eyebrows.'''
+and hanging to one side. The helmet must not hide his eyes or eyebrows.
+It is the 1970s JET PILOT flight helmet worn by Argentine pilots in the Malvinas war,
+not a motorcycle or racing helmet: a white rounded
+shell with a raised VISOR HOUSING across the front of the top, the dark tinted visor pulled
+up inside it, bayonet clips for the oxygen mask at both cheeks, the mask unclipped on one
+side and hanging, its corrugated hose running down to the chest. No chin bar, no racing
+stripes, no red details.'''
 CAB2='BACKGROUND: the same cockpit as the previous strip, and the same helmet in every cell.'
 MASK='''BACKGROUND: the same cockpit and the same helmet as the previous strips.
 FROM NOW ON THE OXYGEN MASK IS ON: in EVERY cell the green oxygen mask is clipped over
@@ -21,10 +27,21 @@ blurred big pixel shapes, so the face reads first. The SAME background in every 
 HANG2='BACKGROUND: the same hangar as the previous strip.'
 def RADIO(extra=''):
     return f'''BACKGROUND: the same flat mid-grey as the first strip.
-AT THE RADIO, ON THE GROUND: in EVERY cell he wears a 1970s ground radio headset{extra} -
-padded ear cups on a headband, a boom microphone curving in front of the mouth, the
-cable going down out of frame. He is talking to a pilot who is in the air.'''
+AT THE RADIO, ON THE GROUND: in EVERY cell he wears a BULKY OLD 1970s military radio
+headset{extra}: big thick round ear cups in olive drab, a metal headband, a THICK straight
+metal boom with a big round microphone capsule in front of the mouth, a heavy coiled
+cable going down out of frame. Heavy, worn, old equipment - nothing sleek, nothing
+modern, no black plastic. He is talking to a pilot who is in the air.'''
 
+TURCO_RADIO='''BACKGROUND: the same flat mid-grey as the first strip.
+AT THE BASE RADIO: in EVERY cell he wears an old 1970s radio headset with thick OLIVE-DRAB
+ear cups and a metal band OVER his khaki cloth cap. Three-quarter view facing left: the
+near ear cup sits ON his near ear, on the RIGHT side of the head; the far ear cup is
+hidden behind the head - never floating beside the face. He holds a heavy old black hand
+microphone with a push-to-talk button and a thick coiled cable close to his mouth. Old,
+worn military equipment - nothing sleek or modern. He is on the ground, talking to a
+pilot who is in the air.'''
+TURCO_RADIO2='BACKGROUND: the same flat mid-grey, the same olive headset worn exactly as in the previous strip (near cup on the right ear, far cup hidden), the same black hand microphone, the same khaki cloth cap with goggles.'
 OVR={
 'pichon':[
  ('02','tutorial_1',GRIS,[('hablando','TALKING EAGERLY: mouth open mid-word, eyebrows up, leaning in a little.'),('explicando','EXPLAINING, EXCITED: mouth open, eyebrows high, eyes bright - he just understood something and wants to tell you.'),('escucha','LISTENING HARD: head tilted, eyes narrowed in concentration, mouth closed.'),('entendido','UNDERSTOOD: a quick firm nod, small proud smile, eyebrows up.'),('confundido','CONFUSED: one eyebrow up, one down, mouth twisted, head tilted.')]),
@@ -39,18 +56,21 @@ OVR={
  ('11','cabina_3',CAB2,[('cab_alivio','RELIEVED: a huge breath out, eyes wet.'),('cab_llanto','CRYING inside the helmet: eyebrows pinched up, tears.'),('cab_risa','LAUGHING: mouth wide open, eyes shut.'),('cab_sorpresa','SURPRISED: eyebrows shot up, mouth open.'),('cab_sobresalto','STARTLED: head jerked back, eyes popping.')]),
  ('12','mascara',MASK,[('masc_concentrado','CONCENTRATING: eyes narrowed and fixed ahead.'),('masc_miedo','AFRAID: eyes huge with white showing, eyebrows up.'),('masc_enojo','ANGRY: eyebrows forced down hard.'),('masc_g','STRAINING UNDER G: eyes squeezed almost shut.'),('masc_panico','PANIC: eyes popping, eyebrows shot up.')]),
  ('05','radio',RADIO(),[('radio_neutro','ON THE RADIO: mouth open mid-word, eyebrows up, eager.'),('radio_sonrisa','CELEBRATING ON THE RADIO: a big open grin, eyebrows high - "exactly like the manual!"'),('radio_explicando','EXPLAINING ON THE RADIO, EXCITED: mouth open, eyes bright, one eyebrow higher.'),('radio_escucha','LISTENING HARD: head tilted, eyes narrowed in concentration, mouth closed.'),('radio_preocupado','WORRIED ON THE RADIO: eyebrows high and straight, eyes wide, mouth tight.')]),
+ ('14','radio_2','BACKGROUND: the same flat mid-grey, the same BULKY OLD olive-drab radio headset with the thick metal boom as the previous strip. No helmet.',[('radio_confundido','CONFUSED ON THE RADIO: one eyebrow up, one down, mouth twisted, head tilted.'),('radio_risa','LAUGHING ON THE RADIO: mouth wide open, eyes shut.'),('radio_alerta','SHOUTING A WARNING INTO THE MICROPHONE: eyes huge, mouth wide open - "pull up!"'),('radio_orgullo','PROUD ON THE RADIO: chin up, a grin he cannot hold back.'),('radio_nervioso','NERVOUS ON THE RADIO: a forced smile, eyebrows up and apart, a drop of sweat.')]),
+ ('15','radio_3','BACKGROUND: the same flat mid-grey, the same BULKY OLD olive-drab radio headset with the thick metal boom as the previous strip. No helmet.',[('radio_corregido','CORRECTED, APOLOGETIC: eyebrows up in the middle, a small embarrassed smile, eyes down - the mechanic just put him in his place.'),('radio_pensativo','THINKING ON THE RADIO: eyes up, lips pushed out.'),('radio_sorpresa','SURPRISED ON THE RADIO: eyebrows shot up, mouth a small round O.'),('radio_alivio','RELIEVED ON THE RADIO: eyes closed, a huge breath out.'),('radio_duda','DOUBT ON THE RADIO: eyebrows pinched, eyes to the side - he is right and he knows it.')]),
 ],
 'turco':[
+ ('02','radio_1',TURCO_RADIO,[('radio_neutro','ON THE RADIO: unimpressed, mouth working under the moustache, eyebrows down.'),('radio_sonrisa','GRUFF APPROVAL ON THE RADIO: a crooked smile under the moustache, eyes gone warm - "there it is".'),('radio_ceno','SCOLDING ON THE RADIO: eyebrows crushed down, mouth open under the moustache - "listen, kid".'),('radio_explicando','EXPLAINING ON THE RADIO: eyebrows up, mouth open mid-word, like a teacher.'),('radio_escucha','LISTENING, SKEPTICAL: head tilted back, one huge eyebrow down.')]),
+ ('03','radio_2',TURCO_RADIO2,[('radio_impaciente','IMPATIENT ON THE RADIO: eyes rolled up, a long breath out through the moustache.'),('radio_aprueba','APPROVING ON THE RADIO: a slow nod, lips pressed, eyes half closed - "good".'),('radio_grito','SHOUTING A WARNING INTO THE MICROPHONE: eyes wide, mouth wide open under the moustache.'),('radio_preocupado','WORRIED ON THE RADIO: the big eyebrows up, eyes wide, mouth open under the moustache.'),('radio_risa','LAUGHING INTO THE MICROPHONE: eyes shut, mouth wide open under the moustache.')]),
  ('02','el_que_ensena',GRIS,[('orgullo','PRIDE: chin slightly up, eyes bright, a small closed satisfied smile under the moustache - everyone came back.'),('explicando','EXPLAINING: one finger raised beside his face, eyebrows up, mouth open mid-word, like a teacher.'),('hablando','TALKING GRUFFLY: mouth working under the moustache, eyebrows level.'),('entendiste','"DID YOU GET IT?": one huge eyebrow raised, chin forward, eyes fixed on you.'),('aprueba','APPROVING: a slow nod, lips pressed, eyes half closed - "good".')]),
  ('03','el_que_corrige',GRIS,[('niega','SHAKING HIS HEAD: eyes closed, mouth twisted - "no, no, no".'),('impaciente','IMPATIENT: eyes rolled up, a long breath out through the moustache.'),('senala','POINTING: one finger pointing off to the side, eyebrows down, mouth open - "look there".'),('pulgar','THUMBS UP: a thumb raised beside his face, a crooked smile under the moustache.'),('escucha','LISTENING, SKEPTICAL: head tilted back, eyes narrowed, one eyebrow down.')]),
  ('04','las_fuertes',GRIS,[('furia','FURY: shouting, eyebrows crushed down, the moustache bristling.'),('carcajada','A RARE BELLY LAUGH: eyes shut, mouth wide open under the moustache, head back.'),('miedo','AFRAID: the bulging eyes huge, eyebrows up, mouth open.'),('shock','IN SHOCK: the bulging eyes wide and fixed, mouth open under the moustache.'),('sobresalto','STARTLED: head jerked back, eyes popping.')]),
- ('05','el_oficio',GRIS,[('refunfuna','GRUMBLING: mouth working under the moustache, eyebrows down, eyes rolled to the side.'),('concentrado','CONCENTRATING ON THE JOB: eyes narrowed, tongue poking out of the corner of the mouth.'),('desconfiado','SUSPICIOUS: one huge eyebrow down, the bulging eyes squinting sideways.'),('en_serio','"REALLY?": a flat unimpressed stare straight at the camera.'),('ojos_blanco','EYE ROLL: the bulging eyes rolled all the way up.')]),
+ ('05','el_oficio',GRIS,[('refunfuna','GRUMBLING: mouth working under the moustache, eyebrows down, eyes rolled to the side.'),('concentrado','CONCENTRATING ON THE JOB: eyes narrowed, tongue poking out of the corner of the mouth.'),('desconfiado','SUSPICIOUS: one huge eyebrow down, the bulging eyes squinting sideways.'),('en_serio','"REALLY?": a flat unimpressed stare straight at the camera.'),('ojos_blanco','EYE ROLL: the bulging eyes rolled all the way up.')]),  # SALTEADA por el autor 19/11: «va sin oficio»
  ('06','las_broncas',GRIS,[('asco','DISGUSTED: nose wrinkled, the moustache pushed up, head back.'),('duda','DOUBTFUL: one eyebrow up, mouth twisted under the moustache.'),('sobrador','KNOWS BETTER: chin up, eyelids half down, a smirk under the moustache.'),('sorpresa','SURPRISED: the big eyebrows shot up, mouth a round O under the moustache.'),('pensativo','THINKING: eyes up, the moustache pushed to one side.')]),
  ('07','lo_tierno',GRIS,[('ternura','GRUFF TENDERNESS: eyes gone warm and wet, the scowl still in place.'),('sonrisa_triste','SAD SMILE: eyebrows up in the middle, the moustache lifting a little.'),('aguanta_llanto','FIGHTING TEARS: chin trembling under the beard, eyes full.'),('llanto','CRYING, RARELY: eyes squeezed, tears into the moustache.'),('alivio','RELIEVED: a huge breath out through the moustache, eyes closed.')]),
  ('08','el_mate',GRIS,[('mate','DRINKING MATE: holding a gourd with a metal straw at his mouth, eyes half closed, content.'),('cansado','TIRED: heavy eyelids, the cap pushed back.'),('frio','COLD: breath steaming, shoulders hunched, eyebrows pinched.'),('resignado','RESIGNED: eyebrows up, a long breath out through the moustache.'),('llamando','CALLING OUT across the hangar: mouth wide open, eyebrows up, head turned.')]),
  ('09','hangar_1',HANG,[('hang_concentrado','CONCENTRATING ON THE JOB: eyes narrowed, tongue out.'),('hang_explicando','EXPLAINING: one finger raised, mouth open mid-word.'),('hang_orgullo','PRIDE: a small satisfied smile under the moustache.'),('hang_preocupado','WORRIED: the big eyebrows up, mouth open.'),('hang_furia','FURY: shouting, the moustache bristling.')]),
  ('10','hangar_2',HANG2,[('hang_alivio','RELIEVED: a huge breath out, eyes closed.'),('hang_risa','LAUGHING: eyes shut, mouth wide open under the moustache.'),('hang_cansado','TIRED: heavy eyelids, the cap pushed back.'),('hang_escucha','LISTENING, SKEPTICAL: head tilted back, one eyebrow down.'),('hang_mate','DRINKING MATE: a gourd with a metal straw at his mouth, content.')]),
- ('02','radio',RADIO(' worn over his khaki cap'),[('radio_neutro','ON THE RADIO: unimpressed, mouth working under the moustache, eyebrows down.'),('radio_sonrisa','GRUFF APPROVAL ON THE RADIO: a crooked smile under the moustache, eyes gone warm - "there it is".'),('radio_ceno','SCOLDING ON THE RADIO: eyebrows crushed down, mouth open under the moustache - "listen, kid".'),('radio_explicando','EXPLAINING ON THE RADIO: one finger raised beside his face, mouth open mid-word.'),('radio_escucha','LISTENING, SKEPTICAL: head tilted back, one huge eyebrow down.')]),
 ],
 'tero':[
  ('02','las_fuertes',GRIS,[('miedo','AFRAID: eyes wide with white showing, eyebrows up and pulled together, mouth open.'),('grito','SHOUTING IN ANGER: eyebrows hard down, mouth wide open, teeth showing.'),('llanto','CRYING: eyebrows high and pinched, eyes squeezed, tears on the hollow cheeks.'),('decidido','DETERMINED: eyebrows low and level, eyes fixed ahead, jaw set.'),('casco','HELMETED, ON THE GROUND: the neutral face wearing the white flight helmet, the green oxygen mask hanging to one side.')]),

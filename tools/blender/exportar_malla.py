@@ -3,7 +3,7 @@
 # armar el avioncito de Dusk Patrol, pero con los nuestros desde Blender".
 #
 #   /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
-#       --python tools/blender/exportar_malla.py -- --modelo sky --out src/data/mallas/sky.json
+#       --python tools/blender/exportar_malla.py -- --modelo sky --out assets/mallas/sky.js
 #
 # EL MISMO MODELO DEL HORNO (modelos.py → `construir`), con un cambio: los materiales no llevan luz. Cada
 # pieza se pinta con su COLOR BASE emitido (la pintura procedural entera: manchas, panza, marcas,
@@ -21,8 +21,11 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 ARGS = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 def arg(n, d=None): return ARGS[ARGS.index(n) + 1] if n in ARGS else d
 MODELO = arg('--modelo', 'sky')
-OUT = arg('--out', 'src/data/mallas/sky.json')
-MAX_TRIS = int(arg('--max-tris', '2400'))     # el caza de Dusk Patrol anda por los cientos: low-poly de verdad
+OUT = arg('--out', 'assets/mallas/sky.js')
+MAX_TRIS = int(arg('--max-tris', '2400'))
+# `--capa tanques_ala|bombas_ala|…`: exporta SOLO esa capa de carga (sus piezas y su pilon, hornear.py
+# PIEZAS_CAPA), sin el avion. El juego la cuelga encima segun la configuracion (data/cargas.js `capasDe`).
+CAPA = arg('--capa')     # el caza de Dusk Patrol anda por los cientos: low-poly de verdad
 K_A4 = 0.61
 
 # el horno, como modulo (su `main` no corre al importarlo)
@@ -60,17 +63,46 @@ spec2 = importlib.util.spec_from_file_location('modelos_bl', os.path.join(AQUI, 
 mod = importlib.util.module_from_spec(spec2); spec2.loader.exec_module(mod)
 K = dict(mat_cel=emisivo, mat_cel_nodo=emisivo_nodo, mat_emisivo=H.mat_emisivo, lin=H.lin,
          perilla=H.perilla, mezcla=H.mezcla, ocultar_si=H.ocultar_si,
-         cargas=False, controles=False, insignias=False)
-raiz = mod.construir(MODELO, T, K) if MODELO in getattr(mod, 'FICHAS', {}) else getattr(mod, MODELO)(T, K)
+         cargas=bool(CAPA), controles=False, insignias=False)
+# LOS DE TIERRA (tools/blender/modelos_tierra.py: la BASE COSTERA del pasillo, los blancos de las islas)
+# vienen de su modulo y con su escala: `--k` = unidades del modelo por metro
+TIERRA = arg('--tierra')
+if TIERRA:
+    spec5 = importlib.util.spec_from_file_location('modelos_ti', os.path.join(AQUI, 'modelos_tierra.py'))
+    mti = importlib.util.module_from_spec(spec5); spec5.loader.exec_module(mti)
+    raiz = getattr(mti, MODELO)(T, K)
+else:
+    raiz = mod.construir(MODELO, T, K) if MODELO in getattr(mod, 'FICHAS', {}) else getattr(mod, MODELO)(T, K)
+# LA ESCALA DE CADA MODELO, para volver a METROS: los cazas van con la del A-4 (K_A4); los de las misiones
+# sueltas y los helicopteros traen la suya en la ficha (`k`, achicada para que entren en el cuadro del
+# sprite); el Hercules usa otra cuenta (modelos_hercules.ESCALA: su envergadura en el modelo es 2 x 11 x
+# ESCALA) y se lleva a los 40,4 m reales. LA ESCALA SALE DEL MODELO, NO DE LO EXPORTADO: medir lo exportado
+# estiraba las capas de carga (los racks de bombas, solos) hasta 40 m de envergadura — "una nave de Star Wars".
+if MODELO == 'herc':
+    spec4 = importlib.util.spec_from_file_location('modelos_herc', os.path.join(AQUI, 'modelos_hercules.py'))
+    mh = importlib.util.module_from_spec(spec4); spec4.loader.exec_module(mh)
+    K_A4 = 2 * 11 * mh.ESCALA / 40.4
+if MODELO not in getattr(mod, 'FICHAS', {}) and MODELO in getattr(mod, 'AVIONES_SECUNDARIAS', ()):
+    spec3 = importlib.util.spec_from_file_location('modelos_av', os.path.join(AQUI, 'modelos_aviones.py'))
+    mav = importlib.util.module_from_spec(spec3); spec3.loader.exec_module(mav)
+    K_A4 = mav.FICHAS[MODELO]['k']
+if TIERRA: K_A4 = float(arg('--k', '0.0833'))
+print('ESCALA', MODELO, K_A4)
 bpy.context.view_layer.update()
 
 # las piezas visibles, con sus modificadores aplicados
 dg = bpy.context.evaluated_depsgraph_get()
 a_tres = T.matrix_world.inverted()
+MIAS = set()
+if CAPA:
+    for grupo in H.PIEZAS_CAPA[CAPA]: MIAS.update(o.name for o in K['piezas'].get(grupo, []))
 pos, col = [], []
 piezas = []
 for ob in raiz.children_recursive:
-    if ob.type != 'MESH' or ob.hide_render or ob.name.startswith('sonda'): continue
+    if ob.type != 'MESH' or ob.name.startswith('sonda'): continue
+    if CAPA:
+        if ob.name not in MIAS: continue
+    elif ob.hide_render: continue
     ev = ob.evaluated_get(dg)
     me = bpy.data.meshes.new_from_object(ev, depsgraph=dg)
     pieza = bpy.data.objects.new('x_' + ob.name, me)
@@ -115,5 +147,18 @@ n = len(col) // 3
 print('TRIANGULOS', n)
 ruta = OUT if os.path.isabs(OUT) else os.path.join(AQUI, '..', '..', OUT)
 os.makedirs(os.path.dirname(ruta), exist_ok=True)
-json.dump({'modelo': MODELO, 'tris': n, 'pos': pos, 'col': col}, open(ruta, 'w'), separators=(',', ':'))
+# LOS ROTORES de los helicopteros (modelos_aviones._helicoptero anota `raiz['rotores']`): la malla sale SIN
+# las palas principales, como las hojas de vuelo, y el juego las pone girando. Van en metros:
+# [x, y, z, radio, palas, cuerda].
+rotores = []
+if 'rotores' in raiz.keys():
+    for r in json.loads(raiz['rotores']):
+        rotores.append([round(r[0] / K_A4, 3), round(r[1] / K_A4, 3), round(r[2] / K_A4, 3), round(r[3] / K_A4, 3), int(r[4]), round(r[5] / K_A4, 3)])
+CLAVE = MODELO + ('__' + CAPA if CAPA else '')
+dato = json.dumps({'modelo': CLAVE, 'tris': n, 'pos': pos, 'col': col, 'rotores': rotores}, separators=(',', ':'))
+if ruta.endswith('.js'):
+    # COMO SCRIPT y no como JSON: el juego carga cada avion RECIEN cuando vuela (systems/islas/avion3d.js
+    # agrega un <script>), y un <script> anda por file:// en Electron, donde fetch de un .json no.
+    dato = 'window.__MALLAS=window.__MALLAS||{};window.__MALLAS[%s]=%s;\n' % (json.dumps(CLAVE), dato)
+open(ruta, 'w').write(dato)
 print('EXPORTADO', ruta, os.path.getsize(ruta), 'bytes')

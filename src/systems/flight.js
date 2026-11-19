@@ -15,6 +15,8 @@
 //           sin climax) ·
 //           { death } (se estrello) · undefined (segui volando). El orquestador actua sobre eso.
 
+// LAS ISLAS REALES (prototipo I0): su llave de radar y su aviso. Fuera de las islas no cambia nada.
+import { sinRadar as islasSinRadar, enPasillo as islasEnPasillo } from './islas/islas.js';
 import { plane, cfg, cam, stats, CTRL_BANK } from '../core/state.js';
 import { ALABEO_DIRECTO } from '../core/horizon.js';
 import { run } from '../core/run.js';
@@ -649,8 +651,9 @@ export function flightSystem(dt, deps) {
   // EL RADAR POR VOZ (`cfg.radar === 'voz'`, hoy el tutorial): no carga la barra y no dispara nada.
   // Lo unico que hace es ANOTAR si el avion esta donde lo verian; quien habla es el orquestador,
   // que es el que sabe de personajes (los sistemas no llaman hacia arriba).
-  run.radarVisto = alt > techoRadar(RADAR_ALT);
-  if (cfg.radar === 'voz') run.detection = 0;
+  run.radarVisto = alt > techoRadar(RADAR_ALT) && !islasSinRadar();   // (las islas sin radar: nadie te avisa)
+  // (LAS ISLAS con el radar apagado: lo mismo que el radar por voz, no carga nada — systems/islas)
+  if (cfg.radar === 'voz' || islasSinRadar()) run.detection = 0;
   else {
     // (en los modos sueltos la barra tarda lo que diga la dificultad de la corrida: `cfg.detCargaS`, game.js)
     // (GUERRA ELECTRONICA: carga mas lento, `run.detK`; EL TRACKER: al ras se vacia mas rapido, `run.trackerK`)
@@ -717,7 +720,8 @@ export function flightSystem(dt, deps) {
     // atacan. De ahi en mas, solo el tamaño de la oleada, que es el dato que cambia.
     if (!run.radarSeen) {
       run.radarSeen = true;
-      cartel(T('radarLock'), P.warn, T('radarLock2'));
+      // (en LAS ISLAS no hay buque: el aviso no lo nombra)
+      cartel(T('radarLock'), P.warn, T(islasEnPasillo() ? 'radarLockIslas' : 'radarLock2'));
     }
     // (el cartel OLEADA xN se fue el 8/10: el tamaño de la oleada lo dice la ultima baliza encendida, `x2`,
     // `x3`… — render/hud.js, balizasAlerta)

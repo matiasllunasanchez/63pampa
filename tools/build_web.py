@@ -280,6 +280,12 @@ def main():
     js, ok = sub_path(js, '../assets/vuelta_', 'data:,video-web-off/')
     if not ok:
         raise SystemExit('ERROR: no encontre la ruta del video del viraje en el bundle (cambio game.js?)')
+    # LAS MALLAS 3D DE LAS ISLAS (assets/mallas/, systems/islas/avion3d.js): ~13 MB que no entran en el
+    # techo de 16. Las islas son una prueba de autor (PRUEBAS) y el target es Electron; en la web el mapa
+    # se ve pero el avion no se dibuja. Se apagan como el video del viraje.
+    js, ok = sub_path(js, '../assets/mallas/', 'data:,mallas-web-off/')
+    if not ok:
+        raise SystemExit('ERROR: no encontre la ruta de las mallas de las islas en el bundle (cambio systems/islas/avion3d.js?)')
     if '../assets/' in js:
         raise SystemExit('ERROR: quedaron rutas ../assets/ sin re-embeber en game.js')
 

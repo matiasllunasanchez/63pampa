@@ -12,6 +12,7 @@
 // Los VERBOS de la api (ver `pruebasApi` en game.js):
 //   a.mision(id)        el PASILLO de esa mision, sin briefing ni guion
 //   a.patria()          el pasillo infinito (POR LA PATRIA), para los momentos sin mision propia
+//   a.avion(fn)         el selector de avion de siempre; al confirmar corre fn con ese avion
 //   a.arena(id)         la batalla del ARENA sobre el buque de esa mision
 //   a.pasada(id)        el climax PASADA, derecho a la corrida
 //   a.pulso(id)         el climax EL PULSO
@@ -32,12 +33,16 @@
 export const PRUEBAS = [
   { head: 'prSecMision' },
   {
-    id: 'islas', titulo: 'LAS ISLAS · PROTOTIPO', desc: 'Vuelo libre sobre las Malvinas reales, desde el estrecho de San Carlos',
-    // PROTOTIPO I0 (19/11, docs/proyecto/ANALISIS_ISLAS_REALES.md): el mapa real con el terreno de Dusk
-    // Patrol. Sin enemigos todavia: es para medir si se siente. La sonda __malvinas prende el mapa.
-    // (19/11, el autor: "la misma mecanica de gas, colision, piruetas, gravedad, la UI y la musica del
-    // PASILLO"): corre sobre POR LA PATRIA —el pasillo entero— con el mundo cambiado por el mapa real.
-    setup: a => { a.sonda('malvinas', true); a.patria(); },
+    id: 'islas', titulo: 'LAS ISLAS · PROTOTIPO', desc: 'Elegis avion y volas libre sobre las Malvinas reales, sin radar',
+    // PROTOTIPO I0 (19/11, docs/proyecto/ANALISIS_ISLAS_REALES.md): el PASILLO entero (POR LA PATRIA) volado
+    // sobre el mapa real. Sin radar por defecto (autor, 19/11: "siguen apareciendo misiles"). La sonda va
+    // ANTES del selector: las islas cargan mientras se elige avion, y el vuelo arranca con el mapa listo.
+    setup: a => { a.sonda('malvinas', true); a.sonda('malvinas', { radar: false }); a.avion(() => a.patria({ fuelOn: true })); },
+  },
+  {
+    id: 'islasRadar', titulo: 'LAS ISLAS · CON RADAR', desc: 'Lo mismo, con el radar del pasillo: arriba de la banda te tiran',
+    // (la llave del radar es de cada mision; hasta que las islas tengan misiones, se elige aca)
+    setup: a => { a.sonda('malvinas', true); a.sonda('malvinas', { radar: true }); a.avion(() => a.patria({ fuelOn: true })); },
   },
   {
     id: 'idayvuelta', titulo: 'IDA Y VUELTA', desc: 'Todas las etapas de un nivel, corta, con el blanco al final · ~4 min',

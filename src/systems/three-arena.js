@@ -42,6 +42,9 @@ import { AR } from '../data/arena.js';   // LOOK_MAX: cuanto inclina la camara e
 import * as islas3d from './islas/terreno3d.js';
 import * as islasCam from './islas/camara.js';
 import * as avion3d from './islas/avion3d.js';
+import * as proy3d from './islas/proyectiles3d.js';
+import * as objetivo3d from './islas/objetivo3d.js';
+import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo } from './islas/islas.js';
 import { sueloH as islasSuelo, SUN as ISLAS_SOL } from './islas/mundo.js';
 
 const THREE = window.THREE || null;
@@ -200,7 +203,7 @@ function palette(w) {
 
 /** Un frame del arena. `w` trae el estado del avion, la paleta y seaH. false ⇒ no hay 3D. */
 export function frame(w) {
-  A3.on = false;
+  A3.on = false; A3.islasPasillo = false;
   // LA ESCENA SE COMPARTE con la fase PASADA (SPEC_MODO_PASADA §3): es el mismo mar, el mismo
   // buque y la misma camara puesta donde esta el avion. Lo que cambia entre las dos fases es el
   // reglamento, que vive en los sistemas — este modulo solo recibe un avion y lo dibuja.
@@ -235,16 +238,28 @@ export function frame(w) {
     // LAS TRES VISTAS de Dusk Patrol (systems/islas/camara.js) y EL AVION EN 3D, que se ve desde arriba y
     // desde atras (en la cabina, no: estas adentro)
     const dtI = Math.max(0, Math.min(0.05, w.t - (A3.lastTI || w.t))); A3.lastTI = w.t;
-    islasCam.frame(A3.cam, A, dtI, islasSuelo);
+    A.envergadura = avion3d.envergadura();
+    // LA VISTA DE ATRAS Y LA CABINA son la camara del pasillo (camara.js `framePasillo`): el lienzo con
+    // margen, y game.js lo pega en el mismo lugar que el mar 3D del pasillo, adentro del giro del mundo
+    const pas = !!w.vistaPasillo;
+    A3.islasPasillo = pas;
+    const rr = pas ? useRenderer(islasCam.RENDER_W, islasCam.RENDER_H) : r;
+    const res = pas ? { x: islasCam.RENDER_W, y: islasCam.RENDER_H } : { x: AW, y: AH };
+    if (pas) islasCam.framePasillo(A3.cam, w.pasCam, w.pz, w.marco);
+    else islasCam.frame(A3.cam, A, dtI, islasSuelo);
     avion3d.crear(A3.scene, ISLAS_SOL);
-    avion3d.frame(A, islasCam.pesoCabina() < 0.5, { x: AW, y: AH });
-    islas3d.frame(A3.cam, w, A, { x: AW, y: AH });
-    r.render(A3.scene, A3.cam);
+    // (en la vista pasillo vuela el SPRITE del pasillo: la malla queda para la vista de arriba)
+    avion3d.frame(A, !pas && islasCam.pesoCabina() < 0.5, res, w.avion, w.cargas, A3.cam);
+    proy3d.crear(A3.scene); proy3d.frame(islasProyectiles(), true);
+    objetivo3d.frame(A3.scene, islasObjetivo());
+    islas3d.frame(A3.cam, w, A, res);
+    rr.render(A3.scene, A3.cam);
     A3.on = true;
     return true;
   }
   A3.sea.visible = true;
   avion3d.ver(false);
+  proy3d.frame([], false);
   if (A3.cam.fov !== CAM_FOV) { A3.cam.fov = CAM_FOV; A3.cam.updateProjectionMatrix(); }
 
   // buque de la mision (los otros, invisibles)
@@ -398,7 +413,10 @@ function mirarCam(A) {
 // ---------- interfaz para el juego ----------
 export function available() { return has3D && !A3.failed; }
 export function isOn() { return A3.on; }
-export function view() { return useRenderer(AW, AH).domElement; }
+export function view() { return A3.islasPasillo && A3.on ? useRenderer(islasCam.RENDER_W, islasCam.RENDER_H).domElement : useRenderer(AW, AH).domElement; }
+/** Donde se pega el cuadro en la grilla del juego: en la vista pasillo de las islas, el lienzo con margen en
+ *  el mismo lugar que el mar 3D del pasillo; si no, la pantalla. */
+export function blit() { return A3.islasPasillo && A3.on ? { x: islasCam.RENDER_X, y: islasCam.RENDER_Y, w: islasCam.RENDER_W, h: islasCam.RENDER_H, pasillo: true } : { x: 0, y: 0, w: AW, h: AH, pasillo: false }; }
 export function resetZones() { resetShipZones(A3.ships); }
 
 const _v = has3D ? new THREE.Vector3() : null;

@@ -280,26 +280,54 @@ probar si se siente bien.
 | Archivo | Qué hace |
 |---|---|
 | `src/data/islas_dem.js` | el mapa de alturas real (1,25 MB, generado por Dusk Patrol) |
-| `src/data/mallas/sky.json` | el A-4B low-poly (lo genera `tools/blender/exportar_malla.py`) |
+| `assets/mallas/<clave>.js` | los 26 aviones jugables, las 4 variantes de numeral de los 6 cazas y las 37 capas de carga, low-poly y a escala real (`python3 tools/blender/exportar_mallas_todas.py [clave… / aviones / cargas]`) |
 | `src/systems/islas/mundo.js` | decodifica y arma relieve fino, nubes, sombras y bioma en workers (0,5 s); altura del suelo en CPU |
 | `src/systems/islas/terreno3d.js` | el shader del mundo de Dusk Patrol y su paleta |
-| `src/systems/islas/avion3d.js` | el avión 3D al estilo Dusk Patrol |
+| `src/systems/islas/avion3d.js` | el avión 3D al estilo Dusk Patrol, con sus cargas y los rotores que giran |
+| `src/systems/islas/proyectiles3d.js` | balas, misiles y trazadoras del pasillo dibujados en el mapa |
 | `src/systems/islas/camara.js` | las tres vistas y la transición |
 | `src/systems/islas/islas.js` | rumbo, suelo, arranque, borde del mapa, lugares y la sonda |
 | `src/core/geografia.js` (`geoExterna`), `src/game.js`, `src/systems/three-arena.js` | los enganches (solo actúan con las islas prendidas desde PRUEBAS) |
 
-Para exportar otro avión: `Blender --background --factory-startup --python tools/blender/exportar_malla.py -- --modelo <clave> --out src/data/mallas/<clave>.json --max-tris 1500`.
+**Los aviones** (19/11, *"hacé las variantes de aviones"*): los mismos modelos de Blender del selector y de
+las hojas, exportados como malla (~2.400 triángulos; 3.200 los grandes y los helicópteros) con la pintura
+horneada a un color por cara y en metros reales. Vuela el avión elegido, y en el relevo el compañero
+que entra trae la variante de pintura de su numeral, como los sprites del pasillo. Cada malla se carga
+recién cuando se usa (un `<script>`, que anda por `file://` en Electron). Pesan 11 MB en total: no
+entran al build web (habría que sumarlas a `tools/build_web.py` o achicarlas).
+
+**Arreglado el 19/11 a la noche** (el autor: *"los misiles no se ven, desde arriba el avión se mueve en
+un rectángulo, Q/E sobre su eje no funcionan"*):
+- **el rectángulo** era el MARCO del pasillo (la niebla lateral que tapa lo que no es carril) dibujado
+  encima del mapa. En las islas se apagan el marco, el cordón de bruma, las partículas 2D, las líneas
+  de velocidad fuera de la cabina, los actores, la Chancha, la persecución, el teatro, la patrulla y las
+  ondas del radar propio;
+- **el viraje** entra y sale con peso (0,35 s) y tiene tope fijo (~32°/s): A/D ponen la velocidad de
+  costado del pasillo en ±30 de golpe, y pasada directo a giro dejaba esquinas;
+- **el rolido sobre su eje** (Q/E, flechas, stick derecho: `run.freeRoll`) se suma al alabeo del avión 3D;
+- **los proyectiles** del pasillo (balas, misiles enemigos, trazadoras, misiles propios) se dibujan en el
+  mapa (`systems/islas/proyectiles3d.js`): los misiles como un punto blanco caliente con estela de humo
+  por donde pasaron, las balas chicas.
+
+**Arreglado después, por prioridad:**
+- **el radar de las islas tiene llave**: prendido es el del pasillo tal cual, y el aviso dice "TE
+  DISPARAN" (sin "desde el buque", que en las islas no hay); apagado, la barra no carga y no sale ningún
+  misil. Hasta que haya misiones la pone PRUEBAS: **LAS ISLAS · PROTOTIPO** (con radar) y **LAS ISLAS · SIN
+  RADAR**. Por consola, `__malvinas({ radar: false })`;
+- **las palas de los helicópteros giran**: el exportador guarda los rotores de cada modelo (posición,
+  radio, palas, cuerda) y el avión 3D les pone las palas; los dos del Chinook giran en sentidos contrarios;
+- **las cargas cuelgan**: cada capa de carga de Blender (tanques y bombas de ala, del centro, el Exocet,
+  las bombas del Hércules…) es su propia malla (`assets/mallas/<celula>__<capa>.js`, 37 en total) y el avión
+  cuelga las de su configuración, las mismas que pinta el pasillo (`capasDe(cfg.carga)`);
+- **la cámara de atrás** acompaña menos el cabeceo (40 %): con el gas del pasillo terminaba mirando el cielo;
+- **el build web** apaga las mallas (no entran) y arma bien. Ya pesaba 29 MB antes de las islas.
 
 **Pendiente:**
-- **el avión:** mejorarlo y exportar todas las variantes, eligiendo la del avión de la salida (hoy siempre
-  el A-4B);
-- **el radar por misión:** hoy es el de POR LA PATRIA, y su Sea Dart sale "desde el buque" aunque en las
-  islas no haya buque. Falta el dato por misión (prendido o apagado, y desde dónde);
-- **el radar propio en la cabina** solo para el Super Étendard: es la regla del pasillo
-  (`data/radar_propio.js`), así que debería valer igual. Verificarlo cuando se pueda elegir avión;
-- la cámara de atrás sigue al cabeceo del pasillo, que con el gas sostenido apunta mucho al cielo;
+- lo que ya se soltó **sigue colgado** en 3D (el pasillo lo descuelga pilón por pilón; acá falta leer el
+  estante de `systems/blanco.js`);
+- **las islas no tienen misiones**: la llave del radar, el punto de partida y el avión los pone PRUEBAS;
 - los nombres TEAL INLET y PUERTO YAPEYU, a verificar;
-- el bundle pesa 1,4 MB más aunque no se entre a las islas.
+- el bundle pesa 1,4 MB más (el mapa de alturas) aunque no se entre a las islas.
 
 **D (la ruta real en el contexto y en "lo que pasó")** se puede hacer en cualquier momento después
 de I1.

@@ -45,6 +45,11 @@ let espera = false;
 // deriva valia sin(t*V) para el t que hubiera: la canasta aparecia corrida a un costado al azar y
 // el jugador subia a buscar un blanco que ya se habia ido de donde nacio.
 let x = 0, citaT = 0;
+// LA CANASTA EN EL EJE (las islas, 19/11): ahi el avion no se corre de costado —A/D viran el rumbo y el carril
+// gira con el—, asi que la canasta de la derecha se pone en x = 0 y sin deriva. Lo que se vuela es la ALTURA y
+// quedarse en la caja. La pone el orquestador cada cuadro (`centrar`).
+let centrada = false;
+export function centrar(on) { centrada = !!on; }
 let rumT = 0, bombaT = 0;   // cadencias de audio (motores / bomba de transferencia)
 
 /** ¿Donde esta la CANASTA ahora? Es el punto que hay que ir a buscar, y lo comparten la
@@ -150,7 +155,7 @@ export function tick(dt, e) {
   // Empieza CENTRADA (citaT = 0 al llegar) y se va abriendo: se sube a un blanco que esta donde
   // uno lo vio aparecer, y recien despues hay que acompañarlo.
   citaT += dt;
-  x = Math.sin(citaT * CH_DERIVA_V) * CH_DERIVA;
+  x = centrada ? -CH_HOSE_X : Math.sin(citaT * CH_DERIVA_V) * CH_DERIVA;
   winT -= dt;
 
   // LA CAJA. Es una caja en (x, y) porque la profundidad la fija ella: sostiene formacion, o sea
