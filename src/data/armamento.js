@@ -58,6 +58,8 @@ const TIPO_22 = [
 ];
 
 export const ARMAMENTO = {
+  // EL BLANCO DEL TUTORIAL (data/tutorial.js, etapa 3): un casco viejo y desarmado — no tira nada
+  'CASCO DE PRÁCTICA': { clase: 'casco de práctica', sistemas: [] },
   // ---- TIPO 42 Batch 1 ✔ ----
   'HMS SHEFFIELD': { clase: 'Tipo 42', sistemas: TIPO_42 },
   // 12/5: la Glasgow iba en el "combo 42/22" con la BRILLIANT. El Sea Wolf que bajo a la escuadrilla

@@ -937,8 +937,10 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   const ago = alive ? agonia(run.integ, cfg.dmgMode) : 0;
   const wobT = wob + (ago ? (Math.sin(run.t * 5.3) * 0.6 + Math.sin(run.t * 8.9 + 1.3) * 0.4) * AVERIA_TAMBALEO * (0.35 + 0.65 * ago) : 0);
   // VIBRACION al rozar la superficie: temblor rapido del fuselaje (el avion, no la camara)
-  const vx2 = run.scrapeVib ? (Math.random() - 0.5) * 4.8 * run.scrapeVib : 0;
-  const vy2 = run.scrapeVib ? (Math.random() - 0.5) * 3.6 * run.scrapeVib : 0;
+  // (del reloj del juego y no de Math.random: en la PAUSA run.t se detiene y el avion queda quieto — 18/11)
+  const ruidoT = k => { const v = Math.sin(run.t * 97.3 + k * 78.233) * 43758.5453; return v - Math.floor(v) - 0.5; };
+  const vx2 = run.scrapeVib ? ruidoT(1) * 4.8 * run.scrapeVib : 0;
+  const vy2 = run.scrapeVib ? ruidoT(2) * 3.6 * run.scrapeVib : 0;
   ctx.translate(s.x + vx2 + bobX, s.y - bobY + vy2);
   // cabeceo: el morro sube al trepar / baja al caer (desplazamiento vertical del sprite)
   ctx.translate(0, -plane.pitch * 1.8);

@@ -92,7 +92,15 @@ export const CINTA = [
 export const BOMBA_BRP = { id: 'brp', bomba: 'brp', name: 'BRP-250', tecla: 'Z / L1', desde: DESDE_BRP - 1,
   desc: 'Explota casi siempre. Pero pesa la mitad: en el extremo rompe menos',
   quote: 'Le rehicieron la espoleta. La que pega, ahora revienta.' };
+/** EL SILICONADO M-60 (17/11/2026, el autor): el aerosol del parabrisas. Volando rasante el rocio del mar deja
+ *  en el vidrio una costra de sal que va tapando la vista de los bordes al centro (systems/salitre.js); con esta
+ *  carta el vidrio esta siliconado y la sal no se pega. Una sola carta, y queda. */
+export const SILICONADO = { id: 'siliconado', name: 'SILICONADO M-60',
+  desc: 'El parabrisas siliconado: la sal del mar no se pega. Volas rasante sin perder la vista',
+  quote: 'Un aerosol de ferreteria. El vidrio queda como nuevo.' };
 const tiene = (owned, id) => !!owned && (owned.includes ? owned.includes(id) : owned.has(id));
+/** ¿La libreta `owned` tiene el SILICONADO? (sin el, la sal se pega: systems/salitre.js) */
+export const siliconadoDe = owned => tiene(owned, SILICONADO.id);
 /** LAS CARTAS DE CARGA QUE SE PUEDEN APAGAR (10/10, el autor: "configuraciones para los aviones,
  *  definidas por mejoras del Pichon, activables o no"): OPCIONES → MEJORAS DEL PICHON les pone el mismo
  *  interruptor que a las piruetas (`cfg.movesOff`, la clave presente = apagada). La BRP es la primera. */
@@ -115,9 +123,10 @@ export const cintaDe = owned => 1 + CINTA.filter(c => tiene(owned, c.id)).length
 //  temprano (tras el SPLIT-S), la CINTA LARGA a mitad, y el ORO y la CINTA ENTERA en la segunda mitad.
 //  …Y LA BRP (10/10) va QUINTA: con el loadout de referencia se la tiene entrando a M7, que es donde
 //  antes llegaba por la fecha (DESDE_BRP). Saltearla deja la MK-17 — y la carta sigue esperando.
-const ORDEN = ['mask', 'chafitas1', 'splits', 'metralla2', 'brp', 'breakt', 'loyo', 'cinta2', 'chafitas2', 'sturn', 'popup',
+//  …Y EL SILICONADO M-60 (17/11) despues de la CINTA LARGA: a esa altura la sal en el vidrio ya se sufrio.
+const ORDEN = ['mask', 'chafitas1', 'splits', 'metralla2', 'brp', 'breakt', 'loyo', 'cinta2', 'siliconado', 'chafitas2', 'sturn', 'popup',
   'hiyo', 'metralla3', 'chafitas3', 'jink', 'spin', 'cinta3', 'climb', 'chafitas4', 'climbmax', 'barrel'];
-const CARTAS = [...UPGRADES, ...CHAFITAS, ...METRALLA, ...CINTA, BOMBA_BRP];
+const CARTAS = [...UPGRADES, ...CHAFITAS, ...METRALLA, ...CINTA, BOMBA_BRP, SILICONADO];
 export const BANCO = ORDEN.map(id => CARTAS.find(u => u.id === id));
 
 /** Cuantas cargas de chafitas da la libreta `owned` (las cartas de chafitas que tiene). */

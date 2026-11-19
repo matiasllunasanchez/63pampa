@@ -315,6 +315,19 @@ export const ROLL_DUR = 0.55;
 // menos de medio segundo el jugador no llega a ver el movimiento — solo ve que desaparece.
 export const GEAR_T = 0.9;
 
+// EL DESPEGUE JUGABLE (17/11, PLAN_TUTORIAL.md pieza I): la carrera con el GAS en la mano, en vez de la
+// animacion con cuenta regresiva. Lo usa la mision que pide `despegueJugable: true` (hoy la etapa 1 del
+// tutorial). Las cuentas viven en core/despegue.js; medidas en Node (tools/unit.js, "despegue").
+//   GAS_SUBE / GAS_BAJA   cuanto sube la palanca por segundo apretando, y cuanto baja soltando
+//   ACC / ROCE            empuje a fondo y rozamiento de la rueda (unidades de run.spd por segundo)
+//   VR                    la velocidad de ROTACION (60 = 250 km/h, la del A-4): ahi levanta…
+//   GAS_MIN               …si el gas esta a fondo (o casi); con menos, sigue rodando
+//   TREPA / CAE           en el aire: lo que sube con el gas a fondo, y lo que cae sin gas (m/s)
+//   CONTROL               la altura a la que el avion pasa a ser tuyo (estado 'play')
+//   MARGEN                lo que queda de pista antes de la costa (cfg.coast) donde ya es tarde
+export const DESPEGUE = { SPD0: 6, SPD_MAX: 78, GAS_SUBE: 0.9, GAS_BAJA: 1.4, ACC: 15, ROCE: 3, VR: 60,
+  GAS_MIN: 0.85, TREPA: 6, CAE: 5, CONTROL: 8, MARGEN: 25 };
+
 // DONDE APUNTA EL ARENA VIEJO, en pantalla. Ya NO es una medida del asset de cabina: desde que la
 // cabina se acomoda sola (V_VISOR / MIRA_PLENA en legacy/momentum_render.js) esto es la mira del modo y
 // el PNG la sigue, igual que en el arena y en la PASADA. Por eso vale el centro y no un numero
@@ -2589,3 +2602,33 @@ export const ALTO = {
   VY_SUBE: 75, VY_BAJA: 95, RAMPA: 220,
   NUBES: 480, ESPESOR: 70, TEXEL: 6,
 };
+
+// ---------- LA SAL EN EL PARABRISAS (17/11/2026, el autor; systems/salitre.js, render/salitre.js) ----------
+// Volando RASANTE sobre el mar el rocio se seca contra el vidrio y deja una costra de sal (y lo que arrastra:
+// plancton, algas) que va tapando la vista DE LOS BORDES AL CENTRO. Tarda: la vista entera se pierde recien
+// despues de mucho rasante — es la instancia mas dificil, no la de todos los dias. Volando ALTO (por encima del
+// radar: te ven) se va limpiando de a poco. Con la carta SILICONADO M-60 (data/upgrades.js) no se pega.
+//   LLENO_S  segundos de rasante pleno (por debajo de ALT[0]) hasta tapar todo; entre ALT[0] y ALT[1] pega menos,
+//            arriba de ALT[1] no pega
+//   LIMPIA_S segundos por encima de LIMPIA_ALT para limpiar el vidrio entero
+//   AVISO    a que costra sale el cartel (una vez por mision)
+//   OPACO    lo tapada que queda la costra al empezar y al final (alfa); BORDE el fundido del frente que avanza;
+//            RUIDO lo desparejo del frente (0 = un ovalo perfecto)
+export const SALITRE = { LLENO_S: 170, ALT: [BANDA_ALT, 9], LIMPIA_S: 75, LIMPIA_ALT: RADAR_ALT, AVISO: 0.16,
+  OPACO: [0.55, 0.9], BORDE: 0.07, RUIDO: 0.2 };
+
+// ---------- EL FRENTE DE TORMENTA (18/11/2026, el autor; systems/frente.js, render/frente.js) ----------
+// A mitad del nivel el tiempo cambia: en el horizonte se levanta una pared de nubes negras (la nube de arco de
+// las fotos del autor) que se viene encima; al pasar por debajo, un FUNDIDO CON NIEBLA y del otro lado es noche
+// de tormenta (cfg.sky 'storm': rayos, oscuridad, mar bravo), con la lluvia subiendo. Segun la mision puede
+// DESPEJAR mas adelante (otra niebla y vuelve el cielo de antes). Por encima de la capa de nubes (ALTO.NUBES)
+// se sigue viendo el sol — pero ahi el radar te ve. Lo define la mision (`frente` en su entrada) o, en POR LA
+// PATRIA y CICLO, el azar.
+//   VISTA     a cuantos metros asoma la pared en el horizonte; BASE y TOPE, la base y el techo de la nube (m)
+//   NIEBLA_M  medio largo del fundido con niebla, centrado en el cruce (m); NIEBLA_A lo cerrada en el pico
+//   OSCURO    cuanto oscurece la pared antes del cruce, ya encima (0..1)
+//   LLUVIA    metros respecto del cruce en que la lluvia sube a 1, 2 y 3; VIENTO, desde donde sopla
+//   SUELTO_P  la chance de un frente en un nivel de POR LA PATRIA / CICLO con cielo de dia; SUELTO_M donde
+//             cruza (m desde el arranque); DESPEJA_P la chance de que despeje y DURA_M cuanto dura entonces
+export const FRENTE = { VISTA: 4200, BASE: 190, TOPE: 700, NIEBLA_M: 420, NIEBLA_A: 0.9, OSCURO: 0.5,
+  LLUVIA: [-250, 150, 500], VIENTO: -700, SUELTO_P: 0.25, SUELTO_M: [1800, 4500], DESPEJA_P: 0.4, DURA_M: [3000, 6000] };

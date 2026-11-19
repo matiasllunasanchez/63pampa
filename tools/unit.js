@@ -1380,8 +1380,9 @@ test('libreta: 12 ventanas y 20 cartas — con CHAFITAS, METRALLA y CINTA quedan
   for (let i = 0; i < MIS.length; i++) if (ofertaTras(i) > 0) ventanas++;
   assert.equal(ventanas, 12, 'las ventanas no cambiaron');
   // El 10/10, la BRP-250: 21 para 12.
-  assert.equal(BANCO.length, UPS.length + 9, 'doce piruetas, cuatro chafitas, dos metrallas, dos cintas y la BRP');
-  assert.equal(BANCO.length - ventanas, 9, 'quedan nueve sin aprender por partida');
+  // El 17/11, el SILICONADO M-60: 22 para 12.
+  assert.equal(BANCO.length, UPS.length + 10, 'doce piruetas, cuatro chafitas, dos metrallas, dos cintas, la BRP y el siliconado');
+  assert.equal(BANCO.length - ventanas, 10, 'quedan diez sin aprender por partida');
   // y ninguna ventana puede quedar sin cartas para ofrecer
   for (let i = 0; i < MIS.length; i++) {
     const o = ofertaTras(i);
@@ -1413,7 +1414,7 @@ test('chafitas en el banco: la primera desde M3 «El invento», y cada MAS CHAFI
   // si no se elige, queda esperando
   assert.ok(nextUps(['mask', 'splits'], 2).some(u => u.id === 'chafitas1'), 'la no elegida queda esperando');
   // sin la primera, las MAS CHAFITAS no salen nunca
-  const sinChaf = [...UPS, ...METR, ...CINTA].map(u => u.id).concat('brp');
+  const sinChaf = [...UPS, ...METR, ...CINTA].map(u => u.id).concat('brp', 'siliconado');
   assert.ok(!nextUps(sinChaf, 4).some(u => u.id === 'chafitas2'), 'MAS CHAFITAS pide CHAFITAS');
   assert.deepEqual(nextUps(sinChaf, 4).map(u => u.id), ['chafitas1'], 'sin la primera, solo queda la primera');
   // las cargas son las cartas que se tienen, de 0 a 4
@@ -4414,4 +4415,20 @@ test('los perfiles de avion: el Hercules no hace piruetas ni frenos, el Dagger n
   assert.equal(motivoRotaP(cartaDeP('breakt'), { key: 'dagger' }), null);
   // las fallas: con k = 0 no sale ninguna; con k alto, mas
   assert.deepEqual(tirarFallasP({}, () => 0.01, 0), {});
+});
+
+// EL DESPEGUE JUGABLE (core/despegue.js, tutorial fase 3): con la pista de siempre (cfg.coast 230), gas a
+// fondo levanta con margen; soltarlo dos segundos a mitad de la carrera, o darle a toques, te deja sin pista.
+test('el despegue jugable: gas a fondo levanta, soltarlo o darle a toques se queda sin pista', async () => {
+  const { nuevaCarrera, pasoCarrera, enControl } = await import('../src/core/despegue.js');
+  const corre = gasDe => {
+    const c = nuevaCarrera();
+    for (let i = 0; i < 3000 && !c.sinPista && !enControl(c); i++) pasoCarrera(c, 1 / 60, gasDe(c.t), 230);
+    return c;
+  };
+  const fondo = corre(() => true);
+  assert.ok(enControl(fondo) && !fondo.sinPista, 'a fondo despega');
+  assert.ok(corre(t => t > 4).aire, 'dudar 4 s en la cabecera todavia alcanza');
+  assert.ok(corre(t => !(t > 2 && t < 4)).sinPista, 'soltar 2 s en la carrera no alcanza');
+  assert.ok(corre(t => (t % 0.8) < 0.5).sinPista, 'a toques no llega a la velocidad');
 });

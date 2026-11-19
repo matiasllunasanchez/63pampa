@@ -45,6 +45,7 @@ const FILES = {
   aatruck: '../assets/world/enemies/aatruck.png',
   lcu: '../assets/world/enemies/lcu.png',
   balloon: '../assets/world/enemies/balloon.png',
+  balloon_cara: '../assets/world/enemies/balloon_cara.png',   // el del tutorial, con caritas de aerosol (18/11)
   aa: '../assets/world/enemies/aa.png',
   manpad: '../assets/world/enemies/manpad.png',
   tent: '../assets/world/enemies/tent.png',
@@ -150,6 +151,7 @@ const ARTE = {
   // lento por objeto — el tambaleo en el lugar que hace que no parezcan imagenes fijas
   lcu: { wu: 8.6 },
   balloon: { wu: 5.6 },
+  balloon_cara: { wu: 5.6 },
   aa: { wu: 5.2 },
   // el equipo de misil al hombro: dos soldados en un pozo — mas chico que el Rapier, del ancho
   // de un par de soldados con la red alrededor

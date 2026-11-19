@@ -157,6 +157,11 @@ export const LEE = {
   },
 
   // ---------------- EL TALLER ----------------
+  siliconado: {
+    que: 'Volando rasante sobre el mar el rocio deja sal en el parabrisas y la vista se va cerrando de los bordes al centro. Con el vidrio siliconado la sal no se pega: se vuela bajo todo lo que haga falta.',
+    dato: 'LA SAL DEL ATLANTICO SUR',
+    historia: 'Volando a metros del agua, el rocio se secaba de golpe contra el vidrio y dejaba una costra de sal que no sacaba ni la lluvia. Hubo pilotos que volvieron sin ver la pista y aterrizaron mirando por el costado. El aerosol es del juego: la idea de cuidar el vidrio, no.',
+  },
   tallerLiv: {
     que: 'De uso: arregla las fallas leves y medias (carga lenta, se traba a veces, recalienta…) de hasta tres aviones de la escuadrilla.',
     dato: 'UNO DE CADA TRES SE VOLVIA',

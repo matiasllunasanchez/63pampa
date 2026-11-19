@@ -11,6 +11,7 @@ import { T, getLang } from '../core/i18n.js';
 import { CAMPAIGNS } from '../data/campaigns.js';
 import { MISSIONS, climaxOf } from '../data/missions.js';
 import { LIBRO_VUELO, LIBRO_PROXIMAS } from '../data/libro_vuelo.js';
+import { TUTORIAL_ETAPAS } from '../data/tutorial.js';
 import { BANCO, loadoutAt } from '../data/upgrades.js';
 import { fmtDate } from '../systems/saves.js';
 import { iconoDe, ICONO_FW, ICONO_COLS, ICONOS } from '../data/iconos_cartas.js';
@@ -100,20 +101,21 @@ export function drawMenu(w) {
   FICHA_INFO.max = 0;
   {   // (la ficha de la guerra puede faltar; la CONFIGURACION se dice siempre)
     // en JOSEFIN SANS (16/10, el autor: "otra font mas comoda de leer"): la de esténcil en mayusculas no se leia
-    ctx.fillStyle = P.foam; ctx.font = rotuloChicoFont(7);
+    ctx.fillStyle = P.foam; ctx.font = rotuloChicoFont(5.8);   // (17/11, el autor: mas chica)
     // SE DESPLAZA (16/10, el autor: "las flechas arriba/abajo van en el texto de la derecha; si es largo, una
     // flecha arriba o abajo tipo barra para leerlo completo"): se parte en renglones, se ven los que entran y
     // `w.scroll` (las flechas, en game.js) dice desde cual. Si no entra entero, la barra a la derecha.
     // EL PIE DE LA FICHA es la CONFIGURACION (13/11, el autor: "como footer debajo de la descripcion, el texto
     // por detras, y que el scroll deje ver todo"): el texto corre por detras del pie, pero el desplazamiento se
     // cuenta hasta el borde de arriba del pie — el ultimo renglon siempre se puede subir hasta verse entero
-    const LH = 8.5, y0 = F.y + 32, anchoT = F.w - 18, fondo = F.y + F.h - FICHA_PIE;
+    const LH = 7.2, y0 = F.y + 31, anchoT = F.w - 18, fondo = F.y + F.h - FICHA_PIE;
     const lineas = ficha ? renglones(ficha, anchoT).map(t => ({ t })) : [];
     const caben = Math.floor((fondo - 4 - y0) / LH) + 1;
     FICHA_INFO.max = Math.max(0, lineas.length - caben);
     const desde = Math.max(0, Math.min(FICHA_INFO.max, w.scroll | 0));
-    ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y + 24, F.w, F.h - 25); ctx.clip();
-    for (let i = 0; i < caben + 2 && desde + i < lineas.length; i++) {   // (dos de mas: los que asoman por detras del pie)
+    // (el recorte termina en el pie: lo que no entra no se pinta encima de los iconos — se baja con el scroll)
+    ctx.save(); ctx.beginPath(); ctx.rect(F.x, F.y + 24, F.w, fondo - 2 - (F.y + 24)); ctx.clip();
+    for (let i = 0; i < caben + 2 && desde + i < lineas.length; i++) {
       const l = lineas[desde + i];
       ctx.fillStyle = l.rot ? P.accent : P.foam;
       ctx.fillText(l.t, F.x + 6, y0 + i * LH);
@@ -219,9 +221,9 @@ function franjaFuerza(pl, x, y, w) {
   const tx = x + 4 + (hay ? ew + 5 : 0), tw = x + w - 4 - tx;
   // el detalle de la unidad (el Fenix) o, si no tiene, cuantos hubo y cuantos se perdieron de este avion
   const det = (U_.detalle && (U_.detalle[lang] || U_.detalle.es)) || (pl.guerra && (pl.guerra[lang] || pl.guerra.es));
-  ctx.font = rotuloChicoFont(4.6);   // letra chica (el autor)
+  ctx.font = rotuloChicoFont(3.9);   // letra chica (el autor; 17/11: mas chica todavia)
   const lineas = det ? renglones(det, tw) : [];
-  const LH = 5.2, h = Math.max(eh + 6, 11 + lineas.length * LH);
+  const LH = 4.5, h = Math.max(eh + 6, 11 + lineas.length * LH);
   ctx.fillStyle = '#0a0f12'; ctx.globalAlpha = 0.55; ctx.fillRect(x, y, w, h); ctx.globalAlpha = 1;
   ctx.strokeStyle = '#3a464c'; ctx.lineWidth = 0.6; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); ctx.lineWidth = 1;
   if (hay) {
@@ -232,8 +234,8 @@ function franjaFuerza(pl, x, y, w) {
   ctx.textAlign = 'left';
   ctx.fillStyle = id === 'fenix' ? '#e77a1a' : P.accent; ctx.font = menuFont(6);
   ctx.fillText(U_.nombre[lang] || U_.nombre.es, tx, y + 8, tw);
-  ctx.fillStyle = P.foam; ctx.font = rotuloChicoFont(4.6);
-  lineas.forEach((l, i) => ctx.fillText(l, tx, y + 14 + i * LH));
+  ctx.fillStyle = P.foam; ctx.font = rotuloChicoFont(3.9);
+  lineas.forEach((l, i) => ctx.fillText(l, tx, y + 13.5 + i * LH));
   return y + h;
 }
 /** LOS ESCUDOS de la ficha (assets/ui/escudo_<id>.png, los arma tools/escudos.py): se piden una vez. Las
@@ -486,6 +488,7 @@ export function drawModeSelect(w) {
   // nada: el cursor se para en una fila y se dibuja otra — que es exactamente lo que paso al
   // agregar PRUEBAS (el cursor decia 'pruebas' y la pantalla resaltaba OPCIONES).
   const opts = [
+    { name: T('modeTutorial'), desc: T('modeTutorialDesc') },   // arriba de todo (17/11, PLAN_TUTORIAL.md)
     { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
     { name: T('modeQuick'), desc: T('modeQuickDesc') },
     ...(DEV ? [{ name: T('modeDev'), desc: T('modeDevDesc') }] : []),   // solo en dev (core/dev.js)
@@ -808,6 +811,13 @@ export const CAMP_ROWS = { y0: 96, rh: 37, headH: 22 };   // 37: aire entre resa
 // texto de cada fila segun su id (los nombres de campaña son PROPIOS y no se traducen)
 function campText(r) {
   if (r.back) return { name: T('menuBack'), desc: T(r.sub ? 'campAtrasDesc' : 'menuBackDesc') };
+  // UNA ETAPA DEL TUTORIAL (data/tutorial.js): ETAPA n · nombre; la marcada dice que se aprende. SIN tilde de
+  // HECHA (18/11, el autor). La que todavia no se abrio dice que hay que terminar la anterior.
+  if (r.id === 'tut') {
+    const m = TUTORIAL_ETAPAS[r.k];
+    return { name: T('tutEtapa', { n: m.etapa }) + '  ·  ' + m.name,
+      desc: r.disabled ? T('tutCerrada') : (getLang() === 'en' ? m.desc.en : m.desc.es), compacta: true };
+  }
   // LAS DOS PUERTAS de HISTORIA (16/10): cada una dice que hay adentro
   if (r.id === 'secCampanas') return { name: T('campSecCampanas'), desc: T('campCampanasDesc') };
   if (r.id === 'secLibro') return { name: T('campSecLibro'), desc: T('campLibroDesc') };
@@ -991,7 +1001,7 @@ export const LIBRO_ROWS = { y0: 84, rh: 34, headH: 18, view: 8 };   // 34: aire 
 export function drawCampMenu(w) {
   const conLibro = w.rows.some(r => r.id === 'libro');
   // el rotulo dice en que nivel de HISTORIA estas: la raiz, o adentro de una de sus dos puertas
-  const titulo = w.vista === 'campanas' ? 'campSecCampanas' : w.vista === 'libro' ? 'campSecLibro' : 'campTitle';
+  const titulo = w.vista === 'campanas' ? 'campSecCampanas' : w.vista === 'libro' ? 'campSecLibro' : w.vista === 'tutorial' ? 'modeTutorial' : 'campTitle';
   drawRowMenu(w, titulo, campText, conLibro ? LIBRO_ROWS : CAMP_ROWS);
   // (la descripcion de la salida ya no va al pie: se abre adentro de su fila, ver drawRowMenu)
 }
@@ -1298,7 +1308,8 @@ export function drawControles(w) {
     ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(7);
     ctx.fillText(T('ctrlColAccion'), xa, 78);
     ctx.textAlign = 'right'; ctx.fillText(T('optColKb'), xk, 78); ctx.fillText(T('optColPad'), xv, 78);
-    const rh = 18;
+    // 18 de alto por fila, salvo que no entren con las notas abajo: entonces se aprietan (MOVILIDAD tiene nueve)
+    const rh = Math.min(18, Math.floor((NH - 34 - cat.notas.length * 11 - 6 - 96 + 11) / Math.max(1, cat.filas.length)));
     cat.filas.forEach((k, i) => {
       const y = 96 + i * rh;
       if (i % 2) { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.025; ctx.fillRect(xa - 8, y - 11, xv - xa + 16, rh); ctx.globalAlpha = 1; }

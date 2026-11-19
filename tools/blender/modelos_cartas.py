@@ -634,6 +634,33 @@ def carta_paracaidas(T, K):
     _humo(p, K, [(0.75 + 0.15 * i, -0.2 + 0.25 * i, 0.1) for i in range(4)], 0.08, 0.2, '#e8d9d4')
     return _encuadrar(raiz, p, (0.15, 0.4, 0))
 
+def carta_aerosol(T, K):
+    """EL M-60 (17/11/2026, el autor: "la imagen de este aerosol con la tapita tirada abajo, sin la marca, que
+    diga M-60"): el siliconado del parabrisas — la lata azul con la faja amarilla, el pico blanco con el
+    caño rojo y la tapa roja tirada al pie."""
+    raiz, p = _marco(T, 'aerosol')
+    azul, azul2 = _mat(K, 'aer_b', '#2b4da6'), _mat(K, 'aer_b2', '#1c2f6e')
+    acero = _mat(K, 'aer_s', ACERO)
+    rojo, rojo2 = _mat(K, 'aer_r', '#c9312a'), _mat(K, 'aer_r2', '#8e2019')
+    _cil('lata', p, azul, [(-1.5, 0.6), (-1.46, 0.62), (1.02, 0.62), (1.26, 0.5), (1.38, 0.32)], expo=2.0)
+    _cil('fondo', p, acero, [(-1.58, 0.57), (-1.46, 0.61)], expo=2.0)
+    _cil('cuello', p, acero, [(1.34, 0.36), (1.48, 0.36), (1.5, 0.26)], expo=2.0)
+    _cil('pico', p, _mat(K, 'aer_w', '#e9e9e4'), [(1.48, 0.16), (1.72, 0.16), (1.75, 0.12)], expo=2.0)
+    _barra('cano', p, rojo, (0.05, 1.66, 0.1), (-1.25, 2.05, 0.75), 0.07)          # el caño rojo
+    _cil('faja', p, _mat(K, 'aer_y', '#f2c230'), [(0.02, 0.635), (0.92, 0.635)], expo=2.0)
+    # la cara de la etiqueta mira a la camara (la pose gira la lata 0,5 rad: la etiqueta va girada al reves)
+    a = -0.5
+    cara = _vacio(p, 'cara'); cara.location = (0.645 * math.sin(a), 0, 0.645 * math.cos(a)); cara.rotation_euler = (0, a, 0)
+    _texto('marca', 'M-60', 0.56, azul2, cara, (0, 0.47, 0.02))
+    blanco = _mat(K, 'aer_t', '#e6e2d6')
+    for i, w in enumerate((0.62, 0.7, 0.56, 0.66, 0.5)):                        # los renglones de la etiqueta
+        caja('renglon%d' % i, (0.0, -0.2 - i * 0.2, 0.0), (w, 0.06, 0.02), cara, blanco)
+    # la TAPA, tirada al pie: de costado, con la boca mirando a la camara
+    t = _vacio(p, 'tapa'); t.location = (0.95, -1.28, 0.55); t.rotation_euler = (0, 0.5, math.pi / 2)
+    _cil('tapa_c', t, rojo, [(-0.32, 0.36), (0.3, 0.36), (0.34, 0.3)], expo=2.0)
+    _cil('tapa_b', t, rojo2, [(-0.33, 0.3), (-0.31, 0.3)], expo=2.0)
+    return _encuadrar(raiz, p, (0.18, 0.5, 0))
+
 def carta_pirueta(T, K):
     """LAS PIRUETAS: el A-4 rolando, con la estela en espiral."""
     raiz, p = _marco(T, 'pirueta')

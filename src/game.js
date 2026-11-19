@@ -7,8 +7,15 @@ import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PIS
 import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, DETECCION, nivelCorrida, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA, ARRANQUE, oleadaDe } from './data/modos_sueltos.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_PROXIMAS, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
+import { TUTORIAL_ETAPAS, TUT_SCENES } from './data/tutorial.js';
+import { CTRL_CATEGORIAS } from './data/controles.js';
+import * as tutSys from './systems/tutorial.js';
+import { nuevaCarrera, pasoCarrera, enControl } from './core/despegue.js';
+import { etapaHecha, marcarEtapa, tutorialHecho } from './core/tutorial_hecho.js';
 import { modoEnCuarentena } from './data/cuarentena.js';
-import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES } from './data/upgrades.js';
+import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES, siliconadoDe } from './data/upgrades.js';
+import { stepSalitre } from './systems/salitre.js';
+import { drawSalitre } from './render/salitre.js';
 import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T } from './data/fallas.js';
 import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
 import { leeDe } from './data/cartas_lee.js';
@@ -21,6 +28,8 @@ import { armadoDbg as aguArmado } from './systems/aguante.js';
 import * as dialogue from './core/dialogue.js';
 import { dlg, seqFromScreens, TYPE_CPS } from './core/dialogue.js';
 import { SCENES, SECUENCIAS } from './data/story.js';
+// lo que dicen el Turco y el Pichon en el TUTORIAL vive en su archivo, y se resuelve como cualquier escena
+Object.assign(SCENES, TUT_SCENES);
 import { S, setState, cfg, cam, plane, stats, resetPlane, resetStats, CTRL_DIRECT, CTRL_BANK } from './core/state.js';
 import { hzWorld, stepHorizon } from './core/horizon.js';
 import { cabina, enCabina, CABINA } from './core/cabina.js';
@@ -105,7 +114,7 @@ import { drawRotuloVuelo, ROTULO, ROTULO_T, ROTULO_NOMBRE, ROTULO_ESCAPE, ROTULO
 import { tarjetaPiloto, TARJETA_LADO, tarjetaLugar, NUMEROS } from './render/hud.js';
 import { PILOTOS_AVION } from './data/pilotos_avion.js';
 import { PULSO } from './data/pulso.js';
-import { spawnSystem, sembrarAmenaza, modoGigante, pedirOlaGigante } from './systems/spawn.js';
+import { spawnSystem, sembrarAmenaza, modoGigante, pedirOlaGigante, sembrarPractica } from './systems/spawn.js';
 import { collisionSystem } from './systems/collision.js';
 import * as caza from './systems/caza.js';
 import * as persec from './systems/persec.js';
@@ -135,7 +144,9 @@ import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
 import { drawBrillo, inicioLuz, luz } from './render/brillo.js';
 import { lucesEnemigo } from './render/luces_enemigos.js';
-import { drawNubesAltas } from './render/nubes_altas.js';
+import { drawNubesAltas, nubesAltas } from './render/nubes_altas.js';
+import { setFrente, sortearFrente, resetFrente, hayFrente, frenteManda, stepFrente } from './systems/frente.js';
+import { drawFrenteMuro, drawFrenteNiebla } from './render/frente.js';
 import { drawRayos } from './render/rayos.js';
 import { stepTormenta, resetTormenta, fogonazoTormenta, rayosVivos } from './systems/tormenta.js';
 import { nocheDe, drawNoche, tableroNoche, luzNoche, drawReflejoLuna } from './render/noche.js';
@@ -402,12 +413,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       return { lista, obj: largo };
     }
     let climaKm = Infinity;   // el km en que se vuelve a sortear el clima (lluvia y viento)
+    let navF = 1, navT = 0;   // las luces de navegacion propias: 1 prendidas, 0 apagadas (zona de radar)
     let gigNivel = false;     // este nivel (la corrida de POR LA PATRIA, el blanco del CICLO) arranca con la OLA GIGANTE
     /** LA PRESION, cuadro a cuadro: dificultad × rampa de km × alarma, sobre la base de cada perilla. */
     function aplicarPresion() {
       const km = kmPrevios + Math.max(0, run.dist) / 1000, est = run.estrellas | 0;
       // EL CLIMA CAMBIA mientras se vuela (16/10): lluvia y viento, re-sorteados cada tantos km. El cielo no.
-      if (km >= climaKm) {
+      if (km >= climaKm && !frenteManda()) {   // (con un frente encima, el clima lo maneja el frente)
         cfg.rain = cfg.sky === 'storm' || Math.random() < CLIMA.lluvia ? 1 : 0;
         cfg.wind = Math.random() < CLIMA.viento;
         climaKm = km + CLIMA.cadaKm[0] + Math.random() * (CLIMA.cadaKm[1] - CLIMA.cadaKm[0]);
@@ -719,7 +731,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       (run.costos = run.costos || []).push({ accion, n: COSTOS[accion], t0: performance.now() });
     }
     let curLevel = 0;
-    let modeSel = 0;                 // pantalla inicial: 0 = HISTORIA, 1 = JUEGO RAPIDO
+    let modeSel = 1;                 // pantalla inicial (se corrige con modeInicial al salir de la portada)
     let quickSel = 0;                // cursor del submenu JUEGO RAPIDO
     let prbSel = 0;                  // cursor del catalogo de PRUEBAS
     let cinSel = 0;                  // cursor del catalogo de CINEMATICAS
@@ -765,7 +777,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // MODO DEV (autor, 3/10): PRUEBAS, CINEMATICAS, MANIOBRAS y MISIONES —las herramientas de autor—
     // se mudaron a un submenu propio, al nivel de HISTORIA y JUEGO RAPIDO. Ver `subMenu`.
     // (el MODO DEV solo aparece en dev — `yarn start`; con `--prod` no: core/dev.js)
-    const MODES = ['campaign', 'quick', 'dev', 'options', 'quit'].filter(m => m !== 'dev' || DEV);
+    // TUTORIAL ARRIBA DE TODO (17/11, el autor: "un modo mas arriba de historia que sea solo una mision de
+    // tutorial"). docs/sistemas/PLAN_TUTORIAL.md
+    const MODES = ['tutorial', 'campaign', 'quick', 'dev', 'options', 'quit'].filter(m => m !== 'dev' || DEV);
+    /** DONDE ARRANCA EL CURSOR del menu de modos: en TUTORIAL mientras no se haya terminado (en prod), y
+     *  despues en HISTORIA. En DEV siempre en HISTORIA: los fixtures navegan desde ahi con flechas. */
+    const modeInicial = () => MODES.indexOf(!DEV && !tutorialHecho(TUTORIAL_ETAPAS.length) ? 'tutorial' : 'campaign');
     // Los modos de adentro de JUEGO RAPIDO. `arena` y `pasadas` son los dos BANCOS DE PRUEBAS del
     // climax: entran DIRECTO al buque, sin cruzar el pasillo, y existen para poder tunear cada
     // fase sin jugar una mision entera cada vez.
@@ -889,6 +906,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // contexto). Mientras no es null, la corrida es ESA salida: su escuadrilla, su Chancha, y al
     // terminar —salga como salga— lo que pasó, y de vuelta al libro.
     let libro = null;
+    /** La salida en curso: una del LIBRO DE VUELO o, con `libro.tut`, una etapa del TUTORIAL. El tutorial
+     *  viaja por el mismo camino que el libro (semilla fija, escuadrilla propia, vuelta a su menu). */
+    const libroDef = () => libro && (libro.tut ? TUTORIAL_ETAPAS : LIBRO_VUELO)[libro.k];
+    // EL TUTORIAL: obstaculos que pasaron al costado en esta corrida (la condicion `pasa`) y la cuenta
+    // para volver a su menu una vez dicho todo (ver stepTutorial)
+    // `tutAterrizo`: las ruedas tocaron en la etapa 3 — el avion rueda hasta parar y el tutorial dice lo ultimo
+    let tutPasados = 0, tutRotos = 0, tutFinT = -1, tutSiembraT = 0, tutAterrizo = false;
     let libroAvSel = 0;              // cursor de la pantalla ELEGI TU AVION ('libroavion')
 
     // ---------- EL BANCO DEL PICHON (mejoras de campaña, GUION_2 §2c) ----------
@@ -1000,9 +1024,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  preguntando a `MISSIONS` y no se entera de que hay nada mas. Lo unico que mira `NIVELES` es
      *  RESOLVER: dado un id o un indice, que mision es. Poner las de prueba AL FINAL es lo que
      *  hace que los indices de campaña no se muevan ni un lugar. */
-    const NIVELES = MISSIONS.concat(MISIONES_PRUEBA, LIBRO_VUELO);
+    const NIVELES = MISSIONS.concat(MISIONES_PRUEBA, LIBRO_VUELO, TUTORIAL_ETAPAS);
     /** El indice en NIVELES de la salida `k` del LIBRO DE VUELO (van al final, detras de las pruebas). */
     const nivelLibro = k => MISSIONS.length + MISIONES_PRUEBA.length + k;
+    /** …y la etapa `k` del TUTORIAL (data/tutorial.js), detras del libro. */
+    const nivelTut = k => nivelLibro(LIBRO_VUELO.length) + k;
     /** Carga la mision `i`. `keepCfg` NO pisa la config de mapa: lo usa MINUTOS SAGRADOS al
      *  cambiar de buque, para no perder el FONDO/AGUA que elegiste para mirarlo. */
     let cieloIda = null;   // el cielo de la ida, mientras la vuelta vuela con otro (V5)
@@ -1721,6 +1747,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     }
     /** El epilogo de la mision que se acaba de volar. */
     function irAlEpilogo() {
+      // EL TUTORIAL no cuenta nada al final: la etapa queda tildada y se vuelve a su menu
+      if (libro && libro.tut) { marcarEtapa(libro.k); volverAlLibro(); return; }
       // EL LIBRO DE VUELO cuenta lo que pasó SIEMPRE, y lo que pasó es de la salida en curso — no
       // depende de que la corrida haya llegado a armar su recuento.
       if (libro && curMission() && curMission().epi) { initStory(curMission().epi); setState('epilogue'); return; }
@@ -1762,7 +1790,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function confirmMode() {
       const m = MODES[modeSel];
       // HISTORIA ya no arranca directo: pasa por su submenu (CONTINUAR / campañas)
-      if (m === 'campaign') { campIr('raiz'); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
+      if (m === 'tutorial') { campIr('tutorial'); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
+      else if (m === 'campaign') { campIr('raiz'); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'quick' || m === 'dev') { subMenu = m; quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'options') { optCtrl = false; setState('options'); beep(600, 0.06, 'square', 0.05); }
       else if (m === 'quit') quitGame();
@@ -2194,7 +2223,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function quitGame() {
       beep(300, 0.18, 'square', 0.05, 120);
       try { window.close(); } catch (e) { }
-      setTimeout(() => { if (!window.closed) { modeSel = 0; setState('title'); } }, 250);
+      setTimeout(() => { if (!window.closed) { modeSel = modeInicial(); setState('title'); } }, 250);
     }
 
     // ---------- PAUSA: logica del menu ----------
@@ -2212,7 +2241,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     const pauseSaveRows = () => (saves.canSaveNew() ? [{ id: null }] : []).concat(saves.listSaves());
     const PAUSABLE = () => S.state === 'play' || S.state === 'takeoff' || S.state === 'landing' || S.state === 'momentum' || S.state === 'arena' || S.state === 'pasada' || S.state === 'pulso';
     function pauseToggle() {
-      if (!paused && (!PAUSABLE() || cfg.devcam || dlgPausa)) return;   // ni encima de un dialogo
+      // (18/11: TAMBIEN encima de un dialogo congelado — START y ESC pausan siempre; el dialogo espera debajo)
+      if (!paused && (!PAUSABLE() || cfg.devcam)) return;
       paused = !paused;
       if (paused) {
         pauseSel = 0; pauseView = 'menu'; pauseMsgT = -9;
@@ -2252,7 +2282,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         paused = false;
         if (S.test) salirTest();
         else if (libro) volverAlLibro();
-        else { setState('modeselect'); modeSel = 0; }
+        else { setState('modeselect'); modeSel = modeInicial(); }
         beep(400, 0.09, 'square', 0.05);
       }
     }
@@ -2322,7 +2352,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       { id: 'c1' },
       // { id: 'c2', disabled: !CAMPAIGNS[1].enabled },
       { id: 'back', back: true, sub: true },
-    ]) : campVista === 'libro' ? [
+    ]) : campVista === 'tutorial' ? [
+      // EL TUTORIAL (data/tutorial.js): cada etapa abre la siguiente (en DEV, todas abiertas)
+      ...TUTORIAL_ETAPAS.map((m, k) => ({ id: 'tut', k, hecha: etapaHecha(k), disabled: !DEV && k > 0 && !etapaHecha(k - 1) })),
+      { id: 'back', back: true, tut: true },
+    ] : campVista === 'libro' ? [
       ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k })),
       // las que vienen, en gris debajo (17/10): se ven y se marcan, no se entran
       ...LIBRO_PROXIMAS.map((m, k) => ({ id: 'proxima', k, disabled: true })),
@@ -2337,11 +2371,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       campVista = vista;
       // con la campaña BLOQUEADA (la demo) la raiz arranca sobre el LIBRO DE VUELO: es lo que se juega
       if (!fila && vista === 'raiz' && CAMPANA_BLOQUEADA) fila = r => r.id === 'secLibro';
+      // el tutorial arranca sobre la primera etapa sin hacer
+      if (!fila && vista === 'tutorial') fila = r => r.id === 'tut' && !r.hecha && !r.disabled;
       const rows = campRows(), i = fila ? rows.findIndex(fila) : -1;
       campSel = i >= 0 ? i : campFirstSel();
     }
     /** Sube un nivel en HISTORIA (ATRAS o ESC adentro de una seccion). */
     function campAtras() {
+      if (campVista === 'tutorial') { modeSel = MODES.indexOf('tutorial'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
       const de = campVista === 'libro' ? 'secLibro' : 'secCampanas';
       campIr('raiz', r => r.id === de); beep(400, 0.06, 'square', 0.05);
     }
@@ -2363,13 +2400,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // ATRAS deja el cursor del menu principal SOBRE la fila de la que se vino: volver no puede
       // costar volver a buscar donde estabas.
       // el ATRAS de adentro de una seccion vuelve a la raiz de HISTORIA, sobre la seccion
-      if (r.id === 'back' && r.sub) { campAtras(); return; }
+      if (r.id === 'back' && (r.sub || r.tut)) { campAtras(); return; }
       if (r.id === 'back') { modeSel = MODES.indexOf('campaign'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
       if (r.id === 'secCampanas') { campIr('campanas'); beep(600, 0.06, 'square', 0.05); return; }
       if (r.id === 'secLibro') { campIr('libro'); beep(600, 0.06, 'square', 0.05); return; }
       if (r.id === 'continue') { savesSel = 0; setState('saves'); beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'c1') { startCampaign(); beep(700, 0.08, 'square', 0.05); }
       else if (r.id === 'libro') { abrirLibro(r.k); beep(700, 0.08, 'square', 0.05); }
+      else if (r.id === 'tut') { abrirTutorial(r.k); beep(700, 0.08, 'square', 0.05); }
     }
 
     // ---------- EL LIBRO DE VUELO (data/libro_vuelo.js) ----------
@@ -2381,8 +2419,22 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (!m) return;
       libro = { k, av: null };
       gameMode = 'cycle'; S.test = false;
+      startCiclo = null;   // (lo mismo que el tutorial: el arranque guardado de CICLO no es de esta salida)
       loadLevel(nivelLibro(k));
       initStory(m.contexto); setState('story');
+    }
+    /** UNA ETAPA DEL TUTORIAL: sin contexto ni eleccion — despega derecho, TERO solo en el A-4B. */
+    function abrirTutorial(k) {
+      if (!TUTORIAL_ETAPAS[k]) return;
+      libro = { k, av: null, tut: true };
+      gameMode = 'cycle'; S.test = false;
+      // (18/11, "no arranco despegando"): el arranque que CICLO se guarda mientras encadena blancos en vuelo no
+      // puede colarse aca — el reset lo devolvia DESPUES de que la etapa pidiera pista, y se arrancaba volando
+      startCiclo = null;
+      loadLevel(nivelTut(k));
+      // (SIEMPRE DE CERO, de principio a fin — el autor, 18/11: no se retoma desde ningun punto de control)
+      libroAvSel = 0;
+      libroDespegar();
     }
     /** Termina el contexto: a elegir el avion — SOLO SI HAY QUE ELEGIR (autor, 13/10: "si son todos
      *  iguales no pongas nada; si son iguales pero tienen diferentes configuraciones quiza si; si podes
@@ -2391,12 +2443,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  primero (las chapas siguen yendo al escuadron, ver libroRoster). */
     function libroElegir() {
       libroAvSel = 0;
-      const m = LIBRO_VUELO[libro.k];
+      const m = libroDef();
       const distintos = new Set(m.aviones.map(a => a.plane + '|' + a.carga)).size;
       if (distintos > 1) setState('libroavion'); else libroDespegar();
     }
     function libroAvNav(dir) {
-      const n = LIBRO_VUELO[libro.k].aviones.length;
+      const n = libroDef().aviones.length;
       libroAvSel = (libroAvSel + dir + n) % n;
       beep(520, 0.05, 'square', 0.04);
     }
@@ -2404,7 +2456,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  (`cfg.squad` de la salida), todos PILOTO, y lo que los distingue es la chapa — la elegida al
      *  mando y las demas detras, en el orden de la lista (ver el roster en `reset`). */
     function libroDespegar() {
-      const m = LIBRO_VUELO[libro.k], av = m.aviones[libroAvSel];
+      const m = libroDef(), av = m.aviones[libroAvSel];
       if (!av) return;
       // EL TRAMO de una salida con `lanzamiento` (EL INVINCIBLE) sale del ROL del avion elegido: el que
       // lanza arranca en 'super'; el que escolta, en 'sigue' (detras de los Super Etendard)
@@ -2420,7 +2472,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     }
     /** El roster y las chapas de la salida en curso, con el avion elegido al mando. */
     function libroRoster() {
-      const m = LIBRO_VUELO[libro.k], n = Math.max(1, cfg.squad | 0);
+      const m = libroDef(), n = Math.max(1, cfg.squad | 0);
       // la elegida al mando y despues las demas en el orden de la lista, dando la vuelta si volaron
       // mas aviones que chapas (la PLYMOUTH: cinco Dagger y dos escuadrillas — se alternan, porque no
       // se sabe de cual era el que volvio por el parabrisas)
@@ -2437,7 +2489,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         h = (Math.imul(h, 1103515245) + 12345) >>> 0;
         const j = h % (i + 1); [pool[i], pool[j]] = [pool[j], pool[i]];
       }
-      return { roster: Array.from({ length: n }, (_, i) => pool[i % pool.length]), chapas: orden };
+      // AL MANDO, ESTEBAN (17/11, el autor: "usemos a Esteban como piloto base"); detras, los generales.
+      // En el TUTORIAL vuela TERO (18/11, el autor): el Turco y el Pichon le hablan a el
+      const jefe = libro && libro.tut ? 'TERO' : 'ESTEBAN';
+      return { roster: Array.from({ length: n }, (_, i) => i === 0 ? jefe : pool[(i - 1) % pool.length]), chapas: orden };
     }
     /** EN QUE TRAMO va una salida con `lanzamiento` (hoy EL INVINCIBLE): 'super' si se eligio el Super
      *  Etendard (hasta el Pulso, que cierra la mision); con el A-4C, 'sigue' detras de los Super Etendard
@@ -2498,7 +2553,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  el lider pasa a ser el misil y empieza la escolta. */
     function pasoSigue() {
       if (!persec.active() && !chancha.snapshot() && (chIdaLlena || rutaSys.enAlcance())) {
-        const su = LIBRO_VUELO[libro.k].aviones.find(a => a.rol === 'lanza');
+        const su = libroDef().aviones.find(a => a.rol === 'lanza');
         persec.startPersec({ nombre: su ? su.chapa : 'SUPER ÉTENDARD', plane: su ? su.plane : 'supere', mudo: true });
       }
       if (run.dist >= objectiveDist * (curMission().lanzamiento || 0)) {
@@ -2586,9 +2641,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     }
     /** Sale del libro y vuelve a su menu, con el cursor sobre la salida que se acaba de volar. */
     function volverAlLibro() {
-      const k = libro ? libro.k : 0;
+      const k = libro ? libro.k : 0, tut = !!(libro && libro.tut);
       libro = null; paused = false;
       soltarMision();
+      // del TUTORIAL se vuelve a su menu, sobre la etapa recien volada (o la siguiente, si se termino)
+      if (tut) {
+        campIr('tutorial', r => r.id === 'tut' && r.k === (etapaHecha(k) && k + 1 < TUTORIAL_ETAPAS.length ? k + 1 : k));
+        setState('campmenu');
+        return;
+      }
       campIr('libro', r => r.id === 'libro' && r.k === k);
       setState('campmenu');
     }
@@ -2711,7 +2772,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       escapeSys.terminar();
       escapeSys.resetFuga(); senas = null;
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
-        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta(),
+        // (en el TUTORIAL pegarle no abre el escape: sin radar no hay estrellas que perder, y la vuelta arranca de corrido)
+        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta() && !(libro && libro.tut),
           dificultad: curMission() && curMission().dificultad, bomba: bombaDeLaMision(),
           espoletas: suelto() ? espoletasDe(pichon) : 0,   // las del banco suelto
           // el piso de una ESTRUCTURA: la explanada que la geografia le aplana debajo (0 sin geografia)
@@ -2816,6 +2878,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // no significa nada. A diferencia de los tramos, un modo SIN objetivo si puede llevar
       // zigzag (el preset del menu en POR LA PATRIA): ahi la ventana vale entera.
       zigzag.setZigzag(curMission() ? curMission().zigzag : null, objectiveDist);
+      // EL FRENTE DE TORMENTA (18/11, systems/frente.js): el de la mision (`frente` en su entrada) o, en POR LA
+      // PATRIA y CICLO, al azar con cielo de dia (y nunca en el nivel de la ola gigante, que ya es tormenta)
+      {
+        const dia = ['dawn', 'clear', 'sun', 'cloudy', 'dusk'].includes(cfg.sky);
+        const fdef = suelto() ? (dia && !gigNivel ? sortearFrente(objectiveDist) : null) : (curMission() && curMission().frente) || null;
+        setFrente(fdef, objectiveDist);
+        if (hayFrente()) precargarCielo('storm');
+      }
       // LAS FASES de la corrida (PLAN_MISION_CINCO_FASES §11), tercer vecino de la misma cuadra y
       // por el mismo motivo: tambien son fracciones de `objectiveDist`. La diferencia con los
       // tramos es el ALCANCE — las fases pasan de 1, porque la VUELTA ocurre despues del buque.
@@ -2913,7 +2983,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // `save` es la clave de localStorage; `preview` le pide al render que dibuje el valor.
     const yesNo = () => [T('optYes'), T('optNo')];
     const volSel = { musica: 10, ambiente: 10, unidad: 10 };   // OPCIONES → SONIDO, de 0 a 10
-    const OPT_ROWS = [
+    const OPT_TODAS = [
       { head: 'optSecJuego' },
       { label: () => T('optLang'), opts: LANGS, names: () => LANGS.map(l => STRINGS[l].langName),
         get: () => getLang(), set: v => { setLang(v); applyChrome(); } },
@@ -3144,6 +3214,16 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         names: () => [T('optDevcamOff'), T('optDevcamOn')],
         get: () => cfg.devcam, set: v => cfg.devcam = v },
     ];
+    // LAS OPCIONES DE DESARROLLO, APARTE (18/11, el autor: "hay muchas cosas de OPCIONES que son de DEV… no deberian
+    // verse ni cambiarse"). El jugador ve JUEGO, SONIDO y CONTROL; PARTIDA, AMBIENTE, MAPA, CICLO, ARENA y
+    // DEPURACION son herramientas para tunear y solo aparecen en DEV, debajo de su propio encabezado.
+    // EN PROD NI SIQUIERA SE LEEN: `loadOpts` recorre OPT_ROWS, asi que un valor viejo guardado de una de estas
+    // (un ARRANQUE en vuelo, un mapa sin olas) no puede colarse en el juego publicado — manda el default.
+    const SECCIONES_DEV = new Set(['optSecPartida', 'optSecAmbiente', 'optSecMapa', 'optSecCiclo', 'optSecArena', 'optSecDebug']);
+    { let dev = false; for (const r of OPT_TODAS) { if (r.head) dev = SECCIONES_DEV.has(r.head); r.dev = dev; } }
+    const OPT_ROWS = DEV
+      ? (() => { const i = OPT_TODAS.findIndex(r => r.dev); return [...OPT_TODAS.slice(0, i), { head: 'optSecDev', dev: true }, ...OPT_TODAS.slice(i)]; })()
+      : OPT_TODAS.filter(r => !r.dev);
 
     // ---------- MEJORAS DEL PICHON ----------
     // Sub-pantalla de OPCIONES con TODO lo que toca al avión. Misma forma de fila que OPT_ROWS
@@ -3197,10 +3277,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         card: () => prefCard('InvY', () => T('optInvY')) },
       // ENERGIA: altura y velocidad se intercambian. Estaba en PARTIDA, pero es DESEMPEÑO del
       // avión — lo mismo que todo lo demás de esta pantalla.
-      { label: () => T('optEnergy'), opts: [true, false], names: onOff, sw: true,
+      // (ENERGIA y RED DE RADAR son de DEV desde el 18/11: tunean el vuelo y el dibujo, no son preferencias del jugador)
+      { dev: true, label: () => T('optEnergy'), opts: [true, false], names: onOff, sw: true,
         get: () => cfg.energy, set: v => cfg.energy = v, save: 'rasante_energia',
         card: () => prefCard('Energy', () => T('optEnergy')) },
-      { label: () => T('optNet'), opts: [0, 1, 2],
+      { dev: true, label: () => T('optNet'), opts: [0, 1, 2],
         names: () => [T('optNetOff'), T('optNetEnter'), T('optNetAlways')],
         get: () => cfg.radarNet, set: v => cfg.radarNet = v, save: 'rasante_red',
         card: () => prefCard('Net', () => T('optNet')) },
@@ -3256,7 +3337,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         { head: () => T('mejSecCarga') },
         ...APAGABLES.map(mejMoveRow),
         { head: () => T('mejSecPuesto') },
-        ...MEJ_PREFS,
+        ...MEJ_PREFS.filter(r => DEV || !r.dev),
       ];
     }
     let mejSel = 1;   // arranca en el maestro: la fila 0 es el encabezado
@@ -3327,7 +3408,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       } catch (e) { }
       // Las de MEJORAS DEL PICHON entran acá aunque vivan en otra pantalla: lo que decide si una
       // fila se relee es que tenga `save`, no dónde se dibuja.
-      for (const r of [...OPT_ROWS, MEJ_MASTER, ...MEJ_PREFS]) {
+      for (const r of [...OPT_ROWS, MEJ_MASTER, ...MEJ_PREFS.filter(r => DEV || !r.dev)]) {
         if (!r.save) continue;
         try {
           const raw = localStorage.getItem(r.save);
@@ -3577,6 +3658,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let escapaT0 = -1;   // el rotulo LE DISTE! ESCAPA YA! (cuando arranco, performance.now; -1 = no)
     let rotuloT0 = -1, rasPrev = false;   // el rotulo RASANTE: cuando arranco (performance.now) y el flanco
     let toT = 0, toCount = 4;
+    // EL DESPEGUE JUGABLE (core/despegue.js): la carrera en curso, o null si el despegue es la animacion
+    // de siempre. Lo pide la mision con `despegueJugable: true` (hoy la etapa 1 del tutorial).
+    let carrera = null, carreraFallas = 0;
     // EL ATERRIZAJE (§4). Viven con la maquina de estados y no en `run` por la misma regla que los
     // relojes de las pantallas: son de ESTE momento, no del vuelo. `landDown` es el tren MANDADO
     // (lo que apretaste); `run.gear` es el tren REAL, que tarda GEAR_T en llegar — la distancia
@@ -3611,11 +3695,16 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 
     let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
+      // EL FRENTE DE TORMENTA devuelve el cielo, la lluvia y el viento que piso — antes de que el mundo al azar
+      // de los modos sueltos sortee el nuevo (systems/frente.js)
+      if (resetFrente()) applyCfg();
       // EL AZAR FIJO (17/11, core/azar.js): una salida del libro siembra con su id y su avion, asi que
       // cada vez que se vuela es la misma (enemigos, olas, cazas, defensas). Fuera del libro, Math.random.
-      sembrarAzar(libro && libro.av !== null ? LIBRO_VUELO[libro.k].id + '/' + libro.av : null);
+      sembrarAzar(libro && libro.av !== null ? libroDef().id + '/' + libro.av : null);
       // …y LA RADIO DEL LIBRO (core/voz.js): lo que diria el elenco lo dice el numeral, con su apodo y su cara
-      setVozLibro(libro && libro.av !== null ? {
+      // EL TUTORIAL arranca sus pasos (systems/tutorial.js) con cada corrida
+      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null); tutPasados = 0; tutRotos = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false;
+      setVozLibro(libro && libro.av !== null && !libro.tut ? {
         numeral: () => (run.lives >= 2 ? squad.pilotName(detras(run)) : null),
         piloto: () => squad.pilotName(alMando(run)),
       } : null);
@@ -3625,6 +3714,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (suelto() && !encadena) { oleadaVista = 0; pichon = []; cartasRun = []; bancoProx = bancoKm(); bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
       // LAS FALLAS Y LA BASE son de la corrida (resetRun no los conoce: sin esto pasaban a la campaña)
       if (!encadena) { run.fallasFlota = null; run.enBase = null; run.esquirlas = 0; run.esquirlaT = undefined; }
+      // LA SAL DEL PARABRISAS es de la salida (systems/salitre.js): el blanco encadenado del CICLO la conserva
+      if (!encadena) { run.sal = 0; run.salAviso = false; }
       // LOS MODOS SUELTOS (16/10): mundo al azar en cada corrida, y la barra del radar SUMA ESTRELLAS
       // (la alarma) como en las misiones con fases. PERSECUCION usa la cfg cruda: se le devuelve lo
       // que el azar piso. Un blanco encadenado del CICLO conserva el arranque en vuelo (siguienteBlanco).
@@ -3729,6 +3820,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       squad.resetFila();   // la fila de pilotos, en orden (core/squad.js)
       squad.resetSquad();
       toT = 0; toCount = 4;
+      carrera = curMission() && curMission().despegueJugable && !cfg.cliff && cfg.start !== 'air' ? nuevaCarrera() : null; carreraFallas = 0;
       // LA CAMARA ARRANCA DONDE ESTA EL AVION, no en una constante. Con ACANTILADO el avion nace
       // sobre la meseta (`resetPlane`: PORT_H + 1.2 = 16.2 m) y la camara quedaba clavada en 4,
       // o sea ONCE METROS POR DEBAJO del borde — y como el raster del mar decide "esto es pared
@@ -3928,7 +4020,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       mejNav: dir => { mejNav(dir); beep(500, 0.04, 'square', 0.03); },
       mejChange: dir => { mejChange(dir); beep(560, 0.05, 'square', 0.04); },
       mejBack,
-      startTitle: () => { if (S.state !== 'title') return; modeSel = 0; setState('modeselect'); beep(620, 0.07, 'square', 0.05); },
+      startTitle: () => { if (S.state !== 'title') return; modeSel = modeInicial(); setState('modeselect'); beep(620, 0.07, 'square', 0.05); },
       difNav: dir => { if (S.state === 'dificultad') difNav(dir); },
       // ARRIBA/ABAJO en la pantalla del avion: desplazan el texto de la FICHA (16/10)
       fichaNav: dir => { const n = Math.max(0, Math.min(menus.FICHA_INFO.max, fichaScroll + dir)); if (n !== fichaScroll) { fichaScroll = n; beep(500, 0.03, 'square', 0.03); } },
@@ -4280,6 +4372,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       }
       return (im.complete && im.naturalWidth) ? im : null;
     }
+    /** Pide por adelantado el telon de `sky` (el FRENTE DE TORMENTA cambia el cielo a mitad de vuelo). */
+    function precargarCielo(sky) {
+      const e = TBACK ? TBACK_MAP[sky] : null;
+      if (!e || tbackImgs[e.f]) return;
+      const im = tbackImgs[e.f] = new Image();
+      im.src = TBACK + e.f;
+      im.onload = () => { world3D.invalidatePalette(); };
+    }
     /** Fila del horizonte de la imagen activa (0..1). Si no hay imagen no se usa. */
     function tbackHor() { const e = tbackEntry(); return e ? e.hor : 0.72; }
 
@@ -4311,6 +4411,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // exista. El `!run.climaxHecho` lo hace idempotente — si algo volviera a llamar, cierra.
       if (gameMode === 'cycle' && suelto()) { siguienteBlanco(); return; }
       if (!run.climaxHecho && fases.hayVuelta()) { volverDelBlanco(); return; }
+      // EL TUTORIAL no tiene recuento: la etapa se tilda y se vuelve a su menu. Si termino ATERRIZANDO (la
+      // etapa 3), el avion rueda y el tutorial dice lo ultimo antes (ver el bloque del aterrizaje)
+      if (libro && libro.tut) {
+        if (S.state === 'landing' && tutSys.activo()) { tutAterrizo = true; return; }
+        freezeRun(); engineOff(); irAlEpilogo(); return;
+      }
       freezeRun();
       setState('results'); levelT = 0; resT = 0; resRow = 0;
       beep(700, 0.15, 'square', 0.06, 1000);
@@ -5152,6 +5258,127 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  Con `foco` o `teclas` se congela el juego (la PAUSA DE DIALOGO de siempre, que ya espera
      *  cualquier tecla); sin ninguna de las dos es una linea de radio mas. Las lecciones NO pasan por
      *  `condorAlcance`: estan puestas a mano en su lugar, y el corte de Condor esta afuera a proposito. */
+    /** UN CUADRO DE LA CARRERA (despegue jugable). El gas es la tecla de subir de siempre: apretada, la
+     *  palanca sube y el avion acelera; a la velocidad de rotacion con el gas a fondo, levanta. Si se
+     *  termina la pista antes, se vuelve a la cabecera con una linea de radio (en el tutorial, del Turco o
+     *  del Pichon): no hay choque ni derrota en la pista. */
+    function pasoDespegue(dt) {
+      toT += dt;
+      pasoCarrera(carrera, dt, !!inp.u, cfg.coast);
+      // APOYADO SOBRE LAS RUEDAS (18/11, "la sombra en la pista esta demasiado adelante"): a 1,2 m, como el despegue
+      // automatico (core/state.js resetPlane). A 0 el dibujo quedaba hundido en la pista y la sombra corrida
+      const RUEDAS = 1.2;
+      run.spd = carrera.spd; run.dist = carrera.dist; plane.y = RUEDAS + carrera.y; run.throttle = carrera.gas;
+      plane.x += (0 - plane.x) * Math.min(1, dt * 3);
+      if (carrera.sinPista) {
+        const sc = SCENES[(curMission().avisos || {}).pista];
+        const ln = sc && sc.lineas[carreraFallas % sc.lineas.length];
+        carreraFallas++;
+        carrera = nuevaCarrera();
+        run.spd = carrera.spd; run.dist = 0; plane.y = RUEDAS; run.throttle = 0; fadeT = 0.8;
+        beep(180, 0.15, 'square', 0.05);
+        cartel(T('tkSinPista'), P.warn);
+        if (ln) decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
+      }
+      if (carrera.y > 0.5) run.gear = Math.max(0, run.gear - dt / GEAR_T);
+      cam.x += (plane.x * 0.86 - cam.x) * Math.min(1, dt * 7);
+      cam.y += (plane.y + 2.6 - cam.y) * Math.min(1, dt * 7);
+      if (cam.y < 3.4) cam.y = 3.4;
+      if (plane.y < 2.5 && run.spd > 12) polvoSuelo(plane.x, PZ, 0.6);
+      engineFly(run.spd, false, 0.017 * Math.min(1, 0.3 + carrera.gas));
+      stepTutorial(dt);
+      if (enControl(carrera) && S.state === 'takeoff') {
+        setState('play'); run.shake = Math.min(6, run.shake + 1);
+        squad.beginExit();
+      }
+      parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
+      prune(parts, p => p.life > 0); capParts();
+      popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
+      prune(popups, p => p.life > 0);
+      run.shake = Math.max(0, run.shake - dt * 10);
+      flags.anyPress = false; flags.backReq = false;
+    }
+    // ---------- EL TUTORIAL (systems/tutorial.js, data/tutorial.js) ----------
+    /** Un cuadro del tutorial: le da al motor la foto del vuelo y hace lo que pide. Las lineas de un paso
+     *  congelan el mundo con la MISMA pausa que las lecciones (velo, foco, teclas); el motor no se llama
+     *  mientras el dialogo esta congelado, asi que cada linea sale cuando se acepto la anterior. */
+    function stepTutorial(dt) {
+      if (!libro || !libro.tut) return;
+      if (tutFinT >= 0) { tutFinT -= dt; if (tutFinT < 0) irAlEpilogo(); return; }
+      if ((S.state !== 'play' && S.state !== 'landing' && !(S.state === 'takeoff' && carrera)) || dlgPausa || !tutSys.activo()) return;
+      for (const o of obstacles) {
+        if (o.practica && !o._tutRoto && o.hp <= 0) { o._tutRoto = true; tutRotos++; }
+        if (!o._tutPaso && o.z < PZ - 3) { o._tutPaso = true; if (!(o.hp <= 0) && !o.practica) tutPasados++; }
+      }
+      // LOS BLANCOS DE PRACTICA (`blancos` del paso): si no queda ninguno adelante, vuelven a salir —
+      // errarle a todos no traba el paso
+      const bl = tutSys.blancos();
+      if (bl && !obstacles.some(o => o.practica && !o.done && o.hp > 0 && o.z > PZ + 4)) {
+        tutSiembraT += dt;
+        if (tutSiembraT > 1.2) { tutSiembraT = 0; sembrarBlancos(bl); }
+      } else tutSiembraT = 0;
+      const a = tutSys.tick(dt, { alt: plane.y, techo: fases.techoRadar(RADAR_ALT), roza: run.scrapeVib > 0.6,
+        // (el mando rola con el stick derecho, que escribe rollAx y no rollL/rollR: cuenta igual — 18/11, "no puedo
+        // pasar de rolar")
+        inp: Object.assign({}, inp, { rollL: inp.rollL || inp.rollAx < -0.3, rollR: inp.rollR || inp.rollAx > 0.3 }),
+        pasados: tutPasados, rotos: tutRotos, overheat: !!run.overheat, enVuelo: S.state === 'play',
+        mv: run.mv || null, bombasVuelo: pmissiles.filter(p => !p.tanque).length, climaxHecho: !!run.climaxHecho,
+        faltan: objectiveDist > 0 ? (objectiveDist - run.dist) / objectiveDist : 1, aterrizando: S.state === 'landing', tren: landDown, aterrizo: tutAterrizo,
+        pausado: paused }, SCENES);
+      if (!a) return;
+      const decirLn = ln => ln && decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
+      if (a.tipo === 'decir') {
+        beep(430, 0.06, 'square', 0.04);
+        decirLn(a.linea);
+        lecFoco = { foco: a.foco, teclas: a.teclas };
+        dlgPausa = true; dlgT = 0; dlgTyped = 0;
+        engineOff();
+      } else if (a.tipo === 'mundo') {
+        cfg.obstacles = a.paso.obstacles || 0;
+        // lo que quedo de la practica anterior se va: cada paso arranca con sus blancos
+        for (const o of obstacles) if (o.practica && !o.done) { o.done = true; o.z = -99; }
+        if (a.paso.blancos) sembrarBlancos(a.paso.blancos);
+        // LA PAUSA GUIADA (`abre`): el juego abre la pausa sola, en CONTROLES y en la pestaña que se explica
+        if (a.paso.abre) {
+          paused = true; pauseSel = 0; pauseView = 'controls'; pauseMsgT = -9;
+          ctrlTab = Math.max(0, CTRL_CATEGORIAS.findIndex(c => c.id === a.paso.abre));
+          engineOff(); beep(430, 0.07, 'square', 0.05, -80);
+        }
+      }
+      else if (a.tipo === 'radio') decirLn(a.linea);
+      else if (a.tipo === 'fin') {
+        decirLn(a.linea);
+        cfg.obstacles = 0;
+        cartel(T('tutEtapaOk'), P.accent);
+        tutFinT = 4;
+      }
+    }
+    /** Siembra los blancos de un paso: `n` en fila hacia adelante, repartidos de costado y a la altura del
+     *  rasante (el caza, en tu linea: viene de frente). */
+    function sembrarBlancos(bl) {
+      for (let k = 0; k < (bl.n || 1); k++) {
+        const x = bl.tipo === 'jet' ? plane.x : [-5, 4, -1, 6, -6][k % 5] * (bl.ancho || 1);
+        const y = bl.tipo === 'jet' ? Math.max(8, Math.min(16, plane.y)) : 9 + (k % 3) * 2;
+        sembrarPractica(bl.tipo, x, y, BOMBA_Z_TOPE + k * (bl.paso || 45), !!bl.mueve);
+      }
+    }
+    /** LAS MARCAS DEL TUTORIAL: un anillo que late y una flecha arriba de cada blanco de practica. Van sobre
+     *  el mundo; en la pausa de una linea, encima del velo (lo que se explica no se tapa). */
+    function marcasTutorial(tReloj) {
+      if (!libro || !libro.tut) return;
+      for (const o of obstacles) {
+        if (!o.practica || o.done || !(o.hp > 0) || o.z <= PZ + 3) continue;
+        const s = proj(o.x, o.y || 0, o.z);
+        if (!(s.k > 0)) continue;
+        const r = Math.max(5, (o.type === 'jet' ? 5 : 3.2) * s.k) + 1.5 * Math.sin(tReloj * 6);
+        ctx.save();
+        ctx.strokeStyle = P.accent; ctx.fillStyle = P.accent; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.95;
+        ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.stroke();
+        const ya = s.y - r - 3 - 2 * Math.abs(Math.sin(tReloj * 4));
+        ctx.beginPath(); ctx.moveTo(s.x, ya); ctx.lineTo(s.x - 4, ya - 6); ctx.lineTo(s.x + 4, ya - 6); ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+    }
     function stepLecciones() {
       if (suelto()) return;   // SIN DIALOGOS en los modos sueltos (autor, 16/10: "al menos por ahora")
       const m = curMission(), L = m && m.lecciones;
@@ -5323,6 +5550,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         }
         misilCerca(dm); }
       // LA TORMENTA: relampagos, rayos y truenos mientras se vuela (systems/tormenta.js)
+      // EL FRENTE DE TORMENTA (systems/frente.js): cambia el cielo escondido en su niebla (o en el blanco de la capa)
+      if (!paused && (S.state === 'play' || S.state === 'relevo') && stepFrente(nubesAltas().blanco)) applyCfg();
       if (cfg.sky === 'storm' && !paused && (S.state === 'play' || S.state === 'takeoff' || S.state === 'relevo' || S.state === 'landing')) stepTormenta(dt, HOR, W);
       run.fgzTormenta = cfg.sky === 'storm' ? fogonazoTormenta() : 0;   // (lo lee la ola gigante: render/world.js)
       detectando(S.state === 'play' && rutaSys.enAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
@@ -5398,6 +5627,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (takeExit()) fogWarned = false;
       }
 
+      // EL DESPEGUE JUGABLE: la carrera con el gas (core/despegue.js) en vez de la animacion
+      if (S.state === 'takeoff' && carrera) { pasoDespegue(dt); return; }
       // despegue automático desde Puerto Argentino: el control llega a los 3 s
       if (S.state === 'takeoff') {
         toT += dt;
@@ -5474,8 +5705,17 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         return;
       }
       if (S.state === 'landing') {
+        // EL TUTORIAL YA ATERRIZO: el avion rueda hasta parar mientras se dice lo ultimo (stepTutorial cierra)
+        if (tutAterrizo) {
+          run.spd = Math.max(0, run.spd - 30 * dt); run.dist += run.spd * dt; plane.y = 0;
+          engineFly(run.spd, false, 0.01);
+          stepTutorial(dt);
+          flags.anyPress = false; flags.backReq = false;
+          return;
+        }
         landT += dt;
         stepLecciones();   // la de la aproximacion final (`en: 'aterrizaje'`)
+        stepTutorial(dt);
         // GAS Y CABECEO, con la misma cama del pasillo pero simplificada: aca no hay enemigos, no
         // hay racha y no hay viento. Lo unico que existe son las cuatro medidas.
         const gas = inp.u ? 1 : (inp.d ? -1 : 0);
@@ -5603,7 +5843,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           // cuando la secuencia se termina — el despegue, con FADE.
           if (stepStory(dt) === 'end') {
             // sonda del fixture (?scene=): la escena suelta no encadena a ninguna mision
-            if (sceneProbe) { setState('modeselect'); modeSel = 0; beep(400, 0.06, 'square', 0.05); }
+            if (sceneProbe) { setState('modeselect'); modeSel = modeInicial(); beep(400, 0.06, 'square', 0.05); }
             // SOLO CINEMATICAS: el briefing empalma con el epilogo y la mision no se vuela. Las dos
             // puntas del guion seguidas es justamente lo que hay que poder leer de una sentada — y
             // el epilogo ya sabe volver al catalogo (ver su rama, `S.test`).
@@ -5989,6 +6229,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       //     en el filo hay alguien mirando de cerca;
       //   · y el FLANCO, que se mira sobre `run.estrellas` en vez de pedirle una señal nueva al
       //     contrato de `flightSystem`. Quien habla es el orquestador, como con todo lo demas.
+      // EN EL TUTORIAL NADIE TE BUSCA (18/11, "me aparecio un harrier en la etapa 1"): la etapa pide subir arriba del
+      // techo del radar, y eso sumaba estrellas aunque el radar este apagado — y las estrellas traen Harriers
+      if (libro && libro.tut) { run.estrellas = 0; run.detection = 0; run.radarWave = 0; run.radarVisto = false; }
       const estAntes = run.estrellas;
       // EN EL ESCAPE (PLAN_VUELTA_REAL V0) las estrellas bajan con su propio reloj —mas corto que el
       // general: es un escape, no un tramo— y NO SE NARRAN: desde el impacto rige el silencio de
@@ -6143,6 +6386,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         needsMomentum: lr === 'escolta' || lr === 'sigue' ? false : needsMomentum, climax: runClimax(),
         climaxDist: lr === 'super' ? objectiveDist * curMission().lanzamiento : objectiveDist });
       squad.gastoLider(fuelAntes - run.fuel);
+      // LA SAL EN EL PARABRISAS (17/11): pega volando bajo sobre el mar, se va volando alto; el M-60 la evita
+      if (stepSalitre(dt, run.sobreAgua, siliconadoDe(pichon)) === 'aviso') cartel(T('salitre'), '#d8d2bf', T('salitre_sub'));
       damage.humoAveria(dt);   // el avion roto larga humo (por debajo de AVERIA_HUMO de integridad)
       // EL ROTULO QUE PASA VOLANDO (render/rotulo.js): en el cuadro en que el poder RASANTE se
       // prende —y con el, cambia la camara—, la palabra cruza la pantalla. Reloj de pared.
@@ -6161,6 +6406,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // sigas arriba te vuelven a hablar — quien espacia los avisos es `cada`, no un gate aparte.
       if (run.radarVisto && curMission() && curMission().avisos) avisar(curMission().avisos, 'radar');
       stepLecciones();
+      stepTutorial(dt);
       if (fs === 'objective') {
         // EL EXOCET LLEGA (libro r5): se adelanta solo hasta el portaaviones y estalla alla; la mision se
         // cierra cuando estalla (pasoEscolta), no en este cuadro
@@ -6173,7 +6419,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LLEGASTE A CASA (PLAN_MISION_CINCO_FASES §11): la VUELTA se termino. En una mision sin
       // fases esto es siempre falso y el pasillo cierra donde cerro siempre — en el objetivo.
       // (…no durante el ESCAPE ni su viraje: ahi el final es VOLVISTE A SALVO, no la pista — 8/10)
-      if (fases.llegaste() && !blancoSys.escapando() && !vir && !virVid) { iniciarAterrizaje(); return; }
+      // (en el TUTORIAL la vuelta se estira hasta que se practico lo que va en ella: ver tutSys.antesDeAterrizar)
+      if (fases.llegaste() && !blancoSys.escapando() && !vir && !virVid && !(libro && libro.tut && tutSys.antesDeAterrizar())) { iniciarAterrizaje(); return; }
       // RF-01: con clímax PASADA, los spawns se cortan ENTRY_CLEAR_M antes del buque. El último
       // tramo del pasillo se vacía y lo único que queda adelante es el blanco — es la mitad de
       // "sin corte": no hay obstáculos que desaparezcan de golpe al abrirse el mundo.
@@ -6201,6 +6448,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           }
           // OTRA PASADA del mismo avion (la mision da varias): tambien vuelve a encontrar el buque como lo dejo
           if (c === 'reencare') placaDefT = 1.6;
+          // EN EL TUTORIAL errar no cuesta la bomba: la otra pasada vuelve a traer una (el casco espera)
+          if (c === 'reencare' && libro && libro.tut) { const e = blancoSys.estado(); e.centroN = Math.max(1, e.centroN | 0); }
           if (av && av['bl_' + c]) avisar(av, 'bl_' + c);
         }
         // EL CRUCE es el fin del ataque: se le pasa por encima al buque y corta a negro. Hundido,
@@ -6447,7 +6696,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       setNiebla(fogFade());   // el brillo del filo se apaga en la niebla (render/borde.js)
       inicioLuz();   // la capa de luz del resplandor arranca vacia (ver render/brillo.js)
       ctx.setTransform(SC, 0, 0, SC, 0, 0);   // buffer 2×: todo el dibujo sigue en coords 320×180
-      const sx = (Math.random() - 0.5) * run.shake, sy = (Math.random() - 0.5) * run.shake;
+      // EL SACUDON SALE DEL RELOJ DEL JUEGO, no de Math.random (18/11, "en la pausa a veces el avion queda temblando"):
+      // con el mundo quieto (pausa, dialogo congelado) run.t no avanza y la camara queda quieta en vez de vibrar
+      const ruidoT = k => { const v = Math.sin(run.t * 91.7 + k * 78.233) * 43758.5453; return v - Math.floor(v) - 0.5; };
+      const sx = ruidoT(1) * run.shake, sy = ruidoT(2) * run.shake;
       const cm = momentum.cam();
       ctx.save(); ctx.translate(Math.round(sx) - cm.x, Math.round(sy) - cm.y);   // momentum: el mundo se mueve, la mira no
       // R5: ZOOM-PUNCH — el impacto de la bomba empuja la camara hacia adelante un instante. Sin
@@ -6590,6 +6842,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       }
       // LOS RAYOS DE LA TORMENTA, al fondo: despues del cielo y las nubes, antes de las sierras (render/rayos.js)
       if (cfg.sky === 'storm') drawRayos(rayosVivos());
+      drawFrenteMuro();   // la pared del FRENTE DE TORMENTA, con el fondo (render/frente.js)
       // COLINAS en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo;
       // la imagen de clima queda detras como relleno). Cresta QUEBRADA sorteada por seed y en
       // DOS TONOS — las laderas que miran al sol (izquierda) se iluminan, las otras quedan en
@@ -6681,7 +6934,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // Aparecio sola cuando la salida paso a trepar de verdad (la trepada cruza RADAR_ALT) y lo
       // que se ve es una reja roja tapando el buque que se hunde.
       // …y FUERA DE ALCANCE no hay red (PLAN_NAFTA_ALCANCE N2): no hay radar que dibujar.
-      if (cfg.radarNet && cfg.radar !== 'voz' && S.state !== 'pulso' && rutaSys.enAlcance())
+      if (cfg.radarNet && cfg.radar !== 'voz' && cfg.radar !== 'off' && S.state !== 'pulso' && rutaSys.enAlcance())
         world.drawRadarNet(fases.techoRadar(RADAR_ALT), world.escaneoRed(radarScanT >= 0 ? run.t - radarScanT : -1));
       if (cfg.hitboxes) world.drawHitboxes();   // depuracion: cajas de colision en verde fluor
       if (cfg.devcam && S.state === 'play') world.drawFlightLane(testRadio);   // modo camara: el carril del avion
@@ -6715,7 +6968,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       const all = obstacles.slice().sort((a, b) => b.z - a.z);
       // (de noche o en la niebla, cada enemigo con sus luces: render/luces_enemigos.js)
       const lucesK = Math.max(nocheDe(cfg.sky) ? 1 : 0, Math.min(1, fogFade() * 1.4));
-      run.lucesK = lucesK;   // (las luces de MI avion las lee render/plane.js — solo de noche o niebla, 22/10)
+      // LAS LUCES DE LA ESCUADRILLA SE APAGAN EN ZONA DE RADAR (17/11, el autor: "apagar las luces de los aviones
+      // en la noche una vez que entran en zona de radar; las de las balas y demas si"): prendidas en el despegue y
+      // en la zona libre, y se apagan —en un segundo— al cruzar el horizonte de radar (systems/ruta.js enAlcance;
+      // sin ruta, toda la mision es zona de radar). Las del enemigo, los tiros y las explosiones no se tocan.
+      { const prender = S.state === 'takeoff' || !rutaSys.enAlcance() ? 1 : 0, d = Math.max(0, Math.min(0.1, run.t - navT));
+        navT = run.t; navF += (prender - navF) * Math.min(1, d * 2.5); }
+      run.lucesK = lucesK * navF;   // (las luces de MI avion las lee render/plane.js, las de la formacion render/squad.js)
       setLucesCaza(lucesK);
       for (const o of all) if (o.z > 3) { world.drawObstacle(o); if (lucesK > 0) lucesEnemigo(o, lucesK); }
       // LO ALTO (14/11): la capa de nubes vista desde arriba tapa todo lo de abajo; adentro, el blanco
@@ -6891,6 +7150,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 
       // CORDON DE BRUMA: el telon del final del pasillo. Va afuera del bloque 2D (tiene que tapar
       // igual si el fondo lo pone three) pero ADENTRO del giro: es aire del mundo, rola con el.
+      drawFrenteNiebla();   // la niebla del cruce del FRENTE y su penumbra (render/frente.js)
       if (S.state !== 'arena' && S.state !== 'momentum') world.drawVeil(veilNow());
 
       // NIEBLA DE GUERRA (cfg.marco, render/marco.js): el velo de los COSTADOS, lo que no es
@@ -6957,6 +7217,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // hasta donde cae (core/balistica.js). Adentro del giro del horizonte: es mundo.
       // LA ONDA AZUL DEL RADAR PROPIO (15/10), detras del avion: sale de el
       if (S.state === 'play') drawRadarOndas();
+      // los blancos de practica del TUTORIAL, marcados (en la pausa de una linea se dibujan encima del velo)
+      if (S.state === 'play' && !dlgPausa) marcasTutorial(run.t);
       if (S.state === 'play' && (run.apuntaBomba || run.apuntaTanque)) {
         const suelo = cfg.terrain === 'land' || cfg.terrain === 'coast' ? 0.3 : 1.0;
         if (hzW) { ctx.save(); const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y; ctx.translate(hcx, hcy); ctx.rotate(hzW); ctx.translate(-hcx, -hcy); }
@@ -7045,7 +7307,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           // EL TURBO SE VE AFUERA (17/11, el autor: "al poner turbo, el turbo deberia verse FUERA de la cabina"):
           // en primera persona el barrido va ANTES de la cabina — barre el mundo por el vidrio, no la chapa
           // ni el tablero (encima los dejaba corridos y con pinta de agujereados)
-          if (!zoomOn) { drawTurbo(); turboHecho = true; }
+          if (!zoomOn) { drawTurbo(); turboHecho = true; drawSalitre(run.sal); }
           drawCabina();
           const apunta = proj(plane.x, plane.y + plane.pitch * 5, 70);   // la mira va SOBRE el vidrio
           drawMira(cfg.mira, W / 2 + cm.x, apunta.y + (hzP || 0) + cm.y, 17, 0.9);
@@ -7070,7 +7332,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // EL MOMENTUM TRAE EL MISMO BARRIDO Y OTRO MARCO — mucho mas cerrado (ver desenfoque.js). Va
       // ANTES del tinte frio y la viñeta de aca abajo, que siguen intactos: aquello es el color del
       // tiempo partido, esto es el encierro. Se ven los dos.
-      if (!turboHecho) drawTurbo();
+      if (!turboHecho) { drawTurbo(); if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') drawSalitre(run.sal); }
       // LA AUREOLA DEL SOL, encima del barrido: el destello vive en la LENTE, o sea despues de
       // todo lo que la lente esta mirando.
       //
@@ -7094,7 +7356,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // NO EN EL PULSO, por lo mismo que la red (ver drawRadarNet): con ruta, el blanco siempre esta
         // adentro del radar, y el velo cubria el buque de la cabina con una cupula palida (autor, 12/10:
         // "se ve horrible el barco"). Se le habia sacado la red al Pulso y se le olvido el tinte.
-        if (cfg.radarNet && cfg.radar !== 'voz' && S.state !== 'pulso' && rutaSys.enAlcance()) {
+        if (cfg.radarNet && cfg.radar !== 'voz' && cfg.radar !== 'off' && S.state !== 'pulso' && rutaSys.enAlcance()) {
           world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
           // EL ESCANEO al entrar a la zona: la linea que barre y el velo que deja (world.ESC_*)
           if (radarScanT >= 0) world.drawRadarEscaneo(run.t - radarScanT);
@@ -7110,7 +7372,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (sg > 0.01) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.72 * sg * (1 - 0.75 * fgz); ctx.fillStyle = '#010204'; ctx.fillRect(0, 0, cv.width, cv.height); ctx.restore(); } }
       drawBrillo(noche ? NOCHE.BRILLO : undefined, !!noche);
       // (de noche la luna no es el sol: su aureola va apenas — NOCHE.AUREOLA)
-      drawAureola(solPant, (rasante.active() ? 1 : AURA_NORMAL) * (noche ? NOCHE.AUREOLA : 1));
+      drawAureola(solPant, (rasante.active() ? 1 : AURA_NORMAL) * (noche ? NOCHE.AUREOLA : 1) * (1 - ((run.frente && run.frente.tapaSol) || 0)));   // (la pared del FRENTE tapa el sol)
       // MOMENTUM: tinte frio + viñeta mientras el tiempo esta partido. Va sobre el MUNDO y bajo
       // el HUD: la cabina sigue nitida — es el aire el que cambia, no los instrumentos.
       if (S.state === 'play' && tempo.active()) {
@@ -7135,7 +7397,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         const sc = dlg.seq[dlg.si], ln = sc && sc.lineas ? sc.lineas[dlg.li] : null;
         return ln ? ln.personaje : null;
       };
-      if (S.state === 'play') {
+      // (en el DESPEGUE JUGABLE el tablero y la radio ya estan: el gas y la velocidad son la carrera)
+      if (S.state === 'play' || (S.state === 'takeoff' && carrera)) {
         const sueltaHud = runClimax() === 'suelta' ? blancoSys.hud() : null;
         // EL MOMENTO PERDIDO SE LLEVA LA UI ENTERA (pedido del autor, 26/9: "se mete FADE, se quita la
         // UI, y queda solo el avion volando"). No solo el marcador del buque: los relojes y la cinta
@@ -7144,7 +7407,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
         ctx.save(); ctx.scale(U, U); if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
-        radarAlt: fases.techoRadar(RADAR_ALT),
+        radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off',
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
         // …el MOMENTO de soltar (titila en verde: la cinta, su avion, el altimetro y el estante) y
@@ -7199,7 +7462,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // ¿EN ESTA CORRIDA PUEDE SUBIR? Solo con fases: sin ellas `pinta` no se resuelve y completar
         // la barra del radar dispara la oleada de siempre sin sumar nada. Decide si el panel se ve
         // a nivel cero (apagado, esperando) o no existe.
-        busqueda: fases.hayFases() || suelto(), suelto: suelto(),   // (16/10: en los modos sueltos la alarma corre siempre)
+        // (con el radar APAGADO —el tutorial— no hay busqueda que mostrar: la placa ZONA RADAR no va, 18/11)
+        busqueda: cfg.radar !== 'off' && (fases.hayFases() || suelto()), suelto: suelto(),   // (16/10: en los modos sueltos la alarma corre siempre)
           // EL PODER RASANTE va por snapshot (convencion 4): el lint de capas prohibe que el
           // render importe de systems, y la lista de excepciones solo puede achicarse.
           ras: { on: rasante.active(), resta: rasante.restante(), dur: rasante.duracion() } }); if (!perdidaUI) drawCinta();
@@ -7267,7 +7531,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // MENUS Y PANTALLAS: tambien en grilla de diseño (320x180), escaladas por U
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
-      if (S.state === 'takeoff') hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto());
+      if (S.state === 'takeoff') hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto(), !!carrera);
       // LA CORTA FINAL: las ventanas se resuelven ACA y no en el HUD, con las mismas constantes que
       // despues CALIFICAN la toma. Si el dibujo tuviera su propia idea de "velocidad correcta", el
       // instrumento y el juez podrian discrepar — y no hay nada peor que un HUD en verde y un
@@ -7319,7 +7583,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t, vista: campVista });
-      if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: LIBRO_VUELO[libro.k], sel: libroAvSel, t: run.t });
+      if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: libroDef(), sel: libroAvSel, t: run.t });
       if (S.state === 'dificultad') menus.drawDificultad({ sel: difSel, difs: DIFICULTADES, t: run.t });
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), dev: subMenu === 'dev', t: run.t });
       if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
@@ -7365,6 +7629,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         ctx.beginPath(); ctx.rect(0, 0, W, H);
         for (const z of zonas) ctx.rect((z.x - PADZ) * U, (z.y - PADZ) * U, (z.w + 2 * PADZ) * U, (z.h + 2 * PADZ) * U);
         ctx.fill('evenodd');
+        marcasTutorial(dlgT);
         // …y un marco que respira alrededor de cada una: el ojo tiene que llegar ahi antes que al texto
         if (zonas.length) {
           ctx.save();
@@ -7777,6 +8042,16 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // __librodbg: EL LIBRO DE VUELO por dentro — que salida, que avion, con que escuadrilla y que
     // chapas, y que fila marca el menu. La usa tools/fixture_libro.js.
     if (typeof window !== 'undefined') window.__escSin = v => { escoltaSinAmenazas = v !== 0; return escoltaSinAmenazas; };
+    // sonda: donde va el tutorial (el fixture la lee para saber que hacer)
+    if (typeof window !== 'undefined') window.__tutdbg = () => JSON.stringify(Object.assign({ st: S.state, dlg: dlgPausa,
+      alt: +plane.y.toFixed(1), x: +plane.x.toFixed(1), pasados: tutPasados, rotos: tutRotos, over: !!run.overheat,
+      blanco: (() => { let b = null; for (const o of obstacles) if (o.practica && !o.done && o.hp > 0 && o.z > PZ + 4 && (!b || o.z < b.z)) b = o;
+        return b && { x: +b.x.toFixed(1), y: +(b.y || 0).toFixed(1), z: Math.round(b.z - PZ), tipo: b.type }; })(),
+      jets: obstacles.filter(o => o.type === 'jet' && !o.practica && !o.done).length, est: run.estrellas,
+      paused, landing: S.state === 'landing', tren: landDown, start: cfg.start, toT: +toT.toFixed(2),
+      bl: (() => { const h = blancoSys.hud(); return h && { listo: !!h.listo, alt: h.alt, x: +(blancoSys.estado().x || 0).toFixed(1), z: Math.round(blancoSys.estado().z - PZ) }; })(),
+      consigna: tutSys.consigna(), finT: tutFinT,
+      carrera: carrera && { gas: +carrera.gas.toFixed(2), spd: Math.round(carrera.spd), dist: Math.round(carrera.dist), aire: carrera.aire }, fallas: carreraFallas }, tutSys.estado()));
     if (typeof window !== 'undefined') window.__librodbg = () => JSON.stringify({
       state: S.state, libro, avSel: libroAvSel, modo: gameMode, test: S.test,
       fila: (campRows()[campSel] || {}), filas: campRows().map(r => r.head || r.id + (r.k !== undefined ? r.k : '') + (r.disabled ? '-' : '')),
@@ -8515,6 +8790,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // EL PELIGRO DEL ROCE, arriba en la pila y titilando mientras dure (8/10, el autor: "PELIGRO deberia
       // mostrarse en el cuadro de arriba, parpadeando"). Antes era texto suelto sobre los relojes.
       // (8/10: PELIGRO en rojo y debajo, en blanco, BAJA ALTURA)
+      // LA CONSIGNA DEL TUTORIAL (systems/tutorial.js): lo que hay que hacer ahora, con la cuenta debajo; cumplida,
+      // en verde con BIEN un segundo antes de la que sigue
+      { const tc = libro && libro.tut ? tutSys.consigna() : null;
+        const sub = !tc ? null : tc.hecho ? T('tutBien') : tc.prog == null ? null
+          : Math.floor(tc.prog) + ' / ' + tc.n;
+        cartelSostenido('tut', !!tc && (S.state === 'play' || S.state === 'landing' || (S.state === 'takeoff' && !!carrera)) && !dlgPausa && !paused, tc ? T(tc.clave, { n: tc.n }) : '', tc && tc.hecho ? '#8fd16a' : P.accent, null, sub); }
       cartelSostenido('peligro', S.state === 'play' && run.scrapeVib > 0.6, T('scrape'), P.warn, { alerta: true, subCol: P.ink }, T('scrapeSub'));
       tickCarteles(now / 1000);   // los carteles del pasillo (core/cartel.js): reloj de pared
       // PAUSA: se saltea update() ENTERO (y el reloj del momentum, y el del telon) — el mundo
@@ -8527,7 +8808,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // (SONDA, 13/11: `window.__congelado` frena el mundo sin menu, para comparar dibujos cuadro contra cuadro)
       if (typeof window !== 'undefined' && window.__congelado) { draw(); requestAnimationFrame(frame); return; }
       if (paused && !PAUSABLE()) paused = false;
-      if (dlgPausa && ((S.state !== 'play' && S.state !== 'landing') || (dlgT > 1 && !radioVis()))) { dlgPausa = false; lecFoco = null; }
+      if (dlgPausa && ((S.state !== 'play' && S.state !== 'landing' && !(S.state === 'takeoff' && carrera)) || (dlgT > 1 && !radioVis()))) { dlgPausa = false; lecFoco = null; }
       pausarAudio(paused);   // la pausa calla todo: musica, ambiente, loops (systems/audio.js)
       if (paused) {
         pauseT += raw;

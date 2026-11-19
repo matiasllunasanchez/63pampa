@@ -1676,3 +1676,17 @@ licencia; el hecho que las nombra tiene que estar bien antes de que el texto de 
 11. **KIT DE SUPERVIVENCIA:** ¿cómo se rescataba a un piloto eyectado sobre las islas (quién, en cuánto tiempo)?
 
 **Decisión del autor:** pendiente; las cartas ya están en el juego con su texto provisorio.
+
+## La sal en el parabrisas y el SILICONADO M-60 (17/11/2026)
+
+**Contexto:** el autor pidió la costra de sal en el parabrisas al volar rasante (systems/salitre.js) y la carta
+SILICONADO M-60 que la evita. Su texto: salitre cristalizado, plancton y algas quemados contra el vidrio caliente,
+una capa que ni la lluvia ni los limpiaparabrisas sacaban; pilotos que perdían la vista de frente y aterrizaban
+mirando por el costado o guiados por radio.
+
+**A verificar:**
+1. ¿Hay testimonios concretos (piloto, avión, fecha) de aterrizajes con el parabrisas tapado de sal?
+2. ¿Se trataba el parabrisas con algo (silicona, repelente) antes de salir, o se limpiaba solo en tierra?
+3. ¿La parte orgánica (plancton, algas que teñían la capa) está documentada o es inferencia?
+
+**Decisión del autor:** pendiente; la carta dice que el aerosol es del juego.

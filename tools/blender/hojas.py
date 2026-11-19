@@ -37,7 +37,8 @@ ICONOS_CARTAS = ['canon', 'cinta', 'bala', 'brp', 'snakeye', 'espoleta', 'ter', 
                  'chafitas', 'chapa', 'casco', 'llave', 'a4', 'caja_herr', 'motor', 'reloj',
                  'cajon', 'tanques', 'hercules', 'arena', 'rasante', 'radar', 'neptune', 'auriculares',
                  'antena', 'mirage', 'learjet', 'pinza', 'terreno', 'itb', 'paracaidas', 'pirueta',
-                 'fideos']   # (20/10: la maquina de fideos, la carta de las primeras chafitas)
+                 'fideos',   # (20/10: la maquina de fideos, la carta de las primeras chafitas)
+                 'aerosol']  # (17/11: el siliconado M-60 del parabrisas)
 
 HOJAS = {
     # LOS HELICOPTEROS, HECHOS EN BLENDER (4/10/2026, tools/blender/modelos_helos.py): el de siempre
@@ -95,6 +96,10 @@ HOJAS = {
                     frames=[dict(modelo='bl:camion_aa:%r' % a) for a in (-0.5, 0, 0.5)]),
     'balloon': dict(fw=48, fh=48, dist=11, lookY=0, quarter=0.4, cols=3,
                     frames=[dict(modelo='bl:globo', roll=a) for a in (-0.12, 0, 0.12)]),
+    # el globo del TUTORIAL con las caritas pintadas con aerosol (18/11): una FILA por carita (4), las mismas
+    # 3 poses de rolido; al doble de pixeles para que la cara se lea. Solo lo dibuja el blanco de practica.
+    'balloon_cara': dict(fw=96, fh=96, dist=11, lookY=0, quarter=0.4, cols=3, nueva=True,
+                         frames=[dict(modelo='bl:globo:%d' % c, roll=a) for c in range(4) for a in (-0.12, 0, 0.12)]),
     'aa': dict(contorno=False, fw=48, fh=48, dist=14, lookY=1.2, quarter=0.45, cols=2,
                frames=[dict(modelo='bl:nido_rapier:%r' % a) for a in (0.55, 0.8)]),
     'manpad': dict(contorno=False, fw=48, fh=48, dist=9, lookY=0.7, quarter=0.45, cols=2,

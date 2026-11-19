@@ -39,7 +39,8 @@ export function cartel(txt, col, sub, o) {
 export function cartelSostenido(id, on, txt, col, o, sub) {
   const v = carteles.vivos, ya = v.find(x => x.id === id);
   if (on) {
-    if (ya) { ya.sostenido = true; return; }
+    // (sigue arriba, pero lo que dice puede cambiar mientras tanto: la consigna del tutorial cuenta)
+    if (ya) { ya.sostenido = true; ya.txt = txt; ya.col = col || null; ya.sub = sub || null; return; }
     v.unshift({ txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null, t0: -1, id, sostenido: true, y: null });
     while (v.length > TOPE) v.pop();
   } else if (ya && ya.sostenido) { ya.sostenido = false; ya.soltar = true; }

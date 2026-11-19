@@ -23,7 +23,7 @@
 //   solo      lista de claves de avion que la pueden llevar; en los demas, ROTA con `rota`
 //   necesita  'sonda' | 'radar' | 'canon' | 'piruetas' — lo que el avion tiene que tener; si no, ROTA
 //   peso      cuanto sale en el sorteo (1 por defecto)
-import { UPGRADES, CHAFITAS, METRALLA, CINTA, BOMBA_BRP } from './upgrades.js';
+import { UPGRADES, CHAFITAS, METRALLA, CINTA, BOMBA_BRP, SILICONADO } from './upgrades.js';
 import { RADAR_PROPIO } from './radar_propio.js';
 import { perfilDe, puedeManiobra } from './perfiles.js';
 
@@ -91,6 +91,7 @@ export const CARTAS = [
     quote: 'Llego uno de Rio Grande. Viene con vos.' },
 
   // ---------------- EL TALLER (las fallas, data/fallas.js) ----------------
+  { ...SILICONADO, grupo: 'taller' },
   { id: 'tallerLiv', grupo: 'taller', name: 'TALLER LIVIANO', uso: true, pide: 'tallerLiv', peso: 2,
     desc: 'Repara las fallas leves y medias de hasta 3 aviones', quote: 'Cinta, alambre y una noche sin dormir.' },
   { id: 'tallerPes', grupo: 'taller', name: 'TALLER PESADO', uso: true, pide: 'tallerPes', peso: 2,

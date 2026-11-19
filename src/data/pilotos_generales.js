@@ -9,14 +9,15 @@
 
 const de = base => ({ neutro: base + '_neutro', sonrisa: base + '_sonrisa', preocupado: base + '_preocupado', ceno: base + '_ceno', roto: base + '_roto' });
 
+// 17/11 (el autor): "no quiero que se use la cara del Turco como piloto". Al mando va ESTEBAN (game.js,
+// libroRoster); el resto es el Criollo y, TEMPORALMENTE, las caras del elenco de la campaña con otro apodo
+// —nunca su nombre—. Sin Tero (es la cara de Esteban) ni el Turco (es el mecanico, no vuela).
 export const PILOTOS_GENERALES = [
   { nombre: 'CRIOLLO', caras: { neutro: 'av_a4b_neutro', sonrisa: 'av_a4b_sonrisa', preocupado: 'av_a4b_preocupado', ceno: 'av_a4b_ceno', roto: 'av_a4b_miedo' } },
-  { nombre: 'TANO', caras: de('tero') },
   { nombre: 'FLACO', caras: de('puma') },
   { nombre: 'RUSO', caras: de('gitano') },
   { nombre: 'GRINGO', caras: de('vasco') },
   { nombre: 'CHUECO', caras: de('pichon') },
-  { nombre: 'PELADO', caras: de('turco') },
   { nombre: 'GALLEGO', caras: de('colorado') },
 ];
 

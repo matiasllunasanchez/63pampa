@@ -22,8 +22,9 @@ export const CARA_DE_RADIO = {
 // la misma que tiene el piloto". En el libro no vuela nadie de la campaña: lo que los sistemas le hacen
 // decir al elenco (PUMA grita el Harrier, PATRIA 2 avisa el radar) lo dice EL NUMERAL — el amigo que vuela
 // detras, con su apodo y su cara (data/pilotos_generales.js). Sin amigo en el aire, esa voz se calla.
+// TERO / ESTEBAN no pasan al numeral: desde el 17/11 Esteban es el que vuela al mando en el libro.
 // game.js prende esto al armar una salida (`setVozLibro`) y lo apaga en cualquier otro modo.
-const DEL_ELENCO = new Set(['PATRIA 2', 'PUMA', 'GITANO', 'VASCO', 'PICHON', 'PICHÓN', 'TERO', 'ESTEBAN', 'PILOTO', 'EL TURCO', 'TURCO']);
+const DEL_ELENCO = new Set(['PATRIA 2', 'PUMA', 'GITANO', 'VASCO', 'PICHON', 'PICHÓN', 'PILOTO', 'EL TURCO', 'TURCO']);
 let libro = null;   // { numeral: () => nombre | null, piloto: () => nombre }
 
 /** `ctx` = { numeral, piloto } (funciones) para el libro de vuelo; null fuera de el. */

@@ -312,7 +312,7 @@ export function drawLanding(d) {
 
 /** `dsp` = el `despegue` de la mision ({ desde, rumbo }), o null fuera de una mision — ahi queda el
  *  cartel generico de siempre. Un rumbo vacio no se escribe: la placa se achica a un renglon. */
-export function drawTakeoff(toT, dsp, auto = 0, suelto = false) {
+export function drawTakeoff(toT, dsp, auto = 0, suelto = false, sinCuenta) {
   ctx.textAlign = 'center';
   // los modos sueltos no salen de una base real ni van a un blanco dicho (18/10, el autor: "eso es mentira,
   // quitarlo"): un rumbo generico y nada mas
@@ -346,6 +346,7 @@ export function drawTakeoff(toT, dsp, auto = 0, suelto = false) {
     if (cn >= 1) cuentaBandera(String(cn), u % 1, 62);
     return;
   }
+  if (sinCuenta) return;   // (el DESPEGUE JUGABLE no tiene cuenta: despegas cuando das gas, 18/11)
   const cn = 3 - Math.floor(toT);
   if (cn >= 1) cuentaBandera(String(cn), toT % 1, 68);
 }
@@ -1136,12 +1137,17 @@ function vidrioRoto(x, y) {
   for (const raja of RAJAS) {
     for (let i = 1; i < raja.length; i++) {
       const [ax, ay] = raja[i - 1], [bx, by] = raja[i];
-      pxLinea(x + ax, y + ay + 1, x + bx, y + by + 1, '#0a0e11');
-      pxLinea(x + ax, y + ay, x + bx, y + by, '#53656e');
+      // EN PIXELES REALES (18/11, el autor: "el reloj roto se ve feo, tiene otra resolucion"): las rajas iban en la
+      // grilla de diseño —un pixel = tres reales— al lado de agujas y marcas en pixeles reales. Ahora son la misma
+      // tinta fina: la sombra un pixel real abajo, el filo claro encima.
+      lineaFina(x + ax, y + ay + FINO * 2, x + bx, y + by + FINO * 2, '#0a0e11', 2);
+      lineaFina(x + ax, y + ay, x + bx, y + by, '#6f838c', 1);
     }
   }
-  px(x + IMPACTO[0] - 1, y + IMPACTO[1] - 1, 2, 2, '#0a0e11');   // el agujero
-  px(x + IMPACTO[0], y + IMPACTO[1] - 1, 1, 1, '#8fa3ac');
+  // el agujero del impacto, tambien fino: el hueco oscuro y un brillo de vidrio en el borde
+  const ix = x + IMPACTO[0], iy = y + IMPACTO[1];
+  ctx.fillStyle = '#0a0e11'; ctx.fillRect(ix - 4 * FINO, iy - 4 * FINO, 7 * FINO, 7 * FINO);
+  ctx.fillStyle = '#8fa3ac'; ctx.fillRect(ix - 2 * FINO, iy - 4 * FINO, 3 * FINO, FINO); ctx.fillRect(ix - 4 * FINO, iy - 2 * FINO, FINO, 3 * FINO);
   // …Y EL MARCO SE ROMPE CON EL (pedido del autor): del lado del impacto le faltan pedazos y la
   // esquina esta saltada. Un vidrio partido adentro de un marco intacto se lee como una calcomania;
   // asi el que se rompio es el instrumento. Las mellas se pintan del oscuro de la placa, o sea que
@@ -1252,6 +1258,16 @@ function bordeCritico(x, y, w, h) {
   bordePlaca(x, y, w, h, P.warn);
 }
 
+/** Una linea en PIXELES REALES (FINO) de `grosor` pixeles: la tinta de las rajas del vidrio roto, la misma
+ *  resolucion que las agujas y las marcas de la escala. */
+function lineaFina(x0, y0, x1, y1, col, grosor) {
+  const g = grosor || 1, n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) / FINO));
+  ctx.fillStyle = col;
+  for (let i = 0; i <= n; i++) {
+    const fx = Math.round((x0 + (x1 - x0) * i / n) / FINO) * FINO, fy = Math.round((y0 + (y1 - y0) * i / n) / FINO) * FINO;
+    ctx.fillRect(fx, fy, g * FINO, g * FINO);
+  }
+}
 function pxLinea(x0, y0, x1, y1, col) {
   const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
   for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, 1, 1, col);
@@ -1446,15 +1462,9 @@ function relojFila(x, y, o) {
   ctx.globalAlpha = 1;
   // LO IMPRESO EN LA CARA va ANTES que la aguja, asi la aguja le pasa por encima: la unidad, el icono
   // del final de la escala, el del instrumento y el numero.
-  // LA UNIDAD VA IMPRESA EN LA CARA, como en un reloj de verdad: chica, apagada, arriba del numero.
-  // Al lado del numero no entra —a cuatro digitos el numero se come el ancho util del cuadrado.
-  if (o.uni) {
-    // en CUERPO 4, la mitad del numero: es una etiqueta impresa, no un dato. A cuerpo 5 competia
-    // con los digitos y el ojo la leia dos veces.
-    ctx.font = '4px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = '#55676f';
-    ctx.fillText(o.uni, x + CUADRO - 3, y + CUADRO - 10);
-    ctx.textAlign = 'left';
-  }
+  // LA UNIDAD VA PEGADA AL NUMERO (18/11, el autor: "que sea parte del 25"): chica, en la misma linea de
+  // base, a la derecha de los digitos — se dibuja junto con el numero, mas abajo. Antes iba suelta arriba,
+  // impresa en la cara, y se leia como otra cosa.
   if (o.fin) icono(x + CUADRO - 8, y + 9, 6, o.fin, o.finCol || P.warn);   // su '+' es calado (data/iconos.js)
   if (typeof o.ico === 'function') o.ico(x, y, met);
   else if (o.ico) icono(x + 2, y + CUADRO - 9, 7, o.ico, o.icoCol || P.dim);
@@ -1462,12 +1472,17 @@ function relojFila(x, y, o) {
     // EL NUMERO EN NUMEROS.fam (CC SuperHuman, autor 12/10; antes Kirana); monospace hasta que carga.
     // Kirana era ANCHA: "100%" a 7 px pisaba el icono; va a 5,5 y se achica hasta entrar a la derecha del icono
     // con un pixel de aire ("mas chicos los numeros, se pisan", 12/10).
-    let fs = 5.5;
+    let fs = 5.5, uniW = 0;
+    if (o.uni) { ctx.font = '3px monospace'; uniW = ctx.measureText(o.uni).width + 0.5; }
     ctx.font = uiFont(NUMEROS.fam, fs, '');
-    const ancho = ctx.measureText(o.txt).width, LUGAR = CUADRO - (typeof o.ico === 'function' ? 16 : 14);   // las balas son mas largas
+    const ancho = ctx.measureText(o.txt).width, LUGAR = CUADRO - (typeof o.ico === 'function' ? 16 : o.uni ? 13 : 14) - uniW;   // las balas son mas largas
     if (ancho > LUGAR) { fs = Math.max(3.5, fs * LUGAR / ancho); ctx.font = uiFont(NUMEROS.fam, fs, ''); }
     ctx.textAlign = 'right'; ctx.fillStyle = o.txtCol || P.dim;
-    ctx.fillText(o.txt, x + CUADRO - 3, y + CUADRO - 4);
+    ctx.fillText(o.txt, x + CUADRO - 3 - uniW, y + CUADRO - 4);
+    if (o.uni) {
+      ctx.font = '3px monospace'; ctx.fillStyle = '#6d8088';
+      ctx.fillText(o.uni, x + CUADRO - 3, y + CUADRO - 4);
+    }
     ctx.textAlign = 'left';
   }
   if (o.aguja !== false) {
@@ -2372,7 +2387,8 @@ export function drawHUD(h) {
     ty += ALERTA_H + AIRE;
   }
   // …Y DEBAJO, LA CARGA DEL RADAR, que entra y sale sola (ver drawRadar).
-  ty = drawRadar(MARGEN, ty, anchoSquad(), plane.y > (h.radarAlt === undefined ? RADAR_ALT : h.radarAlt));
+  // (SIN RADAR —el tutorial, hasta que lo explica— no hay barra de carga: `h.sinRadar`, 18/11)
+  ty = drawRadar(MARGEN, ty, anchoSquad(), !h.sinRadar && plane.y > (h.radarAlt === undefined ? RADAR_ALT : h.radarAlt));
   // …Y LA DEL SEA WOLF, cuando estas adentro de la zona del buque
   ty = drawSeaWolf(MARGEN, ty, anchoSquad(), h.seawolf);
   // PERSECUCION no tiene objetivo NI record: la cinta no tiene contra que medir, asi que el
@@ -2721,7 +2737,8 @@ export function drawHUD(h) {
   const fA = a => a <= FLY_TOP ? 0.75 * Math.sqrt(Math.max(0, a / FLY_TOP))
     : 0.75 + 0.25 * Math.sqrt(Math.min(1, (a - FLY_TOP) / (ALTO.TECHO - FLY_TOP)));
   const techo = h.radarAlt === undefined ? RADAR_ALT : h.radarAlt;
-  const rozando = run.scrapeVib > 0.6, visto = plane.y > techo || rozando;
+  // (sin radar, arriba del techo no te ve nadie: la aguja no se pone roja por altura, solo por rozar)
+  const rozando = run.scrapeVib > 0.6, visto = (!h.sinRadar && plane.y > techo) || rozando;
   // …Y EN LA SUELTA (data/blanco.js), LA ALTURA DE SOLTAR en verde: la franja del dial, la marca
   // larga donde la bomba empieza a armarse, y la aguja verde mientras estes adentro. Era una regla
   // aparte a la derecha de la pantalla y no se entendia (playtest 23/9): la altura ya tiene reloj.
@@ -2752,7 +2769,7 @@ export function drawHUD(h) {
     col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : enSuelta ? SUELTA_COL : plane.y <= BANDA_ALT ? P.accent : P.foam,
     zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(BANDA_ALT), P.accent]].concat(sa ? [[fA(sa[0]), fA(sa[1]), SUELTA_COL]] : []),
     // sin marca de techo FUERA DE RADAR: no hay techo (PLAN_NAFTA_ALCANCE N2)
-    marcas: divNafta.concat(h.fueraRadar ? [] : [[fA(techo), P.warn]]).concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
+    marcas: divNafta.concat(h.fueraRadar || h.sinRadar ? [] : [[fA(techo), P.warn]]).concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
       // EL SALTO: la altura del buque debajo de tu linea, en amarillo, desde que soltas hasta el cruce
       .concat(h.saltoAlt != null ? [[fA(h.saltoAlt), SALTO_COL]] : []).concat([[fA(ALTO.NUBES), P.foam]]),
     // …y EL BORDE DE LA PLACA en verde, FIJO mientras estes en altura de soltar (se lee de reojo sin

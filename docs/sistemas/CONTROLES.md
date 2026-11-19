@@ -109,7 +109,7 @@ mano que te lleva a los costados. Ningún modo re-mapea nada.
 | **LA CHANCHA** (reabastecer) | `J` | **cruceta ↑** ¹ | solo pasillo, y no en los modos de clímax suelto. Con ruta: fuera del radar, por tramo (ver [SPEC_NAFTA_ALCANCE §5](SPEC_NAFTA_ALCANCE.md)) |
 | **SOLTAR TANQUES** | `B` | **L3** (en vuelo) | solo pasillo, en cualquier misión con tanques: primero el par de ala, después el central ([SPEC_NAFTA_ALCANCE §6](SPEC_NAFTA_ALCANCE.md)) |
 | **CHAFITAS** (chaff) | `H` | **◯** (en vuelo) | solo pasillo; en campaña, las cargas que ganaste en el banco del Pichón (0 a 4), en los demás modos dos: desvía los misiles de radar y, si te veían, bajar del radar enseguida borra las alarmas ([SPEC_CHAPITAS](SPEC_CHAPITAS.md)) |
-| **invertir el eje Y** | OPCIONES → EJE Y | `△` | **todo el juego a la vez** (ver §6) |
+| **invertir el eje Y** | OPCIONES → EJE Y | OPCIONES → EJE Y | **todo el juego a la vez** (ver §6) |
 | **pista musical** (solo POR LA PATRIA, 9/10) | `N` / `M` | **L3** / **R3** | cualquier pantalla (**L3 en vuelo es soltar tanques**) |
 | **navegar menús** | flechas · `ENTER` · `ESC` | cruceta/sticks · `✕` · `◯` | todas |
 
@@ -154,7 +154,7 @@ Se alterna con `CAPS LOCK` o desde OPCIONES; las dos vías escriben el mismo `cf
 
 ## 6. El eje Y es UNO SOLO
 
-`cfg.invY` (fila **EJE Y** en OPCIONES → MEJORAS DEL PICHÓN; `△` la alterna en vivo y la guarda).
+`cfg.invY` (fila **EJE Y** en OPCIONES → MEJORAS DEL PICHÓN). Desde el 18/11 `△` ya no la alterna (no hacía nada): es el poder RASANTE en vuelo.
 
 - Vale para **teclado y stick a la vez**, y para **los cuatro modos**.
 - Se aplica en `core/input.js`, al traducir la tecla o el eje a `inp` — **no** en cada modo. Por eso
@@ -174,9 +174,14 @@ Se alterna con `CAPS LOCK` o desde OPCIONES; las dos vías escriben el mismo `cf
   stick izq  ↔  esquivar               stick der  ↕  mirar arriba/abajo (analógico)
 
   R1 (5)  cañón            L1 (4)  misil / bombas
-  R2 (7)  turbo            L2 (6)  freno (3D)
+  R2 (7)  turbo            L2 (6)  freno (3D) · radar propio (pasillo)
   ✕ (0)   cañón · OK       ◯ (1)   VOLVER en menús (la media vuelta del 3D es el combo ↑↓↓)
-  □ (2)   misil            △ (3)   invertir el eje Y
+  □ (2)   misil            △ (3)   poder RASANTE (en vuelo)
+  L2 (6) = GAS sostenido, igual que el stick arriba (18/11). El freno del 3D pasó a ◯ y el radar propio a □
+  □ (2) en la APROXIMACIÓN FINAL = tren (como la T)
+  Stick der. ▲ = mira de la bomba (como F) y R3 = tirarla (18/11); el cambio de piloto pasó a cruceta ▼
+  La cruceta ya no vuela (18/11). En el pasillo: ▲ rota el secundario (tanques · bomba · chafitas), ► la Chancha,
+  ▼ cambio de piloto / cámara, ◄ libre. ✕ acepta y ◯ vuelve en todas las pantallas
   cruceta ↑ (12)  el poder del modo (energía / La Chancha)
   cruceta ↓ (13)  cámara            SELECT (8)  cámara lenta (MOMENTUM)
   cruceta ←→      esquivar · navegar menús

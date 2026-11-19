@@ -71,6 +71,11 @@ export const PRUEBAS = [
     // (14/11) t22: mar abierto y la ola cada 20-35 s. Sin buque al final: se puede subir al radar sin que nadie tire
     setup: a => a.mision('t22'),
   },
+  {
+    id: 'frente', titulo: 'FRENTE DE TORMENTA', desc: 'Dia de sol; a los 4,5 km se cruza el frente con niebla y del otro lado tormenta; despeja a los 12 km',
+    // (18/11) t23: la pared de nubes negras asoma ~3 km antes del cruce
+    setup: a => a.mision('t23'),
+  },
 
   { head: 'prSecClimax' },
   {

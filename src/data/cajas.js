@@ -19,6 +19,7 @@ export const CAJAS = {
   aa: { fw: 48, fh: 48, cols: 2, rows: 1, box: { x0: 6, y0: 4, x1: 39, y1: 35 }, margen: 4 },
   aatruck: { fw: 56, fh: 48, cols: 3, rows: 1, box: { x0: 13, y0: 8, x1: 49, y1: 34 }, margen: 6 },
   balloon: { fw: 48, fh: 48, cols: 3, rows: 1, box: { x0: 8, y0: 10, x1: 37, y1: 36 }, margen: 8 },
+  balloon_cara: { fw: 96, fh: 96, cols: 3, rows: 4, box: { x0: 15, y0: 19, x1: 75, y1: 73 }, margen: 15 },
   base_costera: { fw: 240, fh: 72, cols: 1, rows: 1, box: { x0: 22, y0: 6, x1: 217, y1: 69 }, margen: 2 },
   bidon: { fw: 72, fh: 88, cols: 4, rows: 1, box: { x0: 10, y0: 10, x1: 61, y1: 85 }, margen: 2 },
   bldg: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 16, y0: 9, x1: 49, y1: 36 }, margen: 9 },

@@ -345,6 +345,18 @@ const t22 = {
     globos: false, fuelOn: false, gigante: 'seguido' }),
 };
 
+// t23 · FRENTE DE TORMENTA (18/11, el autor: "nubes negras en el horizonte que se vayan acercando hasta que el
+// avion pase de estar en dia de sol a debajo de las nubes negras"): dia de sol en el mar; a los 4,5 km se cruza el
+// frente (la pared asoma ~3 km antes), con su niebla, y del otro lado noche de tormenta; a los 11 km despeja
+// (`frente` lo lee systems/frente.js). Sin buque al final y con poco en el camino, para mirarlo.
+const t23 = {
+  id: 't23', name: 'FRENTE DE TORMENTA',
+  goal: { kind: 'distance', meters: 30000 },
+  frente: { desdeM: 4500, hastaM: 12000 },
+  cfg: P({ sky: 'sun', water: 'auto', terrain: 'sea', wind: false, rain: 0, fog: 0, obstacles: 0.35, bombs: 0, caza: 0,
+    globos: false, fuelOn: false }),
+};
+
 /** Las misiones que NO son la campaña. `game.js` las concatena a `MISSIONS` para resolver una
  *  mision por id o por indice; nada que recorra la campaña las mira. */
-export const MISIONES_PRUEBA = [t15, t16, t17, t18, t19, t20, t21, t22];
+export const MISIONES_PRUEBA = [t15, t16, t17, t18, t19, t20, t21, t22, t23];

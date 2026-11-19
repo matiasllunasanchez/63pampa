@@ -90,10 +90,16 @@ export function ajustarEscala() {
   // pagina ya se desbordaba de antes (960 de stage + 220 de pagina no entran en 688), asi que el pie
   // siempre vivio abajo del pliegue. Queda igual: el juego no se achica por la ayuda.
   // A pantalla completa el pie es `display:none` y aporta 0 solo, sin un caso especial aca.
-  const alrededor = alto(document.querySelector('header')) + MARGEN;
+  // EN LA APP Y A PANTALLA COMPLETA NO HAY MARGEN (18/11, el autor: "mira el espacio al pedo que hay en un
+  // monitor 1080"): el body no deja aire, y restar los 16 igual dejaba un 1080 justo debajo del x2 —el juego
+  // en 960x540 en el medio de la pantalla—, cuando 540 x 2 es EXACTAMENTE 1080: llena el monitor, pixel perfecto.
+  const sinAire = document.body && (document.body.classList.contains('electron') || document.body.classList.contains('pantalla-completa'));
+  const alrededor = alto(document.querySelector('header')) + (sinAire ? 0 : MARGEN);
   const dispW = window.innerWidth * dpr;
   const dispH = Math.max(0, window.innerHeight - alrededor) * dpr;
-  const k = Math.floor(Math.min(dispW / cv.width, dispH / cv.height));
+  // (sin aire, un 3 % de tolerancia: una pantalla que le da al juego 1077 de alto en vez de 1080 igual va a x2,
+  // y se pierden un par de pixeles del borde —el cuerpo recorta y centra— en vez de la mitad de la pantalla)
+  const k = Math.floor(Math.min(dispW / cv.width, dispH / cv.height) + (sinAire ? 0.03 : 0));
   const ancho = cv.width * k / dpr;                    // lo que mediria con factor entero, en px CSS
 
   // LA ESCALA ENTERA SOLO SI ES MAS GRANDE QUE LO DE ANTES. Es la regla que impide que "prolijo"
@@ -104,8 +110,10 @@ export function ajustarEscala() {
   // nunca sale mas chico que como salia. En ventana grande y a pantalla completa, que es donde el
   // juego se va a jugar de verdad, el entero gana por lejos y queda pixel perfecto.
   const comoAntes = Math.min(window.innerWidth * 0.96, cv.width);   // el `min(96vw, 960px)` del CSS
-  if (k < 1 || ancho < comoAntes) { stage.style.width = ''; return; }
+  if (k < 1 || ancho < comoAntes) { stage.style.width = ''; stage.style.maxWidth = ''; return; }
   stage.style.width = ancho + 'px';
+  // (el CSS de la app topa el ancho en 100vw: con la tolerancia, el x2 puede pasarse unos pixeles y se recorta)
+  stage.style.maxWidth = sinAire ? 'none' : '';
 }
 
 if (typeof window !== 'undefined') {

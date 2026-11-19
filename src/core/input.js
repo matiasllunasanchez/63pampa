@@ -184,7 +184,10 @@ export function initInput(cv, a) {
     // pueden aceptar una linea que todavia no se leyo. La gracia de 0,6 s la pone game.js.
     // Va antes de la pausa y del ESC a proposito: con un dialogo abierto, ninguna tecla tiene que
     // poder abrir el menu encima.
-    if (a.isDlgPausa && a.isDlgPausa()) {
+    // …SALVO ESC (18/11, el autor: "START tiene que poner pausa"): abre la pausa ENCIMA del dialogo, que queda
+    // esperando. Con la pausa abierta, las teclas son de la pausa (abajo), no del dialogo.
+    if (a.isDlgPausa && a.isDlgPausa() && !a.isPaused()) {
+      if (e.code === 'Escape') { if (!e.repeat) a.pauseToggle(); e.preventDefault(); return; }
       if (!e.repeat) a.dlgAceptar();
       e.preventDefault(); return;
     }
@@ -632,7 +635,13 @@ export function initInput(cv, a) {
     const ax = i => { const v = gp.axes[i] || 0; return Math.abs(v) < AX_DZ ? 0 : v; };
     // primera pulsacion del pad: DESBLOQUEA el audio (el navegador no lo hace con el gamepad, solo
     // con teclado/mouse/tactil → sin esto, jugando SOLO con joystick no sonaba la metralla ni la musica)
-    if (pressed.some((p, i) => p && !btnPrev[i])) { audio(); flags.anyPress = true; }
+    if (pressed.some((p, i) => p && !btnPrev[i])) audio();
+    // ✕ ACEPTA, ◯ VUELVE (18/11, el autor: "en los menues y demas, aceptar tiene que ser la X de PlayStation, y
+    // atras o NO el circulo"). Las pantallas que avanzan con "cualquier tecla" (historia, derribo, recuento,
+    // victoria) solo avanzan con ✕ o START; ◯ es VOLVER — en un dialogo, la linea anterior (como la flecha
+    // izquierda del teclado). En vuelo ◯ son las chafitas: ahi no pide volver.
+    if (hit(0) || hit(9)) flags.anyPress = true;
+    if (hit(1) && S.state !== 'play') flags.backReq = true;
 
     // musica (en cualquier pantalla)… salvo L3 EN VUELO, que es SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5,
     // ver abajo): el mando no tiene un boton libre, y en pleno vuelo soltar es la decision que
@@ -641,7 +650,8 @@ export function initInput(cv, a) {
     // piloto —el mando sigue sin botones libres, y es la misma familia: el clic del stick en vuelo es
     // una decision de vuelo—; afuera, o con la mecanica apagada, la pista siguiente como siempre.
     if (hit(10) && S.state !== 'play') a.trackPrev();
-    if (hit(11)) { if (S.state === 'play' && cfg.cambioPiloto) a.cambioPiloto(); else a.trackNext(); }
+    // (en vuelo R3 es LA BOMBA desde el 18/11 —ver el stick derecho— y el cambio de piloto paso a la cruceta ▼)
+    if (hit(11) && S.state !== 'play') a.trackNext();
 
     // QUE ESTADOS SON "JUGAR". Cada climax nuevo tiene que entrar aca o el mando deja de volar al
     // llegar: el `else` de abajo SUELTA todos los ejes (es la rama de menus). La PASADA se agrego
@@ -650,30 +660,35 @@ export function initInput(cv, a) {
     // prueba se teclea con ellos. Estando afuera caia en el `else` (menus), que suelta todos los
     // ejes — con lo cual el unico climax que no se podia jugar con joystick era justo el que ES
     // teclear. Que escriba `inp.u` de paso no molesta a nadie: en `pulso` no hay vuelo que leerlo.
+    // LA APROXIMACION FINAL tambien (18/11): estaba afuera, y con el mando el aterrizaje no se podia volar —
+    // los ejes se soltaban y el avion bajaba solo, sin gas ni tren.
     const inGame = S.state === 'play' || S.state === 'takeoff' || S.state === 'momentum'
-      || S.state === 'arena' || S.state === 'pasada' || S.state === 'pulso';
+      || S.state === 'arena' || S.state === 'pasada' || S.state === 'pulso' || S.state === 'landing';
     // PAUSA con el mando: Start (9) la abre en juego; abierta, la cruceta/stick navegan,
     // ✕ confirma, ◯ vuelve y Start reanuda. El vuelo se SUELTA (setPad 0) para que al reanudar
     // no quede un eje clavado del frame anterior.
     // PAUSA DE DIALOGO con el mando: ✕ / ◯ / Start aceptan, y el vuelo se SUELTA igual que en la
     // pausa — si no, al reanudar queda un eje clavado del cuadro en que se congelo.
-    if (inGame && a.isDlgPausa && a.isDlgPausa()) {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
-      if (hit(0) || hit(1) || hit(9)) a.dlgAceptar();
+    if (inGame && a.isDlgPausa && a.isDlgPausa() && !a.isPaused()) {
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx', 'apunta']) setPad(f, 0);
+      // ✕ acepta la linea; START PAUSA (18/11) — antes la aceptaba, y en el tutorial (casi todo dialogo) START
+      // no pausaba nunca. ◯ no acepta: es volver.
+      if (hit(0)) a.dlgAceptar();
+      if (hit(9)) a.pauseToggle();
       btnPrev = pressed;
       requestAnimationFrame(pollGamepad);
       return;
     }
     // la CHARLA EN VUELO con el mando: los mismos botones completan y pasan de linea
     if (inGame && a.isCharla && a.isCharla()) {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx', 'apunta']) setPad(f, 0);
       if (hit(0) || hit(1) || hit(9)) a.charlaTecla();
       btnPrev = pressed;
       requestAnimationFrame(pollGamepad);
       return;
     }
     if (inGame && a.isPaused()) {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx']) setPad(f, 0);
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx', 'apunta']) setPad(f, 0);
       const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;
       const nl = down(14) || ax(0) < -0.5, nr = down(15) || ax(0) > 0.5;
       if (nu && !nav.u) a.pauseNav(-1);
@@ -699,12 +714,14 @@ export function initInput(cv, a) {
       const enPasillo = S.state === 'play';
       const cl = down(14), cr = down(15);
       if (enPasillo) {
-        if (cl && !padHeld.secL) a.secundariaPaso(-1);
-        if (cr && !padHeld.secR) a.secundariaPaso(1);
+        // (18/11: ◄ queda libre y ► es la Chancha; el secundario rota con ▲ — ver abajo)
+        if (cr && !padHeld.secR) a.modePower();
       }
       padHeld.secL = cl; padHeld.secR = cr;
-      const crL = !enPasillo && cl, crR = !enPasillo && cr;
-      const dl = (lx < 0 || crL) ? 1 : 0, dr = (lx > 0 || crR) ? 1 : 0;
+      // LA CRUCETA YA NO VUELA (18/11, el autor: "las flechas no tienen que replicar el stick izquierdo — liberar esos
+      // botones de direccion"): para moverse esta el stick; la cruceta queda para acciones (arriba: el secundario,
+      // la Chancha y la camara). Fuera del pasillo ◄ ► no hacen nada: libres para lo que venga.
+      const dl = lx < 0 ? 1 : 0, dr = lx > 0 ? 1 : 0;
       const du = (cfg.invY ? ly > 0 : ly < 0) ? 1 : 0, dd = (cfg.invY ? ly < 0 : ly > 0) ? 1 : 0;
       const teclea = S.state === 'play' || S.state === 'pulso';   // los dos consumen TOQUES
       if (teclea) {
@@ -713,8 +730,8 @@ export function initInput(cv, a) {
         if (du && !padHeld.u) dirTap('u');
         if (dd && !padHeld.d) dirTap('d');
       }
-      setPad('l', (lx < 0 || crL) ? 1 : 0);                    // stick izq (y fuera del pasillo, la cruceta) = esquivar
-      setPad('r', (lx > 0 || crR) ? 1 : 0);
+      setPad('l', lx < 0 ? 1 : 0);                              // stick izq = esquivar (la cruceta no)
+      setPad('r', lx > 0 ? 1 : 0);
       // STICK IZQUIERDO, EJE VERTICAL: ARRIBA SUBE, lo mismo que la W del teclado. `ly < 0` es el
       // stick arriba en el mapeo estandar, y va a 'u' — el mismo campo que escribe la W, asi que
       // las dos entradas no pueden divergir por construccion.
@@ -724,13 +741,18 @@ export function initInput(cv, a) {
       // △ NO INVIERTE NADA: `throttleInvert` es una funcion vacia en game.js. El comentario que
       // habia aca decia que invertia el eje "y lo GUARDA", y era falso — dos cosas falsas, porque
       // ademas el eje ya no se guarda. Se deja la llamada por si el gancho vuelve a usarse.
-      if (hit(3)) a.throttleInvert();
+      // △ EN VUELO = EL PODER RASANTE, como la [5] (18/11): el boton no hacia nada (throttleInvert esta vacio) y
+      // el rasante era de las ultimas acciones solo de teclado. El eje Y se invierte en OPCIONES.
+      if (hit(3) && S.state === 'play') a.rasanteToggle();
       // (◯ ya no es la media vuelta del arena: el 3D vuela con los controles del pasillo, y la media
       // vuelta sale con el combo del SPLIT-S, ↑↓↓ — con los sticks, igual que en el teclado)
       // CRUCETA ARRIBA = EL PODER DEL RECURSO DEL MODO: reparto de energia en el arena, LA CHANCHA
       // en el pasillo. Quien decide cual es game.js (`modePower`) — aca no se sabe de modos.
       // SQUADRONS_UPDATE §6 daba la cruceta por ocupada ("es esquive"), pero eso vale para 14/15.
-      if (hit(12)) a.modePower();
+      // ▲ EN EL PASILLO = ROTAR EL SECUNDARIO HACIA ARRIBA (18/11, el autor: "si apretas arriba vas para arriba"): el
+      // estante va tanques · bomba · chafitas, y ▲ sube uno, dando la vuelta. ▼ queda como estaba. En el 3D ▲ sigue
+      // siendo el poder del modo (el reparto de energia).
+      if (hit(12)) { if (enPasillo) a.secundariaPaso(-1); else a.modePower(); }
       // SELECT / BACK / VIEW = MOMENTUM (camara lenta). Era la ultima accion del juego que solo
       // existia en el teclado: se podia jugar TODO con el mando menos bajar el tiempo, que es un
       // poder y no un ajuste. Es el unico boton que estaba libre.
@@ -738,7 +760,8 @@ export function initInput(cv, a) {
       // CRUCETA ABAJO = CAMARA (lo mismo que [V]). Era la ultima direccion de la cruceta sin dueño
       // en juego, y hacia falta: en el ARENA y en la PASADA esa tecla conmuta CABINA ↔ TERCERA
       // PERSONA en vivo, y con el mando no habia forma de cambiar de vista.
-      if (hit(13)) a.cycleCamera();
+      // (18/11: en el pasillo, con la mecanica prendida, ▼ es EL CAMBIO DE PILOTO —R3 paso a ser la bomba—; si no, la camara)
+      if (hit(13)) { if (S.state === 'play' && cfg.cambioPiloto) a.cambioPiloto(); else a.cycleCamera(); }
       // L3 (CLIC DEL STICK IZQUIERDO) = SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5), solo en vuelo. L3 era
       // la pista anterior en todas las pantallas (arriba): en 'play' cede, porque el mando no tiene
       // otro boton libre y es la mano que vuela — soltar es una decision de vuelo.
@@ -746,17 +769,30 @@ export function initInput(cv, a) {
       // ◯ = LAS CHAPITAS en vuelo (8/10). Era el unico boton sin dueño en 'play' (en los menus y la
       // pausa sigue siendo volver: esas pantallas lo leen antes y no llegan aca).
       if (hit(1) && S.state === 'play') a.chapitas();
-      setPad('u', du);                                         // potencia (gas / subir) — default: ARRIBA SUBE
+      // □ (X) EN EL PASILLO = EL RADAR PROPIO, como la [Y] (18/11: L2 paso a ser el gas; □ repetia el secundario de L1)
+      if (hit(2) && S.state === 'play' && a.radarToggle) a.radarToggle();
+      // □ (X) = EL TREN en la aproximacion final, como la [T] (18/11): ahi no hay secundario que soltar, y ✕ es
+      // el gas, que en el aterrizaje hace falta.
+      if (hit(2) && S.state === 'landing') a.gearToggle();
+      // EL GAS TAMBIEN EN L2 (LT), SOSTENIDO (18/11, el autor: "el arriba es medio incomodo para ir manteniendo… deberia
+      // estar en algun gatillo de atras"): el stick arriba sigue andando; el gatillo izquierdo es el acelerador.
+      setPad('u', du || down(6));                              // potencia (gas / subir) — stick arriba o L2
       setPad('d', dd);                                         // picada (bajar)
-      setPad('fire', down(5) || down(0));                      // R1 = metralleta (✕ tambien)
+      // LA BOMBA CON EL STICK DERECHO (18/11, el autor: "el arriba del stick derecho, la mira de la bomba; y R3 el
+      // lanzamiento"): stick der. ▲ = la mira (como mantener [F]: se ve la caida) y R3 = tirarla. Con la mira puesta
+      // R3 es el gatillo (sale en el acto, como ESPACIO con [F]); sin mira, R3 es mantener-y-soltar, como la [Z].
+      const miraStick = S.state === 'play' && ax(3) < -0.5, r3 = down(11) && S.state === 'play';
+      setPad('apunta', miraStick);
+      setPad('fire', down(5) || down(0) || (r3 && miraStick));  // R1 = metralleta (✕ tambien; R3 con la mira = la bomba)
       setPad('turbo', down(7));                                // turbo (gatillo)
       // L1 (□ tambien) = EL SECUNDARIO ELEGIDO en el pasillo, como [Z]: la bomba, los TANQUES (mantener
       // apunta, soltar tira) o las CHAFITAS (al apretar). Lo elegido se TOMA al apretar y se sostiene
       // hasta soltar: cambiar con la cruceta a mitad de una mira no tira nada solo. Fuera del pasillo,
       // la bomba de siempre.
-      const l1 = down(4) || down(2);
+      // (□ ya no repite a L1: en el pasillo es el radar, en el aterrizaje el tren; en el Pulso sigue rematando)
+      const l1 = down(4);
       if (l1 && !padHeld.l1) padSec = S.state === 'play' ? a.secundaria() : 'bomba';
-      setPad('msl', l1 && padSec === 'bomba');
+      setPad('msl', (l1 && padSec === 'bomba') || (r3 && !miraStick));
       setPad('tanq', l1 && padSec === 'tanque');
       if (l1 && !padHeld.l1 && padSec === 'chafitas') a.chapitas();
       padHeld.l1 = l1;
@@ -764,7 +800,8 @@ export function initInput(cv, a) {
       // ...y en el PULSO ese mismo boton es EL REMATE, igual que la Z del teclado. Por FLANCO:
       // sostenerlo tiene que valer una sola suelta, como una tecla que no repite.
       if (S.state === 'pulso' && (hit(4) || hit(2))) a.pulsoTap('Z');
-      setPad('brake', down(6) ? 1 : 0);                        // L2 = freno (lo leen ARENA y PASADA)
+      // ◯ (B) = EL FRENO en el 3D (lo leen ARENA y PASADA; 18/11: L2 paso a ser el gas). En el pasillo ◯ son las chafitas.
+      setPad('brake', S.state === 'arena' || S.state === 'pasada' ? (down(1) ? 1 : 0) : 0);
 
       // ---- STICK DERECHO ----
       // X = GIRO LIBRE DEL HORIZONTE (lo que en teclado son [Q]/[E]).
@@ -778,7 +815,7 @@ export function initInput(cv, a) {
       // y panea mas rapido cuanto mas lo empujas — algo que el teclado no puede dar.
       const rx = ax(2), ry = ax(3);
       setPad('rollAx', rx);
-      setPad('camAx', ry);
+      setPad('camAx', miraStick ? 0 : ry);   // (arriba del todo es la mira de la bomba: no mueve la camara)
       // Y ADEMAS DAN TOQUES: cada cruce de la zona muerta es un tap en MAYUSCULA para el detector
       // de combos. Es lo que hace que las maniobras que ROLAN se pidan con la mano que rola.
       if (teclea) {
@@ -786,7 +823,7 @@ export function initInput(cv, a) {
         for (const k in rNow) { if (rNow[k] && !rPrev[k]) dirTap(k); rPrev[k] = rNow[k]; }
       }
     } else {
-      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'tanq', 'brake', 'rollAx', 'camAx']) setPad(f, 0);   // soltar el vuelo
+      for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'tanq', 'brake', 'rollAx', 'camAx', 'apunta']) setPad(f, 0);   // soltar el vuelo
       padHeld.l1 = false; padSec = null;
       rPrev.L = rPrev.R = rPrev.U = rPrev.D = 0;   // volver a jugar con el stick sostenido = un toque nuevo
       // navegacion de menus por FLANCO (cruceta o stick)
@@ -794,7 +831,7 @@ export function initInput(cv, a) {
       const nl = down(14) || ax(0) < -0.5, nr = down(15) || ax(0) > 0.5;
       const confirm = hit(0) || hit(9);                        // A / Start
       if (S.state === 'title') {
-        if (confirm || hit(1)) a.startTitle();
+        if (confirm) a.startTitle();
       } else if (S.state === 'modeselect') {
         if ((nu && !nav.u) || (nl && !nav.l)) a.modeNav(-1);
         if ((nd && !nav.d) || (nr && !nav.r)) a.modeNav(1);

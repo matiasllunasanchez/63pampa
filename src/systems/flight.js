@@ -636,6 +636,7 @@ export function flightSystem(dt, deps) {
   // `ras` para que el rocio sepa inclinar el eje: con el poder puesto el avion se dibuja con otra
   // hoja, que lo muestra desde el costado, y el agua tiene que acompanar esa figura.
   estelaVuelo(dt, { alt, pista: overRunway, tierra: onDirt, ras: rasante.active() });
+  run.sobreAgua = !overRunway && !onDirt;   // (la sal del parabrisas: systems/salitre.js, lo pasa game.js)
 
   // radar
   // EL TECHO LO PONE LA FASE (EL FILO, §11.1), y sin fases es RADAR_ALT como siempre. Esta linea

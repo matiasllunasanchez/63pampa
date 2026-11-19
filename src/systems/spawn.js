@@ -515,6 +515,17 @@ export function sembrarAmenaza(x, y) {
   obstacles.push({ type: tipo, x, y, z: SPAWN_Z, ...hpOf(tipo), xa: x, amenaza: true, done: false, ph: rnd() * 6.283 });
 }
 
+/** UN BLANCO DE PRACTICA del TUTORIAL (data/tutorial.js `blancos`): un globo quieto o paseado por el viento
+ *  (`mueve`), o un caza que viene DERECHO y desarmado — sin `home`, sin Sidewinder (el patron de
+ *  `sembrarAmenaza`). `practica` lo marca para el anillo del render y para la cuenta del tutorial. */
+export function sembrarPractica(tipo, x, y, z, mueve) {
+  const o = { type: tipo, x, y, z: z == null ? SPAWN_Z : z, ...hpOf(tipo), done: false, ph: rnd() * 6.283, practica: true };
+  if (tipo === 'jet') Object.assign(o, { xa: x, amenaza: true });
+  else if (mueve) Object.assign(o, mov(tipo, x));
+  obstacles.push(o);
+  return o;
+}
+
 export function tirarSlug(xFin, z) {
   const lado = rnd() < 0.5 ? -1 : 1, vx = lado * (9 + rnd() * 7), T = 2.2;
   obstacles.push({

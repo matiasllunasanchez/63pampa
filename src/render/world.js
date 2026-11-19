@@ -53,6 +53,8 @@ import * as momRender from '../legacy/momentum_render.js';
 import { pxPerM, shipBeamM, shipTopM, SHIP_LEN } from '../systems/three-arena.js';
 import { ENTRY_D, LANE_PARALLAX } from '../data/pasada.js';
 
+let caraGlobo = 0;   // la proxima carita de los globos del tutorial (ver el globo de practica, mas abajo)
+
 // ---- SUELO CON GRADIENTE (tierra/costa) ----
 // Antes el piso eran TRES bandas planas con cortes duros (f<0.28/0.6) y se veia artificial.
 // Ahora el color se INTERPOLA por fila entre lejos/medio/cerca → un degradado continuo, y encima
@@ -1940,10 +1942,14 @@ function dibujarObstaculo(o) {
     const s = proj(o.x, oy, o.z), base = proj(o.xa !== undefined ? o.xa : o.x, 0, o.z);
     ctx.strokeStyle = P.bodyDark; ctx.beginPath();
     ctx.moveTo(s.x, s.y + 1.6 * k); ctx.lineTo(base.x, base.y); ctx.stroke();
-    if (enemyArt.ready('balloon')) {
+    // LOS GLOBOS DEL TUTORIAL llevan CARITAS de aerosol (18/11: "Vos les dibujaste las caritas"): una de las
+    // cuatro filas de `balloon_cara`, repartidas en orden para que dos seguidos no repitan
+    if (o.practica && o.cara === undefined) o.cara = caraGlobo++ % 4;
+    const hojaG = o.practica && enemyArt.ready('balloon_cara') ? 'balloon_cara' : 'balloon';
+    if (enemyArt.ready(hojaG)) {
       // TAMBALEO: 3 poses de rolido, cicladas despacio y desfasadas por globo (o.ph)
       const wob = Math.sin(run.t * 1.2 + o.ph * 3);
-      enemyArt.drawFrame(ctx, 'balloon', wob > 0.4 ? 2 : wob < -0.4 ? 0 : 1, 0, s.x, { centerY: s.y }, k, false);
+      enemyArt.drawFrame(ctx, hojaG, wob > 0.4 ? 2 : wob < -0.4 ? 0 : 1, hojaG === 'balloon' ? 0 : o.cara, s.x, { centerY: s.y }, k, false);
     } else {
       px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, 3.2 * k, P.dim);
       px(s.x - 2.6 * k, s.y - 1.6 * k, 5.2 * k, Math.max(1, 1.1 * k), P.body);

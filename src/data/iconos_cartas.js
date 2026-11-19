@@ -5,7 +5,8 @@ export const ICONOS = ['canon', 'cinta', 'bala', 'brp', 'snakeye', 'espoleta', '
   'chafitas', 'chapa', 'casco', 'llave', 'a4', 'caja_herr', 'motor', 'reloj',
   'cajon', 'tanques', 'hercules', 'arena', 'rasante', 'radar', 'neptune', 'auriculares',
   'antena', 'mirage', 'learjet', 'pinza', 'terreno', 'itb', 'paracaidas', 'pirueta',
-  'fideos'];   // (20/10: la maquina de fideos — la carta de las primeras chafitas)
+  'fideos',    // (20/10: la maquina de fideos — la carta de las primeras chafitas)
+  'aerosol'];  // (17/11: el siliconado M-60 del parabrisas)
 export const ICONO_FW = 96, ICONO_COLS = 8;
 
 /** Carta → dibujo. Las familias comparten (las tres de MOMENTUM, las cuatro CHAFITAS…). */
@@ -19,7 +20,7 @@ const DE = {
   tanques: 'tanques', chancha1: 'hercules', kc130: 'hercules',
   momentum1: 'arena', momentum2: 'arena', momentum3: 'arena', rasante1: 'rasante', radar1: 'radar',
   radarMalvinas: 'radar', neptune: 'neptune', tracker: 'auriculares', guerraElec: 'antena', mirage: 'mirage',
-  fenix: 'learjet', coordinado: 'pinza', terreno: 'terreno', itb: 'itb',
+  fenix: 'learjet', coordinado: 'pinza', terreno: 'terreno', itb: 'itb', siliconado: 'aerosol',
 };
 /** Si una carta nueva no tiene dibujo propio, el de su grupo. */
 const POR_GRUPO = { armas: 'canon', defensa: 'chapa', alcance: 'tanques', poderes: 'arena', piruetas: 'pirueta',

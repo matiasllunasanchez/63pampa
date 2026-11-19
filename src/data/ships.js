@@ -59,6 +59,7 @@ export const MOM_LAYOUTS = {
 };
 export const SHIP_CLASS = {
   'HMS SHEFFIELD': 't42', 'HMS COVENTRY': 't42',
+  'CASCO DE PRÁCTICA': 'log',   // el blanco del TUTORIAL (data/tutorial.js, etapa 3): un buque viejo, lento
   'HMS ARDENT': 't21', 'HMS ANTELOPE': 't21',
   'RFA SIR GALAHAD': 'log', 'ATLANTIC CONVEYOR': 'log',
   // campaña v0.0.1 (M10-M12): buques nuevos, reusan el layout de su clase.

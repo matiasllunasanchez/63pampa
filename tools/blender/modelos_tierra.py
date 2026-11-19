@@ -241,12 +241,14 @@ def radar(T, K, ang='0'):
     return raiz
 
 # ============================ EL GLOBO DE BARRERA ============================
-def globo(T, K):
+GLOBO_EST = [(-2.05, 0.05, 0.05, 0), (-1.85, 0.55, 0.46, 0), (-1.30, 0.90, 0.75, 0), (-0.40, 1.0, 0.82, 0),
+             (0.50, 0.94, 0.77, 0), (1.30, 0.66, 0.55, 0), (2.05, 0.32, 0.28, 0), (2.40, 0.06, 0.06, 0)]
+
+def globo(T, K, cara=None):
     raiz = _raiz(T, 'Globo')
     plata = mat_pintura(K, 'globo', dict(arriba=['#b3bec4'], panza='#8c979d'))
-    _subdiv(loft('bolsa', [(-2.05, 0.05, 0.05, 0), (-1.85, 0.55, 0.46, 0), (-1.30, 0.90, 0.75, 0), (-0.40, 1.0, 0.82, 0),
-                           (0.50, 0.94, 0.77, 0), (1.30, 0.66, 0.55, 0), (2.05, 0.32, 0.28, 0), (2.40, 0.06, 0.06, 0)],
-                 raiz, plata, n=20, expo=2.0, cerrar=(True, True)), 2)
+    _subdiv(loft('bolsa', GLOBO_EST, raiz, plata, n=20, expo=2.0, cerrar=(True, True)), 2)
+    if cara is not None: _cara_globo(raiz, K, int(cara))
     # LAS TRES ALETAS INFLADAS a 120° (una arriba, dos abajo), como almohadones
     for i in range(3):
         a = i * 2 * math.pi / 3 + math.pi / 2
@@ -259,6 +261,79 @@ def globo(T, K):
              raiz, K['mat_cel']('costura', '#7d888e'), n=20, cerrar=(False, False))
     hueso('cable', raiz, K['mat_cel']('cable', '#2c3034'), (0, -0.78, -0.2), (0, -1.25, -0.3), 0.02, 0.02, seg=4)
     return raiz
+
+# LAS CARITAS DEL TUTORIAL (18/11, el autor: "dibujarle caritas a los globos de guerra del tutorial", porque
+# el Turco lo dice: "Vos les dibujaste las caritas"). Pintadas con AEROSOL: trazos gruesos, temblorosos,
+# con chorreadas y salpicaduras, distintos en cada globo. Cuatro: sonriente, enojada, burlona y "X X".
+# Solo las usa la hoja `balloon_cara` (tools/blender/hojas.py); el globo de guerra de verdad no lleva nada.
+# Cada trazo es una lista de puntos (u, v) en la cara: u a lo largo del globo, v para arriba.
+CARAS_GLOBO = [
+    ('#121212', [[(-0.20, 0.30), (-0.20, 0.16)], [(0.20, 0.30), (0.20, 0.16)],                     # sonriente
+                 [(-0.40, 0.02), (-0.30, -0.15), (-0.14, -0.26), (0.0, -0.29), (0.14, -0.26), (0.30, -0.15), (0.40, 0.02)]]),
+    ('#121212', [[(-0.36, 0.35), (-0.08, 0.23)], [(0.36, 0.35), (0.08, 0.23)],                      # enojada
+                 [(-0.20, 0.13), (-0.19, 0.08)], [(0.20, 0.13), (0.19, 0.08)],
+                 [(-0.32, -0.34), (-0.16, -0.20), (0.0, -0.16), (0.16, -0.20), (0.32, -0.34)]]),
+    ('#f4f2ea', [[(-0.32, 0.17), (-0.20, 0.29), (-0.08, 0.17)], [(0.20, 0.30), (0.20, 0.17)],       # burlona: guiño y lengua
+                 [(-0.36, -0.04), (-0.18, -0.20), (0.0, -0.25), (0.20, -0.20), (0.38, -0.08)],
+                 [(0.0, -0.25), (0.02, -0.38), (0.10, -0.43), (0.18, -0.37), (0.17, -0.22)]]),
+    ('#f4f2ea', [[(-0.29, 0.29), (-0.11, 0.11)], [(-0.11, 0.29), (-0.29, 0.11)],                   # "X X" y boca en zigzag
+                 [(0.11, 0.29), (0.29, 0.11)], [(0.29, 0.29), (0.11, 0.11)],
+                 [(-0.36, -0.22), (-0.18, -0.12), (0.0, -0.25), (0.18, -0.12), (0.36, -0.24)]]),
+]
+
+def _cara_globo(raiz, K, n):
+    import random
+    rnd = random.Random(1982 + n * 7)
+    color, trazos = CARAS_GLOBO[n % len(CARAS_GLOBO)]
+    pintura = K['mat_cel']('aerosol_%d' % n, color)
+    # LA CARA VA EN LA TROMPA, de frente a la camara de la hoja (baseYaw pi + quarter 0.4): se la proyecta
+    # sobre la bolsa A LO LARGO DE LA MIRADA, asi se ve derecha y sin escorzo
+    th = math.pi + 0.4
+    d = Vector((math.sin(-th), 0.0, math.cos(-th)))          # hacia la camara, en coordenadas del globo
+    der = Vector((-d.z, 0.0, d.x))                            # la derecha de la cara
+    E, C = 1.36, Vector((0.0, 0.04, -1.0)) - der * 0.14
+    def ab(z):                              # medio ancho y medio alto de la bolsa en z (las estaciones del loft)
+        if z < GLOBO_EST[0][0] or z > GLOBO_EST[-1][0]: return 0.0, 0.0
+        for (z0, a0, b0, _), (z1, a1, b1, _) in zip(GLOBO_EST, GLOBO_EST[1:]):
+            if z0 <= z <= z1:
+                t = (z - z0) / (z1 - z0); return a0 + (a1 - a0) * t, b0 + (b1 - b0) * t
+    def dentro(q):
+        a, b = ab(q.z)
+        return a > 0 and (q.x / a) ** 2 + (q.y / b) ** 2 <= 1
+    def sobre(u, v, despega=0.04):         # el punto (u, v) de la cara, sobre la bolsa del lado de la camara
+        o = C + der * (u * E) + Vector((0, v * E, 0)) + d * 4.0
+        lo, hi = 0.0, 8.0                   # de afuera (lo) hacia adentro: el primer punto que toca la bolsa
+        paso = 0.02; t = 0.0
+        while t < 8.0 and not dentro(o - d * t): t += paso
+        lo, hi = max(0.0, t - paso), t
+        for _ in range(20):
+            m = (lo + hi) / 2
+            if dentro(o - d * m): hi = m
+            else: lo = m
+        return tuple(o - d * (hi - despega))
+    for tr in trazos:
+        # el trazo se densifica y TIEMBLA: el pulso de quien pinta con la lata
+        pts = []
+        for (u0, v0), (u1, v1) in zip(tr, tr[1:]):
+            pasos = max(2, int(math.hypot(u1 - u0, v1 - v0) / 0.05))
+            for i in range(pasos):
+                t = i / pasos; pts.append((u0 + (u1 - u0) * t, v0 + (v1 - v0) * t))
+        pts.append(tr[-1])
+        pts = [(u + rnd.uniform(-0.012, 0.012), v + rnd.uniform(-0.012, 0.012)) for u, v in pts]
+        r = [(0.075 if color != "#121212" else 0.055) + rnd.uniform(0, 0.03) for _ in pts]   # el blanco, mas cargado
+        for (p, rp), (q, rq) in zip(zip(pts, r), zip(pts[1:], r[1:])):
+            hueso('aerosol', raiz, pintura, sobre(*p), sobre(*q), rp, rq, seg=6)
+        for p, rp in zip(pts, r):
+            elipsoide('aerosol', sobre(*p), (rp, rp, rp), raiz, pintura, seg=6, anillos=4)
+        # LA CHORREADA: de la punta mas baja del trazo, la pintura que cayo
+        if rnd.random() < 0.7:
+            u, v = min(pts, key=lambda q: q[1]); largo = rnd.uniform(0.06, 0.16)
+            hueso('chorreada', raiz, pintura, sobre(u, v), sobre(u, v - largo), 0.035, 0.03, seg=5)
+            elipsoide('gota', sobre(u, v - largo), (0.045,) * 3, raiz, pintura, seg=6, anillos=4)
+    # LAS SALPICADURAS alrededor: lo que tira la lata de mas
+    for _ in range(10):
+        u, v = rnd.uniform(-0.38, 0.38), rnd.uniform(-0.36, 0.36)
+        elipsoide('salpicadura', sobre(u, v), (0.028,) * 3, raiz, pintura, seg=5, anillos=3)
 
 # ============================ LA CARPA ============================
 def carpa(T, K):
