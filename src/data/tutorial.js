@@ -172,9 +172,9 @@ export const TUTORIAL_ETAPAS = [
       { tipo: 'vuelta', hasta: 1.45, obstacles: 0, caza: 0, bombs: 0, bidones: false },
     ],
     aviones: [{ ...AVION[0], carga: 'tanques_bomba' }],
-    cfg: P({ sky: 'dusk', terrain: 'sea', carga: 'tanques_bomba', radar: 'normal', fuelOn: true, fuelScale: 0.2, poderes: true }), pasos: ETAPA3,
-    consejos: { es: ['Volá abajo de la raya roja: arriba, te ven.', 'Soltá la bomba alta y temprano.', 'Ya podés volar el LIBRO DE VUELO, en HISTORIA.'],
-      en: ['Stay under the red line: above it, they see you.', 'Drop the bomb high and early.', 'You can now fly the FLIGHT LOG, in CAMPAIGN.'] } },
+    cfg: P({ sky: 'dusk', terrain: 'sea', carga: 'tanques_bomba', radar: 'normal', fuelOn: true, fuelScale: 0.2 }), pasos: ETAPA3,   // (sin poderes: el RASANTE te clava al ras y no deja subir a soltar la bomba)
+    consejos: { es: ['Volá abajo de la raya del radar: si la cruzás, te quema.', 'Soltá la bomba alta y temprano.', 'Ya podés volar el LIBRO DE VUELO, en HISTORIA.'],
+      en: ['Stay under the radar line: cross it and you get burned.', 'Drop the bomb high and early.', 'You can now fly the FLIGHT LOG, in CAMPAIGN.'] } },
 ];
 
 // ---------------------------------------------------------------------------------------------

@@ -1,0 +1,16 @@
+NEXT STRIP - TUTORIAL 2.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Push every expression big and open - he is nineteen and hides nothing yet. Readable
+at 108 px, like a 90s arcade cut-in portrait.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - THUMBS UP: one thumb raised beside his face, a big grin.
+CELL 2 - MILITARY SALUTE: hand at the brow, chin up, trying very hard to look serious.
+CELL 3 - PROUD LIKE A BOY: chin up, chest out, a grin he cannot hold back.
+CELL 4 - DOUBT: eyebrows pinched, eyes to the side - he is the one who doubts, and he is right.
+CELL 5 - THINKING: eyes up, lips pushed out.

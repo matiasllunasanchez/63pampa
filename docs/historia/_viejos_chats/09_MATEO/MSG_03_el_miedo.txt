@@ -1,0 +1,16 @@
+NEXT STRIP - EL MIEDO.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Push every expression big and open - he is eighteen, still a kid, trying to sound fine.
+Always the same shaved head. Readable at 108 px.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - AFRAID: eyes huge, eyebrows up, mouth open.
+CELL 2 - PANIC: mouth stretched open in a scream under the shelling.
+CELL 3 - CRYING: open face, tears streaming.
+CELL 4 - STARTLED: head jerked back, eyes popping.
+CELL 5 - FIGHTING TEARS: chin trembling, lips pressed.

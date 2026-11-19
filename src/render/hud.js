@@ -320,14 +320,17 @@ export function drawTakeoff(toT, dsp, auto = 0, suelto = false, sinCuenta) {
   const rumbo = suelto ? null : dsp ? dsp.rumbo : T('takeoffHeading');
   const enAuto = auto && toT >= 3;
   // placa oscura detras del encabezado: cae sobre el amanecer y sin esto no se lee
+  // (en el DESPEGUE JUGABLE el encabezado baja al medio, donde iba la cuenta que ahi no hay: arriba van los carteles —la
+  // consigna del tutorial— y lo tapaba. 19/11, el autor: "el cartel de despegue tapa el cartel de arriba")
+  const dy = sinCuenta ? 44 : 0;
   if (!enAuto) {
-    ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17, W, rumbo ? 23 : 13);
+    ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17 + dy, W, rumbo ? 23 : 13);
     ctx.fillStyle = P.ink; ctx.font = '7px monospace';
-    ctx.fillText(titulo, W / 2, 26);
+    ctx.fillText(titulo, W / 2, 26 + dy);
     // el rumbo va pegado al titulo: antes estaba en y=80, encima del avion en la pista
     if (rumbo) {
       ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
-      ctx.fillText(rumbo, W / 2, 36);
+      ctx.fillText(rumbo, W / 2, 36 + dy);
     }
   }
   // EL PILOTO AUTOMATICO de los modos sueltos (`auto` segundos despues de la carrera, game.js): la misma
@@ -2291,7 +2294,8 @@ function drawEstante(h) {
   // EL SECUNDARIO ELEGIDO (9/10, [Z] suelta lo elegido; 1/2/3 o la ruedita lo cambian): su fila lleva
   // una flechita naranja afuera, a la izquierda, y su numero en naranja. Fila por fila es el mismo orden
   // que las teclas: arriba los tanques (1), al medio la bomba (2), abajo las chafitas (3).
-  const yElegida = { tanque: CUADROS_Y + 5, bomba: CUADROS_Y + 13, chafitas: CUADROS_Y + 21 }[run.secundaria];
+  // (las chafitas no se eligen: son APOYO — la flecha solo señala tanques o bomba, 18/11)
+  const yElegida = { tanque: CUADROS_Y + 5, bomba: CUADROS_Y + 13 }[run.secundaria];
   const fila = (yy, ico, n, col, mono, colDig) => {
     iconoEn(cx, yy, ico, col, undefined, mono);
     const elegida = yy === yElegida;
@@ -2339,10 +2343,13 @@ function drawEstante(h) {
     if (!run.sinBombas) fila(yc, 'bomba', run.msl, run.msl > 0 ? null : VACIO, !(run.msl > 0));
   }
   // ABAJO: las chapitas (vacio si el avion no trae)
+  // …SEPARADAS: son el ELEMENTO DE APOYO, no un secundario (18/11). Una raya punteada las aparta del estante y van
+  // en celeste, con el digito en celeste tambien: se leen como otra cosa, que sale con su propia tecla.
   const yb = CUADROS_Y + 21;
   if (run.chapitasMax > 0) {
-    const n = run.chapitas;
-    fila(yb, 'chapitas', n, n > 0 ? '#c9d6dd' : VACIO, !(n > 0) || Math.floor(run.t * 3) % 4 !== 0);
+    const n = run.chapitas, APOYO = '#7fc6d8';
+    for (let i = 1; i < RACK_W - 1; i += 2) px(X_RACK + i, yb - 5, 1, 1, '#3d5560');
+    fila(yb, 'chapitas', n, n > 0 ? APOYO : VACIO, !(n > 0) || Math.floor(run.t * 3) % 4 !== 0, n > 0 ? APOYO : VACIO);
   }
 }
 

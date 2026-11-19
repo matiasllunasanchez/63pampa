@@ -1417,7 +1417,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // ---------- EL SECUNDARIO (9/10, el autor: "1 tanque, 2 bomba, 3 chafitas", o la ruedita) ----------
     // [Z] suelta lo elegido (core/input.js); el estante del HUD lo marca con su fila. El orden es el del
     // estante: arriba el par de ala (tanques), al medio la bomba, abajo las chafitas.
-    const SECUNDARIOS = ['tanque', 'bomba', 'chafitas'];
+    // LAS CHAFITAS NO SON SECUNDARIO (18/11, el autor: "arma primaria la metralleta, secundaria las bombas, y elemento
+    // de APOYO las chafitas, que se lanzan con su tecla especial"): el estante rota entre tanques y bomba; las chafitas
+    // salen siempre con [H] / ◯ (chapitasAccion), se combinan con piruetas y se dibujan aparte en el estante.
+    const SECUNDARIOS = ['tanque', 'bomba'];
     /** Si el avion TIENE ese secundario ahora (la ruedita saltea los que no). */
     const tieneSecundario = k => (k === 'tanque' ? naftaSys.hayTanque() && !!proximoPilon(run.tanque)
       : k === 'chafitas' ? run.chapitasMax > 0 && run.chapitas > 0 : true);
@@ -4203,7 +4206,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       soltarTanques: () => soltarTanquesAccion(),
       chapitas: () => chapitasAccion(),
       secundaria: () => run.secundaria,
-      elegirSecundaria: n => elegirSecundaria(SECUNDARIOS[n - 1]),
+      elegirSecundaria: n => { if (SECUNDARIOS[n - 1]) elegirSecundaria(SECUNDARIOS[n - 1]); },
       secundariaPaso: dir => secundariaPaso(dir),
       /** EL PODER RASANTE (tecla 6). Funcion con nombre y no cuerpo de la accion, por el mismo
        *  motivo que `pedirChancha`: la sonda del fixture tiene que apretar EXACTAMENTE lo que
@@ -7566,7 +7569,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // MENUS Y PANTALLAS: tambien en grilla de diseño (320x180), escaladas por U
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
-      if (S.state === 'takeoff') hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto(), !!carrera);
+      // (en la carrera jugable, no mientras habla el tutorial: chocaba con las teclas del dialogo)
+      if (S.state === 'takeoff' && !(carrera && dlgPausa)) hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto(), !!carrera);
       // LA CORTA FINAL: las ventanas se resuelven ACA y no en el HUD, con las mismas constantes que
       // despues CALIFICAN la toma. Si el dibujo tuviera su propia idea de "velocidad correcta", el
       // instrumento y el juez podrian discrepar — y no hay nada peor que un HUD en verde y un
@@ -7653,7 +7657,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // de guion: un mundo congelado sin nada que lo explique se lee como un cuelgue. Sale recien
       // pasada la gracia, o sea cuando aceptar YA funciona — no puede ofrecer algo que no anda.
       // Parpadea con `dlgT` porque es el unico reloj vivo: `run.t` esta congelado.
-      if (dlgPausa && radioVis()) {
+      // (con la PAUSA abierta encima, el dialogo no se dibuja: la pausa va arriba de todo — 19/11)
+      if (dlgPausa && radioVis() && !paused) {
         // EL FOCO DE UNA LECCION (M1_CAMBIOS 8): el velo de siempre, con un AGUJERO sobre cada zona
         // que se esta explicando. Las zonas vienen en la grilla de DISEÑO y el velo va en la de
         // MUNDO, de ahi el `* U`. Se agujerea con la regla par-impar: el rectangulo de la pantalla
@@ -7677,13 +7682,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // arriba de los relojes de abajo, debajo de lo de arriba (la ruta), sobre una placa para que se lea
         if (lecFoco && lecFoco.foco.length) {
           ctx.save(); ctx.scale(U, U);
-          ctx.font = labelFont(7); ctx.textAlign = 'center';
+          ctx.font = 'bold ' + labelFont(3.5); ctx.textAlign = 'center';   // (la mitad y en negrita, 19/11)
           lecFoco.foco.forEach(id => {
             const z = zonaLeccion(id);
             if (!z) return;
-            const txt = T('foco_' + id), w = ctx.measureText(txt).width + 6;
-            const cx = z.x + z.w / 2, abajo = z.y > DH / 2, y = abajo ? z.y - PADZ - 3 : z.y + z.h + PADZ + 8;
-            ctx.globalAlpha = 0.9; ctx.fillStyle = '#0a0e11'; ctx.fillRect(cx - w / 2, y - 7, w, 9);
+            const txt = T('foco_' + id), w = ctx.measureText(txt).width + 3;
+            const cx = z.x + z.w / 2, abajo = z.y > DH / 2, y = abajo ? z.y - PADZ - 2 : z.y + z.h + PADZ + 5;
+            ctx.globalAlpha = 0.9; ctx.fillStyle = '#0a0e11'; ctx.fillRect(cx - w / 2, y - 3.5, w, 4.5);
             ctx.globalAlpha = 0.85 + 0.15 * Math.sin(dlgT * 5); ctx.fillStyle = P.accent; ctx.fillText(txt, cx, y);
             ctx.globalAlpha = 1;
           });

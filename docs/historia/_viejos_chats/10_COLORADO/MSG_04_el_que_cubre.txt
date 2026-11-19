@@ -1,0 +1,16 @@
+NEXT STRIP - EL QUE CUBRE.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Big and warm: the smile is enormous, the rare anger is loud. Push every expression to
+the extreme, always generous, never mean. Readable at 108 px.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - RARE ANGER: eyebrows down, jaw forward, shouting.
+CELL 2 - SHOUTING A WARNING: mouth wide open, eyes wide - "get down!"
+CELL 3 - AFRAID: eyes wide, eyebrows up.
+CELL 4 - PROTECTIVE: eyebrows low, eyes fixed, jaw set.
+CELL 5 - IN PAIN: eyes squeezed shut, teeth clenched.

@@ -4432,3 +4432,14 @@ test('el despegue jugable: gas a fondo levanta, soltarlo o darle a toques se que
   assert.ok(corre(t => !(t > 2 && t < 4)).sinPista, 'soltar 2 s en la carrera no alcanza');
   assert.ok(corre(t => (t % 0.8) < 0.5).sinPista, 'a toques no llega a la velocidad');
 });
+
+// LA LUZ VERDE NO PROMETE LO QUE LA BOMBA NO ALCANZA (19/11): collision.js borra las bombas que pasan SPAWN_Z, asi
+// que con mucha holgura (FACIL) un buque a 600 m no puede dar verde. Antes daba, y la bomba se borraba en el camino.
+test('la suelta: con la holgura de FACIL, un buque mas alla del corte de la bomba no da verde', async () => {
+  const { resetBlanco, holgura } = await import('../src/core/blanco.js');
+  const { BL } = await import('../src/data/blanco.js');
+  resetBlanco(true, 'CASCO DE PRÁCTICA', 'log');
+  const tope = BL.HOLGURA.facil * 1.4;            // FACIL con la BRP
+  assert.equal(holgura(0, 11, 0, 0, 157, 14 + 600, tope, 0), null, 'a 600 m no hay envion que alcance antes del corte');
+  assert.notEqual(holgura(0, 11, 0, 0, 157, 14 + 260, tope, 0), null, 'a 260 m si');
+});

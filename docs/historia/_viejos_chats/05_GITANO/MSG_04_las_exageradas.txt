@@ -1,0 +1,16 @@
+NEXT STRIP - LAS EXAGERADAS.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Push every expression to the EXTREME - he is the loudest, most rubbery face in the game,
+theatrical, like a 90s arcade cut-in portrait. Readable at 108 px.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - TERRIFIED: teeth chattering, eyebrows up, eyes wet - the coward.
+CELL 2 - STARTLED: jumping out of his skin, eyes popping, mouth snapped open.
+CELL 3 - JAW DROP: he believes the rumour completely - mouth hanging enormously open, eyes huge.
+CELL 4 - OUTRAGED: theatrically offended, eyebrows up, mouth open, chin pulled back.
+CELL 5 - EUPHORIC: shouting with joy, mouth wide open, eyes shut.

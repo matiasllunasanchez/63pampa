@@ -1,0 +1,58 @@
+Detailed 90s arcade run-and-gun pixel art in the style of Metal Slug on SNK Neo Geo
+hardware. Hand-drawn sprite look: chunky dark pixel outlines around every shape,
+rich dithered shading in visible pixel clusters, a small disciplined palette, hard
+crisp pixel edges, readable silhouette first and detail second.
+No anti-aliasing, no smooth gradients, no soft airbrush, no photorealism, no 3D
+render lighting, no bloom, no lens flare, no drop shadow, no modern vector or
+flat-illustration look.
+
+SHEET LAYOUT: a single horizontal strip of FIVE SQUARE cells in one row, edge to
+edge, no gaps, no borders drawn between them. The finished image is exactly five
+times as wide as it is tall. Each cell contains the SAME character as a portrait
+bust - chest up, three-quarter view facing slightly LEFT, eyes toward camera.
+Identical framing and identical scale in every cell: the head is the same size and
+the eyes sit at the same height in all of them. The bottom edge cuts across the
+upper chest; arms and hands are outside the frame. Leave a little clear space
+above the hair. The ONLY difference between cells is the facial expression.
+BUST ONLY: nothing below the upper chest - no legs, no boots, no full bodies, even
+if the attached images show full figures.
+BACKGROUND: flat neutral mid-grey (about #808080), the same grey behind the figure
+in every cell. No scenery, no props, no vignette, no gradient, no shadow cast on the
+background.
+SCALE NOTE: this will be displayed very small (108x108). Build every expression out
+of EYEBROW DIRECTION, MOUTH SHAPE and HEAD ANGLE. Do not rely on fine wrinkles,
+freckles, small scars or eye colour - at final size they do not exist.
+
+IMAGE 1 is the cast line-up. Copy its RENDERING ONLY: the line weight, the dithered
+shading, the palette, the flat mid-grey background, the sprite proportions.
+DO NOT COPY ANY FACE FROM IT. This is a different person who has never appeared
+before and must not resemble any of the eight figures in IMAGE 1 - not their face,
+not their hair, not their build.
+
+INTENT, and this matters more than any feature below: THE ONE WHO WAITS. Everything happens to other people and reaches her as news.
+
+CHARACTER, identical in every cell:
+An Argentine woman of about 48, from a modest household, in 1982. Criollo interior
+features, a soft square face, dark hair going grey at the temples and pulled back
+tightly. Warm brown eyes with fine lines at the corners, a small mouth. Plainly
+dressed: a flowered apron over a plain house dress, the SAME flowered apron in every
+cell. A wedding ring is the only jewellery. NOTHING military or patriotic: no
+cockade, no flag, no insignia of any kind - she is a housewife in her own kitchen.
+
+EXPRESSIONS, left to right:
+CELL 1 - NEUTRO: level and quiet, mouth closed, eyes on something out of frame. Listening to a radio.
+CELL 2 - CALIDA: a real settled smile, eyes soft, head tilted a little. The face of somebody's mother.
+CELL 3 - SERIA: the smile gone, eyebrows level, mouth closed and firm. She has decided not to say something.
+CELL 4 - ROTA: eyes closed, eyebrows collapsed inward, chin down. Grief held quietly, in a kitchen.
+CELL 5 - WORRIED: eyebrows pinched together, eyes on the radio, mouth a tight line.
+
+PERIOD LOCK - Argentina, 1982. Nothing modern may appear: no modern avionics, no
+digital or woodland camouflage, no NATO or United States markings, no invented
+squadron patches, no modern eyewear, no modern haircuts.
+
+ABSOLUTELY NO TEXT of any kind anywhere: no name tapes, no rank lettering, no
+labels, no cell numbers, no captions under the faces, no watermark, no signature.
+If you feel the urge to label anything, leave it blank.
+
+This is the FIRST strip of a series. In my next messages I will ask for more strips of
+this SAME woman in this SAME format. Keep her identical in all of them.

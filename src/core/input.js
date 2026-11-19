@@ -420,8 +420,8 @@ export function initInput(cv, a) {
     // 2 hasta el 9/10: los numeros pasaron a elegir el SECUNDARIO en vuelo.
     if (!e.repeat && e.code === 'KeyN') a.trackPrev();
     if (!e.repeat && e.code === 'KeyM') a.trackNext();
-    // EL SECUNDARIO, en el pasillo: 1 los TANQUES, 2 la BOMBA, 3 las CHAFITAS (el orden del estante)
-    const nSec = /^(?:Digit|Numpad)([123])$/.exec(e.code);
+    // EL SECUNDARIO, en el pasillo: 1 los TANQUES, 2 la BOMBA (las chafitas son APOYO y salen con [H], 18/11)
+    const nSec = /^(?:Digit|Numpad)([12])$/.exec(e.code);
     if (!e.repeat && nSec && S.state === 'play') a.elegirSecundaria(+nSec[1]);
     if (!e.repeat && (e.code === 'Digit4' || e.code === 'Numpad4')) a.tempoToggle();   // MOMENTUM: camara lenta (pasillo)
     if (!e.repeat && e.code === 'KeyP') a.cambioPiloto();   // CAMBIO DE PILOTO (solo con la mecanica prendida: lo decide game.js)

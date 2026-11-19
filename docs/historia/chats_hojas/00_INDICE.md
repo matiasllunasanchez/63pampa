@@ -14,7 +14,7 @@
 
 ## Un piloto por avión — Por la Patria y Ciclo de muerte
 
-*Autor, 24/10: «hagamos un piloto para cada avion seleccionable en por la patria» · «y que concuerde con el avion supongamos e skyhawk a4b el mas argentino base, el super etenndard un "fino" quiza tipo frances (...) cosas asi, acorde» · «los pilotos random tienen qe estar todos dentro de aviones» · «el de la chancha podemos usar el mismo y es el unico personaje CRUZADO en modos de juego, por ahora».*
+*Autor, 24/10: «hagamos un piloto para cada avion seleccionable en por la patria» · «y que concuerde con el avion supongamos e skyhawk a4b el mas argentino base, el super etenndard un \"fino\" quiza tipo frances (...) cosas asi, acorde» · «los pilotos random tienen qe estar todos dentro de aviones» · «el de la chancha podemos usar el mismo y es el unico personaje CRUZADO en modos de juego, por ahora».*
 
 Todos **dentro de su avión**, en la misma vista de tres cuartos que el elenco. Los de reactor y los de ataque con **casco** (visor arriba, máscara colgando); los del Neptune y los del **Escuadrón Fénix** con **auriculares**. **El Hércules es la Chancha** (`01_CHANCHA`): el único personaje cruzado entre la campaña y los modos sueltos. Los apodos y las caras son **propuestas**: cambiá lo que quieras antes de generar.
 
@@ -43,14 +43,14 @@ Todos **dentro de su avión**, en la misma vista de tres cuartos que el elenco. 
 | Personaje | Carpeta | Mensajes | Caras |
 |---|---|---|---|
 | CÓNDOR | `02_CONDOR` | 3 | 15 |
-| TERO | `03_TERO` | 9 | 45 |
+| TERO | `03_TERO` | 12 | 60 |
 | PUMA | `04_PUMA` | 6 | 30 |
 | GITANO | `05_GITANO` | 7 | 35 |
 | VASCO | `06_VASCO` | 5 | 25 |
-| PICHÓN | `07_PICHON` | 6 | 30 |
-| TURCO | `08_TURCO` | 4 | 20 |
+| PICHÓN | `07_PICHON` | 12 | 60 |
+| TURCO | `08_TURCO` | 10 | 50 |
 | MATEO | `09_MATEO` | 5 | 25 |
 | COLORADO | `10_COLORADO` | 4 | 20 |
 | NORMA | `11_NORMA` | 3 | 15 |
 
-**Total: 475 caras.**
+**Total: 550 caras.**

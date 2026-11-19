@@ -1,0 +1,17 @@
+NEXT STRIP - EL VASCO.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+His range is the narrowest in the game: pale, still, contained, a little frightening.
+Each expression is a SMALL change made perfectly readable at 108 px. Never a big
+grin, never a laugh, never cartoonish.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - IN PRAYER: eyes closed, head bowed a little, mouth moving on a word.
+CELL 2 - THE STARE: eyes fixed straight at the camera, unblinking, mouth a straight line.
+CELL 3 - CONTEMPT: head tilted back, looking down the big nose, one corner of the upper lip raised.
+CELL 4 - COLD SIDE-EYE: head still, only the eyes sliding to the side.
+CELL 5 - THE ALMOST-SMILE: one corner of the thin mouth lifted - he just won an argument.

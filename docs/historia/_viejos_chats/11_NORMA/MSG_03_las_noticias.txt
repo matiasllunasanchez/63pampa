@@ -1,0 +1,16 @@
+NEXT STRIP - LAS NOTICIAS.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME woman, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+A mother of 1982, quiet and contained: each expression readable at 108 px, never
+cartoonish, never comic.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - SURPRISED: eyebrows up, eyes wide, mouth a small O.
+CELL 2 - RELIEVED: eyes closed, a long breath out.
+CELL 3 - CONTAINED ANGER: eyebrows down, lips pressed - at the radio.
+CELL 4 - SAD SMILE: eyebrows up in the middle, eyes wet.
+CELL 5 - EXHAUSTED: heavy eyelids, head drooping.

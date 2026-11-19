@@ -1,0 +1,17 @@
+NEXT STRIP - LAS RARAS.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+His range is narrow: everything happens in the eyebrows, the heavy half-closed eyes
+and the walrus moustache. Make each one readable at 108 px, never cartoonish, never
+loud - except where a cell says so.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - A LOW CHUCKLE: eyes shut, the moustache lifted, shoulders shaking - rare.
+CELL 2 - KNOWING: one eyebrow up, a half-smile hidden under the moustache.
+CELL 3 - "REALLY?": a flat unimpressed stare straight at the camera.
+CELL 4 - RESIGNED: eyebrows up, a long breath out.
+CELL 5 - SILENT PRIDE: chin up a fraction, eyes bright under the heavy lids.

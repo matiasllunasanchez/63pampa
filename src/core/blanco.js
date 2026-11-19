@@ -8,7 +8,7 @@ import { BL, PERFIL } from '../data/blanco.js';
 import { SISTEMAS, SIS_ALCANCE, estadoDe } from '../data/sistemas_buque.js';
 import { armamentoDe } from '../data/armamento.js';
 import { geo, alturaSuelo, esTierraEn } from './geografia.js';
-import { BOMBA_G, BOMBA_PLANEO, BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_REL_MAX } from '../data/tuning.js';
+import { BOMBA_G, BOMBA_PLANEO, BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_REL_MAX, SPAWN_Z } from '../data/tuning.js';
 
 export const blanco = {
   on: false,          // hay buque en este pasillo
@@ -297,6 +297,10 @@ function simular(px, py, vy, vx, spd, zBuque, extra, acc) {
     // CONTRA EL SUELO DE VERDAD, el mismo contra el que detona la bomba (collision.js): el agua de un
     // buque, o —delante de una estructura— la tierra con sus lomas. Suponerla plana a la altura de
     // la base prometia en verde una bomba que despues se comia una loma antes de la explanada.
+    // EL CORTE DE LA BOMBA REAL (19/11): collision.js descarta las bombas que pasan SPAWN_Z adelante. Sin esto, con
+    // mucha holgura (la dificultad FACIL) la luz se prendia a ~600 m prometiendo un impacto que la bomba real nunca
+    // alcanzaba: se borraba en el camino. Medido: siete de ocho sueltas en verde, erradas.
+    if (z >= SPAWN_Z) return 'larga';
     if (y <= pisoEn(x, z - zs)) return 'corta';
   }
   return 'corta';

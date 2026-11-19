@@ -1,0 +1,16 @@
+NEXT STRIP - EL QUE DA.
+
+Draw a NEW strip of FIVE SQUARE cells in one row, edge to edge, exactly like the
+FIRST strip of this chat: the SAME man, same face, same clothes, same pixel-art style,
+same framing, the head the same size in every cell. Bust only - nothing below the
+upper chest. No text of any kind. Do not repeat any face from earlier strips.
+Big and warm: the smile is enormous, the rare anger is loud. Push every expression to
+the extreme, always generous, never mean. Readable at 108 px.
+BACKGROUND: the same flat mid-grey as the first strip.
+
+EXPRESSIONS, left to right:
+CELL 1 - OFFERING: head tilted forward and down, eyebrows raised in the middle, a small encouraging smile, eyes on someone lower than him.
+CELL 2 - LAUGHING: a huge laugh with all the teeth, dimples, eyes shut.
+CELL 3 - WINK: one eye shut, a huge grin.
+CELL 4 - CHEEKY: a one-sided grin, eyes sliding sideways.
+CELL 5 - TENDERNESS: soft eyes, a small warm smile.

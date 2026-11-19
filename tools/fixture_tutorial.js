@@ -130,8 +130,15 @@ async function volar(k) {
       if (bl) {
         const dx = bl.x - s.x;
         await sostener('lado', dx < -1 ? 'A' : dx > 1 ? 'D' : null);
-        await sostener('alt', bl.alt > 0 ? 'W' : bl.alt < 0 ? null : (s.alt < 9 ? 'W' : null));
-        if (bl.listo) await tap('Z', 150);
+        // la altura a la banda verde, sin pasarse: la flecha del blanco corre el objetivo, y el gas se da a toques
+        // (sostenido sube de golpe y se pasa — medido, oscilaba entre 2 y 21 m)
+        volar.objAlt = bl.alt > 0 ? s.alt + 2 : bl.alt < 0 ? s.alt - 2 : (volar.objAlt || 11);
+        await sostener('alt', s.alt < volar.objAlt - 0.5 && (Date.now() % 300) < 170 ? 'W' : null);
+        if (bl.listo) {
+          await tap('Z', 150);
+          if (process.env.TUT_LOG) { const a0 = JSON.parse(await js('String(window.__suelta())')); await sleep(3500); const a1 = JSON.parse(await js('String(window.__suelta())'));
+            console.log(`   Z en verde a ${Math.round(a0.d)} m, alt ${a0.alt.toFixed(1)} → res '${a1.res}' hundido ${a1.hundido} dano ${a1.dano}`); }
+        }
       } else { if (s.alt < 9) await sostener('alt', 'W'); else if (s.alt > 14) await sostener('alt', null); }
       await sleep(60); continue;
     }

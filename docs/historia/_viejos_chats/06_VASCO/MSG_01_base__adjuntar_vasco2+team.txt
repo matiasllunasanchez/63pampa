@@ -1,0 +1,61 @@
+Detailed 90s arcade run-and-gun pixel art in the style of Metal Slug on SNK Neo Geo
+hardware. Hand-drawn sprite look: chunky dark pixel outlines around every shape,
+rich dithered shading in visible pixel clusters, a small disciplined palette, hard
+crisp pixel edges, readable silhouette first and detail second.
+No anti-aliasing, no smooth gradients, no soft airbrush, no photorealism, no 3D
+render lighting, no bloom, no lens flare, no drop shadow, no modern vector or
+flat-illustration look.
+
+SHEET LAYOUT: a single horizontal strip of FIVE SQUARE cells in one row, edge to
+edge, no gaps, no borders drawn between them. The finished image is exactly five
+times as wide as it is tall. Each cell contains the SAME character as a portrait
+bust - chest up, three-quarter view facing slightly LEFT, eyes toward camera.
+Identical framing and identical scale in every cell: the head is the same size and
+the eyes sit at the same height in all of them. The bottom edge cuts across the
+upper chest; arms and hands are outside the frame. Leave a little clear space
+above the hair. The ONLY difference between cells is the facial expression.
+BUST ONLY: nothing below the upper chest - no legs, no boots, no full bodies, even
+if the attached images show full figures.
+BACKGROUND: flat neutral mid-grey (about #808080), the same grey behind the figure
+in every cell. No scenery, no props, no vignette, no gradient, no shadow cast on the
+background.
+SCALE NOTE: this will be displayed very small (108x108). Build every expression out
+of EYEBROW DIRECTION, MOUTH SHAPE and HEAD ANGLE. Do not rely on fine wrinkles,
+freckles, small scars or eye colour - at final size they do not exist.
+
+IMAGE 1 is this character's finished model sheet. Copy his clothing, his colouring
+and his line work exactly, and match its rendering precisely: same line weight,
+same shading, same flat mid-grey background.
+IMAGE 2 is the full cast line-up. This character is the EIGHTH AND LAST, on the far right, the tallest figure. Copy his
+build and his face from there. The other seven are the rest of the cast and he must
+stay clearly different from every one of them.
+
+INTENT, and this matters more than any feature below: he is A RETIRED MAFIOSO, OR A VAMPIRE: pale, still, quietly dangerous. Nothing warm.
+He is NOT the gaunt sad pilot who also has dark hair - that one is kind and tired,
+this one is cold.
+
+CHARACTER, identical in every cell:
+Argentine air force pilot of Basque descent, thirties. THE PALEST SKIN OF THE CAST.
+Long angular face, very pronounced square jaw, high cheekbones. JET-BLACK HAIR
+combed straight back with volume on top - NO grey anywhere. Straight heavy black
+eyebrows. A LARGE straight nose. Deep-set light eyes with a fixed hard stare. A thin
+mouth held in a straight line. Olive flight suit zipped to the chin, a large silver
+crucifix on a red cord outside the collar.
+
+EXPRESSIONS, left to right:
+CELL 1 - NEUTRAL: shut. Mouth closed, eyes lowered a fraction, level eyebrows. Gives nothing away.
+CELL 2 - SMILE: the smallest possible change: one corner of the mouth barely lifted. He is not smiling, he is ALMOST smiling.
+CELL 3 - WORRIED: eyes slightly wider, eyebrows level still. Even his worry is contained.
+CELL 4 - ANGER: jaw set hard, eyebrows down, the stare gone from cold to furious. The only cell where he shows heat.
+CELL 5 - BROKEN: eyes closed, head lowered. Grief held completely still.
+
+PERIOD LOCK - Argentina, 1982. Nothing modern may appear: no modern avionics, no
+digital or woodland camouflage, no NATO or United States markings, no invented
+squadron patches, no modern eyewear, no modern haircuts.
+
+ABSOLUTELY NO TEXT of any kind anywhere: no name tapes, no rank lettering, no
+labels, no cell numbers, no captions under the faces, no watermark, no signature.
+If you feel the urge to label anything, leave it blank.
+
+This is the FIRST strip of a series. In my next messages I will ask for more strips of
+this SAME man in this SAME format. Keep him identical in all of them.
