@@ -16,5 +16,6 @@
 | 10 | `MSG_10_cabina_2.txt` | `10_cabina_2` | pichon_cab_panico pichon_cab_grito pichon_cab_euforia pichon_cab_decidido pichon_cab_dolor |
 | 11 | `MSG_11_cabina_3.txt` | `11_cabina_3` | pichon_cab_alivio pichon_cab_llanto pichon_cab_risa pichon_cab_sorpresa pichon_cab_sobresalto |
 | 12 | `MSG_12_mascara.txt` | `12_mascara` | pichon_masc_concentrado pichon_masc_miedo pichon_masc_enojo pichon_masc_g pichon_masc_panico |
+| 13 | `MSG_13_radio.txt` | `13_radio` | pichon_radio_neutro pichon_radio_sonrisa pichon_radio_explicando pichon_radio_escucha pichon_radio_preocupado |
 
-**Total: 60 caras.**
+**Total: 65 caras.**

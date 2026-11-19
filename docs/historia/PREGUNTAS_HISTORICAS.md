@@ -1690,3 +1690,13 @@ mirando por el costado o guiados por radio.
 3. ¿La parte orgánica (plancton, algas que teñían la capa) está documentada o es inferencia?
 
 **Decisión del autor:** pendiente; la carta dice que el aerosol es del juego.
+
+**19/11/2026 — se lava en la nube.** El autor eligió que la costra se lave ADENTRO DE LA NUBE (y despacio bajo la
+lluvia); subir sin nube ya no limpia (subir solo deja de juntar sal, pero no despega la costra). Sobre la pregunta 2,
+el autor cuenta que el A-4B no tenía sistema propio y que usaban un lubricante tipo WD-40: es la carta SILICONADO M-60.
+
+4. **CONTRADICCIÓN A RESOLVER:** el texto original del autor decía que "ni la lluvia ni los limpiaparabrisas sacaban"
+   la capa. Si eso es lo documentado, la nube tampoco la sacaría. Se dejó la nube por juego; confirmar.
+5. **EMPAÑADO (19/11):** ¿se empañaba el parabrisas o la cúpula del A-4B por dentro? Lo típico es al bajar rápido
+   desde la altura fría al aire húmedo de abajo. ¿Tenía desempañador (aire caliente)? ¿Hay testimonios de Malvinas?
+   Si se confirma, podría ser mecánica: al bajar de la nube, el vidrio se empaña un rato.

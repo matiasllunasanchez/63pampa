@@ -33,10 +33,11 @@ export const PRUEBAS = [
   { head: 'prSecMision' },
   {
     id: 'islas', titulo: 'LAS ISLAS · PROTOTIPO', desc: 'Vuelo libre sobre las Malvinas reales, desde el estrecho de San Carlos',
-    // PROTOTIPO I0 (19/11, docs/proyecto/ANALISIS_ISLAS_REALES.md): el vuelo, la cabina y el HUD del
-    // ARENA sobre el mapa real con el terreno de Dusk Patrol. Sin enemigos: es para medir si se siente.
-    // La sonda __malvinas deja prendido el mapa para la proxima entrada al arena.
-    setup: a => { a.sonda('malvinas', true); a.arena('m4'); },
+    // PROTOTIPO I0 (19/11, docs/proyecto/ANALISIS_ISLAS_REALES.md): el mapa real con el terreno de Dusk
+    // Patrol. Sin enemigos todavia: es para medir si se siente. La sonda __malvinas prende el mapa.
+    // (19/11, el autor: "la misma mecanica de gas, colision, piruetas, gravedad, la UI y la musica del
+    // PASILLO"): corre sobre POR LA PATRIA —el pasillo entero— con el mundo cambiado por el mapa real.
+    setup: a => { a.sonda('malvinas', true); a.patria(); },
   },
   {
     id: 'idayvuelta', titulo: 'IDA Y VUELTA', desc: 'Todas las etapas de un nivel, corta, con el blanco al final · ~4 min',

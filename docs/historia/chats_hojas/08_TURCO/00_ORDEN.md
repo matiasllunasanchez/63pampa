@@ -14,5 +14,6 @@
 | 08 | `MSG_08_el_mate.txt` | `08_el_mate` | turco_mate turco_cansado turco_frio turco_resignado turco_llamando |
 | 09 | `MSG_09_hangar_1.txt` | `09_hangar_1` | turco_hang_concentrado turco_hang_explicando turco_hang_orgullo turco_hang_preocupado turco_hang_furia |
 | 10 | `MSG_10_hangar_2.txt` | `10_hangar_2` | turco_hang_alivio turco_hang_risa turco_hang_cansado turco_hang_escucha turco_hang_mate |
+| 11 | `MSG_11_radio.txt` | `11_radio` | turco_radio_neutro turco_radio_sonrisa turco_radio_ceno turco_radio_explicando turco_radio_escucha |
 
-**Total: 50 caras.**
+**Total: 55 caras.**

@@ -243,26 +243,39 @@ probar si se siente bien.
 | **I4 · El PASILLO con mapa real** | geografía derivada de rutas reales + siluetas de los cerros en el horizonte | `npm run feel` idéntico |
 | **I5 · Más salidas** | S-09, S-07/S-14, S-13 | una por una |
 
-### I0 — hecho el 19/11 (prototipo), rehecho el mismo día a pedido del autor
+### I0 — hecho el 19/11 (prototipo). Tercera versión: sobre el motor del PASILLO
 
-**Decisiones del autor (19/11), que corrigen la §7.b para las islas:**
-- *"Se ve horrible: ¿por qué no se ve TAL CUAL el otro juego, con el avión cambiado nada más?"* → el
-  mundo es **Dusk Patrol tal cual**: su shader, sus colores y su pasada final de paleta con dither. No se
-  recolorea con la turba de RASANTE.
-- *"Los dos juegos no tienen colisión con nada, eso tiene que estar"* → **el terreno mata**
-  (`death_land`), sin tirón automático. Avisan la lámpara y el HUD: ARRIBA.
-- *"La cabina del otro juego está mejor, usemos esa con nuestros indicadores"* → **la cabina y el HUD
-  son los de Dusk Patrol**, en km/h y metros y en castellano, con nuestros indicadores: nafta,
-  calor del cañón, misiles (Z), reparto de energía, escuadrón y turbo.
-- *"Las vistas primera persona, tercera y desde arriba me encantan"* → **las tres vistas de Dusk Patrol**
-  con su viaje de cámara de ~1 s. Se cambian con la tecla de vista del arena ([V]).
-- *"La misma lógica que el avioncito de Dusk Patrol, pero con los nuestros desde Blender"* → **el A-4B
-  como malla low-poly** (1.530 triángulos, pintura horneada a un color por cara) dibujado como el caza de
-  Dusk Patrol: tres tonos, contorno oscuro y la misma paleta.
+**Decisiones del autor (19/11), en orden:**
+1. *"Se ve horrible: ¿por qué no se ve TAL CUAL el otro juego?"* → el mundo es **Dusk Patrol tal cual**
+   (su shader, sus colores y su paleta con tramado).
+2. *"Los otros juegos no tienen colisión, eso tiene que estar"* → el terreno mata.
+3. *"Las vistas primera persona, tercera y desde arriba me encantan"* → **las tres vistas de Dusk Patrol**
+   con su viaje de cámara, en [V].
+4. *"El avioncito de Dusk Patrol, pero con los nuestros desde Blender"* → **el A-4B como malla
+   low-poly** (1.530 triángulos, la pintura horneada a un color por cara), dibujado como su caza.
+5. *"El cambio de escuadrón no queda bien: fade a negro, no son el mismo avión"* → **el relevo es un
+   fundido a negro**, y el avión nuevo aparece desde negro.
+6. *"La misma mecánica de GAS, colisión idéntica a PASILLO en cosas y agua, las piruetas, la forma de
+   maniobrar, la misma gravedad; la UI de PASILLO; la cabina 3D del pasillo sin radar salvo el Super
+   Étendard; el radar activable según misión; la música"* → **las islas corren sobre el motor del
+   PASILLO** (POR LA PATRIA): `flight.js`, `moves.js`, el roce, el HUD de relojes, la cabina horneada,
+   el radar, el relevo y la música son los de siempre. La cabina de Dusk Patrol se descartó.
+7. *"Isla Soledad se puede, pero hay que ir rasante y esquivando"* → **la altura del pasillo se mide
+   desde el suelo de abajo**: las bandas (rasante, radar, techo) valen igual sobre un cerro que sobre el
+   mar. El terreno que sube se come esa altura: si no le das gas a tiempo, rozás (el roce del pasillo,
+   con su gracia), y si sube de golpe es una pared.
 
-**Cómo se entra:** menú **PRUEBAS → LAS ISLAS · PROTOTIPO**. Por consola: `__malvinas()` prende,
-`__malvinas(false)` apaga, `__malvinas('?')` informa y `__malvinas({ lon, lat, alt, rumbo })` lleva el
-avión a un lugar.
+**Lo que las islas le agregan al pasillo** (`systems/islas/islas.js`, `pasoPasillo`):
+- **El rumbo:** la velocidad de costado del pasillo (`plane.vx`, la que produce el alabeo) acá hace
+  virar. `plane.x` vuelve a 0 cada cuadro.
+- **El suelo real:** `core/geografia.js` (`geoExterna`) contesta si hay tierra abajo, con la altura en 0
+  porque `plane.y` ya es sobre el suelo.
+- **Lo que se apaga en las islas** (`game.js`, `islas.enPasillo()`): la siembra del pasillo 2D, el
+  compañero, el teatro, LA COLA, el banco de cartas y las fallas, el sprite del avión, la escena 2D del
+  relevo y la formación. Todo eso es del pasillo 2D y sobre el mapa 3D no cierra.
+
+**Cómo se entra:** menú **PRUEBAS → LAS ISLAS · PROTOTIPO**. Por consola: `__malvinas('?')` informa y
+`__malvinas({ lon, lat, rumbo, alt })` lleva el avión a un lugar (la altura es sobre el suelo).
 
 | Archivo | Qué hace |
 |---|---|
@@ -272,18 +285,21 @@ avión a un lugar.
 | `src/systems/islas/terreno3d.js` | el shader del mundo de Dusk Patrol y su paleta |
 | `src/systems/islas/avion3d.js` | el avión 3D al estilo Dusk Patrol |
 | `src/systems/islas/camara.js` | las tres vistas y la transición |
-| `src/systems/islas/islas.js` | la fase: arranque, correa del borde, choque, lugares, el snapshot de la cabina, la sonda |
-| `src/render/islas_cabina.js` | cabina, HUD, radar y aguanieve de Dusk Patrol con nuestros indicadores |
-| `systems/arena.js`, `systems/three-arena.js`, `render/arena.js` | los enganches (solo actúan con las islas prendidas) |
+| `src/systems/islas/islas.js` | rumbo, suelo, arranque, borde del mapa, lugares y la sonda |
+| `src/core/geografia.js` (`geoExterna`), `src/game.js`, `src/systems/three-arena.js` | los enganches (solo actúan con las islas prendidas desde PRUEBAS) |
 
 Para exportar otro avión: `Blender --background --factory-startup --python tools/blender/exportar_malla.py -- --modelo <clave> --out src/data/mallas/<clave>.json --max-tris 1500`.
 
 **Pendiente:**
-- el avión 3D es siempre el A-4B (falta exportar los demás y elegir según el avión de la salida);
-- falta medir el vuelo bajo entre cerros jugándolo: si morir contra el terreno es justo con la vista
-  de atrás;
+- **el avión:** mejorarlo y exportar todas las variantes, eligiendo la del avión de la salida (hoy siempre
+  el A-4B);
+- **el radar por misión:** hoy es el de POR LA PATRIA, y su Sea Dart sale "desde el buque" aunque en las
+  islas no haya buque. Falta el dato por misión (prendido o apagado, y desde dónde);
+- **el radar propio en la cabina** solo para el Super Étendard: es la regla del pasillo
+  (`data/radar_propio.js`), así que debería valer igual. Verificarlo cuando se pueda elegir avión;
+- la cámara de atrás sigue al cabeceo del pasillo, que con el gas sostenido apunta mucho al cielo;
 - los nombres TEAL INLET y PUERTO YAPEYU, a verificar;
-- el bundle pesa 1,4 MB más aunque no se entre a las islas (se puede cargar aparte más adelante).
+- el bundle pesa 1,4 MB más aunque no se entre a las islas.
 
 **D (la ruta real en el contexto y en "lo que pasó")** se puede hacer en cualquier momento después
 de I1.

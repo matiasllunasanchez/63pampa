@@ -217,7 +217,7 @@ export const STRINGS = {
     ch_upa: 'NO TE SUELTES. TE LLEVAMOS A UPA.',
     ch_broken: 'LA CHANCHA NO BAJA MAS AL SUR.',
     ola_gigante: '¡OLA GIGANTE!', ola_gigante_sub: 'SUBÍ — POR ENCIMA DEL RADAR',
-    salitre: 'SAL EN EL PARABRISAS', salitre_sub: 'ARRIBA SE LIMPIA — PERO EL RADAR TE VE',
+    salitre: 'SAL EN EL PARABRISAS', salitre_sub: 'LA NUBE LO LAVA — PERO ALLÁ ARRIBA EL RADAR TE VE',
     ch_sinsonda: 'EL DAGGER NO TIENE SONDA: NO HAY CHANCHA PARA VOS.',
     // LA RADIO DEL TRANSITO DEL NARWAL (M4 / m3) — SPEC_TRAMOS T4. Son cuatro claves porque el
     // transito son cuatro tramos: la conversacion entera de GUION_3 no entra en un popup, y lo
@@ -479,7 +479,7 @@ export const STRINGS = {
     escFenix: 'ESCUADRÓN FÉNIX',   // la ficha del avion de un avion del Fenix (render/menus.js)
     modeTutorial: 'TUTORIAL', modeTutorialDesc: 'Lo básico para volar',
     tutC_radarSube: 'SUBÍ ARRIBA DE LA RAYA DEL RADAR', tutC_radarBaja: 'VOLVÉ ABAJO DE LA RAYA',
-    tutC_secTanque: 'ELEGÍ LOS TANQUES', tutC_secBomba: 'VOLVÉ A LA BOMBA', tutC_momentum: 'PRENDÉ EL MOMENTUM', tutC_perfecto: 'VOLÁ EN PERFECTO 4 SEGUNDOS', tutC_esquiva: 'ESQUIVÁ {n} GLOBOS', tutC_sal: 'SUBÍ ARRIBA DE 20 M HASTA LIMPIAR EL VIDRIO', tutC_aciertos: 'GAS CUANDO LA AGUJA PASA POR EL AZUL', tutC_soltaRas: 'SOLTALO: PICÁ O MANTENÉ EL GAS', tutC_chancha: 'LLAMÁ A LA CHANCHA',
+    tutC_secTanque: 'ELEGÍ LOS TANQUES', tutC_secBomba: 'VOLVÉ A LA BOMBA', tutC_momentum: 'PRENDÉ EL MOMENTUM', tutC_perfecto: 'VOLÁ EN PERFECTO 4 SEGUNDOS', tutC_esquiva: 'ESQUIVÁ {n} GLOBOS', tutC_sal: 'SUBÍ HASTA LA NUBE PARA LAVAR EL VIDRIO', tutC_aciertos: 'GAS CUANDO LA AGUJA PASA POR EL AZUL', tutC_soltaRas: 'SOLTALO: PICÁ O MANTENÉ EL GAS', tutC_chancha: 'LLAMÁ A LA CHANCHA',
     tutC_tonel: 'HACÉ UN TONEL', tutC_suelta: 'SOLTÁ LA BOMBA SOBRE EL BUQUE', tutC_hunde: 'PEGALE AL BUQUE',
     tutC_pausa: 'CERRÁ LA PAUSA PARA SEGUIR', tutC_tren: 'BAJÁ EL TREN', tutC_aterriza: 'TOCÁ LA PISTA',
     tutC_rompe: 'ROMPÉ {n} GLOBOS A LOS TIROS', tutC_calienta: 'TIRÁ HASTA QUE SE TRABE Y DEJALO ENFRIAR',
@@ -1506,7 +1506,7 @@ export const STRINGS = {
     ch_upa: 'DON\'T LET GO. WE\'LL CARRY YOU HOME.',
     ch_broken: 'THE OLD SOW DOES NOT COME SOUTH ANYMORE.',
     ola_gigante: 'ROGUE WAVE!', ola_gigante_sub: 'CLIMB — ABOVE THE RADAR',
-    salitre: 'SALT ON THE WINDSCREEN', salitre_sub: 'IT CLEARS UP HIGH — BUT THE RADAR SEES YOU',
+    salitre: 'SALT ON THE WINDSCREEN', salitre_sub: 'THE CLOUD WASHES IT — BUT UP THERE THE RADAR SEES YOU',
     ch_sinsonda: 'THE DAGGER HAS NO PROBE: NO SOW FOR YOU.',
     m5_boca: 'PUMA: THERE IT IS. THE WOLF\'S MOUTH. WE GO IN, WE DROP, WE GET OUT.',
     m5_salida: 'PUMA: IT OPENS UP. OPEN SEA AHEAD — AND THE ARDENT WAITING.',
@@ -1697,7 +1697,7 @@ export const STRINGS = {
     escFenix: 'FÉNIX SQUADRON',
     modeTutorial: 'TUTORIAL', modeTutorialDesc: 'The basics of flying',
     tutC_radarSube: 'CLIMB ABOVE THE RADAR LINE', tutC_radarBaja: 'DROP BACK BELOW THE LINE',
-    tutC_secTanque: 'PICK THE TANKS', tutC_secBomba: 'BACK TO THE BOMB', tutC_momentum: 'TRIGGER MOMENTUM', tutC_perfecto: 'FLY IN PERFECT FOR 4 SECONDS', tutC_esquiva: 'DODGE {n} BALLOONS', tutC_sal: 'CLIMB ABOVE 20 M UNTIL THE GLASS CLEARS', tutC_aciertos: 'THROTTLE WHEN THE NEEDLE CROSSES THE BLUE', tutC_soltaRas: 'RELEASE IT: DIVE OR HOLD THE THROTTLE', tutC_chancha: 'CALL THE TANKER',
+    tutC_secTanque: 'PICK THE TANKS', tutC_secBomba: 'BACK TO THE BOMB', tutC_momentum: 'TRIGGER MOMENTUM', tutC_perfecto: 'FLY IN PERFECT FOR 4 SECONDS', tutC_esquiva: 'DODGE {n} BALLOONS', tutC_sal: 'CLIMB INTO THE CLOUD TO WASH THE GLASS', tutC_aciertos: 'THROTTLE WHEN THE NEEDLE CROSSES THE BLUE', tutC_soltaRas: 'RELEASE IT: DIVE OR HOLD THE THROTTLE', tutC_chancha: 'CALL THE TANKER',
     tutC_tonel: 'DO A BARREL ROLL', tutC_suelta: 'DROP THE BOMB ON THE SHIP', tutC_hunde: 'HIT THE SHIP',
     tutC_pausa: 'CLOSE THE PAUSE TO GO ON', tutC_tren: 'LOWER THE GEAR', tutC_aterriza: 'TOUCH DOWN',
     tutC_rompe: 'POP {n} BALLOONS WITH THE CANNON', tutC_calienta: 'FIRE UNTIL THE CANNON JAMS, THEN LET IT COOL',

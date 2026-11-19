@@ -2606,15 +2606,17 @@ export const ALTO = {
 // ---------- LA SAL EN EL PARABRISAS (17/11/2026, el autor; systems/salitre.js, render/salitre.js) ----------
 // Volando RASANTE sobre el mar el rocio se seca contra el vidrio y deja una costra de sal (y lo que arrastra:
 // plancton, algas) que va tapando la vista DE LOS BORDES AL CENTRO. Tarda: la vista entera se pierde recien
-// despues de mucho rasante — es la instancia mas dificil, no la de todos los dias. Volando ALTO (por encima del
-// radar: te ven) se va limpiando de a poco. Con la carta SILICONADO M-60 (data/upgrades.js) no se pega.
+// despues de mucho rasante — es la instancia mas dificil, no la de todos los dias. LA LAVA EL AGUA (19/11, el autor:
+// "que la limpie la nube"; subir solo no despega una costra): adentro de la capa de nubes (ALTO.NUBES ± ESPESOR)
+// se lava en NUBE_S, y bajo la lluvia (cfg.rain) de a poco, en LIMPIA_S — si no estas juntando sal nueva. Con la
+// carta SILICONADO M-60 (data/upgrades.js, el lubricante que usaban) no se pega.
 //   LLENO_S  segundos de rasante pleno (por debajo de ALT[0]) hasta tapar todo; entre ALT[0] y ALT[1] pega menos,
 //            arriba de ALT[1] no pega
-//   LIMPIA_S segundos por encima de LIMPIA_ALT para limpiar el vidrio entero
+//   NUBE_S   segundos adentro de la nube para lavar el vidrio entero; LIMPIA_S, bajo la lluvia
 //   AVISO    a que costra sale el cartel (una vez por mision)
 //   OPACO    lo tapada que queda la costra al empezar y al final (alfa); BORDE el fundido del frente que avanza;
 //            RUIDO lo desparejo del frente (0 = un ovalo perfecto)
-export const SALITRE = { LLENO_S: 170, ALT: [BANDA_ALT, 9], LIMPIA_S: 75, LIMPIA_ALT: RADAR_ALT, AVISO: 0.16,
+export const SALITRE = { LLENO_S: 170, ALT: [BANDA_ALT, 9], NUBE_S: 6, LIMPIA_S: 75, AVISO: 0.16,
   OPACO: [0.55, 0.9], BORDE: 0.07, RUIDO: 0.2 };
 
 // ---------- EL FRENTE DE TORMENTA (18/11/2026, el autor; systems/frente.js, render/frente.js) ----------

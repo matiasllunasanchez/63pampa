@@ -90,9 +90,10 @@ const ETAPA1 = [
   { dice: 'TUT1_OLAS', obstacles: 0.9,
     sigue: [{ pasa: 6, consigna: 'tutC_pasa' }], remate: 'TUT1_OLAS_OK' },
   // LA SAL EN EL PARABRISAS (19/11, el autor: "explicar la mecanica del vidrio empañado con sal, y que para mejorarlo
-  // tiene que subir un poco"): el paso arranca con el vidrio salado (`sal`) y se limpia subiendo (systems/salitre.js)
+  // tiene que subir un poco"; despues, "que la limpie la nube"): el paso arranca con el vidrio salado (`sal`) y se lava
+  // adentro de la nube (systems/salitre.js)
   { dice: 'TUT1_SAL', foco: ['alt'], teclas: ['Gas'], sal: 0.45,
-    sigue: [{ salBajo: 0.2, consigna: 'tutC_sal' }], remate: 'TUT1_SAL_OK' },
+    sigue: [{ salBajo: 0.05, consigna: 'tutC_sal' }], remate: 'TUT1_SAL_OK' },
   { dice: 'TUT1_TURBO', foco: ['vel'], teclas: ['Boost'],
     sigue: [{ usa: ['turbo'], consigna: 'tutC_turbo' }], remate: 'TUT1_TURBO_OK' },
   // LA PAUSA GUIADA: el juego abre la pausa en CONTROLES, y para seguir hay que cerrarla
@@ -224,9 +225,10 @@ const LISTA = [
   escena('TUT1_RASANTE_OK', T(TURCO, 'turco_sonrisa', 'Así se vuela, changuito. Como si el agua te debiera plata.')),
   escena('TUT1_SAL',
     T(TURCO, 'turco_neutro', 'Mirá el vidrio. Volando pegado al agua se te llena de sal y cada vez ves menos.'),
-    T(PICHON, 'pichon_neutro', 'Para limpiarlo, subí un poco: arriba de veinte metros el viento lo va limpiando.'),
-    T(TURCO, 'turco_ceno', 'En una misión de verdad, allá arriba te ve el radar. Subís, limpiás y volvés a bajar.')),
-  escena('TUT1_SAL_OK', T(PICHON, 'pichon_sonrisa', 'Ahí está. Ahora sí se ve algo.')),
+    T(PICHON, 'pichon_neutro', 'Subir solo no la saca: la costra queda pegada. Metete en la nube, que el agua te lava el vidrio.'),
+    T(TURCO, 'turco_ceno', 'En una misión de verdad, allá arriba te ve el radar. Subís, te lavás y volvés a bajar.'),
+    T(PICHON, 'pichon_sonrisa', 'O le pasás el lubricante que te consigo yo, Turco, y no se pega nada.')),
+  escena('TUT1_SAL_OK', T(PICHON, 'pichon_sonrisa', 'Ahí está. Ahora sí se ve algo. Bajá, que te ven.')),
   escena('TUT1_TABLERO',
     T(TURCO, 'turco_neutro', 'Ahora el tablero. En el medio, lo que cambia rápido: velocidad, horizonte, altura y gas.'),
     T(PICHON, 'pichon_neutro', 'Lo demás se mira de reojo. Si algo se prende, es porque hay que mirarlo.'),

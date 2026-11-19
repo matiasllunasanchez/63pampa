@@ -40,9 +40,6 @@ import { MSL_MAX, GUN_HEAT_SHOT, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET } from 
 import { W, H, HOR } from '../render/ctx.js';
 import { boom, beep, sfxOne, duck, engineFly } from './audio.js';
 import * as world3D from './three-arena.js';
-// LAS ISLAS REALES (prototipo I0, docs/proyecto/ANALISIS_ISLAS_REALES.md): el mismo vuelo, la misma
-// cabina y el mismo HUD, sobre el mapa real en vez del ring. Las prende la sonda __malvinas.
-import * as islas from './islas/islas.js';
 
 // ---- VUELO: MODELO E1/E2, formulas en core/aero.js (puras, medibles por feeltest) ----
 // Aca queda solo el estado y el mundo. La cadena corta del pasillo (input → estado en UNA
@@ -127,8 +124,6 @@ export function readyToEnter(dist, objectiveDist) {
 }
 
 export function toggleView() {
-  // EN LAS ISLAS, las tres vistas de Dusk Patrol (arriba, atras, cabina) con su viaje de camara
-  if (islas.activa()) { islas.cambiarVista(); beep(700, 0.05, 'square', 0.04); return; }
   viewMode = viewMode === 1 ? 3 : 1;
   popup(W / 2, 58, viewMode === 1 ? T('arena_v1') : T('arena_v3'), P.accent);
   beep(700, 0.05, 'square', 0.04);
@@ -137,8 +132,6 @@ export function toggleView() {
 export function enter() {
   setState('arena');
   clearWorld({ keepFx: true });
-  // EN LAS ISLAS no hay buque: sin zonas no hay fuego ni fin de batalla (I0 es solo volar).
-  if (islas.activa()) zones = zones || [];
   if (!zones) {
     // TODAS las zonas vivas a la vez: las 3 "pasadas" del layout clasico se aplanan en una
     // sola lista y el orden lo decide el jugador. La data sigue siendo MOM_LAYOUTS.
@@ -180,7 +173,6 @@ export function enter() {
   // el reloj de mira arranca fresco SIEMPRE: A.t nace en 0 con cada avion, y un offT del avion
   // anterior producia gaps negativos (medido con la sonda: gap medio -0.7 s)
   offT = -1;
-  if (islas.activa()) { islas.entrar(); beep(320, 0.5, 'sine', 0.07, 640); return; }
   popup(W / 2, 62, T('mom_title'), P.warn);
   popup(W / 2, 76, T('arena_hint'), P.dim);
   beep(320, 0.5, 'sine', 0.07, 640);
@@ -417,8 +409,6 @@ export function update(dt, inp) {
   A.t += dt;
   popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
   prune(popups, p => p.life > 0);
-  // LAS ISLAS: mientras el mapa carga (la primera vez, unos segundos) el avion espera quieto
-  if (islas.activa() && !islas.ubicar(A)) { islas.cartelCarga(A, dt); return; }
   A.hitFx = Math.max(0, A.hitFx - dt * 5);
   A.flashL = Math.max(0, A.flashL - dt);
   A.flashR = Math.max(0, A.flashR - dt);
@@ -446,8 +436,7 @@ export function update(dt, inp) {
 
   // ---------- RING: la correa ----------
   const rad = Math.hypot(A.pos.x, A.pos.z);
-  // en las islas no hay ring: la correa es el borde del mapa (islas.correa, mas abajo)
-  if (rad > RING && !islas.activa()) A.outT += dt; else A.outT = 0;
+  if (rad > RING) A.outT += dt; else A.outT = 0;
   if (A.outT > RING_GRACE) A.auto = 1;
   if (A.auto) {
     // PILOTO AUTOMATICO: te deja salir, pero te trae. BANQUEA por el lado corto hacia el
@@ -473,10 +462,8 @@ export function update(dt, inp) {
     if (stepUturn(A, A.mv, dt)) { A.mv = null; A.mvCd = AR.UTURN_CD; }
   } else {
     A.drift = drifting(A, io.brake) ? 1 : 0;
-    if (islas.activa()) islas.correa(A, io);
     stepFlight(A, io, dt);
   }
-
   if (A.drift) driftT += dt;
   A.fwd = forward(A.yaw, A.pitch);
   // TRAYECTORIA (S2): fuera del drift persigue al morro en ~0.08 s, asi que sigue valiendo que el
@@ -510,15 +497,9 @@ export function update(dt, inp) {
   // AVISO DE MAR (playtest 2/8: "muere y no se por que"): bajo y con el morro cayendo, el HUD
   // grita ANTES del golpe — la muerte contra el agua tiene que ser una noticia, no un misterio.
   A.lowT = (A.pos.y < LOW_WARN && A.vy < 0) ? (A.lowT || 0) + dt : 0;
-  if (islas.activa()) {
-    islas.lugares(A, dt);
-    islas.instrumentos(A, dt, pip);
-    const golpe = A.doneT <= 0 && islas.choque(A);       // en las islas el terreno mata (autor, 19/11)
-    if (golpe) { A = null; return { death: golpe }; }
-  }
   if (A.doneT <= 0) {
     if (A.pos.y < SEA_KILL) { A = null; return { death: 'death_sea' }; }
-    if (!islas.activa() && world3D.hitsShip(A.pos.x, A.pos.y, A.pos.z)) { A = null; return { death: 'death_mast' }; }
+    if (world3D.hitsShip(A.pos.x, A.pos.y, A.pos.z)) { A = null; return { death: 'death_mast' }; }
   }
 
   engineFly(A.spd, run.boost, run.boost ? 0.030 : 0.017);   // mismos valores que el pasillo

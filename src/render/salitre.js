@@ -72,3 +72,41 @@ export function drawSalitre(sal) {
   ctx.drawImage(lienzo, 0, 0, W, H);
   ctx.imageSmoothingEnabled = sm;
 }
+
+// EL AGUA QUE LAVA LA SAL (19/11, el autor: "cuando mantenemos 6 s en nubes, la pantalla debe, tipo con agua, limpiar
+// la sal"): chorritos que bajan por el vidrio —cabeza clara, cola que se apaga— y un brillo azulado encima. `k` 0..1
+// es cuanto se ve (run.lavaK, systems/salitre.js); el reloj es de pared, para que corra igual en camara lenta.
+const GOTAS = 120;
+let gotas = null;
+const nuevaGota = (g, arriba) => {
+  g.x = Math.floor(Math.random() * W);
+  g.y = arriba ? -Math.random() * H * 0.3 : Math.random() * H;
+  g.v = 60 + Math.random() * 110;              // px por segundo
+  g.l = 6 + Math.random() * 22;                // largo de la cola
+  g.w = Math.random() < 0.25 ? 2 : 1;
+  g.d = (Math.random() - 0.5) * 8;             // un poco de deriva de costado
+};
+let lavaUlt = 0;
+export function drawLavado(k) {
+  if (!(k > 0.01)) { lavaUlt = 0; return; }
+  const ahora = performance.now() / 1000, dt = lavaUlt ? Math.min(0.05, ahora - lavaUlt) : 0;
+  lavaUlt = ahora;
+  if (!gotas) { gotas = []; for (let i = 0; i < GOTAS; i++) { const g = {}; nuevaGota(g, false); gotas.push(g); } }
+  ctx.save();
+  // la pelicula de agua: un velo azulado apenas
+  ctx.globalAlpha = 0.16 * k; ctx.fillStyle = '#9cc4d8'; ctx.fillRect(0, 0, W, H);
+  for (const g of gotas) {
+    g.y += g.v * dt; g.x += g.d * dt;
+    if (g.y - g.l > H) nuevaGota(g, true);
+    const x = Math.round(g.x), y = Math.round(g.y);
+    // la cola: de transparente arriba a clara abajo
+    for (let j = 0; j < g.l; j += 2) {
+      ctx.globalAlpha = k * 0.55 * (1 - j / g.l);
+      ctx.fillStyle = '#d7ecf5'; ctx.fillRect(x, y - j, g.w, 2);
+    }
+    // la cabeza: la gota gorda que va adelante
+    ctx.globalAlpha = k * 0.95; ctx.fillStyle = '#f2fbff'; ctx.fillRect(x, y, g.w + 1, 2);
+    ctx.globalAlpha = k * 0.5; ctx.fillStyle = '#5c8aa3'; ctx.fillRect(x, y + 2, g.w + 1, 1);
+  }
+  ctx.restore();
+}

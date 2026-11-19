@@ -1,23 +1,15 @@
-// LAS ISLAS REALES — LA FASE (prototipo I0, docs/proyecto/ANALISIS_ISLAS_REALES.md §7).
+// LAS ISLAS REALES — LA FASE (prototipo I0, docs/proyecto/ANALISIS_ISLAS_REALES.md).
 //
-// QUE ES I0: vuelo libre sobre las Malvinas reales a escala 1:1, ADENTRO de RASANTE. No es otro juego:
-// se monta sobre el ARENA (systems/arena.js), que ya vuela en 3D con los controles del pasillo, la
-// cabina de autor en primera persona, el sprite en tercera [V], el HUD, el escuadron y el sonido. Lo
-// unico que cambia es el MUNDO: en vez del ring de 700 m alrededor del buque, el mapa real (mundo.js)
-// dibujado con el terreno de Dusk Patrol (terreno3d.js) en la paleta del clima.
+// QUE ES I0: el PASILLO de siempre —su gas contra la gravedad, el roce, las piruetas, el HUD, la cabina, el
+// radar, el relevo, la musica— volado sobre las Malvinas reales a escala 1:1, con el mundo de Dusk Patrol
+// (mundo.js + terreno3d.js), sus tres vistas (camara.js) y el A-4B de Blender como malla (avion3d.js).
+// Lo que este archivo agrega al pasillo esta explicado abajo, en `pasoPasillo`.
 //
-// LAS REGLAS DE I0 (todas a revisar con el autor jugandolo):
-//   · EL TERRENO MATA, como el mar (autor, 19/11). No hay tiron automatico: es RASANTE, volar bajo
-//     entre los cerros es el juego.
-//   · EL BORDE DEL MAPA es una correa, como el ring del arena: cerca del borde el avion vira solo
-//     hacia las islas.
-//   · SIN ENEMIGOS NI BUQUE: I0 es para medir si volar las islas se siente bien. Los AA, las tropas y
-//     los Harriers son la etapa I2.
-//   · EL LUGAR MAS CERCANO aparece en pantalla al acercarse (orientacion sin flechas). Los nombres son
-//     los que usa Dusk Patrol para 1982 y estan A VERIFICAR (ver LUGARES).
+// SE ENTRA SOLO POR PRUEBAS (data/pruebas.js → sonda __malvinas → POR LA PATRIA). Nada del menu normal ni
+// de la campaña pasa por aca: `enPasillo()` exige S.test.
 //
-// SE ENTRA SOLO POR PRUEBAS (data/pruebas.js → sonda __malvinas → el verbo arena). Nada del menu normal
-// ni de la campaña pasa por aca.
+// EL LUGAR MAS CERCANO aparece en pantalla al acercarse (orientacion sin flechas). Los nombres son los que
+// usa Dusk Patrol para 1982 y estan A VERIFICAR (ver LUGARES).
 import { popup } from '../../core/fx.js';
 import { P } from '../../data/palette.js';
 // la mitad de la grilla del juego (480 de ancho): systems no importa render (tools/lint_layers.js)
@@ -25,12 +17,12 @@ const MEDIO = 240;
 import { forward } from '../../core/aero.js';
 import * as mundo from './mundo.js';
 import * as camara from './camara.js';
-import { turnGain } from '../../core/aero.js';
 import { run } from '../../core/run.js';
+import { S, plane } from '../../core/state.js';
+import { cabina } from '../../core/cabina.js';
+import { geoExterna } from '../../core/geografia.js';
+import { KMH_U } from '../../data/tuning.js';
 
-const PANZA = 1.5;           // metros del centro del avion a la panza
-const PUNTA_MORRO = 6;       // metros del centro a la punta del morro (un A-4 mide ~12)
-const ALA = 4.2;             // media envergadura
 const BORDE = 12000;         // a esta distancia del borde del mapa empieza la vuelta automatica
 // ARRANQUE: sobre el estrecho de San Carlos, rumbo sudoeste (el de Dusk Patrol), bajo.
 const INICIO = { lon: -59.22, lat: -51.58, alt: 90, rumbo: 222 };
@@ -72,8 +64,6 @@ export function activar(on = true) {
   return I.on;
 }
 
-/** El avion recien entra (o vuelve del relevo): se lo ubica cuando el mundo este listo. */
-export function entrar() { I.puesto = false; I.lugar = null; camara.reiniciar(); }
 
 /** Ubica al avion en el arranque si todavia no lo esta. Devuelve false mientras el mundo carga. */
 export function ubicar(A) {
@@ -105,68 +95,81 @@ export function ubicar(A) {
   return true;
 }
 
-/** LA CORREA DEL BORDE: reemplaza a la del ring. Banquea hacia el centro del mapa cerca del borde. */
-export function correa(A, io) {
-  const k = Math.max(0, Math.min(1, (BORDE - mundo.alBorde(A.pos.x, A.pos.z)) / 8000));
-  if (k <= 0) return;
-  let d = mundo.rumboAlCentro(A.pos.x, A.pos.z) - A.yaw;
-  while (d > Math.PI) d -= Math.PI * 2;
-  while (d < -Math.PI) d += Math.PI * 2;
-  io.roll = io.roll * (1 - k) + Math.max(-1, Math.min(1, d * 1.6)) * k;
-}
+// =====================================================================================================
+// LAS ISLAS SOBRE EL MOTOR DEL PASILLO (autor, 19/11: "la misma mecanica de GAS, colision identica a
+// PASILLO tanto en cosas como en agua, las piruetas y la forma de maniobrar, misma gravedad", "la UI del
+// PASILLO", "el radar activable segun mision", "la musica tambien").
+//
+// El pasillo corre ENTERO (systems/flight.js, moves.js, el HUD, la cabina, el relevo, el radar, la musica)
+// y esto le agrega solo dos cosas:
+//   · EL RUMBO: la velocidad de costado del pasillo (`plane.vx`, la que el alabeo produce) aca no corre al
+//     avion de lado: lo hace VIRAR. vx / velocidad = cuanto gira por segundo. `plane.x` se vuelve a 0 cada
+//     cuadro, asi el carril queda siempre bajo el avion.
+//   · EL SUELO REAL: `plane.y` se mide DESDE EL SUELO de abajo (autor: "Isla Soledad se puede, pero hay que
+//     ir rasante y esquivando"), asi las bandas del pasillo (rasante, radar, techo) valen igual sobre un
+//     cerro que sobre el mar. Cuando el terreno SUBE, se come esa altura: si no le das gas a tiempo, rozas
+//     (el roce del pasillo, con su gracia) y si sube de golpe, es una pared: death_land.
+//   La geografia del pasillo pregunta "¿hay tierra abajo?" a core/geografia.js (`geoExterna`).
+// =====================================================================================================
+const U = KMH_U / 3.6;        // metros por unidad de velocidad del pasillo (el HUD pasa a km/h con KMH_U)
+const PARED = 6;              // un escalon de terreno de mas de esto en un cuadro, por debajo del avion, es pared
+const BANK_FULL = 60 * Math.PI / 180;
+const P3 = { x: 0, z: 0, yaw: 0, g: 0, A: null };
 
-/** EL CHOQUE (autor, 19/11: "el vuelo de los otros juegos no tiene colision con nada, eso tiene que
- *  estar"). Sin tiron automatico ni piso: el terreno mata como en el pasillo. Se prueba el morro, la
- *  panza y las dos puntas de ala contra el suelo; el mar lo sigue resolviendo el arena (SEA_KILL). */
-export function choque(A) {
-  const f = A.fwd, cy = Math.cos(A.yaw), sy = Math.sin(A.yaw), sr = Math.sin(A.roll || 0);
-  const pts = [[0, 0], [f.x * PUNTA_MORRO, f.z * PUNTA_MORRO], [cy * ALA, sy * ALA], [-cy * ALA, -sy * ALA]];
-  for (let k = 0; k < pts.length; k++) {
-    const [dx, dz] = pts[k];
-    // las puntas de ala suben o bajan con el alabeo
-    const dy = k === 0 ? 0 : k === 1 ? f.y * PUNTA_MORRO : (k === 2 ? -1 : 1) * sr * ALA;
-    const h = mundo.sueloH(A.pos.x + dx, A.pos.z + dz);
-    if (h > 0 && A.pos.y + dy < h + PANZA) return 'death_land';
+/** ¿Las islas estan corriendo sobre el pasillo AHORA? Solo desde PRUEBAS (S.test) y en el vuelo. */
+export const enPasillo = () => I.on && !!S.test && (S.state === 'play' || S.state === 'relevo' || S.state === 'dead');
+
+/** Un cuadro de vuelo, DESPUES de flightSystem: vira, avanza sobre el mapa y le pasa el suelo al avion.
+ *  Devuelve una causa de muerte si el terreno se le vino encima, o null. */
+export function pasoPasillo(dt) {
+  if (!enPasillo()) { geoExterna.on = false; return null; }
+  if (!mundo.listo()) return null;
+  if (!I.puesto) {
+    const A0 = { pos: { x: 0, y: 0, z: 0 }, yaw: 0 };
+    ubicar(A0);
+    P3.x = A0.pos.x; P3.z = A0.pos.z; P3.yaw = A0.yaw; P3.g = Math.max(mundo.sueloH(P3.x, P3.z), 0);
+    cabina.on = camara.vista() === camara.CABINA;
+    geoExterna.tierra = () => mundo.sueloH(P3.x, P3.z) > 0.3;
   }
+  if (I.ir) { const q = I.ir; I.ir = null; const [x, z] = mundo.lonLatLocal(q.lon, q.lat); P3.x = x; P3.z = z; if (q.rumbo != null) P3.yaw = q.rumbo * Math.PI / 180; P3.g = Math.max(mundo.sueloH(x, z), 0); if (q.alt) plane.y = q.alt; }
+  geoExterna.on = true;
+  // EL VIRAJE: lo de costado se vuelve rumbo
+  const spd = Math.max(run.spd, 20);
+  P3.yaw += (plane.vx / spd) * dt;
+  plane.x = 0;
+  // la correa del borde del mapa, como siempre
+  const k = Math.max(0, Math.min(1, (BORDE - mundo.alBorde(P3.x, P3.z)) / 8000));
+  if (k > 0) { let d = mundo.rumboAlCentro(P3.x, P3.z) - P3.yaw; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; P3.yaw += d * k * dt; }
+  // AVANZAR
+  const m = run.spd * U * dt;
+  P3.x += Math.sin(P3.yaw) * m; P3.z -= Math.cos(P3.yaw) * m;
+  // EL SUELO QUE SUBE se come la altura; el que baja te la devuelve (y la gravedad del pasillo hace el resto)
+  const g = Math.max(mundo.sueloH(P3.x, P3.z), 0), dg = g - P3.g;
+  P3.g = g;
+  plane.y -= dg;
+  if (S.state === 'play' && dg > PARED && plane.y < -PARED) return 'death_land';
+  if (P3.A) lugares(P3.A, dt);
   return null;
 }
 
-/** LAS VISTAS (Dusk Patrol): la tecla de vista del arena cicla arriba → atras → cabina. */
-export const cambiarVista = () => camara.siguiente();
+/** El avion del pasillo puesto en el mapa, con la forma que lee la escena 3D (la del arena). */
+export function estadoA() {
+  if (!enPasillo() || !mundo.listo() || !I.puesto) return null;
+  const sp = Math.max(1, run.spd * U);
+  const pitch = Math.atan2(plane.vy, sp) * 0.8 + plane.pitch * 0.12;
+  const roll = Math.max(-1, Math.min(1, plane.bank)) * BANK_FULL + (run.mvRoll || 0);
+  const f = forward(P3.yaw, pitch);
+  const A = P3.A || (P3.A = { pos: { x: 0, y: 0, z: 0 } });
+  A.pos.x = P3.x; A.pos.y = P3.g + Math.max(plane.y, 0.3); A.pos.z = P3.z;
+  A.yaw = P3.yaw; A.pitch = pitch; A.roll = roll; A.fwd = f; A.vel = f; A.spd = sp; A.t = run.t;
+  return A;
+}
 
-/** LO QUE LEE LA CABINA (render/islas_cabina.js): el snapshot del avion, en las unidades y con los
- *  nombres del overlay de Dusk Patrol. Se arma en el sistema porque el render no importa sistemas. */
-export function instrumentos(A, dt, pip) {
-  const S = A.islas || (A.islas = { vs: 0, yawRate: 0, G: 1, abAmt: 0, prevY: A.pos.y, prevYaw: A.yaw });
-  const k = Math.min(1, dt * 3);
-  let dy = A.yaw - S.prevYaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2;
-  if (dt > 0) {
-    S.vs += ((A.pos.y - S.prevY) / dt - S.vs) * k;
-    S.yawRate += (dy / dt - S.yawRate) * k;
-  }
-  S.prevY = A.pos.y; S.prevYaw = A.yaw;
-  const g = Math.hypot(A.spd * S.yawRate, 9.81) / 9.81;
-  S.G += (g - S.G) * Math.min(1, dt * 5);
-  S.abAmt += ((run.boost ? 1 : 0) - S.abAmt) * Math.min(1, dt * 3);
-  S.thr = run.boost ? 1 : 0.8 * Math.min(1, A.spd / 110);
-  S.speed = A.spd; S.pitch = A.pitch; S.bank = A.roll || 0; S.yaw = A.yaw;
-  S.p = [A.pos.x, A.pos.y, A.pos.z];
-  S.f = [A.fwd.x, A.fwd.y, A.fwd.z];
-  S.v = [A.vel.x, A.vel.y, A.vel.z];
-  S.ra = A.pos.y - mundo.superficieH(A.pos.x, A.pos.z);
-  S.suelo = mundo.sueloH;
-  S.lugar = I.lugar && I.lugar.n;
-  S.pip = pip | 0;
-  S.sweet = turnGain(A.spd) > 1.15;
-  S.nombre = 'A-4B';
-  S.vista = camara.vista(); S.cw = camara.pesoCabina(); S.mezclaLista = camara.mezclaLista();
-  // ARRIBA: si sigue asi, en menos de 2,5 s se mete en el terreno (el aviso que reemplaza al tiron
-  // automatico de Dusk Patrol: aca nadie tira por vos)
-  S.tirar = false;
-  for (const t of [0.5, 1, 1.5, 2, 2.5]) {
-    const x = A.pos.x + A.vel.x * A.spd * t, z = A.pos.z + A.vel.z * A.spd * t, y = A.pos.y + A.vy * t;
-    if (y < mundo.sueloH(x, z) + 4) { S.tirar = true; break; }
-  }
+/** LAS VISTAS (Dusk Patrol): la tecla de vista del arena cicla arriba → atras → cabina. */
+export function cambiarVista() {
+  const v = camara.siguiente();
+  cabina.on = v === camara.CABINA;            // en la cabina, la del PASILLO con su HUD (game.js `enCabina`)
+  return v;
 }
 
 /** El nombre del lugar mas cercano, cuando cambia. */
@@ -184,15 +187,6 @@ export function lugares(A, dt) {
     I.avisoT = 4;
   }
   if (best) I.lugar = best;
-}
-
-/** El cartel mientras carga (la carga tarda unos segundos la primera vez). */
-export function cartelCarga(A, dt) {
-  A.cargaT = (A.cargaT || 0) - dt;
-  if (A.cargaT <= 0) {
-    popup(MEDIO, 62, 'CARGANDO LAS ISLAS ' + Math.round(mundo.progreso() * 100) + '%', P.dim);
-    A.cargaT = 0.5;
-  }
 }
 
 /** Sonda (consola, fixtures y PRUEBAS): `__malvinas()` prende, `__malvinas(false)` apaga, `__malvinas('?')` informa. */

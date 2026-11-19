@@ -15,7 +15,7 @@ import { etapaHecha, marcarEtapa, tutorialHecho } from './core/tutorial_hecho.js
 import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES, siliconadoDe } from './data/upgrades.js';
 import { stepSalitre } from './systems/salitre.js';
-import { drawSalitre } from './render/salitre.js';
+import { drawSalitre, drawLavado } from './render/salitre.js';
 import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T } from './data/fallas.js';
 import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
 import { leeDe } from './data/cartas_lee.js';
@@ -73,6 +73,9 @@ import { cinematicas, MV_FILM } from './data/cines.js';
 import * as arena from './systems/arena.js';
 import * as damage from './systems/damage.js';
 import * as arena3D from './systems/three-arena.js';
+// LAS ISLAS REALES (prototipo I0, docs/proyecto/ANALISIS_ISLAS_REALES.md): el pasillo entero volado sobre
+// el mapa real. Solo desde PRUEBAS; `islas.enPasillo()` es falso en todo el resto del juego.
+import * as islas from './systems/islas/islas.js';
 import * as arenaRender from './render/arena.js';
 // PASADA: el otro climax (docs/sistemas/SPEC_MODO_PASADA.md). Comparte la escena 3D con el arena.
 import * as pasada from './systems/pasada.js';
@@ -3751,7 +3754,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LAS FALLAS Y LA BASE son de la corrida (resetRun no los conoce: sin esto pasaban a la campaña)
       if (!encadena) { run.fallasFlota = null; run.enBase = null; run.esquirlas = 0; run.esquirlaT = undefined; }
       // LA SAL DEL PARABRISAS es de la salida (systems/salitre.js): el blanco encadenado del CICLO la conserva
-      if (!encadena) { run.sal = 0; run.salAviso = false; }
+      if (!encadena) { run.sal = 0; run.salAviso = false; run.lavaK = 0; }
       // LOS MODOS SUELTOS (16/10): mundo al azar en cada corrida, y la barra del radar SUMA ESTRELLAS
       // (la alarma) como en las misiones con fases. PERSECUCION usa la cfg cruda: se le devuelve lo
       // que el azar piso. Un blanco encadenado del CICLO conserva el arranque en vuelo (siguienteBlanco).
@@ -4199,6 +4202,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (S.state === 'arena') { arena.toggleView(); return; }
         if (S.state === 'pasada') { pasada.toggleView(); return; }
         // EN EL PASILLO, la PRIMERA PERSONA (core/cabina.js, espiga F0 del 14/10): tercera ↔ cabina
+        // EN LAS ISLAS, las tres vistas de Dusk Patrol (arriba, atras y la cabina del pasillo)
+        if (islas.enPasillo()) {
+          const v = islas.cambiarVista();
+          beep(520 + v * 120, 0.05, 'square', 0.04);
+          cartel(['DESDE ARRIBA', 'DE ATRAS', 'CABINA'][v], P.accent);
+          return;
+        }
         if (S.state === 'play' || S.state === 'takeoff') {
           // FUERA DE PROD POR AHORA (17/11, el autor: "le falta pulir"): la tecla avisa que viene
           if (!DEV) { beep(440, 0.05, 'square', 0.04); cartel(T('cabinaProx'), P.dim); return; }
@@ -5611,7 +5621,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LOS MODOS SUELTOS: la presion del mundo cuadro a cuadro, y el RADAR SIEMPRE (16/10): sin ruta no
       // hay "entrar en alcance", asi que el barrido verde y su sonido salen al empezar a volar
       if (suelto() && (S.state === 'play' || S.state === 'takeoff')) aplicarPresion();
-      if (S.state === 'play') { stepBanco(dt); stepFallas(dt); }   // el banco suelto: umbrales de puntos y la apertura en un momento seguro
+      if (S.state === 'play' && !islas.enPasillo()) { stepBanco(dt); stepFallas(dt); }   // el banco suelto: umbrales de puntos y la apertura en un momento seguro
       // (…recien AL SALIR de la zona sin radar del arranque — 18/10, el autor: "en POR LA PATRIA se escucha el
       // radar apenas arranca, en la zona fuera de radar, y no se ve": el sonido salia al empezar a volar y
       // el barrido, con razon, no. Ahora los dos esperan a `enAlcance`, que ya sabe de la zona libre)
@@ -6126,6 +6136,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
               return;
             }
             setState('play');
+            if (islas.enPasillo()) fadeT = 1.4;   // LAS ISLAS: el avion nuevo aparece desde negro (alfa fadeT/1.4)
             // SIN «TENES EL MANDO» (12/9): el HUD que vuelve ya lo dice. El ULTIMO AVION se queda:
             // eso no es obvio, y sube al renglon que dejo libre el otro.
             if (run.lives === 1) cartel(T('sq_last'), P.warn);
@@ -6490,6 +6501,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         else { finishObjective(); return; }
       }
       if (fs && fs.death) { onDeath(fs.death); return; }
+      // LAS ISLAS: el rumbo y el suelo real, despues del vuelo de siempre (no hace nada fuera de ellas)
+      { const mi = islas.pasoPasillo(dt); if (mi) { onDeath(mi); return; } }
       // SECO (V6, rehecho 25/9): relevo con "me quede sin combustible", o eyeccion si era el ultimo
       if (cfg.fuelOn && run.fuel <= 0) { sinCombustible(); return; }
       // LLEGASTE A CASA (PLAN_MISION_CINCO_FASES §11): la VUELTA se termino. En una mision sin
@@ -6620,7 +6633,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         && !(runClimax() === 'suelta' && blancoSys.spawnsCut(run.dist))
         // …y MIENTRAS EL COMPAÑERO TE MIRA LA PANZA (V4): la reunion era fuera del fuego — con la
         // vuelta sembrando desde el primer metro, en la prueba te chocabas en plena seña (medido)
-        && !senasActivas())
+        && !senasActivas()
+        // (en LAS ISLAS no se siembra el pasillo 2D: el obstaculo es el terreno)
+        && !islas.enPasillo())
         spawnSystem(dt, objectiveDist);  // aparicion de obstaculos y soldados (nunca corta el frame)
       // EL SEA WOLF (systems/seawolf.js): la defensa cercana del buque de la suelta. Fija, tira su
       // salva y recarga mientras estes adentro de su zona. No tira con el negro ni la camara lenta del
@@ -6667,12 +6682,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LOS ACTORES: los Fieles que entraron a hacer una pirueta en escena. Corren con el dt del
       // MUNDO —si el tiempo se dilata, la figura se dilata con el— y no devuelven señal: no pueden
       // matar a nadie ni terminar nada. Se limpian solos (tope de vida en data/moves.js).
-      wingmv.update(dt);
+      if (!islas.enPasillo()) wingmv.update(dt);
       // LOS TIROS DE UTILERIA (EL TEATRO AEREO, TA0). Van con los actores y por la misma razon:
       // corren con el dt del MUNDO y no devuelven señal. **No estan en ninguna de las cinco listas
       // de core/world.js**, asi que la rutina de colision ni siquiera los ve — no hay daño porque
       // no hay codigo de daño (docs/sistemas/PLAN_TEATRO_AEREO.md §2).
-      teatro.update(dt);
+      if (!islas.enPasillo()) teatro.update(dt);
       // EL DIRECTOR, tambien en el PASILLO. Hasta ahora solo corria adentro del PULSO (que lo
       // actualiza el mismo): esto es lo que deja mirar una maniobra FILMADA sobre el vuelo normal.
       // Corre con el reloj de PARED —una cinematica no se dilata con el mundo que ella misma
@@ -6682,7 +6697,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // dato de nivel (cfg.caza, 0..2 — m1 en 0 porque el tutorial no se pelea) y `meta` en 0
       // significa pasillo infinito, donde no hay techo de duelos. Con la sonda `?caza` puesta el
       // director se calla: la sonda ya armo el suyo y dos directores serian dos Harrier (§6.2).
-      if (!cazaProbe) caza.cazaDirector(dt, {
+      if (!cazaProbe && !islas.enPasillo()) caza.cazaDirector(dt, {
         // la intensidad sale del TRAMO si la mision los trae (SPEC_TRAMOS RF-02) y del cfg si no:
         // el transito del Narwal es `caza: 0` sin que la mision entera deje de tener Harriers.
         // …y de la FASE si la mision declara fases, con la cadena tramo → fase → cfg (la misma
@@ -6854,8 +6869,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // aca no aplica: la camara va donde va el avion.
       // la ESCENA es la misma para las dos fases del climax 3D: lo que cambia es de que sistema
       // sale el avion que se le pasa (SPEC_MODO_PASADA §3).
-      arena3D.frame({ state: S.state,
-                      arena: S.state === 'pasada' ? pasada.camState() : arena.active(),
+      // (LAS ISLAS: la misma escena 3D, con el avion del pasillo puesto sobre el mapa real)
+      arena3D.frame({ state: S.state, islas: islas.enPasillo(),
+                      arena: islas.enPasillo() ? islas.estadoA() : S.state === 'pasada' ? pasada.camState() : arena.active(),
                       view: S.state === 'pasada' ? pasada.view() : arena.view(), cfg, t: run.t,
                       // LAND va con el resto de la paleta: el terreno 3D (P4) se pinta con la
                       // MISMA turba que el pasillo, o la bahia del climax seria de otro juego.
@@ -6866,6 +6882,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(arena3D.view(), 0, 0, W, H);
         ctx.imageSmoothingEnabled = sm;
+        solPant = null;   // sin telon 2D no hay sol que anclar: el destello no puede quedar del cuadro anterior
       }
 
       if (!world3D.isOn() && !arena3D.isOn()) {   // ---- mundo 2D: en el climax 3D lo reemplaza el blit de arriba ----
@@ -7266,7 +7283,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // …y EN UN CAMBIO DE PILOTO SIEMPRE, con o sin roster: ahi el que se va no es un averiado sino tu
       // avion cediendo el puesto, y verlo irse es la mitad de la escena.
       // (salvo tras errar la suelta —`solo`—: el tuyo ya se fue en el fundido, no se lo vuelve a ver)
-      if (S.state === 'relevo' && squad.relevo() && !squad.relevo().solo && !squad.relevo().perdido && (squad.rosterActive() || squad.relevo().cambio))
+      if (S.state === 'relevo' && squad.relevo() && !islas.enPasillo() && !squad.relevo().solo && !squad.relevo().perdido && (squad.rosterActive() || squad.relevo().cambio))
         squadRender.drawFallen({ selPlane, rv: squad.relevo() });
       // EL LIDER de la PERSECUCION: siempre esta mas lejos que vos (es la definicion del modo), asi
       // que va antes del avion y no necesita el reparto en dos pasadas que si necesita LA COLA.
@@ -7320,7 +7337,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         else if (run.apuntaTanque) drawTrayectoria(trayectoria(Object.assign(tanquesSalen('centro', 1)[0], { x: plane.x }), run.spd, suelo), hayTanque);
         if (hzW) ctx.restore();
       }
-      if (!rasante.enCabina() && !enCabina()
+      if (!rasante.enCabina() && !enCabina() && !islas.enPasillo()
         && (chase || ((S.state !== 'dead' || caida) && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz() + turboDz());
       // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
       // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
@@ -7351,7 +7368,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LIBRE. Nunca durante el PASILLO en si — es costo de render que no aporta y taparia el juego.
       {
         const ex = squad.exitState();
-        if (run.squad > 1 && cfg.start !== 'air' && (S.state === 'takeoff' || (S.state === 'play' && ex !== null)))
+        if (run.squad > 1 && cfg.start !== 'air' && !islas.enPasillo() && (S.state === 'takeoff' || (S.state === 'play' && ex !== null)))
           squadRender.drawFormation({ selPlane, exit: S.state === 'play' ? Math.min(1, ex / squad.EXIT_T) : null });
       }
 
@@ -7390,7 +7407,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           // EL TURBO SE VE AFUERA (17/11, el autor: "al poner turbo, el turbo deberia verse FUERA de la cabina"):
           // en primera persona el barrido va ANTES de la cabina — barre el mundo por el vidrio, no la chapa
           // ni el tablero (encima los dejaba corridos y con pinta de agujereados)
-          if (!zoomOn) { drawTurbo(); turboHecho = true; drawSalitre(run.sal); }
+          if (!zoomOn) { drawTurbo(); turboHecho = true; drawSalitre(run.sal); drawLavado(run.lavaK || 0); }
           drawCabina();
           const apunta = proj(plane.x, plane.y + plane.pitch * 5, 70);   // la mira va SOBRE el vidrio
           drawMira(cfg.mira, W / 2 + cm.x, apunta.y + (hzP || 0) + cm.y, 17, 0.9);
@@ -7415,7 +7432,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // EL MOMENTUM TRAE EL MISMO BARRIDO Y OTRO MARCO — mucho mas cerrado (ver desenfoque.js). Va
       // ANTES del tinte frio y la viñeta de aca abajo, que siguen intactos: aquello es el color del
       // tiempo partido, esto es el encierro. Se ven los dos.
-      if (!turboHecho) { drawTurbo(); if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') drawSalitre(run.sal); }
+      if (!turboHecho) { drawTurbo(); if (S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada') { drawSalitre(run.sal); drawLavado(run.lavaK || 0); } }
       // LA AUREOLA DEL SOL, encima del barrido: el destello vive en la LENTE, o sea despues de
       // todo lo que la lente esta mirando.
       //
@@ -7626,7 +7643,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         vyOk: plane.vy >= LAND_VY_SUAVE,
         gearOk: run.gear >= 0.999,
       });
-      if (S.state === 'relevo' && squad.relevo()) squadRender.drawRelevo(squad.relevo());
+      // EN LAS ISLAS el relevo es un FUNDIDO A NEGRO (autor, 19/11: "no son el mismo avion"): la escena del
+      // compañero entrando es del pasillo 2D y sobre el mapa 3D no cierra. Se apaga, y al volver al
+      // vuelo el fundido desde negro (`fadeT`) abre con el avion nuevo.
+      if (S.state === 'relevo' && squad.relevo() && islas.enPasillo()) {
+        ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = Math.min(1, (squad.relevo().t || 0) / 0.45); ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, cv.width, cv.height); ctx.restore();
+      } else if (S.state === 'relevo' && squad.relevo()) squadRender.drawRelevo(squad.relevo());
       if (S.state === 'menu') {
         menus.drawMenu({ selPlane, bloqueado: avionBloqueado(selPlane), gameMode, t: run.t, scroll: fichaScroll, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
         // ahora se hace aca, antes de dibujar

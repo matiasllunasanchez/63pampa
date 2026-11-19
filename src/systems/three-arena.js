@@ -39,7 +39,6 @@ import { forward } from '../core/aero.js';   // la camara de atras: el rumbo con
 import { AR } from '../data/arena.js';   // LOOK_MAX: cuanto inclina la camara el mirar (controles del pasillo)
 // LAS ISLAS REALES (prototipo I0, docs/proyecto/ANALISIS_ISLAS_REALES.md): cuando la sonda __malvinas las
 // prende, el mundo de la escena deja de ser el ring sobre el mar y pasa a ser el mapa real.
-import { activa as islasActiva } from './islas/islas.js';
 import * as islas3d from './islas/terreno3d.js';
 import * as islasCam from './islas/camara.js';
 import * as avion3d from './islas/avion3d.js';
@@ -205,7 +204,8 @@ export function frame(w) {
   // LA ESCENA SE COMPARTE con la fase PASADA (SPEC_MODO_PASADA §3): es el mismo mar, el mismo
   // buque y la misma camara puesta donde esta el avion. Lo que cambia entre las dos fases es el
   // reglamento, que vive en los sistemas — este modulo solo recibe un avion y lo dibuja.
-  if ((w.state !== 'arena' && w.state !== 'pasada') || !w.arena) return false;
+  // (LAS ISLAS corren sobre el PASILLO: `w.islas` las deja pasar en 'play', 'relevo' y 'dead')
+  if ((w.state !== 'arena' && w.state !== 'pasada' && !w.islas) || !w.arena) return false;
   if (!init()) { window.__a3 = 'init false'; return false; }
   const r = useRenderer(AW, AH);
   if (!r) { window.__a3 = 'no renderer'; return false; }
@@ -220,7 +220,7 @@ export function frame(w) {
   // LAS ISLAS: el terreno real hace de cielo, mar y tierra a la vez (es una sola pasada que pinta
   // todo el fondo), asi que el domo, el sol, el mar, la alfombra, la bruma y la bahia se apagan.
   // La camara ve mas lejos: la niebla del terreno cierra a 14 km.
-  const enIslas = islasActiva() && !!islas3d.crear(A3.scene);
+  const enIslas = !!w.islas && !!islas3d.crear(A3.scene);
   islas3d.ver(enIslas);
   const far = enIslas ? 16000 : DOME_R * 2.2;
   if (A3.cam.far !== far) { A3.cam.far = far; A3.cam.updateProjectionMatrix(); }
@@ -238,7 +238,6 @@ export function frame(w) {
     islasCam.frame(A3.cam, A, dtI, islasSuelo);
     avion3d.crear(A3.scene, ISLAS_SOL);
     avion3d.frame(A, islasCam.pesoCabina() < 0.5, { x: AW, y: AH });
-    if (A.islas) A.islas.camP = [A3.cam.position.x, A3.cam.position.y, A3.cam.position.z];
     islas3d.frame(A3.cam, w, A, { x: AW, y: AH });
     r.render(A3.scene, A3.cam);
     A3.on = true;
