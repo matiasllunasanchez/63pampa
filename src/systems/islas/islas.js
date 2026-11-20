@@ -15,8 +15,8 @@ import { cartel, cartelSostenido } from '../../core/cartel.js';
 import { T } from '../../core/i18n.js';
 import * as objetivo from './objetivo.js';
 import * as teatro from './teatro.js';
-import * as caza from '../caza.js';
 import * as chancha from '../chancha.js';
+import * as harriers from './harriers.js';
 import { RADAR_BAJO } from '../../data/islas_teatro.js';
 import * as mapa from './mapa.js';
 import { P } from '../../data/palette.js';
@@ -26,7 +26,7 @@ import { forward } from '../../core/aero.js';
 import * as mundo from './mundo.js';
 import * as camara from './camara.js';
 import { run } from '../../core/run.js';
-import { S, plane, cam } from '../../core/state.js';
+import { S, plane, cam, cfg } from '../../core/state.js';
 import { cabina, CABINA, enCabina } from '../../core/cabina.js';
 import { bullets, missiles, pmissiles, streaks } from '../../core/world.js';
 import { geoExterna } from '../../core/geografia.js';
@@ -221,6 +221,22 @@ export function pasoPasillo(dt) {
   teatro.armar();
   teatro.paso(dt, { x: P3.x, z: P3.z, g: P3.g, yaw: P3.yaw, y: plane.y }, enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, estallido, S.state === 'play');
   avisosRadar();
+  // LAS OLEADAS DEL RADAR SALEN DEL RADAR (20/11, el autor: "deben provenir de diversas zonas"): el Sea Dart que
+  // larga la barra llena (flight.js) nace 230 m adelante en el carril; en las islas se lo corre hacia el buque del
+  // radar que te ve —en su direccion, hasta 900 m— y sale de ahi con su humo. Si el buque quedo atras, como siempre.
+  { const rg = teatro.radares().find(r => r.n === teatro.zona().gb);
+    if (rg) {
+      const pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, sy = Math.sin(P3.yaw), cy = Math.cos(P3.yaw);
+      const dx = rg.x - P3.x, dz = rg.z - P3.z, d = sy * dx - cy * dz, l = cy * dx + sy * dz;
+      for (const m of missiles) {
+        if (m.tipo !== 'dart' || m.__islasO) continue;
+        m.__islasO = true;
+        if (d < 250 || Math.abs(l) > d * 0.8) continue;   // (de costado no llega: el misil del pasillo viene de frente)
+        const k = Math.min(1, 900 / Math.hypot(d, l));
+        m.z = d * k + pz; m.x = plane.x + l * k + (m.x - plane.x) * 0.5; m.y = Math.max(1, 14 - P3.g);
+      }
+    }
+  }
   // EL SUELO QUE SUBE se come la altura; el que baja te la devuelve (y la gravedad del pasillo hace el resto)
   const g = Math.max(mundo.sueloH(P3.x, P3.z), 0), dg = g - P3.g;
   P3.g = g;
@@ -235,7 +251,7 @@ export function pasoPasillo(dt) {
   // (y ya no hay roce que lo levante — flight.js `geoExterna.sinRoce`—: tocar la tierra es chocar, en todas las vistas)
   if (S.state === 'play' && g > 0.3 && plane.y <= 0.5) return 'death_land';
   // SIN NAFTA EL AGUA TAMBIEN TE MATA: el roce del pasillo te dejaba planeando sobre las olas para siempre
-  if (S.state === 'play' && run.fuel <= 0 && plane.y <= 0.6) return 'death_sea';
+  if (S.state === 'play' && cfg.fuelOn && run.fuel <= 0 && plane.y <= 0.6) return 'death_sea';
   // DESDE ARRIBA EL AVION MANTIENE LA ALTURA (autor, 19/11): desde la vista cenital no hay como medirla, asi que
   // se traba la que tenia al entrar. Es ALTURA ABSOLUTA (19/11 tarde, el autor: "el avion no puede subir solo cuando
   // esta cerca de la tierra o de irregularidades… y bajar tampoco, debe poder subir"): no sigue el relieve —una
@@ -298,26 +314,36 @@ export function estallido(x, y, z, esc = 1, tipo = 'fuego', vx = 0, vz = 0) {
 /** Los estallidos nuevos de este cuadro (y se vacia la cola). */
 export function tomarEstallidos() { const o = ESTALLIDOS.slice(); ESTALLIDOS.length = 0; return o; }
 /** EL AVION REVIENTA (game.js `crashFX`): en su punto del mapa, con la inercia que traia; la malla se apaga. */
-export function estallarAvion(misil) {
+export function estallarAvion(misil, agua) {
   if (!enPasillo() || !I.puesto || P3.muerto) return;
   const v = run.spd * U * VEL_MAPA * 0.5;
-  estallido(P3.x, P3.g + Math.max(plane.y, 0.5), P3.z, misil ? 2 : 1.5, 'avion', Math.sin(P3.yaw) * v, -Math.cos(P3.yaw) * v);
+  // (el que se clava en el MAR no estalla: levanta agua — 20/11, el autor: "en todo caso no deberia explotar")
+  estallido(P3.x, P3.g + Math.max(plane.y, 0.5), P3.z, misil ? 2 : 1.5, agua && !misil ? 'agua' : 'avion', Math.sin(P3.yaw) * v, -Math.cos(P3.yaw) * v);
   P3.muerto = true;
 }
 /** EL TEATRO para la escena 3D (teatro3d.js), o null fuera de las islas. */
 export const teatroEscena = () => (enPasillo() ? teatro.escena() : null);
 /** …y para apagarlo al salir (three-arena.js), aunque ya no se este en las islas. */
 export const teatroTodo = () => teatro.escena();
-/** LOS HARRIERS DEL DUELO puestos en el mapa (los del pasillo, systems/caza.js, viven en el carril): solo los
- *  dibuja la vista de arriba. */
+/** LOS HARRIERS que te persiguen (harriers.js: vuelan en el mapa), para teatro3d.js. */
 export function cazasEnMapa() {
-  if (!enPasillo() || !I.puesto) return [];
-  return caza.snapshot().filter(h => h.z > 1).map(h => {
-    const p = aMundo(h.x, h.y, h.z, {});
-    // (de frente solo mientras ENTRA —el aviso, que viene del horizonte hacia vos—; despues vuela con vos)
-    return { x: p.x, y: P3.g + h.y, z: p.z, yaw: P3.yaw + (h.fase === 'aviso' ? Math.PI : 0), roll: (h.bank || 0) * 0.6 };
+  return enPasillo() ? harriers.escena() : [];
+}
+/** LOS HARRIERS EN PANTALLA (20/11): la camara de atras mira para adelante y el que te persigue no se ve. Para
+ *  cada uno: si esta adelante y en cuadro, donde (un recuadro lo marca); si no, hacia donde y a cuanto (una
+ *  flecha en el borde). Lo dibuja render/islas_radar.js `drawAmenazas`. */
+export function amenazas() {
+  if (!vistaPasillo() || !I.puesto) return [];
+  const pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, sy = Math.sin(P3.yaw), cy = Math.cos(P3.yaw);
+  return harriers.escena().filter(h => !h.cae).map(h => {
+    const dx = h.x - P3.x, dz = h.z - P3.z, d = sy * dx - cy * dz, l = cy * dx + sy * dz, y = h.y - P3.g;
+    const dist = Math.hypot(dx, dz, h.y - P3.g - plane.y);
+    if (d > 8) { const s = proj(plane.x + l, y, d + pz); return { x: s.x, y: s.y, adelante: true, dist }; }
+    return { x: l, y: plane.y - y, adelante: false, dist };   // (atras: el lado y el arriba/abajo, en metros)
   });
 }
+/** EL AVISO de la rafaga de los Harriers (el punto fijado) para el dibujo del pasillo. */
+export const avisosAden = () => (enPasillo() ? harriers.avisos() : []);
 /** ¿El avion ya revento? (three-arena.js deja de dibujar la malla) */
 export const avionMuerto = () => P3.muerto;
 
@@ -413,11 +439,12 @@ function avisosRadar() {
     if (e.k === 'zona_gb') cartel(T('islasZonaGb'), P.warn, T('islasZonaGbSub'));
     else if (e.k === 'zona_arg') cartel(T('islasZonaArg'), P.accent, e.n);
     else if (e.k === 'se_van') cartel(T('islasSeVan'), P.accent, T('islasSeVanSub'));
+    else if (e.k === 'encima') cartel(T('islasEncima'), P.warn, T('islasEncimaSub'));
+    else if (e.k === 'bajado') { cartel(T('islasBajado'), P.accent); run.score += 1500; }
     // (que la PAC salio a buscarte lo sabes solo si nuestro radar la ve)
     else if (e.k === 'vienen' && e.avisa) cartel(T('islasVienen'), P.warn, T('islasVienenSub', { d: (e.d / 1000).toFixed(0) }));
   }
-  const z = teatro.zona();
-  cartelSostenido('islasRadarVe', enPasillo() && S.state === 'play' && z.visto, T('islasTeVe'), P.warn, { alerta: true }, T('islasTeVeSub'));
+  // (que te VE ya no lleva cartel propio: lo dicen la barra, el velo verde y las balizas del pasillo)
 }
 
 /** LA CHANCHA EN EL MAPA, para la vista de arriba (en las del pasillo la dibuja el pasillo): el Hercules donde
@@ -488,6 +515,9 @@ export function redRadar(t) {
   }
   return { tramos: out, bando: r.bando, visto: z.visto };
 }
+
+/** Adentro de la zona de un radar britanico (el alcance del radar del pasillo, flight.js / game.js). */
+export const radarZonaGb = () => enPasillo() && I.puesto && !!teatro.zona().gb;
 
 /** El avion esta sobre tierra (la eyeccion: caes entre los tuyos o al agua). */
 export const sobreTierra = () => enPasillo() && P3.g > 0.3;

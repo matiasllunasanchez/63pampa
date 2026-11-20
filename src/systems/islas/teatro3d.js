@@ -96,7 +96,7 @@ export function frame(sc, E, cazas, cam, cha) {
     if (!g) continue;
     const h = cazas[i];
     g.visible = !!h;
-    if (h) { g.position.set(h.x, h.y, h.z); g.rotation.set(0, -h.yaw, h.roll || 0); }
+    if (h) { g.position.set(h.x, h.y, h.z); g.rotation.set(h.pitch || 0, -h.yaw, -(h.roll || 0)); lejos(g, cam, h.x, h.y, h.z, LEJOS.avion); }
   }
   // LA CHANCHA (solo desde arriba: en las vistas del pasillo la dibuja el pasillo)
   const gc = grupo(frame.cha || (frame.cha = {}), 'herc');

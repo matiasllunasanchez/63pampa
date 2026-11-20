@@ -9,17 +9,19 @@
 // ahi en mas es un misil del pasillo: se mueve, se esquiva y pega como siempre (systems/collision.js). Solo tira lo
 // que esta ADELANTE y en un cono: lo de atras no te alcanza (el misil del pasillo viene de frente).
 //
-// LA PAC te ve a PAC_VE metros: rompe el circulo y te toma la cola — es el DUELO DEL PASILLO (systems/caza.js,
-// dos Harriers de patrulla). Los que bajes no vuelven; si se van, la PAC vuelve a su circulo PAC_VUELVE s despues.
+// LA PAC te ve a PAC_VE metros: rompe el circulo y te salta encima — dos Sea Harrier que vuelan DE VERDAD sobre el
+// mapa (systems/islas/harriers.js, 20/11: antes era el duelo del pasillo, systems/caza.js). Los que bajes no
+// vuelven; los que se van vuelven a su circulo.
 //
 // LAS ZONAS DE RADAR (20/11, data/islas_teatro.js RADARES): adentro de una britanica y arriba de RADAR_BAJO te
 // ven, y la PAC mas cercana VIENE (estado 'vector') hasta tenerte a ojo; si el radar te pierde PAC_OLVIDA s, vuelve
-// a su circulo. Adentro de la nuestra los Harriers no entran: los que te perseguian se van (caza.js `retirar`).
+// a su circulo. Adentro de la nuestra los Harriers no entran: los que te perseguian se van (harriers.js `retirar`).
 import * as mundo from './mundo.js';
-import { BASES, BUQUES, PAC, ARMAS, PAC_VE, PAC_VUELVE, RADARES, RADAR_BAJO, PAC_VECTOR, PAC_VEL_VECTOR, PAC_OLVIDA, RAFAGA_ISLAS } from '../../data/islas_teatro.js';
+import { BASES, BUQUES, PAC, ARMAS, PAC_VE, PAC_VUELVE, RADARES, RADAR_BAJO, PAC_VECTOR, PAC_VEL_VECTOR, PAC_OLVIDA } from '../../data/islas_teatro.js';
 import { missiles, pmissiles, bullets } from '../../core/world.js';
-import * as caza from '../caza.js';
+import * as harriers from './harriers.js';
 import { posBomba } from './objetivo.js';
+import { beep, sfxOne } from '../audio.js';
 
 // LA HUELLA de cada pieza en metros (radio para balas y bombas, alto) y sus golpes
 const HUELLA = {
@@ -41,6 +43,7 @@ export function reiniciar() {
   const fuera = o => { if (o && o.__g && o.__g.parent) o.__g.parent.remove(o.__g); };
   for (const o of [...T.piezas, ...T.buques]) fuera(o);
   for (const x of [...T.soldados, ...T.pac]) for (const o of x.__gs || []) fuera(o);
+  harriers.reiniciar();
   T.armado = false; T.piezas.length = T.buques.length = T.pac.length = T.soldados.length = T.radares.length = 0; T.t = 0; T.bases = [];
   T.zona = { gb: null, arg: null, visto: false }; T.vistoT = 99; T.eventos.length = 0;
 }
@@ -138,10 +141,15 @@ export function paso(dt, P, pz, boom, jugando) {
   const sy = Math.sin(P.yaw), cy = Math.cos(P.yaw), alto = P.g + P.y;
   // el punto del CARRIL donde cae algo del mapa (la cuenta de islas.js `aMundo`, al reves): d adelante, l de costado
   const carril = (x, z) => { const dx = x - P.x, dz = z - P.z; return { d: sy * dx - cy * dz, l: cy * dx + sy * dz, dist: Math.hypot(dx, dz) }; };
-  const tira = (x, z, y, tipo, tiro) => {
+  // (con EL SONIDO DEL PASILLO de cada arma: systems/collision.js — el Rapier, el misil al hombro, el puesto, el buque)
+  const tira = (x, z, y, tipo, tiro, sonido) => {
     const c = carril(x, z);
     if (c.d < pz + 40 || c.d > tiro || Math.abs(c.l) > c.d * 0.8) return false;   // atras, lejos o de costado
     missiles.push({ x: c.l, y: Math.max(1, y - P.g), z: c.d + pz, done: false, tracer: tipo === 'traza', teatro: true });
+    if (sonido === 'manpad') beep(520, 0.12, 'sawtooth', 0.04, 900);
+    else if (sonido === 'buque') sfxOne('lanzaMisil');
+    else if (tipo === 'traza') beep(300, 0.05, 'square', 0.04);
+    else beep(760, 0.1, 'square', 0.05);
     return true;
   };
   // (sonda: lo britanico mas cercano, en el carril)
@@ -156,7 +164,7 @@ export function paso(dt, P, pz, boom, jugando) {
     const dist = Math.hypot(e.x - P.x, e.z - P.z, e.g - alto);
     if (dist > A.alcance) { e.cd = 0.5; continue; }
     e.base.visto = true;
-    e.cd = tira(e.x, e.z, e.g + 3, A.tipo, A.tiro) ? A.cada * (0.8 + rnd() * 0.4) : 0.3;
+    e.cd = tira(e.x, e.z, e.g + 3, A.tipo, A.tiro, e.tipo) ? A.cada * (0.8 + rnd() * 0.4) : 0.3;
   }
   // ---- LOS BUQUES: los de piquete van y vienen; todos tiran misil y cañon ----
   for (const b of T.buques) {
@@ -172,7 +180,7 @@ export function paso(dt, P, pz, boom, jugando) {
     if (!jugando) continue;
     const A = ARMAS.buque;
     b.cd -= dt; b.cdT -= dt;
-    if (b.cd <= 0) b.cd = dist < A.alcance && tira(b.x, b.z, 14, 'misil', A.tiro) ? A.cada * (0.8 + rnd() * 0.4) : 0.3;
+    if (b.cd <= 0) b.cd = dist < A.alcance && tira(b.x, b.z, 14, 'misil', A.tiro, 'buque') ? A.cada * (0.8 + rnd() * 0.4) : 0.3;
     if (b.cdT <= 0) b.cdT = dist < A.traza.alcance && tira(b.x, b.z, 10, 'traza', A.traza.tiro) ? A.traza.cada : 0.3;
   }
   // ---- LAS ZONAS DE RADAR: en cual estas y si te ven ----
@@ -193,14 +201,15 @@ export function paso(dt, P, pz, boom, jugando) {
   T.vistoT = Z.visto ? 0 : T.vistoT + dt;
   if (Z.visto) T.ultimo = { x: P.x, z: P.z };
   // EN LA NUESTRA no entran: los que te perseguian se van (una vez por entrada)
-  if (Z.arg && caza.active() && !T.retiro) { caza.retirar(); T.retiro = true; T.eventos.push({ k: 'se_van' }); }
+  if (Z.arg && harriers.activo() && !T.retiro) { harriers.retirar(); T.retiro = true; T.eventos.push({ k: 'se_van' }); }
   if (!Z.arg) T.retiro = false;
   const radarArg = T.radares.find(r => r.bando === 'arg');
   // ---- LAS PAC ----
-  const snap = caza.snapshot();
+  // LOS QUE ESTAN EN EL AIRE (harriers.js): vuelan, tiran, caen
+  for (const e of harriers.paso(dt, P, pz, boom, jugando)) if (e.k === 'bajado') T.eventos.push({ k: 'bajado' });
   const yaVienen = T.pac.some(c => c.estado === 'vector');
   let llamada = null;   // la PAC que el radar britanico manda a buscarte (la mas cercana, de a una)
-  if (Z.visto && !yaVienen && !caza.active()) {
+  if (Z.visto && !yaVienen && !harriers.activo()) {
     let bd = PAC_VECTOR;
     for (const c of T.pac) { if (c.estado !== 'orbita' || !c.quedan) continue; const d = Math.hypot(c.x - P.x, c.z - P.z); if (d < bd) { bd = d; llamada = c; } }
   }
@@ -209,10 +218,11 @@ export function paso(dt, P, pz, boom, jugando) {
     // NUESTRO RADAR LAS VE: las que estan en su alcance quedan en el mapa
     if (radarArg && Math.hypot(c.x - radarArg.x, c.z - radarArg.z) < radarArg.r) c.vista = true;
     const engancha = (x, z) => {
-      if (!jugando || caza.active() || Z.arg || Math.hypot(x - P.x, z - P.z) >= PAC_VE) return false;
-      // TE VIO: te toma la cola (el duelo del pasillo), con rafagas largas de cañon
-      c.estado = 'caza'; c.cay = 0; c.bajados = 0;
-      for (let i = 0; i < c.quedan; i++) caza.start({ patrulla: true, atras: i ? 60 : 0, mudo: i > 0, rafaga: RAFAGA_ISLAS });
+      if (!jugando || harriers.activo() || Z.arg || Math.hypot(x - P.x, z - P.z) >= PAC_VE) return false;
+      // TE VIO: la pareja rompe y te salta encima, como aviones (harriers.js)
+      c.estado = 'caza';
+      harriers.soltar(c, c.aviones, c.quedan);
+      T.eventos.push({ k: 'encima' });
       return true;
     };
     if (c === llamada) {
@@ -245,14 +255,11 @@ export function paso(dt, P, pz, boom, jugando) {
       c.aviones.length = c.quedan;
       engancha(a.x, a.z);   // (te vio a ojo: rompe el circulo y te toma la cola)
     } else if (c.estado === 'caza') {
-      // los que BAJASTE: cada vez que sube la cuenta de los que estan cayendo (la foto del duelo es nueva cada
-      // cuadro: no sirve guardar los objetos)
-      const cay = snap.filter(h => h.fase === 'cayendo').length;
-      if (cay > c.cay) c.bajados += cay - c.cay;
-      c.cay = cay;
-      if (!caza.active()) {
-        c.quedan = Math.max(0, c.quedan - c.bajados);
-        c.estado = c.quedan ? 'fuera' : 'muerta'; c.t = 0;
+      // cuando no queda ninguno en el aire: los que volvieron retoman el circulo; si los bajaste a todos, se acabo
+      const e = harriers.estadoDe(c);
+      if (!e.vivos && !e.cayendo) {
+        c.quedan = Math.max(0, c.quedan - e.bajados);
+        c.estado = c.quedan ? 'orbita' : 'muerta'; c.t = 0;
       }
     } else if (c.estado === 'fuera') {
       c.t += dt;

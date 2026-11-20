@@ -256,12 +256,12 @@ export function frame(w) {
     // (la MIRA solo desde arriba: en las vistas del pasillo esta la del pasillo)
     const arriba = !pas && islasCam.vista() === islasCam.ARRIBA;
     proy3d.crear(A3.scene); const zh = islasCam.ZOOMS[islasCam.nivelZoom()];
-    proy3d.frame(islasProyectiles(), true, arriba ? islasMira(zh * 0.42) : null, zh / islasCam.ZOOMS[1]);
+    proy3d.frame(islasProyectiles(), true, arriba ? islasMira(zh * 0.42) : null, zh / islasCam.ZOOMS[1], dtI, rr.domElement.height / 2);
     // LAS EXPLOSIONES EN 3D: en todas las camaras
     estallido3d.crear(A3.scene); estallido3d.frame(tomarEstallidos(), dtI, (x, z) => Math.max(islasSuelo(x, z), 0));
     objetivo3d.frame(A3.scene, islasObjetivo());
     // EL TEATRO (systems/islas/teatro3d.js): bases, buques, PAC; y los Harriers del duelo, solo desde arriba
-    teatro3d.frame(A3.scene, teatroEscena(), arriba ? cazasEnMapa() : [], A3.cam, arriba ? chanchaEnMapa() : null);
+    teatro3d.frame(A3.scene, teatroEscena(), cazasEnMapa(), A3.cam, arriba ? chanchaEnMapa() : null);
     // (la red desde arriba; en las vistas del pasillo la dibuja el pasillo en 2D: su mar va encima del 3D)
     radar3d.frame(A3.scene, arriba ? radaresEscena() : null, A3.cam, dtI, (x, z) => islasSuelo(x, z));
     islas3d.frame(A3.cam, w, A, res);

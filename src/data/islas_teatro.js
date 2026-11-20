@@ -13,6 +13,8 @@
 //   pucara · herc                         aviones estacionados (los de las bases argentinas)
 // `n` = cuantas; se reparten alrededor del centro, a `r` metros.
 
+import { RADAR_ALT } from './tuning.js';
+
 export const FECHA = '24 DE MAYO DE 1982';
 
 export const BASES = [
@@ -104,7 +106,9 @@ export const RADARES = [
   { n: 'HMS BROADSWORD', bando: 'gb', buque: 'HMS BROADSWORD', r: 24000 },
   { n: 'BAHIA SAN CARLOS', bando: 'gb', lon: -59.07, lat: -51.52, r: 18000 },
 ];
-export const RADAR_BAJO = 45;      // m sobre el suelo: abajo de esto el radar britanico no te ve
+// m sobre el suelo: abajo de esto el radar britanico no te ve — EL MISMO TECHO DEL PASILLO (RADAR_ALT, 20/11, el
+// autor: "el efecto del radar debe ser igual a pasillo"); era 45
+export const RADAR_BAJO = RADAR_ALT;
 export const PAC_VECTOR = 30000;   // hasta cuanto viene una PAC cuando el radar te ve
 export const PAC_VEL_VECTOR = 300; // m/s como minimo cuando viene a buscarte (y 1,7 veces la tuya: te alcanza)
 export const PAC_OLVIDA = 10;      // s sin que el radar te vea: la PAC vuelve a su circulo

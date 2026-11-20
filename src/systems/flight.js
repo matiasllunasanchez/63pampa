@@ -16,7 +16,7 @@
 //           { death } (se estrello) · undefined (segui volando). El orquestador actua sobre eso.
 
 // LAS ISLAS REALES (prototipo I0): su llave de radar y su aviso. Fuera de las islas no cambia nada.
-import { sinRadar as islasSinRadar, enPasillo as islasEnPasillo } from './islas/islas.js';
+import { sinRadar as islasSinRadar, enPasillo as islasEnPasillo, radarZonaGb as islasZonaGb } from './islas/islas.js';
 import { plane, cfg, cam, stats, CTRL_BANK } from '../core/state.js';
 import { ALABEO_DIRECTO } from '../core/horizon.js';
 import { run } from '../core/run.js';
@@ -588,7 +588,9 @@ export function flightSystem(dt, deps) {
   const colchon = (rasante.active() || run.aguante === 1) && deathMsg === 'death_sea';
   // LAS ISLAS NO TIENEN ROCE (core/geografia.js `geoExterna.sinRoce`): el piso que sostiene al avion lo subia y
   // lo bajaba solo con las olas y el relieve. Alla tocar la superficie es chocar. (Fuera de las islas, nada cambia.)
-  if (geoExterna.on && geoExterna.sinRoce && !colchon && plane.y <= groundY) return { death: deathMsg };
+  // …SOLO EN TIERRA (20/11, el autor: "el daño de tocar el agua que sea el mismo que pasillo, apenas toco explota"):
+  // en el agua de las islas rige el roce del pasillo de siempre, con su margen y su daño.
+  if (geoExterna.on && geoExterna.sinRoce && !colchon && deathMsg !== 'death_sea' && plane.y <= groundY) return { death: deathMsg };
   if (!colchon && plane.y <= (run.scrapeT > 0 ? scrapeY + 0.2 : groundY)) {
     // EL AGUA PERDONA MAS EN UN FILO (§11.1). El tramo es de SIGILO: lo que tiene que matarte es
     // que te vean, no un panzazo. Sin esto el agua se comia casi todas las muertes del filo —el
@@ -654,7 +656,8 @@ export function flightSystem(dt, deps) {
   // EL RADAR POR VOZ (`cfg.radar === 'voz'`, hoy el tutorial): no carga la barra y no dispara nada.
   // Lo unico que hace es ANOTAR si el avion esta donde lo verian; quien habla es el orquestador,
   // que es el que sabe de personajes (los sistemas no llaman hacia arriba).
-  run.radarVisto = alt > techoRadar(RADAR_ALT) && !islasSinRadar();   // (las islas sin radar: nadie te avisa)
+  // (LAS ISLAS: solo adentro de la zona de un radar britanico — data/islas_teatro.js RADARES; afuera no te ve nadie)
+  run.radarVisto = alt > techoRadar(RADAR_ALT) && !islasSinRadar() && (!islasEnPasillo() || islasZonaGb());   // (las islas sin radar: nadie te avisa)
   // (LAS ISLAS con el radar apagado: lo mismo que el radar por voz, no carga nada — systems/islas)
   if (cfg.radar === 'voz' || islasSinRadar()) run.detection = 0;
   else {

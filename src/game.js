@@ -157,7 +157,7 @@ import { NOCHE } from './data/noche.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
 import * as menus from './render/menus.js';
 import { drawMapaIslas, marco as marcoMapa } from './render/islas_mapa.js';
-import { drawRedIslas } from './render/islas_radar.js';
+import { drawRedIslas, drawAmenazas } from './render/islas_radar.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
 import { setNiebla, luzDelCielo } from './render/borde.js';
@@ -975,6 +975,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let alcanceAntes = null;         // el horizonte de radar en el cuadro anterior (null = sin adoptar)
     let libreAntes = false;   // la ZONA LIBRE del arranque de los modos sueltos: al salir, se avisa que entra el radar
     let radarScanT = -1;             // run.t del ultimo cruce HACIA ADENTRO del radar (el escaneo), -1 = ninguno
+    // EL ALCANCE DEL RADAR ENEMIGO: el del pasillo (la ruta), o en LAS ISLAS la zona de un radar britanico
+    const radarAlcance = () => (islas.enPasillo() ? islas.radarZonaGb() : rutaSys.enAlcance());
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
     // …y de QUE TIPO es ese objetivo ('ship' | 'distance'). El HUD lo necesita para decidir si el
@@ -5309,7 +5311,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (cause === 'death_seco') { sinCombustible(); return; }
       // LAS ISLAS: la explosion en 3D (systems/islas/estallido3d.js), que se ve en TODAS las camaras —desde arriba
       // las del pasillo no existian—. En el prototipo revienta con cualquier causa (19/11, el autor)
-      islas.estallarAvion(tipoDerribo(cause) === 'misil');
+      islas.estallarAvion(tipoDerribo(cause) === 'misil', cause === 'death_sea');
       // MORIR EN LA CABINA (20/11, el autor: "camara afuera a 3ra persona y explosion"): la camara sale a la de
       // atras para ver estallar el avion, y vuelve a la cabina en la corrida siguiente. No al errar la bomba, ni
       // al eyectarte o quedarte seco (ahi el avion no estalla).
@@ -5751,7 +5753,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // (…recien AL SALIR de la zona sin radar del arranque — 18/10, el autor: "en POR LA PATRIA se escucha el
       // radar apenas arranca, en la zona fuera de radar, y no se ve": el sonido salia al empezar a volar y
       // el barrido, con razon, no. Ahora los dos esperan a `enAlcance`, que ya sabe de la zona libre)
-      if (suelto() && S.state === 'play' && radarScanT < 0 && !rutaSys.hay() && rutaSys.enAlcance()) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
+      if (suelto() && S.state === 'play' && radarScanT < 0 && !rutaSys.hay() && rutaSys.enAlcance() && !islas.enPasillo()) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
+      // LAS ISLAS (20/11, el autor: "el efecto del radar y demas debe ser igual a pasillo"): entrar a la zona de un
+      // radar britanico es entrar al alcance del pasillo —el barrido verde, su sonido, la barra y las oleadas—;
+      // salir lo apaga, y la proxima entrada vuelve a barrer
+      if (islas.enPasillo() && S.state === 'play') {
+        const z = islas.radarZonaGb();
+        if (z && radarScanT < 0) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
+        else if (!z) radarScanT = -1;
+      }
       // DETECTANDO: en la zona verde (arriba del techo, en alcance) y con la barra subiendo
       // EL MISIL QUE TE VIENE: el mas cercano de los enemigos (no la rafaga del Aden) suena mas fuerte y agudo
       { let dm = Infinity;
@@ -5766,9 +5776,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (!paused && (S.state === 'play' || S.state === 'relevo') && stepFrente(nubesAltas().blanco)) applyCfg();
       if (cfg.sky === 'storm' && !paused && (S.state === 'play' || S.state === 'takeoff' || S.state === 'relevo' || S.state === 'landing')) stepTormenta(dt, HOR, W);
       run.fgzTormenta = cfg.sky === 'storm' ? fogonazoTormenta() : 0;   // (lo lee la ola gigante: render/world.js)
-      detectando(S.state === 'play' && rutaSys.enAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
+      detectando(S.state === 'play' && radarAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
       { const techo = fases.techoRadar(RADAR_ALT), RV_RANGO = 14;
-        zonaRadar(S.state === 'play' && rutaSys.enAlcance() && (rutaSys.hay() || suelto()), radarScanT >= 0 ? run.t - radarScanT : 99,
+        zonaRadar(S.state === 'play' && radarAlcance() && (rutaSys.hay() || suelto() || islas.enPasillo()), radarScanT >= 0 ? run.t - radarScanT : 99,
           (plane.y - (techo - RV_RANGO)) / RV_RANGO, run.detection > 0.001); }   // (bajito hasta que dice DETECTANDO)
       // FOGONAZO (D3): se apaga solo, rapido. Va acá y no en un sistema porque tiene que correr en
       // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
@@ -7487,7 +7497,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // del avion, el png del avion por encima"): con la tecla de la bomba o la de los tanques apretada, el camino
       // hasta donde cae (core/balistica.js). Adentro del giro del horizonte: es mundo.
       // LA ONDA AZUL DEL RADAR PROPIO (15/10), detras del avion: sale de el
-      if (S.state === 'play' && !islas.enPasillo()) drawRadarOndas();
+      if (S.state === 'play' && !(islas.enPasillo() && !islas.vistaPasillo())) drawRadarOndas();   // (en las islas, en las vistas del pasillo)
       // los blancos de practica del TUTORIAL, marcados (en la pausa de una linea se dibujan encima del velo)
       if (S.state === 'play' && !dlgPausa) marcasTutorial(run.t);
       if (S.state === 'play' && (run.apuntaBomba || run.apuntaTanque)) {
@@ -7534,6 +7544,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       drawChapitas();
       // …Y LA RAFAGA: el aro del punto fijado y los tiros que todavia vienen de atras (render/aden.js)
       for (const a of caza.avisosAden()) drawAvisoAden(a);
+      for (const a of islas.avisosAden()) drawAvisoAden(a);   // (LAS ISLAS: los Harriers del mapa, harriers.js)
+      if (islas.enPasillo()) drawAmenazas(islas.amenazas(), run.t);   // (y donde estan: recuadro o flecha en el borde)
       for (const m of missiles) if (m.tipo === 'aden' && m.z < PZ) drawAden(m);
       // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL
       // LIBRE. Nunca durante el PASILLO en si — es costo de render que no aporta y taparia el juego.
@@ -7629,7 +7641,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // NO EN EL PULSO, por lo mismo que la red (ver drawRadarNet): con ruta, el blanco siempre esta
         // adentro del radar, y el velo cubria el buque de la cabina con una cupula palida (autor, 12/10:
         // "se ve horrible el barco"). Se le habia sacado la red al Pulso y se le olvido el tinte.
-        if (cfg.radarNet && cfg.radar !== 'voz' && cfg.radar !== 'off' && S.state !== 'pulso' && rutaSys.enAlcance()
+        if (cfg.radarNet && cfg.radar !== 'voz' && cfg.radar !== 'off' && S.state !== 'pulso' && radarAlcance()
             && !(islas.enPasillo() && (!islas.vistaPasillo() || islas.sinRadar()))) {   // (islas desde arriba o sin radar: sin tinte)
           world.drawRadarTinte(fases.techoRadar(RADAR_ALT));
           // EL ESCANEO al entrar a la zona: la linea que barre y el velo que deja (world.ESC_*)
@@ -7708,7 +7720,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // 520 / 700 km en vez de los metros del pasillo. null = la barra de siempre.
         ruta: rutaSys.hay() ? { pos: blancoSys.escapando() ? rutaSys.dato().blancoKm : rutaSys.pos(), blanco: rutaSys.dato().blancoKm, radarKm: rutaSys.dato().radarKm || 0 } : null,
         // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
-        fueraRadar: S.state === 'play' && !rutaSys.enAlcance(),
+        fueraRadar: S.state === 'play' && !radarAlcance(),
         oleada: suelto() ? oleadaDe(kmCorrida()) : null,
         fallados: suelto() ? falladosEnFila().length + (estadoAvion(fallasDe(alMando(run))) !== 'bien' ? 1 : 0) : 0,
         // LA CITA DE IDA DISPONIBLE (planificada, sin barra): el reloj de la Chancha se pone en LISTA

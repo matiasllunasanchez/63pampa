@@ -26,6 +26,49 @@ const BOMBA = lin([0.95, 0.9, 0.7]), SOMBRA = [0, 0, 0], HILO = lin([0.85, 0.82,
 const SOL_X = -SUN[0] * 0.5, SOL_Z = -SUN[2] * 0.5;
 const GRANDE = { misil: 1, propio: 1 };
 
+// LOS MISILES BUENOS (20/11, el autor: "los misiles deben ser BUENOS visualmente, hoy son cuadrados, y deben
+// provenir de diversas zonas de donde salgan humo"): la cabeza es un PUNTO REDONDO con halo (no el cuadrado de
+// PointsMaterial), y detras queda una ESTELA DE HUMO de bocanadas que se quedan en el aire donde paso el misil —
+// crecen y se apagan en HUMO_VIDA s—, mas una NUBE en el punto de lanzamiento. Asi se lee de donde salio.
+let TEX = null;
+function texRedonda() {
+  if (TEX) return TEX;
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.45, 'rgba(255,255,255,0.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+  TEX = new THREE.CanvasTexture(c);
+  return TEX;
+}
+const HUMO_MAX = 2400, HUMO_VIDA = 5.5, HUMO_PASO = 7;
+const H = { obj: null, pos: null, tam: null, alfa: null, p: [], t: 0, ult: new WeakMap() };
+function crearHumo(escena) {
+  const g = new THREE.BufferGeometry();
+  H.pos = new THREE.BufferAttribute(new Float32Array(HUMO_MAX * 3), 3);
+  H.tam = new THREE.BufferAttribute(new Float32Array(HUMO_MAX), 1);
+  H.alfa = new THREE.BufferAttribute(new Float32Array(HUMO_MAX), 1);
+  g.setAttribute('position', H.pos); g.setAttribute('aTam', H.tam); g.setAttribute('aAlfa', H.alfa);
+  g.setDrawRange(0, 0);
+  const mat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, fog: false,
+    uniforms: { uMedio: { value: 300 }, uTex: { value: texRedonda() } },
+    vertexShader: `attribute float aTam; attribute float aAlfa; varying float vA; uniform float uMedio;
+      void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vA = aAlfa;
+        gl_PointSize = clamp(aTam * projectionMatrix[1][1] * uMedio / max(-mv.z, 1.0), 1.0, 160.0);
+        gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform sampler2D uTex; varying float vA;
+      void main() { float a = texture2D(uTex, gl_PointCoord).a * vA; if (a < 0.02) discard;
+        gl_FragColor = vec4(vec3(0.78, 0.78, 0.76), a); }`,
+  });
+  H.obj = new THREE.Points(g, mat);
+  H.obj.frustumCulled = false; H.obj.renderOrder = 4;
+  escena.add(H.obj);
+}
+function bocanada(x, y, z, tam, crece, vida) {
+  if (H.p.length >= HUMO_MAX) H.p.shift();
+  H.p.push({ x, y, z, t0: H.t, tam, crece, vida });
+}
+
 function capa(tipo, tam) {
   const g = new THREE.BufferGeometry();
   const n = tipo === 'puntos' ? MAX : MAX * 2;
@@ -33,7 +76,8 @@ function capa(tipo, tam) {
   g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
   g.setDrawRange(0, 0);
   const o = tipo === 'puntos'
-    ? new THREE.Points(g, new THREE.PointsMaterial({ size: tam, sizeAttenuation: false, vertexColors: true, fog: false }))
+    ? new THREE.Points(g, new THREE.PointsMaterial({ size: tam, sizeAttenuation: false, vertexColors: true, fog: false,
+        map: texRedonda(), transparent: true, alphaTest: 0.05, depthWrite: false }))
     : new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true, fog: false, transparent: true, opacity: 0.7 }));
   o.frustumCulled = false; o.renderOrder = 5;
   return o;
@@ -43,7 +87,10 @@ export function crear(escena) {
   if (R.puntos || !THREE) return;
   // los misiles, GRANDES y con cabeza caliente (a 480x270 un misil real es un pixel: no se veia);
   // las balas y trazadoras, chicas
-  R.puntos = capa('puntos', 2); R.grandes = capa('puntos', 6); R.lineas = capa('lineas');
+  R.puntos = capa('puntos', 3); R.grandes = capa('puntos', 7); R.lineas = capa('lineas');
+  // el HALO del motor: un punto grande, naranja y sumado
+  R.halos = capa('puntos', 18); R.halos.material.blending = THREE.AdditiveBlending; R.halos.material.opacity = 0.55;
+  escena.add(R.halos); crearHumo(escena);
   R.bombas = capa('puntos', 5); R.sombras = capa('puntos', 5);
   R.sombras.material.transparent = true; R.sombras.material.opacity = 0.55; R.sombras.renderOrder = 4;
   escena.add(R.lineas); escena.add(R.puntos); escena.add(R.grandes); escena.add(R.sombras); escena.add(R.bombas);
@@ -58,8 +105,10 @@ export function crear(escena) {
 }
 
 /** Un cuadro: `lista` = [{ k, p: {x,y,z}, c: {x,y,z} }] (islas.js `proyectiles`). */
-export function frame(lista, visible, mira = null, zoom = 1) {
+export function frame(lista, visible, mira = null, zoom = 1, dt = 1 / 60, medio = 300) {
   if (!R.puntos) return;
+  H.t += dt; H.obj.material.uniforms.uMedio.value = medio;
+  R.halos.visible = H.obj.visible = visible;
   R.puntos.visible = R.grandes.visible = R.lineas.visible = R.bombas.visible = R.sombras.visible = visible;
   R.mira.visible = visible && !!mira;
   if (mira) {
@@ -67,7 +116,7 @@ export function frame(lista, visible, mira = null, zoom = 1) {
     R.mira.position.set(mira.x, mira.y, mira.z); R.mira.rotation.set(0, -mira.yaw, 0); R.mira.scale.setScalar(zoom);
   }
   if (!visible) return;
-  const capas = [R.puntos, R.grandes, R.bombas, R.sombras].map(o => ({ p: o.geometry.attributes.position, c: o.geometry.attributes.color, n: 0 }));
+  const capas = [R.puntos, R.grandes, R.bombas, R.sombras, R.halos].map(o => ({ p: o.geometry.attributes.position, c: o.geometry.attributes.color, n: 0 }));
   const lp = R.lineas.geometry.attributes.position, lc = R.lineas.geometry.attributes.color;
   let nl = 0;
   const seg = (a, b, c, ka, kb) => {
@@ -89,16 +138,36 @@ export function frame(lista, visible, mira = null, zoom = 1) {
     // la CABEZA del misil, casi blanca (el motor); la bala, de su color
     const h = GRANDE[q.k] ? CABEZA : c;
     L.p.setXYZ(L.n, q.p.x, q.p.y, q.p.z); L.c.setXYZ(L.n, h[0], h[1], h[2]); L.n++;
-    if (q.h && q.h.length > 1) {
-      // la estela de HUMO: del color del misil cerca de la cabeza a gris que se apaga
-      for (let i = q.h.length - 1; i > 0; i--) {
-        const k0 = i / q.h.length, k1 = (i - 1) / q.h.length;
-        seg(q.h[i], q.h[i - 1], HUMO, 0.3 + 0.7 * k0, 0.3 + 0.7 * k1);
+    if (GRANDE[q.k]) {
+      const Hl = capas[4];
+      if (Hl.n < MAX) { Hl.p.setXYZ(Hl.n, q.p.x, q.p.y, q.p.z); Hl.c.setXYZ(Hl.n, c[0], c[1] * 0.8, c[2] * 0.6); Hl.n++; }
+      // EL HUMO: la nube del lanzamiento la primera vez que se lo ve, y despues una bocanada cada HUMO_PASO m
+      const llave = q.h || q;
+      const u = H.ult.get(llave);
+      if (!u) {
+        for (let i = 0; i < 9; i++) bocanada(q.p.x + (Math.random() - 0.5) * 8, q.p.y + Math.random() * 4, q.p.z + (Math.random() - 0.5) * 8, 7 + Math.random() * 6, 2.2, 7);
+        H.ult.set(llave, { x: q.p.x, y: q.p.y, z: q.p.z });
+      } else {
+        const d = Math.hypot(q.p.x - u.x, q.p.y - u.y, q.p.z - u.z);
+        if (d > 300) { u.x = q.p.x; u.y = q.p.y; u.z = q.p.z; }   // (un salto: el carril se rehizo)
+        else for (let k = Math.floor(d / HUMO_PASO); k > 0; k--) {
+          const f = k * HUMO_PASO / d;
+          bocanada(q.p.x + (u.x - q.p.x) * f, q.p.y + (u.y - q.p.y) * f, q.p.z + (u.z - q.p.z) * f, 2.2 + Math.random(), 1.6, HUMO_VIDA);
+          if (k === 1) { u.x = q.p.x; u.y = q.p.y; u.z = q.p.z; }
+        }
       }
-      seg(q.p, q.h[q.h.length - 1], c, 1, 1);
+      seg(q.p, q.c, c, 1, 0.2);   // la llama, corta
     } else seg(q.p, q.c, c, 1, 0.4);
   }
-  [R.puntos, R.grandes, R.bombas, R.sombras].forEach((o, i) => { o.geometry.setDrawRange(0, capas[i].n); capas[i].p.needsUpdate = capas[i].c.needsUpdate = true; });
+  // las bocanadas: crecen y se apagan (las viejas salen de la lista)
+  while (H.p.length && H.t - H.p[0].t0 > H.p[0].vida) H.p.shift();
+  for (let i = 0; i < H.p.length; i++) {
+    const b = H.p[i], u = (H.t - b.t0) / b.vida;
+    H.pos.setXYZ(i, b.x, b.y + u * 6, b.z); H.tam.setX(i, b.tam * (1 + u * b.crece)); H.alfa.setX(i, 0.55 * (1 - u) * (1 - u));
+  }
+  H.obj.geometry.setDrawRange(0, H.p.length);
+  H.pos.needsUpdate = H.tam.needsUpdate = H.alfa.needsUpdate = true;
+  [R.puntos, R.grandes, R.bombas, R.sombras, R.halos].forEach((o, i) => { o.geometry.setDrawRange(0, capas[i].n); capas[i].p.needsUpdate = capas[i].c.needsUpdate = true; });
   R.lineas.geometry.setDrawRange(0, nl);
   lp.needsUpdate = lc.needsUpdate = true;
 }
