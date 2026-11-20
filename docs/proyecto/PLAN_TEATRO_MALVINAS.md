@@ -66,6 +66,12 @@ punto; los buques, agua honda.
   - **Las PAC**: si te acercas a una pareja (≈3 km), rompe el circulo y te toma la cola: es el DUELO DEL
     PASILLO (systems/caza.js, dos Harriers de patrulla con sus Sidewinder). Si los bajas, esa PAC no vuelve; si
     se van, vuelven a su circulo un rato despues.
+- **Las zonas de radar** (20/11, `RADARES`): la nuestra (Puerto Argentino) y las de ellos (el Coventry, el
+  Broadsword, la bahia). Adentro de una britanica y arriba de 45 m te ven: la PAC mas cercana (hasta 30 km) sale
+  de su circulo a buscarte y, si el radar te pierde 10 s, vuelve. Adentro de la nuestra los Harriers no entran
+  —los que te perseguian se van— y el radar te avisa de la PAC que sale. Los Harriers del duelo tiran rafagas de
+  cañon de 6 tiros al punto donde estabas (se esquivan moviendose en el aviso) ademas de sus Sidewinder. El mapa
+  de la pausa dibuja los circulos.
 - **Atacar**: el cañon (las balas sobre el mapa) y las bombas rompen piezas: cada una revienta con la explosion
   3D. Lo argentino tambien se rompe — y no suma.
 - **Los argentinos** son decorado vivo: sus soldados caminan, sus antiaereos no te tiran.

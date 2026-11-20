@@ -50,6 +50,16 @@ let x = 0, citaT = 0;
 // quedarse en la caja. La pone el orquestador cada cuadro (`centrar`).
 let centrada = false;
 export function centrar(on) { centrada = !!on; }
+// LA ALTURA EN LAS ISLAS (20/11, el autor: "la Chancha no aparecio; debe aparecer sobrevolando mi avion desde
+// arriba y bajar a una altura coherente"): CH_ALT es la del pasillo (48 m), y sobre el mapa real volas a cientos
+// de metros — ella quedaba muy abajo, fuera de cuadro. Ahi `base` la corre: al llegar se pone con la canasta
+// unos metros ARRIBA de tu avion (y a CANASTA_PISO del suelo como minimo), y despues mantiene su altura sobre el MAR
+// aunque el suelo cambie debajo (`corrimiento`, que llama islas.js con lo que subio o bajo el suelo).
+let base = 0;
+const CANASTA_SOBRE = 9;    // m de la canasta por encima del avion al llegar (la caja es de 6: hay que trepar un poco a buscarla)
+const CANASTA_PISO = 15;    // la canasta nunca a menos de esto sobre el suelo
+export function corrimiento(dy) { if (centrada && fase !== 'idle') base = Math.max(base + dy, CANASTA_PISO - (CH_ALT - CH_HOSE_Y)); }
+function ponerBase(planeY) { base = centrada ? Math.max(CANASTA_PISO, planeY + CANASTA_SOBRE) - (CH_ALT - CH_HOSE_Y) : 0; }
 let rumT = 0, bombaT = 0;   // cadencias de audio (motores / bomba de transferencia)
 
 /** ¿Donde esta la CANASTA ahora? Es el punto que hay que ir a buscar, y lo comparten la
@@ -61,8 +71,8 @@ function canasta() {
 /** La altura del Hercules AHORA. LLEGA DE ARRIBA (baja a su altura en los primeros CH_BAJADA_T
  *  segundos de la cita, frenando) y en la salida se va por arriba. */
 function alturaHoy() {
-  if (fase === 'cita' && citaT < CH_BAJADA_T) { const u = 1 - citaT / CH_BAJADA_T; return CH_ALT + CH_BAJADA_H * u * u; }
-  return CH_ALT + (fase === 'yendo' ? (CH_SALIDA - salT) * 14 : 0);
+  if (fase === 'cita' && citaT < CH_BAJADA_T) { const u = 1 - citaT / CH_BAJADA_T; return base + CH_ALT + CH_BAJADA_H * u * u; }
+  return base + CH_ALT + (fase === 'yendo' ? (CH_SALIDA - salT) * 14 : 0);
 }
 
 /**
@@ -130,7 +140,7 @@ export function tick(dt, e) {
   // pedirse (game.js), y ella se queda fuera de cuadro hasta que el avion trepa. Sin ritual de
   // radio: no la pediste vos.
   if (fase === 'eta' && espera) {
-    if (e.planeY >= CH_APARECE_Y) { fase = 'cita'; winT = Infinity; citaT = 0; x = 0; conn = false; reserva = 1; upa = false; out.sig = 'baja'; }
+    if (e.planeY >= CH_APARECE_Y) { ponerBase(e.planeY); fase = 'cita'; winT = Infinity; citaT = 0; x = 0; conn = false; reserva = 1; upa = false; out.sig = 'baja'; }
     return out;
   }
   if (fase === 'eta') {
@@ -141,7 +151,7 @@ export function tick(dt, e) {
     if (antes < 0.9 && pedidoT >= 0.9) out.sig = 'ack';
     else if (antes < 2.1 && pedidoT >= 2.1) out.sig = 'come';
     etaT -= dt;
-    if (etaT <= 0) { fase = 'cita'; winT = espera ? Infinity : CH_WINDOW; citaT = 0; x = 0; conn = false; reserva = 1; upa = false; out.sig = 'llega'; }
+    if (etaT <= 0) { ponerBase(e.planeY); fase = 'cita'; winT = espera ? Infinity : CH_WINDOW; citaT = 0; x = 0; conn = false; reserva = 1; upa = false; out.sig = 'llega'; }
     return out;
   }
   if (fase === 'yendo') {
@@ -253,7 +263,7 @@ export function cargar(p) { meter = Math.min(1, meter + (p === undefined ? CH_CH
 export function resetChancha() {
   fase = 'idle'; meter = 0; usada = false; usos.ida = 0; usos.vuelta = 0; reserva = 1; lastScore = -1; espera = false;
   etaT = 0; winT = 0; salT = 0; pedidoT = 0; conn = false; connT = 0; trabado = false; x = 0; citaT = 0;
-  rumT = 0; bombaT = 0;
+  rumT = 0; bombaT = 0; base = 0;
 }
 
 // ---------- SONDAS (QUITAR al cerrar el plan) ----------

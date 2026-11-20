@@ -46,7 +46,7 @@ import * as proy3d from './islas/proyectiles3d.js';
 import * as objetivo3d from './islas/objetivo3d.js';
 import * as estallido3d from './islas/estallido3d.js';
 import * as teatro3d from './islas/teatro3d.js';
-import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo, mira as islasMira, tomarEstallidos, avionMuerto, teatroEscena, teatroTodo, cazasEnMapa } from './islas/islas.js';
+import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo, mira as islasMira, tomarEstallidos, avionMuerto, teatroEscena, teatroTodo, cazasEnMapa, chanchaEnMapa } from './islas/islas.js';
 import { sueloH as islasSuelo, SUN as ISLAS_SOL } from './islas/mundo.js';
 
 const THREE = window.THREE || null;
@@ -260,7 +260,7 @@ export function frame(w) {
     estallido3d.crear(A3.scene); estallido3d.frame(tomarEstallidos(), dtI, (x, z) => Math.max(islasSuelo(x, z), 0));
     objetivo3d.frame(A3.scene, islasObjetivo());
     // EL TEATRO (systems/islas/teatro3d.js): bases, buques, PAC; y los Harriers del duelo, solo desde arriba
-    teatro3d.frame(A3.scene, teatroEscena(), arriba ? cazasEnMapa() : [], A3.cam);
+    teatro3d.frame(A3.scene, teatroEscena(), arriba ? cazasEnMapa() : [], A3.cam, arriba ? chanchaEnMapa() : null);
     islas3d.frame(A3.cam, w, A, res);
     rr.render(A3.scene, A3.cam);
     A3.on = true;

@@ -11,11 +11,12 @@
 // EL LUGAR MAS CERCANO aparece en pantalla al acercarse (orientacion sin flechas). Los nombres son los que
 // usa Dusk Patrol para 1982 y estan A VERIFICAR (ver LUGARES).
 import { popup, explodeAt, columnaBomba } from '../../core/fx.js';
-import { cartel } from '../../core/cartel.js';
+import { cartel, cartelSostenido } from '../../core/cartel.js';
 import { T } from '../../core/i18n.js';
 import * as objetivo from './objetivo.js';
 import * as teatro from './teatro.js';
 import * as caza from '../caza.js';
+import * as chancha from '../chancha.js';
 import * as mapa from './mapa.js';
 import { P } from '../../data/palette.js';
 // la mitad de la grilla del juego (480 de ancho): systems no importa render (tools/lint_layers.js)
@@ -218,10 +219,12 @@ export function pasoPasillo(dt) {
   // EL TEATRO (teatro.js, docs/proyecto/PLAN_TEATRO_MALVINAS.md): las bases, los buques y las PAC del 24 de mayo
   teatro.armar();
   teatro.paso(dt, { x: P3.x, z: P3.z, g: P3.g, yaw: P3.yaw, y: plane.y }, enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, estallido, S.state === 'play');
+  avisosRadar();
   // EL SUELO QUE SUBE se come la altura; el que baja te la devuelve (y la gravedad del pasillo hace el resto)
   const g = Math.max(mundo.sueloH(P3.x, P3.z), 0), dg = g - P3.g;
   P3.g = g;
   plane.y -= dg;
+  chancha.corrimiento(-dg);   // (la Chancha tambien mantiene su altura sobre el mar)
   cam.y -= dg;   // (la camara del pasillo mide su altura sobre el MISMO suelo: si no se corre con el, salta)
   if (S.state === 'play' && dg > PARED && plane.y < -PARED) return 'death_land';
   // SOBRE TIERRA NO HAY ROCE (autor, 19/11: "el avion no debe tomar de referencia la colina… sube solo cuando
@@ -373,6 +376,10 @@ export function mapaDatos(cursor) {
     for (const b of teatro.bases()) if (b.visto) teat.push({ k: 'base', bando: b.bando, n: b.n, ...mapa.aUV(b.x + o[0], b.z + o[1]) });
     for (const b of E.buques) if (b.visto) teat.push({ k: 'buque', bando: 'gb', vivo: b.vivo, n: b.n, ...mapa.aUV(b.x + o[0], b.z + o[1]) });
     for (const c of E.pac) if (c.vista && c.estado !== 'muerta') teat.push({ k: 'pac', bando: 'gb', n: c.n, ...mapa.aUV(c.x + o[0], c.z + o[1]), r: c.r / mundo.MAP_W });
+    // la PAC que viene a buscarte: un punto rojo donde esta (si nuestro radar la ve)
+    for (const c of E.pac) if (c.vista && c.estado === 'vector') teat.push({ k: 'pacv', bando: 'gb', n: c.n, ...mapa.aUV(c.vx + o[0], c.vz + o[1]) });
+    // LAS ZONAS DE RADAR (data/islas_teatro.js RADARES)
+    for (const r of teatro.radares()) teat.push({ k: 'radar', bando: r.bando, n: r.n, ...mapa.aUV(r.x + o[0], r.z + o[1]), r: r.r / mundo.MAP_W });
   }
   // LOS PUNTOS ELEGIBLES (el cursor se les pega; Q/E y L1/R1 saltan de uno a otro, de oeste a este)
   const puntos = [...lug.map(l => ({ k: 'lugar', n: l.n, u: l.u, v: l.v })),
@@ -397,6 +404,29 @@ export function mapaIr(u, v) {
   const o = mundo.org(), [ax, az] = mapa.deUV(u, v);
   P3.x = ax - o[0]; P3.z = az - o[1];
   P3.g = Math.max(mundo.sueloH(P3.x, P3.z), 0); plane.y = 40; plane.vy = 0;
+}
+
+/** LAS ZONAS DE RADAR, en carteles (teatro.js `zona` y sus eventos): entrar a una, que te vean, que vengan. */
+function avisosRadar() {
+  for (const e of teatro.tomarEventos()) {
+    if (e.k === 'zona_gb') cartel(T('islasZonaGb'), P.warn, T('islasZonaGbSub'));
+    else if (e.k === 'zona_arg') cartel(T('islasZonaArg'), P.accent, e.n);
+    else if (e.k === 'se_van') cartel(T('islasSeVan'), P.accent, T('islasSeVanSub'));
+    // (que la PAC salio a buscarte lo sabes solo si nuestro radar la ve)
+    else if (e.k === 'vienen' && e.avisa) cartel(T('islasVienen'), P.warn, T('islasVienenSub', { d: (e.d / 1000).toFixed(0) }));
+  }
+  const z = teatro.zona();
+  cartelSostenido('islasRadarVe', enPasillo() && S.state === 'play' && z.visto, T('islasTeVe'), P.warn, { alerta: true }, T('islasTeVeSub'));
+}
+
+/** LA CHANCHA EN EL MAPA, para la vista de arriba (en las del pasillo la dibuja el pasillo): el Hercules donde
+ *  esta en el carril, puesto sobre el mapa, o null. */
+export function chanchaEnMapa() {
+  const c = chancha.snapshot();
+  if (!enPasillo() || !c || c.fase === 'eta') return null;
+  const o = {};
+  aMundo(c.x, 0, c.z, o);
+  return { x: o.x, y: P3.g + c.y, z: o.z, yaw: P3.yaw };
 }
 
 /** El avion esta sobre tierra (la eyeccion: caes entre los tuyos o al agua). */

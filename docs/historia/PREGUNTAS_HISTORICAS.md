@@ -1710,3 +1710,5 @@ Del orden de batalla de `src/data/islas_teatro.js` (plan: `docs/proyecto/PLAN_TE
 - **Las PAC:** ¿donde estaban de verdad las estaciones de patrulla de los Sea Harrier ese dia? Puestas: Estrecho norte y sur, Gran Malvina y norte de la Soledad.
 - **Las bases argentinas en la Gran Malvina** (Puerto Yapeyu, Bahia Fox): ¿antiaereo de tubo, cuanto y donde?
 - **Las posiciones** de todo son aproximadas (~1 km) y se acomodan al terreno del DEM.
+
+- **Zonas de radar (20/11)** — `data/islas_teatro.js RADARES`. ¿Que alcance util tenia el TPS-43 de Puerto Argentino hacia el oeste con el relieve de la Soledad (en el juego, 55 km)? ¿El Tipo 965 del Coventry y el 967/968 del Broadsword el 24-25 de mayo (en el juego, 38 y 24 km)? ¿Habia radar propio en la cabeza de playa de San Carlos ademas de los buques (en el juego, 18 km sobre la bahia)? ¿A que altura dejaba de verte (en el juego, 45 m sobre el suelo)?

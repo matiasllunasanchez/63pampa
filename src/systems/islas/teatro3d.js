@@ -46,7 +46,7 @@ const lejos = (g, cam, x, y, z, max) => {
 
 /** Un cuadro. `E` = teatro.js `escena()`; `cazas` = los Harriers del duelo en el mapa (solo desde arriba: en las
  *  vistas del pasillo los dibuja el pasillo); `cam` = la camara de three. */
-export function frame(sc, E, cazas, cam) {
+export function frame(sc, E, cazas, cam, cha) {
   escena = sc;
   if (!E) return;
   for (const e of E.piezas) {
@@ -83,10 +83,10 @@ export function frame(sc, E, cazas, cam) {
       const g = grupo(c.__gs[i], 'harrier');
       if (!g) continue;
       const a = c.aviones[i];
-      if (c.estado !== 'orbita' || !a) { g.visible = false; continue; }
+      if ((c.estado !== 'orbita' && c.estado !== 'vector') || !a) { g.visible = false; continue; }
       if (!lejos(g, cam, a.x, a.y, a.z, LEJOS.avion)) continue;
       // en el viraje van ladeados hacia adentro
-      g.position.set(a.x, a.y, a.z); g.rotation.set(0, -a.yaw, c.forma === 'ocho' ? 0 : -0.45);
+      g.position.set(a.x, a.y, a.z); g.rotation.set(0, -a.yaw, c.estado === 'vector' || c.forma === 'ocho' ? 0 : -0.45);
     }
   }
   frame.cazas = frame.cazas || [];
@@ -98,6 +98,9 @@ export function frame(sc, E, cazas, cam) {
     g.visible = !!h;
     if (h) { g.position.set(h.x, h.y, h.z); g.rotation.set(0, -h.yaw, h.roll || 0); }
   }
+  // LA CHANCHA (solo desde arriba: en las vistas del pasillo la dibuja el pasillo)
+  const gc = grupo(frame.cha || (frame.cha = {}), 'herc');
+  if (gc) { gc.visible = !!cha; if (cha) { gc.position.set(cha.x, cha.y, cha.z); gc.rotation.set(0, -cha.yaw, 0); } }
 }
 
 /** Fuera de las islas: todo apagado. */
@@ -107,4 +110,5 @@ export function apagar(E) {
   for (const s of E.soldados) for (const o of s.__gs || []) if (o.__g) o.__g.visible = false;
   for (const c of E.pac) for (const o of c.__gs || []) if (o.__g) o.__g.visible = false;
   for (const o of frame.cazas || []) if (o.__g) o.__g.visible = false;
+  if (frame.cha && frame.cha.__g) frame.cha.__g.visible = false;
 }

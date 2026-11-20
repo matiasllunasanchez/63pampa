@@ -169,6 +169,9 @@ export function start(opts = {}) {
     muerto: false,
     // DE UNA PATRULLA (la arma el director): se va cuando gasto sus misiles o sus pasadas
     patrulla: !!opts.patrulla,
+    // LAS ISLAS (20/11, el autor: "agreguemos los disparos de metralleta ESQUIVABLES"): rafagas mas largas
+    // (cuantos tiros; 0 = ADEN.N, la del pasillo). Siguen yendo al punto fijado: moverse en el aviso salva.
+    rafagaN: opts.rafaga || 0,
   };
   // EL SEGUNDO DE LA PATRULLA entra un poco mas atras: se los ve llegar de a uno, no encimados
   if (opts.atras) h.z += opts.atras;
@@ -358,14 +361,15 @@ function stepRafaga(dt) {
   const r = C.rafaga;
   if (!r) return;
   r.t += dt;
-  if (r.n < ADEN.N && r.t >= ADEN.AVISO + r.n * ADEN.GAP) {
+  const N = C.rafagaN || ADEN.N;
+  if (r.n < N && r.t >= ADEN.AVISO + r.n * ADEN.GAP) {
     r.n++;
     const x0 = C.x, y0 = C.y - 0.3, z0 = C.z;
     missiles.push({ tipo: 'aden', x0, y0, z0, x: x0, y: y0, z: z0, tx: r.tx, ty: r.ty, t: 0, done: false });
     C.fx.push({ k: 'humo', x: x0, y: y0, z: z0, life: 0.25, r: 0.6 });
     beep(160, 0.07, 'square', 0.06, 90);   // el golpe seco del 30 mm
   }
-  if (r.n >= ADEN.N) C.rafaga = null;
+  if (r.n >= N) C.rafaga = null;
 }
 
 /** EL PUNTO FIJADO de las rafagas en AVISO, para el dibujo: { x, y, u } (u = 0..1 del aviso). */
@@ -743,6 +747,13 @@ function comboFuerza() {
 /** UN CUADRO de toda la flota. NO devuelve muerte: el Harrier no te mata (ver la nota del encabezado).
  *  La firma sigue siendo la de un sistema que podria devolver una señal, porque `game.js` la lee
  *  igual que las demas y porque el dia que el duelo vuelva a tener dientes entra por aca. */
+/** SE VAN (LAS ISLAS, 20/11): entraste a la cobertura propia (el radar y los antiaereos de Puerto Argentino) y
+ *  los que te venian persiguiendo rompen y se van por el horizonte. Los que caen siguen cayendo. */
+export function retirar() {
+  for (const h of fleet) if (h.fase !== 'cayendo' && h.fase !== 'salida') { C = h; h.rafaga = null; ir('salida', CAZA_SALIDA_T); }
+  C = null;
+}
+
 export function cazaSystem(dt) {
   for (let i = fleet.length - 1; i >= 0; i--) {
     C = fleet[i];

@@ -86,7 +86,28 @@ export const ARMAS = {
   // el buque: misil (Sea Cat / Sea Dart) y su cañon
   buque: { alcance: 4500, tiro: 800, cada: 4, tipo: 'misil', traza: { alcance: 2200, tiro: 500, cada: 1.0 } },
 };
-// a cuanto te ve una PAC y te sale a buscar
+// a cuanto te ve una PAC (a ojo) y te sale a buscar
 export const PAC_VE = 3500;
+
+// LAS ZONAS DE RADAR (20/11, el autor: "debe haber RADIOS de ZONAS de radares, tanto nuestros (Puerto Argentino)
+// como de ellos… persecucion de Harriers segun zona"). `r` en metros. Las britanicas van con un buque (`buque`:
+// se mueve con el y se apaga si lo hundis) o fijas en tierra.
+//   BRITANICA: si estas adentro Y ARRIBA DE RADAR_BAJO sobre el suelo, te ven: la PAC mas cercana (a PAC_VECTOR)
+//              rompe el circulo y viene a buscarte. Volando bajo el relieve y el mar te tapan (es lo que se hacia).
+//   NUESTRA:   el radar de Puerto Argentino te avisa de las PAC que ve, y los Harriers que te persiguen se van
+//              al entrar (no se meten bajo los antiaereos de la plaza).
+// ⚠ A VERIFICAR (docs/historia/PREGUNTAS_HISTORICAS.md): los alcances son de juego, no los reales (el TPS-43
+// veia mucho mas lejos, pero el relieve le tapaba el oeste; el Tipo 965 del Coventry era el piquete de radar).
+export const RADARES = [
+  { n: 'RADAR PUERTO ARGENTINO', bando: 'arg', lon: -57.86, lat: -51.69, r: 55000 },
+  { n: 'HMS COVENTRY', bando: 'gb', buque: 'HMS COVENTRY', r: 38000 },
+  { n: 'HMS BROADSWORD', bando: 'gb', buque: 'HMS BROADSWORD', r: 24000 },
+  { n: 'BAHIA SAN CARLOS', bando: 'gb', lon: -59.07, lat: -51.52, r: 18000 },
+];
+export const RADAR_BAJO = 45;      // m sobre el suelo: abajo de esto el radar britanico no te ve
+export const PAC_VECTOR = 30000;   // hasta cuanto viene una PAC cuando el radar te ve
+export const PAC_VEL_VECTOR = 300; // m/s como minimo cuando viene a buscarte (y 1,7 veces la tuya: te alcanza)
+export const PAC_OLVIDA = 10;      // s sin que el radar te vea: la PAC vuelve a su circulo
+export const RAFAGA_ISLAS = 6;     // tiros de cada rafaga de cañon de los Harriers (el pasillo: 2)
 // una PAC que se fue (no la bajaste) vuelve a su circulo a los (s)
 export const PAC_VUELVE = 60;

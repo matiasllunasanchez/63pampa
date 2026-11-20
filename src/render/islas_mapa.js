@@ -50,6 +50,14 @@ export function drawMapaIslas(d, t) {
     ctx.fillStyle = ctx.strokeStyle = col;
     if (q.k === 'base') { ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
     else if (q.k === 'buque') { if (q.vivo) ctx.fillRect(Math.round(x) - 1, Math.round(y), 3, 1); else ctx.fillRect(Math.round(x), Math.round(y), 1, 1); }
+    else if (q.k === 'pacv') { if (Math.floor(t * 5) % 2 === 0) ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
+    else if (q.k === 'radar') {
+      // LA ZONA DE RADAR: un circulo fino (el nuestro, celeste y entero; el de ellos, rojo y cortado) y un tinte
+      ctx.save(); ctx.beginPath(); ctx.rect(m.x, m.y, m.w, m.h); ctx.clip();
+      ctx.globalAlpha = 0.08; ctx.beginPath(); ctx.arc(x, y, q.r * m.w, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.85; ctx.lineWidth = 1; ctx.setLineDash(q.bando === 'arg' ? [] : [3, 2]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.restore();
+    }
     else if (q.k === 'pac') {
       ctx.setLineDash([1, 2]); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, Math.max(2, q.r * m.w), 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
     }

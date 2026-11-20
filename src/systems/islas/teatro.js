@@ -11,8 +11,12 @@
 //
 // LA PAC te ve a PAC_VE metros: rompe el circulo y te toma la cola — es el DUELO DEL PASILLO (systems/caza.js,
 // dos Harriers de patrulla). Los que bajes no vuelven; si se van, la PAC vuelve a su circulo PAC_VUELVE s despues.
+//
+// LAS ZONAS DE RADAR (20/11, data/islas_teatro.js RADARES): adentro de una britanica y arriba de RADAR_BAJO te
+// ven, y la PAC mas cercana VIENE (estado 'vector') hasta tenerte a ojo; si el radar te pierde PAC_OLVIDA s, vuelve
+// a su circulo. Adentro de la nuestra los Harriers no entran: los que te perseguian se van (caza.js `retirar`).
 import * as mundo from './mundo.js';
-import { BASES, BUQUES, PAC, ARMAS, PAC_VE, PAC_VUELVE } from '../../data/islas_teatro.js';
+import { BASES, BUQUES, PAC, ARMAS, PAC_VE, PAC_VUELVE, RADARES, RADAR_BAJO, PAC_VECTOR, PAC_VEL_VECTOR, PAC_OLVIDA, RAFAGA_ISLAS } from '../../data/islas_teatro.js';
 import { missiles, pmissiles, bullets } from '../../core/world.js';
 import * as caza from '../caza.js';
 import { posBomba } from './objetivo.js';
@@ -28,7 +32,7 @@ const MALLA = { carpa: 'carpa', deposito: 'deposito', puesto: 'puesto', radar: '
   canon: 'camion_aa', camion: 'camion_aa', pucara: 'pucara', herc: 'herc', soldado: 'soldado_corre', harrier: 'harrier' };
 export const mallaDe = tipo => MALLA[tipo] || tipo;
 
-const T = { armado: false, piezas: [], buques: [], pac: [], soldados: [], t: 0 };
+const T = { armado: false, piezas: [], buques: [], pac: [], soldados: [], t: 0, radares: [], zona: { gb: null, arg: null, visto: false }, vistoT: 99, eventos: [] };
 let semilla = 1;
 const rnd = () => ((semilla = (semilla * 16807) % 2147483647) / 2147483647);
 
@@ -37,7 +41,8 @@ export function reiniciar() {
   const fuera = o => { if (o && o.__g && o.__g.parent) o.__g.parent.remove(o.__g); };
   for (const o of [...T.piezas, ...T.buques]) fuera(o);
   for (const x of [...T.soldados, ...T.pac]) for (const o of x.__gs || []) fuera(o);
-  T.armado = false; T.piezas.length = T.buques.length = T.pac.length = T.soldados.length = 0; T.t = 0; T.bases = [];
+  T.armado = false; T.piezas.length = T.buques.length = T.pac.length = T.soldados.length = T.radares.length = 0; T.t = 0; T.bases = [];
+  T.zona = { gb: null, arg: null, visto: false }; T.vistoT = 99; T.eventos.length = 0;
 }
 
 const plano = (x, z, rad) => {
@@ -105,6 +110,11 @@ export function armar() {
     T.buques.push({ n: s.n, malla: s.malla, x: p[0], z: p[1], x0: p[0], z0: p[1], rot, largo, manga: 14, h: 22, hp: 3, vivo: true,
       patrulla: s.patrulla || 0, fase: rnd() * 6.283, cd: 3 + rnd() * 4, cdT: 1 + rnd() * 2, visto: false });
   }
+  for (const r of RADARES) {
+    if (r.buque) { const b = T.buques.find(q => q.n === r.buque); if (b) T.radares.push({ ...r, b }); continue; }
+    const [x, z] = mundo.lonLatLocal(r.lon, r.lat);
+    T.radares.push({ ...r, x, z });
+  }
   for (const c of PAC) {
     const [x, z] = mundo.lonLatLocal(c.lon, c.lat);
     T.pac.push({ n: c.n, x, z, r: c.r, alt: c.alt, forma: c.forma, s: rnd() * 6.283, quedan: 2, estado: 'orbita', t: 0, cay: 0, bajados: 0, aviones: [{}, {}] });
@@ -165,10 +175,67 @@ export function paso(dt, P, pz, boom, jugando) {
     if (b.cd <= 0) b.cd = dist < A.alcance && tira(b.x, b.z, 14, 'misil', A.tiro) ? A.cada * (0.8 + rnd() * 0.4) : 0.3;
     if (b.cdT <= 0) b.cdT = dist < A.traza.alcance && tira(b.x, b.z, 10, 'traza', A.traza.tiro) ? A.traza.cada : 0.3;
   }
+  // ---- LAS ZONAS DE RADAR: en cual estas y si te ven ----
+  const Z = { gb: null, arg: null, visto: false };
+  for (const r of T.radares) {
+    const q = posRadar(r);
+    if (q && Math.hypot(q.x - P.x, q.z - P.z) < r.r) Z[r.bando] = Z[r.bando] || r.n;
+  }
+  Z.visto = !!Z.gb && P.y > RADAR_BAJO && jugando;
+  if (Z.gb !== T.zona.gb && Z.gb) T.eventos.push({ k: 'zona_gb', n: Z.gb });
+  if (Z.arg !== T.zona.arg && Z.arg) T.eventos.push({ k: 'zona_arg', n: Z.arg });
+  T.zona = Z;
+  // TU VELOCIDAD sobre el mapa (suavizada): la PAC que viene tiene que poder alcanzarte
+  // (un salto —la sonda, el mapa— no es velocidad: pasado de 600 m/s se ignora)
+  { const v = T.px !== undefined && dt > 0 ? Math.hypot(P.x - T.px, P.z - T.pz) / dt : -1;
+    if (v >= 0 && v < 600) T.vel = (T.vel || 200) + (v - (T.vel || 200)) * Math.min(1, dt * 2); }
+  T.px = P.x; T.pz = P.z;
+  T.vistoT = Z.visto ? 0 : T.vistoT + dt;
+  if (Z.visto) T.ultimo = { x: P.x, z: P.z };
+  // EN LA NUESTRA no entran: los que te perseguian se van (una vez por entrada)
+  if (Z.arg && caza.active() && !T.retiro) { caza.retirar(); T.retiro = true; T.eventos.push({ k: 'se_van' }); }
+  if (!Z.arg) T.retiro = false;
+  const radarArg = T.radares.find(r => r.bando === 'arg');
   // ---- LAS PAC ----
   const snap = caza.snapshot();
+  const yaVienen = T.pac.some(c => c.estado === 'vector');
+  let llamada = null;   // la PAC que el radar britanico manda a buscarte (la mas cercana, de a una)
+  if (Z.visto && !yaVienen && !caza.active()) {
+    let bd = PAC_VECTOR;
+    for (const c of T.pac) { if (c.estado !== 'orbita' || !c.quedan) continue; const d = Math.hypot(c.x - P.x, c.z - P.z); if (d < bd) { bd = d; llamada = c; } }
+  }
   for (const c of T.pac) {
     if (c.estado === 'muerta') continue;
+    // NUESTRO RADAR LAS VE: las que estan en su alcance quedan en el mapa
+    if (radarArg && Math.hypot(c.x - radarArg.x, c.z - radarArg.z) < radarArg.r) c.vista = true;
+    const engancha = (x, z) => {
+      if (!jugando || caza.active() || Z.arg || Math.hypot(x - P.x, z - P.z) >= PAC_VE) return false;
+      // TE VIO: te toma la cola (el duelo del pasillo), con rafagas largas de cañon
+      c.estado = 'caza'; c.cay = 0; c.bajados = 0;
+      for (let i = 0; i < c.quedan; i++) caza.start({ patrulla: true, atras: i ? 60 : 0, mudo: i > 0, rafaga: RAFAGA_ISLAS });
+      return true;
+    };
+    if (c === llamada) {
+      // EL RADAR TE VIO: la pareja sale de su circulo hacia vos
+      const a = c.aviones[0] && c.aviones[0].x !== undefined ? c.aviones[0] : enRecorrido(c, c.s);
+      c.estado = 'vector'; c.vx = a.x; c.vz = a.z; c.vy = c.alt;
+      T.eventos.push({ k: 'vienen', n: c.n, d: Math.hypot(c.vx - P.x, c.vz - P.z), avisa: !!Z.arg || (radarArg && Math.hypot(c.vx - radarArg.x, c.vz - radarArg.z) < radarArg.r) });
+    }
+    if (c.estado === 'vector') {
+      // hacia vos (o hacia donde el radar te vio por ultima vez); si te perdio hace rato, de vuelta al circulo
+      const vuelve = T.vistoT > PAC_OLVIDA || Z.arg;
+      const meta = vuelve ? enRecorrido(c, c.s) : (Z.visto ? P : T.ultimo || P);
+      const dx = meta.x - c.vx, dz = meta.z - c.vz, d = Math.hypot(dx, dz), paso = Math.min(d, Math.max(PAC_VEL_VECTOR, (T.vel || 200) * 1.7) * dt);
+      if (d > 1) { c.vx += dx / d * paso; c.vz += dz / d * paso; }
+      const yaw = Math.atan2(dx, -dz), alt = vuelve ? c.alt : Math.max(120, P.g + P.y + 80);
+      c.vy += (alt - c.vy) * Math.min(1, dt * 0.5);
+      c.aviones[0] = { x: c.vx, z: c.vz, y: c.vy, yaw };
+      c.aviones[1] = { x: c.vx - Math.sin(yaw) * 220 + Math.cos(yaw) * 90, z: c.vz + Math.cos(yaw) * 220 + Math.sin(yaw) * 90, y: c.vy + 20, yaw };
+      c.aviones.length = c.quedan;
+      if (vuelve && d < 300) c.estado = 'orbita';
+      else if (!vuelve) engancha(c.vx, c.vz);
+      continue;
+    }
     if (c.estado === 'orbita') {
       c.s += dt * 150 / c.r;   // ~150 m/s sobre el recorrido
       if (Math.hypot(c.x - P.x, c.z - P.z) < c.r + 6000) c.vista = true;   // (el mapa de la pausa la marca)
@@ -176,11 +243,7 @@ export function paso(dt, P, pz, boom, jugando) {
       c.aviones[0] = { x: a.x, z: a.z, y: c.alt, yaw: a.yaw };
       c.aviones[1] = { x: b.x + Math.cos(b.yaw) * 60, z: b.z + Math.sin(b.yaw) * 60, y: c.alt + 20, yaw: b.yaw };
       c.aviones.length = c.quedan;
-      if (jugando && !caza.active() && Math.hypot(a.x - P.x, a.z - P.z) < PAC_VE) {
-        // TE VIO: rompe el circulo y te toma la cola (el duelo del pasillo)
-        c.estado = 'caza'; c.cay = 0; c.bajados = 0;
-        for (let i = 0; i < c.quedan; i++) caza.start({ patrulla: true, atras: i ? 60 : 0, mudo: i > 0 });
-      }
+      engancha(a.x, a.z);   // (te vio a ojo: rompe el circulo y te toma la cola)
     } else if (c.estado === 'caza') {
       // los que BAJASTE: cada vez que sube la cuenta de los que estan cayendo (la foto del duelo es nueva cada
       // cuadro: no sirve guardar los objetos)
@@ -225,6 +288,18 @@ export function paso(dt, P, pz, boom, jugando) {
     }
   }
 }
+/** Donde esta un radar (el de un buque va con el; si lo hundiste, no hay radar). */
+function posRadar(r) {
+  if (r.b) return r.b.vivo ? r.b : null;
+  return r;
+}
+/** La zona en la que estas ({ gb, arg: nombre del radar o null; visto: si el britanico te ve }) y lo que paso
+ *  desde el ultimo cuadro (islas.js lo vuelve carteles). */
+export const zona = () => T.zona;
+export const tomarEventos = () => T.eventos.splice(0);
+/** Los radares, para el mapa de la pausa: { n, bando, x, z, r } (los de un buque hundido no estan). */
+export const radares = () => T.radares.map(r => { const q = posRadar(r); return q ? { n: r.n, bando: r.bando, x: q.x, z: q.z, r: r.r } : null; }).filter(Boolean);
+
 function enCasco(b, x, z) {
   const ex = x - b.x, ez = z - b.z, c = Math.cos(b.rot), s = Math.sin(b.rot);
   const lado = ex * c + ez * s, largo = -ex * s + ez * c;
