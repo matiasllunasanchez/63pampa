@@ -2781,11 +2781,13 @@ export function drawHUD(h) {
   // NAFTA BAJA (19/11, el autor): la caja de la nafta larga su cartel mientras estes bajo el critico (25%, o el
   // BINGO con ruta) y la Chancha no este cargando. Se dibuja con los demas en drawAvisosCaja (al cuadro siguiente).
   avisoSostenido('nafta', bajo && !cargando, T('bar_fuelLow'));
-  const ch = chSnap(), cv = chMeter(), gastada = chGastada();
+  // LAS ISLAS (19/11, el autor: "donde esta mi indicador de chancha para poder llamarla?"): ahi no hay barra
+  // que llenar —se pide cada tanto, gratis—, asi que el reloj mide la ESPERA: `h.chIslas` (0..1, 1 = se puede)
+  const ch = chSnap(), cv = h.chIslas != null ? h.chIslas : chMeter(), gastada = h.chIslas != null ? false : chGastada();
   // …y solo si la mision la TIENE (`h.chanchaViva`, por snapshot): una mision con `chancha: false`
   // no puede pedirla, y un reloj lleno y en verde ahi es un boton que miente.
   const gCh = falHud('reabast');
-  if (cfg.fuelOn && (h.chanchaViva !== false || gCh >= 3) && pide(cv >= 1 || gastada || !!ch || !!h.chIdaLista || gCh > 0)) {
+  if (cfg.fuelOn && (h.chanchaViva !== false || gCh >= 3) && pide(cv >= 1 || gastada || !!ch || !!h.chIdaLista || gCh > 0 || h.chIslas != null)) {
     // EL FINAL DE LA ESCALA ES LA EMERGENCIA: cuando la aguja llega al icono, la Chancha se puede
     // pedir. Con una cita en curso el numero cuenta lo que importa — cuanto falta para que llegue,
     // cuanto dura la ventana, o cuanto tanque va entrando.
@@ -2809,7 +2811,7 @@ export function drawHUD(h) {
       col: gastada ? P.dim : lista ? P.foam : P.crest,
       txt: enCita ? (ch.fase === 'eta' ? (ch.espera ? '--' : Math.ceil(ch.eta) + 's')
         : ch.conn ? Math.round(ch.reserva * 100) + '%' : ch.espera ? '--' : Math.ceil(Math.max(0, ch.win)) + 's')
-        : h.chIdaLista ? T('ch_lista') : Math.round(cv * 100) + '%',
+        : h.chIdaLista || (h.chIslas != null && cv >= 1) ? T('ch_lista') : h.chIslas != null ? h.chIslasS + 's' : Math.round(cv * 100) + '%',
       txtCol: lista ? verde : ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim }, gCh));
     marcaFalla(xCha, CUADROS_Y, gCh);
   }

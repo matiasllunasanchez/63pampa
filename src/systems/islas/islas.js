@@ -24,7 +24,7 @@ import { forward } from '../../core/aero.js';
 import * as mundo from './mundo.js';
 import * as camara from './camara.js';
 import { run } from '../../core/run.js';
-import { S, plane } from '../../core/state.js';
+import { S, plane, cam } from '../../core/state.js';
 import { cabina, CABINA, enCabina } from '../../core/cabina.js';
 import { bullets, missiles, pmissiles, streaks } from '../../core/world.js';
 import { geoExterna } from '../../core/geografia.js';
@@ -64,6 +64,12 @@ const LUGAR_R = 6000;
 // islas, activable o desactivable segun mision"). Prendido es la del pasillo tal cual; apagado, la barra
 // no carga y no sale ningun misil. Hasta que haya misiones en las islas la pone PRUEBAS (`__malvinas`).
 const I = { on: false, puesto: false, lugar: null, avisoT: 0, ir: null, radar: true };
+// LA MARCA DEL JUGADOR (autor 19/11: "marcar objetivo en mapa con cursor de mouse y con joystick… el que quiera
+// el usuario… y seleccionar puntos existentes"): un punto cualquiera del mapa, o un lugar/base/buque elegido en
+// el MAPA de la pausa. Manda sobre la BASE COSTERA: la brujula y la marca del pasillo la señalan a ella.
+// (x, z relativos a `mundo.org()`, como P3; `n` = el nombre que se muestra)
+const CAM_ARRIBA = 4, CAM_ABAJO = 9.5;   // cuanto puede quedar la camara por debajo / por encima del avion (m)
+const MARCA = { on: false, x: 0, z: 0, g: 0, n: '' };
 
 export const activa = () => I.on;
 /** ¿Las islas estan corriendo CON el radar apagado? (flight.js no carga la barra; el HUD no la muestra) */
@@ -74,7 +80,7 @@ export const progreso = () => mundo.progreso();
 /** Prende (o apaga) las islas para la PROXIMA entrada al arena, y empieza a cargar el mundo. */
 export function activar(on = true) {
   I.on = !!on; I.puesto = false; I.lugar = null;
-  objetivo.reiniciar(); teatro.reiniciar();
+  objetivo.reiniciar(); teatro.reiniciar(); MARCA.on = false;
   if (I.on) mundo.cargar();
   return I.on;
 }
@@ -216,6 +222,7 @@ export function pasoPasillo(dt) {
   const g = Math.max(mundo.sueloH(P3.x, P3.z), 0), dg = g - P3.g;
   P3.g = g;
   plane.y -= dg;
+  cam.y -= dg;   // (la camara del pasillo mide su altura sobre el MISMO suelo: si no se corre con el, salta)
   if (S.state === 'play' && dg > PARED && plane.y < -PARED) return 'death_land';
   // SOBRE TIERRA NO HAY ROCE (autor, 19/11: "el avion no debe tomar de referencia la colina… sube solo cuando
   // pasa por una irregularidad; eso solo con la altura trabada desde arriba, en los otros casos debe
@@ -223,6 +230,8 @@ export function pasoPasillo(dt) {
   // y en una loma era subirla solo. En las islas tocar la tierra es chocar; el agua sigue con su roce.
   // (y ya no hay roce que lo levante — flight.js `geoExterna.sinRoce`—: tocar la tierra es chocar, en todas las vistas)
   if (S.state === 'play' && g > 0.3 && plane.y <= 0.5) return 'death_land';
+  // SIN NAFTA EL AGUA TAMBIEN TE MATA: el roce del pasillo te dejaba planeando sobre las olas para siempre
+  if (S.state === 'play' && run.fuel <= 0 && plane.y <= 0.6) return 'death_sea';
   // DESDE ARRIBA EL AVION MANTIENE LA ALTURA (autor, 19/11): desde la vista cenital no hay como medirla, asi que
   // se traba la que tenia al entrar. Es ALTURA ABSOLUTA (19/11 tarde, el autor: "el avion no puede subir solo cuando
   // esta cerca de la tierra o de irregularidades… y bajar tampoco, debe poder subir"): no sigue el relieve —una
@@ -234,6 +243,11 @@ export function pasoPasillo(dt) {
     P3.altFija = Math.min(P3.altFija, P3.g + ARRIBA_TECHO);
     plane.y = P3.altFija - P3.g; plane.vy = 0;
   } else P3.altFija = null;
+  // EL AVION NO SE SALE DEL CUADRO (autor, 19/11: "cuando esta bajando o subiendo en picada en 3ra persona se
+  // pierde de la pantalla"): la camara del pasillo lo sigue con retardo (vuelo.js, lerp de 3,2/s) y en el
+  // pasillo alcanza, pero sobre el mapa una picada larga la deja atras. Se la ata a una franja alrededor del
+  // avion: con PZ 14 y focal 135, 1 m son ~10 px; la franja lo deja entre la fila ~55 y la ~190 (arriba del tablero).
+  if (!enCabina()) cam.y = Math.max(plane.y - CAM_ARRIBA, Math.min(plane.y + CAM_ABAJO, cam.y));
   if (P3.A) lugares(P3.A, dt);
   return null;
 }
@@ -310,23 +324,39 @@ export const misionCumplida = () => enPasillo() && objetivo.OBJ.on && !objetivo.
 /** LA BRUJULA del tablero (render/hud.js): el rumbo del avion y hacia donde y a cuanto queda el objetivo. */
 export function brujula() {
   if (!enPasillo() || !I.puesto) return null;
-  const o = objetivo.OBJ.on && objetivo.OBJ.vivo ? objetivo.haciaDesde(P3.x, P3.z) : null;
-  return { rumbo: P3.yaw, obj: o ? o.rumbo : null, dist: o ? o.dist : null };
+  const o = blanco();
+  return { rumbo: P3.yaw, obj: o ? Math.atan2(o.x - P3.x, -(o.z - P3.z)) : null, dist: o ? Math.hypot(o.x - P3.x, o.z - P3.z) : null };
+}
+/** A donde apunta todo (brujula, marca del pasillo): la marca del jugador, o la base costera viva, o nada. */
+function blanco() {
+  if (MARCA.on) return MARCA;
+  const O = objetivo.OBJ;
+  return O.on && O.vivo ? { x: O.x, z: O.z, g: O.g, n: T('islasObjetivoCorto') } : null;
 }
 /** LA MARCA del objetivo en las vistas del pasillo: donde cae en el carril (la cuenta de `aMundo`, al reves),
- *  con su distancia, o null si quedo atras. */
+ *  con su distancia y su nombre, o null si quedo atras. */
 export function objetivoPasillo() {
-  const O = objetivo.OBJ;
-  if (!vistaPasillo() || !O.on || !O.vivo) return null;
+  const O = blanco();
+  if (!vistaPasillo() || !O) return null;
   const pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA;
   const dx = O.x - P3.x, dz = O.z - P3.z, sy = Math.sin(P3.yaw), cy = Math.cos(P3.yaw);
   const d = sy * dx - cy * dz, l = cy * dx + sy * dz;
   if (d < 30) return null;
-  return { x: plane.x + l, y: O.g - P3.g + 12, z: d + pz, dist: Math.hypot(dx, dz) };
+  return { x: plane.x + l, y: O.g - P3.g + 12, z: d + pz, dist: Math.hypot(dx, dz), n: O.n };
 }
+
+/** Marca el objetivo del jugador en (u, v) del mapa, con su nombre. */
+export function marcar(u, v, n) {
+  if (!enPasillo() || !I.puesto) return;
+  const o = mundo.org(), [ax, az] = mapa.deUV(u, v);
+  MARCA.x = ax - o[0]; MARCA.z = az - o[1];
+  MARCA.g = Math.max(mundo.sueloH(MARCA.x, MARCA.z), 0); MARCA.n = n; MARCA.on = true;
+}
+export function desmarcar() { MARCA.on = false; }
 
 /** EL MAPA DE DESARROLLO (systems/islas/mapa.js, lo dibuja render/islas_mapa.js): la imagen y lo de este cuadro.
  *  `cursor` = { u, v } o null. */
+const PEGA = 0.012;   // a cuanto (fraccion del ancho del mapa) el cursor se pega a un punto
 export function mapaDatos(cursor) {
   if (!enPasillo() || !I.puesto || !mundo.listo()) return null;
   const o = mundo.org(), ax = P3.x + o[0], az = P3.z + o[1];
@@ -344,8 +374,19 @@ export function mapaDatos(cursor) {
     for (const b of E.buques) if (b.visto) teat.push({ k: 'buque', bando: 'gb', vivo: b.vivo, n: b.n, ...mapa.aUV(b.x + o[0], b.z + o[1]) });
     for (const c of E.pac) if (c.vista && c.estado !== 'muerta') teat.push({ k: 'pac', bando: 'gb', n: c.n, ...mapa.aUV(c.x + o[0], c.z + o[1]), r: c.r / mundo.MAP_W });
   }
+  // LOS PUNTOS ELEGIBLES (el cursor se les pega; Q/E y L1/R1 saltan de uno a otro, de oeste a este)
+  const puntos = [...lug.map(l => ({ k: 'lugar', n: l.n, u: l.u, v: l.v })),
+    ...teat.filter(q => q.k !== 'pac').map(q => ({ k: q.k, n: q.n, u: q.u, v: q.v })),
+    ...(obj && obj.vivo ? [{ k: 'obj', n: obj.n, u: obj.u, v: obj.v }] : [])].sort((a, b) => a.u - b.u);
+  const asp = mundo.MAP_D / mundo.MAP_W;
+  if (cur) {
+    let best = null, bd = PEGA;
+    for (const q of puntos) { const dd = Math.hypot(q.u - cur.u, (q.v - cur.v) * asp); if (dd < bd) { bd = dd; best = q; } }
+    cur.punto = best;
+  }
+  const marca = MARCA.on ? { ...mapa.aUV(MARCA.x + o[0], MARCA.z + o[1]), n: MARCA.n, d: Math.hypot(MARCA.x - P3.x, MARCA.z - P3.z) } : null;
   return {
-    img: mapa.imagen(), avion: { ...mapa.aUV(ax, az), rumbo: P3.yaw }, obj, lugares: lug, cursor: cur, teatro: teat,
+    img: mapa.imagen(), avion: { ...mapa.aUV(ax, az), rumbo: P3.yaw }, obj, lugares: lug, cursor: cur, teatro: teat, puntos, marca,
     lat: mapa.gm(lat, 'N', 'S'), lon: mapa.gm(lon, 'E', 'O'), alt: Math.round(P3.g + plane.y), suelo: Math.round(P3.g),
     rumbo: Math.round(((P3.yaw * 180 / Math.PI) % 360 + 360) % 360), cerca,
   };
@@ -357,6 +398,9 @@ export function mapaIr(u, v) {
   P3.x = ax - o[0]; P3.z = az - o[1];
   P3.g = Math.max(mundo.sueloH(P3.x, P3.z), 0); plane.y = 40; plane.vy = 0;
 }
+
+/** El avion esta sobre tierra (la eyeccion: caes entre los tuyos o al agua). */
+export const sobreTierra = () => enPasillo() && P3.g > 0.3;
 
 /** La altura trabada desde arriba (el candado del altimetro, render/hud.js). */
 export const altFija = () => enPasillo() && P3.altFija !== null;

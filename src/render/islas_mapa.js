@@ -14,6 +14,8 @@ export function marco(img) {
   return { x: X0, y: Y0, w: Math.round(img.width * k), h: Math.round(img.height * k) };
 }
 
+function rombo(x, y, r) { ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); ctx.stroke(); }
+
 export function drawMapaIslas(d, t) {
   ctx.fillStyle = '#070a0dee'; ctx.fillRect(0, 0, NW, NH);
   ctx.fillStyle = P.accent; ctx.font = titleFont(14); ctx.textAlign = 'left';
@@ -23,18 +25,24 @@ export function drawMapaIslas(d, t) {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(d.img, m.x, m.y, m.w, m.h);
   ctx.strokeStyle = '#3a4a52'; ctx.lineWidth = 1; ctx.strokeRect(m.x - 0.5, m.y - 0.5, m.w + 1, m.h + 1);
-  // LOS LUGARES: un punto y el nombre chico
-  ctx.font = '4px monospace';
+  // LOS LUGARES: un punto y el nombre, EN AMARILLO y con contorno negro (19/11, el autor: "los textos de Isla
+  // Borbon, Bahia Fox y demas estan demasiado ilegibles"; antes iban en 4 px crema sobre el relieve)
+  ctx.font = 'bold 6px monospace'; ctx.lineJoin = 'round';
+  const nombre = (txt, x, y, col) => { ctx.strokeStyle = '#000000d0'; ctx.lineWidth = 2; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y); };
   // (los nombres que se pisarian con uno ya escrito quedan solo como punto: los montes del este estan juntos)
   const puestos = [];
+  ctx.save(); ctx.beginPath(); ctx.rect(m.x, m.y, m.w, m.h); ctx.clip();   // (los nombres no se salen del mapa)
   for (const l of d.lugares) {
     const [x, y] = aP(l), w = ctx.measureText(l.n).width + 2;
-    ctx.fillStyle = '#e8e2c8'; ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
-    const r = { x: x + 2, y: y - 3, w, h: 5 };
+    ctx.fillStyle = '#ffd84a'; ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
+    // (el que no entra a la derecha va a la izquierda del punto)
+    const lx = x + 3 + w > m.x + m.w ? x - 3 - w : x + 3;
+    const r = { x: lx - 1, y: y - 5, w, h: 7 };
     if (puestos.some(o => r.x < o.x + o.w && o.x < r.x + r.w && r.y < o.y + o.h && o.y < r.y + r.h)) continue;
     puestos.push(r);
-    ctx.fillStyle = '#c9c2a8cc'; ctx.fillText(l.n, Math.round(x) + 2, Math.round(y) + 1.5);
+    nombre(l.n, Math.round(lx), Math.round(y) + 2, '#ffd84a');
   }
+  ctx.restore();
   // EL TEATRO (systems/islas/teatro.js): las bases (celeste lo nuestro, rojo lo britanico), los buques (un
   // trazo) y las PAC (su circulo, punteado). Lo britanico aparece recien cuando lo pasaste cerca.
   for (const q of d.teatro || []) {
@@ -53,6 +61,12 @@ export function drawMapaIslas(d, t) {
     ctx.strokeRect(Math.round(x - r) + 0.5, Math.round(y - r) + 0.5, Math.round(r * 2), Math.round(r * 2));
     if (!d.obj.vivo) { ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.stroke(); }
   }
+  // LA MARCA DEL JUGADOR (ENTER / ✕ / click): un rombo amarillo que late, con su nombre
+  if (d.marca) {
+    const [x, y] = aP(d.marca), r = 4 + Math.sin(t * 6) * 0.8;
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 3; rombo(x, y, r); ctx.strokeStyle = '#ffe14d'; ctx.lineWidth = 1; rombo(x, y, r);
+    ctx.font = 'bold 6px monospace'; nombre(d.marca.n, Math.round(x) + 7, Math.round(y) - 5, '#ffe14d');
+  }
   // EL AVION: una flecha naranja con su rumbo (0 = norte, arriba)
   { const [x, y] = aP(d.avion), a = d.avion.rumbo;
     const p = (f, s) => [x + Math.sin(a) * f + Math.cos(a) * s, y - Math.cos(a) * f + Math.sin(a) * s];
@@ -60,9 +74,13 @@ export function drawMapaIslas(d, t) {
     ctx.moveTo(...p(6, 0)); ctx.lineTo(...p(-3, 3)); ctx.lineTo(...p(-1, 0)); ctx.lineTo(...p(-3, -3)); ctx.closePath(); ctx.fill();
     ctx.strokeStyle = '#000a'; ctx.stroke(); }
   // EL CURSOR: una cruz que titila
+  // (pegado a un punto: un cuadro blanco alrededor del punto y su nombre en blanco)
   if (d.cursor) {
-    const [x, y] = aP(d.cursor);
-    if (Math.floor(t * 4) % 2 === 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x) - 4, Math.round(y), 9, 1); ctx.fillRect(Math.round(x), Math.round(y) - 4, 1, 9); }
+    const p = d.cursor.punto, [x, y] = aP(p || d.cursor);
+    if (p) {
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.strokeRect(Math.round(x) - 5.5, Math.round(y) - 5.5, 11, 11);
+      ctx.font = 'bold 6px monospace'; nombre(p.n, Math.round(x) + 8, Math.round(y) + 2, '#ffffff');
+    } else if (Math.floor(t * 4) % 2 === 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x) - 4, Math.round(y), 9, 1); ctx.fillRect(Math.round(x), Math.round(y) - 4, 1, 9); }
   }
   // LA COLUMNA DE LA DERECHA: donde estas
   const cx = X0 + MW + 10;
@@ -75,7 +93,8 @@ export function drawMapaIslas(d, t) {
   y += 4;
   if (d.cerca) linea(T('mapaCerca', { n: d.cerca.n, d: (d.cerca.d / 1000).toFixed(1) }), P.dim, 5);
   if (d.obj && d.obj.vivo) { y += 4; linea(T('mapaObjetivo'), P.accent, 7); linea(d.obj.n + '  ' + (d.obj.d / 1000).toFixed(1) + ' km', P.accent); }
-  if (d.cursor) { y += 4; linea(T('mapaCursor'), '#ffffff', 7); linea(d.cursor.lat, P.foam); linea(d.cursor.lon, P.foam); linea(d.cursor.h + ' m', P.dim); }
-  y = NH - 34;
-  for (const k of ['mapaTeclas1', 'mapaTeclas2', 'mapaTeclas3']) linea(T(k), '#7d8f96', 5);
+  if (d.marca) { y += 4; linea(T('mapaMarca'), '#ffe14d', 7); linea(d.marca.n + '  ' + (d.marca.d / 1000).toFixed(1) + ' km', '#ffe14d'); }
+  if (d.cursor) { y += 4; linea(T('mapaCursor'), '#ffffff', 7); if (d.cursor.punto) linea(d.cursor.punto.n, '#ffffff'); linea(d.cursor.lat, P.foam); linea(d.cursor.lon, P.foam); linea(d.cursor.h + ' m', P.dim); }
+  y = NH - 46;
+  for (const k of ['mapaTeclas1', 'mapaTeclas2', 'mapaTeclas3', 'mapaTeclas4', 'mapaTeclas5']) linea(T(k), '#9fb0b6', 5);
 }

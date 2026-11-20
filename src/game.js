@@ -156,7 +156,7 @@ import { nocheDe, drawNoche, tableroNoche, luzNoche, drawReflejoLuna } from './r
 import { NOCHE } from './data/noche.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
 import * as menus from './render/menus.js';
-import { drawMapaIslas } from './render/islas_mapa.js';
+import { drawMapaIslas, marco as marcoMapa } from './render/islas_mapa.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
 import { setNiebla, luzDelCielo } from './render/borde.js';
@@ -2303,6 +2303,55 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       mapaCur = { u: Math.max(0, Math.min(1, mapaCur.u + du)), v: Math.max(0, Math.min(1, mapaCur.v + dv)) };
       beep(520, 0.03, 'square', 0.02);
     }
+    /** El cursor del mapa en (u, v) (el mouse); fuera del mapa, no se toca. */
+    function mapaPoner(u, v) {
+      if (u < 0 || u > 1 || v < 0 || v > 1) return false;
+      mapaCur = { u, v };
+      return true;
+    }
+    /** Pixel de pantalla (el del puntero, en la grilla del canvas) → (u, v) del mapa, o null. */
+    function mapaUVde(px, py) {
+      const d = islas.mapaDatos(null);
+      if (!d || !d.img) return null;
+      const m = marcoMapa(d.img);
+      return { u: (px - m.x) / m.w, v: (py - m.y) / m.h };   // (el puntero ya viene en la grilla de 480, la del mapa)
+    }
+    /** Q/E · L1/R1: salta al punto siguiente (lugar, base, buque, objetivo), de oeste a este. */
+    function mapaPunto(dir) {
+      const d = islas.mapaDatos(mapaCur);
+      if (!d || !d.puntos.length) return;
+      const L = d.puntos, c = mapaCur || d.avion;
+      let i = d.cursor && d.cursor.punto ? L.findIndex(q => q.n === d.cursor.punto.n && q.u === d.cursor.punto.u) : -1;
+      if (i >= 0) i += dir;
+      else { const j = L.findIndex(q => q.u > c.u); i = dir > 0 ? (j < 0 ? 0 : j) : (j < 0 ? L.length - 1 : j - 1); }
+      i = (i % L.length + L.length) % L.length;
+      mapaCur = { u: L[i].u, v: L[i].v };
+      beep(560, 0.03, 'square', 0.02);
+    }
+    /** MARCAR EL OBJETIVO donde esta el cursor (pegado al punto, si hay uno cerca): la brujula y la marca del
+     *  pasillo lo señalan y se sigue volando. Sobre la marca que ya estaba, la borra. */
+    function mapaMarcar() {
+      if (!mapaCur) { beep(160, 0.06, 'square', 0.04); return; }
+      const d = islas.mapaDatos(mapaCur), c = d && d.cursor;
+      if (!c) return;
+      if (d.marca && Math.hypot(d.marca.u - mapaCur.u, d.marca.v - mapaCur.v) < 0.006) { mapaBorrar(); return; }
+      const p = c.punto, n = p ? p.n : c.lat + ' ' + c.lon;
+      islas.marcar(p ? p.u : mapaCur.u, p ? p.v : mapaCur.v, p ? p.n : T('mapaMarcaPunto'));
+      mapaCur = null; pauseView = 'menu'; pauseToggle();
+      cartel(T('islasMarcado'), P.accent, n);
+      beep(760, 0.08, 'square', 0.05);
+    }
+    function mapaBorrar() {
+      islas.desmarcar();
+      cartel(T('islasMarcaBorrada'), P.dim);
+      beep(400, 0.06, 'square', 0.05);
+    }
+    /** IR AHI (I / △ / click derecho): el avion salta al cursor, como antes hacia ENTER. */
+    function mapaSaltar() {
+      if (!mapaCur) { beep(160, 0.06, 'square', 0.04); return; }
+      islas.mapaIr(mapaCur.u, mapaCur.v); mapaCur = null; pauseView = 'menu'; pauseToggle();
+      beep(600, 0.06, 'square', 0.05);
+    }
     function pauseNav(dir) {
       if (pauseView === 'mapa') { mapaMover(0, dir * MAPA_PASO); return; }
       if (pauseView === 'menu') { const n = pauseRows().length; pauseSel = (pauseSel + dir + n) % n; }
@@ -2336,7 +2385,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (pauseView === 'controls' || pauseView === 'cartas') { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
       if (pauseView === 'save') { doSave(); return; }
       // ENTER en el mapa: si hay cursor, el avion va ahi y se sigue volando
-      if (pauseView === 'mapa') { if (mapaCur) { islas.mapaIr(mapaCur.u, mapaCur.v); mapaCur = null; pauseView = 'menu'; pauseToggle(); } beep(600, 0.06, 'square', 0.05); return; }
+      // ENTER en el mapa: MARCA EL OBJETIVO ahi (19/11; el salto paso a I / △ / click derecho)
+      if (pauseView === 'mapa') { mapaMarcar(); return; }
       const r = pauseRows()[pauseSel];
       if (r.id === 'resume') pauseToggle();
       else if (r.id === 'controls') { pauseView = 'controls'; beep(600, 0.06, 'square', 0.05); }
@@ -4061,6 +4111,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       pauseNav: dir => pauseNav(dir),
       pauseLado: dir => pauseLado(dir),
       pauseConfirm: () => pauseConfirm(),
+      // EL MAPA DE LAS ISLAS con mouse y mando (19/11): mover el cursor, saltar de punto, marcar, borrar, ir
+      mapaAbierto: () => paused && pauseView === 'mapa',
+      mapaStick: (dx, dy) => { if (!mapaCur) mapaMover(0, 0); mapaCur = { u: Math.max(0, Math.min(1, mapaCur.u + dx)), v: Math.max(0, Math.min(1, mapaCur.v + dy)) }; },
+      mapaPunto: dir => mapaPunto(dir),
+      mapaBorrar: () => mapaBorrar(),
+      mapaSaltar: () => mapaSaltar(),
+      mapaClick: (x, y, boton) => { const q = mapaUVde(x, y); if (!q || !mapaPoner(q.u, q.v)) return; if (boton === 2) mapaSaltar(); else mapaMarcar(); },
+      mapaHover: (x, y) => { const q = mapaUVde(x, y); if (q) mapaPoner(q.u, q.v); },
       pauseBack: () => pauseBack(),
       // submenu de HISTORIA y lista de partidas guardadas
       campNav: dir => campNav(dir),
@@ -4615,9 +4673,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  el piloto vuelve: lo deciden los km a la costa propia o a la Gran Malvina. Mas lejos, el
      *  agua del Atlantico Sur a 2-5 °C. Sin ruta se mide contra la fraccion del camino a casa. */
     const sinMuerteAhora = () => (gameMode === 'campaign' || gameMode === 'cycle') && !!curMission() && !!curMission().sinMuerte;
-    function eyectar() {
+    function eyectar(enTierra) {
       let rescate;
-      if (rutaSys.hay()) {
+      if (islas.enPasillo()) rescate = !!enTierra;   // (LAS ISLAS: sobre tierra caes entre los tuyos; en el agua, no)
+      else if (rutaSys.hay()) {
         const d = rutaSys.dato(), pos = rutaSys.pos();
         const aCosta = pos <= d.blancoKm ? pos : 2 * d.blancoKm - pos;   // ida: lo volado; vuelta: lo que falta
         const aIsla = Math.abs(pos - d.blancoKm);
@@ -4637,12 +4696,20 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: 6, ph: 0, parte: null,
         arg: true,   // el piloto ARGENTINO: la fila 0 de la hoja de la eyeccion (render/world.js)
       });
-      die(rescate ? 'death_eyecto_rescate' : 'death_eyecto_mar');
+      die(islas.enPasillo() && rescate ? 'death_eyecto_tierra' : rescate ? 'death_eyecto_rescate' : 'death_eyecto_mar');
     }
     /** SIN COMBUSTIBLE (25/9: "si alguno del escuadron queda sin nafta dice 'debo volver, me quede
      *  sin nafta'; si es el ultimo, eyecta"). El que se seca no sigue: si queda escuadron vuelve
      *  a casa con la reserva y el compañero asume con lo que ahorro atras (naftaCompanero); si
      *  era el ultimo, eyeccion. No hay decision del jugador. */
+    /** LAS ISLAS SIN NAFTA: el aviso y la eyeccion a pedido. Devuelve true si eyecto (la corrida termino). */
+    function islasSeco() {
+      cartelSostenido('islasSeco', true, T('islasSinNafta'), P.warn, { alerta: true }, T('islasEyectate'));
+      if (!((inp.rollL && inp.rollR) || flags.padEyect)) return false;
+      cartelSostenido('islasSeco', false);
+      eyectar(islas.sobreTierra());
+      return true;
+    }
     function sinCombustible() {
       // la mision que no deja caer el avion (M1) lo cobra como un golpe y le devuelve tanque: si no,
       // el cero se cobraria cuadro tras cuadro
@@ -6557,7 +6624,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LAS ISLAS: la base cayo y paso el festejo → la mision termina y se vuelve a PRUEBAS
       if (islas.misionCumplida()) { freezeRun(); engineOff(); salirTest(); return; }
       // SECO (V6, rehecho 25/9): relevo con "me quede sin combustible", o eyeccion si era el ultimo
-      if (cfg.fuelOn && run.fuel <= 0) { sinCombustible(); return; }
+      // LAS ISLAS (19/11, el autor: "se quedo sin nafta y exploto… debe caer y estrellarse y quiza yo como jugador
+      // puedo eyectarlo para salvarlo"): sin relevo ni estallido — el motor se apaga, el gas no sube y el avion
+      // planea hasta el suelo (o el agua: islas.js lo cobra como choque). Mientras cae, Q+E / L1+R1 eyecta.
+      if (cfg.fuelOn && run.fuel <= 0 && islas.enPasillo()) { if (islasSeco()) return; }
+      else if (cfg.fuelOn && run.fuel <= 0) { sinCombustible(); return; }
+      else cartelSostenido('islasSeco', false);
       // LLEGASTE A CASA (PLAN_MISION_CINCO_FASES §11): la VUELTA se termino. En una mision sin
       // fases esto es siempre falso y el pasillo cierra donde cerro siempre — en el objetivo.
       // (…no durante el ESCAPE ni su viraje: ahi el final es VOLVISTE A SALVO, no la pista — 8/10)
@@ -7372,7 +7444,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
               ctx.fillRect(sx < 0 ? ex : ex - 3, ey, 4, 1); ctx.fillRect(ex, sy < 0 ? ey : ey - 2, 1, 3);
             }
             ctx.font = '5px monospace'; ctx.textAlign = 'center';
-            ctx.fillText(T('islasObjetivoCorto') + ' ' + (ob.dist / 1000).toFixed(1) + ' km', Math.round(q.x), Math.round(q.y + k * 0.7 + 7));
+            ctx.fillText(ob.n + ' ' + (ob.dist / 1000).toFixed(1) + ' km', Math.round(q.x), Math.round(q.y + k * 0.7 + 7));
             ctx.textAlign = 'left';
           }
         }
@@ -7609,7 +7681,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // una mision donde no se puede morir tiene UNA vida, aunque despegue el escuadron entero
         unaVida: !!((gameMode === 'campaign' || gameMode === 'cycle') && curMission() && curMission().sinMuerte),
         // ¿la Chancha existe en esta mision? La misma regla que el gate de `pedir` (ver `viva`)
-        chanchaViva: chanchaViva(),
+        chanchaViva: islas.enPasillo() || chanchaViva(),   // (LAS ISLAS: siempre se pide, como en `pedirChancha`)
+        // LAS ISLAS: el reloj de la Chancha mide la espera entre pedidos (render/hud.js)
+        chIslas: islas.enPasillo() ? Math.max(0, Math.min(1, (run.t - (islasChanchaT > run.t ? -1e9 : islasChanchaT)) / ISLAS_CHANCHA_CADA)) : null,
+        chIslasS: islas.enPasillo() ? Math.max(0, Math.ceil(islasChanchaT + ISLAS_CHANCHA_CADA - run.t)) : 0,
         // LA VUELTA, para la barra de objetivo: cuanto llevas hecho del regreso y cuanto mide. Va
         // por snapshot, como el resto — el HUD no pregunta, recibe.
         // (EN EL ESCAPE todavia no: la cinta se queda sobre el buque hasta el viraje)

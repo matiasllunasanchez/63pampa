@@ -200,6 +200,16 @@ export function initInput(cv, a) {
     // PAUSA: mientras esta abierta se come TODO el teclado (navegar/confirmar/volver) — asi las
     // flechas no alimentan el vuelo ni el detector de combos con el juego congelado.
     if (a.isPaused()) {
+      // EL MAPA DE LAS ISLAS: las flechas se SOSTIENEN (el cursor corre), Q/E saltan de punto, I va ahi, SUPR borra
+      if (a.mapaAbierto && a.mapaAbierto()) {
+        if (e.code === 'KeyQ' || e.code === 'KeyE') { if (!e.repeat) a.mapaPunto(e.code === 'KeyQ' ? -1 : 1); e.preventDefault(); return; }
+        if (e.code === 'KeyI') { if (!e.repeat) a.mapaSaltar(); e.preventDefault(); return; }
+        if (e.code === 'Delete') { if (!e.repeat) a.mapaBorrar(); e.preventDefault(); return; }
+        if (e.repeat && (isUp(e.code) || isDown(e.code) || isLeft(e.code) || isRight(e.code))) {
+          if (isUp(e.code)) a.pauseNav(-1); else if (isDown(e.code)) a.pauseNav(1); else if (isLeft(e.code)) a.pauseLado(-1); else a.pauseLado(1);
+          e.preventDefault(); return;
+        }
+      }
       if (e.repeat) { e.preventDefault(); return; }
       if (isUp(e.code)) a.pauseNav(-1);
       else if (isDown(e.code)) a.pauseNav(1);
@@ -468,6 +478,8 @@ export function initInput(cv, a) {
     e.preventDefault(); cv.focus(); audio(); flags.anyPress = true;
     const p = canvasPos(e);
     if (S.state === 'title') { a.startTitle(); return; }                 // PORTADA: cualquier tap
+    // EL MAPA DE LAS ISLAS (pausa): click izquierdo = marcar el objetivo; derecho = ir ahi
+    if (a.mapaAbierto && a.mapaAbierto()) { a.mapaClick(p.x, p.y, e.button); return; }
     // se pasa la Y CRUDA: la fila la resuelve game.js con la geometria real del menu
     if (S.state === 'modeselect') { a.modeSelect(p.y); return; }
     if (S.state === 'menu') {
@@ -501,6 +513,7 @@ export function initInput(cv, a) {
     if (e.pointerType === 'mouse') {
       const p = canvasPos(e);
       puntero.x = p.x; puntero.y = p.y; puntero.t = performance.now();
+      if (a.mapaAbierto && a.mapaAbierto()) a.mapaHover(p.x, p.y);
       if (mouse.on || Math.hypot(p.x - mouse.x, p.y - mouse.y) >= MIRA_SUELTA) {
         mouse.x = p.x; mouse.y = p.y; mouse.on = true;
         miraActiva();
@@ -692,6 +705,29 @@ export function initInput(cv, a) {
     }
     if (inGame && a.isPaused()) {
       for (const f of ['l', 'r', 'u', 'd', 'fire', 'turbo', 'msl', 'brake', 'rollAx', 'camAx', 'apunta']) setPad(f, 0);
+      // EL MAPA DE LAS ISLAS con el mando: el stick mueve el cursor de corrido (la cruceta, de a paso), ✕ marca,
+      // △ va ahi, ▢ borra la marca, L1/R1 saltan de punto
+      if (a.mapaAbierto && a.mapaAbierto()) {
+        const sx = ax(0), sy = ax(1), z = 0.18, vel = 0.35 / 60;
+        const fx = Math.abs(sx) > z ? sx * Math.abs(sx) : 0, fy = Math.abs(sy) > z ? sy * Math.abs(sy) : 0;
+        if (fx || fy) a.mapaStick(fx * vel * 0.6, fy * vel);
+        const nu = down(12), nd = down(13), nl = down(14), nr = down(15);
+        if (nu && !nav.u) a.pauseNav(-1);
+        if (nd && !nav.d) a.pauseNav(1);
+        if (nl && !nav.l) a.pauseLado(-1);
+        if (nr && !nav.r) a.pauseLado(1);
+        if (hit(0)) a.pauseConfirm();
+        if (hit(1)) a.pauseBack();
+        if (hit(2)) a.mapaBorrar();
+        if (hit(3)) a.mapaSaltar();
+        if (hit(4)) a.mapaPunto(-1);
+        if (hit(5)) a.mapaPunto(1);
+        if (hit(9)) a.pauseToggle();
+        nav.u = nu; nav.d = nd; nav.l = nl; nav.r = nr;
+        btnPrev = pressed;
+        requestAnimationFrame(pollGamepad);
+        return;
+      }
       const nu = down(12) || ax(1) < -0.5, nd = down(13) || ax(1) > 0.5;
       const nl = down(14) || ax(0) < -0.5, nr = down(15) || ax(0) > 0.5;
       if (nu && !nav.u) a.pauseNav(-1);
@@ -798,6 +834,7 @@ export function initInput(cv, a) {
       // la bomba de siempre.
       // (□ ya no repite a L1: en el pasillo es el radar, en el aterrizaje el tren; en el Pulso sigue rematando)
       const l1 = down(4);
+      flags.padEyect = l1 && down(5);   // L1+R1 juntos = EYECCION (LAS ISLAS sin nafta: game.js `islasSeco`)
       if (l1 && !padHeld.l1) padSec = S.state === 'play' ? a.secundaria() : 'bomba';
       setPad('msl', (l1 && padSec === 'bomba') || (r3 && !miraStick));
       setPad('tanq', l1 && padSec === 'tanque');

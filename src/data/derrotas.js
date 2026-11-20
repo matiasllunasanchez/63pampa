@@ -36,6 +36,7 @@ export const DERROTAS = {
   death_aden: { que: 'que_aden', hist: 'hist_caza' },
   death_fuel: NAFTA, death_seco: NAFTA,
   death_eyecto_rescate: { que: null, hist: 'hist_eyeccion' },
+  death_eyecto_tierra: { que: null, hist: 'hist_eyeccion' },
   death_eyecto_mar: { que: null, hist: 'hist_eyeccion' },
   death_pulso: { que: 'que_pulso', hist: 'hist_bomba' },
   death_exocet_errado: { que: 'que_exocet_errado', hist: 'hist_exocet' },
