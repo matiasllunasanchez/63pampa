@@ -157,6 +157,7 @@ import { NOCHE } from './data/noche.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
 import * as menus from './render/menus.js';
 import { drawMapaIslas, marco as marcoMapa } from './render/islas_mapa.js';
+import { drawRedIslas } from './render/islas_radar.js';
 import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
 import { setNiebla, luzDelCielo } from './render/borde.js';
@@ -3897,6 +3898,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       charla.resetCharla(); charlaFin = false;   // ni la charla a medio decir de la corrida anterior
       estrellas.resetEstrellas();   // ni las estrellas de la corrida anterior: te buscan por lo que hiciste EN ESTA
       persec.resetPersec();   // PERSECUCION: idem con el lider
+      if (cabinaVuelve) { cabinaVuelve = false; if (islas.enPasillo()) islas.vistaCabina(); else cabina.on = true; }   // (la cabina que se dejo al morir)
       caida = null; derribo = null;   // LA CAIDA EN LLAMAS (y el avion perdido) del derribo anterior
       // …y en el MODO PERSECUCION se arma de entrada, con el roster de la corrida como pool de
       // lideres. No es una mecanica que aparece: es de lo que se trata la partida.
@@ -5229,6 +5231,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // vista, rolando y en llamas, y revienta recien al tocar el agua o el suelo (crashFX). `deathT` se
     // queda en cero mientras cae: el fundido y la pantalla de fin cuentan desde el impacto.
     let caida = null;      // { t, vy, roll, dir } mientras el avion cae en llamas
+    let cabinaVuelve = false;   // se murio en la cabina: la camara salio a la de atras y vuelve en la proxima corrida
     // EL AVION QUE SE PIERDE AL AZAR (16/10), fuera de la campaña: lo que no es choque (misil, fuego) y
     // todavia esta en el aire. El objeto vive en el mundo (core/fx.js `derribar`); `derribo` es el del
     // ultimo avion, para que el fundido espere a que termine de caer.
@@ -5307,6 +5310,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LAS ISLAS: la explosion en 3D (systems/islas/estallido3d.js), que se ve en TODAS las camaras —desde arriba
       // las del pasillo no existian—. En el prototipo revienta con cualquier causa (19/11, el autor)
       islas.estallarAvion(tipoDerribo(cause) === 'misil');
+      // MORIR EN LA CABINA (20/11, el autor: "camara afuera a 3ra persona y explosion"): la camara sale a la de
+      // atras para ver estallar el avion, y vuelve a la cabina en la corrida siguiente. No al errar la bomba, ni
+      // al eyectarte o quedarte seco (ahi el avion no estalla).
+      if (cabina.on && !erroSuelta(cause) && !/eyecto|seco|fuel/.test(cause)) {
+        cabinaVuelve = true;
+        if (islas.enPasillo()) islas.vistaAtras(); else cabina.on = false;
+      }
       // EN CAMPAÑA, UN CHOQUE NO ES UN AVERIADO (8/10, el autor: "si un avion CHOCA fisicamente un
       // objeto, no puede detenerse ahi la camara y que el avion salga averiado — tiene que EXPLOTAR, y
       // si explota se pierde la mision"). Contra el agua, la tierra, un objeto o los palos del buque, el
@@ -7025,6 +7035,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 
       // LAS ISLAS TODAVIA CARGANDO (la primera vez, medio segundo): negro, nunca el pasillo 2D de fondo
       if (islas.enPasillo() && !arena3D.isOn()) { ctx.fillStyle = '#000'; ctx.fillRect(-300, -300, W + 600, H + 600); }
+      // LAS ISLAS: la red del radar de la zona en la que estas, radial desde su centro (render/islas_radar.js), sobre
+      // el mundo 3D y debajo de lo que vuela —como la red del pasillo, que va sobre el mar—
+      if (islas.enPasillo() && arena3D.isOn()) drawRedIslas(islas.redRadar(run.t));
       if (!world3D.isOn() && !arena3D.isOn() && !islas.enPasillo()) {   // ---- mundo 2D: en el climax 3D lo reemplaza el blit de arriba ----
       // cielo y sol 2D: en mar-abierto-3D los pone three (nubes/islas siguen 2D encima)
       // EL FONDO GIRA CON EL RUMBO (zigzag Z2). Es lo mas barato del item y lo que mas vende que

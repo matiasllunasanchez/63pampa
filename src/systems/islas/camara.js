@@ -26,11 +26,21 @@ export function pesoCabina() {
   return (C.previa === CABINA ? 1 : 0) * (1 - s) + (C.vista === CABINA ? 1 : 0) * s;
 }
 export const mezclaLista = () => C.mezcla >= 0.99;
-/** Ciclo de Dusk Patrol: arriba → atras → cabina → arriba. */
-export function siguiente() { C.previa = C.vista; C.vista = (C.vista + 1) % 3; C.mezcla = 0; return C.vista; }
+/** Ciclo de Dusk Patrol: arriba → atras → cabina → arriba.
+ *  …DESDE ARRIBA, OCULTA (20/11, el autor: "esta vista en tercera desde arriba podemos ocultarla y mejorarla a
+ *  futuro y concentrarnos solo en 3ra desde atras o 1ra desde cabina"): el ciclo es atras ⇄ cabina. Sigue
+ *  existiendo para la sonda (`__malvinas({ vista: 0 })`); `CON_ARRIBA` la vuelve al ciclo. */
+const CON_ARRIBA = false;
+export function siguiente() {
+  C.previa = C.vista;
+  C.vista = CON_ARRIBA ? (C.vista + 1) % 3 : C.vista === CABINA ? ATRAS : CABINA;
+  C.mezcla = 0; return C.vista;
+}
 export function reiniciar() { C.iniciada = false; }
 /** Pone una vista de una (sin viaje): la sonda __malvinas({ vista }). */
 export function poner(v) { C.vista = C.previa = v; C.mezcla = 1; }
+/** Va a la vista `v` con el viaje de siempre (~1 s). */
+export function ir(v) { if (C.vista === v) return; C.previa = C.vista; C.vista = v; C.mezcla = 0; }
 
 const norm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
 const cruz = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];

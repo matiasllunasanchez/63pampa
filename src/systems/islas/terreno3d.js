@@ -181,6 +181,35 @@ vec3 shadeLand(vec3 p, float t, float b){
   float snow = smoothstep(390.0, 470.0, h + (nz-0.5)*120.0 + (nz2-0.5)*40.0) * (1.0 - smoothstep(0.42, 0.6, slope));
   snow = max(snow, smoothstep(0.72, 0.8, vnoise(p.xz/160.0) + (nz-0.5)*0.2) * smoothstep(250.0, 360.0, h) * (1.0 - smoothstep(0.2, 0.35, slope)));
   alb = mix(alb, vec3(0.88,0.89,0.91), snow);
+  // LA VEGETACION DE CERCA (20/11, el autor: "agregar terreno, vegetacion y demas cuando estoy cerca, como el
+  // agua, a un cierto radio del avion, y que de lejos sea textura pintada nomas"): matas de pasto blanco y de
+  // brezo, el tussac verde oscuro y mas grande cerca de la costa, piedras sueltas y el grano del suelo. Fijas al
+  // MAPA (pasan rapido bajo el avion: cuentan la velocidad, como la espuma del agua) y solo cerca del ojo.
+  float cerca = 1.0 - smoothstep(110.0, 280.0, t);
+  if (cerca > 0.0) {
+    float tussac = smoothstep(28.0, 6.0, h) * (1.0 - sand);
+    vec2 gq = p.xz/mix(2.4, 3.6, tussac), gi = floor(gq), gf = fract(gq) - 0.5;
+    vec2 off = vec2(hash12(gi + 17.0), hash12(gi + 31.0)) - 0.5;
+    float rad = mix(0.16, 0.40, hash12(gi + 5.0)) + tussac*0.08;
+    vec2 dq = gf - off*0.45;
+    float hay = step(mix(0.42, 0.18, tussac), hash12(gi)) * (1.0 - rock) * (1.0 - snow) * (1.0 - sand*0.9);
+    float mata = step(length(dq), rad) * hay;
+    vec3 cMata = mix(vec3(0.56,0.56,0.43), vec3(0.80,0.76,0.60), hash12(gi + 9.0));      // pasto blanco
+    cMata = mix(cMata, vec3(0.30,0.25,0.23), heath);                                      // brezo (diddle-dee)
+    cMata = mix(cMata, vec3(0.30,0.37,0.24), tussac);                                     // tussac
+    // la mata tiene su lado a la sombra (el del sol de costado) y su sombra en el suelo
+    float lado = step(0.0, dot(dq, -normalize(uSun.xz)));
+    cMata *= mix(1.0, 0.72, lado);
+    float sombra = step(length(dq - normalize(uSun.xz)*rad*0.6), rad) * hay * (1.0 - mata);
+    alb = mix(alb, cMata, mata*cerca*0.9);
+    alb *= 1.0 - sombra*cerca*0.22;
+    // PIEDRAS sueltas
+    vec2 si = floor(p.xz/1.6);
+    float piedra = step(0.986 - run*0.04 - rock*0.03, hash12(si + 3.0)) * (1.0 - snow) * step(length(fract(p.xz/1.6) - 0.5), 0.32);
+    alb = mix(alb, mix(vec3(0.66,0.66,0.64), vec3(0.47,0.48,0.50), hash12(si + 8.0)), piedra*cerca);
+    // el GRANO del suelo
+    alb *= 1.0 + (hash12(floor(p.xz/0.7)) - 0.5)*0.18*cerca;
+  }
   // overcast light: mostly from the sky dome, a weak directional part, soft baked shadows
   float dif = clamp(dot(n, uSun)*1.3 + 0.4, 0.0, 1.0);
   float L = (0.5*dif + 0.5*n.y) * mix(0.6, 1.0, hs.a) * cloudSh(p) * jetSh(p);

@@ -113,37 +113,83 @@ def tecla(raiz, m, x, y, z):
     tubo('palanquita', raiz, m['metal'], [(x, y, z + 0.003), (x, y + 0.016, z + 0.012)], 0.0028)
 
 # LAS MANOS (el autor, 15/10): guantes de cuero marron sobre la palanca y el acelerador, con la manga
-# del mameluco verde oliva que se va hacia el piloto. Puño cerrado: la palma, cuatro dedos que abrazan
-# la empuñadura por delante y el pulgar arriba.
-GUANTE, GUANTE_SOMBRA, MANGA, PUÑO = '#5a4331', '#47352a', '#5d6040', '#3e3f2b'
+# del mameluco verde oliva que se va hacia el piloto.
+# …MAS REALES (20/11, el autor: "mejorar mucho mas las manos del piloto, mas reales, asi como los brazos"):
+# cada dedo son TRES FALANGES que abrazan la empuñadura en arco (con los nudillos marcados y las yemas), el
+# pulgar dos, la palma y el dorso con su volumen, el puño del guante acampanado con la correa, y el antebrazo
+# con la manga: pliegues, el puño elastico y un parche.
+GUANTE, GUANTE_SOMBRA, GUANTE_LUZ, MANGA, MANGA_SOMBRA, PUÑO = '#5a4331', '#47352a', '#6e543f', '#5d6040', '#4a4c33', '#3e3f2b'
+from mathutils import Vector as _V
 
-def mano(raiz, mg, palma, dedos_c, dedos_eje, pulgar, muñeca, codo):
-    elipsoide('palma', palma[0], palma[1], raiz, mg['guante'], seg=12, anillos=8)
-    for i in range(4):
-        c = tuple(dedos_c[k] + dedos_eje[k] * (i - 1.5) for k in range(3))
-        elipsoide('dedo', c, (0.016, 0.014, 0.017), raiz, mg['guante'] if i % 2 == 0 else mg['sombra'], seg=8, anillos=6)
-    elipsoide('pulgar', pulgar[0], pulgar[1], raiz, mg['guante'], seg=8, anillos=6)
-    hueso('puño_guante', raiz, mg['puño'], muñeca, tuple(muñeca[k] + (codo[k] - muñeca[k]) * 0.12 for k in range(3)), 0.034, 0.036, seg=10)
-    hueso('manga', raiz, mg['manga'], tuple(muñeca[k] + (codo[k] - muñeca[k]) * 0.1 for k in range(3)), codo, 0.040, 0.055, seg=10)
+def _mezcla(a, b, t): return tuple(a[k] + (b[k] - a[k]) * t for k in range(3))
+
+def dedo(raiz, mg, c, ea, e1, e2, s, desde, hasta, R, r0, largo_k=1.0, n=3):
+    """Un dedo que abraza un eje: `c` el centro de la empuñadura, `ea` su eje (los dedos se apilan sobre el),
+    `e1`/`e2` el plano del abrazo (0° = del lado de la palma, 90° = por delante), `s` donde cae sobre el eje.
+    `n` falanges de `desde` a `hasta` (grados), cada una mas fina; una esfera en cada nudillo."""
+    pts = []
+    for i in range(n + 1):
+        t = math.radians(desde + (hasta - desde) * (i / n) * largo_k)
+        pts.append(tuple(c[k] + ea[k] * s + (math.cos(t) * e1[k] + math.sin(t) * e2[k]) * R for k in range(3)))
+    for i in range(n):
+        ra, rb = r0 * (1 - 0.12 * i), r0 * (1 - 0.12 * (i + 1))
+        hueso('falange', raiz, mg['guante'] if i else mg['luz'], pts[i], pts[i + 1], ra, rb, seg=10)
+        elipsoide('nudillo', pts[i], (ra * 1.08,) * 3, raiz, mg['luz'] if i == 0 else mg['guante'], seg=10, anillos=6)
+    elipsoide('yema', pts[-1], (r0 * 0.78,) * 3, raiz, mg['sombra'], seg=10, anillos=6)
+    return pts
+
+def brazo(raiz, mg, muñeca, codo, r_m=0.033, r_c=0.052):
+    """El puño del guante (acampanado, con su correa) y el antebrazo con la manga, sus pliegues y el puño elastico."""
+    a = _mezcla(muñeca, codo, 0.14)
+    hueso('guantelete', raiz, mg['guante'], muñeca, a, r_m, r_m * 1.32, seg=14)
+    hueso('correa', raiz, mg['sombra'], _mezcla(muñeca, codo, 0.05), _mezcla(muñeca, codo, 0.08), r_m * 1.13, r_m * 1.17, seg=14)
+    b = _mezcla(muñeca, codo, 0.17)
+    hueso('elastico', raiz, mg['puño'], a, b, r_m * 1.36, r_m * 1.42, seg=14)
+    hueso('manga', raiz, mg['manga'], b, codo, r_m * 1.42, r_c, seg=14)
+    # los pliegues de la tela: anillos un poco mas gruesos, mas juntos cerca de la muñeca
+    for t in (0.22, 0.29, 0.38, 0.50, 0.64):
+        p0, p1 = _mezcla(muñeca, codo, t), _mezcla(muñeca, codo, t + 0.025)
+        r = r_m * 1.42 + (r_c - r_m * 1.42) * t
+        hueso('pliegue', raiz, mg['manga_s'], p0, p1, r * 1.06, r * 1.04, seg=14)
+    # el parche del brazo (la bandera de la manga), del lado de afuera
+    p = _mezcla(muñeca, codo, 0.56)
+    elipsoide('parche', (p[0] + 0.0, p[1] + 0.045, p[2]), (0.018, 0.006, 0.022), raiz, mg['puño'], seg=10, anillos=6)
 
 def manos(raiz, K, lado):
-    mg = {n: K['mat_cel']('mano_' + n, c) for n, c in (('guante', GUANTE), ('sombra', GUANTE_SOMBRA), ('manga', MANGA), ('puño', PUÑO))}
+    mg = {n: K['mat_cel']('mano_' + n, c) for n, c in (('guante', GUANTE), ('sombra', GUANTE_SOMBRA), ('luz', GUANTE_LUZ),
+                                                       ('manga', MANGA), ('manga_s', MANGA_SOMBRA), ('puño', PUÑO))}
     if lado == 'der': mano_der(raiz, mg)
     else: mano_izq(raiz, mg)
 
 def mano_der(raiz, mg):
-    # LA DERECHA en la palanca (empuñadura en (0, -0.40, -0.40)): dedos por delante, pulgar arriba
-    mano(raiz, mg, ((0.018, -0.41, -0.383), (0.040, 0.050, 0.035)),
-         (0.0, -0.407, -0.427), (0.0, -0.018, 0.0),
-         ((-0.006, -0.353, -0.40), (0.014, 0.022, 0.016)),
-         (0.034, -0.435, -0.355), (0.16, -0.70, 0.0))
+    # LA DERECHA en la palanca (empuñadura en (0, -0.40, -0.40), su eje casi vertical). Como la ve el piloto,
+    # desde atras y arriba: el DORSO del lado de afuera (+x) mirando hacia atras, los dedos que salen de los
+    # nudillos por delante y vuelven por el lado de adentro (las yemas se ven a la izquierda), y el PULGAR que
+    # cruza por detras, arriba, sobre los dedos. La empuñadura casi no se ve: es una mano cerrada.
+    c, ea, e1, e2 = (0.0, -0.40, -0.40), (0.0, 1.0, 0.0), (1.0, 0.0, 0.0), (0.0, 0.0, -1.0)
+    for i, (sy, k) in enumerate(((0.026, 0.97), (0.006, 1.0), (-0.014, 0.97), (-0.032, 0.86))):
+        dedo(raiz, mg, c, ea, e1, e2, sy - 0.006, -35, 235, 0.033, 0.0108 - 0.0008 * i, largo_k=k, n=4)
+    # el DORSO (afuera y atras) y la base de la palma (la eminencia del pulgar) detras de la empuñadura
+    elipsoide('dorso', (0.036, -0.402, -0.388), (0.024, 0.050, 0.034), raiz, mg['luz'], seg=18, anillos=12)
+    elipsoide('palma', (0.016, -0.415, -0.370), (0.026, 0.038, 0.016), raiz, mg['guante'], seg=18, anillos=12)
+    # el PULGAR, por detras y arriba, de derecha a izquierda
+    p0, p1, p2 = (0.030, -0.372, -0.374), (0.008, -0.362, -0.369), (-0.016, -0.360, -0.374)
+    hueso('pulgar', raiz, mg['guante'], p0, p1, 0.0125, 0.011, seg=10); elipsoide('nud_p', p1, (0.0118,) * 3, raiz, mg['luz'], seg=10, anillos=6)
+    hueso('pulgar2', raiz, mg['guante'], p1, p2, 0.011, 0.0095, seg=10); elipsoide('yema_p', p2, (0.009,) * 3, raiz, mg['sombra'], seg=10, anillos=6)
+    brazo(raiz, mg, (0.048, -0.440, -0.362), (0.20, -0.72, 0.02))
 
 def mano_izq(raiz, mg):
-    # LA IZQUIERDA en el acelerador (mango en (-0.34, -0.235, -0.335)): palma arriba, dedos por delante
-    mano(raiz, mg, ((-0.34, -0.208, -0.322), (0.046, 0.030, 0.042)),
-         (-0.34, -0.236, -0.362), (0.018, 0.0, 0.0),
-         ((-0.300, -0.214, -0.330), (0.016, 0.014, 0.022)),
-         (-0.345, -0.225, -0.280), (-0.30, -0.45, 0.02))
+    # LA IZQUIERDA en el acelerador (mango en (-0.34, -0.235, -0.335), ancho en x): la palma apoyada arriba, los
+    # dedos por delante y abajo; el pulgar del lado de adentro (hacia el centro de la cabina).
+    c, ea, e1, e2 = (-0.345, -0.235, -0.335), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, -1.0)
+    for i, (sx, k) in enumerate(((-0.026, 0.9), (-0.008, 1.0), (0.010, 1.03), (0.027, 0.95))):
+        dedo(raiz, mg, c, ea, e1, e2, sx, -25, 205, 0.029, 0.0102 - 0.0006 * i, largo_k=k, n=4)
+    elipsoide('palma', (-0.345, -0.207, -0.322), (0.044, 0.018, 0.038), raiz, mg['guante'], seg=16, anillos=10)
+    elipsoide('dorso', (-0.348, -0.199, -0.312), (0.038, 0.014, 0.032), raiz, mg['luz'], seg=16, anillos=10)
+    p0, p1, p2 = (-0.312, -0.212, -0.318), (-0.298, -0.222, -0.338), (-0.296, -0.230, -0.356)
+    hueso('pulgar', raiz, mg['guante'], p0, p1, 0.012, 0.0105, seg=10); elipsoide('nud_p', p1, (0.0112,) * 3, raiz, mg['luz'], seg=10, anillos=6)
+    hueso('pulgar2', raiz, mg['guante'], p1, p2, 0.0105, 0.0092, seg=10); elipsoide('yema_p', p2, (0.0085,) * 3, raiz, mg['sombra'], seg=10, anillos=6)
+    brazo(raiz, mg, (-0.352, -0.212, -0.282), (-0.30, -0.47, 0.03))
 
 G = {}                     # los grupos que se mueven: 'palanca' y 'acelerador'
 # LAS POSES (15/10, el autor: "que las manos se muevan con el joystick"): la palanca en 3x3 —izquierda,
@@ -160,7 +206,23 @@ def cabina(T, K):
     m['esfera'] = K['mat_emisivo']('esfera', ESFERA)
     # EL TABLERO: la chapa con el escalon de arriba (mas angosto, donde va la fila chica y el colimador)
     bloque('tablero', raiz, m['panel'], (0, -0.330, Z_TABLERO - 0.02), (0.62, 0.20, 0.04), bisel=0.012)
-    bloque('tablero_alto', raiz, m['panel'], (0, -0.175, Z_TABLERO - 0.02), (0.50, 0.11, 0.04), bisel=0.012)
+    # (20/11, el autor: "hay espacios vacios en los costados a nivel superior"): el escalon de arriba va de punta
+    # a punta del tablero —antes era mas angosto y dejaba ver el mamparo en las esquinas—, con un relojito y
+    # luces de aviso a cada lado; a la izquierda un panelito gemelo del estante, con dos relojes y llaves
+    bloque('tablero_alto', raiz, m['panel'], (0, -0.175, Z_TABLERO - 0.02), (0.66, 0.11, 0.04), bisel=0.012)
+    for sg in (-1, 1):
+        reloj_hundido(raiz, m, sg * 0.282, -0.200, 0.024, False)
+        for k in range(3):
+            cilindro_z('aviso', raiz, K['mat_emisivo']('aviso_%d' % k, ('#c9a23a', '#7d2a22', '#3f7d48')[k]),
+                       (sg * (0.262 + k * 0.02), -0.150, Z_TABLERO + 0.004), 0.006, 0.004, seg=8)
+    bloque('tablero_izq', raiz, m['panel'], (-0.352, -0.305, Z_TABLERO - 0.015), (0.10, 0.16, 0.04), bisel=0.012)
+    reloj_hundido(raiz, m, -0.352, -0.262, 0.030, False)
+    reloj_hundido(raiz, m, -0.352, -0.335, 0.030, False)
+    for k in range(3): tecla(raiz, m, -0.380 + k * 0.028, -0.375, Z_TABLERO + 0.004)
+    # LOS COSTADOS DE ARRIBA: una chapa entre la oreja de la visera y el zocalo del canopy, que cierra el hueco
+    for sg in (-1, 1):
+        bloque('cierre_alto', raiz, m['consola'], (sg * 0.405, -0.20, -0.47), (0.06, 0.16, 0.10), bisel=0.01)
+        cilindro_z('perilla_alta', raiz, m['metal'], (sg * 0.405, -0.225, -0.418), 0.009, 0.012, seg=8)
     bloque('tablero_lado', raiz, m['panel'], (0.352, -0.305, Z_TABLERO - 0.015), (0.10, 0.16, 0.04), bisel=0.012)
     bloque('tablero_bajo', raiz, m['panel'], (0, -0.475, Z_TABLERO + 0.01), (0.66, 0.09, 0.05), bisel=0.008)
     for n, (x, y, r) in RELOJES.items(): reloj_hundido(raiz, m, x, y, r, True)

@@ -10,13 +10,14 @@
 //
 // EL LUGAR MAS CERCANO aparece en pantalla al acercarse (orientacion sin flechas). Los nombres son los que
 // usa Dusk Patrol para 1982 y estan A VERIFICAR (ver LUGARES).
-import { popup, explodeAt, columnaBomba } from '../../core/fx.js';
+import { popup, explodeAt, columnaBomba, proj } from '../../core/fx.js';
 import { cartel, cartelSostenido } from '../../core/cartel.js';
 import { T } from '../../core/i18n.js';
 import * as objetivo from './objetivo.js';
 import * as teatro from './teatro.js';
 import * as caza from '../caza.js';
 import * as chancha from '../chancha.js';
+import { RADAR_BAJO } from '../../data/islas_teatro.js';
 import * as mapa from './mapa.js';
 import { P } from '../../data/palette.js';
 // la mitad de la grilla del juego (480 de ancho): systems no importa render (tools/lint_layers.js)
@@ -184,7 +185,7 @@ export function pasoPasillo(dt) {
     geoExterna.tierra = () => mundo.sueloH(P3.x, P3.z) > 0.3;
     // EL OBJETIVO (systems/islas/objetivo.js): la BASE COSTERA, en la tierra plana mas cercana. La brujula lo marca.
     if (objetivo.colocar(P3.x, P3.z)) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
-    P3.sostiene = SOSTIENE_T; plane.y = AIR_START_Y; P3.muerto = false;
+    P3.sostiene = SOSTIENE_T; plane.y = AIR_START_Y; P3.muerto = false; P3.altFija = null;
   }
   if (P3.sostiene > 0) {
     P3.sostiene = run.throttle > 0.3 ? 0 : P3.sostiene - dt;
@@ -429,6 +430,65 @@ export function chanchaEnMapa() {
   return { x: o.x, y: P3.g + c.y, z: o.z, yaw: P3.yaw };
 }
 
+/** LAS REDES DE RADAR, para radar3d.js: los radares, en cual zona estas, y la altura desde la que te ven. */
+export const radaresEscena = () => (enPasillo() && I.puesto ? { lista: teatro.radares(), zona: teatro.zona(), alt: RADAR_BAJO } : null);
+
+/** LA RED DEL RADAR EN LAS VISTAS DEL PASILLO (20/11, el autor: "igual que en pasillo, saliendo desde el centro
+ *  de donde este"): la del radar en cuya zona estas, radial —anillos alrededor del radar y rayos que salen de el—,
+ *  RADAR_BAJO metros sobre el relieve, con ondas que nacen en el centro. Solo cerca tuyo (se apaga a RED_LEJOS).
+ *  Devuelve los tramos YA PROYECTADOS (pixeles) con su alfa: los dibuja render/islas_radar.js. (Desde arriba la
+ *  dibuja radar3d.js: en estas vistas el mar del pasillo va encima del 3D.) */
+const RED_ANILLO = 400, RED_PASO = 120, RED_RAYOS = 96, RED_LEJOS = 4500, RED_CERCA = 1200, ONDA_V = 2500, ONDA_CADA = 5000;
+export function redRadar(t) {
+  if (!vistaPasillo() || !I.puesto) return null;
+  const z = teatro.zona();
+  const r = teatro.radares().find(q => q.n === z.gb || q.n === z.arg);
+  if (!r) return null;
+  const pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, sy = Math.sin(P3.yaw), cy = Math.cos(P3.yaw);
+  const out = [];
+  const pto = (x, zz) => {
+    const dx = x - P3.x, dz = zz - P3.z, d = sy * dx - cy * dz;
+    if (d < 4) return null;
+    const y = Math.max(mundo.sueloH(x, zz), 0) + RADAR_BAJO - P3.g;
+    const s = proj(plane.x + cy * dx + sy * dz, y, d + pz);
+    return { x: s.x, y: s.y, rc: Math.hypot(x - r.x, zz - r.z), dist: Math.hypot(dx, dz) };
+  };
+  const alfa = (q) => {
+    const lejos = 1 - Math.max(0, Math.min(1, (q.dist - RED_CERCA) / (RED_LEJOS - RED_CERCA)));
+    const dd = (((q.rc - t * ONDA_V) % ONDA_CADA) + ONDA_CADA) % ONDA_CADA;
+    const onda = Math.exp(-dd * dd / 90000) + Math.exp(-(ONDA_CADA - dd) * (ONDA_CADA - dd) / 90000);
+    const borde = q.rc > r.r - 400 ? 1 : 0;
+    return { a: lejos * Math.min(1, 0.55 + 0.9 * onda + 0.6 * borde), onda };
+  };
+  const tramo = (a, b) => { if (!a || !b) return; const k = alfa(a); if (k.a > 0.02) out.push(a.x, a.y, b.x, b.y, k.a, k.onda); };
+  const D = Math.hypot(P3.x - r.x, P3.z - r.z), th = Math.atan2(P3.z - r.z, P3.x - r.x);
+  // los ANILLOS cerca tuyo
+  for (let d = RED_ANILLO; d <= r.r; d += RED_ANILLO) {
+    if (Math.abs(d - D) > RED_LEJOS) continue;
+    const half = Math.min(Math.PI, RED_LEJOS / Math.max(d, 1) * 1.2), paso = RED_PASO / d;
+    let prev = null;
+    for (let a = th - half; a <= th + half; a += paso) {
+      const q = pto(r.x + Math.cos(a) * d, r.z + Math.sin(a) * d);
+      if (q && q.dist > RED_LEJOS) { prev = null; continue; }
+      tramo(prev, q); prev = q;
+    }
+  }
+  // los RAYOS que salen del centro
+  for (let k = 0; k < RED_RAYOS; k++) {
+    const a = k / RED_RAYOS * 2 * Math.PI, c = Math.cos(a), sn = Math.sin(a);
+    // (donde el rayo pasa mas cerca tuyo, y de ahi para los dos lados)
+    const along = (P3.x - r.x) * c + (P3.z - r.z) * sn, perp = Math.abs(-(P3.x - r.x) * sn + (P3.z - r.z) * c);
+    if (perp > RED_LEJOS || along < -RED_LEJOS) continue;
+    let prev = null;
+    for (let d = Math.max(0, along - RED_LEJOS); d <= Math.min(r.r, along + RED_LEJOS); d += RED_PASO) {
+      const q = pto(r.x + c * d, r.z + sn * d);
+      if (q && q.dist > RED_LEJOS) { prev = null; continue; }
+      tramo(prev, q); prev = q;
+    }
+  }
+  return { tramos: out, bando: r.bando, visto: z.visto };
+}
+
 /** El avion esta sobre tierra (la eyeccion: caes entre los tuyos o al agua). */
 export const sobreTierra = () => enPasillo() && P3.g > 0.3;
 
@@ -528,6 +588,10 @@ export function cambiarVista() {
   return v;
 }
 
+/** Morir en la cabina: la camara sale a la de atras (con su viaje); la corrida siguiente vuelve a la cabina. */
+export function vistaAtras() { camara.ir(camara.ATRAS); cabina.on = false; }
+export function vistaCabina() { camara.poner(camara.CABINA); cabina.on = true; }
+
 /** El nombre del lugar mas cercano, cuando cambia. */
 export function lugares(A, dt) {
   const o = mundo.org(), ax = A.pos.x + o[0], az = A.pos.z + o[1];
@@ -571,3 +635,5 @@ if (typeof window !== 'undefined') {
     return activar(on);
   };
 }
+// SONDA: la red del radar (cuantos tramos y los primeros)
+if (typeof window !== 'undefined') window.__redIslas = () => { const R = redRadar(1); return JSON.stringify(R ? { n: R.tramos.length / 6, cerca: R.tramos.filter((v, i) => i % 6 === 1 && v > 102).length, alfa: R.tramos.filter((v, i) => i % 6 === 4).slice(0, 10).map(v => +v.toFixed(2)), xs: R.tramos.filter((v, i) => i % 6 === 0 && R.tramos[i + 1] > 102).slice(0, 10).map(v => Math.round(v)), P: [Math.round(P3.x), Math.round(P3.z), Math.round(P3.g), Math.round(plane.y)] } : null); };
