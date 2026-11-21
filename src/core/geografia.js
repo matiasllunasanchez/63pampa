@@ -290,6 +290,10 @@ export function setGeografia(lista, obj, base) {
 
 /** ¿La corrida tiene geografia? Si no, todo contesta `cfg.terrain` como siempre. */
 export const geoActiva = () => geo.tramos !== null;
+/** ¿Hay que preguntar POR PUNTO que hay abajo (esTierraEn) en vez de contestar `cfg.terrain`? Con geografia, y
+ *  tambien en LAS ISLAS (`geoExterna`, 21/11, el autor: "el efecto bajo el avion cuando vuela sobre la tierra en ISLA
+ *  es el del agua, traer el de tierra que tiene pasillo… TODOS los detalles"): ahi cfg.terrain dice mar siempre. */
+export const geoPorPunto = () => geo.tramos !== null || geoExterna.on;
 
 function armar(lista, obj) {
   const t = [];
@@ -474,7 +478,7 @@ export const geoExterna = { on: false, tierra: () => false, sinRoce: false };
 /** ¿HAY TIERRA en este punto del mundo? La pregunta que decide si el avion roza agua o suelo, si
  *  la estela se dibuja, de que color salta el polvo. Sin geografia: la formula de siempre. */
 export function esTierraEn(x, wz) {
-  if (geoExterna.on) return geoExterna.tierra();
+  if (geoExterna.on) return geoExterna.tierra(x, wz);
   if (geo.tramos === null) return cfg.terrain === 'land' || (cfg.terrain === 'coast' && x < shoreAt(wz));
   const r = tramoEn(wz);
   if (r && r.isla) return islaBorde(x, wz, r) >= 0;

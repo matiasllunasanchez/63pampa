@@ -12,7 +12,8 @@ import { radio, restante, visible, log } from '../core/radioVN.js';
 import { run } from '../core/run.js';
 import { sinceReady, txtOf, palabrasVisibles } from '../core/dialogue.js';
 import { PLACA_DE_CUADRO } from '../data/placas.js';
-import { HUD_TECHO, cintaCaja, vozMin, VOZ, pilotoCaja, sinTilde } from './hud.js';
+import { HUD_TECHO, cintaCaja, vozMin, VOZ, pilotoCaja, sinTilde, pisoCabina } from './hud.js';
+import { enCabina } from '../core/cabina.js';
 import { retrato } from './retratos.js';
 
 // Segundos que la pantalla de victoria espera antes de traer la frase de cierre. No es un valor
@@ -1618,7 +1619,46 @@ const OTRO_PAD = 4, OTRO_FILA = 6, OTRO_ENTRA = 0.34;
 const OTRO_CARA_K = 0.45;   // el primer tramo de la entrada es del retrato; el resto, del texto
 let otroK = 0, otroT = -1, otroUlt = null;
 
+// EN CABINA, COMO UN SUBTITULO (21/11, el autor: "que es esto, horrible. Cambiemos la forma en la que se muestran
+// mensajes, chats, y demas en la cabina"): la caja de la derecha entraba encima de los relojes del tablero y se cortaba
+// contra el borde. Adentro del avion la voz del otro va ABAJO AL CENTRO, una sola caja con la cara adentro, que sube
+// desde el borde y se vuelve a bajar; los carteles se apilan arriba de ella (hud.js `pisoCabina`).
+const CAB_CARA = 22, CAB_PAD = 4, CAB_FILA = 6;
+function dibujarOtroCabina(v, k) {
+  const e = 1 - Math.pow(1 - k, 3);
+  ctx.font = '5px monospace';
+  let ancho = 60;
+  for (const f of v.wrap) ancho = Math.max(ancho, ctx.measureText(f).width);
+  ctx.font = 'bold 5px monospace';
+  ancho = Math.max(ancho, ctx.measureText(v.personaje || '').width);
+  const tw = Math.min(Math.round(W * 0.6), Math.ceil(ancho) + CAB_PAD * 2);
+  const alto = Math.max(CAB_CARA + 4, 10 + v.wrap.length * CAB_FILA + 2), total = 2 + CAB_CARA + tw;
+  const x = Math.round(W / 2 - total / 2), y = Math.round(H - 3 - alto + (1 - e) * (alto + 4));
+  pisoCabina.alto = (alto + 2) * e;
+  ctx.save();
+  ctx.globalAlpha = 0.92 * e; ctx.fillStyle = '#070b0f'; ctx.fillRect(x, y, total, alto);
+  ctx.globalAlpha = e; ctx.strokeStyle = '#3a4c58'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, total - 1, alto - 1);
+  const cy = y + Math.round((alto - CAB_CARA) / 2);
+  ctx.fillStyle = '#0d1319'; ctx.fillRect(x + 2, cy, CAB_CARA, CAB_CARA);
+  const im = v.cara ? portraitImg(v.cara) : null;
+  if (im) ctx.drawImage(im, x + 2, cy, CAB_CARA, CAB_CARA);
+  ctx.globalAlpha = 0.7 * e; ctx.strokeStyle = P.accent; ctx.strokeRect(x + 2.5, cy + 0.5, CAB_CARA - 1, CAB_CARA - 1);
+  ctx.globalAlpha = e;
+  const tx = x + 2 + CAB_CARA + CAB_PAD;
+  ctx.textAlign = 'left';
+  if (v.personaje) { ctx.font = 'bold 5px monospace'; ctx.fillStyle = P.accent; ctx.fillText(v.personaje, tx, y + 7); }
+  ctx.font = '5px monospace'; ctx.fillStyle = P.ink;
+  let left = v.typed == null ? Infinity : v.typed;
+  for (let i = 0; i < v.wrap.length && left > 0; i++) {
+    ctx.fillText(v.wrap[i].slice(0, left), tx, y + 13 + i * CAB_FILA);
+    left -= v.wrap[i].length + 1;
+  }
+  if (v.barra > 0) px(x + 1, y + alto - 2, (total - 2) * v.barra, 1, P.accent);
+  ctx.restore();
+}
+
 function dibujarOtro(v, k, yo) {
+  if (enCabina()) { dibujarOtroCabina(v, k); return; }
   ctx.font = '5px monospace';
   let ancho = 40;
   for (const f of v.wrap) ancho = Math.max(ancho, ctx.measureText(f).width);
@@ -1703,6 +1743,7 @@ export function drawCharla(w) {
   const dt = otroT < 0 || ahora < otroT ? 0 : Math.min(0.1, ahora - otroT);
   otroT = ahora;
   otroK = activa ? Math.min(1, otroK + dt / OTRO_ENTRA) : Math.max(0, otroK - dt / OTRO_ENTRA);
+  pisoCabina.alto = 0;
   if (otroK <= 0) { otroUlt = null; return; }
   if (otroUlt) dibujarOtro(otroUlt, otroK, yo);
 }

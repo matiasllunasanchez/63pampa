@@ -11,7 +11,7 @@
 import { plane, cfg, stats } from '../core/state.js';
 import { run } from '../core/run.js';
 import * as rasante from './rasante.js';
-import { geoActiva, esTierraEn, alturaSuelo } from '../core/geografia.js';   // G1: agua o tierra, por punto
+import { geoActiva, geoPorPunto, esTierraEn, alturaSuelo } from '../core/geografia.js';   // G1: agua o tierra, por punto
 // AVERIAS: los impactos por DISPARO (bomba, misil, trazadora) pueden no matar, segun el modelo
 // de vida elegido en OPCIONES. Chocar algo sigue matando siempre — ver core/damage.js.
 import * as dmg from './damage.js';
@@ -864,7 +864,7 @@ export function collisionSystem(dt) {
     {
       // el agua dibujada promedia ~1.1 de altura; la tierra, 0.3. Detonar contra el numero de cada
       // una es lo que evita que la bomba reviente un palmo abajo de la superficie que se ve.
-      const enTierra = geoActiva() ? esTierraEn(pm.x, run.dist + pm.z) : (cfg.terrain === 'land' || cfg.terrain === 'coast');
+      const enTierra = geoPorPunto() ? esTierraEn(pm.x, run.dist + pm.z) : (cfg.terrain === 'land' || cfg.terrain === 'coast');
       // CON GEOGRAFIA EL SUELO TIENE ALTURA (PLAN_GEOGRAFIA G4/G5): una isla, las lomas de un tramo,
       // la explanada de una estructura. Sin esto la bomba atravesaba la isla y detonaba a 0,3 del
       // mar, adentro de la tierra. Sin geografia, el 0 de siempre (lo que `feel` custodia).

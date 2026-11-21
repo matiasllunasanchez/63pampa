@@ -1082,6 +1082,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  los poderes como son fuera de campaña. */
     function soltarMision() { devolverPrefs(); Object.assign(cfg, CFG_SIN_MISION); }
     function curMission() { return NIVELES[curLevel]; }
+    // LOS AVISOS POR RADIO DE UNA MISION (los de M1: radar, agua, vuelta…) son de la CAMPAÑA: curLevel queda en 0
+    // fuera de ella y en POR LA PATRIA hablaba Puma de M1 ("Hoy es gratis; mañana no", 21/11)
+    const avisosMision = () => (gameMode === 'campaign' && curMission() ? curMission().avisos : null);
     /** Indice de una mision por su id ('m4') o por su numero. -1 si no existe: quien llama decide
      *  que hacer con eso (la sonda contesta null; el selector no puede llegar con un id invalido). */
     const misIdx = id => typeof id === 'number'
@@ -4925,7 +4928,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       beep(560, 0.12, 'square', 0.05);
       // …Y LA VOZ, del otro lado del negro. Va con el retraso del fundido para que la linea empiece
       // cuando hay algo que ver: dicha en el negro, el jugador la lee sin saber donde esta.
-      const av = curMission() && curMission().avisos;
+      const av = avisosMision();
       if (av && av.vuelta) setTimeout(() => avisar(av, 'vuelta'), deCorrido ? 0 : 1200);
       // …y unos segundos despues, la Chancha NOMBRADA: no se puede pedir en esta mision, pero esta
       // es la parte del vuelo donde algun dia va a hacer falta, y es donde la frase significa algo.
@@ -6706,7 +6709,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       }
       // EL RADAR POR VOZ (M1_CAMBIOS 6): el vuelo anota si te verian, el orquestador lo dice. Mientras
       // sigas arriba te vuelven a hablar — quien espacia los avisos es `cada`, no un gate aparte.
-      if (run.radarVisto && curMission() && curMission().avisos) avisar(curMission().avisos, 'radar');
+      if (run.radarVisto && avisosMision()) avisar(avisosMision(), 'radar');
       stepLecciones();
       stepTutorial(dt);
       if (fs === 'objective') {
@@ -6764,7 +6767,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         stepRecibe(dt, blancoSys.negro(), PZ);
         // LAS SEÑAS, a la radio: lo que Puma canta de la aproximacion. La de OTRA PASADA espera al
         // otro lado del negro, igual que la linea de la vuelta en volverDelBlanco().
-        const av = curMission() && curMission().avisos;
+        const av = avisosMision();
         for (const c of blancoSys.cues()) {
           // LA LARGA SE ESCRIBE GRANDE (autor, 7/10): el rotulo gris ¡MUY LARGA! ¡FALLASTE!
           if (c === 'larga') { if (ROTULOS_SUELTA) falloT0 = performance.now(); cartel(T('rot_larga'), '#c9ced3', T('rot_fallaste'), { alerta: true, subCol: '#ff6a50' }); }

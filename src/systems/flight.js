@@ -626,7 +626,7 @@ export function flightSystem(dt, deps) {
     for (let i = 0; i < 3; i++) parts.push({
       x: sp.x + (Math.random() - 0.5) * 14, y: sp.y, vx: (Math.random() - 0.5) * 90,
       vy: -30 - Math.random() * 70, life: 0.35,
-      c: (geoActiva() ? onDirt : cfg.terrain === 'land') ? P.accent : P.crest, r: 1.4
+      c: (geoActiva() || geoExterna.on ? onDirt : cfg.terrain === 'land') ? P.accent : P.crest, r: 1.4
     });
     if (!sfxOne('waveFly')) beep(90 + Math.random() * 60, 0.05, 'sawtooth', 0.05);
     // (el aviso "! SUBI !" lo dibuja el HUD mientras run.scrapeVib este alto: es un estado

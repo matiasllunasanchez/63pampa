@@ -13,7 +13,7 @@ import { ctx, px, PZ, U, W, H, HOR, F } from './ctx.js';
 import { reflejoLuz } from './luces_enemigos.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
-import { geoActiva, esTierraEn, sueloEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
+import { geoActiva, geoPorPunto, esTierraEn, sueloEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
 import { inp } from '../core/input.js';
 import { proj } from '../core/fx.js';
 import { hzSprite, hzWorld } from '../core/horizon.js';
@@ -764,7 +764,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   const churn = Math.max(0, 1 - plane.y / ROCIADA_ALT);
   // el rocio es de AGUA: con geografia, se pregunta que hay bajo el avion (G1). Una sola vez: lo
   // usan la rociada, las cortinas y la erupcion del roce — sobre tierra ninguna es de agua (4/10)
-  const seco = geoActiva() ? esTierraEn(plane.x, run.dist + PZ) : cfg.terrain === 'land';
+  const seco = geoPorPunto() ? esTierraEn(plane.x, run.dist + PZ) : cfg.terrain === 'land';
   if (churn > 0 && S.state === 'play' && !seco) {
     // el turbo engorda el chorro: entra por el `pulse`, que ya multiplica el ancho de los brazos
     // y de la lengua, asi que el gesto entero crece sin tocar la geometria de la V.

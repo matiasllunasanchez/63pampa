@@ -14,7 +14,7 @@
 // El tablero va aparte (`tableroNoche`): los instrumentos se ven como en la foto, en ambar y oscuros.
 import { cv, ctx, W, H, HOR, F, px } from './ctx.js';
 import { cam, cfg, S } from '../core/state.js';
-import { geoActiva, esTierraEn } from '../core/geografia.js';
+import { geoActiva, geoPorPunto, esTierraEn } from '../core/geografia.js';
 import { run } from '../core/run.js';
 import { capaLuz, luz } from './brillo.js';
 import { NOCHE } from '../data/noche.js';
@@ -182,7 +182,7 @@ export function drawReflejoLuna(n, astro) {
     // ¿hay agua en esta raya? la profundidad sale de invertir la proyeccion sobre el suelo (h = 0)
     const z = F * cam.y / Math.max(0.5, y - HOR);
     const wx = cam.x + (astro.x - W / 2) * z / F;
-    const seco = geoActiva() ? esTierraEn(wx, run.dist + z) : cfg.terrain === 'land';
+    const seco = geoPorPunto() ? esTierraEn(wx, run.dist + z) : cfg.terrain === 'land';
     if (seco) continue;
     const u = (y - HOR) / (H - HOR);
     const ancho = 3 + u * 26, temb = Math.sin(run.t * 3 + i * 1.7) * (1 + u * 5);

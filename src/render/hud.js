@@ -744,7 +744,7 @@ const ANCLA_DE = { salud: 'salud', nafta: 'nafta', mach: 'mach', vel: 'velocidad
 // LA CHANCHA ES UN ICONO (21/11): su zona es el circulo de arriba de la nafta; la fila es de la temperatura
 const CHANCHA_ICONO = true;
 export function zonaHud(id) {
-  if (CHANCHA_ICONO && id === 'chancha' && !enCabina()) return { x: X_NAFTA + CUADRO / 2 - 9, y: CUADROS_Y - 20, w: 18, h: 18, redondo: true };
+  if (CHANCHA_ICONO && id === 'chancha' && !enCabina()) return { x: X_NAFTA + CUADRO - 11, y: CUADROS_Y - 1, w: 12, h: 12, redondo: true };
   if (id === 'temp' && !enCabina()) return { x: X_CHANCHA, y: CUADROS_Y, w: CUADRO, h: CUADRO };
   const an = enCabina() && ANCLA_DE[id] ? CABINA_ANCLAS[ANCLA_DE[id]] : null;
   if (an) return an.length === 4 ? { x: an[0] / U, y: an[1] / U, w: (an[2] - an[0]) / U, h: (an[3] - an[1]) / U }
@@ -1212,6 +1212,9 @@ const cajaIzq = { der: 0, abajo: 0 };
 // apoya en el borde de abajo y crece hacia arriba
 const CINTA_CABINA_Y = 79;
 let islasHud = false;   // LAS ISLAS: sin cinta; los carteles arrancan arriba, bajan al entrar y se van por la derecha
+// EN CABINA, LA RADIO VA DEBAJO DE TODO (21/11): la caja de la voz del otro (render/screens.js) anota aca cuanto alto
+// ocupa abajo, y la pila de carteles se apoya ARRIBA de ella (un cuadro de atraso: la radio se dibuja despues)
+export const pisoCabina = { alto: 0 };
 function drawCartel() {
   // LA PILA (8/10): el primero va arriba, debajo de la cinta, y cada uno se apoya debajo del anterior.
   // La altura de cada lugar se SUAVIZA (c.y): cuando entra uno nuevo, los demas bajan, no saltan.
@@ -1220,7 +1223,7 @@ function drawCartel() {
   if (enCabina()) {
     let alto = 0;
     for (const a of lista) if (a.k > 0) alto += ((a.c.sub ? 12 + (a.c.alerta ? 8 : 4) + 2 : 12) + 2) * a.k;
-    techo = H - 3 - alto;
+    techo = H - 3 - pisoCabina.alto - alto;
   }
   for (const a of lista) {
     if (a.k <= 0) continue;
@@ -1920,9 +1923,31 @@ export function anchoSquad() {
 // a `f` (1 = listo), y el engranaje naranja macizo al medio.
 /** LA CHANCHA EN LAS ISLAS: su silueta con un aro que se llena (como el relojito del taller), el aro en `col`, y lo
  *  que falta al costado. Arriba de la nafta; en cabina, en el relojito de la Chancha del tablero. */
+// FUERA DE LA CABINA, UNA GOTITA ADENTRO DE LA NAFTA (21/11, el autor: "achicarlo mas… ponerlo dentro del contador
+// de combustible arriba a la derecha como un circulo con gotita gris que pasa a verde cuando se puede pedir")
+const CH_NAFTA = { x: X_NAFTA + CUADRO - 5, y: CUADROS_Y + 5, r: 3.5 };
+function chanchaGota(f, col, lista) {
+  const { x: cx, y: cy, r: R } = CH_NAFTA;
+  ctx.save();
+  ctx.globalAlpha = 0.8; ctx.fillStyle = '#0a0e11'; ctx.beginPath(); ctx.arc(cx, cy, R + 1, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 0.4; ctx.lineWidth = 0.75; ctx.strokeStyle = col;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = lista ? 0.65 + 0.35 * Math.sin(run.t * 6) : 1;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, f))); ctx.stroke();
+  // la gotita: punta arriba y panza abajo
+  ctx.fillStyle = col; ctx.beginPath();
+  ctx.moveTo(cx, cy - 2.2);
+  ctx.quadraticCurveTo(cx + 1.6, cy - 0.1, cx + 1.3, cy + 0.8);
+  ctx.arc(cx, cy + 0.6, 1.3, 0.15, Math.PI - 0.15);
+  ctx.quadraticCurveTo(cx - 1.6, cy - 0.1, cx, cy - 2.2);
+  ctx.fill();
+  ctx.restore();
+}
 function chanchaIcono(f, col, txt, lista) {
   const an = enCabina() ? CABINA_ANCLAS.chancha : null;
-  const cx = an ? an[0] / U : X_NAFTA + CUADRO / 2, cy = an ? an[1] / U : CUADROS_Y - 11, R = an ? an[2] / U : 7;
+  if (!an) { chanchaGota(f, col, lista); return; }
+  const cx = an[0] / U, cy = an[1] / U, R = an[2] / U;
   ctx.save();
   if (!an) { ctx.globalAlpha = 0.75; ctx.fillStyle = '#0a0e11'; ctx.beginPath(); ctx.arc(cx, cy, R + 1.5, 0, Math.PI * 2); ctx.fill(); }
   ctx.globalAlpha = 0.45; ctx.lineWidth = 1; ctx.strokeStyle = col;
@@ -2897,7 +2922,7 @@ export function drawHUD(h) {
       const txt = enCita ? (ch.fase === 'eta' ? (ch.espera ? '' : Math.ceil(ch.eta) + 's') : ch.conn ? Math.round(ch.reserva * 100) + '%' : '')
         : lista ? '' : h.chIslas != null ? h.chIslasS + 's' : Math.round(cv * 100) + '%';
       chanchaIcono(f, lista ? verde : enCita ? P.accent : P.dim, txt, lista);
-      donde.chancha = [X_NAFTA + CUADRO / 2, CUADROS_Y - 11];
+      donde.chancha = enCabina() ? [X_NAFTA + CUADRO / 2, CUADROS_Y - 11] : [CH_NAFTA.x, CH_NAFTA.y];
     } else
     reloj(xCha, CUADROS_Y, conFalla({
       // la de la IDA planificada no depende de la barra: aguja al tope y LISTA, aunque la barra este baja
