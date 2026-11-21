@@ -50,6 +50,7 @@ vec3 paleta(vec3 col){
   for (int i=0;i<84;i++){ vec3 dv = col - uPal[i]; float dd = dot(dv*dv, vec3(1.0,1.25,0.8));
     if (dd < d1) { d2 = d1; p2 = p1; d1 = dd; p1 = uPal[i]; } else if (dd < d2) { d2 = dd; p2 = uPal[i]; } }
   vec3 e = p2 - p1; float tq = clamp(dot(col - p1, e)/max(dot(e,e), 1e-6), 0.0, 1.0);
+  tq = smoothstep(0.3, 0.7, tq);   // (21/11, "demasiado PUNTITO": trama solo en la transicion, no en toda la mezcla)
   return bayerP(gl_FragCoord.xy) < tq ? p2 : p1;
 }`;
 
