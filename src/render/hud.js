@@ -11,6 +11,7 @@
 import { ctx, px, DW as W, DH as H, PZ, U, SC, avisoFont, uiFont, labelFont } from './ctx.js';
 import { enCabina } from '../core/cabina.js';
 import { CABINA_ANCLAS } from '../data/cabina_anclas.js';
+import { drawManos } from './cabina.js';
 import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
 import { cargaDe } from '../data/cargas.js';
@@ -923,15 +924,18 @@ function tabListo(i, y, h, lleno, col, aviso) {
   // fijo la palabra salia cortada por el propio recorte de la lengueta.
   const tw = Math.round(ctx.measureText(txt).width) + 4;
   const e = 1 - Math.pow(1 - L.k, 3);        // sale rapido y frena al llegar, como el radar
-  const dx = Math.round(-(1 - e) * tw);
-  const xt = MARGEN + CUADRO;                // el borde derecho de la barra: de ahi sale
+  // (en cabina la barra esta contra el borde DERECHO: la lengueta sale para la izquierda)
+  const der = enCabina();
+  const dx = Math.round((der ? 1 : -1) * (1 - e) * tw);
+  const xt = der ? PIL_X() : MARGEN + CUADRO;   // el borde de la barra: de ahi sale
   // el recorte empieza EN el borde de la barra, asi que la placa del cartel entra sin su columna
   // izquierda: se lee como una lengueta de la barra y no como una caja aparte.
-  ctx.save(); ctx.beginPath(); ctx.rect(xt, y - 2, tw + 2, h + 4); ctx.clip();
-  plate(xt - 1 + dx, y, tw + 1, h);
+  ctx.save(); ctx.beginPath(); ctx.rect(der ? xt - tw - 2 : xt, y - 2, tw + 2, h + 4); ctx.clip();
+  const x0 = der ? xt - tw + dx : xt - 1 + dx;
+  plate(x0, y, tw + 1, h);
   ctx.font = 'bold 5px monospace'; ctx.textAlign = 'left';
   ctx.fillStyle = avisando ? aviso.col : col;
-  ctx.fillText(txt, xt + 2 + dx, y + h - 3);
+  ctx.fillText(txt, x0 + 3, y + h - 3);
   ctx.restore();
 }
 
@@ -1464,6 +1468,7 @@ export const NUMEROS = { fam: 'CCSuperHuman' };   // elegida por el autor el 12/
 // tiene lugar en el tablero (la Chancha, el rack) se queda en la fila. `cy` es donde cae el centro de
 // la esfera dentro del cuadro de 26 (16 en los relojes, 13 en el horizonte).
 let idDeX = null, enTablero = false, tableroCy = 16;
+const RACK_ACHICA = 0.74;
 function alTablero(x, y, fn, cy = 16) {
   if (!idDeX) idDeX = { [X_SALUD]: 'salud', [X_NAFTA]: 'nafta', [X_MACH]: 'mach', [xVuelo(0)]: 'velocidad',
     [xVuelo(1)]: 'adi', [xVuelo(2)]: 'altitud', [xVuelo(3)]: 'gas', [X_CANON]: 'canon',
@@ -1473,7 +1478,9 @@ function alTablero(x, y, fn, cy = 16) {
   if (!a) return fn();
   ctx.save();
   if (a.length === 4) {                          // EL ESTANTE: en su recuadro hundido, SIN deformar
-    const k = Math.min((a[2] - a[0]) / U / RACK_W, (a[3] - a[1]) / U / CUADRO);
+    // (21/11, el autor: "mas chico, que entre en el espacio negro"): la flechita de la elegida y los numeros se
+    // salian del recuadro hundido; con RACK_ACHICA entra todo con un poco de aire
+    const k = Math.min((a[2] - a[0]) / U / RACK_W, (a[3] - a[1]) / U / CUADRO) * RACK_ACHICA;
     ctx.translate((a[0] + a[2]) / 2 / U, (a[1] + a[3]) / 2 / U);
     ctx.scale(k, k);
     ctx.translate(-(x + RACK_W / 2), -(y + CUADRO / 2));
@@ -1703,6 +1710,9 @@ function relojCanonFila(x, y, metralla) {
 const PILOTO = { lado: 26, cara: 22, alto: 32 };
 /** El canto de arriba de la cara: apoyada en el piso de la fila, como los cuadrados (19/11). */
 const PIL_Y = () => CUADROS_Y + CUADRO - PILOTO.alto;
+// EN CABINA, LA CARA Y LOS PODERES VAN A LA DERECHA (21/11, el autor: "mover esto a la derecha y por encima de toda
+// la cabina"): a la izquierda los tapaba el brazo del acelerador. A la derecha esta la consola, sin manos.
+const PIL_X = () => (enCabina() ? W - MARGEN - PILOTO.lado : MARGEN);
 let gesto = 'neutro', gestoT = 0, ultPts = 0, sonrisaT = 0, ultT = -1, precargada = null;
 // EL GOLPE, con reloj PROPIO. `run.hurtT` parecia servir ("fogonazo rojo en el HUD") pero nada en el
 // juego lo baja ni lo lee: damage.js lo pone en 0,6 y queda ahi para siempre. Apoyarse en el dejaba
@@ -1837,7 +1847,7 @@ function bordesAvisos() {
 function drawPiloto(charlaVoz, delAvion) {
   // APARTE DEL TABLERO (11/9): arriba de la esquina izquierda, y no en la fila. La cara no es un
   // instrumento, y a su derecha tiene que quedar lugar para lo que dice (drawVozPropia, en screens).
-  const x = MARGEN, y = PIL_Y();
+  const x = PIL_X(), y = PIL_Y();
   const nombre = pilotName(alMando(run));
   const caras = carasDe(nombre, delAvion);
   if (!caras) return x;
@@ -1910,7 +1920,7 @@ export function tarjetaPiloto(nombre, x, y, delAvion) {
 }
 export const TARJETA_LADO = PILOTO.lado;
 /** Donde va la tarjeta del piloto en el HUD (la misma cuenta que drawPiloto). */
-export const tarjetaLugar = () => ({ x: MARGEN, y: PIL_Y() });
+export const tarjetaLugar = () => ({ x: PIL_X(), y: PIL_Y() });
 
 // TABLERO DEL ESCUADRON: un avion por vida — los caidos quedan TACHADOS, no desaparecen.
 // Que el avion siga ahi, oscuro y cruzado, es lo que hace que una vida menos sea un companero
@@ -3143,8 +3153,8 @@ export function drawHUD(h) {
   const yPod = PIL_Y() - AIRE - altoPod;   // pegada a la cara, con el mismo aire
   // …y en una mision SIN PODERES no esta: una barra que no se puede usar es un boton que miente
   if (cfg.poderes !== false) {
-    barraPoder(MARGEN, yPod, tv, MOM_COL, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
-    donde.momentum = [MARGEN + CUADRO / 2, yPod];
+    barraPoder(PIL_X(), yPod, tv, MOM_COL, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
+    donde.momentum = [PIL_X() + CUADRO / 2, yPod];
     tabListo(0, yPod, altoPod, tv >= 1, MOM_CLARO);
     // …Y ARRIBA, LA DEL RASANTE (volvio, 23/9). La MISMA forma que tenia antes del 13/9 —la placa,
     // el nombre adentro, el celeste de mar— y la FUNCION de ahora: aparece recien cuando la racha
@@ -3155,7 +3165,7 @@ export function drawHUD(h) {
       const fr = ras.on
         ? (ras.dur > 0 ? ras.resta / ras.dur : 0)
         : Math.max(0, Math.min(1, (concSeg(run.aguN) - AGU.CONC_GATE) / (AGU.CONC_TOPE - AGU.CONC_GATE)));
-      barraPoder(MARGEN, yPod - AIRE - altoPod, fr, RAS_COL, RAS_CLARO, RAS_OSCURO, ras.on, false, T('bar_rasante'));
+      barraPoder(PIL_X(), yPod - AIRE - altoPod, fr, RAS_COL, RAS_CLARO, RAS_OSCURO, ras.on, false, T('bar_rasante'));
     }
   }
 
@@ -3180,5 +3190,8 @@ export function drawHUD(h) {
 
   // (LA PALANCA DE GAS del borde derecho se fue al reloj de GAS, en el centro de la fila: 11/9.)
   bordesAvisos();   // el borde de la caja con cartel titila (19/11)
+  // EN CABINA, LAS MANOS VAN DELANTE DE LOS RELOJES (21/11): la palanca tapaba el reloj de abajo al medio al reves
+  // (el HUD va escalado a su grilla de diseño: las manos se dibujan en la del mundo, como la cabina)
+  if (enCabina()) { ctx.save(); ctx.scale(1 / U, 1 / U); ctx.globalAlpha = 1; drawManos(); ctx.restore(); }
 }
 

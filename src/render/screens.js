@@ -1523,12 +1523,14 @@ function drawVozPropia(yo, o) {
   ctx.font = o.font;
   let anchoTxt = 20;
   for (const f of o.filas) anchoTxt = Math.max(anchoTxt, ctx.measureText(f).width);
-  const w = Math.min(W - VOZ.margen - x0, Math.ceil(anchoTxt) + PROPIA_PAD * 2);
+  // (en cabina la cara esta contra el borde DERECHO: la caja crece para la izquierda, alineada a su canto)
+  const der = x0 > W / 2, lado = yo.lado || h;
+  const w = Math.min(der ? x0 + lado - VOZ.margen : W - VOZ.margen - x0, Math.ceil(anchoTxt) + PROPIA_PAD * 2);
   const e = 1 - Math.pow(1 - Math.max(0, Math.min(1, o.ease)), 3);     // entra rapido, frena al llegar
   const by = y + Math.round((1 - e) * (h + VOZ.aire));
   ctx.save();
   ctx.beginPath(); ctx.rect(0, 0, W, yo.y); ctx.clip();   // sale DE ATRAS de la cara
-  const bx = x0;
+  const bx = der ? x0 + lado - w : x0;
   ctx.globalAlpha = 0.94; ctx.fillStyle = '#070b0f'; ctx.fillRect(bx, by, w, h);
   ctx.globalAlpha = 0.75; ctx.strokeStyle = P.accent; ctx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
   ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.fillStyle = P.ink;

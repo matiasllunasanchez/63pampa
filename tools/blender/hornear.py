@@ -267,7 +267,7 @@ def mezcla(N, L, a, b, f):
     s = N.new('ShaderNodeVectorMath'); s.operation = 'ADD'; L.new(pa.outputs[0], s.inputs[0]); L.new(pb.outputs[0], s.inputs[1])
     return s.outputs[0]
 
-def mat_cel_nodo(nombre, fbase, brillo=False):
+def mat_cel_nodo(nombre, fbase, brillo=False, degrade=False):
     """El material de bandas sobre un COLOR BASE que arma `fbase(node_tree)` (un socket de color
     lineal): un color plano, o el camuflaje. `brillo` agrega el destello duro del vidrio."""
     m = bpy.data.materials.new(nombre)
@@ -295,7 +295,13 @@ def mat_cel_nodo(nombre, fbase, brillo=False):
     suave = N.new('ShaderNodeVectorMath'); suave.operation = 'ADD'
     suave.inputs[1].default_value = BANDAS[0][1]
     L.new(dif_t.outputs[0], suave.inputs[0])
-    tinte = mezcla(N, L, suave.outputs[0], ramp.outputs['Color'], perilla(nt, 'bandas'))
+    # `degrade` (21/11, la cabina: "las manos que no parezcan secciones"): este material va SIEMPRE en degrade, sin
+    # bandas — en una superficie curva grande (un guante, una manga) las bandas duras se leen como caras planas
+    if degrade:
+        fijo = N.new('ShaderNodeValue'); fijo.outputs[0].default_value = 0.0; fb = fijo.outputs[0]
+    else:
+        fb = perilla(nt, 'bandas')
+    tinte = mezcla(N, L, suave.outputs[0], ramp.outputs['Color'], fb)
     mul = N.new('ShaderNodeVectorMath'); mul.operation = 'MULTIPLY'
     L.new(tinte, mul.inputs[0])
     L.new(base, mul.inputs[1])
@@ -337,11 +343,11 @@ def mat_cel_nodo(nombre, fbase, brillo=False):
     L.new(em.outputs[0], out.inputs['Surface'])
     return m
 
-def mat_cel(nombre, color_hex, brillo=False):
+def mat_cel(nombre, color_hex, brillo=False, degrade=False):
     def base(nt):
         rgb = nt.nodes.new('ShaderNodeRGB'); rgb.outputs[0].default_value = (*lin(color_hex), 1)
         return rgb.outputs[0]
-    return mat_cel_nodo(nombre, base, brillo)
+    return mat_cel_nodo(nombre, base, brillo, degrade)
 
 def mat_emisivo(nombre, color_hex):
     m = bpy.data.materials.new(nombre)

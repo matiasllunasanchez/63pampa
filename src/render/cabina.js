@@ -82,6 +82,17 @@ export function drawCabina() {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(IMG, 0, 0, W, H);
   drawAgujas();
+  drawManos();
+  ctx.imageSmoothingEnabled = s;
+}
+
+/** LAS MANOS, otra vez ENCIMA de los relojes vivos (21/11, el autor: "el indicador deberia estar por detras de la
+ *  mano"): render/hud.js dibuja los relojes del tablero despues de la cabina y la palanca quedaba tapada por el de
+ *  abajo al medio. El HUD llama a esto al terminar el tablero. */
+export function drawManos() {
+  if (!lista()) return;
+  const s = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
   const lado = signo((inp.r - inp.l) + (inp.rollAx || 0));
   const cabeceo = signo(inp.u - inp.d);                       // + trepar = palanca atras
   drawCapa('acelerador', 0, inp.brake ? 0 : (inp.turbo || run.boost) ? 2 : 1);

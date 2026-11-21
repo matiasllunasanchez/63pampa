@@ -5,4 +5,4 @@ export const CABINA_ANCLAS = {"velocidad": [175.58, 170.01, 12.88], "nafta": [20
 
 // LAS CAPAS QUE SE MUEVEN (palanca y acelerador, con sus manos): donde va el recorte (x, y, w, h en
 // pixeles de mundo) y la grilla de poses de su hoja (fw x fh por cuadro, `cols` columnas).
-export const CABINA_CAPAS = {"palanca": {"x": 198.0, "y": 195.0, "w": 105.5, "h": 75.0, "fw": 211, "fh": 150, "cols": 3}, "acelerador": {"x": 0.0, "y": 170.0, "w": 138.0, "h": 100.0, "fw": 276, "fh": 200, "cols": 3}};
+export const CABINA_CAPAS = {"palanca": {"x": 198.5, "y": 195.0, "w": 105.0, "h": 75.0, "fw": 210, "fh": 150, "cols": 3}, "acelerador": {"x": 0.0, "y": 170.5, "w": 138.5, "h": 99.5, "fw": 277, "fh": 199, "cols": 3}};

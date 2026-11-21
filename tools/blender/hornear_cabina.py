@@ -126,7 +126,7 @@ def tecla(raiz, m, x, y, z):
 # yemas gastadas. Los dedos se calculan como un POLIGONO alrededor del eje del mando: cada falange es una
 # cuerda tangente a la empuñadura, asi abrazan sin huecos y los nudillos sobresalen donde tienen que estar.
 # El puño del guante (con su correa y hebilla) y la manga son LOFTS con pliegues que caen con el peso.
-GUANTE, GUANTE_SOMBRA, GUANTE_LUZ, MANGA, MANGA_SOMBRA, PUÑO = '#5a4331', '#3f2f25', '#7a5d45', '#5d6040', '#4a4c33', '#3e3f2b'
+GUANTE, GUANTE_SOMBRA, GUANTE_LUZ, MANGA, MANGA_SOMBRA, PUÑO = '#5a4331', '#4b382a', '#67503b', '#5d6040', '#4a4c33', '#3e3f2b'
 COSTURA = '#2e231b'
 from mathutils import Vector as _V, Matrix as _M
 import bmesh
@@ -190,6 +190,32 @@ def tubo_libre(nombre, raiz, mat, estaciones, n=20, expo=2.0, forma=None, tapas=
         md = ob.modifiers.new('sub', 'SUBSURF'); md.levels = sub; md.render_levels = sub
     return ob
 
+def curva(pts, muestras=48):
+    """Catmull-Rom por los puntos: la curva LISA que pasa por todos (los extremos se repiten)."""
+    P = [_V(p) for p in pts]; P = [P[0]] + P + [P[-1]]
+    out = []
+    for i in range(1, len(P) - 2):
+        p0, p1, p2, p3 = P[i - 1], P[i], P[i + 1], P[i + 2]
+        n = max(2, round(muestras / (len(P) - 3)))
+        for k in range(n):
+            t = k / n; t2, t3 = t * t, t * t * t
+            out.append(0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3))
+    out.append(P[-2])
+    return out
+
+def tubo_curvo(nombre, raiz, mat, pts, ru, rv=None, n=18, expo=2.0, muestras=48, arriba=(0, 1, 0), sub=1):
+    """EL CAÑO LISO (21/11, el autor: "mejorar las curvas"): un loft redondeado a lo largo de la curva que pasa por
+    `pts` — antes `tubo` ponia una caja recta por tramo y el arco del parabrisas se leia en pedazos con esquinas.
+    `ru`/`rv` pueden ser numeros o funciones de t (0..1) para que el caño engorde o se aplaste por el camino."""
+    C = curva(pts, muestras); rv = ru if rv is None else rv
+    f = lambda r, t: r(t) if callable(r) else r
+    est = []
+    for i, c in enumerate(C):
+        d = (C[min(i + 1, len(C) - 1)] - C[max(i - 1, 0)])
+        u, v = ejes_de(d, arriba); t = i / (len(C) - 1)
+        est.append((c, u, v, f(ru, t), f(rv, t)))
+    return tubo_libre(nombre, raiz, mat, est, n=n, expo=expo, sub=sub)
+
 def ejes_de(d, arriba=(0, 1, 0)):
     """Dos ejes perpendiculares a la direccion `d`: u lo mas horizontal posible, v lo mas 'arriba' posible."""
     d = _V(d).normalized(); u = d.cross(_V(arriba))
@@ -214,6 +240,8 @@ DEDOS = (('indice', 0.025, 16, (0.040, 0.025, 0.021), 0.0098),
          ('anular', -0.0145, 18, (0.042, 0.026, 0.021), 0.0097),
          ('meñique', -0.0320, 12, (0.034, 0.021, 0.018), 0.0086))
 
+DEDOS_ABRE, DEDOS_FINO = 1.14, 0.84
+
 def mano(raiz, mg, C, ea, e1, e2, Rg, pulgar, separa_indice=0.0, cierre=1.36):
     """UNA MANO CERRADA sobre un mando. `C` el centro de la empuñadura, `ea` su eje (los dedos se apilan sobre
     el, el indice hacia +ea), `e1` hacia donde queda la palma, `e2` hacia donde arrancan a abrazar los dedos
@@ -225,6 +253,9 @@ def mano(raiz, mg, C, ea, e1, e2, Rg, pulgar, separa_indice=0.0, cierre=1.36):
     masa = Masa()
     dedos, nudillos, puntas = [], [], []
     for (nom, a0, th0, L, r) in DEDOS:
+        # (21/11, el autor: "son 5 dedos"): con los dedos pegados el remesh los fundia en un miton. Un poco mas
+        # separados y mas finos, queda el SURCO entre uno y otro y se cuentan
+        a0, r = a0 * DEDOS_ABRE, r * DEDOS_FINO
         d = Rg + r + (separa_indice if nom == 'indice' else 0.0)
         th = math.radians(th0); rho = Rg + 0.017
         pts = [(a0, rho, th)]
@@ -274,7 +305,7 @@ def mano(raiz, mg, C, ea, e1, e2, Rg, pulgar, separa_indice=0.0, cierre=1.36):
                 o = (W[k] - (C + ea * ea.dot(W[k] - C))).normalized()
                 if (p - W[k]).length < 0.0125 and n.dot(o) > 0.25: return 1   # refuerzo de los nudillos
         return 0
-    ob = masa.cerrar('mano', raiz, [mg['guante'], mg['luz'], mg['sombra'], mg['costura']], pintar)
+    ob = masa.cerrar('mano', raiz, [mg['guante'], mg['luz'], mg['sombra'], mg['costura']], pintar, voxel=0.0009, suave=6, factor=0.5)
     return muñeca, ea, e1
 
 def antebrazo(raiz, mg, muñeca, codo, ancho, grueso, extra=0.35, bolsillo=False):
@@ -329,7 +360,10 @@ def antebrazo(raiz, mg, muñeca, codo, ancho, grueso, extra=0.35, bolsillo=False
             hueso('birome', raiz, mg[mat], p0, p0 - d * 0.014, 0.0035, 0.003, seg=8)
 
 def manos(raiz, K, lado):
-    mg = {n: K['mat_cel']('mano_' + n, c) for n, c in (('guante', GUANTE), ('sombra', GUANTE_SOMBRA), ('luz', GUANTE_LUZ),
+    # (21/11, el autor: "las manos que no parezcan secciones"): el cuero y la tela en DEGRADE — con las bandas del
+    # cel shading, la curva de un guante se partia en caras planas
+    tela = ('guante', 'sombra', 'luz', 'costura', 'manga', 'manga_s', 'puño')
+    mg = {n: K['mat_cel']('mano_' + n, c, degrade=n in tela) for n, c in (('guante', GUANTE), ('sombra', GUANTE_SOMBRA), ('luz', GUANTE_LUZ),
                                                        ('costura', COSTURA), ('manga', MANGA), ('manga_s', MANGA_SOMBRA),
                                                        ('puño', PUÑO), ('metal', METAL), ('goma', GOMA))}
     if lado == 'der': mano_der(raiz, mg)
@@ -482,14 +516,18 @@ def cabina(T, K):
     bloque('estante_marco', raiz, m['bisel'], (ex, ey, Z_TABLERO + 0.002), (ew + 0.012, eh + 0.012, 0.005), bisel=0.002)
     pieza('estante_fondo', raiz, m['esfera'], (ew, eh, 0.002), (ex, ey, Z_TABLERO + 0.0055))
     # LA VISERA: el capo negro que se curva sobre el tablero, de punta a punta, con el labio hacia el ojo
-    for sg in (-1, 1):
-        bloque('visera_lado', raiz, m['visera'], (sg * 0.33, -0.17, -0.47), (0.10, 0.08, 0.16), bisel=0.03)
-    bloque('visera', raiz, m['visera'], (0, -0.112, -0.50), (0.58, 0.04, 0.14), bisel=0.02)
+    # (21/11: era una caja al medio y dos cajas a los lados; ahora es UNA pieza que se curva de oreja a oreja: baja
+    # y engorda hacia los costados, con los cantos redondeados)
+    arco_v = [(-0.39, -0.20, -0.465), (-0.33, -0.165, -0.47), (-0.25, -0.122, -0.49), (-0.12, -0.112, -0.50), (0, -0.111, -0.50),
+              (0.12, -0.112, -0.50), (0.25, -0.122, -0.49), (0.33, -0.165, -0.47), (0.39, -0.20, -0.465)]
+    lado_v = lambda t: abs(2 * t - 1) ** 3                      # 0 al medio, 1 en las puntas
+    tubo_curvo('visera', raiz, m['visera'], arco_v, ru=lambda t: 0.070 + 0.012 * lado_v(t), rv=lambda t: 0.021 + 0.022 * lado_v(t),
+               n=24, expo=3.2, muestras=64)
     # EL COLIMADOR: la caja sobre la visera, los dos parantes y el vidrio (que no se hornea: ahi va la mira)
     bloque('colimador', raiz, m['visera'], (0, -0.075, -0.50), (0.10, 0.05, 0.10), bisel=0.01)
-    for sg in (-1, 1):
-        tubo('parante_col', raiz, m['visera'], [(sg * 0.045, -0.05, -0.50), (sg * 0.047, 0.035, -0.53)], 0.0045)
-    tubo('techo_col', raiz, m['visera'], [(-0.047, 0.035, -0.53), (0.047, 0.035, -0.53)], 0.0045)
+    # los parantes del colimador y su techo, de UN caño que dobla en las esquinas
+    tubo_curvo('parantes_col', raiz, m['visera'], [(-0.045, -0.05, -0.50), (-0.047, 0.020, -0.525), (-0.040, 0.035, -0.53),
+                                                    (0.040, 0.035, -0.53), (0.047, 0.020, -0.525), (0.045, -0.05, -0.50)], 0.0048, n=12, muestras=40)
     # LA CONSOLA DEL MEDIO, bajo el tablero: los interruptores y los dos rotulos de emergencia
     for i in range(9):
         if i == 4: continue
@@ -499,12 +537,53 @@ def cabina(T, K):
     cilindro_z('luz_verde', raiz, K['mat_emisivo']('verde', '#4fbf5a'), (-0.05, -0.49, -0.462), 0.008, 0.004, seg=8)
     cilindro_z('fuego', raiz, m['rojo'], (0.28, -0.455, -0.462), 0.012, 0.02, seg=10)
     # EL MARCO DEL PARABRISAS: grueso, negro, con las esquinas de arriba redondeadas
+    # (21/11: UN solo arco liso de punta a punta; eran cinco cajas rectas por lado y se veian los quiebres)
+    medio = [(0.40, -0.13, -0.52), (0.37, 0.08, -0.47), (0.33, 0.22, -0.43), (0.25, 0.30, -0.40), (0.10, 0.33, -0.39)]
+    arco = [(-x, y, z) for (x, y, z) in medio] + [(0, 0.335, -0.39)] + list(reversed(medio))
+    tubo_curvo('parante', raiz, m['marco'], arco, ru=0.020, rv=0.020, n=20, expo=2.6, muestras=96, arriba=(0, 0, 1))
+    # LOS ESPEJOS RETROVISORES (21/11, el autor: "espejos retrovisores chicos sobre los bordes de la cabina, en
+    # vertical"): uno en cada parante, colgado de un brazo corto, girado hacia el ojo. El vidrio refleja lo que
+    # hay atras: cielo arriba y mar abajo (horneado: no hay reflejo vivo)
+    # (21/11, tercera vuelta: "encorvados y por encima de lo negro"): cada espejo es una CINTA que sigue la curva del
+    # parante —se dobla con el arco— y va DELANTE del marco (mas cerca del ojo), de cara al piloto
+    cielo_e = K['mat_emisivo']('espejo_cielo', '#a7b3bd'); mar_e = K['mat_emisivo']('espejo_mar', '#4a5860')
+    ESPEJO_ADENTRO = 0.032                                        # (21/11: "mas hacia adentro")
+    C = curva(medio, 480)                                         # el arco del lado derecho (x > 0), de abajo arriba
+    tramo = [p for p in C if 0.04 <= p.y <= 0.235]
+    def cinta(nombre, mats, pts, ancho, dz, sg, R=None, corte=None):
+        # LAS PUNTAS REDONDEADAS (21/11, "y bordes redondeados"): a menos de R de cada punta (medido por el arco) el
+        # ancho se cierra en un cuarto de circulo — un rectangulo de esquinas redondas, doblado con el parante
+        R = ancho * 0.45 if R is None else R
+        largo = [0.0]
+        for a, b in zip(pts, pts[1:]): largo.append(largo[-1] + (b - a).length)
+        L = largo[-1]
+        def medio_ancho(s_):
+            e = min(s_, L - s_)
+            return ancho / 2 if e >= R else ancho / 2 - R + math.sqrt(max(0.0, R * R - (R - e) ** 2))
+        bm = bmesh.new(); filas = []
+        for k, p in enumerate(pts):
+            d = pts[min(k + 1, len(pts) - 1)] - pts[max(k - 1, 0)]
+            o = _V((d.y, -d.x, 0)).normalized()                     # perpendicular al arco, en el plano de la cara
+            q = _V((sg * (p.x - ESPEJO_ADENTRO), p.y, p.z + dz)); o.x *= sg   # (corridos hacia el centro del vidrio)
+            hw = max(0.0004, medio_ancho(largo[k]))
+            filas.append((bm.verts.new(q - o * hw), bm.verts.new(q + o * hw)))
+        for k, ((a, b), (c, e)) in enumerate(zip(filas, filas[1:])):
+            f = bm.faces.new((a, b, e, c)); f.material_index = 1 if corte is not None and k >= corte else 0
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        me = bpy.data.meshes.new(nombre); bm.to_mesh(me); bm.free()
+        for mt in mats: me.materials.append(mt)
+        ob = bpy.data.objects.new(nombre, me); bpy.context.scene.collection.objects.link(ob); ob.parent = raiz
+        return ob
+    n_t = len(tramo)
     for sg in (-1, 1):
-        tubo('parante', raiz, m['marco'], [(sg * 0.40, -0.13, -0.52), (sg * 0.37, 0.08, -0.47), (sg * 0.33, 0.22, -0.43),
-                                         (sg * 0.25, 0.30, -0.40), (sg * 0.10, 0.33, -0.39), (0, 0.335, -0.39)], 0.018)
+        cinta('espejo_marco', [m['marco']], tramo, 0.058, 0.032, sg)
+        # el VIDRIO: una cinta redondeada de punta a punta, el mar abajo y el cielo arriba
+        m0 = max(3, int(n_t * 0.04)); vid = tramo[m0:n_t - m0]
+        cinta('espejo_vidrio', [mar_e, cielo_e], vid, 0.044, 0.036, sg, corte=int(len(vid) * 0.42))
     # LOS ZOCALOS DEL CANOPY con su acolchado, que bajan desde los costados del parabrisas
     for sg in (-1, 1):
-        tubo('zocalo', raiz, m['marco'], [(sg * 0.42, -0.13, -0.52), (sg * 0.46, -0.16, -0.20), (sg * 0.47, -0.17, 0.05)], 0.04)
+        tubo_curvo('zocalo', raiz, m['marco'], [(sg * 0.42, -0.13, -0.52), (sg * 0.46, -0.16, -0.20), (sg * 0.47, -0.17, 0.05)], 0.04,
+                   n=20, expo=2.6, muestras=32)
         bloque('acolchado', raiz, m['acolchado'], (sg * 0.44, -0.24, -0.22), (0.05, 0.12, 0.55), bisel=0.03)
     # LAS CONSOLAS DE LOS COSTADOS: negras, con perillas y relojitos; el ACELERADOR a la izquierda
     for sg in (-1, 1):
