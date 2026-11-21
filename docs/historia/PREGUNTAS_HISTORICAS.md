@@ -1712,3 +1712,12 @@ Del orden de batalla de `src/data/islas_teatro.js` (plan: `docs/proyecto/PLAN_TE
 - **Las posiciones** de todo son aproximadas (~1 km) y se acomodan al terreno del DEM.
 
 - **Zonas de radar (20/11)** — `data/islas_teatro.js RADARES`. ¿Que alcance util tenia el TPS-43 de Puerto Argentino hacia el oeste con el relieve de la Soledad (en el juego, 55 km)? ¿El Tipo 965 del Coventry y el 967/968 del Broadsword el 24-25 de mayo (en el juego, 38 y 24 km)? ¿Habia radar propio en la cabeza de playa de San Carlos ademas de los buques (en el juego, 18 km sobre la bahia)? ¿A que altura dejaba de verte (en el juego, 45 m sobre el suelo)?
+
+## El clima y el frio (20/11)
+
+De `src/data/islas_clima.js` y `src/data/frio.js`. Los numeros son de juego:
+- ¿Cuantos dias de fines de mayo / junio de 1982 fueron cubiertos, de llovizna, de chubascos, de temporal, de nevisca, de niebla o despejados? (hoy van como pesos 3 / 2,2 / 2 / 1 / 1,4 / 1 / 1,4).
+- ¿Temperaturas al nivel del mar en las islas en esas fechas (en el juego, de 0,5 a 5 °C) y en las bases del continente (Rio Gallegos, San Julian, Rio Grande) al despegar?
+- ¿A partir de que temperatura perdia presion el neumatico de los Colt Mk 12 del A-4B (en el juego, -2 °C y peor hasta -10)?
+- ¿La sal en el parabrisas dependia de la temperatura? (en el juego, solo con 6 °C o menos, por pedido del autor)
+- El frio por avion (`src/data/perfiles.js` `frio`) sale de `docs/historia/CLIMA_FRIO_AVIONES.md`, que tiene sus 12 dudas al final: entre otras, las fallas de arranque e hidraulicas en las bases frias (sin fuente directa), que version del Colt Mk 12 llevaban los A-4 argentinos (la Mod 0 es la neumatica) y el antihielo de Dagger, Super Etendard, Pucara, MB-339, Guarani y CH-47C. Faltan leer enteros *La Fuerza Aerea en Malvinas* Tomo II y *Helicopteros de Malvinas* (ATTA).

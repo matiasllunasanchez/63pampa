@@ -46,6 +46,11 @@ const LEAN0 = 0.16, LEAN_WIND = 0.55;
 
 const RAIN_C = '#c9d8e4';
 const drops = [];
+// LA NIEVE (20/11, las islas: la NEVISCA de data/islas_clima.js): el mismo campo, pero COPOS — puntos blancos que
+// caen lentos y se hamacan — en vez de rayas. La prende game.js con el clima de las islas.
+let nieve = false;
+export function modoNieve(on) { nieve = !!on; }
+const NIEVE_V = 0.22, NIEVE_C = '#eef3f7';
 
 /** Direccion de caida, en radianes desde el "abajo" de la pantalla.
  *  Lleva el giro del mundo SUMADO: asi la lluvia se acuesta cuando el avion banquea —que es lo que
@@ -73,8 +78,9 @@ export function stepRain(dt) {
   if (!n) return;
   const a = fallAngle(), dx = -Math.sin(a), dy = Math.cos(a);
   for (const p of drops) {
-    const v = V_BASE * p.d * dt;
+    const v = V_BASE * p.d * dt * (nieve ? NIEVE_V : 1);
     p.x += dx * v; p.y += dy * v;
+    if (nieve) { p.h = (p.h || Math.random() * 6) + dt * (1.5 + p.d); p.x += Math.sin(p.h) * 12 * p.d * dt; }
     // RECICLADO POR ENVOLTURA. Al salir por arriba o por abajo se re-sortea la x: si la gota
     // volviera a la misma columna, el campo se leeria como lluvia cayendo por rieles.
     if (p.y > Y1) { p.y -= SPAN_Y; p.x = X0 + Math.random() * SPAN_X; }
@@ -181,6 +187,17 @@ export function drawSpray() {
 export function drawRain() {
   if (!drops.length || !onNow()) return;
   const a = fallAngle(), dx = -Math.sin(a), dy = Math.cos(a);
+  if (nieve) {
+    // LOS COPOS: un punto por gota, mas grande y claro el de adelante
+    ctx.save(); ctx.fillStyle = NIEVE_C;
+    for (const d of LAYERS) {
+      ctx.globalAlpha = 0.25 + 0.6 * d;
+      const r = d > 0.8 ? 1.4 : d > 0.5 ? 1 : 0.7;
+      for (const p of drops) if (p.d === d) ctx.fillRect(p.x - r / 2, p.y - r / 2, r, r);
+    }
+    ctx.restore();
+    return;
+  }
   // A mas velocidad, la raya se ESTIRA. Es gratis y ata la lluvia a lo que estas haciendo: en
   // turbo la lluvia se alarga sola.
   const stretch = 1 + Math.min(1.15, run.spd / 250);

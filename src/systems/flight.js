@@ -28,6 +28,7 @@ import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
 import { TURBO, ALTO } from '../data/tuning.js';
+import { CANON_LIMITE, CANON_TRABA } from '../data/frio.js';
 // LO ALTO (14/11, data/tuning.js ALTO): arriba del carril (FLY_TOP) la trepada y la picada se van soltando
 // a lo largo de ALTO.RAMPA metros, de los 18/20 m/s de siempre a los de arriba. Abajo, identico.
 const kAlto = y => Math.max(0, Math.min(1, (y - FLY_TOP) / ALTO.RAMPA));
@@ -737,7 +738,8 @@ export function flightSystem(dt, deps) {
   }
 
   // cañón
-  run.fireT -= dt;
+  // (EL FRIO en las islas: el neumatico del cañon del A-4B recarga lento — systems/islas/islas.js `run.frioCanon`)
+  run.fireT -= dt * (1 - 0.5 * (run.frioCanon || 0));
   run.tiroT += dt;
   // CON LA MIRA DE LA BOMBA PUESTA el gatillo es de la bomba, no del cañon (ver abajo)
   // (sin cañon —`sinCanon` en data/planes.js, los aviones que no tenian armas— el gatillo no dispara)
@@ -817,7 +819,10 @@ export function flightSystem(dt, deps) {
       * (run.falCanon === 1 ? 1.5 : 1);   // RECALIENTA (la falla LEVE)
     // EL CAÑONAZO del Hercules (16/10, el autor): una explosion chica por tiro; sin samples (web), el beep grave
     if (cn && !sfxOne('herCanon')) beep(150 + Math.random() * 30, 0.09, 'sawtooth', 0.05);   // la CINTA dice cuanto aguanta la rafaga
-    if (run.heat >= 1) { run.overheat = true; beep(140, 0.3, 'sawtooth', 0.05); }
+    // EL FRIO (systems/frio.js `run.frioCanon`): el neumatico del cañon pierde presion — se traba antes (el limite baja)
+    // y a veces se traba solo. Con 0 (el aire templado de siempre) es la cuenta de siempre
+    const fc = run.frioCanon || 0;
+    if (run.heat >= 1 - (1 - CANON_LIMITE) * fc || (fc > 0 && Math.random() < CANON_TRABA * fc)) { run.overheat = true; run.heat = Math.max(run.heat, 1); beep(140, 0.3, 'sawtooth', 0.05); }
     else if (!sfxSrc(met.sfx)) beep(1100 + Math.random() * 300, 0.04, 'square', 0.028);   // web: beep; escritorio: loop de metralla
   }
 

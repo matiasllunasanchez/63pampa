@@ -55,7 +55,7 @@ fundido a negro y la mision se reinicia. *(A confirmar: si la cuenta es para vol
   ahora cierra la mision (el pasillo de regreso llega en A5).
 - **A4 — La zona de mision**: el circulo (dato de la mision), visible; salir = velo, 4 s y reinicio.
 - **A5 — Mision completa**: pasillo de ida → fundido → arena en su zona → volver → pasillo de regreso invertido.
-- **A7 — El clima de las islas** (20/11, el autor: "a la isla quiero agregarle factores climaticos"): lluvia
+- **A7 — El clima de las islas** (HECHA 20/11: data/islas_clima.js, systems/islas/clima.js, el frio en data/frio.js y systems/frio.js — tambien en el pasillo) (20/11, el autor: "a la isla quiero agregarle factores climaticos"): lluvia
   leve y fuerte, tormenta leve y fuerte, viento leve y fuerte, olas leves y fuertes. Base: lo que el pasillo ya
   tiene (`cfg.rain`, la tormenta de `data/tuning.js`, las rafagas de viento `gusts`, el estado del mar), llevado
   al mapa real; el clima como dato de la mision.

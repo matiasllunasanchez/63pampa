@@ -12,11 +12,14 @@
 // usa Dusk Patrol para 1982 y estan A VERIFICAR (ver LUGARES).
 import { popup, explodeAt, columnaBomba, proj } from '../../core/fx.js';
 import { cartel, cartelSostenido } from '../../core/cartel.js';
-import { T } from '../../core/i18n.js';
+import { T, getLang } from '../../core/i18n.js';
 import * as objetivo from './objetivo.js';
 import * as teatro from './teatro.js';
 import * as chancha from '../chancha.js';
 import * as harriers from './harriers.js';
+import * as clima from './clima.js';
+import { GRADIENTE, HIELO } from '../../data/frio.js';
+import * as frio from '../frio.js';
 import { RADAR_BAJO } from '../../data/islas_teatro.js';
 import * as mapa from './mapa.js';
 import { P } from '../../data/palette.js';
@@ -82,7 +85,7 @@ export const progreso = () => mundo.progreso();
 /** Prende (o apaga) las islas para la PROXIMA entrada al arena, y empieza a cargar el mundo. */
 export function activar(on = true) {
   I.on = !!on; I.puesto = false; I.lugar = null;
-  objetivo.reiniciar(); teatro.reiniciar(); MARCA.on = false;
+  objetivo.reiniciar(); teatro.reiniciar(); MARCA.on = false; clima.reiniciar(); frio.reiniciar();
   if (I.on) mundo.cargar();
   return I.on;
 }
@@ -196,7 +199,8 @@ export function pasoPasillo(dt) {
   geoExterna.on = true; geoExterna.sinRoce = true;
   // EL VIRAJE: lo de costado se vuelve rumbo, con peso
   const pide = Math.max(-1, Math.min(1, plane.vx / VX_FONDO)) * GIRO_MAX;
-  P3.giro += (pide - P3.giro) * Math.min(1, dt / GIRO_T);
+  // (CON HIELO EN LAS ALAS cuesta virar: el viraje pierde hasta HIELO.CONTROL — systems/frio.js)
+  P3.giro += (pide * (1 - HIELO.CONTROL * (run.hielo || 0)) - P3.giro) * Math.min(1, dt / GIRO_T);
   P3.yaw += P3.giro * dt;
   plane.x = 0;
   // la correa del borde del mapa, como siempre
@@ -221,6 +225,7 @@ export function pasoPasillo(dt) {
   teatro.armar();
   teatro.paso(dt, { x: P3.x, z: P3.z, g: P3.g, yaw: P3.yaw, y: plane.y }, enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, estallido, S.state === 'play');
   avisosRadar();
+  tiempo(dt);
   // LAS OLEADAS DEL RADAR SALEN DEL RADAR (20/11, el autor: "deben provenir de diversas zonas"): el Sea Dart que
   // larga la barra llena (flight.js) nace 230 m adelante en el carril; en las islas se lo corre hacia el buque del
   // radar que te ve —en su direccion, hasta 900 m— y sale de ahi con su humo. Si el buque quedo atras, como siempre.
@@ -431,6 +436,44 @@ export function mapaIr(u, v) {
   const o = mundo.org(), [ax, az] = mapa.deUV(u, v);
   P3.x = ax - o[0]; P3.z = az - o[1];
   P3.g = Math.max(mundo.sueloH(P3.x, P3.z), 0); plane.y = 40; plane.vy = 0;
+}
+
+/** EL CLIMA SOBRE EL AVION (systems/islas/clima.js, data/islas_clima.js): el viento lo corre sobre el mapa y lo
+ *  sacude con sus rafagas; el frio y la humedad le juntan HIELO, que pesa (hay que darle gas para sostenerse) y se va
+ *  en aire mas caliente; con mucho frio el cañon neumatico recarga lento. Y los carteles del clima nuevo. */
+function tiempo(dt) {
+  clima.paso(dt);
+  const c = clima.ahora();
+  if (!c) return;
+  const nuevo = clima.tomarAviso();
+  if (nuevo) cartel(T('islasClima', { n: getLang() === 'en' ? nuevo.en : nuevo.n }), P.accent, T('islasClimaSub', { v: Math.round(c.viento * 1.94), t: Math.round(temperatura().c) }));
+  if (S.state !== 'play') return;
+  // EL VIENTO: corre al avion (un tercio de lo que sopla: el resto ya lo come el rumbo) y las rafagas lo sacuden
+  P3.x += c.vx * dt * 0.35; P3.z += c.vz * dt * 0.35;
+  if (c.rafagas > 0.05) {
+    P3.raf = (P3.raf || 0) + dt;
+    const g = Math.sin(P3.raf * 1.7) * Math.sin(P3.raf * 4.3 + 1.1) * Math.sin(P3.raf * 0.9);
+    plane.vy += g * c.rafagas * 22 * dt;
+    if (Math.abs(g) > 0.55) run.shake = Math.max(run.shake || 0, c.rafagas * 2.2);
+  }
+  // EL FRIO (systems/frio.js, el mismo del pasillo): el hielo, el cañon, la turbulencia del frente frio. La capa de
+  // nubes de las islas va de 690 a 870 m (terreno3d.js CB/CT); la lluvia y la nieve caen DEBAJO de ella; arriba el
+  // aire es seco
+  const t = temperatura(), alto = P3.g + plane.y;
+  const enNube = alto > 690 && alto < 870, seco = alto >= 870;
+  frio.paso(dt, { temp: t.c, enNube, seco, rasante: plane.y < HIELO.RASANTE && P3.g <= 0.3,
+    humedo: enNube || (!seco && (c.lluvia > 0.5 || c.nieve > 0.5)) || (c.bruma > 2.5 && plane.y < 150),
+    sacude: Math.max(c.tormenta, Math.max(0, c.lluvia - 1.5)) });
+}
+/** El clima de ahora (systems/islas/clima.js) para game.js: la lluvia, la nieve y la tormenta del pasillo. */
+export const climaAhora = () => (enPasillo() && I.puesto ? clima.ahora() : null);
+/** LA TEMPERATURA EXTERIOR (°C) donde esta el avion: la del clima al nivel del mar, menos GRADIENTE cada 1000 m;
+ *  y el hielo juntado (0..1). La muestra el reloj de temperatura del tablero (render/hud.js). */
+export function temperatura() {
+  const c = clima.ahora();
+  if (!enPasillo() || !c) return null;
+  const alto = P3.g + Math.max(plane.y, 0);
+  return { c: c.temp - GRADIENTE * alto / 1000, hielo: run.hielo || 0, canon: run.frioCanon || 0 };
 }
 
 /** LAS ZONAS DE RADAR, en carteles (teatro.js `zona` y sus eventos): entrar a una, que te vean, que vengan. */

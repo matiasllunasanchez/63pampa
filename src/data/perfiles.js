@@ -11,6 +11,11 @@
 //   bancoKm    cada cuantos km se abre el banco suelto (sin decir: BANCO_KM, data/banco_suelto.js)
 //   grupos     cuanto mas (o menos) sale cada grupo de cartas en el sorteo del banco (1 = igual)
 //   fallasK    cuanto mas (o menos) probable es que salga con fallas (data/fallas.js, las bases × esto)
+//   frio       el FRIO y el clima (data/frio.js, systems/frio.js; 1 = como el A-4B): `hielo` cuanto hielo junta
+//              (menos con antihielo: el C-130 tenia aire caliente en bordes y tomas), `canon` cuanto le afecta el
+//              frio al cañon (el Colt Mk 12 del A-4 era neumatico; los DEFA de 30 mm, a gas), `sal` en el parabrisas,
+//              `arranque` fallas al salir de una base helada, `turbulencia` cuanto lo sacude el frente frio.
+//              Investigacion y fuentes: docs/historia/CLIMA_FRIO_AVIONES.md (lo marcado ⚠ alla es diseño)
 //
 // Lo historico que sostiene algunas: el A-4 era un avion viejo y con repuestos cortados por el embargo (mas
 // fallas); de los Super Etendard no se perdio ninguno (menos fallas). El resto es diseño de juego.
@@ -26,34 +31,37 @@ export const MANIOBRAS = {
   pesado: ['mask', 'climb', 'climbmax', 'dive', 'divemax'],
 };
 
-const BASE = { maniobras: 'agil', rolido: 1, bancoKm: null, grupos: {}, fallasK: 1 };
+const BASE = { maniobras: 'agil', rolido: 1, bancoKm: null, grupos: {}, fallasK: 1, frio: {} };
 
 export const PERFILES = {
   // los SKYHAWK: el caballo de tiro. Todo, la base de todo; el banco le tira bombas y taller, y se rompe mas
   sky: { fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 } },
-  a4q: { fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 } },
+  a4q: { fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 }, frio: { arranque: 1.1 } },
   // el DAGGER: rapido y nervioso, de ala delta. Rola un poco menos y no hace las de giro largo; el banco, cañon
-  dagger: { maniobras: 'rigido', rolido: 0.9, grupos: { armas: 1.6 } },
+  dagger: { maniobras: 'rigido', rolido: 0.9, grupos: { armas: 1.6 }, frio: { canon: 0.5, turbulencia: 0.9 } },
   // el SUPER ETENDARD: el del Exocet. Menos cartas (cada 8 km) pero inteligencia; casi no falla
-  supere: { rolido: 0.9, bancoKm: 8, grupos: { inteligencia: 2 }, fallasK: 0.5 },
+  supere: { rolido: 0.9, bancoKm: 8, grupos: { inteligencia: 2 }, fallasK: 0.5, frio: { canon: 0.5, arranque: 0.7 } },
   // el MIRAGE 5P: el mas rapido y el mas duro de rolar; armas y defensa
-  mirage: { maniobras: 'rigido', rolido: 0.85, grupos: { armas: 1.4, defensa: 1.3 } },
+  mirage: { maniobras: 'rigido', rolido: 0.85, grupos: { armas: 1.4, defensa: 1.3 }, frio: { canon: 0.5, turbulencia: 0.9 } },
   // los LIVIANOS: rolan rapido, hacen todo, y el banco abre mas seguido (baratos, faciles de atender)
-  pucara: { rolido: 1.35, bancoKm: 5 },
-  mb339: { rolido: 1.3, bancoKm: 5 },
-  pampa: { rolido: 1.25, bancoKm: 5 },
+  pucara: { rolido: 1.35, bancoKm: 5, frio: { canon: 0.8, sal: 0.5, arranque: 1.5, turbulencia: 1.3 } },
+  mb339: { rolido: 1.3, bancoKm: 5, frio: { canon: 0.5, arranque: 1.4, turbulencia: 1.3 } },
+  pampa: { rolido: 1.25, bancoKm: 5, frio: { canon: 0.5, arranque: 0.8, turbulencia: 1.2 } },
   // el HERCULES: 70 toneladas. Nada acrobatico, rola lentisimo; el banco le da municion, taller y chapa
-  herc: { maniobras: 'pesado', rolido: 0.25, grupos: { taller: 1.6, defensa: 1.5 } },
+  herc: { maniobras: 'pesado', rolido: 0.25, grupos: { taller: 1.6, defensa: 1.5 }, frio: { hielo: 0.2, sal: 0.6, arranque: 0.8, turbulencia: 0.5 } },
   // los de patrulla y transporte de las secundarias
-  neptune: { maniobras: 'pesado', rolido: 0.3 },
-  guarani: { maniobras: 'pesado', rolido: 0.35 },
+  neptune: { maniobras: 'pesado', rolido: 0.3, frio: { hielo: 0.4, sal: 0.7, arranque: 1.3, turbulencia: 0.6 } },
+  guarani: { maniobras: 'pesado', rolido: 0.35, frio: { turbulencia: 0.9 } },
   // el ESCUADRON FENIX (civiles): rolan como lo que son, ejecutivos
-  learjet: { maniobras: 'rigido', rolido: 0.7 },
-  citation: { maniobras: 'rigido', rolido: 0.7 },
-  merlin: { maniobras: 'rigido', rolido: 0.65 },
-  mu2: { maniobras: 'rigido', rolido: 0.7 },
-  aerostar: { maniobras: 'rigido', rolido: 0.75 },
-  commander: { maniobras: 'rigido', rolido: 0.65 },
+  learjet: { maniobras: 'rigido', rolido: 0.7, frio: { hielo: 0.3, arranque: 0.8, turbulencia: 0.8 } },
+  citation: { maniobras: 'rigido', rolido: 0.7, frio: { hielo: 0.4, turbulencia: 0.9 } },
+  merlin: { maniobras: 'rigido', rolido: 0.65, frio: { hielo: 0.4 } },
+  mu2: { maniobras: 'rigido', rolido: 0.7, frio: { hielo: 0.6, turbulencia: 0.9 } },
+  aerostar: { maniobras: 'rigido', rolido: 0.75, frio: { hielo: 0.7, turbulencia: 1.1 } },
+  // los CHINOOK (sin armas en el juego): rotores sin antihielo, mojados y sacudidos
+  chinook_faa: { frio: { hielo: 1.5, sal: 0.8, arranque: 1.3, turbulencia: 1.4 } },
+  chinook_ej: { frio: { hielo: 1.5, sal: 0.8, arranque: 1.3, turbulencia: 1.4 } },
+  commander: { maniobras: 'rigido', rolido: 0.65, frio: { hielo: 0.5 } },
 };
 
 /** El perfil del avion `key` (con los valores por defecto donde no dice). */

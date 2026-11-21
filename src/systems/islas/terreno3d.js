@@ -14,6 +14,8 @@
 // Se cuelga de la escena del arena (systems/three-arena.js) como una malla mas, con renderOrder bajo
 // y depthFunc ALWAYS: es el fondo y lo escribe todo; lo demas se prueba contra su profundidad.
 import * as mundo from './mundo.js';
+import * as clima from './clima.js';
+import { fogonazoTormenta } from '../tormenta.js';
 
 const THREE = window.THREE || null;
 
@@ -62,6 +64,8 @@ uniform vec2 uMap; uniform vec2 uOrg;
 uniform vec3 uCam; uniform vec3 uCR; uniform vec3 uCU; uniform vec3 uCF;
 uniform vec2 uTan; uniform vec2 uRes; uniform vec2 uNF; uniform vec2 uPP; uniform float uFoc;
 uniform float uTime; uniform float uTile; uniform float uHMax;
+// EL CLIMA (systems/islas/clima.js): el mar, la bruma, la capa de nubes, la luz, la linea de nieve y el relampago
+uniform float uMar; uniform float uBruma; uniform float uNubes; uniform float uOscuro; uniform float uNieveH; uniform float uFlash;
 uniform vec3 uSun; uniform vec3 uJSd;
 uniform vec3 uJP; uniform vec3 uJR; uniform vec3 uJU; uniform vec3 uJF; uniform float uJS;
 uniform vec3 uPal[84];
@@ -85,7 +89,7 @@ const vec3 SHDT = vec3(0.50, 0.53, 0.60);
 ${mundo.DET_AMP_GLSL}
 vec2 muv(vec2 xz){ return (xz + uOrg)/uMap; }
 float hgt(vec2 xz){ float c = textureLod(uHeight, muv(xz), 0.0).r; return c + detAmp(c)*textureLod(uDetail, xz/uTile, 0.0).r; }
-float cov(vec2 xz){ vec4 c = textureLod(uCloud, xz/uTile, 0.0); return clamp(c.r + (c.g-0.5)*0.6*c.r, 0.0, 1.0); }
+float cov(vec2 xz){ vec4 c = textureLod(uCloud, xz/uTile, 0.0); float k = c.r + uNubes*(0.35 + 0.65*vnoise(xz/2600.0)); return clamp(k + (c.g-0.5)*0.6*k, 0.0, 1.0); }
 float ctopAt(vec2 xz, float c){ float bl = vnoise(xz/90.0)*0.6 + vnoise(xz/30.0)*0.4; return CB + 8.0 + 70.0*pow(c, 0.8) + (bl-0.45)*40.0*sqrt(c); }
 float cbot(float c){ return CB + 34.0*(1.0-c)*(1.0-c); }
 bool inCloud(vec3 q){ float c = cov(q.xz); return c > 0.03 && q.y < ctopAt(q.xz, c) && q.y > cbot(c); }
@@ -93,7 +97,7 @@ bool inCloud(vec3 q){ float c = cov(q.xz); return c > 0.03 && q.y < ctopAt(q.xz,
 vec3 hazeCol(vec3 rd){
   vec2 h = rd.xz; float hl = length(h);
   float a = hl > 1e-4 ? dot(h/hl, normalize(uSun.xz))*0.5+0.5 : 0.5;
-  vec3 c = mix(vec3(0.58,0.61,0.66), vec3(0.70,0.70,0.68), smoothstep(0.4, 1.0, a));
+  vec3 c = mix(vec3(0.58,0.61,0.66), vec3(0.70,0.70,0.68), smoothstep(0.4, 1.0, a)) * (1.0 - 0.32*uOscuro);
   // a thin pale break under the overcast, low on the horizon toward the hidden sun
   float band = (1.0 - smoothstep(0.0, 0.045, abs(rd.y - 0.012))) * smoothstep(0.82, 1.0, a);
   return mix(c, vec3(0.86,0.83,0.72), band*0.55);
@@ -109,7 +113,12 @@ vec3 skyBase(vec3 rd){
   float a = dot(h/hl, normalize(uSun.xz))*0.5+0.5;
   vec3 deck = mix(vec3(0.36,0.38,0.44), vec3(0.60,0.62,0.66), smoothstep(0.25, 0.75, n));
   deck = mix(deck, vec3(0.74,0.74,0.72), smoothstep(0.6, 0.85, n)*smoothstep(0.6, 1.0, a)*0.6);
-  return mix(deck, hz, clamp(1.0 - exp(-t*0.00011), 0.0, 1.0));
+  deck *= 1.0 - 0.45*uOscuro;   // (el temporal: la capa se pone plomo)
+  // (DESPEJADO: la capa se abre en huecos de cielo frio y palido)
+  float abre = clamp(-uNubes*2.4, 0.0, 1.0);
+  vec3 celeste = mix(vec3(0.62,0.72,0.84), vec3(0.42,0.56,0.76), clamp(rd.y*2.5, 0.0, 1.0));
+  deck = mix(deck, celeste, abre*smoothstep(0.62, 0.38, n));
+  return mix(deck, hz, clamp(1.0 - exp(-t*0.00011*uBruma), 0.0, 1.0));
 }
 vec3 sky(vec3 rd, float b){ return skyBase(rd); }
 float jetSh(vec3 p){
@@ -178,7 +187,7 @@ vec3 shadeLand(vec3 p, float t, float b){
   rock = max(rock, smoothstep(540.0, 650.0, h + (nz-0.5)*60.0)*0.8);
   alb = mix(alb, mix(vec3(0.54,0.55,0.58), vec3(0.40,0.41,0.46), nz2), rock);
   // winter snow on the high ground, patchy lower down in the lee of slopes
-  float snow = smoothstep(390.0, 470.0, h + (nz-0.5)*120.0 + (nz2-0.5)*40.0) * (1.0 - smoothstep(0.42, 0.6, slope));
+  float snow = smoothstep(uNieveH, uNieveH + 80.0, h + (nz-0.5)*120.0 + (nz2-0.5)*40.0) * (1.0 - smoothstep(0.42, 0.6, slope));
   snow = max(snow, smoothstep(0.72, 0.8, vnoise(p.xz/160.0) + (nz-0.5)*0.2) * smoothstep(250.0, 360.0, h) * (1.0 - smoothstep(0.2, 0.35, slope)));
   alb = mix(alb, vec3(0.88,0.89,0.91), snow);
   // LA VEGETACION DE CERCA (20/11, el autor: "agregar terreno, vegetacion y demas cuando estoy cerca, como el
@@ -223,9 +232,9 @@ vec3 shadeLand(vec3 p, float t, float b){
 // bajo (la costa no rompe a un metro de altura). Alrededor de un metro: el oleaje del pasillo.
 float olaAmp(vec2 q){ return smoothstep(0.5, 8.0, max(-hgt(q), 0.0)); }
 float ola(vec2 q){
-  float tt = uTime;
-  float h = 0.55*sin(q.x*0.060 + q.y*0.018 - tt*1.40) + 0.35*sin(q.x*0.110 - q.y*0.070 - tt*2.10 + 1.3)
-          + 0.22*sin(q.x*0.023 + q.y*0.051 - tt*0.85) + (vnoise(q*0.12 - vec2(tt*0.5, 0.0)) - 0.5)*0.45;
+  float tt = uTime*(0.8 + 0.25*uMar);
+  float h = uMar*0.55*sin(q.x*0.060 + q.y*0.018 - tt*1.40) + uMar*0.35*sin(q.x*0.110 - q.y*0.070 - tt*2.10 + 1.3)
+          + uMar*0.22*sin(q.x*0.023 + q.y*0.051 - tt*0.85) + (vnoise(q*0.12 - vec2(tt*0.5, 0.0)) - 0.5)*0.45*uMar;
   return h;
 }
 vec3 olaNormal(vec2 q, float a){
@@ -264,7 +273,8 @@ vec3 shadeWater(vec3 p, vec3 rd, float t, float b){
   vec2 cq = vec2((q.x - tt*7.0)/16.0, q.y/5.0);
   vec2 ci = floor(cq), cf = fract(cq) - 0.5;
   float life = fract(tt*0.3 + hash12(ci)*7.0);
-  float cap = step(0.965, hash12(ci + 3.1)) * step(life, 0.5) * smoothstep(4.0, 12.0, dep)
+  // (el mar grueso: mas espuma — 0,965 calmo, ~0,88 en el temporal)
+  float cap = step(0.985 - 0.04*uMar, hash12(ci + 3.1)) * step(life, 0.5) * smoothstep(4.0, 12.0, dep)
             * step(length(cf*vec2(1.0, 2.2)), 0.45) * (1.0 - smoothstep(600.0, 1800.0, t));
   if (cap*(1.0 - life*1.4) > b*0.8) wc = mix(wc, vec3(0.86,0.88,0.88), 0.85);
   // surf along the shore
@@ -351,11 +361,14 @@ void main(){
   else col = sky(rd, b);
   if (tHit < 1e8) {
     float avgY = max(0.5*(ro.y + hp.y), 0.0);
-    float fd = 1.0 - exp(-tHit*0.00032*exp(-avgY/2200.0));
-    fd = max(fd, smoothstep(8000.0, FARD, tHit));
+    float fd = 1.0 - exp(-tHit*0.00032*uBruma*exp(-avgY/2200.0));
+    fd = max(fd, smoothstep(8000.0/max(uBruma, 0.6), FARD/max(uBruma*0.8, 0.6), tHit));
     col = mix(col, hazeCol(rd), fd);
     gl_FragDepth = depthFor(tHit, rd);
   } else gl_FragDepth = 1.0;
+  // (la luz del cielo cubierto se apaga con el temporal; el relampago la prende de golpe)
+  col *= 1.0 - 0.28*uOscuro;
+  col = mix(col, vec3(0.92, 0.94, 1.0), uFlash*0.55);
   oCol = vec4(paleta(col), 1.0);
 }`;
 
@@ -390,6 +403,7 @@ export function crear(escena) {
     uTan: { value: new THREE.Vector2() }, uRes: { value: new THREE.Vector2() }, uNF: { value: new THREE.Vector2() },
     uPP: { value: new THREE.Vector2() }, uFoc: { value: 1 },
     uTime: { value: 0 }, uTile: { value: mundo.TILE }, uHMax: { value: mundo.hmax() },
+    uMar: { value: 1 }, uBruma: { value: 1 }, uNubes: { value: 0 }, uOscuro: { value: 0 }, uNieveH: { value: 390 }, uFlash: { value: 0 },
     uSun: { value: new THREE.Vector3(...mundo.SUN) },
     uJSd: { value: new THREE.Vector3(mundo.SUN[0] * 0.5, 1, mundo.SUN[2] * 0.5).normalize() },
     uJP: { value: vec() }, uJR: { value: vec() }, uJU: { value: vec() }, uJF: { value: vec() },
@@ -428,6 +442,10 @@ export function frame(cam, w, A, res) {
   else { U.uPP.value.set(res.x / 2, res.y / 2); U.uFoc.value = (res.y / 2) / tanY; }
   U.uNF.value.set(cam.near, cam.far);
   U.uTime.value = w.t || 0;
+  // EL CLIMA (systems/islas/clima.js) y el fogonazo del relampago (systems/tormenta.js, el del pasillo)
+  const cl = clima.ahora();
+  if (cl) { U.uMar.value = cl.olas; U.uBruma.value = cl.bruma; U.uNubes.value = cl.nubes; U.uOscuro.value = cl.oscuro; U.uNieveH.value = cl.nieveH; }
+  U.uFlash.value = cl && cl.tormenta > 0.3 ? fogonazoTormenta() : 0;
   // la sombra del avion: su posicion y su base (derecha, arriba, adelante) con el alabeo
   const f = A.fwd, cy = Math.cos(A.yaw), sy = Math.sin(A.yaw);
   const r0 = { x: cy, y: 0, z: sy };                                   // derecha sin alabeo

@@ -20,6 +20,8 @@ import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as reparar
 import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
 import { leeDe } from './data/cartas_lee.js';
 import { perfilDe, puedeManiobra } from './data/perfiles.js';
+import * as frio from './systems/frio.js';
+import { ALTO } from './data/tuning.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -158,7 +160,7 @@ import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // A
 import * as menus from './render/menus.js';
 import { drawMapaIslas, marco as marcoMapa } from './render/islas_mapa.js';
 import { drawRedIslas, drawAmenazas } from './render/islas_radar.js';
-import { stepRain, stepSpray, drawRain, RAIN_N } from './render/rain.js';
+import { stepRain, stepSpray, drawRain, RAIN_N, modoNieve } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
 import { setNiebla, luzDelCielo } from './render/borde.js';
 import * as chafita from './render/chafita.js';
@@ -619,11 +621,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // volvieron a la base: { n, t } (t = lo que les falta para volver reparados).
     const fallasDe = n => (run.fallasFlota && run.fallasFlota[n]) || {};
     /** El grado de la falla `id` del avion que vuela (0 fuera de los modos sueltos). */
-    const falla = id => (suelto() ? fallasDe(alMando(run))[id] || 0 : 0);
+    const falla = id => (suelto() || islas.enPasillo() ? fallasDe(alMando(run))[id] || 0 : 0);   // (y en LAS ISLAS: el arranque en frio)
     /** UNA SALIDA NUEVA: cada avion tira su dado (suma a lo que ya traia; los de la base vuelven sanos). */
     function tirarFlota() {
       if (!run.fallasFlota) run.fallasFlota = [];
-      const fk = perfilDe(PLANES[selPlane] && PLANES[selPlane].key).fallasK;   // el A-4 falla mas, el Super Etendard menos
+      // (…y EL FRIO EN LA BASE las hace mas probables — data/frio.js ARRANQUE: los fluidos y los retenes)
+      const fk = perfilDe(PLANES[selPlane] && PLANES[selPlane].key).fallasK * frio.arranqueK(frio.tempPasillo(cfg, 0));   // el A-4 falla mas, el Super Etendard menos
       for (let i = 0; i < run.squad; i++) run.fallasFlota[i] = tirarFallas(run.fallasFlota[i] || {}, Math.random, fk);
     }
     /** El cartel con las fallas del numeral `n` (al cambiar de avion, al arrancar). */
@@ -978,7 +981,22 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let libreAntes = false;   // la ZONA LIBRE del arranque de los modos sueltos: al salir, se avisa que entra el radar
     let radarScanT = -1;             // run.t del ultimo cruce HACIA ADENTRO del radar (el escaneo), -1 = ninguno
     // EL ALCANCE DEL RADAR ENEMIGO: el del pasillo (la ruta), o en LAS ISLAS la zona de un radar britanico
-    let islasArribaAntes = false;     // LAS ISLAS: el cuadro anterior estabas arriba del techo del radar (el barrido al cruzarlo)
+    let islasArribaAntes = false;
+    let fallasFrioHechas = false;   // LAS ISLAS: ya se tiro el dado del arranque en frio en esta corrida
+    let climaAntes = null;   // cfg.rain / cfg.sky de antes de entrar a las islas (se devuelven al salir)
+    function climaIslas() {
+      const c = islas.enPasillo() ? islas.climaAhora() : null;
+      if (!c) {
+        if (climaAntes) { cfg.rain = climaAntes.rain; if (cfg.sky !== climaAntes.sky) { cfg.sky = climaAntes.sky; applyCfg(); } climaAntes = null; modoNieve(false); }
+        return;
+      }
+      if (!climaAntes) climaAntes = { rain: cfg.rain, sky: cfg.sky };
+      cfg.rain = Math.max(0, Math.min(3, Math.round(c.lluvia)));
+      modoNieve(c.nieve > 0.5);
+      // (la tormenta del pasillo: relampagos, truenos y su ambiente; el cielo 2D no se ve en las islas)
+      const sky = c.tormenta > 0.5 ? 'storm' : climaAntes.sky === 'storm' ? 'cloudy' : climaAntes.sky;
+      if (cfg.sky !== sky) { cfg.sky = sky; applyCfg(); }
+    }     // LAS ISLAS: el cuadro anterior estabas arriba del techo del radar (el barrido al cruzarlo)
     const radarAlcance = () => (islas.enPasillo() ? islas.radarZonaGb() : rutaSys.enAlcance());
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
@@ -3057,6 +3075,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       const avSel = PLANES[selPlane];
       run.vuelo = (avSel && avSel.vuelo) || null;
       run.rolidoK = perfilDe(avSel && avSel.key).rolido;   // el giro libre [Q]/[E] de ESTE avion (data/perfiles.js)
+      frio.reiniciar(); frio.avion(perfilDe(avSel && avSel.key).frio);   // EL FRIO de ESTE avion (data/perfiles.js `frio`)
+      fallasFrioHechas = false;
       run.canon = (avSel && avSel.canon) || null;
       run.calibre = calibreDe(avSel && avSel.key);   // 20 o 30 mm contra los sistemas del buque (PLAN_DEFENSAS_BUQUE)
       run.sinCanon = !!(avSel && avSel.sinCanon);   // los que no tenian armas (el Fenix, el Neptune): sin cañon
@@ -5756,7 +5776,18 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LOS MODOS SUELTOS: la presion del mundo cuadro a cuadro, y el RADAR SIEMPRE (16/10): sin ruta no
       // hay "entrar en alcance", asi que el barrido verde y su sonido salen al empezar a volar
       if (suelto() && (S.state === 'play' || S.state === 'takeoff')) aplicarPresion();
-      if (S.state === 'play' && !islas.enPasillo()) { stepBanco(dt); stepFallas(dt); }   // el banco suelto: umbrales de puntos y la apertura en un momento seguro
+      if (S.state === 'play' && !islas.enPasillo()) { stepBanco(dt); stepFallas(dt); }
+      // LAS ISLAS: EL ARRANQUE EN FRIO (data/frio.js ARRANQUE) — con la base helada se sale con fallas mas seguido
+      if (islas.enPasillo() && islas.listo() && !fallasFrioHechas && islas.climaAhora()) {
+        fallasFrioHechas = true;
+        const t = islas.climaAhora().temp, k = frio.arranqueK(t);
+        if (!run.fallasFlota) run.fallasFlota = [];
+        const fk = perfilDe(PLANES[selPlane] && PLANES[selPlane].key).fallasK * k;
+        run.fallasFlota[alMando(run)] = tirarFallas({}, Math.random, fk);
+        const tx = textoFallas(fallasDe(alMando(run)), getLang());
+        if (tx) cartel(T(k > 1 ? 'frioArranque' : 'falla_avion'), P.warn, tx);
+      }
+      if (islas.enPasillo()) run.falCanon = falla('canon');   // el banco suelto: umbrales de puntos y la apertura en un momento seguro
       // (…recien AL SALIR de la zona sin radar del arranque — 18/10, el autor: "en POR LA PATRIA se escucha el
       // radar apenas arranca, en la zona fuera de radar, y no se ve": el sonido salia al empezar a volar y
       // el barrido, con razon, no. Ahora los dos esperan a `enAlcance`, que ya sabe de la zona libre)
@@ -5848,6 +5879,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (senas && S.state === 'play') senas.t += dt;   // el compañero que te hace señas
       if (senalGlobo && S.state === 'play') { senalGlobo.t += dt; if (senalGlobo.t > senalGlobo.sn.t + SENAL_GLOBO_T) senalGlobo = null; }
       else senalGlobo = null;
+      // EL CLIMA DE LAS ISLAS (systems/islas/clima.js) manda la lluvia, la nieve y la tormenta del pasillo —y con
+      // ellas su sonido—; al salir de las islas vuelven las de antes
+      climaIslas();
       stepRain(dt);   // igual que el horizonte: arriba de los early-return, o se congela en el relevo
       // stepSpray(dt);  — desactivado: el rebote de gotas no convencia visualmente
       // NIEBLA: los bancos se arman y se consumen con run.dist. Los avisos salen de un pulso de un
@@ -6625,7 +6659,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         climaxDist: lr === 'super' ? objectiveDist * curMission().lanzamiento : objectiveDist });
       squad.gastoLider(fuelAntes - run.fuel);
       // LA SAL EN EL PARABRISAS (17/11): pega volando bajo sobre el mar, se va volando alto; el M-60 la evita
-      if (stepSalitre(dt, run.sobreAgua, siliconadoDe(pichon)) === 'aviso') cartel(T('salitre'), '#d8d2bf', T('salitre_sub'));
+      // EL FRIO EN EL PASILLO (systems/frio.js): la temperatura del cielo y la altura, el hielo en las nubes o la
+      // lluvia, el cañon que se traba, la turbulencia del frente frio. (Las islas lo hacen con su clima; el tutorial no)
+      if (!islas.enPasillo() && !(libro && libro.tut)) {
+        const y = plane.y, nub = Math.abs(y - ALTO.NUBES) < ALTO.ESPESOR, seco = y >= ALTO.NUBES + ALTO.ESPESOR;
+        frio.paso(dt, { temp: frio.tempPasillo(cfg, y), enNube: nub, seco, rasante: y < 40 && run.sobreAgua,
+          humedo: nub || cfg.rain > 0 || (!!cfg.fog && y < 40), sacude: cfg.sky === 'storm' ? 1 : cfg.rain >= 2 ? 0.5 : 0 });
+      }
+      // (LA SAL, con el aire frio: data/frio.js SAL_T)
+      if (stepSalitre(dt * (frio.perfilAvion().sal ?? 1), run.sobreAgua && frio.salOk(), siliconadoDe(pichon)) === 'aviso') cartel(T('salitre'), '#d8d2bf', T('salitre_sub'));
       damage.humoAveria(dt);   // el avion roto larga humo (por debajo de AVERIA_HUMO de integridad)
       // EL ROTULO QUE PASA VOLANDO (render/rotulo.js): en el cuadro en que el poder RASANTE se
       // prende —y con el, cambia la camara—, la palabra cruza la pantalla. Reloj de pared.
@@ -7656,7 +7698,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // el destello propio del sol y se derramaria dos veces— y antes de los tintes y del HUD.
       // LA NOCHE (render/noche.js, 4/10): todo oscuro y la luz de cada fuente lo abre. Va ANTES del
       // resplandor, que de noche se pega mas fuerte: ahi la luz es todo lo que se ve.
-      const noche = nocheDe(cfg.sky);
+      const noche = islas.enPasillo() ? null : nocheDe(cfg.sky);   // (LAS ISLAS: el temporal es cielo plomo, no noche — la luz la pone su clima)
       // LA VISION DEL RADAR (ver mas abajo), DE NOCHE VA ANTES DE LA OSCURIDAD (4/10, el autor:
       // "oscurece el tinte verde del radar de noche"): asi la misma noche lo apaga, y queda un verde
       // tenue en vez de una pantalla verde encendida en medio de lo negro.
@@ -7716,7 +7758,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
         ctx.save(); ctx.scale(U, U); if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
-        radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(),
+        radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(), temp: islas.temperatura() || frio.estado(),
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
         // …el MOMENTO de soltar (titila en verde: la cinta, su avion, el altimetro y el estante) y

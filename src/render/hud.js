@@ -1551,6 +1551,41 @@ function relojFila(x, y, o) {
 }
 
 // ---------- LA BRUJULA (las islas) ----------
+// LA TEMPERATURA EXTERIOR (20/11, el autor: "otro indicador de temperatura exterior, perilla, grados centigrados, y
+// un icono que indique frio, templado y calor… prevencion de engelamiento"). LAS ISLAS: arriba de la brujula; en la
+// CABINA, en el relojito de arriba del panelito izquierdo (hornear_cabina.py `tablero_izq`, (-0,352; -0,262) r 0,030
+// sobre el tablero), proyectado con la camara del juego como las anclas (F 135, HOR 96): ANCLA_TEMP.
+// La escala va de -20 a +30 °C; la franja celeste es la del HIELO (+1 para abajo: con humedad, se junta). El icono:
+// un termometro azul con un copo (frio, hasta +2), verde (templado, hasta +15) o rojo con sol (calor). Con hielo
+// juntandose el borde va celeste, y critico cuando ya hay mucho.
+const ANCLA_TEMP = [143.53, 167.82, 8.22], T_MIN = -20, T_MAX = 30;
+function drawTemperatura(x, y, t) {
+  const f = c => (c - T_MIN) / (T_MAX - T_MIN), estado = t.c <= 2 ? 'frio' : t.c <= 15 ? 'templado' : 'calor';
+  const col = { frio: '#7fc8ff', templado: '#9fd27a', calor: '#ff7a4a' }[estado];
+  const ico = (ix, iy) => {
+    const bx = ix + 4, by = iy + CUADRO - 9;
+    // el termometro: el tubo y la bola, con el mercurio del color del estado
+    px(bx, by, 2, 6, '#2b3a42'); px(bx - 1, by + 5, 4, 3, '#2b3a42');
+    px(bx + 0.5, by + 2.5 - (estado === 'calor' ? 2 : estado === 'templado' ? 1 : 0), 1, 3.5 + (estado === 'calor' ? 2 : estado === 'templado' ? 1 : 0), col);
+    px(bx - 0.5, by + 5.5, 3, 2, col);
+    if (estado === 'frio') { ctx.strokeStyle = col; ctx.lineWidth = 0.6; for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3; ctx.beginPath(); ctx.moveTo(bx + 6 - Math.cos(a) * 2, by + 2 - Math.sin(a) * 2); ctx.lineTo(bx + 6 + Math.cos(a) * 2, by + 2 + Math.sin(a) * 2); ctx.stroke(); } }
+    else if (estado === 'calor') { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(bx + 6, by + 2, 1.3, 0, Math.PI * 2); ctx.fill(); }
+  };
+  const fn = () => relojFila(x, y, {
+    val: f(t.c), col: P.foam, ico, txt: Math.round(t.c) + '°', uni: 'C', txtCol: col,
+    zonas: [[0, f(1), '#5ab4ff']],
+    borde: t.hielo > 0.25 ? '#9fdcff' : null, critico: t.hielo > 0.6,
+  });
+  if (!enCabina() || enTablero) return fn();
+  // EN CABINA, a su relojito (el mismo traslado y escala que `alTablero`)
+  ctx.save();
+  ctx.translate(ANCLA_TEMP[0] / U, ANCLA_TEMP[1] / U);
+  const k = (ANCLA_TEMP[2] / U) / 12.5; ctx.scale(k, k);
+  ctx.translate(-(x + 13), -(y + 16));
+  enTablero = true; fn(); enTablero = false;
+  ctx.restore();
+}
+
 function drawBrujula(x, y, b) {
   alTablero(x, y, () => {
     plate(x, y, CUADRO, CUADRO);
@@ -2978,6 +3013,7 @@ export function drawHUD(h) {
   // OBJETIVO es un triangulo naranja en el borde con su distancia abajo.
   // (VA EN EL LUGAR DEL MACH: el hueco de al lado del gas es el de la Chancha, que en las islas tambien va)
   if (h.brujula) drawBrujula(X_MACH, CUADROS_Y, h.brujula);
+  if (h.temp) drawTemperatura(X_MACH, CUADROS_Y - CUADRO - 4, h.temp);
   marcaFalla(xVuelo(2), CUADROS_Y, gAl);
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).
