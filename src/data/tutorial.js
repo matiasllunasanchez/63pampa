@@ -221,12 +221,12 @@ export const TUTORIAL_ETAPAS = [
     consejos: { es: ['Gas de a toques: así se vuela al ras sin tocar el agua.', 'En PAUSA → CONTROLES están todos los botones.', 'Lo que sigue: ETAPA 2 · PELEAR.'],
       en: ['Tap the throttle: that is how you fly low without touching the sea.', 'PAUSE → CONTROLS lists every button.', 'Next up: STAGE 2 · FIGHT.'] } },
   // (las etapas 2 y 3 todavia son el tramo vacio de la fase 1: sus pasos llegan en las fases 4 y 5)
-  { ...base, id: 'tut2', etapa: 2, name: 'PELEAR',
+  { ...base, id: 'tut2', etapa: 2, name: 'PELEAR', musica: 'original:tangalfa',   // (21/11, el autor: "tangalfa para la etapa 2")
     desc: { es: 'El cañón, el calor, los Harriers y el tonel.', en: 'The cannon, the heat, the Harriers and the barrel roll.' },
     cfg: P({ sky: 'clear', terrain: 'sea' }), pasos: ETAPA2,   // (los poderes los prende el paso del RASANTE)
     consejos: { es: ['Ráfagas cortas: el cañón caliente se traba.', 'Ponete en la línea del blanco antes de tirar.', 'Lo que sigue: ETAPA 3 · LA PASADA Y LA VUELTA.'],
       en: ['Short bursts: a hot cannon jams.', 'Line up with the target before you fire.', 'Next up: STAGE 3 · THE PASS AND THE WAY HOME.'] } },
-  { ...base, id: 'tut3', etapa: 3, name: 'LA PASADA Y LA VUELTA',
+  { ...base, id: 'tut3', etapa: 3, name: 'LA PASADA Y LA VUELTA', musica: 'original:Malambo',   // (21/11, el autor: "etapa 3 malambo")
     desc: { es: 'La bomba, la vuelta y el aterrizaje.', en: 'The bomb, the way home and the landing.' },
     // EL BUQUE: un casco viejo, quieto y sin defensa, y todas las pasadas que hagan falta. Con vuelta: al
     // pegarle se vuelve, y al llegar, la aproximacion final de siempre (systems/fases.js `llegaste`)
@@ -243,7 +243,9 @@ export const TUTORIAL_ETAPAS = [
     cfg: P({ sky: 'dusk', terrain: 'sea', carga: 'tanques_bomba', radar: 'normal', fuelOn: true, fuelScale: 0.2 }), pasos: ETAPA3,   // (sin poderes: el RASANTE te clava al ras y no deja subir a soltar la bomba)
     consejos: { es: ['Volá por debajo del nivel del radar: si lo pasás, te ven.', 'Soltá la bomba alta y temprano.', 'Ya podés volar el LIBRO DE VUELO, en HISTORIA.'],
       en: ['Stay under the radar line: cross it and you get burned.', 'Drop the bomb high and early.', 'You can now fly the FLIGHT LOG, in CAMPAIGN.'] } },
+  // (21/11, el autor: "etapa de islas: fernetardo + virus rasante + carnavalitox + chamoide"): en ese orden, y vuelve a empezar
   { ...base, id: 'tut4', etapa: 4, name: 'LAS ISLAS', islas: true,
+    musica: 'lista:original/fenretardo.mp3|original/Virus Rasante.m4a|original/Carnavalitox.mp3|original/Chamoide.m4a',
     desc: { es: 'Aprendé a sobrevolar las islas.', en: 'Learn to fly over the islands.' },
     // EN VUELO sobre el estrecho de San Carlos (islas.js INICIO), con bomba y el radar del pasillo; sin nafta (la Chancha
     // ya se enseño). Un solo tramo largo: la etapa la cierran los pasos, como las otras

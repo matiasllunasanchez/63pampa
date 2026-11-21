@@ -9,16 +9,21 @@
 
 /** CUANTO SUENA CADA GRUPO: multiplica el volumen propio de cada sonido (`v` en data/sfx.js). La musica
  *  multiplica el volumen base de cada pista (audio.js). */
+// EL BALANCE MEDIDO (21/11, el autor: "analiza la relacion del volumen de las cosas del juego y ajustalo"): ffmpeg
+// ebur128 sobre cada archivo × su volumen en el codigo. Antes la musica de vuelo (-24,5 LUFS efectivos) era lo mas
+// fuerte del vuelo constante; el MOTOR a -43 (no se oia), agua/viento a -52, la metralla a -29, las explosiones
+// medianas/chicas a -28/-30 (DEBAJO de la musica) y la RADIO a -26, peleando con la musica. Objetivo: musica de
+// colchon a ~-27,5; voz ~-20; armas y explosiones arriba de la musica; motor y ambiente presentes sin tapar nada.
 export const MEZCLA = {
   musica: 1.5,      // (18/10, el autor: "priorizar la musica, un poco mas alta"; era 0.8, despues 1)
   // (18/10, el autor: "los sonidos de aviones y demas estan MUY FUERTES": vuelo y combate a ~60%, y el
   // ambiente y las explosiones se separaron a sus grupos para que respondan a su perilla)
-  vuelo: 0.13,      // TU avion: motor, poscombustion, el agua y el roce
-  combate: 0.15,    // TUS armas: metrallas, cañon, misiles, bombas, los golpes que recibis
-  ambiente: 0.16,   // el mundo: lluvia, tormenta, viento, la guerra a lo lejos
-  enemigo: 0.3,     // las explosiones y lo que lanzan los enemigos (18/10: "las explosiones un poco mas altas, el doble")
+  vuelo: 0.25,     // (21/11, era 0.13: el motor quedaba a -43 LUFS, inaudible; sube ~6 dB y queda a ~-37, bajo la musica — el 18/10 se habia pedido que no tape) TU avion: motor, poscombustion, el agua y el roce
+  combate: 0.2,     // (21/11, era 0.15: la metralla a -29 quedaba 5 dB bajo la musica; ahora a la par) TUS armas: metrallas, cañon, misiles, bombas, los golpes que recibis
+  ambiente: 0.25,   // (21/11, era 0.16) el mundo: lluvia, tormenta, viento, la guerra a lo lejos
+  enemigo: 0.6,     // (21/11, era 0.3; la extra pesada y los truenos bajaron en sfx.js) las explosiones y lo que lanzan los enemigos (18/10: "las explosiones un poco mas altas, el doble")
   atencion: 0.35,   // radares, detectando, alarma, Exocet, el lanzamiento del buque
-  voz: 0.5,         // la radio de los pilotos
+  voz: 1.0,         // (21/11, era 0.5: a la par de la musica; ahora ~7 dB arriba) la radio de los pilotos
   pantalla: 0.38,   // BIOS, tarjeta, teclas, ficha
 };
 

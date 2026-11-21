@@ -839,7 +839,7 @@ export const RAS_LATIDO = true;  // el latido bajo el silencio (RF-05)
 // EL TEATRO (RF-05). El poder SUSURRA: es el unico boost del juego que baja el volumen, y esa es
 // una de las cinco cosas que lo hacen suyo (§7). Los numeros salen del pedido de Matias del 23/8 —
 // "silencio, latido, motor del avion, ruido potente del agua, y quiza musica de concentracion":
-export const RAS_MUS = 0.07;     // la musica NO se apaga del todo: queda un hilo de concentracion
+export const RAS_MUS = 0.05;     // la musica NO se apaga del todo: queda un hilo de concentracion (21/11: 0.07 → 0.05, en proporcion a la base nueva de la musica)
                                  // debajo. Con cero se lee como un bug de audio, no como silencio
 export const RAS_AGUA = 1.9;     // el agua SUBE mientras todo lo demas baja. Es lo que hace que el
                                  // silencio se lea como "me acerque al mar" y no como una falla

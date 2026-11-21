@@ -42,7 +42,7 @@ export const SFX_DEF = {
   // cuerpos (atropellar soldados): uno al azar
   body: { f: ['body/body_hit0.wav', 'body/body_hit1.wav', 'body/body_hit2.wav', 'body/body_hit3.wav'], v: 0.75 },
   // explosiones por contexto
-  exXheavy: { f: ['explosions/xheavy_explosion0.wav', 'explosions/xheavy_explosion1.wav', 'explosions/xheavy_explosion3.wav', 'explosions/xheavy_explosion4.wav'], v: 0.9 },
+  exXheavy: { f: ['explosions/xheavy_explosion0.wav', 'explosions/xheavy_explosion1.wav', 'explosions/xheavy_explosion3.wav', 'explosions/xheavy_explosion4.wav'], v: 0.45 },
   exHeavy: { f: [1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => 'explosions/heavy_explosion' + i + '.wav'), v: 0.8 },
   exHeavyDist: { f: [0, 1, 2, 3].map(i => 'explosions/heavy_dist_explosion' + i + '.wav'), v: 0.7 },
   exMedium: { f: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => 'explosions/medium_explosion' + i + '.wav'), v: 0.7 },
@@ -59,7 +59,7 @@ export const SFX_DEF = {
   // silencio adelante y 0,4 al final).
   abInicio: { f: ['flying/motor/afterburner_start.mp3'], v: 0.5 },   // (18/10: mas bajo, con el turbo; era 0.55 → 0.22; 19/10, con el grupo mas bajo, 0.5)
   abSostenido: { f: ['flying/motor/afterburner_2.mp3'], v: 0.4, desde: 0.86, hasta: 32.8 },
-  waterNear: { f: ['flying/water_near_plane.mp3'], v: 0.22, loop: true },   // rasante, volumen bajo
+  waterNear: { f: ['flying/water_near_plane.mp3'], v: 0.44, loop: true },   // rasante, volumen bajo (21/11: 0.22 → 0.44, quedaba a -49 LUFS: no se oia el agua)
   waveFly: { f: ['flying/motor/wave_fly1.wav', 'flying/motor/wave_fly2.wav'], v: 0.27 },   // (18/10: la rafaga del esquive, mas baja; era 0.45)  // paso bajo sobre el agua
   // ROCE: pasar cerca de un obstaculo sin chocarlo. Tiene sonido PROPIO (antes compartia el del
   // paso sobre el agua): es la accion que mas puntos da por riesgo y necesita su propio premio
@@ -80,12 +80,12 @@ export const SFX_DEF = {
   //   doble  el estallido doble, seco y fuerte: la ola ya esta encima
   //   largo  el que crece y RUEDA (con un segundo retumbe a los 11 s): la ola a media distancia
   //   corto  el de lejos, breve
-  truenoDoble: { f: ['terrain/thunder/trueno_doble.mp3'], v: 1 },
-  truenoLargo: { f: ['terrain/thunder/trueno_largo.mp3'], v: 1 },
-  truenoCorto: { f: ['terrain/thunder/trueno_corto.mp3'], v: 1 },
+  truenoDoble: { f: ['terrain/thunder/trueno_doble.mp3'], v: 0.5 },   // (21/11: el bus enemigo se duplico; el trueno ya pegaba a -15)
+  truenoLargo: { f: ['terrain/thunder/trueno_largo.mp3'], v: 0.5 },   // (21/11: el bus enemigo se duplico; el trueno ya pegaba a -15)
+  truenoCorto: { f: ['terrain/thunder/trueno_corto.mp3'], v: 0.5 },   // (21/11: el bus enemigo se duplico; el trueno ya pegaba a -15)
   ambWarFar: { f: ['terrain/war_distant.mp3'], v: 0.32, loop: true },  // tierra, guerra lejana
   ambWarNear: { f: ['terrain/war_near_soldats.mp3'], v: 0.42, loop: true }, // soldados corriendo abajo
-  ambWind: { f: ['terrain/terrain_wind.mp3'], v: 0.3, loop: true },    // tierra vacia (tutorial/pruebas)
+  ambWind: { f: ['terrain/terrain_wind.mp3'], v: 0.6, loop: true },   // (21/11: 0.3 → 0.6, quedaba a -49 LUFS)    // tierra vacia (tutorial/pruebas)
   // VOCES DE PILOTO (assets/sfx/audios/pilots): grabaciones de radio que suenan en el RELEVO, el
   // momento en que un companero asume el mando tras un derribo. Una al azar por relevo.
   //

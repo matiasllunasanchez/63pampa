@@ -21,10 +21,18 @@ let AC = null, eng = null;
 // ver tools/build_web.py (mapea cada mp3 a su m4a, o descarta las que no entran).
 const MUSIC_LOBBY = '../assets/music/lobby.mp3';   // the_weight_of_honor — lobby en loop
 const MUSIC_GAME = '../assets/music/game.mp3';    // weight_of_honor_v2 — fondo del juego, volumen bajo
-const musLobby = new Audio(MUSIC_LOBBY); musLobby.loop = true; musLobby.volume = 0.42;
-const musGame = new Audio(MUSIC_GAME); musGame.loop = true; musGame.volume = 0.22;
+// LA BASE DE CADA MUSICA (21/11, medido con ebur128 — ver data/mezcla.js): el lobby (-12 LUFS de archivo) y la historia
+// (-13,6) sonaban 6-9 dB arriba de la musica de vuelo y el salto al entrar a jugar se notaba. Ahora: lobby ~-20, historia
+// ~-21, vuelo ~-27,5 (un colchon: la voz, las armas y las explosiones van arriba)
+const VOL_LOBBY = 0.27, VOL_STORY = 0.285, VOL_JUEGO = 0.155;
+// …Y LAS PISTAS SE EMPAREJAN: las de `original` rondan -15 LUFS de archivo, y game.mp3, zona_rasante y misty_malvinas
+// vienen ~2,5 dB mas fuertes. El recorte por nombre las deja todas en el mismo nivel (10^((-15,2 - LUFS)/20))
+const RECORTE = { 'game.mp3': 0.74, 'zona_rasante.m4a': 0.75, 'misty_malvinas.m4a': 0.73, 'gambeta.m4a': 1.13, 'gambeta2.m4a': 1.08 };
+const recorte = a => { try { const f = decodeURIComponent((a.src || '').split('/').pop()); return RECORTE[f] || 1; } catch (e) { return 1; } };
+const musLobby = new Audio(MUSIC_LOBBY); musLobby.loop = true; musLobby.volume = VOL_LOBBY;
+const musGame = new Audio(MUSIC_GAME); musGame.loop = true; musGame.volume = VOL_JUEGO;
 const MUSIC_STORY = '../assets/music/story.mp3';   // epic_himno — pantallas de HISTORIA
-const musStory = new Audio(MUSIC_STORY); musStory.loop = true; musStory.volume = 0.38;
+const musStory = new Audio(MUSIC_STORY); musStory.loop = true; musStory.volume = VOL_STORY;
 // EL SOUNDTRACK PROPIO (9/10/2026). Hasta hoy el reproductor llevaba un pool de once pistas
 // "pmetal" bajadas de afuera; el autor las BORRO del disco y dejo en `assets/music/soundtrack/`
 // las del soundtrack del juego. Esto es esa lista.
@@ -111,7 +119,18 @@ function fijarMision(nombre) {
   misionSrc = src; if (!musMision.src.endsWith(src.split('/').pop())) musMision.src = src;
   return true;
 }
-musMision.addEventListener('ended', () => { if (enMision && misionFija) { try { musMision.currentTime = 0; } catch (e) { } musMision.play().catch(() => { }); return; } if (enMision && sortearMision()) { musMision.play().catch(() => { }); syncPlayerBtn(); } });
+// UNA LISTA FIJA (`musica: 'lista:carpeta/archivo|carpeta/archivo|…'` — 21/11, el autor: "etapa de islas: fernetardo +
+// virus rasante + carnavalitox + chamoide"): suenan en ese orden y al terminar la ultima vuelve a la primera
+let misionLista = null, listaIdx = 0;
+function fijarLista(txt) {
+  const l = txt.split('|').map(s => s.trim()).filter(Boolean).map(r => '../assets/music/' + r.split('/').map(encodeURIComponent).join('/'));
+  if (!l.length) return false;
+  misionLista = l; listaIdx = 0; misionSrc = l[0]; musMision.src = l[0];
+  return true;
+}
+musMision.addEventListener('ended', () => {
+  if (enMision && misionLista) { listaIdx = (listaIdx + 1) % misionLista.length; misionSrc = musMision.src = misionLista[listaIdx]; musMision.play().catch(() => { }); syncPlayerBtn(); return; }
+  if (enMision && misionFija) { try { musMision.currentTime = 0; } catch (e) { } musMision.play().catch(() => { }); return; } if (enMision && sortearMision()) { musMision.play().catch(() => { }); syncPlayerBtn(); } });
 
 // PLAYLIST del REPRODUCTOR: la base del juego + el soundtrack, presentadas como TRACK 1..N.
 // Es la lista que se puede cambiar en vuelo (modos que NO son historia) y de la que la campaña
@@ -434,8 +453,8 @@ export function updateMusic(state) {
   }
   curTrack = want;
   // el lobby y la historia no tienen mezcla dinamica: su base por el grupo de la musica
-  if (want === musLobby) musLobby.volume = 0.42 * busGain('musica');
-  else if (want === musStory) musStory.volume = 0.38 * busGain('musica');
+  if (want === musLobby) musLobby.volume = Math.min(1, VOL_LOBBY * busGain('musica'));
+  else if (want === musStory) musStory.volume = Math.min(1, VOL_STORY * busGain('musica'));
   // mezcla dinamica: en MOMENTUM la musica se AHOGA (camara lenta, como bajo el agua) y
   // las explosiones grandes la agachan un instante (ducking). Lerp por frame → suave.
   //
@@ -448,7 +467,7 @@ export function updateMusic(state) {
   // salida —al soltar el poder— es la EXHALACION que pide el spec: el sonido volviendo solo. No
   // hace falta programarla; es la misma rampa leida al reves.
   // (16/10, el autor: "bajemos un poco la musica" — de 0.30 a 0.22, y lo demas en la misma proporcion)
-  const tv = (rasOn ? RAS_MUS : state === 'momentum' ? 0.07 : 0.22) * (duckT > 0 ? 0.45 : 1) * busGain('musica');
+  const tv = Math.min(1, (rasOn ? RAS_MUS : state === 'momentum' ? 0.05 : VOL_JUEGO) * (duckT > 0 ? 0.45 : 1) * busGain('musica') * recorte(gm));
   gm.volume += (tv - gm.volume) * 0.08;
   // LA MUSICA EN CAPAS (systems/capas.js) toma el lugar de la pista de la partida: la de siempre se calla
   if (capasOn && want === gm && !gm.paused) gm.pause();
@@ -464,7 +483,7 @@ export function capasSonando(v) { capasOn = !!v; }
 export function contextoAudio() { return ctxAudio(); }
 export function volumenMusicaJuego() {
   if (muted || musicaRetenida || enTarjeta || musPausa || inLobby(lastState)) return 0;
-  return (rasOn ? RAS_MUS : lastState === 'momentum' ? 0.07 : 0.22) * (duckT > 0 ? 0.45 : 1) * busGain('musica');
+  return (rasOn ? RAS_MUS : lastState === 'momentum' ? 0.05 : VOL_JUEGO) * (duckT > 0 ? 0.45 : 1) * busGain('musica');
 }
 function startMusicOnce(state) { if (musicStarted || muted || musicaRetenida) return; musicStarted = true; updateMusic(state || 'modeselect'); }
 
@@ -909,7 +928,9 @@ export function setRunMusic(isCampaign, level, keep, prueba, pista, mision) {
     // olds pero están en original, quiero probar; las de olds son MUY rápidas desde el inicio"): la campaña, las
     // pruebas y los modos sueltos tambien sortean de ahi. Para volver a lo de antes: SOLO_ORIGINAL = false.
     const fija = typeof pista === 'string' && pista.startsWith('original:') ? pista.slice(9) : null;
-    misionFija = !!fija && fijarMision(fija);
+    const lista = typeof pista === 'string' && pista.startsWith('lista:') ? pista.slice(6) : null;
+    misionLista = null;
+    misionFija = lista ? fijarLista(lista) : !!fija && fijarMision(fija);
     enMision = misionFija || ((SOLO_ORIGINAL || (!!mision && !prueba && pedida < 0)) && sortearMision());
     if (antes && !enMision && !musMision.paused) musMision.pause();
   }

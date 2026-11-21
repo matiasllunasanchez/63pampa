@@ -3197,7 +3197,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       setRunMusic(gameMode === 'campaign', curLevel, keepMusic, !!S.test,
         gameMode === 'campaign' ? (curMission() || {}).musica
           // (el TUTORIAL corre como 'cycle': su tema fijo de music/original llega igual — 21/11, karera2 en la etapa 1)
-          : libro && libro.tut && /^original:/.test((curMission() || {}).musica || '') ? curMission().musica : null,   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
+          : libro && libro.tut && /^(original|lista):/.test((curMission() || {}).musica || '') ? curMission().musica : null,   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
         !!libro || suelto());
     }
 
@@ -5741,7 +5741,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), momentumLleno: !tempo.active() && tempo.meterVal() >= 1, chancha: chancha.enCurso(),
         aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0, hielo: run.hielo || 0,
         marca: islas.marcado(), objIslas: !!islas.objetivoDe() && !islas.objetivoDe().vivo,
-        radio: radioVis() }, SCENES);
+        radio: radioVis(),
+        // (el tablero entero en pantalla: el paso que marca indicadores lo espera — systems/tutorial.js)
+        hud: (S.state === 'play' || S.state === 'landing' || (S.state === 'takeoff' && !!carrera)) && hudEntra >= 1 }, SCENES);
       if (!a) return;
       const decirLn = ln => ln && decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
       if (a.tipo === 'decir') {
