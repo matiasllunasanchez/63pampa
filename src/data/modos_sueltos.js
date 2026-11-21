@@ -21,11 +21,14 @@
 /** LAS DIFICULTADES, en el orden en que se recorren en la pantalla del avion (arriba/abajo).
  *  `aviones` = el escuadron (las vidas). `k` = cuanto pesa el mundo de entrada (multiplica la presion). */
 export const DIFICULTADES = [
-  { id: 'facil', es: 'FÁCIL', en: 'EASY', aviones: 8, k: 0.75 },
-  { id: 'normal', es: 'NORMAL', en: 'NORMAL', aviones: 6, k: 1 },   // (16/10: 8 / 6 / 3 / 1)
-  { id: 'dificil', es: 'DIFÍCIL', en: 'HARD', aviones: 3, k: 1.3 },
-  { id: 'gloria', es: 'CORONADO DE GLORIA', en: 'CROWNED IN GLORY', aviones: 1, k: 1.5 },
+  { id: 'facil', es: 'FÁCIL', en: 'EASY', aviones: 8, k: 0.75, ayudas: true },
+  { id: 'normal', es: 'NORMAL', en: 'NORMAL', aviones: 6, k: 1, ayudas: true },   // (16/10: 8 / 6 / 3 / 1)
+  { id: 'dificil', es: 'DIFÍCIL', en: 'HARD', aviones: 3, k: 1.3, ayudas: false },
+  { id: 'gloria', es: 'CORONADO DE GLORIA', en: 'CROWNED IN GLORY', aviones: 1, k: 1.5, ayudas: false },
 ];
+// `ayudas` (20/11, el autor: "las miras que marcan a los Harriers y al objetivo estan bien, pero deben ser quitables:
+// en realidad no tenian eso"): los INDICADORES DE AYUDA —el recuadro y las flechas de los Harriers, las esquinas
+// del objetivo— se ven en FACIL y NORMAL; en DIFICIL y CORONADO DE GLORIA, a ojo, como era.
 export const DIF_DEFAULT = 0;   // FACIL: cada vez que se abre el juego arranca aca (autor, 16/10)
 
 /** LA DIFICULTAD CRECIENTE (18/10, el autor: "la dificultad de POR LA PATRIA debe ser creciente y CICLO DE

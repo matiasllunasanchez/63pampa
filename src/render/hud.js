@@ -116,7 +116,10 @@ function cinta(o) {
     const libre = Math.max(0, W - MARGEN - (bx0 + total));
     linea += libre; ancho += libre; total += libre;
   }
-  const py = MARGEN, y = py + 5;                     // la fila, al medio de una placa de 11
+  // EN CABINA, SOBRE LA VISERA (20/11, el autor: "dentro de la cabina los indicadores deben aparecer debajo, dentro de
+  // la cabina, para no obstruir la vision, y el coso de arriba tambien"): la cinta baja del cielo a la chapa negra
+  // que corona el tablero
+  const py = enCabina() ? CINTA_CABINA_Y : MARGEN, y = py + 5;   // la fila, al medio de una placa de 11
   plate(bx0, py, ancho, 11);
   // LA SUELTA: es el momento de soltar → el borde de la cinta titila en verde (y el avion, abajo)
   const verde = !!o.solta && titilaSuelta();
@@ -733,7 +736,15 @@ export const HUD_TECHO = CUADROS_Y;
  *  de su contenido), asi que vale la del ultimo `drawHUD`. Devuelve null si el nombre no existe. */
 const Z_RELOJ = { salud: X_SALUD, nafta: X_NAFTA, mach: X_MACH, vel: xVuelo(0), horizonte: xVuelo(1),
   alt: xVuelo(2), gas: xVuelo(3), chancha: X_CHANCHA, canon: X_CANON };
+// EN CABINA cada reloj vive en su hueco del tablero (alTablero): su zona es ESE hueco, no el cuadro de la fila —si
+// no, los bordes rojos de los avisos y sus lengüetas caian en cualquier lado del tablero (20/11, el autor: "dentro
+// de la cabina algunas cosas se superponen, los bordes rojos a veces se superponen")
+const ANCLA_DE = { salud: 'salud', nafta: 'nafta', mach: 'mach', vel: 'velocidad', horizonte: 'adi', alt: 'altitud', gas: 'gas',
+  chancha: 'chancha', canon: 'canon', rack: 'rack' };
 export function zonaHud(id) {
+  const an = enCabina() && ANCLA_DE[id] ? CABINA_ANCLAS[ANCLA_DE[id]] : null;
+  if (an) return an.length === 4 ? { x: an[0] / U, y: an[1] / U, w: (an[2] - an[0]) / U, h: (an[3] - an[1]) / U }
+    : { x: (an[0] - an[2]) / U, y: (an[1] - an[2]) / U, w: 2 * an[2] / U, h: 2 * an[2] / U, redondo: true };
   if (id in Z_RELOJ) return { x: Z_RELOJ[id], y: CUADROS_Y, w: CUADRO, h: CUADRO };
   if (id === 'rack') return { x: X_RACK, y: CUADROS_Y, w: RACK_W, h: CUADRO };
   if (id === 'ruta') return cajaCinta ? { x: cajaCinta.x, y: MARGEN, w: cajaCinta.w, h: 11 } : null;
@@ -1192,11 +1203,20 @@ const CARTEL_Y = 13;   // cuanto baja: justo debajo de la cinta (11 de alto) con
 // los UI" — un cartel ancho (ARRANCASTE CON N CON FALLAS + su linea) le comia el borde: si no entra al lado,
 // baja hasta debajo de ella.
 const cajaIzq = { der: 0, abajo: 0 };
+// EN CABINA LOS CARTELES VAN ABAJO, sobre la consola (20/11: el parabrisas ya esta bastante tapado): la pila se
+// apoya en el borde de abajo y crece hacia arriba
+const CINTA_CABINA_Y = 79;
 function drawCartel() {
   // LA PILA (8/10): el primero va arriba, debajo de la cinta, y cada uno se apoya debajo del anterior.
   // La altura de cada lugar se SUAVIZA (c.y): cuando entra uno nuevo, los demas bajan, no saltan.
   let techo = MARGEN + CARTEL_Y;
-  for (const a of cartelesAhora(performance.now() / 1000)) {
+  const lista = cartelesAhora(performance.now() / 1000);
+  if (enCabina()) {
+    let alto = 0;
+    for (const a of lista) if (a.k > 0) alto += ((a.c.sub ? 12 + (a.c.alerta ? 8 : 4) + 2 : 12) + 2) * a.k;
+    techo = H - 3 - alto;
+  }
+  for (const a of lista) {
     if (a.k <= 0) continue;
     const h = drawUnCartel(a, techo);   // (devuelve lo que ocupo, contando si tuvo que bajar)
     techo += (h + 2) * a.k;
@@ -1223,7 +1243,7 @@ function drawUnCartel(a, techo) {
   const w = Math.round(Math.max(w1, w2) + (c.alerta ? 20 : 12)), h = c.sub ? 12 + SUB_PX + 2 : 12;
   // el lugar en la pila, suavizado (lo guarda el propio cartel del store: es estado de dibujo, nada mas)
   const x = Math.round(W / 2 - w / 2), techo0 = techo;
-  if (x < cajaIzq.der + 3 && techo < cajaIzq.abajo + 3) techo = cajaIzq.abajo + 3;
+  if (!enCabina() && x < cajaIzq.der + 3 && techo < cajaIzq.abajo + 3) techo = cajaIzq.abajo + 3;
   if (a.c.y == null) a.c.y = techo;
   a.c.y += (techo - a.c.y) * 0.25;
   // ENTRA Y SALE FUNDIDO, en su lugar (16/11): antes subia por detras de la placa de km y puntos y la pisaba
@@ -1727,7 +1747,9 @@ function bordesAvisos() {
     if (!avisoVivo(id) || avisos[id].nivel) continue;
     const z = zonaHud(id); if (!z) continue;
     ctx.strokeStyle = avisos[id].col; ctx.lineWidth = 1;
-    ctx.strokeRect(z.x + 0.5, z.y + 0.5, z.w - 1, z.h - 1);
+    // (en el tablero de la cabina el reloj es redondo: el borde es un aro)
+    if (z.redondo) { ctx.beginPath(); ctx.arc(z.x + z.w / 2, z.y + z.h / 2, z.w / 2, 0, Math.PI * 2); ctx.stroke(); }
+    else ctx.strokeRect(z.x + 0.5, z.y + 0.5, z.w - 1, z.h - 1);
   }
 }
 
@@ -2634,7 +2656,9 @@ export function drawHUD(h) {
     // proj() devuelve coordenadas de MUNDO (grilla 480x270) y el HUD razona en la de DISEÑO
     // (320x180): hay que dividir por U. Es el unico punto del HUD anclado al mundo.
     const pw = proj(plane.x, plane.y, PZ);
-    const s = { x: pw.x / U, y: pw.y / U };
+    // (EN CABINA no va pegado al avion —el avion es la camara y caia en el parabrisas—: abajo a la derecha, en la
+    // consola, al lado de los carteles — 20/11)
+    const s = enCabina() ? { x: W / 2 + 58, y: H - 4 } : { x: pw.x / U, y: pw.y / U };
     // TRES RENGLONES, de arriba a abajo: la palabra, la barra del pulso y —solo en RASANTE— el
     // temporizador de la ventana. Todo el cartelito subio 2 px para hacerle lugar al tercero.
     const bx = s.x + 25, by = s.y - 7;

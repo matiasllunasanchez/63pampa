@@ -342,6 +342,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let dificultad = DIF_DEFAULT;
     // la pantalla de la DIFICULTAD (despues del avion): el cursor recorre las cuatro y ATRAS
     let difSel = DIF_DEFAULT;
+    // LOS INDICADORES DE AYUDA (data/modos_sueltos.js `ayudas`): las marcas de los Harriers y del objetivo
+    const ayudas = () => DIFICULTADES[dificultad].ayudas !== false;
     let fichaScroll = 0;   // cuantos renglones bajo la ficha del avion (las flechas arriba/abajo)
     function difNav(dir) {
       const n = DIFICULTADES.length + 1;
@@ -976,6 +978,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let libreAntes = false;   // la ZONA LIBRE del arranque de los modos sueltos: al salir, se avisa que entra el radar
     let radarScanT = -1;             // run.t del ultimo cruce HACIA ADENTRO del radar (el escaneo), -1 = ninguno
     // EL ALCANCE DEL RADAR ENEMIGO: el del pasillo (la ruta), o en LAS ISLAS la zona de un radar britanico
+    let islasArribaAntes = false;     // LAS ISLAS: el cuadro anterior estabas arriba del techo del radar (el barrido al cruzarlo)
     const radarAlcance = () => (islas.enPasillo() ? islas.radarZonaGb() : rutaSys.enAlcance());
     let objectiveDist = 0;           // distancia meta puerto→barcaza (0 = sin objetivo / infinito)
     let objectiveShip = '';          // nombre de la barcaza objetivo del run
@@ -4677,7 +4680,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  el piloto vuelve: lo deciden los km a la costa propia o a la Gran Malvina. Mas lejos, el
      *  agua del Atlantico Sur a 2-5 °C. Sin ruta se mide contra la fraccion del camino a casa. */
     const sinMuerteAhora = () => (gameMode === 'campaign' || gameMode === 'cycle') && !!curMission() && !!curMission().sinMuerte;
-    function eyectar(enTierra) {
+    function eyectar(enTierra, aPedido) {
       let rescate;
       if (islas.enPasillo()) rescate = !!enTierra;   // (LAS ISLAS: sobre tierra caes entre los tuyos; en el agua, no)
       else if (rutaSys.hay()) {
@@ -4700,6 +4703,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: 6, ph: 0, parte: null,
         arg: true,   // el piloto ARGENTINO: la fila 0 de la hoja de la eyeccion (render/world.js)
       });
+      // (a pedido, con nafta: el texto no dice que te quedaste seco)
+      if (aPedido) { die(rescate ? 'death_eyecto_islas_tierra' : 'death_eyecto_islas_mar'); return; }
       die(islas.enPasillo() && rescate ? 'death_eyecto_tierra' : rescate ? 'death_eyecto_rescate' : 'death_eyecto_mar');
     }
     /** SIN COMBUSTIBLE (25/9: "si alguno del escuadron queda sin nafta dice 'debo volver, me quede
@@ -4707,6 +4712,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  a casa con la reserva y el compañero asume con lo que ahorro atras (naftaCompanero); si
      *  era el ultimo, eyeccion. No hay decision del jugador. */
     /** LAS ISLAS SIN NAFTA: el aviso y la eyeccion a pedido. Devuelve true si eyecto (la corrida termino). */
+    let eyectaT = 0;
+    const EYECCION_T = 0.6;
     function islasSeco() {
       cartelSostenido('islasSeco', true, T('islasSinNafta'), P.warn, { alerta: true }, T('islasEyectate'));
       if (!((inp.rollL && inp.rollR) || flags.padEyect)) return false;
@@ -5757,10 +5764,16 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LAS ISLAS (20/11, el autor: "el efecto del radar y demas debe ser igual a pasillo"): entrar a la zona de un
       // radar britanico es entrar al alcance del pasillo —el barrido verde, su sonido, la barra y las oleadas—;
       // salir lo apaga, y la proxima entrada vuelve a barrer
+      // …Y CADA VEZ QUE TE VE (20/11, el autor: "el efecto al pasar al radar, que pasa un barrido por la pantalla con
+      // el sonido, no esta sucediendo"): adentro de la zona se pasa el techo muchas veces; cada cruce de abajo hacia
+      // arriba vuelve a barrer (si el barrido anterior ya termino). Y nunca con el fundido de entrada puesto: ahi no
+      // se ve — espera a que se aclare.
       if (islas.enPasillo() && S.state === 'play') {
-        const z = islas.radarZonaGb();
-        if (z && radarScanT < 0) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
+        const z = islas.radarZonaGb(), arriba = plane.y > fases.techoRadar(RADAR_ALT), claro = fadeT <= 0.05;
+        const libre = radarScanT < 0 || run.t - radarScanT > world.ESC_TOTAL + 1;
+        if (z && claro && libre && (radarScanT < 0 || (arriba && !islasArribaAntes))) { radarScanT = run.t; sfxOne('radarVerdeInicio'); }
         else if (!z) radarScanT = -1;
+        islasArribaAntes = z && arriba;
       }
       // DETECTANDO: en la zona verde (arriba del techo, en alcance) y con la barra subiendo
       // EL MISIL QUE TE VIENE: el mas cercano de los enemigos (no la rafaga del Aden) suena mas fuerte y agudo
@@ -6650,6 +6663,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (cfg.fuelOn && run.fuel <= 0 && islas.enPasillo()) { if (islasSeco()) return; }
       else if (cfg.fuelOn && run.fuel <= 0) { sinCombustible(); return; }
       else cartelSostenido('islasSeco', false);
+      // LA EYECCION A PEDIDO EN LAS ISLAS (20/11, el autor: "como me eyecto en teclado? agregar tambien"): con nafta
+      // tambien —un avion roto, un Harrier encima—, Q+E juntas (L1+R1) SOSTENIDAS EYECCION_T s. Sostenido y no al
+      // toque: Q y E son el rolido, y apretarlas juntas un instante no tiene que tirarte del avion.
+      if (islas.enPasillo() && !(cfg.fuelOn && run.fuel <= 0)) {
+        const pide = (inp.rollL && inp.rollR) || flags.padEyect;
+        eyectaT = pide ? eyectaT + dt : 0;
+        cartelSostenido('islasEyecta', pide, T('islasEyectando'), P.warn, { alerta: true }, T('islasEyectate'));
+        if (eyectaT >= EYECCION_T) { eyectaT = 0; cartelSostenido('islasEyecta', false); eyectar(islas.sobreTierra(), true); return; }
+      }
       // LLEGASTE A CASA (PLAN_MISION_CINCO_FASES §11): la VUELTA se termino. En una mision sin
       // fases esto es siempre falso y el pasillo cierra donde cerro siempre — en el objetivo.
       // (…no durante el ESCAPE ni su viraje: ahi el final es VOLVISTE A SALVO, no la pista — 8/10)
@@ -7457,7 +7479,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (!(islas.enPasillo() && !islas.vistaPasillo())) drawChancha();   // (en las islas, en las vistas del pasillo)
       // LAS ISLAS: LA MARCA DEL OBJETIVO en las vistas del pasillo (islas.js `objetivoPasillo`): cuatro
       // esquinas naranjas donde cae la base en el carril y, abajo, el nombre y a cuanto esta
-      { const ob = islas.objetivoPasillo();
+      { const ob = ayudas() ? islas.objetivoPasillo() : null;   // (un INDICADOR DE AYUDA: segun la dificultad)
         if (ob) {
           const q = proj(ob.x, ob.y, ob.z), k = Math.max(5, Math.min(26, 1200 / ob.z)), c = P.accent;
           if (q.x > -20 && q.x < W + 20 && q.y > -20 && q.y < H + 20) {
@@ -7545,7 +7567,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // …Y LA RAFAGA: el aro del punto fijado y los tiros que todavia vienen de atras (render/aden.js)
       for (const a of caza.avisosAden()) drawAvisoAden(a);
       for (const a of islas.avisosAden()) drawAvisoAden(a);   // (LAS ISLAS: los Harriers del mapa, harriers.js)
-      if (islas.enPasillo()) drawAmenazas(islas.amenazas(), run.t);   // (y donde estan: recuadro o flecha en el borde)
+      if (islas.enPasillo() && ayudas()) drawAmenazas(islas.amenazas(), run.t);   // (y donde estan: recuadro o flecha en el borde — INDICADOR DE AYUDA, segun la dificultad)
       for (const m of missiles) if (m.tipo === 'aden' && m.z < PZ) drawAden(m);
       // la FORMACION del escuadron: SOLO en el despegue y en su salida de plano al CONTROL
       // LIBRE. Nunca durante el PASILLO en si — es costo de render que no aporta y taparia el juego.
@@ -7602,7 +7624,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           // los `big` son los premios de RIESGO (roce, pirueta): van en negrita y mas grandes
           // para que el numero se lea de reojo, sin apartar la vista de lo que viene
           ctx.font = p.big ? 'bold 10px monospace' : '7px monospace';
-          ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillText(p.txt, p.x, p.y);
+          // (EN CABINA bajan a la consola: arriba tapaban el parabrisas — 20/11)
+          ctx.globalAlpha = Math.min(1, p.life); ctx.fillStyle = p.c; ctx.fillText(p.txt, p.x, enCabina() ? Math.max(p.y + 105, 215) : p.y);
         }
         ctx.globalAlpha = 1;
       }
@@ -8205,6 +8228,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       window.__dist = m => { run.dist = +m; return JSON.stringify({ dist: run.dist, obj: objectiveDist, km: +kmAlBlanco().toFixed(1), lanzable: exocetLanzable(), atiro: exocetATiro() }); };
       window.__carga = () => { cargaProgT = CARGA_T; sonidoCarga(CARGA.GUIA, CARGA.DATOS); return CARGA_T; };
       window.__estado = () => JSON.stringify({ st: S.state, nivel: curLevel, inter: interTxt, interT: +interT.toFixed(2), interDur, oferta: upgOffer.length, runT: +run.t.toFixed(2) });
+      // la dificultad a mano (0 FACIL … 3 GLORIA): en PRUEBAS no se elige, y de ella salen los INDICADORES DE AYUDA
+      window.__dificultad = i => { if (i != null) dificultad = Math.max(0, Math.min(DIFICULTADES.length - 1, +i)); return DIFICULTADES[dificultad].id; };
       window.__czstart = o => caza.start(o || {});
       window.__czdbg = () => caza.dbg();
       window.__czfase = f => caza.forceFase(f);
