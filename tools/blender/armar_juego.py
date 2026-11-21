@@ -80,8 +80,13 @@ VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     # LA HOJA FINA (14/10, todos los aviones): 13 alabeos x 5 cabeceos (hornear.py --vista fino). Solo
     # se arma donde se horneo: sheet5.png, sus capas de carga, su tren (tren5.png) y sus anclas.
     'fino': (5, 84, '5', True),
+    # EL TONEL EN VERTICAL (21/11, hornear.py --vista tonelv): una fila, la vuelta entera cada 15° (24
+    # columnas), cuadro de 126 como la cobra. NO se simetriza: la columna c y la 24-c son caras opuestas
+    # del mismo giro, no espejos alrededor del centro de la fila. Sin anclas propias: el juego no le
+    # pega tobera ni estelas en esa pose (render/plane.js). sheet6.png y sus capas de carga.
+    'tonelv': (1, 126, '6', False),
 }
-COLS_DE = {'fino': 13, 'empinada': 13, 'cobra': 13, 'ras': 13}   # (piruetas y poder desde el 15/10); la base: 9
+COLS_DE = {'fino': 13, 'empinada': 13, 'cobra': 13, 'ras': 13, 'tonelv': 24}   # (piruetas y poder desde el 15/10); la base: 9
 # `VISTAS=cobra .venv-art/bin/python3 armar_juego.py`: arma SOLO esas vistas (las anclas de las otras
 # se leen de lo que ya escribio la ultima armada completa — ver escribir_anclas)
 if os.environ.get('VISTAS'): VISTAS = {k: v for k, v in VISTAS.items() if k in os.environ['VISTAS'].split(',')}
@@ -268,5 +273,6 @@ if __name__ == '__main__':
         print('OK', clave)
     if propias: escribir_propias(propias)
     if 'sky' not in DESTINO: sys.exit(0)            # no se re-midio nada: las anclas quedan como estan
+    if not any(v in VISTAS for v in ('base', 'ras', 'cobra', 'fino')): sys.exit(0)   # (solo la tonelv: idem)
     escribir_anclas(medidas['base'], medidas['ras'], medidas.get('cobra'), medidas.get('fino'))
     print('ANCLAS -> src/data/anclas_horno.js  (base alto %s · ras alto %s)' % (medidas['base']['alto'], medidas['ras']['alto']))

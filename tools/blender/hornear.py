@@ -88,6 +88,16 @@ if VISTA == 'cobra':
     PITCHES = [40, 75, 100, 130, 160, 190, 220, 250, 280, 310, 335, 25]
     FW = FH = int(arg('--px', str(round(84 * COBRA_K))))
     CAM = dict(CAM, ref=CAM['ref'] * COBRA_K)
+# `--vista tonelv`: LA HOJA 6 (sheet6.png), EL TONEL EN VERTICAL (21/11): el avion con la trompa al cielo
+# (cabeceo 90°) girando sobre su eje largo, la vuelta entera cada 15° (24 columnas, UNA fila). Columna 0 =
+# la cara de la fila de 100° de la cobra (la que mira a la camara sin girar); columna c = tonel c*15° en el
+# sentido de [E] (rolido a la derecha en el pasillo — en la hoja base eso es alabeo NEGATIVO, de ahi el
+# signo). Mismo cuadro y camara que la cobra (x1,5): el juego la dibuja con la escala de la hoja 4.
+if VISTA == 'tonelv':
+    PITCHES = [90]
+    ANGLES = [-t for t in range(0, 360, 15)]
+    FW = FH = int(arg('--px', str(round(84 * COBRA_K))))
+    CAM = dict(CAM, ref=CAM['ref'] * COBRA_K)
 # `--vista seleccion`: LA ILUSTRACION DEL SELECTOR DE AVION (CICLO DE MUERTE / POR LA PATRIA; pedido del
 # autor 4/10: "los aviones del selector, armar nuevos segun lo hecho en Blender, uno para cada variante").
 # Una sola pose —de cola, un poco desde arriba— a 130 px: el menu la dibuja a 130 unidades de

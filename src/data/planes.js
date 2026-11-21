@@ -308,7 +308,7 @@ PLANES.forEach(pl => {
     pl.capas = {};
     for (const nom of capasAvion(pl.key)) {
       // (la '5' es la de la HOJA FINA; el horno viejo no la tiene)
-      pl.capas[nom] = ['', '2', '3', '4', ...(!HORNO_VIEJO ? ['5'] : [])].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
+      pl.capas[nom] = ['', '2', '3', '4', ...(!HORNO_VIEJO ? ['5', '6'] : [])].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
     }
     // LAS VARIANTES DEL ESCUADRON (autor, 8/10: "todos tienen el mismo avion — deberian tener
     // variantes"): cuatro hojas base por avion, una por numeral — otro reparto y tono del camuflaje,
@@ -327,6 +327,15 @@ PLANES.forEach(pl => {
       pl.sheet5Img.onload = () => { pl.sheet5Ok = true; };
       pl.sheet5Img.src = dir + 'sheet5.png';
       pl.tren5 = new Image(); pl.tren5.src = dir + 'tren5.png';
+    }
+    // LA HOJA 6 (21/11): EL TONEL EN VERTICAL — trompa al cielo, la vuelta entera sobre su eje cada 15° (24
+    // columnas, una fila, cuadro de 126 como la 4; tools/blender/hornear.py --vista tonelv). La dibuja
+    // render/plane.js con `run.mvTonelV`; sin ella (build web, horno viejo) cae a la fila de 100° de la 4.
+    pl.sheet6Ok = false;
+    if (!HORNO_VIEJO) {
+      pl.sheet6Img = new Image();
+      pl.sheet6Img.onload = () => { pl.sheet6Ok = true; };
+      pl.sheet6Img.src = dir + 'sheet6.png';
     }
     // (EL SELECTOR ANIMADO, 16/10: las hojas seleccion_anim / seleccion_tonel siguen en cada carpeta, pero el
     // menu dibuja la ilustracion quieta — "deja de moverlos, que floten nomas" — y ya no se piden)

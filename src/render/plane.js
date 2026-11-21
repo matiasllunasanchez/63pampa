@@ -1011,6 +1011,12 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // dibujar es una de esas, porque la columna, el giro residual y las anclas dependen del ancho.
   const hoja2D = skFino ? skFino.sheet2Img : (pl.sheet2Ok ? pl.sheet2Img : null);
   const hoja4D = skFino ? skFino.sheet4Img : (pl.sheet4Ok ? pl.sheet4Img : null);
+  // EL TONEL EN VERTICAL (hoja 6, 21/11): con `run.mvTonelV` (grados) el avion va trompa al cielo girando
+  // sobre su eje — columna round(mvTonelV/15) mod 24 de la hoja 6, a la escala de la 4, rotado en pantalla
+  // SOLO por `run.mvGiro` (ni alabeo, ni giro libre de Q/E, ni el horizonte). Sin hoja 6 (build web, horno
+  // viejo, o no cargo) cae a la fila de 100° de la cobra, de frente. Sin ninguna de las dos, el dibujo de siempre.
+  const hoja6D = skFino && skFino.sheet6Img ? skFino.sheet6Img : (pl.sheet6Ok ? pl.sheet6Img : null);
+  const imgTV = run.mvTonelV != null && useSheet && !HORNO_VIEJO ? (hoja6D || hoja4D) : null;
   const pir13 = !HORNO_VIEJO && useSheet && (((enMortalF || run.mvCobra > 0.05) && !!(hoja4D || hoja2D)) || !!(run.mvSteep && hoja2D));
   const ancho13 = fino || pir13;
   // (la hoja 3, la del poder RASANTE, tambien va con 13 alabeos desde el 15/10; sus tres cabeceos, los de siempre)
@@ -1061,8 +1067,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // + lo que la SEÑA pide mas alla de la hoja (la panza), + el giro SOLO DEL DIBUJO de una maniobra
   // (`mvGiro`: la diagonal del derrape), que el horizonte giratorio no se come como al `mvRoll`
   // + el GIRO LIBRE de [Q]/[E] (`freeRoll`, core/horizon.js): tambien solo del dibujo — el mundo queda quieto
-  ctx.rotate(spinTot + (run.senalT > 0 ? run.senalRot : 0) + (run.mvGiro || 0) + gl.rot);
-  if (rolling) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
+  // (el TONEL EN VERTICAL gira solo con `mvGiro`: el giro sobre el eje ya lo trae la columna de la hoja 6)
+  ctx.rotate(imgTV ? (run.mvGiro || 0) : spinTot + (run.senalT > 0 ? run.senalRot : 0) + (run.mvGiro || 0) + gl.rot);
+  if (rolling && !imgTV) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
   else if (!run.mvRoll && !useSheet) ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
   // Todo este bloque esta authorado para la grilla de 320x180 (fogonazos, fallback de rects,
   // sangre), asi que se escala por U. Las HOJAS ya vienen horneadas a 1.5x, por eso se dibujan
@@ -1084,7 +1091,20 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   if (alive) drawCono(spW, spH, run.spd, run.t);
   if (alive) drawParpadeo(spW, spH, run.spd, run.t);   // Mach 1: el halo que titila (render/mach.js)
   // media altura del CUERPO del avion (sin el aire del frame): a esto se pega la llama del turbo
-  if (useSheet) {
+  if (imgTV) {
+    // EL TONEL EN VERTICAL (ver imgTV): una fila de 24 columnas, 0 = la cara de la fila de 100° de la cobra
+    // y + = el sentido de [E]. Sin tobera, parches, tren, fogonazos ni rotores: sus anclas estan medidas
+    // sobre la vista trasera y en esta pose caerian en el aire.
+    ctx.imageSmoothingEnabled = false;
+    const h6 = imgTV === hoja6D;
+    const colTV = h6 ? ((Math.round(run.mvTonelV / 15) % 24) + 24) % 24 : (FINO_NF - 1) / 2;
+    const FWt = SHEET4_FW * PX, FHt = SHEET4_FH * PX;
+    const sxT = colTV * FWt, syT = h6 ? 0 : 2 * FHt;      // (sin hoja 6: la fila de 100° de la 4)
+    const dWt = spW * SHEET4_K, dHt = spH * SHEET4_K;
+    ctx.drawImage(imgTV, sxT, syT, FWt, FHt, -dWt / 2, -dHt / 2, dWt, dHt);
+    drawBorde(ctx, imgTV, sxT, syT, FWt, FHt, -dWt / 2, -dHt / 2, dWt, dHt);
+    dibujarCarga(pl, h6 ? 5 : 3, sxT, syT, FWt, FHt, dWt, dHt);
+  } else if (useSheet) {
     ctx.imageSmoothingEnabled = false;   // pixel art nítido (el save/restore de afuera lo repone)
     // COLUMNA por alabeo. bank>0 = va a la DERECHA → tiene que banquear a la derecha, pero
     // los frames del modelo 3D giran en sentido opuesto al canvas, asi que se INVIERTE el
@@ -1176,30 +1196,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // tapa (ver hornearCapas en tools/bake_planes.html). Por eso no hay ancla ni offset: si el
     // frame es el mismo, calza.
     const vista = hoja4 ? 3 : F3 ? 2 : img === hoja2 ? 1 : fino ? 4 : 0;
-    for (const nom of capasDe(cfg.carga)) {
-      const im = pl.capas && pl.capas[nom] && pl.capas[nom][vista];
-      if (!(im && im.complete && im.naturalWidth)) continue;
-      // LO QUE YA SE SOLTO NO CUELGA (LA SUELTA, pedido del autor 23/9). El estante de systems/blanco.js
-      // lleva la cuenta pilon por pilon: la del centro se apaga entera, y el PAR de ala —que es una
-      // sola capa horneada para las dos alas— se recorta a la mitad: la primera que sale es la de la
-      // izquierda. El recorte va en coordenadas del sprite, asi que gira y rola con el avion.
-      // …Y LOS TANQUES SOLTADOS TAMPOCO (PLAN_NAFTA_ALCANCE N5): el tanque de la corrida anota de que
-      // pilon cuelga cada externo, y lo que ya no esta en la lista cayo al mar.
-      if (run.tanque && nom === 'carga_tanques_ala' && !run.tanque.pilones.includes('ala')) continue;
-      if (run.tanque && nom === 'carga_tanque_babor' && !run.tanque.pilones.includes('babor')) continue;
-      if (nom === 'carga_exocet' && blanco.on && blanco.centroN <= 0) continue;   // el Exocet ya salio
-      if (run.tanque && nom === 'carga_tanque_centro' && !run.tanque.pilones.includes('centro')) continue;
-      let mitad = 0;
-      if (blanco.on) {
-        if (nom === 'carga_bomba_centro' && blanco.centroN <= 0) continue;
-        if (nom === 'carga_bombas_ala') { if (blanco.alaN <= 0) continue; if (blanco.alaN === 1) mitad = 1; }
-        // el ala media de la India: son las del buque (blanco.centroN cuenta dos), y salen de a una
-        if (nom === 'carga_bombas_ext') { if (blanco.centroN <= 0) continue; if (blanco.centroN === 1) mitad = 1; }
-      }
-      if (mitad) { ctx.save(); ctx.beginPath(); ctx.rect(0, -dH / 2, dW / 2, dH); ctx.clip(); }
-      ctx.drawImage(im, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
-      if (mitad) ctx.restore();
-    }
+    dibujarCarga(pl, vista, sx4, sy4, FW4, FH4, dW, dH);
     // LA CHAPERIA, ENCIMA DE LA CHAPA. Va aca —despues del frame y antes de la tobera— porque es
     // pintura sobre el avion, no un efecto en el aire: tiene que taparse con el humo del escape y
     // con el vapor del ala, igual que se taparia la pintura de verdad.
@@ -1264,7 +1261,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // Con la hoja del poder NO se dibuja: el vapor se levanta del EXTRADOS del ala y esa cara, desde
   // una camara que mira al avion por debajo, esta del otro lado. Es el mismo criterio que ya usa la
   // tobera con su gate `cara` — si no lo ves, no hay nada que brille.
-  if (alive && !rasHoja) {
+  if (alive && !rasHoja && !imgTV) {
     const gLoad = Math.min(1, Math.abs(bank) * 1.15 + (run.mv ? 0.45 : 0) + (rolling ? 0.3 : 0));
     drawVaporAla(spW, spH, run.spd, gLoad, run.t);
   }
@@ -1301,7 +1298,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     //
     // Prendida siempre, como estaba antes, el hilo era permanente y dejaba de significar nada.
     const enManiobra = !!run.mv;
-    const fuerzaTip = S.state !== 'play' ? 0 : enManiobra ? 1 : (run.boost ? 0.4 : 0);
+    // (en el TONEL EN VERTICAL no hay estela: las puntas no estan medidas en esa pose y se juntan en el centro)
+    const fuerzaTip = S.state !== 'play' || imgTV ? 0 : enManiobra ? 1 : (run.boost ? 0.4 : 0);
     // QUITAR — lo que el RENDER vio en este cuadro. Sin esto, un `f=0` no distingue entre
     // "la fuerza dio cero" y "esta funcion ni se llamo", que son dos bugs distintos.
     TIP_DBG.vio = (S.state === 'play' ? 'P' : S.state) + (run.mv || '-') + (run.boost ? 'B' : '');
@@ -1313,8 +1311,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     //
     // OJO CON EL ESPACIO: esto corre DESPUES del `restore()`, o sea en pixeles de MUNDO, y el
     // sprite se dibujo con `spW`/`spH`. Las fracciones van contra ESO y nada mas.
-    const T = AN.tips[rowPose][colPose];
-    const giroT = spinTot + (run.mvGiro || 0) + giroLibre().rot;   // con los giros del dibujo, igual que el sprite
+    const T = imgTV ? [0, 0, 0, 0] : AN.tips[rowPose][colPose];
+    const giroT = imgTV ? (run.mvGiro || 0) : spinTot + (run.mvGiro || 0) + giroLibre().rot;   // con los giros del dibujo, igual que el sprite
     const cs = Math.cos(giroT), sn = Math.sin(giroT);
     const gx = (fx, fy) => cx + fx * spW * cs - fy * spH * sn;
     const gy = (fx, fy) => cy + fx * spW * sn + fy * spH * cs;
@@ -1329,7 +1327,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // LAS LUCES DE NAVEGACION DE MI AVION (22/10, el autor: "las luces de los aviones, si es de dia, no van
     // encendidas — solo de noche o niebla"): roja en la punta izquierda, verde en la derecha y el destello
     // blanco anticolision, con su reflejo en el agua. `run.lucesK` lo pone game.js (cuanto de noche o niebla).
-    if ((run.lucesK || 0) > 0.02 && S.state !== 'dead') navMias(alaLx, alaLy, alaRx, alaRy, cx, cy, run.lucesK);
+    if ((run.lucesK || 0) > 0.02 && S.state !== 'dead' && !imgTV) navMias(alaLx, alaLy, alaRx, alaRy, cx, cy, run.lucesK);
   }
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)
@@ -1365,6 +1363,36 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
       px(c.x, c.y - 5, 1.5, 3, P.accent); px(c.x, c.y + 3, 1.5, 3, P.accent);
       ctx.globalAlpha = 1;
     }
+  }
+}
+
+/** LA CARGA, encima del avion y en el MISMO recorte que el cuadro que se acaba de dibujar (`vista` = indice
+ *  del sufijo en pl.capas: 0 base, 1 hoja 2, 2 hoja 3, 3 hoja 4, 4 fina, 5 hoja 6). Sale de drawPlane para
+ *  que el TONEL EN VERTICAL (21/11) la cuelgue con las mismas reglas de lo que ya se solto. */
+function dibujarCarga(pl, vista, sx4, sy4, FW4, FH4, dW, dH) {
+  for (const nom of capasDe(cfg.carga)) {
+    const im = pl.capas && pl.capas[nom] && pl.capas[nom][vista];
+    if (!(im && im.complete && im.naturalWidth)) continue;
+    // LO QUE YA SE SOLTO NO CUELGA (LA SUELTA, pedido del autor 23/9). El estante de systems/blanco.js
+    // lleva la cuenta pilon por pilon: la del centro se apaga entera, y el PAR de ala —que es una
+    // sola capa horneada para las dos alas— se recorta a la mitad: la primera que sale es la de la
+    // izquierda. El recorte va en coordenadas del sprite, asi que gira y rola con el avion.
+    // …Y LOS TANQUES SOLTADOS TAMPOCO (PLAN_NAFTA_ALCANCE N5): el tanque de la corrida anota de que
+    // pilon cuelga cada externo, y lo que ya no esta en la lista cayo al mar.
+    if (run.tanque && nom === 'carga_tanques_ala' && !run.tanque.pilones.includes('ala')) continue;
+    if (run.tanque && nom === 'carga_tanque_babor' && !run.tanque.pilones.includes('babor')) continue;
+    if (nom === 'carga_exocet' && blanco.on && blanco.centroN <= 0) continue;   // el Exocet ya salio
+    if (run.tanque && nom === 'carga_tanque_centro' && !run.tanque.pilones.includes('centro')) continue;
+    let mitad = 0;
+    if (blanco.on) {
+      if (nom === 'carga_bomba_centro' && blanco.centroN <= 0) continue;
+      if (nom === 'carga_bombas_ala') { if (blanco.alaN <= 0) continue; if (blanco.alaN === 1) mitad = 1; }
+      // el ala media de la India: son las del buque (blanco.centroN cuenta dos), y salen de a una
+      if (nom === 'carga_bombas_ext') { if (blanco.centroN <= 0) continue; if (blanco.centroN === 1) mitad = 1; }
+    }
+    if (mitad) { ctx.save(); ctx.beginPath(); ctx.rect(0, -dH / 2, dW / 2, dH); ctx.clip(); }
+    ctx.drawImage(im, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
+    if (mitad) ctx.restore();
   }
 }
 

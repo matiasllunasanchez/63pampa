@@ -6666,7 +6666,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       moves.stepCobraCam(dt);
       // EL SWOOSH: el avion (lo que se dibuja: el freno, la salida del turbo, el cambio de piloto) se viene
       // hacia la camara rapido → suena una vez, y descansa un momento antes de poder volver a sonar
-      { const dz = squad.cambioDz() + moves.cobraDz() + turboDz(), v = (dz - swooshDz) / Math.max(dt, 1e-4);
+      { const dz = squad.cambioDz() + moves.cobraDz() + turboDz() + islas.manDz(), v = (dz - swooshDz) / Math.max(dt, 1e-4);
         swooshT = Math.max(0, swooshT - dt);
         if (v < -SWOOSH_V && swooshVel >= -SWOOSH_V && swooshT <= 0) { sfxOne('swoosh'); swooshT = 1.1; }
         swooshDz = dz; swooshVel = v; }
@@ -7606,7 +7606,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (hzW) ctx.restore();
       }
       if (!rasante.enCabina() && !enCabina() && !(islas.enPasillo() && !islas.vistaPasillo())
-        && (chase || ((S.state !== 'dead' || caida) && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz() + turboDz());
+        && (chase || ((S.state !== 'dead' || caida) && S.state !== 'momentum' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'pulso'))) drawPlane(selPlane, viewMouse, squadZoom() * rasante.zoom(), rasante.active(), squad.cambioDz() + moves.cobraDz() + turboDz() + islas.manDz());
       // LAS TRAZADORAS DE POPA (el escape, V2): vienen de atras, o sea MAS CERCA que el avion, y
       // por eso van despues del sprite. Adentro del giro del horizonte, como el resto del mundo.
       if (S.state === 'play' && blancoSys.escapando()) {

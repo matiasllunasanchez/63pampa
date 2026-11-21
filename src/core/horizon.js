@@ -134,11 +134,15 @@ export const hzMode = () => S.state === 'play' || S.state === 'pulso' ? cfg.hori
 
 /** Angulo del MUNDO este cuadro. Lo consultan draw() y viewMouse() — sin parametros, para que
  *  no puedan discrepar. */
+// EL TONEL EN VERTICAL (`run.mvTonelV`, hoja 6, 21/11): con la trompa al cielo, rolar sobre el eje cambia el
+// rumbo y no la inclinacion respecto del horizonte, asi que ahi el giro libre de [Q]/[E] NO inclina el horizonte.
+const libre = () => run.mvTonelV != null ? 0 : run.freeRoll;
+
 export const hzWorld = () => enCabina()
   // EN CABINA (core/cabina.js) la camara ES el avion: el mundo rola ENTERO con el —el alabeo pleno,
   // la pirueta y el giro libre de ALT/Q/E—, sin importar el modo de horizonte elegido
-  ? (-(spriteRoll() + Math.max(-1, Math.min(1, plane.bank)) * BANK_FULL + run.freeRoll + zzTilt()) || 0)
-  : horizonRoll(hzMode(), spriteRoll(), plane.bank, run.freeRoll, zzTilt());
+  ? (-(spriteRoll() + Math.max(-1, Math.min(1, plane.bank)) * BANK_FULL + libre() + zzTilt()) || 0)
+  : horizonRoll(hzMode(), spriteRoll(), plane.bank, libre(), zzTilt());
 
 /** Cuanto hay que SUMARLE a la rotacion del sprite para cancelar la que el mundo ya absorbio.
  *  Si no, el avion giraria dos veces (una por el mundo, otra por si mismo) y el efecto se
@@ -156,7 +160,7 @@ export const hzSprite = () => { const r = spriteRoll(); return hzMode() && r ? -
  *  de esto, para no marear. Durante una PIRUETA los dos son exactamente el mismo numero. */
 export const attitude = () => {
   const r = spriteRoll();
-  return run.freeRoll + (r || Math.max(-1, Math.min(1, plane.bank)) * BANK_FULL);
+  return libre() + (r || Math.max(-1, Math.min(1, plane.bank)) * BANK_FULL);
 };
 
 // ---------- GIRO LIBRE ([Q] / [E], modo LIBRE) ----------

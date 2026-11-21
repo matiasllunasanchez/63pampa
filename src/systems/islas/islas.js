@@ -95,7 +95,7 @@ export const progreso = () => mundo.progreso();
 // las islas que no es PRUEBAS. Sin ella `enPasillo()` sigue exigiendo S.test.
 export function activar(on = true, tut = false) {
   I.on = !!on; I.tut = !!on && !!tut; I.puesto = false; I.lugar = null;
-  objetivo.reiniciar(); teatro.reiniciar(); MARCA.on = false; P3.man = null; clima.reiniciar(); frio.reiniciar();
+  objetivo.reiniciar(); teatro.reiniciar(); MARCA.on = false; P3.man = null; soltarPose(); manDzV = 0; clima.reiniciar(); frio.reiniciar();
   if (I.on) mundo.cargar();
   return I.on;
 }
@@ -195,7 +195,9 @@ export function pasoPasillo(dt) {
     ubicar(A0);
     P3.x = A0.pos.x; P3.z = A0.pos.z; P3.yaw = A0.yaw; P3.g = Math.max(mundo.sueloH(P3.x, P3.z), 0);
     cabina.on = camara.vista() === camara.CABINA;
-    geoExterna.tierra = () => mundo.sueloH(P3.x, P3.z) > 0.3;
+    // (por PUNTO: la rociada, el polvo, los piques de las balas y las bombas preguntan donde caen, no solo bajo el avion)
+    geoExterna.tierra = (x, wz) => x == null ? mundo.sueloH(P3.x, P3.z) > 0.3
+      : mundo.sueloH(aMundo(x, 0, wz - run.dist, _geo).x, _geo.z) > 0.3;
     // EL OBJETIVO (systems/islas/objetivo.js): la BASE COSTERA, en la tierra plana mas cercana. La brujula lo marca.
     if (objetivo.colocar(P3.x, P3.z)) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
     P3.sostiene = SOSTIENE_T; plane.y = AIR_START_Y; P3.muerto = false; P3.altFija = null;
@@ -299,6 +301,8 @@ export function pasoPasillo(dt) {
   // pasillo alcanza, pero sobre el mapa una picada larga la deja atras. Se la ata a una franja alrededor del
   // avion: con PZ 14 y focal 135, 1 m son ~10 px; la franja lo deja entre la fila ~55 y la ~190 (arriba del tablero).
   if (!enCabina()) cam.y = Math.max(plane.y - CAM_ARRIBA, Math.min(plane.y + CAM_ABAJO, cam.y));
+  // (en las maniobras de las islas la camara se le pega: la vertical y la media vuelta suben o bajan mas rapido que su retardo)
+  if (!enCabina() && P3.man) cam.y += (plane.y + (P3.man.k === 'vertical' && P3.man.dir < 0 ? -3 : 1) - cam.y) * Math.min(1, dt * 6);
   if (P3.A) lugares(P3.A, dt);
   return null;
 }
@@ -313,7 +317,7 @@ export function mallaDe(clave, numeral) {
 
 // LAS BOMBAS SOBRE EL MAPA (systems/islas/objetivo.js): las nuevas del pasillo se anotan con su punto de suelta,
 // y las que pegan (la base o la tierra) se sacan del pasillo con su estallido.
-const _b = { x: 0, y: 0, z: 0 };
+const _b = { x: 0, y: 0, z: 0 }, _geo = { x: 0, y: 0, z: 0 };
 function bombas(dt, m) {
   for (const pm of pmissiles) {
     if (pm.exocet || pm.tanque || !('extra' in pm) || objetivo.seguida(pm)) continue;
@@ -502,13 +506,32 @@ function tiempo(dt) {
 //   S W W W    VERTICAL ARRIBA: la trompa al cielo, sube derecho (el mapa casi no avanza)
 //   W S S S    PICADA VERTICAL: la trompa al suelo, baja derecho; saca sola a MAN_PISO m del suelo
 // (las del pasillo que eran solo de altura —el SPLIT-S y el POP-UP— se dejan: aca las reemplazan estas)
+//
+// COMO SE VEN (21/11, el autor: "el avion tiene que hacer un movimiento como el que hace arrancando con G y luego
+// las otras combinaciones, y la camara debe quedarse hasta que el avion queda mirando de trompa hacia el jugador y
+// luego girar rapidamente la camara hacia la cola"): las poses del MORTAL y la COBRA MORTAL INVERTIDA del pasillo
+// (la hoja 4, `run.mvMortal` y `run.mvGiro`). La camara NO gira mientras la trompa sube (o baja) hasta quedar de
+// frente al jugador (190°, boca abajo); ahi da la media vuelta rapido (VUELTA.GIRA s) y queda otra vez detras de la
+// cola, con el avion visto de atras: la Immelmann sale panza arriba y rola a derecho; la Split-S ya sale derecha.
+// LAS VERTICALES (21/11: "vertical arriba como la G pero lejos", "la picada debe estar de panza al espectador"): la
+// pose plantada de la cobra (la fila de 100°), lejos de la camara (`manDz`) la de arriba; la picada, la misma pose
+// girada 180° en pantalla (la trompa abajo y la panza a la camara). Con Q/E GIRA SOBRE SU EJE (`run.mvTonelV`, la
+// hoja del tonel vertical; sin ella, la cobra).
 const MAN = {
-  uud: { k: 'vuelta', sube: 1, dur: 2.0, h: 55, avion: 'splits' },
-  ddu: { k: 'vuelta', sube: -1, dur: 1.7, h: 45, avion: 'splits' },
+  uud: { k: 'vuelta', sube: 1, h: 55, avion: 'splits' },
+  ddu: { k: 'vuelta', sube: -1, h: 45, avion: 'splits' },
   duuu: { k: 'vertical', dir: 1, dur: 2.6, v: 70, avion: 'climb' },
   uddd: { k: 'vertical', dir: -1, dur: 2.6, v: 80, avion: 'dive' },
 };
+// la media vuelta en tiempos (s): ROLA panza arriba (solo la de abajo), CABECEA hasta la trompa al jugador, la camara
+// GIRA, y la de arriba ENDEREZA. TOPE: los grados de la vuelta al girar la camara (la fila 190 de la hoja 4).
+const VUELTA = { ROLA: 0.35, CABECEA: 1.15, GIRA: 0.4, ENDEREZA: 0.7, TOPE: 190 };
 const MAN_PISO = 35;
+const LEJOS = 9;               // cuanto se aleja de la camara la vertical arriba (unidades de profundidad del pasillo)
+const ENTRA_V = 0.4;           // lo que tarda la vertical en plantar la trompa (y en soltarla al final)
+let manDzV = 0;
+/** Lo que la maniobra de las islas corre el dibujo del avion en profundidad (game.js lo suma a `drawPlane`). */
+export const manDz = () => (enPasillo() ? manDzV : 0);
 /** El combo `seq` (game.js `combo`): true si arranco una maniobra de las islas, false si la consume sin hacer nada,
  *  null si no es de las islas (sigue el pasillo). `puede(id)` = si el avion la hace (data/perfiles.js). */
 export function maniobra(seq, puede) {
@@ -519,38 +542,94 @@ export function maniobra(seq, puede) {
   if (!d) return null;
   if (P3.man || run.mv || !puede(d.avion)) return false;
   if (d.k === 'vuelta' && d.sube < 0 && plane.y < d.h + MAN_PISO) return false;   // (abajo no hay lugar)
-  P3.man = { ...d, t: 0, yaw0: P3.yaw, lado: Math.random() < 0.5 ? -1 : 1 };
+  if (d.k === 'vertical' && d.dir < 0 && plane.y < MAN_PISO + 25) return false;
+  const dur = d.k === 'vuelta' ? (d.sube < 0 ? VUELTA.ROLA : 0) + VUELTA.CABECEA + VUELTA.GIRA + (d.sube > 0 ? VUELTA.ENDEREZA : 0) : d.dur;
+  P3.man = { ...d, dur, t: 0, yaw0: P3.yaw, y0: plane.y, lado: Math.random() < 0.5 ? -1 : 1, tonel: 0 };
   cartel(T('man_' + d.k + (d.k === 'vuelta' ? (d.sube > 0 ? '_arriba' : '_abajo') : (d.dir > 0 ? '_arriba' : '_abajo'))), P.accent);
   return true;
 }
-/** Un cuadro de la maniobra en curso: corre el rumbo y la altura; devuelve { rumbo, avanza } o null. */
+const suave = x => { const c = Math.max(0, Math.min(1, x)); return c * c * (3 - 2 * c); };
+/** Suelta la pose que puso la maniobra (el pasillo la limpia solo al terminar sus piruetas; esta no es de el). */
+function soltarPose() {
+  run.mvMortal = 0; run.mvGiro = 0; run.mvCobra = 0; run.mvTonelV = null;
+  P3.manPitch = 0; P3.manRoll = 0;
+}
+/** Un cuadro de la maniobra en curso: corre el rumbo, la altura y la pose; devuelve { rumbo, avanza } o null. */
 function pasoManiobra(dt) {
   const M = P3.man;
   P3.manPitch = 0; P3.manRoll = 0;
-  if (!M) return null;
-  if (S.state !== 'play') { P3.man = null; return null; }
+  if (!M) { manDzV += (0 - manDzV) * Math.min(1, dt * 3); return null; }
+  if (S.state !== 'play') { P3.man = null; soltarPose(); return null; }
   M.t += dt;
-  const u = Math.min(1, M.t / M.dur), e = u * u * (3 - 2 * u);
   let out;
   if (M.k === 'vuelta') {
-    // el rumbo da la media vuelta entera; la altura sube (o baja) y vuelve a quedar, con la trompa al cielo en el medio
+    const V = VUELTA, abajo = M.sube < 0;
+    const t0 = abajo ? V.ROLA : 0, t1 = t0 + V.CABECEA, t2 = t1 + V.GIRA;
+    let g = 0, giro = abajo ? Math.PI : 0, avanza = 1;
     P3.giro = 0;
-    P3.yaw = M.yaw0 + Math.PI * e * M.lado;
-    plane.y += M.sube * M.h * Math.PI / M.dur * Math.sin(Math.PI * u) * 0.5 * dt * 2;
+    if (M.t < t0) {
+      // LA DE ABAJO ROLA PANZA ARRIBA primero (sin cabecear)
+      giro = Math.PI * suave(M.t / V.ROLA);
+      P3.yaw = M.yaw0;
+    } else if (M.t < t1) {
+      // LA TROMPA SUBE (o, invertido, BAJA) hasta quedar de frente al jugador: la camara quieta
+      const x = (M.t - t0) / V.CABECEA;
+      g = V.TOPE * (1 - (1 - x) * (1 - x));           // rapido al arrancar, despacio llegando (como el mortal)
+      P3.yaw = M.yaw0;
+      avanza = Math.max(0.06, Math.cos(Math.min(Math.PI / 2, g * Math.PI / 180)));
+      run.spd *= Math.exp(-0.35 * dt);                  // (algo frena, como la cobra)
+    } else if (M.t < t2) {
+      // LA CAMARA DA LA MEDIA VUELTA, rapido, hasta la cola: el avion pasa de verse de frente a verse de atras
+      const e = suave((M.t - t1) / V.GIRA);
+      g = V.TOPE * (1 - e);
+      giro += Math.PI * e;
+      P3.yaw = M.yaw0 + Math.PI * e * M.lado;
+      avanza = 0.06;
+    } else {
+      // LA DE ARRIBA quedo panza arriba (visto de atras): ENDEREZA rolando
+      const e = suave((M.t - t2) / V.ENDEREZA);
+      giro = Math.PI + Math.PI * e;
+      P3.yaw = M.yaw0 + Math.PI * M.lado;
+      avanza = 0.06 + 0.94 * e;
+    }
+    // la altura sigue a la vuelta y queda arriba (o abajo) al girar la camara
+    const k = M.t < t0 ? 0 : M.t < t1 ? (1 - Math.cos(g * Math.PI / 180)) / 2 : 1;
+    plane.y = M.y0 + M.sube * M.h * Math.min(1, k * 1.0);
     plane.vy = 0;
-    P3.manPitch = M.sube * Math.sin(Math.PI * u) * 1.35;
-    P3.manRoll = M.sube > 0 ? Math.PI * Math.max(0, (u - 0.55) / 0.45) * M.lado : Math.PI * Math.min(1, u / 0.3) * (1 - Math.max(0, (u - 0.6) / 0.4)) * M.lado;
-    out = { rumbo: true, avanza: 0.45 };
+    run.mvMortal = g > 0.5 ? g : 0;
+    run.mvGiro = (giro % (Math.PI * 2)) * M.lado;
+    run.mvCobra = 0;
+    // (la malla 3D: el cabeceo y el alabeo aproximados)
+    P3.manPitch = M.sube * Math.sin(Math.min(Math.PI, g * Math.PI / 180)) * 1.35;
+    P3.manRoll = giro * M.lado;
+    out = { rumbo: true, avanza };
   } else {
-    // VERTICAL: entra en 0,4 s, sube (o baja) derecho y sale a nivel en el ultimo cuarto
-    const sube = Math.min(1, M.t / 0.4) * (u > 0.75 ? 1 - (u - 0.75) / 0.25 : 1);
+    // VERTICAL: planta la trompa en ENTRA_V s, sube (o baja) derecho y la suelta al final
+    const u = Math.min(1, M.t / M.dur);
+    const sube = suave(M.t / ENTRA_V) * (1 - suave((M.t - (M.dur - ENTRA_V)) / ENTRA_V));
     plane.y += M.dir * M.v * sube * dt; plane.vy = 0;
     P3.manPitch = M.dir * 1.4 * sube;
     out = { rumbo: false, avanza: 1 - 0.75 * sube };
+    // la pose: la cobra plantada (arriba: tal cual, lejos; abajo: girada 180° —trompa abajo, panza a la camara—)
+    run.mvCobra = sube;
+    run.mvGiro = M.dir < 0 ? Math.PI * sube * M.lado : 0;
+    run.mvMortal = 0;
+    // Q/E: GIRA SOBRE SU EJE. Se toma la velocidad del giro libre (core/horizon.js) y el giro libre queda en cero:
+    // el avion no se tuerce en pantalla, rota. Al soltar la vertical vuelve a la panza por el camino corto.
+    if (sube > (M.dir > 0 ? 0.85 : 0.5)) M.tonel += (run.freeRollV || 0) * dt * 180 / Math.PI;
+    else M.tonel -= M.tonel * Math.min(1, dt * 10);
+    M.tonel = ((M.tonel % 360) + 540) % 360 - 180;
+    run.freeRoll = 0;
+    // (la hoja del tonel vertical, sheet6: 0° = el LOMO a la camara, como la cobra de la G; 180° = la PANZA, la picada)
+    const plantada = M.dir > 0 ? sube > 0.85 : sube > 0.5;
+    run.mvTonelV = plantada ? (M.tonel + (M.dir > 0 ? 0 : 180) + 360) % 360 : null;
+    manDzV = M.dir > 0 ? LEJOS * sube : 0;
     // la picada saca sola antes del suelo
-    if (M.dir < 0 && plane.y < MAN_PISO + (P3.g > 0.3 ? 15 : 0)) { P3.man = null; return out; }
+    if (M.dir < 0 && plane.y < MAN_PISO + (P3.g > 0.3 ? 15 : 0)) { P3.man = null; soltarPose(); plane.vy = 12; return out; }
+    if (u >= 1) { P3.man = null; soltarPose(); return out; }
+    return out;
   }
-  if (u >= 1) P3.man = null;
+  if (M.t >= M.dur) { P3.man = null; soltarPose(); }
   return out;
 }
 
