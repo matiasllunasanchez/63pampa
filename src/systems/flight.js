@@ -667,7 +667,7 @@ export function flightSystem(dt, deps) {
     // (EL 909 DEL BUQUE, PLAN_DEFENSAS_BUQUE: cerca de un buque con su Sea Dart apagado, no carga — `radarBuque`)
     if (run.radarVisto) run.detection += dt / ((cfg.detCargaS || 1.4) * (run.detK || 1)) * radarBuque(); else run.detection -= dt / 0.9 * (run.trackerK || 1);
     // EL RADAR PROPIO TE DELATA (15/10): prendido, los buques escuchan la emision — aunque vueles al ras
-    if (radarP.on) run.detection += dt * (RADAR_PROPIO.DELATA + (run.radarVisto ? 0 : 1 / 0.9));
+    if (radarP.on) run.detection += dt * ((radarP.p.DELATA ?? RADAR_PROPIO.DELATA) + (run.radarVisto ? 0 : 1 / 0.9));
     run.detection = Math.max(0, Math.min(1, run.detection));
   }
   // TE PINTARON (§11.3). Solo puede pasar en una mision con fases: sin ellas `pinta` no existe y

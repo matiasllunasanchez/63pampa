@@ -10,8 +10,10 @@ import { PZ, HOR } from './ctx.js';
 import { plane } from '../core/state.js';
 import { proj } from '../core/fx.js';
 import { radarP } from '../core/radarPropio.js';
+// las reglas del avion de esta corrida (el Neptune: onda mas grande); antes de la primera corrida, las de base
+const R = new Proxy({}, { get: (_, k) => (k in radarP.p ? radarP.p[k] : RADAR_PROPIO[k]) });
 import { obstacles } from '../core/world.js';
-import { RADAR_PROPIO as R, buqueRadar } from '../data/radar_propio.js';
+import { RADAR_PROPIO, buqueRadar } from '../data/radar_propio.js';
 
 // LA BURBUJA (15/10, el autor: "una onda expansiva que arranca en el centro de la cabina y sale hacia
 // adelante y alrededor, como una burbuja creciendo desde la cabina, con el mismo efecto de velo del radar

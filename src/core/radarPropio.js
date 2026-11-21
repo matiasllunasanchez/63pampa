@@ -18,9 +18,12 @@ export const radarP = {
   detectando: false, // esta corriendo la deteccion (suena detecting)
   detectaT: 0,      // `onT` en que arranco la deteccion
   detectado: false, // ya detecto en esta prendida: las ondas marcan de una
+  p: {},            // LAS REGLAS del radar de este avion (data/radar_propio.js `radarDe`: el Neptune ve mas lejos)
 };
 
-export function resetRadarP(tiene) {
+export function resetRadarP(tiene, p) {
+  for (const k of Object.keys(radarP.p)) delete radarP.p[k];
+  if (p) Object.assign(radarP.p, p);
   radarP.tiene = !!tiene; radarP.on = false; radarP.carga = 1;
   radarP.ondas.length = 0; radarP.cadaT = 0; radarP.marcaT = 0; radarP.ecoT = -1; radarP.ve = false; radarP.aereoT = 0; radarP.buquesT = 0;
   radarP.onT = 0; radarP.detectando = false; radarP.detectaT = 0; radarP.detectado = false;

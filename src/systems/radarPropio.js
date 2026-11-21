@@ -4,11 +4,13 @@
 // mundo ya resuelto por el orquestador y DEVUELVE señales — no suena, no escribe carteles, no llama
 // hacia arriba. Lo que te DELATA lo cobra flight.js leyendo `radarP.on` contra la misma barra del
 // radar enemigo.
-import { RADAR_PROPIO as R } from '../data/radar_propio.js';
+import { RADAR_PROPIO, radarDe } from '../data/radar_propio.js';
 import { radarP, resetRadarP } from '../core/radarPropio.js';
 
 /** Corrida nueva: lo lleva si el avion es de los que tenian radar de busqueda. */
-export function preparar(planeKey) { resetRadarP(R.AVIONES.includes(planeKey)); }
+export function preparar(planeKey) { resetRadarP(RADAR_PROPIO.AVIONES.includes(planeKey), radarDe(planeKey)); }
+// (las reglas del avion de esta corrida: el Neptune pisa alcance, carga, onda y marca)
+const R = radarP.p;
 
 /** LA TECLA. Devuelve 'on' | 'off' | 'vacio' (sin carga para prender) | null (este avion no tiene). */
 export function toggle() {

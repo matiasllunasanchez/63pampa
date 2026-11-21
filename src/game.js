@@ -9359,7 +9359,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           aereos: caza.snapshot().filter(h => !h.enCola && h.z > PZ + 2).length,
           buques: obstacles.filter(o => buqueRadar(o, PZ)).length,
           aTiro: objectiveDist > 0 && run.dist < objectiveDist
-            && (rutaSys.hay() ? rutaSys.alBlanco() <= RADAR_PROPIO.ALCANCE_KM : objectiveDist - run.dist <= RADAR_PROPIO.ALCANCE_M) });
+            && (rutaSys.hay() ? rutaSys.alBlanco() <= (radarP.p.ALCANCE_KM ?? RADAR_PROPIO.ALCANCE_KM) : objectiveDist - run.dist <= (radarP.p.ALCANCE_M ?? RADAR_PROPIO.ALCANCE_M)) });
         // LA DETECCION (16/10): detecting suena desde que empieza hasta que quedan marcadas las flechitas
         if (rp.det === 'empieza') sfxOne('radarDetecta');
         else if (rp.det === 'termina') sfxStop('radarDetecta', 0.25);
