@@ -18,7 +18,7 @@ export const MEZCLA = {
   musica: 1.5,      // (18/10, el autor: "priorizar la musica, un poco mas alta"; era 0.8, despues 1)
   // (18/10, el autor: "los sonidos de aviones y demas estan MUY FUERTES": vuelo y combate a ~60%, y el
   // ambiente y las explosiones se separaron a sus grupos para que respondan a su perilla)
-  vuelo: 0.25,     // (21/11, era 0.13: el motor quedaba a -43 LUFS, inaudible; sube ~6 dB y queda a ~-37, bajo la musica — el 18/10 se habia pedido que no tape) TU avion: motor, poscombustion, el agua y el roce
+  vuelo: 0.18,     // (21/11, era 0.13: el motor quedaba a -43 LUFS, inaudible; probado 0.25 y "demasiado fuerte": 0.18, ~-40, bajo la musica — el 18/10 se habia pedido que no tape) TU avion: motor, poscombustion, el agua y el roce
   combate: 0.2,     // (21/11, era 0.15: la metralla a -29 quedaba 5 dB bajo la musica; ahora a la par) TUS armas: metrallas, cañon, misiles, bombas, los golpes que recibis
   ambiente: 0.25,   // (21/11, era 0.16) el mundo: lluvia, tormenta, viento, la guerra a lo lejos
   enemigo: 0.6,     // (21/11, era 0.3; la extra pesada y los truenos bajaron en sfx.js) las explosiones y lo que lanzan los enemigos (18/10: "las explosiones un poco mas altas, el doble")
@@ -43,7 +43,7 @@ export const BUS_DE = {
   waterNear: 'vuelo', waveFly: 'vuelo', graze: 'vuelo', swoosh: 'vuelo',
   ambRain: 'ambiente', ambStorm: 'ambiente', olaGigante: 'ambiente', truenoDoble: 'enemigo', truenoLargo: 'enemigo', truenoCorto: 'enemigo', ambWarFar: 'ambiente', ambWarNear: 'ambiente', ambWind: 'ambiente',
   exXheavy: 'enemigo', exHeavy: 'enemigo', exHeavyDist: 'enemigo', exMedium: 'enemigo', exSmall: 'enemigo', exXsmall: 'enemigo',
-  lanzaMisil: 'enemigo',
+  lanzaMisil: 'enemigo', balasCerca: 'enemigo', agua0: 'enemigo', agua1: 'enemigo', aguaColumna: 'enemigo', chapa0: 'enemigo', chapa1: 'enemigo', chapa2: 'enemigo', chapa3: 'enemigo',
   radarAzul: 'atencion', radarDetecta: 'atencion', radarVerde: 'atencion', radarVerdeInicio: 'atencion',
   radarDetectando: 'atencion', exocetSale: 'atencion', alarm: 'atencion',
   pilot: 'voz',

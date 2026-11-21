@@ -13,6 +13,7 @@
 import { popup, explodeAt, columnaBomba, proj } from '../../core/fx.js';
 import { cartel, cartelSostenido, carteles } from '../../core/cartel.js';
 import { T, getLang } from '../../core/i18n.js';
+import { sfxOne } from '../audio.js';
 import * as objetivo from './objetivo.js';
 import * as teatro from './teatro.js';
 import * as chancha from '../chancha.js';
@@ -375,6 +376,8 @@ function bombas(dt, m) {
     // LA EXPLOSION EN 3D (estallido3d.js): la ven todas las camaras, tambien la de arriba
     estallido(x, alto, z, que === 'blanco' ? 2.2 : que === 'agua' ? 0.8 : 1, que === 'agua' ? 'agua' : 'fuego');
     if (que === 'agua') continue;   // (el agua la resolvio el pasillo: la bomba ya no esta)
+    // EL SONIDO DE LA BOMBA (21/11, "usar los sonidos grandes de bombas grandes, dos"): la extra pesada y la pesada
+    sfxOne('exXheavy', que === 'blanco' ? 1 : 0.8, true); setTimeout(() => sfxOne('exHeavy', 0.8, true), 160);
     teatro.impacto(x, z, estallido);   // lo del teatro que estaba ahi
     const i = pmissiles.indexOf(pm); if (i >= 0) pmissiles.splice(i, 1);
     if (que === 'blanco') {
@@ -609,6 +612,8 @@ const LEJOS = 9;               // cuanto se aleja de la camara la vertical arrib
 const ENTRA_V = 0.4;           // lo que tarda la vertical en plantar la trompa (y en soltarla al final)
 let manDzV = 0;
 /** Lo que la maniobra de las islas corre el dibujo del avion en profundidad (game.js lo suma a `drawPlane`). */
+/** ¿Un buque britanico te esta tirando de cerca? (el sonido del fuego del buque, como en el pasillo — teatro.js) */
+export const fuegoBuque = () => enPasillo() && !I.mar && teatro.fuegoCerca();
 export const manDz = () => (enPasillo() ? manDzV : 0);
 /** El combo `seq` (game.js `combo`): true si arranco una maniobra de las islas, false si la consume sin hacer nada,
  *  null si no es de las islas (sigue el pasillo). `puede(id)` = si el avion la hace (data/perfiles.js). */
@@ -961,6 +966,15 @@ if (typeof window !== 'undefined') {
   window.__malvinas = (on = true) => {
     if (on && typeof on === 'object' && on.radar != null) { I.radar = !!on.radar; return I.radar; }
     if (on && typeof on === 'object' && on.vista != null) { camara.poner(on.vista); cabina.on = on.vista === camara.CABINA; return true; }
+    // { aBuque: m }: a m metros del buque britanico mas cercano, de frente, a 15 m (para probar su fuego de cerca)
+    if (on && typeof on === 'object' && on.aBuque != null) {
+      const bs = JSON.parse(window.__buques ? window.__buques() : '[]');
+      const b = teatro.buqueCerca && teatro.buqueCerca(P3.x, P3.z); if (!b) return false;
+      const r = Math.atan2(b.x - P3.x, -(b.z - P3.z));
+      P3.x = b.x - Math.sin(r) * on.aBuque; P3.z = b.z + Math.cos(r) * on.aBuque; P3.yaw = r;
+      P3.g = Math.max(mundo.sueloH(P3.x, P3.z), 0); plane.y = on.alt || 15; plane.vy = 0;
+      return JSON.stringify({ n: b.n, bs: bs.length });
+    }
     // { aObjetivo: m }: a m metros del objetivo, de frente, a 20 m sobre su explanada (para probar la suelta)
     if (on && typeof on === 'object' && on.aObjetivo != null) {
       const O = objetivo.OBJ; if (!O.on) return false;

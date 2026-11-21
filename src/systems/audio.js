@@ -325,6 +325,7 @@ let engAltT = 0;   // temporizador del crossfade normal↔normal2
 // (el loop `gun`) de una, a su volumen, sin el fundido de entrada de los loops. (Hubo una CARGA al
 // apretar, antes de la rafaga: el autor la saco el mismo dia.)
 let tirabaPrev = false;
+let chapaT = 0.4, aguaT = 0.25;   // el proximo golpe de chapa y salpicon del fuego del buque (ver updateSfx)
 // `w` es un snapshot de solo lectura del mundo. Antes esto leia 7 variables del closure de
 // game.js; pasarlas explicitas deja el modulo probable por si solo y sin dependencias ocultas.
 const slowPrev = {};
@@ -343,7 +344,11 @@ export function updateSfx(dt, w) {
       const mixB = 0.5 + 0.5 * Math.sin(engAltT / 14 * Math.PI * 2);
       sfxTgt.engN = SFX_DEF.engN.v * (1 - mixB * 0.85);
       sfxTgt.engN2 = SFX_DEF.engN2.v * (0.15 + mixB * 0.85);
-      if (w.boost) sfxTgt.turbo = SFX_DEF.turbo.v;                        // turbo en loop con fade
+      // EL TURBO PEGA FUERTE AL PRENDERLO Y DESPUES SE ASIENTA (21/11, el autor: "que suene fuerte cuando lo activo y
+      // que baje a un poco mas de la mitad mientras mantengo"): `abEnv` 1 → TURBO_SOST en TURBO_CAE s, pasado el golpe
+      turboT = w.boost ? turboT + dt : 0;
+      abEnv = turboT < TURBO_GOLPE ? 1 : 1 - (1 - TURBO_SOST) * Math.min(1, (turboT - TURBO_GOLPE) / TURBO_CAE);
+      if (w.boost) sfxTgt.turbo = SFX_DEF.turbo.v * abEnv;               // turbo en loop con fade
       postcombustion(dt, !!w.boost);                                      // …y la poscombustion encima
       // EL AGUA, y con el poder puesto MAS FUERTE (RF-05). Es la mitad que queda cuando el mundo se
       // apaga: motor y agua. Que el agua SUBA mientras todo lo demas baja es lo que hace que el
@@ -397,6 +402,16 @@ export function updateSfx(dt, w) {
       if (on && !slowPrev[k]) { const a = sfxLoop(k); if (a) try { a.currentTime = 0; } catch (e) { } }
       slowPrev[k] = on;
     }
+    // EL FUEGO DEL BUQUE (21/11): cerca del barco que te tira, las balas pasando (en loop) y, cada tanto y al azar, un
+    // golpe de chapa — uno de cuatro, a volumen variable, cada 0,6 a 2,2 s
+    if (w.state === 'play' && w.fuegoBuque) {
+      sfxTgt.balasCerca = SFX_DEF.balasCerca.v;
+      chapaT -= dt;
+      if (chapaT <= 0) { chapaT = 0.6 + Math.random() * 1.6; sfxOne('chapa' + ((Math.random() * 4) | 0), 0.6 + Math.random() * 0.4); }
+      // las balas que caen al agua, con su propio reloj (0,5 a 2 s)
+      aguaT -= dt;
+      if (aguaT <= 0) { aguaT = 0.5 + Math.random() * 1.5; sfxOne('agua' + ((Math.random() * 2) | 0), 0.5 + Math.random() * 0.5); }
+    } else { chapaT = 0.4; aguaT = 0.25; }
     // …y la del buque de LA SUELTA, desde que la bomba revienta en el casco (systems/blanco.js)
     if (w.state === 'play' && w.alarmaBuque) sfxTgt.alarm = SFX_DEF.alarm.v;
   }
@@ -550,6 +565,8 @@ export function sonidoFicha() {
 // del arranque —un segundo antes de que termine— entra el SOSTENIDO (afterburner_2) en loop, con un fundido
 // de ese mismo segundo: el empalme no se oye. Al soltar, los dos se van en un fundido corto.
 const AB = { encima: 1, sale: 0.25 };
+const TURBO_GOLPE = 0.6, TURBO_CAE = 1.4, TURBO_SOST = 0.55;   // el golpe del turbo (s), cuanto tarda en asentarse, y a cuanto
+let turboT = 0, abEnv = 1;
 let abI = null, abS = null, abT = -1, abPrev = false;
 function abAudio(key) {
   const d = sfxSrc(key); if (!d) return null;
@@ -561,18 +578,19 @@ function postcombustion(dt, on) {
     if (!abI) { abI = abAudio('abInicio'); abS = abAudio('abSostenido'); if (!abI) return; }
     if (!abPrev) {                                   // APRETASTE: el arranque, desde el principio
       abT = 0; abPrev = true;
-      try { abI.currentTime = 0; } catch (e) { } abI.volume = SFX_DEF.abInicio.v * gainDe('abInicio'); abI.play().catch(() => { });
+      try { abI.currentTime = 0; } catch (e) { } abI.volume = SFX_DEF.abInicio.v * gainDe('abInicio') * abEnv; abI.play().catch(() => { });
       if (abS && !abS.paused) { abS.pause(); abS.volume = 0; }
     }
     abT += dt;
+    if (!abI.paused) abI.volume = SFX_DEF.abInicio.v * gainDe('abInicio') * abEnv;   // (se asienta con el turbo)
     const durI = abI.duration > 0 ? abI.duration : 5.6, tEnc = durI - AB.encima;
     if (abS && abT >= tEnc) {
       const D = SFX_DEF.abSostenido;
       if (abS.paused) { try { abS.currentTime = D.desde; } catch (e) { } abS.play().catch(() => { }); }
       if (abS.currentTime >= D.hasta) { try { abS.currentTime = D.desde; } catch (e) { } }
       const u = Math.min(1, (abT - tEnc) / AB.encima);
-      abS.volume = D.v * gainDe('abSostenido') * u;
-      if (!abI.paused) abI.volume = SFX_DEF.abInicio.v * gainDe('abInicio') * (1 - u);   // el arranque se apaga mientras entra el otro
+      abS.volume = D.v * gainDe('abSostenido') * u * abEnv;
+      if (!abI.paused) abI.volume = SFX_DEF.abInicio.v * gainDe('abInicio') * (1 - u) * abEnv;   // el arranque se apaga mientras entra el otro
     }
     return;
   }

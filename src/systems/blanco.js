@@ -24,7 +24,15 @@ import { estructura } from '../data/estructuras.js';
 import { cargaDe } from '../data/cargas.js';
 import { bombaInfo, chanceDetona } from '../data/bombas.js';
 import { buqueTanque } from '../core/nafta.js';
-import { beep, boom } from './audio.js';
+import { beep, boom, sfxOne } from './audio.js';
+/** LA BOMBA QUE PEGA (21/11, el autor: "la explosion de la bomba suena HORRIBLE: usar los sonidos grandes de bombas
+ *  grandes, dos"): era un ruido blanco filtrado de 0,2 s. Ahora la extra pesada y, un pelito despues, la pesada encima
+ *  — `forzar`: no la saltea el tope de explosiones simultaneas. El ruido de antes queda de cuerpo, por debajo. */
+function explotaBomba(k = 1) {
+  sfxOne('exXheavy', k, true);
+  setTimeout(() => sfxOne('exHeavy', 0.85 * k, true), 160);
+  boom(0.08);
+}
 import { dado } from '../core/azar.js';
 const rnd = dado('blanco');   // el azar FIJO del libro de vuelo (core/azar.js)
 
@@ -317,7 +325,7 @@ export function golpe(pm, z0) {
   // YA HUNDIDO (lo pego otro de la fila antes): el impacto suma puntos y fuego, nada mas
   if (blanco.hundido) {
     run.score += BL.PTS_AVERIA;
-    boom(0.12); run.shake = Math.min(8, run.shake + 2);
+    explotaBomba(0.8); run.shake = Math.min(8, run.shake + 2);
     return true;
   }
   const dano = pm.tanque ? (zn === 'centro' ? BL.DANO_CENTRO : BL.DANO_EXTREMO) : bi.dano[zn];
@@ -326,7 +334,7 @@ export function golpe(pm, z0) {
     blanco.hundido = true; blanco.sinkT = 0;
     run.score += BL.PTS_HUNDIDO;
     veredicto('hundido', pm.x, pm.y, blanco.z, P.accent);
-    boom(0.2); run.shake = Math.min(8, run.shake + 3);
+    explotaBomba(); run.shake = Math.min(8, run.shake + 3);
   } else {
     run.score += BL.PTS_AVERIA;
     veredicto('averiado', pm.x, pm.y, blanco.z, P.accent);
@@ -377,7 +385,7 @@ function estalla(x, y, grande) {
     t: 0.1 + i * 0.13 + rnd() * 0.08, grande: i < 4,
   });
   obstacles.push({ type: 'humo', done: true, x, y: B - AGUA, z: blanco.z, humoT: 0, humoMax: 8 });
-  boom(0.28); run.shake = Math.min(9, run.shake + 5);
+  explotaBomba(); run.shake = Math.min(9, run.shake + 5);
 }
 
 /** LA MK-17 QUE DETONA DESPUES: corre su reloj y, al cumplirse, revienta donde pego y lo hunde —
@@ -395,7 +403,7 @@ function tarde(dt) {
   // a la vista, el cartelito sobre el buque; ya cruzado, solo lo canta Puma
   if (blanco.z > PZ) veredicto('tarde', blanco.tardeX, blanco.tardeY, blanco.z, P.accent);
   else { blanco.res = 'tarde'; blanco.resT = run.t; seña('tarde'); }
-  boom(0.2); run.shake = Math.min(8, run.shake + 3);
+  explotaBomba(); run.shake = Math.min(8, run.shake + 3);
 }
 
 /** `x` cae en una franja del casco que una explosion ya volo (ver `estalla`). */

@@ -3903,6 +3903,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let rotLibro = null, rotSale = 0, hudEntra = 1;
     // EL ROTULO DE LA CARRERA JUGABLE (21/11): se queda mientras dura la primera pausa de dialogo y se va cuando se cierra
     let dspVisto = false, dspSale = 0;
+    let fuegoBuqueOn = false;   // el buque de LA SUELTA te esta tirando (para el sonido de las balas y la chapa)
     /** ¿Un despegue del TUTORIAL? (con carrera jugable o el de siempre): ahi el tutorial corre desde la pista */
     const despTut = () => !!(libro && libro.tut);
     /** El encabezado del despegue (hud.drawTakeoff), en la grilla de diseño. */
@@ -4994,7 +4995,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       plane.y = Math.max(plane.y, 10); plane.vy = 0;
       // EL OTRO SECTOR (V5): del otro lado del viraje el cielo es otro — paso la hora y el mar no es
       // el de la ida. Se guarda el de la ida para devolverlo si se reintenta la mision.
-      const cv = CIELO_VUELTA[cfg.sky];
+      // (EN EL TUTORIAL NO: ahi no hay video del viraje que lo tape, y el cielo pasaba a NOCHE de golpe — 21/11, el autor:
+      // "¿que es eso de cambiar el clima abruptamente? horrible")
+      const cv = libro && libro.tut ? null : CIELO_VUELTA[cfg.sky];
       if (cv && cv !== cfg.sky) { if (cieloIda === null) cieloIda = cfg.sky; cfg.sky = cv; applyCfg(); }
       volverDelBlanco();
       armarSenas();
@@ -6051,6 +6054,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
       run.flash = Math.max(0, run.flash - dt / FLASH_T);
       updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire && !run.sinCanon, overheat: run.overheat, metralla: run.metralla, canon: !!run.canon, soldiers, alarmaBuque: blancoSys.alarma(),
+        fuegoBuque: fuegoBuqueOn || islas.fuegoBuque(),
         tempo: tempo.active(), freno: run.mv === 'cobra' || run.mv === 'cobrainv' });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
@@ -7119,10 +7123,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LA ARTILLERIA DEL BUQUE (systems/artilleria.js, PLAN_DEFENSAS_BUQUE F3): el 4,5" y los montajes
       // de 20/40 mm, que salen de sus sistemas. Con la defensa del blanco anulada (la carta ITB), callados.
       {
-        const ar = artilleria.step(dt, { pz: PZ, k: run.defK || 1,
-          activo: runClimax() === 'suelta' && !cfg.devcam && blancoSys.negro() <= 0 && blancoSys.slow() === 1
-            && !blancoSys.escapando() && !(suelto() && run.itb) });
-        if (ar === 'salva') beep(90, 0.22, 'sawtooth', 0.05, -40);   // el cañonazo del 4,5"
+        const artActivo = runClimax() === 'suelta' && !cfg.devcam && blancoSys.negro() <= 0 && blancoSys.slow() === 1
+          && !blancoSys.escapando() && !(suelto() && run.itb);
+        // (21/11: el sonido del fuego del buque — balas cerca y chapa — mientras el buque te tira, systems/audio.js)
+        fuegoBuqueOn = artActivo;
+        const ar = artilleria.step(dt, { pz: PZ, k: run.defK || 1, activo: artActivo });
+        if (ar === 'salva') { if (!sfxOne('aguaColumna', 0.8 + Math.random() * 0.2)) beep(90, 0.22, 'sawtooth', 0.05, -40); }   // el cañonazo del 4,5" (21/11: la columna de agua)
         else if (ar === 'roce') { run.score += 50; run.shake = Math.min(6, run.shake + 1.4); }
         else if (ar && ar.golpe) {
           run.shake = Math.min(8, run.shake + 3);

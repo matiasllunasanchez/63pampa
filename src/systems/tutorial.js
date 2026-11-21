@@ -148,7 +148,7 @@ export function tick(dt, s, escenas) {
     // EL PASO QUE MARCA INDICADORES ESPERA AL TABLERO (21/11, el autor: "no muestres dialogo que marque un indicador que
     // todavia no se esta mostrando"): en el despegue automatico de las etapas 2 y 3 el tablero entra recien al tomar
     // el control, con un fundido (game.js `hudEntra`) — `s.hud` dice si ya esta entero en pantalla
-    if (false && p.foco && p.foco.length && s.hud === false) return null;
+    if (p.foco && p.foco.length && s.hud === false) return null;
     fase = 'intro'; linea = 0;
   }
   // UNO A LA VEZ (19/11): mientras la radio en vuelo esta diciendo algo (el remate, un aviso), la

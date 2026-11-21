@@ -40,6 +40,19 @@ export const SFX_DEF = {
   // volumen sin tocar el de las explosiones chicas.
   momGun: { f: ['explosions/xsmall_explosion.wav', 'explosions/xsmall_explosion2.wav'], v: 0.55 },
   // cuerpos (atropellar soldados): uno al azar
+  // EL FUEGO DEL BUQUE CUANDO ESTAS CERCA (21/11, el autor: "balas pasando cerca mientras estoy cerca del barco que me
+  // ataca, y metal crack de manera aleatoria en la misma zona"). Niveles medidos (volumedetect): las balas -16 dB de
+  // media → v 0.33 (×0.6 del grupo: ~-30, apenas bajo la musica); los golpes de chapa, cada uno a su v (vienen muy dispares)
+  balasCerca: { f: ['ammo/near_gunshot_attack/gunshot_near.mp3'], v: 0.33, loop: true },
+  chapa0: { f: ['ammo/near_gunshot_attack/metal_crack/tutmozis-metal-crack-606770.mp3'], v: 0.54 },
+  chapa1: { f: ['ammo/near_gunshot_attack/metal_crack/u_ml52e3xzf7-metal-impact-247482.mp3'], v: 1 },
+  chapa2: { f: ['ammo/near_gunshot_attack/metal_crack/u_y3wk5ympz8-metal-crunch-263638.mp3'], v: 1 },
+  chapa3: { f: ['ammo/near_gunshot_attack/metal_crack/universfield-metal-hit-153323.mp3'], v: 1 },
+  // …Y EL AGUA (21/11, "water splashs para la misma zona"): dos salpicones de bala, al azar; y la columna del cañonazo
+  // del 4,5" (era un pitido). Medidos igual: el salpicon -28,7/-24,1 dB de media, la columna -9 (viene muy fuerte)
+  agua0: { f: ['ammo/near_gunshot_attack/water_splashs/universfield-water-splash-02-352021.mp3'], v: 1 },
+  agua1: { f: ['ammo/near_gunshot_attack/water_splashs/universfield-water-splash-199583.mp3'], v: 0.84 },
+  aguaColumna: { f: ['ammo/near_gunshot_attack/water_splashs/freesound_community-water-explosion-1-87160.mp3'], v: 0.2 },
   body: { f: ['body/body_hit0.wav', 'body/body_hit1.wav', 'body/body_hit2.wav', 'body/body_hit3.wav'], v: 0.75 },
   // explosiones por contexto
   exXheavy: { f: ['explosions/xheavy_explosion0.wav', 'explosions/xheavy_explosion1.wav', 'explosions/xheavy_explosion3.wav', 'explosions/xheavy_explosion4.wav'], v: 0.45 },

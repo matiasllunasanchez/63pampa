@@ -37,6 +37,9 @@ export const mallaDe = tipo => MALLA[tipo] || tipo;
 
 const RED_SOBRE = 3500;   // m: la red del radar se ve volando ENCIMA de el
 export const RED_ARG_T = 5; // s: la nuestra, al entrar a la zona (el cartel, 3 s, y 2 s mas)
+export const fuegoCerca = () => !!(T.armado && T.fuego);
+/** (sonda) el buque britanico vivo mas cercano a (x, z) */
+export const buqueCerca = (x, z) => T.buques.filter(b => b.vivo && b.bando === 'gb').sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))[0] || null;
 const T = { armado: false, piezas: [], buques: [], pac: [], soldados: [], trincheras: [], banderas: [], t: 0, radares: [], zona: { gb: null, arg: null, visto: false }, vistoT: 99, eventos: [] };
 let semilla = 1;
 const rnd = () => ((semilla = (semilla * 16807) % 2147483647) / 2147483647);
@@ -200,6 +203,31 @@ export function paso(dt, P, pz, boom, jugando) {
     e.cd = tira(e.x, e.z, e.g + 3, A.tipo, A.tiro, e.tipo) ? A.cada * (0.8 + rnd() * 0.4) : 0.3;
   }
   // ---- LOS BUQUES: los de piquete van y vienen; cada uno tira con lo suyo segun a que distancia estes ----
+  // EL FUEGO DEL BUQUE DE CERCA, COMO EN EL PASILLO (21/11, el autor: "en las islas tiene que funcionar igual, tanto
+  // visual como sonido"): adentro del alcance del arma corta de un buque britanico vivo, las balas caen al agua alrededor
+  // tuyo (salpicones chicos adelante y a los costados) y cada tanto una COLUMNA del cañon grande camina sobre tu rumbo.
+  // El sonido (las balas pasando, la chapa, el agua) lo pone audio.js con `fuegoCerca()`
+  T.fuego = false;
+  T.salpT = (T.salpT ?? 0) - dt; T.columnaT = (T.columnaT ?? 2) - dt;
+  if (jugando) for (const b of T.buques) {
+    if (!b.vivo || b.bando !== 'gb') continue;
+    const D = DEFENSA[b.clase] || DEFENSA.log, A = D.corto;
+    if (!A || Math.hypot(b.x - P.x, b.z - P.z) > A.alcance) continue;
+    T.fuego = true;
+    const enAgua = (x, z) => mundo.sueloH(x, z) <= 0.3;
+    if (T.salpT <= 0) {
+      T.salpT = 0.18 + rnd() * 0.35;
+      const d = 60 + rnd() * 260, l = (rnd() - 0.5) * 90, x = P.x + sy * d + cy * l, z = P.z - cy * d + sy * l;
+      if (enAgua(x, z)) boom(x, 0, z, 0.35 + rnd() * 0.3, 'agua');
+    }
+    if (T.columnaT <= 0) {
+      T.columnaT = 2.2 + rnd() * 1.6;
+      // la columna cae SOBRE tu rumbo, un poco adelante: castiga volar derecho, como el 4,5" del pasillo
+      const d = 140 + rnd() * 200, l = (rnd() - 0.5) * 30, x = P.x + sy * d + cy * l, z = P.z - cy * d + sy * l;
+      if (enAgua(x, z)) { boom(x, 0, z, 1.6, 'agua'); sfxOne('aguaColumna', 0.8 + rnd() * 0.2); }
+    }
+    break;
+  }
   for (const b of T.buques) {
     // EL QUE SE HUNDE: escora y baja de a poco (teatro3d.js lo dibuja con `hund`); su bandera con el
     if (!b.vivo) { b.hund = Math.min(b.h * 1.1, b.hund + dt * 0.5); continue; }
