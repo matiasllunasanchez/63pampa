@@ -207,7 +207,7 @@ import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T, SENAS_COMP } from './data/senal
 import { cartel, cartelSostenido, tickCarteles, limpiarCarteles, carteles } from './core/cartel.js';
 import { CARA_DE_RADIO, decirLinea, setVozLibro } from './core/voz.js';
 import { derrota, esChoque, tipoDerribo } from './data/derrotas.js';
-import { DEV } from './core/dev.js';
+import { DEV, FULL } from './core/dev.js';
 import { defensaDe } from './data/defensas.js';
 import { calibreDe } from './data/sistemas_buque.js';
 import { BOMBAS, bombaDe, bombaInfo } from './data/bombas.js';
@@ -628,7 +628,27 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (!run.fallasFlota) run.fallasFlota = [];
       // (…y EL FRIO EN LA BASE las hace mas probables — data/frio.js ARRANQUE: los fluidos y los retenes)
       const fk = perfilDe(PLANES[selPlane] && PLANES[selPlane].key).fallasK * frio.arranqueK(frio.tempPasillo(cfg, 0));   // el A-4 falla mas, el Super Etendard menos
+      const antes = run.fallasFlota.map(f => ({ ...(f || {}) }));
       for (let i = 0; i < run.squad; i++) run.fallasFlota[i] = tirarFallas(run.fallasFlota[i] || {}, Math.random, fk);
+      if (run.squad <= 3) acotarFlota(antes);
+    }
+    /** LAS FALLAS EN LAS ESCUADRILLAS CHICAS (21/11, el autor: "en 3 puede haber fallas en 1 o a veces 2, pero en 1 no,
+     *  o una falla menor curable con tarjeta"). Solo lo NUEVO de esta salida: lo que ya traia (las esquirlas del
+     *  CICLO) queda. Con 3: falla nueva en uno, y con FALLAS_DOS en dos — nunca en los tres. Con 1: ninguna, o una
+     *  sola MENOR (grado 1: la arregla el TALLER del banco). */
+    const FALLAS_DOS = 0.2;
+    function acotarFlota(antes) {
+      const F = run.fallasFlota, nueva = i => Object.keys(F[i] || {}).some(id => (F[i][id] || 0) > ((antes[i] || {})[id] || 0));
+      if (run.squad === 1) {
+        if (!nueva(0)) return;
+        const f = F[0], id = Object.keys(f).find(k => (f[k] || 0) > ((antes[0] || {})[k] || 0));
+        F[0] = { ...(antes[0] || {}) };
+        if (!F[0][id]) F[0][id] = 1;
+        return;
+      }
+      const tope = Math.random() < FALLAS_DOS ? 2 : 1;
+      let n = 0;
+      for (let i = 0; i < run.squad; i++) if (nueva(i) && ++n > tope) F[i] = { ...(antes[i] || {}) };
     }
     /** El cartel con las fallas del numeral `n` (al cambiar de avion, al arrancar). */
     function avisarFallas(n) {
@@ -1014,7 +1034,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  solo el Skyhawk A-4B, pero permitir recorrer todos los otros aviones… sin poder seleccionarlos"). Los
      *  demas se ven en el carrusel —en gris, con candado— y ENTER no arranca. En DEV se eligen todos. */
     // (el TRAILER los muestra libres: tools/trailer_preload.js pone `__trailerAviones`; en el juego nadie lo toca)
-    const avionBloqueado = i => !DEV && !(typeof window !== 'undefined' && window.__trailerAviones) && i !== CAMPAIGN_PLANE;
+    const avionBloqueado = i => !DEV && !FULL && !(typeof window !== 'undefined' && window.__trailerAviones) && i !== CAMPAIGN_PLANE;
 
     // ---------- TIPOS DE OBJETIVO ----------
     // Un objetivo es ENCHUFABLE: agregar un tipo nuevo (base, convoy, escolta...) es agregar
@@ -1767,6 +1787,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 
     function startCampaign() {
       libro = null;
+      islas.activar(false); S.test = false;   // (las islas que hubieran quedado prendidas no son de la campaña)
       gameMode = 'campaign'; curCampaign = 0; selPlane = CAMPAIGN_PLANE;
       pichon = [];                       // campaña nueva: el banco del Pichon arranca vacio
       resetDesgaste();                   // ...y celula nueva: sin parches (G-04)
@@ -1906,6 +1927,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function quickConfirm() {
       const id = quickRows()[quickSel].id;
       if (id === 'back') { modeSel = MODES.indexOf(subMenu); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
+      // (21/11, el autor: "puse CORONADO DE GLORIA, despues FACIL, y quedo lockeado en 1 avion"): LAS ISLAS QUEDABAN
+      // PRENDIDAS al volver de ellas (el sobrevuelo, la etapa 4 del tutorial, la busqueda del Belgrano a medias) y
+      // `reset` dejaba el escuadron en 1 —el de las islas—, con S.test puesto (sin pantalla de dificultad). Los modos
+      // del pasillo las apagan al entrar
+      if (id !== 'islas' && id !== 'back' && !DEV_ROWS.some(r => r.id === id)) { islas.activar(false); S.test = false; }
       // MODO DEV: cada fila abre su herramienta, como lo hacia antes el menu principal
       if (id === 'pruebas') { prbSel = prbFirstSel(); setState('pruebas'); beep(600, 0.08, 'square', 0.05); }
       else if (id === 'cines') { cinSel = 0; setState('cines'); beep(600, 0.08, 'square', 0.05); }
@@ -2506,7 +2532,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // 'raiz' (las dos puertas), 'campanas' (continuar + las campañas) o 'libro' (las salidas). El ATRAS
     // de adentro vuelve a la raiz, con el cursor sobre la puerta de la que se vino.
     let campVista = 'raiz';
-    const campRows = () => campVista === 'campanas' ? (CAMPANA_BLOQUEADA ? [
+    const campRows = () => campVista === 'campanas' ? (CAMPANA_BLOQUEADA && !FULL ? [
       { id: 'c1', disabled: true },
       { id: 'back', back: true, sub: true },
     ] : [
@@ -2517,12 +2543,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       { id: 'back', back: true, sub: true },
     ]) : campVista === 'tutorial' ? [
       // EL TUTORIAL (data/tutorial.js): cada etapa abre la siguiente (en DEV, todas abiertas)
-      ...TUTORIAL_ETAPAS.map((m, k) => ({ id: 'tut', k, hecha: etapaHecha(k), disabled: !DEV && k > 0 && !etapaHecha(k - 1) })),
+      ...TUTORIAL_ETAPAS.map((m, k) => ({ id: 'tut', k, hecha: etapaHecha(k), disabled: !DEV && !FULL && k > 0 && !etapaHecha(k - 1) })),
       { id: 'back', back: true, tut: true },
     ] : campVista === 'libro' ? [
       ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k })),
       // las que vienen, en gris debajo (17/10): se ven y se marcan, no se entran
-      ...LIBRO_PROXIMAS.map((m, k) => ({ id: 'proxima', k, disabled: true })),
+      ...(FULL ? [] : LIBRO_PROXIMAS.map((m, k) => ({ id: 'proxima', k, disabled: true }))),   // (la FULL no promete)
       { id: 'back', back: true, sub: true },
     ] : [
       { id: 'secCampanas' },
@@ -2533,7 +2559,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function campIr(vista, fila) {
       campVista = vista;
       // con la campaña BLOQUEADA (la demo) la raiz arranca sobre el LIBRO DE VUELO: es lo que se juega
-      if (!fila && vista === 'raiz' && CAMPANA_BLOQUEADA) fila = r => r.id === 'secLibro';
+      if (!fila && vista === 'raiz' && CAMPANA_BLOQUEADA && !FULL) fila = r => r.id === 'secLibro';
       // al ENTRAR al tutorial, el cursor va SIEMPRE a la primera etapa (19/11, el autor: "apenas entramos al menu de
       // tutorial, seleccionar el primer punto"). Al volver de una etapa se queda sobre la siguiente (volverAlLibro).
       if (!fila && vista === 'tutorial') fila = r => r.id === 'tut' && r.k === 0;
@@ -2583,6 +2609,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (!m) return;
       libro = { k, av: null };
       gameMode = 'cycle'; S.test = false;
+      islas.activar(false);   // (la busqueda del mar abierto las prende sola cuando llega a la zona)
       startCiclo = null;   // (lo mismo que el tutorial: el arranque guardado de CICLO no es de esta salida)
       loadLevel(nivelLibro(k));
       initStory(m.contexto); setState('story');
@@ -4440,7 +4467,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         }
         if (S.state === 'play' || S.state === 'takeoff') {
           // FUERA DE PROD POR AHORA (17/11, el autor: "le falta pulir"): la tecla avisa que viene
-          if (!DEV) { beep(440, 0.05, 'square', 0.04); cartel(T('cabinaProx'), P.dim); return; }
+          if (!DEV && !FULL) { beep(440, 0.05, 'square', 0.04); cartel(T('cabinaProx'), P.dim); return; }
           cabina.on = !cabina.on;
           beep(cabina.on ? 660 : 440, 0.05, 'square', 0.04);
           cartel(cabina.on ? 'CABINA' : 'TERCERA', P.accent);

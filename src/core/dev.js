@@ -9,3 +9,8 @@
 // ahi se considera DEV: las pruebas navegan el menu con el MODO DEV adentro, y sacarlo les correria
 // las filas.
 export const DEV = typeof window === 'undefined' || !window.RASANTE_APP || !!window.RASANTE_DEV;
+
+// LA VERSION FULL (21/11, el autor: "una version full sin proximamente para prod, full-demo"): el juego de verdad
+// —sin MODO DEV— con todo lo que en prod queda trabado, destrabado: los aviones, las etapas del tutorial, la campaña
+// y la cabina del pasillo; y sin las salidas del libro que todavia no existen. `npm run full-demo` (main.js --full).
+export const FULL = typeof window !== 'undefined' && !!window.RASANTE_FULL;

@@ -9,6 +9,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('RASANTE_APP', true);
 // EL MODO DEV (8/10): lo pasa electron/main.js como argumento (`yarn start` dev, `yarn start --prod` no)
 contextBridge.exposeInMainWorld('RASANTE_DEV', process.argv.includes('--rasante-dev'));
+// LA VERSION FULL (src/core/dev.js FULL): `--full` en main.js
+contextBridge.exposeInMainWorld('RASANTE_FULL', process.argv.includes('--rasante-full'));
 // OPCIONES -> PANTALLA (src/game.js): pantalla completa o ventana. Lo aplica electron/main.js.
 contextBridge.exposeInMainWorld('rasanteVentana', { pantallaCompleta: v => ipcRenderer.send('pantalla-completa', !!v) });
 // LOS TEMAS DE music/original, como estan en la carpeta (electron/main.js; los usa systems/audio.js)

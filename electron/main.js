@@ -54,7 +54,8 @@ function createWindow() {
     fullscreen: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      additionalArguments: DEV ? ['--rasante-dev'] : [],   // lo lee el preload (window.RASANTE_DEV)
+      // lo lee el preload (window.RASANTE_DEV / RASANTE_FULL: `--full`, la version sin PROXIMAMENTE)
+      additionalArguments: [...(DEV ? ['--rasante-dev'] : []), ...(process.argv.includes('--full') ? ['--rasante-full'] : [])],
       contextIsolation: true,     // seguridad estándar
       nodeIntegration: false,     // el renderer NO tiene acceso a Node
       // El juego arranca la música al cargar, sin esperar un gesto. Electron YA permite autoplay
