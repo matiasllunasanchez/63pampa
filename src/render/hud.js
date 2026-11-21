@@ -13,7 +13,8 @@ import { enCabina } from '../core/cabina.js';
 import { CABINA_ANCLAS } from '../data/cabina_anclas.js';
 import { drawManos } from './cabina.js';
 import * as glifos from './glifos.js';
-const GLIFO_H = 9;   // el alto de la fila de mandos dibujados de un cartel (render/glifos.js)
+const GLIFO_H = 9;
+const FILA_H = 13;   // el alto de un cartel con mando: una sola fila (mando · texto · cuenta)   // el alto de la fila de mandos dibujados de un cartel (render/glifos.js)
 const GLIFO_CUENTA = '4px monospace';   // la cuenta (1 / 2, 3 / 8 SEGS) al lado de los mandos
 import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
@@ -326,73 +327,57 @@ let dspT0 = 0, dspUlt = -9;
  *  izquierda, donde no hay tablero todavia: cada renglon se TIPEA despues del anterior, con su cursor, y al tomar el
  *  control se va (`sale` 0→1). `rot` = { lineas: [lugar, zona, fecha, hora], t: segundos desde que empezo }. */
 export const ROTULO_CPS = 26, ROTULO_PAUSA = 0.25;
+/** Los renglones del rotulo (21/11, el autor: "arriba a la izquierda: FECHA, HORA, LUGAR — sin fondo, letra amarilla"). */
+export function lineasRotulo(fecha, hora, lugar) {
+  // (21/11, el autor: "literalmente el lugar, sin el texto LUGAR"): los datos solos, sin rotulos
+  return [fecha && String(fecha).toUpperCase(), hora && hora + ' HS', lugar && String(lugar).toUpperCase()].filter(Boolean);
+}
 export function drawRotuloDespegue(rot, sale = 0) {
   if (!rot || sale >= 1) return;
   ctx.save();
   ctx.globalAlpha = 1 - sale;
   ctx.textAlign = 'left';
-  let t = rot.t, y = 30;
+  let t = rot.t, y = 20;
   const x = 10;
   for (let i = 0; i < rot.lineas.length; i++) {
     const txt = rot.lineas[i];
     const n = Math.max(0, Math.min(txt.length, Math.floor(t * ROTULO_CPS)));
     t -= txt.length / ROTULO_CPS + ROTULO_PAUSA;
     if (n <= 0) break;
-    const grande = i === 0;
-    ctx.font = grande ? 'bold 7px monospace' : '6px monospace';
+    // SIN FONDO, SIN SOMBRA Y EN AMARILLO (21/11)
+    ctx.font = 'bold 6px monospace';
     const vis = txt.slice(0, n), w = ctx.measureText(vis).width;
-    ctx.fillStyle = '#0a0e11b0'; ctx.fillRect(x - 3, y - (grande ? 7 : 6), w + 6 + (n < txt.length ? 4 : 0), grande ? 10 : 9);
-    ctx.fillStyle = grande ? P.ink : i === rot.lineas.length - 1 ? '#f2cf4a' : '#9fb3c0';
+    ctx.fillStyle = '#f2cf4a';
     ctx.fillText(vis, x, y);
     // el cursor: en el renglon que se esta escribiendo, y titilando en el ultimo cuando ya termino
     const escribiendo = n < txt.length, ultimo = i === rot.lineas.length - 1;
     if (escribiendo || (ultimo && Math.sin(rot.t * 8) > 0)) ctx.fillRect(x + w + 1, y - 5, 3, 6);
-    y += grande ? 11 : 10;
+    y += 9;
     if (escribiendo) break;
   }
   ctx.restore();
 }
-export function drawTakeoff(toT, dsp, auto = 0, suelto = false, sinCuenta, rot = null) {
+export function drawTakeoff(toT, dsp, auto = 0, suelto = false, sinCuenta, rot = null, saleCarrera = null) {
   // EL LIBRO DE VUELO no tiene cuenta ni cabecera: despega solo y se tipea el rotulo (drawRotuloDespegue)
   if (rot) { drawRotuloDespegue(rot); return; }
   ctx.textAlign = 'center';
   // los modos sueltos no salen de una base real ni van a un blanco dicho (18/10, el autor: "eso es mentira,
   // quitarlo"): un rumbo generico y nada mas
-  const titulo = suelto ? T('takeoffSuelto') : dsp ? T('takeoffWord') + ' · ' + dsp.desde : T('takeoffTitle');
-  const rumbo = suelto ? null : dsp ? dsp.rumbo : T('takeoffHeading');
   const enAuto = auto && toT >= 3;
-  // placa oscura detras del encabezado: cae sobre el amanecer y sin esto no se lee
-  // (en el DESPEGUE JUGABLE el encabezado baja al medio, donde iba la cuenta que ahi no hay: arriba van los carteles —la
-  // consigna del tutorial— y lo tapaba. 19/11, el autor: "el cartel de despegue tapa el cartel de arriba")
-  // EN EL DESPEGUE JUGABLE: un solo renglon chico, abajo sobre la pista y arriba del tablero, con una placa
-  // del ancho del texto (19/11, el autor: "medio al pedo... tapa todo el avion"). Sin franja ni rumbo.
-  if (sinCuenta && !enAuto) {
-    // (19/11, el autor: "y que no quede siempre"): se lee unos segundos al empezar la carrera y se va
-    const ahora = performance.now() / 1000;
-    if (ahora - dspUlt > 0.5) dspT0 = ahora;   // una carrera nueva (no se dibujo hace rato): arranca de cero
-    dspUlt = ahora;
-    const a = Math.max(0, Math.min(1, (DSP_DURA + DSP_FUNDE - (ahora - dspT0)) / DSP_FUNDE));
-    if (a <= 0) return;
-    ctx.save(); ctx.globalAlpha = a;
-    const txt = rumbo ? titulo + ' · ' + rumbo : titulo, y = HUD_TECHO - 16;
-    // (19/11, el autor: "del mismo ancho que la barra de objetivo"): la placa va a lo largo de la cinta de arriba
-    const c = cajaCinta, x0 = c ? c.x : 8, w = c ? c.w : W - 16;
-    ctx.font = '6px monospace';
-    ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(x0, y - 6, w, 9);
-    ctx.fillStyle = '#9fb3c0'; ctx.fillText(txt, x0 + w / 2, y + 1, w - 6);
-    ctx.restore();
-    return;
-  }
-  const dy = 0;
+  // TODO DESPEGUE, ARRIBA A LA IZQUIERDA (21/11, el autor: "la parte de despegue, en el lateral izquierdo superior:
+  // FECHA, HORA, LUGAR — sin fondo, letra amarilla"): el mismo rotulo tipeado del libro de vuelo, con lo que la
+  // mision sepa (la campaña trae fecha; el tutorial y el modo de siempre, solo el lugar). Ya no hay franja al medio.
   if (!enAuto) {
-    ctx.fillStyle = '#0a0e11aa'; ctx.fillRect(0, 17 + dy, W, rumbo ? 23 : 13);
-    ctx.fillStyle = P.ink; ctx.font = '7px monospace';
-    ctx.fillText(titulo, W / 2, 26 + dy);
-    // el rumbo va pegado al titulo: antes estaba en y=80, encima del avion en la pista
-    if (rumbo) {
-      ctx.fillStyle = '#8a9ba1'; ctx.font = '6px monospace';
-      ctx.fillText(rumbo, W / 2, 36 + dy);
-    }
+    const ahora = performance.now() / 1000;
+    if (ahora - dspUlt > 0.5) dspT0 = ahora;   // un despegue nuevo (no se dibujo hace rato): arranca de cero
+    dspUlt = ahora;
+    const t = ahora - dspT0;
+    // en el DESPEGUE JUGABLE se lee unos segundos y se va (19/11, "que no quede siempre")
+    // (21/11: en la carrera jugable lo decide game.js —se va al cerrarse la primera pausa de dialogo—)
+    const sale = saleCarrera != null ? saleCarrera : sinCuenta ? Math.max(0, Math.min(1, (t - DSP_DURA) / DSP_FUNDE)) : 0;
+    const lugar = dsp ? dsp.desde : T('takeoffTitle').replace(/^[^·]*·\s*/, '');
+    const lineas = suelto ? [T('takeoffSuelto')] : lineasRotulo(dsp && dsp.fecha, dsp && dsp.hora, lugar);
+    drawRotuloDespegue({ t, lineas }, sale);
   }
   // EL PILOTO AUTOMATICO de los modos sueltos (`auto` segundos despues de la carrera, game.js): la misma
   // cuenta con la bandera, pero ahora dice cuando el avion pasa a ser tuyo. Arriba de todo, chico y
@@ -533,6 +518,7 @@ function relojSaludFila(x, y) {
   else iconoEn(x + 3.5, y + 22.5, 'ola', P.accent);
   // CRITICO: la chapa en el ultimo escalon, el escudo en su rojo, o rozando ahora mismo
   if ((total !== null && total <= 0.25) || temp < 0.35 || rozando) bordeCritico(x, y, CUADRO, CUADRO);
+  escarcha('salud', x, y, run.hielo || 0);
 }
 
 // ---------- KIT DE PIXEL ART DEL HUD ----------
@@ -1262,7 +1248,7 @@ function drawCartel() {
   const lista = cartelesAhora(performance.now() / 1000);
   if (enCabina()) {
     let alto = 0;
-    for (const a of lista) if (a.k > 0) alto += ((a.c.glifos && a.c.glifos.length ? 12 + GLIFO_H + 2 : a.c.sub ? 12 + (a.c.alerta ? 8 : 4) + 2 : 12) + 2) * a.k;
+    for (const a of lista) if (a.k > 0) alto += ((a.c.glifos && a.c.glifos.length) || a.c.okF != null ? FILA_H + 2 : (a.c.sub ? 12 + (a.c.alerta ? 8 : 4) + 2 : 12) + 2) * a.k;
     techo = H - 3 - pisoCabina.alto - alto;
   }
   for (const a of lista) {
@@ -1292,10 +1278,14 @@ function drawUnCartel(a, techo) {
   // LOS MANDOS DIBUJADOS (21/11, el tutorial: render/glifos.js) en una fila propia, abajo
   // …Y COMPACTO (21/11, "ahorremos espacio, las veces mas chicas"): con mandos, la segunda linea es UNA fila — el
   // mando y, a su derecha, la cuenta en chiquito
+  // …Y EN UNA SOLA FILA, A LA IZQUIERDA DEL TEXTO (21/11, el autor: "el icono o el stick va del lado izquierdo del texto
+  // que me indica que tengo que hacer, se pone VERDE y despues es un CHECK cuando cumplo"): [mando] TEXTO cuenta
   const gl = a.c.glifos && a.c.glifos.length ? a.c.glifos : null;
-  const wCuenta = gl && c.sub ? (ctx.font = GLIFO_CUENTA, ctx.measureText(c.sub).width + 4) : 0;
-  const w3 = gl ? glifos.medir(gl, GLIFO_H) + wCuenta : 0;
-  const w = Math.round(Math.max(w1, gl ? 0 : w2, w3) + (c.alerta ? 20 : 12)), h = gl ? 12 + GLIFO_H + 2 : c.sub ? 12 + SUB_PX + 2 : 12;
+  const fila = !!gl || c.okF != null;
+  const wIco = gl ? glifos.medir(gl, GLIFO_H) : c.okF != null ? 8 : 0;
+  const wCuenta = fila && c.sub ? (ctx.font = GLIFO_CUENTA, ctx.measureText(c.sub).width + 4) : 0;
+  const w3 = fila ? wIco + 5 + w1 + wCuenta : 0;
+  const w = Math.round(Math.max(fila ? 0 : w1, fila ? 0 : w2, w3) + (c.alerta ? 20 : 12)), h = fila ? FILA_H : c.sub ? 12 + SUB_PX + 2 : 12;
   // el lugar en la pila, suavizado (lo guarda el propio cartel del store: es estado de dibujo, nada mas)
   // (LAS ISLAS, fuera de la cabina — 21/11, el autor: "que aparezcan como aparece radar pero de derecha a izquierda,
   // que se puedan stackear… que queden 3 segs y se vayan hacia la derecha": entra CORRIENDO desde la derecha y se va
@@ -1328,16 +1318,46 @@ function drawUnCartel(a, techo) {
   bordePlaca(x, y, w, h, col);
   ctx.textAlign = 'center';
   ctx.font = avisoFont(8); ctx.fillStyle = col;
-  conApertura(c.txt, W / 2 + dx, y + 9, 8);
-  if (c.sub && !gl) {
+  if (!fila) conApertura(c.txt, W / 2 + dx, y + 9, 8);
+  if (c.sub && !fila) {
     ctx.font = fSub; ctx.fillStyle = c.subCol || P.foam;
     conApertura(c.sub, W / 2 + dx, y + 11 + SUB_PX - (c.alerta ? 1 : 0), SUB_PX);
   }
-  if (gl) {
+  if (fila) {
+    const gx = Math.round(W / 2 + dx - w3 / 2), gy = y + Math.round((h - GLIFO_H) / 2);
+    // CUMPLIDA, EN TRES TIEMPOS Y FUNDIDOS (`okF` 1→0): el mando se tiñe de verde, despues se achica y se apaga
+    // mientras el CHECK crece en su lugar. Sin cortes: cada tramo arranca donde termino el anterior
+    const ok = c.okF, ss = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
+    const verdeK = ok == null ? 0 : ss((1 - ok) / 0.3);          // 0→1 en el primer 30 %
+    const checkK = ok == null ? 0 : ss((0.62 - ok) / 0.3);       // 0→1 entre el 38 % y el 68 %
+    const a0 = ctx.globalAlpha, gw0 = gl ? wIco : 8, gcx = gx + gw0 / 2, gcy = gy + GLIFO_H / 2;
+    if (gl && checkK < 1) {
+      const esc = 1 - 0.35 * checkK;
+      ctx.save(); ctx.translate(gcx, gcy); ctx.scale(esc, esc); ctx.translate(-gcx, -gcy);
+      ctx.globalAlpha = a0 * (1 - checkK) * (1 - verdeK);
+      glifos.dibujar(gl, gx, gy, GLIFO_H, performance.now() / 1000);
+      if (verdeK > 0) {
+        ctx.globalAlpha = a0 * (1 - checkK) * verdeK;
+        ctx.filter = 'brightness(0.9) sepia(1) hue-rotate(50deg) saturate(5)';
+        glifos.dibujar(gl, gx, gy, GLIFO_H, performance.now() / 1000);
+        ctx.filter = 'none';
+      }
+      ctx.restore();
+    }
+    if (checkK > 0 || !gl) {
+      // EL CHECK, dibujado a mano (el palito corto y el largo), creciendo desde el centro del mando
+      const k = gl ? checkK : 1, esc = 0.5 + 0.5 * k;
+      ctx.save(); ctx.globalAlpha = a0 * k;
+      ctx.translate(gcx, gcy); ctx.scale(esc, esc);
+      ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(-3.2, 0.2); ctx.lineTo(-1, 2.5); ctx.lineTo(3.3, -2.3); ctx.stroke();
+      ctx.restore();
+    }
+    const tx = gx + wIco + 5;
+    ctx.textAlign = 'center'; ctx.font = avisoFont(8); ctx.fillStyle = col;
+    conApertura(c.txt, tx + w1 / 2, y + Math.round(h / 2) + 3, 8);
     ctx.textAlign = 'left';
-    const gx = Math.round(W / 2 + dx - w3 / 2), gy = y + h - GLIFO_H - 2;
-    const gw = glifos.dibujar(gl, gx, gy, GLIFO_H, performance.now() / 1000);
-    if (c.sub) { ctx.font = GLIFO_CUENTA; ctx.fillStyle = c.subCol || P.dim; ctx.fillText(c.sub, gx + gw + 4, gy + GLIFO_H - 2); }
+    if (c.sub) { ctx.font = GLIFO_CUENTA; ctx.fillStyle = c.subCol || P.dim; ctx.fillText(c.sub, tx + w1 + 4, y + Math.round(h / 2) + 2); }
   }
   ctx.textAlign = 'left';
   ctx.restore();
@@ -1627,6 +1647,78 @@ function relojFila(x, y, o) {
 // un termometro azul con un copo (frio, hasta +2), verde (templado, hasta +15) o rojo con sol (calor). Con hielo
 // juntandose el borde va celeste, y critico cuando ya hay mucho.
 const ANCLA_TEMP = [143.53, 167.82, 8.22], T_MIN = -20, T_MAX = 30;
+// LA ESCARCHA (21/11, el autor: "congelamos el indicador de hielo cuando las alas estan congeladas, y el borde de la
+// vida tambien; y cuando se derriten se convierten en agua y se van"): cristales que crecen desde el borde de la caja
+// hacia adentro a medida que se junta hielo (`nivel` 0..1, run.hielo), y un velo celeste encima. Cada cristal tiene su
+// umbral: al bajar el hielo, el que se apaga suelta una GOTA que resbala por la caja y se va.
+const ESC_N = 26, ESC_CRIS = [], escPrev = {}, escGotas = {};
+{ let sem = 7; const rnd = () => (sem = (sem * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < ESC_N; i++) {
+    // un punto del perimetro (0..4 = arriba, derecha, abajo, izquierda), su umbral y su largo
+    const lado = i % 4, u = 0.08 + rnd() * 0.84;
+    ESC_CRIS.push({ lado, u, umbral: 0.12 + rnd() * 0.8, largo: 1 + Math.floor(rnd() * 3), rama: rnd() < 0.5 ? -1 : 1 });
+  }
+}
+function escarcha(id, x, y, nivel) {
+  const W0 = CUADRO, ahora = performance.now() / 1000;
+  const prev = escPrev[id] ?? nivel; escPrev[id] = nivel;
+  const gotas = escGotas[id] || (escGotas[id] = []);
+  const pos = c => c.lado === 0 ? [x + 1 + c.u * (W0 - 3), y + 1, 0, 1] : c.lado === 1 ? [x + W0 - 2, y + 1 + c.u * (W0 - 3), -1, 0]
+    : c.lado === 2 ? [x + 1 + c.u * (W0 - 3), y + W0 - 2, 0, -1] : [x + 1, y + 1 + c.u * (W0 - 3), 1, 0];
+  // SE DERRITE: cada cristal que cruzo su umbral para abajo larga una gota
+  if (nivel < prev) for (const c of ESC_CRIS) if (prev >= c.umbral && nivel < c.umbral) {
+    const [cx, cy] = pos(c);
+    gotas.push({ x: Math.round(cx), y: cy, t0: ahora, v: 6 + (c.u * 10) % 6 });
+  }
+  ctx.save();
+  if (nivel > 0.02) {
+    // el vidrio empañado de frio
+    ctx.globalAlpha = Math.min(0.32, nivel * 0.4); ctx.fillStyle = '#cfeeff'; ctx.fillRect(x + 1, y + 1, W0 - 2, W0 - 2);
+    ctx.globalAlpha = 1;
+    for (const c of ESC_CRIS) {
+      if (nivel < c.umbral) continue;
+      const [cx, cy, dx, dy] = pos(c), crece = Math.min(1, (nivel - c.umbral) / 0.15), L = Math.max(1, Math.round(c.largo * crece + 0.4));
+      ctx.fillStyle = '#e8f8ff';
+      for (let k = 0; k < L; k++) ctx.fillRect(Math.round(cx + dx * k), Math.round(cy + dy * k), 1, 1);
+      // la ramita de costado, en la punta
+      if (L > 1) { ctx.fillStyle = '#a8dcff'; ctx.fillRect(Math.round(cx + dx * (L - 1) + dy * c.rama), Math.round(cy + dy * (L - 1) + dx * c.rama), 1, 1); }
+    }
+    // el borde de la caja, escarchado
+    ctx.globalAlpha = Math.min(1, nivel * 1.4); ctx.strokeStyle = '#bfe8ff'; ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, W0 - 1, W0 - 1); ctx.globalAlpha = 1;
+  }
+  // LAS GOTAS: resbalan para abajo, se estiran, y al llegar al borde de abajo se van
+  for (let i = gotas.length - 1; i >= 0; i--) {
+    const g = gotas[i], dt = ahora - g.t0, gy = g.y + g.v * dt + 9 * dt * dt;
+    if (gy > y + W0 - 1 || dt > 2.5) { gotas.splice(i, 1); continue; }
+    const a = Math.min(1, (y + W0 - 1 - gy) / 4);
+    ctx.globalAlpha = 0.85 * a; ctx.fillStyle = '#7fc8ff';
+    ctx.fillRect(g.x, Math.round(gy) - 1, 1, 2);                       // la gota
+    ctx.globalAlpha = 0.35 * a; ctx.fillRect(g.x, Math.round(g.y), 1, Math.max(0, Math.round(gy - g.y) - 1));   // el rastro mojado
+  }
+  ctx.restore();
+}
+// EL MACH CHICO (21/11): un relojito de 0 a 4 en la esquina de arriba a la derecha del velocimetro (tercera persona).
+// Cinco marcas —0, 1, 2, 3, 4—, la de 1 mas larga, y la aguja en acento desde el regimen del cono (core/mach.js).
+const MACH_CHICO_TOPE = 4;
+function machChico(x, y, mach) {
+  const r = 4.6, cx = x + CUADRO - r - 1.5, cy = y + r + 1.5;
+  const ang = f => Math.PI * 0.75 + Math.PI * 1.5 * Math.max(0, Math.min(1, f));   // 270°, de abajo-izq a abajo-der
+  ctx.save();
+  ctx.fillStyle = '#0d1418'; ctx.beginPath(); ctx.arc(cx, cy, r + 0.6, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#4e5a62'; ctx.lineWidth = 0.6; ctx.stroke();
+  for (let m = 0; m <= MACH_CHICO_TOPE; m++) {
+    const a = ang(m / MACH_CHICO_TOPE), r0 = m === 1 ? r - 1.8 : r - 1.1;
+    ctx.strokeStyle = m === 1 ? P.foam : '#8fa3ad'; ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.stroke();
+  }
+  const a = ang(mach / MACH_CHICO_TOPE);
+  ctx.strokeStyle = mach >= M_CONO ? P.accent : P.foam; ctx.lineWidth = 0.8; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (r - 0.8), cy + Math.sin(a) * (r - 0.8)); ctx.stroke();
+  ctx.font = '2.6px monospace'; ctx.fillStyle = P.dim; ctx.textAlign = 'center';
+  ctx.fillText('M', cx, cy + r - 0.6);
+  ctx.restore();
+}
 function drawTemperatura(x, y, t) {
   const f = c => (c - T_MIN) / (T_MAX - T_MIN), estado = t.c <= 2 ? 'frio' : t.c <= 15 ? 'templado' : 'calor';
   const col = { frio: '#7fc8ff', templado: '#9fd27a', calor: '#ff7a4a' }[estado];
@@ -1639,11 +1731,11 @@ function drawTemperatura(x, y, t) {
     if (estado === 'frio') { ctx.strokeStyle = col; ctx.lineWidth = 0.6; for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3; ctx.beginPath(); ctx.moveTo(bx + 6 - Math.cos(a) * 2, by + 2 - Math.sin(a) * 2); ctx.lineTo(bx + 6 + Math.cos(a) * 2, by + 2 + Math.sin(a) * 2); ctx.stroke(); } }
     else if (estado === 'calor') { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(bx + 6, by + 2, 1.3, 0, Math.PI * 2); ctx.fill(); }
   };
-  const fn = () => relojFila(x, y, {
+  const fn = () => { relojFila(x, y, {
     val: f(t.c), col: P.foam, ico, txt: Math.round(t.c) + '°', uni: 'C', txtCol: col,
     zonas: [[0, f(1), '#5ab4ff']],
     borde: t.hielo > 0.25 ? '#9fdcff' : null, critico: t.hielo > 0.6,
-  });
+  }); escarcha('temp', x, y, t.hielo || 0); };
   if (!enCabina() || enTablero) return fn();
   // EN CABINA, a su relojito (el mismo traslado y escala que `alTablero`)
   ctx.save();
@@ -1843,7 +1935,10 @@ function drawAvisosCaja() {
     ctx.fillStyle = '#0a0e11ee'; ctx.fillRect(x, y, w, hh + 2);
     // (sin borde: 19/11, el autor: "quitemosle borde, dejemos la letra en rojo")
     ctx.fillStyle = a.col; ctx.textAlign = 'center';
-    filas.forEach((f, i) => ctx.fillText(f, x + w / 2, y + 5 + i * LH, w - 2));
+    // MAS NEGRITA (21/11, el autor: "los textos chicos como BAJA ALTURA deben ser mas negrita"): la letra de los rotulos
+    // no trae un peso bold de verdad, asi que se le pasa un trazo fino del mismo color por encima
+    ctx.strokeStyle = a.col; ctx.lineWidth = 0.32; ctx.lineJoin = 'round';
+    filas.forEach((f, i) => { ctx.fillText(f, x + w / 2, y + 5 + i * LH, w - 2); ctx.strokeText(f, x + w / 2, y + 5 + i * LH, w - 2); });
     ctx.restore();
   }
 }
@@ -3091,7 +3186,11 @@ export function drawHUD(h) {
   // MACH, aparte, como en el A-4. Lo que esta en acento es el regimen del cono (core/mach.js) y la
   // marca larga, otra vez, Mach 1.
   const fM = m => (m - MACH_DE) / (MACH_A - MACH_DE);
-  if (!h.brujula) reloj(X_MACH, CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
+  // (21/11, el autor: "el reloj de mach en la cabina, pero en tercera persona un reloj mucho mas chico DENTRO de la
+  // velocidad, en un extremo de arriba, que indique los mach mas a nivel general: 0 1 2 3 4"): afuera de la cabina
+  // el machimetro grande se va y queda el chiquito, en la esquina de arriba a la derecha del velocimetro
+  if (!enCabina()) machChico(xVuelo(0), CUADROS_Y, mach);
+  else if (!h.brujula) reloj(X_MACH, CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
     zonas: [[fM(M_CONO), 1, P.accent]], marcas: [[fM(1), P.foam]],
     txt: mach.toFixed(2), txtCol: mach >= M_CONO ? P.accent : P.dim });
   // ALTITUD, en metros y con la escala ESTIRADA ABAJO (raiz cuadrada): el juego entero pasa en los

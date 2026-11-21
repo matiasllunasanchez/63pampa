@@ -742,6 +742,33 @@ export function drawShadow(wx, wy, z, f) {
 /** `ras` = el PODER RASANTE esta puesto. Entra por PARAMETRO y no por import a proposito: es la
  *  convencion 4 de ARQUITECTURA (el que dibuja lee lo que el orquestador le pasa) y ademas evita
  *  sumarle a plane.js una dependencia de systems/ que el trinquete de `lint:layers` mira. */
+// EL HIELO EN LAS ALAS (21/11, el autor: "agregale un poco de hielo en las alas, si se puede"): el mismo cuadro del
+// sprite, en un lienzo aparte, con un celeste escarchado encima SOLO donde hay avion (source-atop) y fuera del
+// fuselaje (la franja del medio). Mas hielo, mas blanco y mas puntitos.
+let hieloCv = null;
+function hieloAlas(img, sx, sy, fw, fh, dW, dH, nivel) {
+  const w = Math.max(1, Math.ceil(dW)), h = Math.max(1, Math.ceil(dH));
+  if (!hieloCv) hieloCv = document.createElement('canvas');
+  if (hieloCv.width !== w || hieloCv.height !== h) { hieloCv.width = w; hieloCv.height = h; }
+  const c = hieloCv.getContext('2d');
+  c.clearRect(0, 0, w, h); c.imageSmoothingEnabled = false;
+  c.globalCompositeOperation = 'source-over';
+  c.drawImage(img, sx, sy, fw, fh, 0, 0, w, h);
+  c.globalCompositeOperation = 'source-atop';
+  const a = Math.min(0.6, nivel * 0.7), medio0 = Math.round(w * 0.4), medio1 = Math.round(w * 0.6);
+  c.fillStyle = `rgba(205,238,255,${a})`;
+  c.fillRect(0, 0, medio0, h); c.fillRect(medio1, 0, w - medio1, h);
+  // los puntitos de escarcha: siempre en el mismo lugar (no titilan), mas cuanto mas hielo
+  c.fillStyle = 'rgba(245,252,255,0.9)';
+  const n = Math.round(w * h * 0.03 * nivel);
+  for (let i = 0; i < n; i++) {
+    const px = (i * 73 + 11) % w, py = (i * 151 + 7) % h;
+    if (px >= medio0 && px < medio1) continue;
+    c.fillRect(px, py, 1, 1);
+  }
+  c.globalCompositeOperation = 'source-over';
+  ctx.drawImage(hieloCv, -dW / 2, -dH / 2, dW, dH);
+}
 export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // `dz` (solo DIBUJO, la fisica no se entera): en el CAMBIO DE PILOTO el que entra viene DESDE ATRAS
   // —mas cerca de la camara, o sea mas grande y mas abajo— hasta su puesto (core/squad.js,
@@ -999,12 +1026,14 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // pixeles de mundo). Las tres tienen que leer LA MISMA tabla de anclas o se separan.
   // La pirueta empinada gana sobre el poder (ver la rama de dibujo), asi que no cuenta.
   const skRas = ras && rosterActive() ? skinOf(pilotName(alMando(run)), pl) : null;
-  const rasHoja = !!(ras && useSheet && !run.mvSteep && (skRas ? skRas.sheet3Img : pl.sheet3Ok));
+  // (21/11: la PICADA fuerte sin pirueta tambien pide la pose empinada trompa abajo — systems/vuelo.js `run.picada`)
+  const steepV = run.mvSteep || (run.picada ? -1 : 0);
+  const rasHoja = !!(ras && useSheet && !steepV && (skRas ? skRas.sheet3Img : pl.sheet3Ok));
   // ¿LA HOJA FINA? (ver FINO_ON) — de la skin del que vuela, o la del avion; solo volando derecho
   const skFino = rosterActive() ? skinOf(pilotName(alMando(run)), pl) : null;
   const imgFino = skFino ? skFino.sheet5Img : (pl.sheet5Ok ? pl.sheet5Img : null);
   const enMortalF = run.mvMortal > 20 && run.mvMortal < 350;
-  const fino = !!(FINO_ON && useSheet && imgFino && ANCLAS.fino && !rasHoja && !run.mvSteep
+  const fino = !!(FINO_ON && useSheet && imgFino && ANCLAS.fino && !rasHoja && !steepV
     && !(run.mvCobra > 0.05) && !enMortalF && run.mv !== 'derrape');
   // …Y LAS PIRUETAS (15/10, "pasa las 13 x 5 poses tambien a las piruetas"): la hoja 2 (las empinadas)
   // y la 4 (cobra, mortal, derrape) se hornean tambien con 13 alabeos. Se resuelve aca si la que se va a
@@ -1017,7 +1046,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // viejo, o no cargo) cae a la fila de 100° de la cobra, de frente. Sin ninguna de las dos, el dibujo de siempre.
   const hoja6D = skFino && skFino.sheet6Img ? skFino.sheet6Img : (pl.sheet6Ok ? pl.sheet6Img : null);
   const imgTV = run.mvTonelV != null && useSheet && !HORNO_VIEJO ? (hoja6D || hoja4D) : null;
-  const pir13 = !HORNO_VIEJO && useSheet && (((enMortalF || run.mvCobra > 0.05) && !!(hoja4D || hoja2D)) || !!(run.mvSteep && hoja2D));
+  const pir13 = !HORNO_VIEJO && useSheet && (((enMortalF || run.mvCobra > 0.05) && !!(hoja4D || hoja2D)) || !!(steepV && hoja2D));
   const ancho13 = fino || pir13;
   // (la hoja 3, la del poder RASANTE, tambien va con 13 alabeos desde el 15/10; sus tres cabeceos, los de siempre)
   const NF = ancho13 || (rasHoja && !HORNO_VIEJO) ? FINO_NF : SHEET_NF;
@@ -1112,7 +1141,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     const col = colPose;
     // FILA por cabeceo. pitch>0 = trepa (morro arriba) → fila 0; nivel → 1; picada → 2
     let row = rowPose;
-    // POSE EMPINADA de pirueta (run.mvSteep): usa la HOJA 2 (±32° de cabeceo) si cargo; sin
+    // POSE EMPINADA de pirueta (steepV): usa la HOJA 2 (±32° de cabeceo) si cargo; sin
     // ella (build web) cae a la fila normal de trepada/picada — la maniobra se juega igual.
     // LA SKIN DEL PILOTO QUE VA HOY EN ESTE AVION. En campaña arrancas siendo TERO, y cada
     // relevo te sube al avion del que sigue: el numeral avanza y la marca del ala CAMBIA sola.
@@ -1130,7 +1159,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // FALLBACK REAL, no decorativo: si la hoja no cargo se sigue usando la de siempre, que es
     // exactamente lo que se venia dibujando hasta hoy. Nada se rompe, se pierde el angulo.
     const hoja3 = ras ? (sk ? sk.sheet3Img : (pl.sheet3Ok ? pl.sheet3Img : null)) : null;
-    // LA POSE EMPINADA GANA. Si se lanza una pirueta durante el poder, `run.mvSteep` pide la hoja
+    // LA POSE EMPINADA GANA. Si se lanza una pirueta durante el poder, `steepV` pide la hoja
     // 2 (cabeceos de ±32°) y el poder pide la 3: son dos hojas y un solo sprite. Gana la pirueta,
     // porque el cabeceo es un EVENTO que el jugador acaba de teclear y el angulo de camara es un
     // estado de fondo — perder la pose de una maniobra que estas haciendo se nota mucho mas que
@@ -1151,8 +1180,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     let K4 = 1;                                   // escala del cuadro: 1,5 con la hoja 4 (ver SHEET4_K)
     if (hoja4) { img = hoja4; row = filaCobra; F3 = SHEET4_FW; K4 = SHEET4_K; }
     else if (run.mvCobra > 0.05 && hoja2) { img = hoja2; row = 0; }
-    else if (run.mvSteep && hoja2) { img = hoja2; row = run.mvSteep > 0 ? 0 : 1; }
-    else if (run.mvSteep) row = run.mvSteep > 0 ? 0 : 2;
+    else if (steepV && hoja2) { img = hoja2; row = steepV > 0 ? 0 : 1; }
+    else if (steepV) row = steepV > 0 ? 0 : 2;
     else if (hoja3) { img = hoja3; F3 = SHEET3_FW; }
     const FW4 = (F3 || SHEET_FW) * PX, FH4 = (hoja4 ? SHEET4_FH : F3 ? SHEET3_FH : SHEET_FH) * PX;
     const sx4 = col * FW4, sy4 = row * FH4;
@@ -1191,6 +1220,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
       ctx.globalAlpha = a0;
     }
     drawBorde(ctx, img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);   // a contraluz (render/borde.js)
+    if ((run.hielo || 0) > 0.04) hieloAlas(img, sx4, sy4, FW4, FH4, dW, dH, run.hielo);
     // LA CARGA, encima del avion y en el MISMO recorte: cada capa esta horneada con la camara y la
     // pose de la hoja que se esta dibujando, y el avion ya le recorto de fabrica lo que el ala le
     // tapa (ver hornearCapas en tools/bake_planes.html). Por eso no hay ancla ni offset: si el

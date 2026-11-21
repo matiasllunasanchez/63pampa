@@ -27,6 +27,7 @@ import { FLY_X, ALA_PX, ROCIO_ABRE, ROCIO_BAJA, ROCIO_RAS_ABRE, ROCIO_RAS_BAJA,
          AGUA_RAS_GRADOS, ESTELA_ALT, ROCIO_TURBO, BANDA_ALT, RAS_POLVO, PIQUE } from '../data/tuning.js';
 import { sueloEn } from '../core/geografia.js';
 import { PITCH_LERP } from '../core/physics.js';
+const CAM_ATRASO = 2.2;   // m que la camara puede quedar atras del avion en vertical (ver el tope, abajo)
 import { TURBO, ALTO } from '../data/tuning.js';
 
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
@@ -126,6 +127,13 @@ export function stepVuelo(dt, o) {
   // la primera — el criterio de cierre pide "sin corte seco" y esto es exactamente eso, gratis.
   const camLift = (o.ras ? o.ras.lift : 2.6) + (o.boost ? BOOST_LIFT : 0) + run.camPan;
   cam.y += (plane.y + camLift - cam.y) * Math.min(1, dt * 3.2);
+  // EL AVION NO SE VA DE CUADRO (21/11, el autor: "cuando bajo en el pasillo el avion se va de la parte visible: que se
+  // mantenga en un limite"): el lerp llega tarde a proposito, pero en una picada fuerte (vy -20) la camara quedaba ~6 m
+  // por arriba y el avion se salia por abajo. El atraso se topa en CAM_ATRASO (y al subir, igual)
+  cam.y = Math.max(plane.y + camLift - CAM_ATRASO, Math.min(plane.y + camLift + CAM_ATRASO, cam.y));
+  // LA PICADA SE VE (21/11, "poner la grafica del avion que baja en picada casi vertical"): bajando fuerte y sin pirueta,
+  // el dibujo pasa a la pose empinada trompa abajo (render/plane.js, la hoja 2). Con histeresis para que no titile
+  run.picada = !run.mv && !enCabina() && (run.picada ? plane.vy < -7 : plane.vy < -11);
   const piso = o.ras ? o.ras.piso : 3.4;
   if (cam.y < piso) cam.y = piso;
   // PRIMERA PERSONA (core/cabina.js): el ojo en el avion — sin retardo, sin piso, sin paneo

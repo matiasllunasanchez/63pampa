@@ -15,5 +15,5 @@ export const CTRL_CATEGORIAS = [
   { id: 'armas', filas: ['Gun', 'Secund', 'Msl', 'MiraB', 'TiraB', 'Chapitas', 'Aim'], notas: ['ctrlWasd'] },
   { id: 'piruetas', piruetas: true, notas: ['ctrlPirNota'] },
   { id: 'escuadrilla', filas: ['Chancha', 'Rasante', 'Tempo', 'Radar', 'Cambio', 'Cam'], notas: ['ctrlCabinaProx'] },
-  { id: 'general', filas: ['Pause', 'Menu', 'Music', 'Inv'], notas: ['ctrlSame', 'ctrlBoth'] },
+  { id: 'general', filas: ['Pause', 'Mapa', 'Music', 'Inv'], notas: ['ctrlSame', 'ctrlBoth'] },
 ];

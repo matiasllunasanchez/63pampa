@@ -1293,7 +1293,7 @@ export function drawControles(w) {
   // (21/11: el titulo a la izquierda para dejarle la derecha al switch TECLADO ↔ JOYSTICK)
   ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.font = titleFont(22);
   ctx.fillText(T('optSecCtrl'), 40, 38);
-  switchMando(!!w.joy);
+  switchMando(!!w.joy, w.foco === 'switch');
   // LAS PESTAÑAS: todas a la vista, la elegida encendida y subrayada
   ctx.font = labelFont(9);
   const anchos = CTRL_CATEGORIAS.map(c => ctx.measureText(T('ctrlCat_' + c.id)).width), sep = 18;
@@ -1316,19 +1316,35 @@ export function drawControles(w) {
     // espaciado, casi como poderes de Mortal Kombat, con icono de teclado y de joystick, y si son iguales, juntos"):
     // el nombre y, al lado, el combo en negrita con su icono. Teclado y joystick se piden casi siempre igual (las
     // flechas son la mano derecha en los dos): entonces van los dos iconos juntos; si no, una linea por cada uno.
-    const sinPar = t => String(t || '—').replace(/\s*\([^)]*\)/g, '');
-    const ids = Object.keys(MOVES), mitad = Math.ceil(ids.length / 2), colW = (NW - 2 * xa) / 2, rh = 16;
-    ids.forEach((id, i) => {
-      const c = i < mitad ? 0 : 1, f = i % mitad, x0 = xa + c * colW, y = 70 + f * rh;
-      ctx.textAlign = 'left'; ctx.fillStyle = P.foam; ctx.font = menuFont(8);
-      ctx.fillText(MOVES[id].name, x0, y, 74);                      // (los nombres largos se aprietan: no tapan el combo)
-      const xc = x0 + 80, kb = sinPar(COMBO[id]), pad = COMBO_PAD[id] ? sinPar(COMBO_PAD[id]) : null;
-      // (21/11: el switch TECLADO ↔ JOYSTICK de arriba elige cual se ve; uno solo, mas grande)
-      const joy = !!w.joy, txt = joy && pad ? padTxt(pad) : kb;
-      if (joy) iconoJoy(xc, y - 5); else iconoTeclado(xc, y - 5);
-      ctx.font = 'bold ' + labelFont(8); ctx.fillStyle = P.accent; ctx.fillText(txt, xc + 12, y);
-    });
-    yFin = 70 + mitad * rh + 2;
+    // (21/11, el autor: "un listado prolijo con todas las combinaciones, con los sticks y las presiones de botones o
+    // teclas, con velocidad, veces o mantener; tiene que ser claro"): el nombre y DEBAJO como se hace (el ritmo, en
+    // palabras); a la derecha el combo DIBUJADO (render/glifos.js `comboGlifos`), apretandose solo al tiempo real
+    // UNA SOLA COLUMNA, UNA PIRUETA POR LINEA, CON SCROLL (21/11, el autor: "un listado, mas espacio a cada una"):
+    // el nombre grande y debajo como se hace; a la derecha el combo dibujado, mas grande. ▲▼ / la ruedita recorren
+    const ids = Object.keys(MOVES), joy = !!w.joy, tt = performance.now() / 1000;
+    const y0 = 70, sc = Math.max(0, Math.min(pirScrollMax(), w.scroll | 0));
+    const xg = xa + 150;
+    for (let v = 0; v < PIR_VIS; v++) {
+      const i = sc + v, id = ids[i];
+      if (!id) break;
+      const y = y0 + v * PIR_RH;
+      if (i % 2) { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.025; ctx.fillRect(xa - 8, y, xv - xa + 16, PIR_RH); ctx.globalAlpha = 1; }
+      const fuente = joy && COMBO_PAD[id] ? padTxt(COMBO_PAD[id]) : COMBO[id];
+      const cg = glifos.comboGlifos(fuente, joy);
+      ctx.textAlign = 'left'; ctx.fillStyle = P.foam; ctx.font = menuFont(10);
+      ctx.fillText(MOVES[id].name, xa, y + 10, 140);
+      ctx.fillStyle = P.dim; ctx.font = labelFont(6.5);
+      ctx.fillText(ritmoPirueta(fuente, cg), xa, y + 18, 140);
+      const gw = glifos.dibujar(cg.gl, xg, y + 4, 13, tt + i * 0.37, P.body, true);
+      if (cg.espejo) { ctx.fillStyle = P.dim; ctx.font = labelFont(6.5); ctx.fillText(T('ctrlEspejo'), xg + gw + 5, y + 12); }
+    }
+    // las flechitas de que hay mas, arriba y abajo
+    ctx.textAlign = 'center'; ctx.font = labelFont(8);
+    const tl = 0.6 + 0.4 * Math.sin(tt * 4);
+    if (sc > 0) { ctx.globalAlpha = tl; ctx.fillStyle = P.accent; ctx.fillText('▲', NW / 2, y0 + 2); ctx.globalAlpha = 1; }
+    if (sc < pirScrollMax()) { ctx.globalAlpha = tl; ctx.fillStyle = P.accent; ctx.fillText('▼', NW / 2, y0 + PIR_VIS * PIR_RH + 6); ctx.globalAlpha = 1; }
+    ctx.textAlign = 'left';
+    yFin = y0 + PIR_VIS * PIR_RH + 11;
   } else {
     ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(7);
     ctx.fillText(T('ctrlColAccion'), xa, 78);
@@ -1352,13 +1368,13 @@ export function drawControles(w) {
   cat.notas.forEach((n, i) => ctx.fillText('· ' + T(n), xa, Math.min(NH - 34, yFin + 4) + i * 11));
   ctx.globalAlpha = 1;
   ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(7);
-  ctx.fillText(T('ctrlHint'), NW / 2, NH - 10);
+  ctx.fillText(T(w.foco === 'switch' ? 'ctrlHintSw' : cat.piruetas ? 'ctrlHintPir' : 'ctrlHint'), NW / 2, NH - 10);
   ctx.textAlign = 'left';
 }
 
 /** EL SWITCH TECLADO ↔ JOYSTICK (21/11): grande, arriba a la derecha del titulo, con la perilla del lado elegido.
  *  Se mueve con ▲ ▼ (game.js `mandoCambiar`) y cambia TODO el juego, no solo esta pantalla. */
-function switchMando(joy) {
+function switchMando(joy, foco) {
   const w = 150, h = 20, x = NW - 40 - w, y = 20, m = w / 2;
   ctx.fillStyle = '#141c20'; ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = '#3a464c'; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
@@ -1368,15 +1384,35 @@ function switchMando(joy) {
   ctx.font = labelFont(9); ctx.textAlign = 'center';
   ctx.fillStyle = joy ? P.dim : '#0b1013'; ctx.fillText(T('ctrlSwTeclado'), x + m / 2, y + 14);
   ctx.fillStyle = joy ? '#0b1013' : P.dim; ctx.fillText(T('ctrlSwJoy'), x + m + m / 2, y + 14);
-  ctx.fillStyle = P.dim; ctx.font = labelFont(6); ctx.globalAlpha = 0.8;
-  ctx.fillText('▲ ▼', x + w / 2, y + h + 8); ctx.globalAlpha = 1;
+  // ELEGIDO (con el cursor encima): el marco en acento, latiendo, y abajo como se cambia
+  if (foco) {
+    ctx.globalAlpha = 0.6 + 0.4 * Math.sin(performance.now() / 160); ctx.strokeStyle = P.accent; ctx.lineWidth = 1.2;
+    ctx.strokeRect(x - 1.5, y - 1.5, w + 3, h + 3); ctx.globalAlpha = 1;
+    ctx.fillStyle = P.accent; ctx.font = labelFont(6); ctx.fillText(T('ctrlSwCambia'), x + w / 2, y + h + 8);
+  } else { ctx.fillStyle = P.dim; ctx.font = labelFont(6); ctx.globalAlpha = 0.8; ctx.fillText('▲', x + w / 2, y + h + 8); ctx.globalAlpha = 1; }
   ctx.textAlign = 'left';
+}
+
+// LA LISTA DE PIRUETAS: cuantas entran a la vista y el alto de cada una (game.js topea el scroll con pirScrollMax)
+const PIR_VIS = 7, PIR_RH = 22;
+export const pirScrollMax = () => Math.max(0, Object.keys(MOVES).length - PIR_VIS);
+/** COMO SE HACE una pirueta, en palabras cortas (debajo de su nombre en CONTROLES → PIRUETAS). */
+function ritmoPirueta(fuente, cg) {
+  // (de la PRIMERA forma: si hay otra, se ve dibujada al lado, despues de la «o»)
+  const s = String(fuente || '').split('·')[0], partes = [], c1 = cg.uno || cg;
+  if (/⟳/.test(s)) partes.push(T('ritRolando'));
+  if (/mirar/.test(s)) partes.push(T('ritMirar'));
+  if (/\+/.test(s)) partes.push(T('ritJuntas'));
+  const toques = c1.gl.filter(g => (g.k === 'tecla' || g.k === 'stick') && !g.hold).length;
+  if (toques > 1 && !/\+/.test(s)) partes.push(T('ritRapidos', { n: toques }));
+  if (cg.cond) partes.push(cg.cond);
+  return partes.join(' · ') || T('ritToque');
 }
 
 /** Un mando dibujado (teclas, stick, botones) con su borde derecho en `xr` y la linea de base del texto en `y`. */
 function mandoDibujado(texto, pad, xr, y) {
   const g = glifos.glifosDe(texto, pad), h = 14, w = glifos.medir(g, h);
-  glifos.dibujar(g, Math.round(xr - w), y - 11, h, performance.now() / 1000, P.body);
+  glifos.dibujar(g, Math.round(xr - w), y - 11, h, performance.now() / 1000, P.body, true);
 }
 
 // ---------- MENU DE PAUSA (overlay sobre la partida congelada) ----------
@@ -1731,7 +1767,7 @@ export function drawPause(w) {
   ctx.fillStyle = P.accent; ctx.font = titleFont(24);
   ctx.fillText(w.titulo || T('pauseTitle'), NW / 2, 56);
 
-  if (w.view === 'controls') { drawControles({ tab: w.ctrlTab | 0, padTxt: w.padTxt, joy: w.joy, velo: false }); return; }
+  if (w.view === 'controls') { drawControles({ tab: w.ctrlTab | 0, scroll: w.ctrlScroll | 0, foco: w.ctrlFoco, padTxt: w.padTxt, joy: w.joy, velo: false }); return; }
 
   if (w.view === 'save') {
     const x = 52, y0 = 96, rh = 17;

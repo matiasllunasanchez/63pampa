@@ -60,7 +60,8 @@ const AVION = [{ chapa: 'TERO', plane: 'sky', carga: 'tanques', cargaTxt: '', sq
 const LEJOS = { kind: 'distance', meters: 400000 };
 
 const base = {
-  despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'vuelo de instrucción' },
+  // (la hora es inventada — 21/11, el autor: "inventemos una hora": temprano, con el sol bajo del amanecer)
+  despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'vuelo de instrucción', hora: '07:40' },
   chancha: false, par: 3000, aviones: AVION, escuadrilla: '', goal: LEJOS, fases: FASES,
   // EL AVION NO SE CAE (la perilla de M1): un choque pega en la chapa, nunca baja de `piso`, y lo comenta
   // un banco de avisos del Turco y el Pichon. Es el "punto de control" del plan: no se pierde nada.
@@ -73,6 +74,9 @@ const ETAPA1 = [
   // EL DESPEGUE (fase 3): en la cabecera, la carrera con el gas (core/despegue.js)
   { dice: 'TUT1_DESPEGUE', foco: ['gas', 'vel'], teclas: ['Gas'],
     sigue: [{ despega: true, consigna: 'tutC_despega' }], remate: 'TUT1_DESPEGUE_OK' },
+  // (21/11, el autor: "el tutorial nunca me explica como despegar" y "Pichon dice hola despues de que ya hablo y
+  // despegue, se desordeno todo"): el saludo iba por radio ANTES del despegue con el mundo corriendo, y uno ya habia
+  // despegado cuando llegaba la explicacion. Ahora el juego ARRANCA EN PAUSA: los dos saludan, y enseguida el despegue
   { dice: 'TUT1_GAS', foco: ['gas', 'alt'], teclas: ['Gas'],
     sigue: [{ altSobre: 30, consigna: 'tutC_subi' }], remate: 'TUT1_GAS_OK' },
   { dice: 'TUT1_PICADA', foco: ['alt'], teclas: ['Dive'],
@@ -84,8 +88,8 @@ const ETAPA1 = [
   { dice: 'TUT1_TABLERO', foco: ['vel', 'horizonte', 'alt', 'gas'] },
   // (21/11, el autor: "mas globos para esquivar, varios esquives"): primero el deslizamiento a cada lado, despues
   // GLOBOS en tu linea, a tu altura, uno detras del otro
-  { dice: 'TUT1_ESQUIVAR', teclas: ['Fly'], blancos: { tipo: 'balloon', n: 6, linea: true, y: 'avion', paso: 55 },
-    sigue: [{ usa: ['l', 'r'], consigna: 'tutC_esquivar' }, { esquiva: 5, consigna: 'tutC_esquiva' }], remate: 'TUT1_ESQUIVAR_OK' },
+  { dice: 'TUT1_ESQUIVAR', teclas: ['Fly'], blancos: { tipo: 'balloon', tandas: [3, 2, 3], linea: true, y: 'avion', paso: 40, entre: 170 },
+    sigue: [{ usa: ['l', 'r'], consigna: 'tutC_esquivar' }, { esquiva: 6, consigna: 'tutC_esquiva' }], remate: 'TUT1_ESQUIVAR_OK' },
   { dice: 'TUT1_ROLAR', foco: ['horizonte'], teclas: ['Roll'],
     sigue: [{ usa: ['rollL', 'rollR'], consigna: 'tutC_rolar' }], remate: 'TUT1_ROLAR_OK' },
   // (solo OLAS y pocas: sin pajaros ni nada mas, 18/11 — "no tantos enemigos, y menos en la primera etapa")
@@ -122,8 +126,15 @@ const ETAPA2 = [
     sigue: [{ calienta: true, consigna: 'tutC_calienta' }], remate: 'TUT2_CALOR_OK' },
   { dice: 'TUT2_MOVILES', teclas: ['Fly', 'Gun'], blancos: { tipo: 'balloon', n: 3, mueve: true, paso: 60 },
     sigue: [{ rompe: 2, consigna: 'tutC_moviles' }], remate: 'TUT2_MOVILES_OK' },
-  { dice: 'TUT2_HARRIER', teclas: ['Gun'], blancos: { tipo: 'jet', n: 1 },
-    sigue: [{ rompe: 1, consigna: 'tutC_harrier' }], remate: 'TUT2_HARRIER_OK' },
+  // HARRIERS DE VERDAD (21/11, el autor: "el Harrier de practica no, poner Harriers"): tejen, te buscan el carril y
+  // alguno puede venir armado (systems/spawn.js `sembrarPractica` con `real`)
+  { dice: 'TUT2_HARRIER', teclas: ['Gun', 'Fly'], blancos: { tipo: 'jet', n: 2, real: true, paso: 70 },
+    sigue: [{ rompe: 2, consigna: 'tutC_harrier' }], remate: 'TUT2_HARRIER_OK' },
+  // EL TONEL, ACA (21/11, el autor: "¿por que metemos el tonel en la etapa 3?"): estaba en la vuelta de la etapa 3
+  // para llenar el tramo vacio. Su lugar es donde hay algo que esquivar: Harriers ARMADOS, y el tonel con el
+  // Sidewinder cerca hace que se pase de largo (core/aim9.js)
+  { dice: 'TUT2_TONEL', teclas: ['Tonel'], blancos: { tipo: 'jet', n: 2, real: true, armado: true, paso: 80 },
+    sigue: [{ maniobra: 'tonel', consigna: 'tutC_tonel' }], remate: 'TUT2_TONEL_OK' },
   // LOS PODERES (18/11, el autor: "falta explicar rasante, falta explicar momentum"): el RASANTE se muestra
   // prendiendolo (aparece solo, por la racha de vuelo bajo) y el MOMENTUM se usa, con la barra ya llena
   // (19/11, el autor: "me carga el poder de una, eso no sirve; tiene que enseñarme como funciona: como pegarle, que es
@@ -136,8 +147,8 @@ const ETAPA2 = [
       { rasante: true, consigna: 'tutC_soltaRas' }], remate: 'TUT2_RASANTE_OK' },
   // (las olas se atraviesan con el RASANTE y los pajaros vuelan mas alto: lo que se esquiva al ras son GLOBOS bajos,
   // en tu linea)
-  { dice: 'TUT2_RAS_ESQUIVA', teclas: ['Fly'], blancos: { tipo: 'balloon', n: 6, linea: true, y: 2.6, paso: 60 },
-    sigue: [{ esquiva: 5, consigna: 'tutC_esquiva' }], remate: 'TUT2_RAS_ESQUIVA_OK' },
+  { dice: 'TUT2_RAS_ESQUIVA', teclas: ['Fly'], blancos: { tipo: 'balloon', tandas: [3, 2, 3], linea: true, y: 2.6, paso: 45, entre: 180 },
+    sigue: [{ esquiva: 6, consigna: 'tutC_esquiva' }], remate: 'TUT2_RAS_ESQUIVA_OK' },
   // EL MOMENTUM, PROBADO (21/11, el autor: "probarlo esquivando globos varias veces y esperar la recarga, frenar el
   // juego para avisar como lanzarlo"): lanzarlo, esquivar globos con el tiempo lento, esperar que la barra se llene
   // sola, y cuando esta llena el juego FRENA y dice como lanzarlo — y otra vez, con globos
@@ -169,8 +180,6 @@ const ETAPA3 = [
   // explica, BIEN, AHORA ESCAPA RAPIDO DE LA ZONA. Sin cambio de clima ni tanta transicion"): game.js, en el tutorial,
   // saltea el video del viraje y escapa con una sola estrella
   { dice: 'TUT3_ESCAPE', sigue: [{ hunde: true, consigna: 'tutC_escapa' }], remate: 'TUT3_BLANCO_OK' },
-  // EN LA VUELTA (que se estira hasta practicarlo: game.js no deja aterrizar antes)
-  { dice: 'TUT3_TONEL', cuando: { vuelta: true }, teclas: ['Tonel'], sigue: [{ maniobra: 'tonel', consigna: 'tutC_tonel' }], remate: 'TUT3_TONEL_OK' },
   // LA NAFTA Y LA CHANCHA (18/11, "falta explicar combustible y recarga"): el tanque baja y la Chancha lo llena
   { dice: 'TUT3_NAFTA', foco: ['nafta'], nafta: 35 },
   { dice: 'TUT3_CHANCHA', foco: ['chancha'], teclas: ['Chancha'], llena: ['chancha'],
@@ -212,12 +221,12 @@ export const TUTORIAL_ETAPAS = [
       en: ['Tap the throttle: that is how you fly low without touching the sea.', 'PAUSE → CONTROLS lists every button.', 'Next up: STAGE 2 · FIGHT.'] } },
   // (las etapas 2 y 3 todavia son el tramo vacio de la fase 1: sus pasos llegan en las fases 4 y 5)
   { ...base, id: 'tut2', etapa: 2, name: 'PELEAR',
-    desc: { es: 'El cañón, el calor y un Harrier de práctica.', en: 'The cannon, the heat and a practice Harrier.' },
+    desc: { es: 'El cañón, el calor, los Harriers y el tonel.', en: 'The cannon, the heat, the Harriers and the barrel roll.' },
     cfg: P({ sky: 'clear', terrain: 'sea' }), pasos: ETAPA2,   // (los poderes los prende el paso del RASANTE)
     consejos: { es: ['Ráfagas cortas: el cañón caliente se traba.', 'Ponete en la línea del blanco antes de tirar.', 'Lo que sigue: ETAPA 3 · LA PASADA Y LA VUELTA.'],
       en: ['Short bursts: a hot cannon jams.', 'Line up with the target before you fire.', 'Next up: STAGE 3 · THE PASS AND THE WAY HOME.'] } },
   { ...base, id: 'tut3', etapa: 3, name: 'LA PASADA Y LA VUELTA',
-    desc: { es: 'La bomba, el tonel, la vuelta y el aterrizaje.', en: 'The bomb, the barrel roll, the way home and the landing.' },
+    desc: { es: 'La bomba, la vuelta y el aterrizaje.', en: 'The bomb, the way home and the landing.' },
     // EL BUQUE: un casco viejo, quieto y sin defensa, y todas las pasadas que hagan falta. Con vuelta: al
     // pegarle se vuelve, y al llegar, la aproximacion final de siempre (systems/fases.js `llegaste`)
     goal: { kind: 'ship', ship: 'CASCO DE PRÁCTICA', dist: 4200 }, climax: 'suelta', pasadas: 99, defensa: null,
@@ -234,7 +243,7 @@ export const TUTORIAL_ETAPAS = [
     consejos: { es: ['Volá abajo de la raya del radar: si la cruzás, te quema.', 'Soltá la bomba alta y temprano.', 'Ya podés volar el LIBRO DE VUELO, en HISTORIA.'],
       en: ['Stay under the radar line: cross it and you get burned.', 'Drop the bomb high and early.', 'You can now fly the FLIGHT LOG, in CAMPAIGN.'] } },
   { ...base, id: 'tut4', etapa: 4, name: 'LAS ISLAS', islas: true,
-    desc: { es: 'Malvinas de verdad: rumbo, relieve, radares, Harriers, clima, el mapa y la base.', en: 'The real Falklands: heading, terrain, radars, Harriers, weather, the map and the base.' },
+    desc: { es: 'Aprendé a sobrevolar las islas.', en: 'Learn to fly over the islands.' },
     // EN VUELO sobre el estrecho de San Carlos (islas.js INICIO), con bomba y el radar del pasillo; sin nafta (la Chancha
     // ya se enseño). Un solo tramo largo: la etapa la cierran los pasos, como las otras
     bomba: 'brp', dificultad: 'facil',
@@ -257,31 +266,31 @@ const banco = (id, ...lineas) => ({ ...escena(id, ...lineas), tipo: 'AVISO' });
 
 const LISTA = [
   escena('TUT1_HOLA',
-    B(TURCO, 'turco_radio_sonrisa', 'Hola, Tero. Acá Turco. Ya ajusté las tuercas de tu pajarraco. Hoy te toca probarlo.'),
-    B(PICHON, 'pichon_radio_orgullo', 'Hola Tero, yo voy a estar acá asistiendo. Leí el manual entero. Dos veces.'),
-    B(TURCO, 'turco_radio_ceno', 'Los manuales no vuelan, changuito. Bueno, cuchá.')),
+    T(TURCO, 'turco_radio_sonrisa', 'Hola, Tero. Acá Turco. Ya ajusté las tuercas de tu pajarraco. Hoy te toca probarlo.'),
+    T(PICHON, 'pichon_radio_orgullo', 'Hola Tero, yo voy a estar acá asistiendo. Leí el manual entero. Dos veces.'),
+    T(TURCO, 'turco_radio_ceno', 'Los manuales no vuelan, changuito. Bueno, cuchá.')),
   escena('TUT1_DESPEGUE',
     T(TURCO, 'turco_radio_aprueba', 'Esto es gas. Apretá y levanta. Soltá y cae. Pa despegar, mantené hasta que agarre velocidad.'),
     T(PICHON, 'pichon_radio_explicando', 'A doscientos cincuenta kilómetros por hora, con el gas a fondo, levanta solo. Si lo soltás, se te acaba la pista.'),
     B(TURCO, 'turco_radio_desconfiado', 'Y la pista no se estira, ojo. Pero mandale nomá.')),
   escena('TUT1_DESPEGUE_OK', T(PICHON, 'pichon_radio_sonrisa', 'Exactamente, altura perfecta como dice el manual.')),
   escena('TUT1_GAS',
-    T(TURCO, 'turco_radio_escucha', 'Este changuito con su manual... En el aire es lo mismo, apretao sube, soltá y baja.'),
-    B(PICHON, 'pichon_radio_explicando', 'Técnicamente es combustible, pero esta en ingles, no es gas. Y eso genera empuje. Sin empuje no hay sustentación, y sin sustentación…'),
-    B(TURCO, 'turco_radio_ceno', 'Ahí que dice? Gas, chango. Dale Tero, subí.')),
+    B(TURCO, 'turco_radio_escucha', 'Este changuito con su manual... En el aire es lo mismo, apretao sube, soltá y baja.'),
+    B(PICHON, 'pichon_radio_explicando', 'Técnicamente es combustible, pero está en inglés, no es gas. Y eso genera empuje. Sin empuje no hay sustentación, y sin sustentación…'),
+    B(TURCO, 'turco_radio_ceno', '¿Ahí qué dice? Gas, chango. Dale Tero, subí.')),
   escena('TUT1_GAS_OK', T(TURCO, 'turco_radio_aprueba', 'Va, va. Bien, bien.')),
   escena('TUT1_PICADA',
-    T(PICHON, 'pichon_radio_explicando', 'Para bajar rápido, mantenés y baja en picada. Mientras la aguja de la altura cae, el avión tambien. Cuidado con el agua.')),
+    T(PICHON, 'pichon_radio_explicando', 'Para bajar rápido, mantenés y baja en picada. Mientras la aguja de la altura cae, el avión también. Cuidado con el agua.')),
   escena('TUT1_PICADA_OK', T(PICHON, 'pichon_radio_sonrisa', 'Muy bien. El mar está más cerca de lo que parece.')),
   escena('TUT1_RASANTE',
     T(PICHON, 'pichon_radio_explicando', 'Ahora bajito, pegado al agua. Así se vuela acá: al ras.'),
     T(TURCO, 'turco_radio_desconfiado', 'Sin tocar el agua, que si chocás a esa velocidad contra el agua, te hace pingo. Mandale gas de a poco.')),
-  escena('TUT1_RASANTE_OK', T(TURCO, 'turco_radio_risa', 'E ura, así se vuela. Como si el agua te debiera plata.')),
+  escena('TUT1_RASANTE_OK', T(TURCO, 'turco_radio_risa', 'E ura, así se vuela.')),
   escena('TUT1_SAL',
     T(TURCO, 'turco_radio_escucha', 'El vidrio... Mientras vas volando pegao al agua, se te llena el vidrio de sal. Tratá de atravesar algunas nubes con agua para limpiarlo.'),
     T(PICHON, 'pichon_radio_explicando', 'Subir solo no la saca: la costra queda pegada. Metete en la nube, que el agua te lava el vidrio.'),
     T(TURCO, 'turco_radio_desconfiado', 'En una misión de verdá, allá ashiba te ve el radar. Subís, te lavás y te volvés a bajar antes de que te llegue a detectar.'),
-    B(PICHON, 'pichon_radio_pensativo', 'Mmmmm... Se me ocurre algo para probar. Bueno busca alguna nube mientras.')),
+    B(PICHON, 'pichon_radio_pensativo', 'Mmmmm... Se me ocurre algo para probar. Bueno, buscá alguna nube mientras.')),
   escena('TUT1_SAL_OK', T(PICHON, 'pichon_radio_sonrisa', 'Ahí está. Ahora sí se ve mejor. Bajá, que te ven.')),
   escena('TUT1_HIELO',
     T(TURCO, 'turco_radio_preocupado', 'E ura, ¿sentís que el avión pesa? Ha sido el hielo: en la nube, con este frío, se te pega en las alas. Y el A-4 no tiene con qué sacarlo.'),
@@ -308,7 +317,7 @@ const LISTA = [
   escena('TUT1_OLAS_OK', T(PICHON, 'pichon_radio_sonrisa', 'Ni una pluma, Tero.')),
   escena('TUT1_TURBO',
     T(PICHON, 'pichon_radio_explicando', 'La poscombustión: combustible directo al escape. Mucha más velocidad, pero consume más del triple.'),
-    T(TURCO, 'turco_radio_desconfiado', 'Por eso el reloj de la nafta ta al lao. Esta pa mirar, que no lo he puesto de adorno.'),
+    T(TURCO, 'turco_radio_desconfiado', 'Por eso el reloj de la nafta ta al lao. Está pa mirar, que no lo he puesto de adorno.'),
     B(PICHON, 'pichon_radio_orgullo', 'No lo puso usted, Turco. Viene de fábrica.')),
   escena('TUT1_TURBO_OK', T(TURCO, 'turco_radio_ceno', 'Qué dice... Lo he ajustao yo, changuito.')),
   escena('TUT1_FIN',
@@ -338,10 +347,15 @@ const LISTA = [
     T(TURCO, 'turco_radio_desconfiado', 'Y no te le pegués tanto, que si lo chocás te hace aca.')),
   escena('TUT2_MOVILES_OK', T(TURCO, 'turco_radio_aprueba', 'Eso. Ahí va nomá.')),
   escena('TUT2_HARRIER',
-    T(TURCO, 'turco_radio_grito', 'E ura, ahí viene un Harrier. Estos quieren tu espalda, desde atra\' tirarte el sidewinder.'),
+    T(TURCO, 'turco_radio_grito', 'E ura, ahí vienen los Harriers. Estos quieren tu espalda, desde atra\' tirarte el sidewinder.'),
     T(TURCO, 'turco_radio_escucha', 'Por eso prefieren venir rápido de frente y ganarte la espalda. Tratá de dispararles de frente.'),
-    T(PICHON, 'pichon_radio_alerta', 'Viene de frente y muy rápido. Ponete en su línea y disparale antes de que te pase.')),
-  escena('TUT2_HARRIER_OK', T(PICHON, 'pichon_radio_sorpresa', '¡Abajo! Y eso que venía a ochocientos.')),
+    T(PICHON, 'pichon_radio_alerta', 'Vienen de frente, muy rápido, y se te corren al carril. Ponete en su línea y disparales antes de que te pasen.')),
+  escena('TUT2_HARRIER_OK', T(PICHON, 'pichon_radio_sorpresa', '¡Abajo! Y eso que venían a ochocientos.')),
+  escena('TUT2_TONEL',
+    T(PICHON, 'pichon_radio_explicando', 'Estos vienen armados. Cuando el misil esté cerca, hacé el tonel: el avión gira completo sobre su eje, ocupa menos lugar y el misil se pasa de largo.'),
+    T(PICHON, 'pichon_radio_explicando', 'Se hace con DOS toques rápidos para el mismo lado: derecha-derecha o izquierda-izquierda. Tocá y soltá, no mantengas.'),
+    T(TURCO, 'turco_radio_desconfiado', '…A ver... Probá, ura.')),
+  escena('TUT2_TONEL_OK', T(TURCO, 'turco_radio_risa', 'Bieeeen, uraaa.')),
   escena('TUT2_RASANTE',
     T(PICHON, 'pichon_radio_explicando', 'Ahora el RASANTE. Bajá hasta que arriba del avión diga PERFECTO y aguantá cuatro segundos sin tocar el agua.'),
     T(TURCO, 'turco_radio_aprueba', 'Ahí aparece una barrita con un cachito azul y una marquita que va y viene. Hay que embocarle con el gas cuando pasa por lo azul.'),
@@ -353,7 +367,7 @@ const LISTA = [
   escena('TUT2_RAS_ESQUIVA_OK', T(TURCO, 'turco_radio_aprueba', 'Eso. Ha sido que más aciertos, más rasante. Ese es el negocio.')),
   escena('TUT2_MOMENTUM',
     T(TURCO, 'turco_radio_sonrisa', 'Ahora concentración extrema. El changuito le dice diferente. El tiempo se te pone lento y te deja pensar. Es una habilidad que ganás con tiempo.'),
-    T(PICHON, 'pichon_radio_orgullo', 'Se le dice momentum. Lo lográs luego de un rato volando bien. Guardalo para cuando se complica y necesitas "relentizar el tiempo".')),
+    T(PICHON, 'pichon_radio_orgullo', 'Se le dice momentum. Lo lográs luego de un rato volando bien. Guardalo para cuando se complica y necesitás "ralentizar el tiempo".')),
   escena('TUT2_MOMENTUM_LISTO',
     T(PICHON, 'pichon_radio_alerta', 'Se llenó la barra: el momentum está listo otra vez. Lanzalo y esquivá los globos con el tiempo lento.')),
   escena('TUT2_MOMENTUM_OK', T(PICHON, 'pichon_radio_risa', 'Lindo, ¿no? De película. Una locura esquivar las balas así.')),
@@ -367,19 +381,13 @@ const LISTA = [
     B(TURCO, 'turco_radio_escucha', 'Chango…')),
   escena('TUT2_FIN_OK', T(PICHON, 'pichon_radio_corregido', 'Ya sé, ya sé. Pero mañana le muestro.')),
   escena('TUT1_PAUSA',
-    T(TURCO, 'turco_radio_aprueba', 'Una cosita más. Si te olvidás de algo, podes pausar. Ahí ta todo ordenao.'),
+    T(TURCO, 'turco_radio_aprueba', 'Una cosita más. Si te olvidás de algo, podés pausar. Ahí ta todo ordenao.'),
     B(PICHON, 'pichon_radio_sonrisa', 'Sí. Los armé yo. Te dejé todos los controles ordenados por categoría.'),
     B(TURCO, 'turco_radio_aprueba', 'Lo hemo armao con el changuito. Pega una mirada.')),
   escena('TUT1_PAUSA_OK', T(TURCO, 'turco_radio_sonrisa', 'Bien. Seguimo.')),
   escena('TUT3_HOLA',
     T(TURCO, 'turco_radio_desconfiado', 'Hoy la pasada de verdá. Te he colgao una bomba de práctica. Pesa como una de verdá, así que ojo.'),
-    B(PICHON, 'pichon_radio_sonrisa', 'Y a la vuelta, la maniobra que le conté, Turco.'),
-    B(TURCO, 'turco_radio_ceno', 'Changuito, eso no se puede.')),
-  escena('TUT3_TONEL',
-    T(PICHON, 'pichon_radio_explicando', 'Se llama tonel: el avión gira completo sobre su eje y por un momento ocupa menos lugar. Sirve para pasar entre las balas.'),
-    T(PICHON, 'pichon_radio_explicando', 'Se hace con DOS toques rápidos para el mismo lado: derecha-derecha o izquierda-izquierda. Tocá y soltá, no mantengas.'),
-    T(TURCO, 'turco_radio_desconfiado', '…A ver... Probá, ura.')),
-  escena('TUT3_TONEL_OK', T(TURCO, 'turco_radio_risa', 'Bieeeen, uraaa.')),
+),
   escena('TUT3_RADAR',
     T(PICHON, 'pichon_radio_explicando', 'Antes del buque, el radar inglés. Barre hasta una altura: es esa raya del altímetro.'),
     T(TURCO, 'turco_radio_desconfiado', 'Si cruzás, te quema. Subí un poquito pa\' verlo, y bajá rápido.'),
@@ -398,7 +406,7 @@ const LISTA = [
   escena('TUT3_CHANCHA_OK', T(TURCO, 'turco_radio_risa', 'La Chancha no falla nunca. Bueno, casi nunca.')),
   escena('TUT3_BLANCO',
     T(PICHON, 'pichon_radio_alerta', 'Ahí está el buque. La bomba tiene que caer más de un segundo para armarse: soltala alta y temprano. Prestá atención a la marca verde.'),
-    T(TURCO, 'turco_radio_sonrisa', 'Con el joystick: empujá el stick derecho pa\' arriba y aparece la mira, que te muestra dónde cae. Con la mira puesta, hundí el stick, el R3, y sale. Con teclado, F y ESPACIO.'),
+    T(TURCO, 'turco_radio_sonrisa', 'Con el joystick: mantené el stick derecho pa\' abajo y aparece la mira, que te muestra dónde cae. Sin soltarlo, hundí el stick, el R3, y sale. Con teclado, F y ESPACIO.'),
     T(PICHON, 'pichon_radio_preocupado', 'Y si errás, otra pasada. El casco no se va a ningún lado.')),
   escena('TUT3_ESCAPE',
     T(PICHON, 'pichon_radio_risa', '¡Bien! ¡Le diste!'),
@@ -439,7 +447,7 @@ const LISTA = [
     T(PICHON, 'pichon_radio_pensativo', 'El tiempo acá cambia solo: llovizna, temporal, nevisca, niebla. Y el viento del oeste te sacude.'),
     T(TURCO, 'turco_radio_preocupado', 'Con frío y humedad se te junta hielo, como en la nube. Mirá el termómetro y buscá aire más templao.')),
   escena('TUT4_MAPA',
-    T(PICHON, 'pichon_radio_explicando', 'En la pausa está el mapa. Marcá un punto y la brújula te lleva ahí.'),
+    T(PICHON, 'pichon_radio_explicando', 'Con la M, o desde la pausa, abrís el mapa. Marcá un punto y la brújula te lleva ahí.'),
     T(TURCO, 'turco_radio_sonrisa', 'Marcá la base costera, que la vamo\' a visitar.')),
   escena('TUT4_MAPA_OK', T(TURCO, 'turco_radio_aprueba', 'Bien. Ahora seguí la brújula.')),
   escena('TUT4_BLANCO',

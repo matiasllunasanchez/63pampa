@@ -441,11 +441,15 @@ export const LIBRO_PROXIMAS = [
   { s: 7, es: 'LOS DOS PUCARÁ', en: 'THE TWO PUCARÁS', fecha: { es: '21 DE MAYO DE 1982', en: '21 MAY 1982' } },
   { s: 10, es: 'TRES DAGGER CONTRA DOS HARRIER', en: 'THREE DAGGERS AGAINST TWO HARRIERS', fecha: { es: '21 DE MAYO DE 1982', en: '21 MAY 1982' } },
   { s: 11, es: 'COLGADO DEL PATÍN', en: 'HANGING FROM THE SKID', fecha: { es: '21 DE MAYO DE 1982', en: '21 MAY 1982' } },
+  { s: 8, es: 'DESDE TIERRA: PUERTO HOWARD', en: 'FROM THE GROUND: PORT HOWARD', fecha: { es: '21 DE MAYO DE 1982', en: '21 MAY 1982' } },
   { s: 12, es: 'TRES DAGGER SOBRE PUERTO SAN CARLOS', en: 'THREE DAGGERS OVER PORT SAN CARLOS', fecha: { es: '24 DE MAYO DE 1982', en: '24 MAY 1982' } },
+  { es: 'EL ATLANTIC CONVEYOR', en: 'THE ATLANTIC CONVEYOR', fecha: { es: '23 Y 25 DE MAYO DE 1982', en: '23 & 25 MAY 1982' } },
   { s: 13, es: 'SOBRE PRADERA DEL GANSO', en: 'OVER GOOSE GREEN', fecha: { es: '28 DE MAYO DE 1982', en: '28 MAY 1982' } },
   { s: 14, es: 'DOS PUCARÁ CONTRA DOS HELICÓPTEROS', en: 'TWO PUCARÁS AGAINST TWO HELICOPTERS', fecha: { es: '28 DE MAYO DE 1982', en: '28 MAY 1982' } },
   { s: 4, es: 'EL ESCUADRÓN FÉNIX', en: 'THE FÉNIX SQUADRON', fecha: { es: '7 DE JUNIO DE 1982', en: '7 JUNE 1982' } },
-  { s: 8, es: 'DESDE TIERRA: PUERTO HOWARD', en: 'FROM THE GROUND: PORT HOWARD', fecha: null },
+  // (21/11, el autor: "poner TODAS las misiones que mencioné": las 18 de LIBRO_DE_VUELO_MISIONES_REALES.pdf, en su orden)
+  { es: 'EL ITB Y EL GLAMORGAN', en: 'THE ITB AND THE GLAMORGAN', fecha: { es: '11 Y 12 DE JUNIO DE 1982', en: '11–12 JUNE 1982' } },
+  { es: 'DOS HERMANAS', en: 'TWO SISTERS', fecha: { es: '13 DE JUNIO DE 1982', en: '13 JUNE 1982' } },
 ];
 
 // ---------------------------------------------------------------------------------------------

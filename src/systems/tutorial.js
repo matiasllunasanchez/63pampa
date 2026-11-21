@@ -16,9 +16,10 @@
 // hacer. Asi se prueba en Node (tools/unit.js) sin abrir una ventana.
 
 const ESPERA = 1.4;       // segundos entre un paso y el siguiente
-const ESPERA_0 = 1.0;     // …y antes del primero (recien termina el despegue)
+const ESPERA_0 = 0;       // …y antes del primero: NINGUNO (21/11, el autor: "el juego deberia arrancar en pausa")
 const OK_T = 1.1;         // el tilde de una consigna cumplida, antes de pasar a la siguiente
 
+let tp = 0;   // segundos de practica del paso en curso
 let pasos = [], i = 0, fase = 'espera', t = 0, linea = 0, sub = 0, okT = 0, acum = 0, vistos = {}, base = {}, fin = true;
 
 /** Arranca una lista de pasos (vacia = apagado), siempre desde el primero. */
@@ -47,7 +48,7 @@ export function consigna() {
     : c.aciertos != null ? Math.min(c.aciertos, acum)
     : c.esquiva != null ? Math.min(c.esquiva, acum)
     : c.usa ? c.usa.filter(k => vistos[k]).length : null;
-  return { clave: c.consigna, n, prog, hecho: okT > 0, teclas: pasos[i].teclas || [], segs: c.bajoTecho != null };
+  return { clave: c.consigna, n, prog, hecho: okT > 0, ok: okT > 0 ? okT / OK_T : 0, tp, teclas: pasos[i].teclas || [], segs: c.bajoTecho != null };
 }
 
 /** ¿Faltan pasos ANTES de la aproximacion final? Mientras si, game.js no deja empezar el aterrizaje: la vuelta
@@ -157,10 +158,11 @@ export function tick(dt, s, escenas) {
       if (ln.ingame) return { tipo: 'radio', linea: ln };
       return { tipo: 'decir', linea: ln, foco: p.foco || [], teclas: p.teclas || [] };
     }
-    fase = 'practica'; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: s.pasados, rotos: s.rotos, esquivados: s.esquivados || 0 };
+    fase = 'practica'; tp = 0; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: s.pasados, rotos: s.rotos, esquivados: s.esquivados || 0 };
     return { tipo: 'mundo', paso: p };
   }
   if (fase === 'practica') {
+    tp += dt;
     const c = (p.sigue || [])[sub];
     if (c) {
       if (okT > 0) {

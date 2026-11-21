@@ -77,26 +77,19 @@ const ORIGINAL_DISCO = (() => {
 // (la carpeta armada por partes: tools/build_web.py rechaza toda ruta ../assets/ literal que no sepa
 // re-embeber, y en la web esto no corre — ahi no hay rasanteMusica)
 const ORIGINAL_DIR = ['..', 'assets', 'music', 'original', ''].join('/');
+// (las viejas se mudaron a original/olds/ el 21/11: la carpeta no se lee recursiva, asi que no entran)
 const MUSIC_MISION = ORIGINAL_DISCO.length ? ORIGINAL_DISCO.map(f => ORIGINAL_DIR + encodeURIComponent(f)) : [
-  '../assets/music/original/balas_en_bandoneon1.mp3',
-  '../assets/music/original/balas_en_bandoneon2.mp3',
-  '../assets/music/original/bandoneon_de_acero1.mp3',
-  '../assets/music/original/bandoneon_de_acero2.mp3',
-  '../assets/music/original/bandoras.mp3',
   '../assets/music/original/Carnavalitox.mp3',
   '../assets/music/original/Chamoide.m4a',
   '../assets/music/original/fenretardo.mp3',
   '../assets/music/original/Karera.m4a',
   '../assets/music/original/karera2.m4a',
-  '../assets/music/original/last_aires1.mp3',
-  '../assets/music/original/last_aires2.mp3',
   '../assets/music/original/Malambo.m4a',
   '../assets/music/original/dicen_de_mi.m4a',
   '../assets/music/original/tangalfa.m4a',
   '../assets/music/original/tangbeta.m4a',
-  '../assets/music/original/wardoneon1.mp3',
-  '../assets/music/original/wardoneon2.mp3',
 ].filter(Boolean);
+const SOLO_ORIGINAL = true;   // ver setRunMusic (21/11)
 const musMision = new Audio(); musMision.volume = 0.22;
 let enMision = false, misionSrc = '';
 /** Carga en musMision una pista de MUSIC_MISION al azar, distinta de la anterior. */
@@ -903,7 +896,10 @@ export function setRunMusic(isCampaign, level, keep, prueba, pista, mision) {
   if (keep && enMision) { /* sigue la que sonaba */ }
   else {
     const antes = enMision;
-    enMision = !!mision && !prueba && pedida < 0 && sortearMision();
+    // POR AHORA, TODO VUELO SUENA CON music/original (21/11, el autor: "reproducí todas las que no están en la carpeta
+    // olds pero están en original, quiero probar; las de olds son MUY rápidas desde el inicio"): la campaña, las
+    // pruebas y los modos sueltos tambien sortean de ahi. Para volver a lo de antes: SOLO_ORIGINAL = false.
+    enMision = (SOLO_ORIGINAL || (!!mision && !prueba && pedida < 0)) && sortearMision();
     if (antes && !enMision && !musMision.paused) musMision.pause();
   }
   if (prueba && !keep && trackIdx !== ZONA_IDX) {

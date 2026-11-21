@@ -51,7 +51,7 @@ app.whenReady().then(async () => {
   if (d.fila.id === 'tut' && d.fila.k === 0) ok('el cursor arranca en la etapa 1'); else bad('el cursor arranca en ' + JSON.stringify(d.fila));
 
   // LAS ETAPAS, con teclas: el piloto automatico (ver `volar`) — cada una con los pasos que tiene que ver
-  const ETAPAS = [{ k: 0, pasos: 14, nombre: 'la etapa 1 (despegar y volar)' }, { k: 1, pasos: 10, nombre: 'la etapa 2 (pelear)' },
+  const ETAPAS = [{ k: 0, pasos: 15, nombre: 'la etapa 1 (despegar y volar)' }, { k: 1, pasos: 12, nombre: 'la etapa 2 (pelear)' },
     { k: 2, pasos: 9, nombre: 'la etapa 3 (la pasada y la vuelta)' }];
   // TUT_DESDE=<k>: vuela solo desde esa etapa (para iterar sobre una; en DEV estan todas abiertas)
   const DESDE = +process.env.TUT_DESDE || 0;
@@ -189,7 +189,7 @@ async function volar(k) {
       if (clave === 'tutC_calienta') await sostener('fuego', s.over ? null : 'X');
       else await sostener('fuego', null);
       if (clave === 'tutC_esquivar') { await tap('A', 250); await tap('D', 250); }
-      else if (clave === 'tutC_rolar') { await tap('Left', 250); await tap('Right', 250); }
+      else if (clave === 'tutC_rolar') { key('Left', true); await sleep(600); key('Left', false); await sleep(200); key('Right', true); await sleep(600); key('Right', false); await sleep(200); }   // (21/11: rolar pide SOSTENER 0,4 s)
       else if (clave === 'tutC_turbo') { key('Shift', true); await sleep(400); key('Shift', false); }
     }
     await sleep(60);

@@ -12,5 +12,7 @@ export const DEV = typeof window === 'undefined' || !window.RASANTE_APP || !!win
 
 // LA VERSION FULL (21/11, el autor: "una version full sin proximamente para prod, full-demo"): el juego de verdad
 // —sin MODO DEV— con todo lo que en prod queda trabado, destrabado: los aviones, las etapas del tutorial, la campaña
-// y la cabina del pasillo; y sin las salidas del libro que todavia no existen. `npm run full-demo` (main.js --full).
+// y la cabina del pasillo. `npm run full-demo` (main.js --full).
+// (21/11, el autor: la campaña —EL CUADERNO DE MATEO— sigue bloqueada tambien aca, y el libro muestra las salidas que
+// faltan como PROXIMAMENTE)
 export const FULL = typeof window !== 'undefined' && !!window.RASANTE_FULL;

@@ -851,7 +851,29 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // CONTROLES POR CATEGORIAS (17/11, menus.drawControles): la pestaña que se ve, compartida por la PAUSA y
     // OPCIONES; `optCtrl` = OPCIONES tiene la pantalla de controles abierta encima
     let ctrlTab = 0, optCtrl = false;
-    function ctrlTabMover(dir) { ctrlTab = (ctrlTab + dir + menus.CTRL_N) % menus.CTRL_N; beep(520, 0.05, 'square', 0.04); }
+    function ctrlTabMover(dir) {
+      if (ctrlFoco === 'switch') { mandoCambiar(); beep(640, 0.06, 'square', 0.05); return; }   // en el switch, ◄ ► lo cambian
+      ctrlTab = (ctrlTab + dir + menus.CTRL_N) % menus.CTRL_N; ctrlScroll = 0; beep(520, 0.05, 'square', 0.04);
+    }
+    // EL SWITCH ES UNA OPCION QUE SE ELIGE Y SE ACCIONA (21/11, el autor: "cambiar de teclado a joystick puede ser con
+    // otra cosa, o con un selector de opcion y un accionable"): ▲ sube el cursor al switch (se ilumina), ◄ ► o ENTER lo
+    // cambian, ▼ vuelve a la lista. Asi ▲▼ en PIRUETAS recorren sin pisarse con el switch.
+    let ctrlFoco = 'lista';
+    /** ENTER en CONTROLES: con el cursor en el switch, lo cambia (true); si no, false (y sigue lo de siempre). */
+    function ctrlEnter() { if (ctrlFoco !== 'switch') return false; mandoCambiar(); beep(640, 0.06, 'square', 0.05); return true; }
+    // PIRUETAS ES UNA LISTA CON SCROLL (21/11, el autor: "un listado, mas espacio a cada una en una linea sola, con
+    // scroll vertical"): ahi ▲▼ (y la ruedita) recorren la lista; en las otras pestañas ▲▼ es el switch TECLADO/JOYSTICK
+    let ctrlScroll = 0;
+    function ctrlNav(dir) {
+      if (ctrlFoco === 'switch') { if (dir > 0) { ctrlFoco = 'lista'; beep(500, 0.04, 'square', 0.03); } return; }
+      if (CTRL_CATEGORIAS[ctrlTab] && CTRL_CATEGORIAS[ctrlTab].piruetas && !(dir < 0 && ctrlScroll === 0)) {
+        const n = Math.max(0, Math.min(menus.pirScrollMax(), ctrlScroll + dir));
+        if (n !== ctrlScroll) { ctrlScroll = n; beep(520, 0.04, 'square', 0.03); }
+        return;
+      }
+      if (dir < 0) { ctrlFoco = 'switch'; beep(560, 0.05, 'square', 0.04); }
+    }
+    let ctrlRuedaAcum = 0;
     let pauseSel = 0, saveSel = 0;   // cursor del menu y de la lista de guardado
     let pauseT = 0;                  // reloj propio (run.t esta congelado): parpadeos del overlay
     let pauseMsgT = -9;              // cuando se guardo por ultima vez (flash "PARTIDA GUARDADA")
@@ -2432,7 +2454,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       else if (pauseView === 'save') {
         const n = pauseSaveRows().length;
         if (n) saveSel = (saveSel + dir + n) % n;
-      } else if (pauseView === 'controls') { mandoCambiar(); beep(640, 0.06, 'square', 0.05); return; }   // ▲▼: el switch TECLADO ↔ JOYSTICK
+      } else if (pauseView === 'controls') { ctrlNav(dir); return; }   // ▲▼: el switch TECLADO ↔ JOYSTICK (en PIRUETAS, el scroll)
       else return;
       beep(520, 0.05, 'square', 0.04);
     }
@@ -2456,7 +2478,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         else { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); }
         return;
       }
-      if (pauseView === 'controls' || pauseView === 'cartas') { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
+      if (pauseView === 'controls' && ctrlEnter()) return;
+      if (pauseView === 'controls' || pauseView === 'cartas') { ctrlFoco = 'lista'; pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
       if (pauseView === 'save') { doSave(); return; }
       // ENTER en el mapa: si hay cursor, el avion va ahi y se sigue volando
       // ENTER en el mapa: MARCA EL OBJETIVO ahi (19/11; el salto paso a I / △ / click derecho)
@@ -2481,7 +2504,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       }
     }
     function pauseBack() {
-      if (pauseView !== 'menu') { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
+      if (pauseView !== 'menu') { ctrlFoco = 'lista'; pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
       pauseToggle();                       // ESC sobre el menu raiz = reanudar
     }
     /** VER CARTAS (18/10, el autor: "ver todas las seleccionadas hasta el momento… separar en dos grupos,
@@ -2537,7 +2560,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // 'raiz' (las dos puertas), 'campanas' (continuar + las campañas) o 'libro' (las salidas). El ATRAS
     // de adentro vuelve a la raiz, con el cursor sobre la puerta de la que se vino.
     let campVista = 'raiz';
-    const campRows = () => campVista === 'campanas' ? (CAMPANA_BLOQUEADA && !FULL ? [
+    const campRows = () => campVista === 'campanas' ? (CAMPANA_BLOQUEADA ? [
       { id: 'c1', disabled: true },
       { id: 'back', back: true, sub: true },
     ] : [
@@ -2553,7 +2576,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     ] : campVista === 'libro' ? [
       ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k })),
       // las que vienen, en gris debajo (17/10): se ven y se marcan, no se entran
-      ...(FULL ? [] : LIBRO_PROXIMAS.map((m, k) => ({ id: 'proxima', k, disabled: true }))),   // (la FULL no promete)
+      // (21/11, el autor: "las que no estan hechas marcar como PROXIMAMENTE"): tambien en la FULL
+      ...LIBRO_PROXIMAS.map((m, k) => ({ id: 'proxima', k, disabled: true })),
       { id: 'back', back: true, sub: true },
     ] : [
       { id: 'secCampanas' },
@@ -2564,7 +2588,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function campIr(vista, fila) {
       campVista = vista;
       // con la campaña BLOQUEADA (la demo) la raiz arranca sobre el LIBRO DE VUELO: es lo que se juega
-      if (!fila && vista === 'raiz' && CAMPANA_BLOQUEADA && !FULL) fila = r => r.id === 'secLibro';
+      if (!fila && vista === 'raiz' && CAMPANA_BLOQUEADA) fila = r => r.id === 'secLibro';
       // al ENTRAR al tutorial, el cursor va SIEMPRE a la primera etapa (19/11, el autor: "apenas entramos al menu de
       // tutorial, seleccionar el primer punto"). Al volver de una etapa se queda sobre la siguiente (volverAlLibro).
       if (!fila && vista === 'tutorial') fila = r => r.id === 'tut' && r.k === 0;
@@ -3579,8 +3603,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     /** ENTER en OPCIONES. Hay filas que ABREN una sub-pantalla; el resto sale, como siempre. */
     function optConfirm() {
       const r = OPT_ROWS[optRow];
-      if (optCtrl) { optCtrl = false; beep(400, 0.06, 'square', 0.05); return; }
-      if (r && r.open === 'controles') { optCtrl = true; beep(600, 0.06, 'square', 0.05); return; }
+      if (optCtrl && ctrlEnter()) return;
+      if (optCtrl) { optCtrl = false; ctrlFoco = 'lista'; beep(400, 0.06, 'square', 0.05); return; }
+      if (r && r.open === 'controles') { optCtrl = true; ctrlFoco = 'lista'; beep(600, 0.06, 'square', 0.05); return; }
       if (r && r.open === 'mejoras') {
         mejSel = mejRows().findIndex(x => !x.head);
         setState('mejoras'); beep(600, 0.06, 'square', 0.05);
@@ -3874,6 +3899,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // al tomar el control el rotulo se va y el tablero ENTRA con un fundido (`hudEntra`).
     const LIBRO_AUTO_S = 4.5, ROTULO_SALE = 0.8, HUD_ENTRA = 0.9;
     let rotLibro = null, rotSale = 0, hudEntra = 1;
+    // EL ROTULO DE LA CARRERA JUGABLE (21/11): se queda mientras dura la primera pausa de dialogo y se va cuando se cierra
+    let dspVisto = false, dspSale = 0;
+    /** El encabezado del despegue (hud.drawTakeoff), en la grilla de diseño. */
+    function dibujarDespegue() {
+      hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? (curMission().despegue ? { ...curMission().despegue, fecha: curMission().date } : null) : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto(), !!carrera, rotLibro, carrera ? dspSale : null);
+    }
     // EL TECHO DE NUBES DE LA SALIDA (`techoNubes`, m: EL RESCATE DEL BELGRANO, nubes a 150 m): la capa del pasillo
     // (render/nubes_altas.js) baja hasta ahi —su base es NUBES − ESPESOR— y vuelve a la de siempre en otra mision
     const NUBES_BASE = ALTO.NUBES;
@@ -3932,7 +3963,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (!libro || libro.tut || carrera || cfg.start === 'air') return null;
       const m = libroDef(), av = m.aviones[libro.av || 0] || {}, d = m.despegue || {};
       const hora = av.hora || m.horaDespegue;
-      return { t: 0, lineas: [d.desde, d.zona, av.fecha || m.fecha, hora ? hora + ' HS' : null].filter(Boolean) };
+      return { t: 0, lineas: hud.lineasRotulo(av.fecha || m.fecha, hora, [d.desde, d.zona].filter(Boolean).join(', ')) };
     }
     // EL DESPEGUE JUGABLE (core/despegue.js): la carrera en curso, o null si el despegue es la animacion
     // de siempre. Lo pide la mision con `despegueJugable: true` (hoy la etapa 1 del tutorial).
@@ -4100,7 +4131,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (islas.activa()) run.squad = run.lives = 1;   // LAS ISLAS: un solo avion, sin relevos (el generico, PILOTOS_AVION)
       squad.resetFila();   // la fila de pilotos, en orden (core/squad.js)
       squad.resetSquad();
-      toT = 0; toCount = 4; rotLibro = null; rotSale = 0; hudEntra = 1;
+      toT = 0; toCount = 4; rotLibro = null; rotSale = 0; hudEntra = 1; dspVisto = false; dspSale = 0;
       { const m = curMission(); ALTO.NUBES = m && m.techoNubes ? m.techoNubes + ALTO.ESPESOR : NUBES_BASE; }
       carrera = curMission() && curMission().despegueJugable && !cfg.cliff && cfg.start !== 'air' ? nuevaCarrera() : null; carreraFallas = 0;
       // LA CAMARA ARRANCA DONDE ESTA EL AVION, no en una constante. Con ACANTILADO el avion nace
@@ -4303,10 +4334,18 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       cargaNav: dir => cargaNav(dir),
       cargaConfirm: () => cargaConfirm(),
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
-      optNav: dir => { if (optCtrl) { mandoCambiar(); beep(640, 0.06, 'square', 0.05); return; } optNav(dir); beep(500, 0.04, 'square', 0.03); },
+      // la RUEDITA en CONTROLES → PIRUETAS: recorre la lista (devuelve true si la uso)
+      ctrlRueda: dy => {
+        const visible = (S.state === 'options' && optCtrl) || (paused && pauseView === 'controls');
+        if (!visible || !(CTRL_CATEGORIAS[ctrlTab] && CTRL_CATEGORIAS[ctrlTab].piruetas)) return false;
+        ctrlRuedaAcum += dy;
+        while (Math.abs(ctrlRuedaAcum) >= 40) { ctrlNav(ctrlRuedaAcum > 0 ? 1 : -1); ctrlRuedaAcum -= 40 * Math.sign(ctrlRuedaAcum); }
+        return true;
+      },
+      optNav: dir => { if (optCtrl) { ctrlNav(dir); return; } optNav(dir); beep(500, 0.04, 'square', 0.03); },
       optChange: dir => { if (optCtrl) { ctrlTabMover(dir); return; } optChange(dir); beep(560, 0.05, 'square', 0.04); },
       // ESC en OPCIONES: si estan abiertos los CONTROLES, los cierra (devuelve true); si no, sale como siempre
-      optBack: () => { if (!optCtrl) return false; optCtrl = false; beep(400, 0.06, 'square', 0.05); return true; },
+      optBack: () => { if (!optCtrl) return false; optCtrl = false; ctrlFoco = 'lista'; beep(400, 0.06, 'square', 0.05); return true; },
       optConfirm,
       mejNav: dir => { mejNav(dir); beep(500, 0.04, 'square', 0.03); },
       mejChange: dir => { mejChange(dir); beep(560, 0.05, 'square', 0.04); },
@@ -4488,6 +4527,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // (con la MUSICA EN CAPAS puesta, N y M cambian de pista en capas — para comparar volando)
       trackPrev: () => { if (capasPista) otraPistaCapas(-1); else if (canPickMusic()) prevTrack(); },
       trackNext: () => { if (capasPista) otraPistaCapas(1); else if (canPickMusic()) nextTrack(); },
+      // [M] = EL MAPA (21/11): en vuelo con mapa (las islas) abre la pausa directo en el mapa; con el mapa abierto, cierra
+      mapaTecla: () => {
+        if (paused && pauseView === 'mapa') { paused = false; pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
+        if (S.state !== 'play' || paused || dlgPausa || !islas.enPasillo()) return;
+        paused = true; pauseSel = 0; pauseView = 'mapa'; mapaCur = null; pauseMsgT = -9;
+        engineOff(); beep(600, 0.06, 'square', 0.05);
+      },
       // MOMENTUM (tecla 4): LANZA el especial si la barra esta llena, SOLO en el pasillo
       // jugable. El feedback va aca (no en systems/tempo.js) por la misma regla que aimChanged:
       // el sistema devuelve la señal y el orquestador pone beep + popup — barra incompleta,
@@ -4979,7 +5025,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     const senasActivas = () => !!senas && senas.frena && senas.t < SENAS.ENTRA + SENAS.CADA * senas.items.length + SENAS.SALE;
     /** UN COMPAÑERO TE HACE UNA SEÑA (data/senales.js SENAS_COMP): entra, hace su gesto, muestra el
      *  globo y se va. Hace falta un compañero vivo, y no pisa a otro que ya este haciendo señas. */
+    // APAGADO POR AHORA (21/11, el autor: "el feature del avion amigo que se acerca a decirme MAS ABAJO, ocultemoslo:
+    // no lo hagamos en ningun caso por ahora"): ni la seña del radar ni las de la vuelta. Para volver: true.
+    const COMPANERO_SENAS = false;
     function senaCompanero(id, lado) {
+      if (!COMPANERO_SENAS) return false;
       const c = SENAS_COMP[id];
       if (!c || !canRelevo(run.lives)) return false;
       if (senas && senas.t < SENAS.ENTRA + SENAS.CADA * senas.items.length + SENAS.SALE) return false;
@@ -4998,7 +5048,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     }
     function armarSenas() {
       senas = null;
-      if (!canRelevo(run.lives)) return;
+      if (!COMPANERO_SENAS || !canRelevo(run.lives)) return;
       const que = [];
       if (escapeSys.fugaOn()) que.push('sena_fuga');
       if (run.integ < 99) que.push('sena_dano');
@@ -5627,7 +5677,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (cam.y < 3.4) cam.y = 3.4;
       if (plane.y < 2.5 && run.spd > 12) polvoSuelo(plane.x, PZ, 0.6);
       engineFly(run.spd, false, 0.017 * Math.min(1, 0.3 + carrera.gas));
+      // LA RADIO TAMBIEN CORRE EN LA CARRERA (21/11, el autor: "nunca frena y me dice que ejecutar para despegar; y nunca
+      // sigue el dialogo in game del Turco"): el unico tickRadio del vuelo vivia en el bloque de 'play', asi que en la
+      // cabecera la linea del Turco no se iba nunca — y el tutorial espera a que la radio se calle para explicar
+      tickRadio(dt);
       stepTutorial(dt);
+      // el rotulo se va cuando se cierra la primera pausa de dialogo (o a los 6 s, si no hubo ninguna)
+      if (dlgPausa) dspVisto = true;
+      else if (dspVisto || toT > 6) dspSale = Math.min(1, dspSale + dt / 0.6);
       if (enControl(carrera) && S.state === 'takeoff') {
         setState('play'); run.shake = Math.min(6, run.shake + 1);
         squad.beginExit();
@@ -5724,12 +5781,26 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let tutTermina = false;   // TERMINAR ETAPA, desde la pausa (la practica libre del tutorial)
     const TUT_REENCARE_EXTRA = 1500;   // m de mas en la otra pasada del tutorial (blanco.js REENCARE_M + esto)
     function sembrarBlancos(bl) {
+      // EN TANDAS (21/11, el autor: "los globos a esquivar mas separados entre tandas, de 3, 2, 3"): `tandas` = cuantos
+      // en cada una; adentro van seguidos (`paso`), y entre tanda y tanda queda `entre` de aire
+      if (bl.tandas) {
+        let z = BOMBA_Z_TOPE, k = 0;
+        bl.tandas.forEach((n, ti) => {
+          if (ti) z += (bl.entre || 150) - (bl.paso || 45);
+          for (let j = 0; j < n; j++, k++, z += bl.paso || 45) {
+            const x = plane.x + [0, -2, 2][j % 3];
+            const y = bl.y === 'avion' ? Math.max(2.5, Math.min(14, plane.y)) : bl.y != null ? bl.y : 9;
+            sembrarPractica(bl.tipo, x, y, z, !!bl.mueve, { real: bl.real, armado: bl.armado });
+          }
+        });
+        return;
+      }
       for (let k = 0; k < (bl.n || 1); k++) {
         // `linea`: en la linea del avion, apenas corridos (para ESQUIVAR, no para tirarles); `y`: a esa altura
         const x = bl.tipo === 'jet' ? plane.x : bl.linea ? plane.x + [0, -2, 2][k % 3] : [-5, 4, -1, 6, -6][k % 5] * (bl.ancho || 1);
         // (`y: 'avion'`: a la altura a la que vas, para esquivarlo de costado — 21/11)
         const y = bl.y === 'avion' ? Math.max(2.5, Math.min(14, plane.y)) : bl.y != null ? bl.y : bl.tipo === 'jet' ? Math.max(8, Math.min(16, plane.y)) : 9 + (k % 3) * 2;
-        sembrarPractica(bl.tipo, x, y, BOMBA_Z_TOPE + k * (bl.paso || 45), !!bl.mueve);
+        sembrarPractica(bl.tipo, x, y, BOMBA_Z_TOPE + k * (bl.paso || 45), !!bl.mueve, { real: bl.real, armado: bl.armado });
       }
     }
     /** LAS MARCAS DEL TUTORIAL: un anillo que late y una flecha arriba de cada blanco de practica. Van sobre
@@ -8081,7 +8152,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
       // (en la carrera jugable, no mientras habla el tutorial: chocaba con las teclas del dialogo)
-      if (S.state === 'takeoff' && !(carrera && dlgPausa)) hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto(), !!carrera, rotLibro);
+      if (S.state === 'takeoff' && !(carrera && dlgPausa)) dibujarDespegue();
       if (S.state === 'play' && rotLibro) hud.drawRotuloDespegue(rotLibro, rotSale);
       // LA CORTA FINAL: las ventanas se resuelven ACA y no en el HUD, con las mismas constantes que
       // despues CALIFICAN la toma. Si el dibujo tuviera su propia idea de "velocidad correcta", el
@@ -8177,7 +8248,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         cartas: pauseView === 'cartas' ? cartasDeLaCorrida() : null, lee: leeDe,
         cartasSel, cartasCrece: (cartasCrece = Math.min(1, cartasCrece + 0.12)), cartasLeer: (cartasLeerV += (cartasLeer - cartasLeerV) * 0.22),
         alto: (m, n) => { cartasLeerMax = m; cartasN = n; },
-        saveRows: pauseSaveRows(), t: pauseT, msg: pauseT - pauseMsgT, ctrlTab, padTxt: padActivo() ? padTexto : null, joy: padActivo(),
+        saveRows: pauseSaveRows(), t: pauseT, msg: pauseT - pauseMsgT, ctrlTab, ctrlScroll, ctrlFoco, padTxt: padActivo() ? padTexto : null, joy: padActivo(),
       });
       // PAUSA DE DIALOGO: velo y CAJA DE LAS PANTALLAS, sin una sola fila de menu. El mundo queda
       // abajo como contexto —igual que en la pausa— y lo unico que se lee es quien habla: busto,
@@ -8220,6 +8291,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
             const cx = z.x + z.w / 2, abajo = z.y > DH / 2, y = abajo ? z.y - PADZ - 2 : z.y + z.h + PADZ + 5;
             ctx.globalAlpha = 0.9; ctx.fillStyle = '#0a0e11'; ctx.fillRect(cx - w / 2, y - 3.5, w, 4.5);
             ctx.globalAlpha = 0.85 + 0.15 * Math.sin(dlgT * 5); ctx.fillStyle = P.accent; ctx.fillText(txt, cx, y);
+            ctx.strokeStyle = P.accent; ctx.lineWidth = 0.28; ctx.strokeText(txt, cx, y);   // (mas negrita, 21/11)
             ctx.globalAlpha = 1;
           });
           ctx.restore();
@@ -8241,6 +8313,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
             return { rot: T('ctrl' + id), tecla, glifos: glifosDe(tecla, pad) }; });
           screens.teclasLeccion(items, arriba ? caja.by + caja.bh + 4 : caja.by - 15, performance.now() / 1000);
         }
+        // EL ROTULO DEL DESPEGUE, ENCIMA DEL VELO (21/11, el autor: "el juego arranca en pausa, te muestra el texto en
+        // amarillo sobre el velo, luego el dialogo, y cuando desaparece el dialogo de pausa se va el lugar y la fecha")
+        if (S.state === 'takeoff' && carrera) dibujarDespegue();
         ctx.restore();
       }
       // NOMBRES DE LOS BOTONES SEGUN EL MANDO. El juego se escribio con nomenclatura PlayStation
@@ -8265,7 +8340,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         }),
       });
       // LOS CONTROLES abiertos desde OPCIONES: encima, con su propio panel
-      if (S.state === 'options' && optCtrl) menus.drawControles({ tab: ctrlTab, padTxt: padActivo() ? padTxt : null, joy: padActivo(), velo: false });
+      if (S.state === 'options' && optCtrl) menus.drawControles({ tab: ctrlTab, scroll: ctrlScroll, foco: ctrlFoco, padTxt: padActivo() ? padTxt : null, joy: padActivo(), velo: false });
       // MEJORAS DEL PICHON: mismo snapshot de solo lectura que OPCIONES. `card` se resuelve acá
       // (es una función en la fila) para que el render siga sin tocar nada del juego.
       if (S.state === 'mejoras') menus.drawMejoras({
@@ -8454,6 +8529,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LA LETRA DE UN ROL (FONTS en render/ctx.js), en vivo: __fuente('desc', 'Mayorice'); y una
       // PANTALLA de menu directo, para fotografiarla: __pantalla('campmenu')
       window.__fuente = (rol, fam) => probarFuente(rol, fam);
+      // LA MIRA: suelta o fija, y el modo (para la vuelta sola a los 5 s): __miradbg()
+      window.__miradbg = () => ({ on: mouse.on, aim: cfg.aim, x: Math.round(mouse.x), y: Math.round(mouse.y), st: S.state, dist: Math.round(run.dist), obj: Math.round(objectiveDist), t: +run.t.toFixed(1), fuel: Math.round(run.fuel || 0) });
+      // EL HIELO a mano (0..1), para mirar la escarcha de los relojes y las alas — y verla derretirse: __hielo(0.9)
+      window.__hielo = n => { if (n != null) run.hielo = +n; return run.hielo; };
       // CONTROLES abiertos en la pestaña `tab`, para fotografiarlos: __controles(0)
       window.__controles = tab => { setState('options'); optCtrl = true; ctrlTab = tab | 0; return ctrlTab; };
       window.__pantalla = st => { if (st === 'campmenu') campIr('raiz'); setState(st); return S.state; };
@@ -9396,11 +9475,17 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // igual a la del joystick, o en teclado dibuja una tecla"): la consigna lleva SIEMPRE los mandos del paso,
         // DIBUJADOS (render/glifos.js), y abajo la cuenta si la hay — los segundos, con SEGS)
         const pad = padActivo();
-        const gl = tc && tc.teclas && tc.teclas.length && !tc.hecho
+        // (21/11, el autor: "el icono va a la IZQUIERDA del texto, se pone VERDE y despues es un CHECK cuando cumplo"):
+        // cumplida, la primera mitad del tilde los mandos en verde; la segunda, el check
+        // (…"un poco mas transicional, no tan duro": `okF` 1→0 a lo largo del tilde, y hud.js funde mando → verde → check)
+        const okF = tc && tc.hecho ? tc.ok : null;
+        const gl = tc && tc.teclas && tc.teclas.length
           ? tc.teclas.flatMap((id, k) => [...(k ? [{ k: 'sep' }] : []), ...glifosDe(pad ? padTexto(T('ctrl' + id + 'P')) : T('ctrl' + id + 'K'), pad)]) : null;
-        const sub = !tc ? null : tc.hecho ? T('tutBien') : tc.prog == null ? null
+        // (21/11, el autor: "el texto BIEN es innecesario: un icono de CHECK a la izquierda del texto")
+        const sub = !tc || tc.hecho ? null : tc.prog == null ? null
           : Math.floor(tc.prog) + ' / ' + tc.n + (tc.segs ? ' ' + T('tutSegs') : '');
-        cartelSostenido('tut', !!tc && (S.state === 'play' || S.state === 'landing' || (S.state === 'takeoff' && !!carrera)) && !dlgPausa && !paused, tc ? T(tc.clave, { n: tc.n }) : '', tc && tc.hecho ? '#8fd16a' : P.accent, { glifos: gl }, sub); }
+        // (21/11, el autor: "el cartel de PRACTICA LIBRE no tiene que quedar para siempre: se va a los 5 s")
+        cartelSostenido('tut', !!tc && !(tutSys.libre() && tc.tp > 5) && (S.state === 'play' || S.state === 'landing' || (S.state === 'takeoff' && !!carrera)) && !dlgPausa && !paused, tc ? T(tc.clave, { n: tc.n }) : '', tc && tc.hecho ? '#8fd16a' : P.accent, { glifos: gl, okF }, sub); }
       // ¡PELIGRO! BAJA ALTURA ARRIBA, APAGADO PARA PROBAR (19/11, el autor: "por ahora quitemos el cartel de peligro
       // baja altura arriba y dejemos solo el que sale de cada control (comentemoslo, no lo borremos)"). Queda el del
       // altimetro (render/hud.js `avisoSostenido('alt', …)`). Para volver: descomentar la linea de abajo.
@@ -9436,13 +9521,19 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // vale cero aca.
       if (dlgPausa) {
         dlgT += raw;
+        // EL FUNDIDO DESDE NEGRO SIGUE AUNQUE EL MUNDO ESTE QUIETO (21/11, el autor: "el velo inicial tapa TODO, no debe
+        // tapar el dialogo ni los textos de lugar"): `fadeT` baja en update(), que con el dialogo congelado no corre —
+        // el tutorial arranca en pausa y el negro de entrada quedaba clavado encima de la caja y del rotulo
+        fadeT = Math.max(0, fadeT - raw);
         // el tipeo, con el mismo tic de las letras que la historia
         const antes = Math.floor(dlgTyped);
         dlgTyped += raw * TYPE_CPS;   // (Infinity + algo sigue siendo Infinity: la linea ya esta entera)
         if (dlgTyped !== Infinity && dlgTyped >= dlgTotal()) dlgTyped = Infinity;
         if (dlgTyped !== Infinity && Math.floor(dlgTyped) > antes && !isMuted()) beep(1300 + Math.random() * 1100, 0.014, 'square', 0.013);
         tickRadio(raw, true);
-        if (dlgT > DLG_TOPE) dlgAceptar();   // salida de emergencia: sin foco, sin teclado, sin nada
+        // salida de emergencia: sin foco, sin teclado, sin nada — MENOS EN EL TUTORIAL (21/11, el autor: "en el tutorial los
+        // dialogos de pausa no se pasan solos"): ahi la linea espera la tecla, que dice PRESIONA CUALQUIER TECLA
+        if (dlgT > DLG_TOPE && !(libro && libro.tut)) dlgAceptar();
         draw(); updateMusic(S.state); musicaCapas();
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
         barraEnJuego();

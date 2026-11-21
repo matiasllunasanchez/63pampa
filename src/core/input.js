@@ -48,8 +48,9 @@ const RUEDA_PASO = 40, RUEDA_ESPERA = 160;
 // QUIETO MIRA_QUIETA ms, vuelve sola a la posicion fija (render/plane.js la desliza de vuelta).
 // MIRA_SUELTA (px de diseño) es lo que hay que moverlo para soltarla: sin umbral, el temblor del
 // panel tactil o el pointermove que llega al recuperar el foco la soltaban sin querer.
-// Con MIRA MOVIL (CAPS LOCK / OPCIONES) no vuelve nunca: queda libre como siempre.
+// (21/11: con MIRA MOVIL tambien vuelve — ver miraActiva)
 const MIRA_QUIETA = 5000, MIRA_SUELTA = 4;
+const miraAncla = { x: 0, y: 0 };   // donde estaba el mouse la ultima vez que reinicio el reloj de MIRA_QUIETA
 
 // QUE FAMILIA DE MANDO HAY ENCHUFADA. No cambia NINGUN binding —el mapeo estandar de la Gamepad API
 // pone A/✕ en 0, B/◯ en 1, X/□ en 2 e Y/△ en 3, o sea en la MISMA posicion fisica— sino los
@@ -444,8 +445,10 @@ export function initInput(cv, a) {
     if (e.code === 'Enter' && !e.repeat) flags.anyPress = true;
     // MUSICA: [N] = pista anterior, [M] = siguiente (el motor lo ignora fuera de modo). Eran el 1 y el
     // 2 hasta el 9/10: los numeros pasaron a elegir el SECUNDARIO en vuelo.
-    if (!e.repeat && e.code === 'KeyN') a.trackPrev();
-    if (!e.repeat && e.code === 'KeyM') a.trackNext();
+    // (21/11, el autor: "M en teclado tiene que ser MAPA, abre el mapa directamente en pausa; la musica a otra tecla"):
+    // [N] pasa a la pista siguiente y [M] abre (o cierra) el MAPA de la pausa
+    if (!e.repeat && e.code === 'KeyN') a.trackNext();
+    if (!e.repeat && e.code === 'KeyM' && a.mapaTecla) a.mapaTecla();
     // EL SECUNDARIO, en el pasillo: 1 los TANQUES, 2 la BOMBA (las chafitas son APOYO y salen con [H], 18/11)
     const nSec = /^(?:Digit|Numpad)([12])$/.exec(e.code);
     if (!e.repeat && nSec && S.state === 'play') a.elegirSecundaria(+nSec[1]);
@@ -528,8 +531,12 @@ export function initInput(cv, a) {
       puntero.x = p.x; puntero.y = p.y; puntero.t = performance.now();
       if (a.mapaAbierto && a.mapaAbierto()) a.mapaHover(p.x, p.y);
       if (mouse.on || Math.hypot(p.x - mouse.x, p.y - mouse.y) >= MIRA_SUELTA) {
+        // (21/11, el autor: "la mira del mouse no vuelve al centro despues de no tocarlo X segundos"): con la mira
+        // suelta, CUALQUIER pointermove reiniciaba el reloj — y el temblor del panel tactil o de un mouse apoyado
+        // larga eventos de medio pixel sin parar, asi que nunca volvia. Ahora el reloj se reinicia solo si se movio
+        // de verdad (MIRA_SUELTA desde la ultima vez que conto)
+        if (!mouse.on || Math.hypot(p.x - miraAncla.x, p.y - miraAncla.y) >= MIRA_SUELTA) { miraAncla.x = p.x; miraAncla.y = p.y; miraActiva(); }
         mouse.x = p.x; mouse.y = p.y; mouse.on = true;
-        miraActiva();
       }
     }
     if (e.pointerId === steerPtr) pointer.steer = canvasPos(e);
@@ -539,6 +546,7 @@ export function initInput(cv, a) {
   // se espera RUEDA_ESPERA ms antes de aceptar otro.
   let rueda = 0, ruedaT = 0;
   cv.addEventListener('wheel', e => {
+    if (a.ctrlRueda && a.ctrlRueda(e.deltaY)) { e.preventDefault(); return; }
     if (S.state !== 'play') return;
     e.preventDefault();
     rueda += e.deltaY;
@@ -570,7 +578,7 @@ export function initInput(cv, a) {
   //   cruceta ↑ (12)             el poder del recurso: energia (arena) · LA CHANCHA (pasillo)
   //   SELECT (8)                 MOMENTUM (camara lenta, pasillo)
   //   cruceta ↓ (13)             camara: cabina ↔ tercera persona (= [V])
-  //   L3 (10) / R3 (11)          pista musical ◄ / ►     cruceta ←/→   esquivar (y navegar menus)
+  //   R3 (11)                    la bomba (con la mira)   cruceta ←/→   esquivar (y navegar menus)
   //
   // EN LA PASADA el mando NO cambia de significado, y es a proposito: L1/□ —el boton del misil—
   // SUELTA LA RISTRA DE BOMBAS. Es el mismo campo (`inp.msl`) que lee el pasillo para el misil, asi
@@ -602,7 +610,9 @@ export function initInput(cv, a) {
     if (miraVigia) return;
     miraVigia = setInterval(() => {
       if (inp.fire) miraUlt = performance.now();
-      if (!mouse.on || cfg.aim) { if (!mouse.on) { clearInterval(miraVigia); miraVigia = 0; } return; }
+      // (21/11, el autor: "la mira sigue sin volver al centro cuando se deja de mover unos 5 s"): vuelve TAMBIEN con la
+      // mira MOVIL (CAPS LOCK / OPCIONES) — antes ahi no volvia nunca, y CAPS prendido sin querer la dejaba suelta
+      if (!mouse.on) { clearInterval(miraVigia); miraVigia = 0; return; }
       if (performance.now() - miraUlt >= MIRA_QUIETA) { mouse.on = false; clearInterval(miraVigia); miraVigia = 0; }
     }, 100);
   }
@@ -680,9 +690,9 @@ export function initInput(cv, a) {
     // R3 HACE LO MISMO CON EL CAMBIO DE PILOTO (26/9): en vuelo y con la mecanica prendida, cambia de
     // piloto —el mando sigue sin botones libres, y es la misma familia: el clic del stick en vuelo es
     // una decision de vuelo—; afuera, o con la mecanica apagada, la pista siguiente como siempre.
-    if (hit(10) && S.state !== 'play') a.trackPrev();
+    // (21/11, el autor: "el R3 no tiene que cambiar de musica, el R3 tira la bomba"): L3 y R3 ya NO cambian la pista en
+    // ninguna pantalla —fuera de 'play' (la pausa, el despegue, las islas) se colaba—. La pista se cambia en la pausa.
     // (en vuelo R3 es LA BOMBA desde el 18/11 —ver el stick derecho— y el cambio de piloto paso a la cruceta ▼)
-    if (hit(11) && S.state !== 'play') a.trackNext();
 
     // QUE ESTADOS SON "JUGAR". Cada climax nuevo tiene que entrar aca o el mando deja de volar al
     // llegar: el `else` de abajo SUELTA todos los ejes (es la rama de menus). La PASADA se agrego
@@ -842,7 +852,8 @@ export function initInput(cv, a) {
       // LA BOMBA CON EL STICK DERECHO (18/11, el autor: "el arriba del stick derecho, la mira de la bomba; y R3 el
       // lanzamiento"): stick der. ▲ = la mira (como mantener [F]: se ve la caida) y R3 = tirarla. Con la mira puesta
       // R3 es el gatillo (sale en el acto, como ESPACIO con [F]); sin mira, R3 es mantener-y-soltar, como la [Z].
-      const miraStick = S.state === 'play' && ax(3) < -0.5, r3 = down(11) && S.state === 'play';
+      // (21/11, el autor: "con el stick hacia ABAJO manteniendo, y R3 para lanzarla"): la mira es el stick der. ▼ sostenido
+      const miraStick = S.state === 'play' && ax(3) > 0.5, r3 = down(11) && S.state === 'play';
       setPad('apunta', miraStick);
       setPad('fire', down(5) || down(0) || (r3 && miraStick));  // R1 = metralleta (✕ tambien; R3 con la mira = la bomba)
       setPad('turbo', down(7) && !frenoCombo);                 // turbo (gatillo) — con ◯ deja de empujar: frena
@@ -878,7 +889,7 @@ export function initInput(cv, a) {
       // y panea mas rapido cuanto mas lo empujas — algo que el teclado no puede dar.
       const rx = ax(2), ry = ax(3);
       setPad('rollAx', rx);
-      setPad('camAx', miraStick ? 0 : ry);   // (arriba del todo es la mira de la bomba: no mueve la camara)
+      setPad('camAx', miraStick ? 0 : ry);   // (abajo del todo es la mira de la bomba: no mueve la camara)
       // Y ADEMAS DAN TOQUES: cada cruce de la zona muerta es un tap en MAYUSCULA para el detector
       // de combos. Es lo que hace que las maniobras que ROLAN se pidan con la mano que rola.
       if (teclea) {
