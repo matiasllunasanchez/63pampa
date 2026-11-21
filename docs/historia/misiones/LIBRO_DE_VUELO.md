@@ -134,3 +134,22 @@ va como `PENDIENTE`. **Ninguno nombra personas.**
   [Wikipedia — HMS Sheffield](https://en.wikipedia.org/wiki/HMS_Sheffield_(D80))
 - Aviation Safety Network: [C-248](https://aviation-safety.net/wikibase/54622) ·
   [3-A-307](https://cdn.aviation-safety.net/wikibase/54619)
+
+## ⏳ El rescate del Belgrano (r6) — textos propuestos (21/11, esperan el OK del autor)
+
+En el juego van como `PENDIENTE` hasta el OK. El dato de arriba de la tarjeta (fecha · hora · base) ya se ve.
+
+**La fila (`desc`):** Dos Neptune de la Armada buscan a los náufragos del crucero General Belgrano con temporal y nubes a 150 metros. Volás abajo de las nubes, con el mar picado.
+
+**El contexto (`R6_CONTEXTO`):**
+1. *(el dato)* 3 DE MAYO DE 1982 · ≈09:00 · BASE AERONAVAL RÍO GRANDE
+2. El Neptune era el patrullero de la Armada: lento, enorme y con radar. No llevaba armas.
+3. El 2 de mayo a las 16:02 un submarino británico hundió al crucero General Belgrano. Cientos de tripulantes quedaron en balsas, con temporal, de noche.
+4. El 2-P-112 buscó toda la noche, muy bajo, sin encontrar nada. A la madrugada lo relevó el 2-P-111, con un motor que perdía aceite.
+5. Las nubes estaban a 150 metros: arriba no se ve el mar. Hay que buscar la mancha de aceite, seguirla hasta las balsas, marcarlas con humo y subir en círculos para que los destructores lleguen. Y volver con la nafta justa.
+
+**Lo que pasó (`R6_LO_QUE_PASO`):**
+1. 3 de mayo de 1982. Poco después de las 09:00 el 2-P-111 vio una mancha de aceite de unos 300 metros que iba hacia el sudeste. Al mediodía, casi sin combustible, un Neptune encontró las balsas.
+2. Los destructores Bouchard y Piedrabuena y el aviso Gurruchaga fueron para allá; el 4 de mayo el Bahía Paraíso rescató a los últimos. Volvieron 770 sobrevivientes. Murieron 323 tripulantes.
+
+> ⚠ Las cifras (770 y 323) y los nombres de los buques hay que confirmarlos antes de aprobar el texto.

@@ -317,7 +317,40 @@ export function drawLanding(d) {
  *  cartel generico de siempre. Un rumbo vacio no se escribe: la placa se achica a un renglon. */
 const DSP_DURA = 4, DSP_FUNDE = 0.8;   // el renglon del despegue jugable: cuanto se lee y cuanto tarda en irse
 let dspT0 = 0, dspUlt = -9;
-export function drawTakeoff(toT, dsp, auto = 0, suelto = false, sinCuenta) {
+/** EL ROTULO DEL DESPEGUE DEL LIBRO DE VUELO (21/11, el autor: "poner ubicacion y hora y dia en alguna zona clara de
+ *  la pantalla para ubicar al jugador en tiempo y espacio. Efecto de tipeo. Todo esto mientras despega"). Arriba a la
+ *  izquierda, donde no hay tablero todavia: cada renglon se TIPEA despues del anterior, con su cursor, y al tomar el
+ *  control se va (`sale` 0→1). `rot` = { lineas: [lugar, zona, fecha, hora], t: segundos desde que empezo }. */
+export const ROTULO_CPS = 26, ROTULO_PAUSA = 0.25;
+export function drawRotuloDespegue(rot, sale = 0) {
+  if (!rot || sale >= 1) return;
+  ctx.save();
+  ctx.globalAlpha = 1 - sale;
+  ctx.textAlign = 'left';
+  let t = rot.t, y = 30;
+  const x = 10;
+  for (let i = 0; i < rot.lineas.length; i++) {
+    const txt = rot.lineas[i];
+    const n = Math.max(0, Math.min(txt.length, Math.floor(t * ROTULO_CPS)));
+    t -= txt.length / ROTULO_CPS + ROTULO_PAUSA;
+    if (n <= 0) break;
+    const grande = i === 0;
+    ctx.font = grande ? 'bold 7px monospace' : '6px monospace';
+    const vis = txt.slice(0, n), w = ctx.measureText(vis).width;
+    ctx.fillStyle = '#0a0e11b0'; ctx.fillRect(x - 3, y - (grande ? 7 : 6), w + 6 + (n < txt.length ? 4 : 0), grande ? 10 : 9);
+    ctx.fillStyle = grande ? P.ink : i === rot.lineas.length - 1 ? '#f2cf4a' : '#9fb3c0';
+    ctx.fillText(vis, x, y);
+    // el cursor: en el renglon que se esta escribiendo, y titilando en el ultimo cuando ya termino
+    const escribiendo = n < txt.length, ultimo = i === rot.lineas.length - 1;
+    if (escribiendo || (ultimo && Math.sin(rot.t * 8) > 0)) ctx.fillRect(x + w + 1, y - 5, 3, 6);
+    y += grande ? 11 : 10;
+    if (escribiendo) break;
+  }
+  ctx.restore();
+}
+export function drawTakeoff(toT, dsp, auto = 0, suelto = false, sinCuenta, rot = null) {
+  // EL LIBRO DE VUELO no tiene cuenta ni cabecera: despega solo y se tipea el rotulo (drawRotuloDespegue)
+  if (rot) { drawRotuloDespegue(rot); return; }
   ctx.textAlign = 'center';
   // los modos sueltos no salen de una base real ni van a un blanco dicho (18/10, el autor: "eso es mentira,
   // quitarlo"): un rumbo generico y nada mas

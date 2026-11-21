@@ -111,7 +111,8 @@ const r1 = {
   id: 'r1', name: 'EL SHEFFIELD',
   fecha: '4 DE MAYO DE 1982', hora: '11:04', horaQue: 'lanzamiento',
   desc: 'Dos Super Étendard de la Armada salen de Río Grande a buscar a la flota con un Exocet cada uno. Al ras del mar, con niebla, guiados por un Neptune.',
-  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', rumbo: 'blanco: destructor clase 42' },
+  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'blanco: destructor clase 42' },
+  horaDespegue: '09:45',
   goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: LARGO },
   climax: 'pulso',
   cfg: cfgReal({ sky: 'cloudy', fog: 1, fogLen: 1, squad: 2, caza: 0 }),
@@ -152,7 +153,8 @@ const r2 = {
   id: 'r2', name: 'HMS GLASGOW',   // nombre completo (autor, 16/10: "LA GLASGOW" quedaba feo)
   fecha: '12 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
   desc: 'Dos escuadrillas de A-4B salen de Río Gallegos contra dos buques en el estrecho. Volás la segunda, ORO, contra la Glasgow.',
-  despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'blanco: destructor clase 42' },
+  despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', zona: 'SANTA CRUZ', rumbo: 'blanco: destructor clase 42' },
+  horaDespegue: '12:30',
   goal: { kind: 'ship', ship: 'HMS GLASGOW', dist: LARGO },
   climax: 'suelta',
   // LA MK-17 (la de las espoletas que fallaban en todo mayo) y el SEA WOLF: lo tiraba la Brilliant, que
@@ -220,7 +222,8 @@ const r3 = {
   id: 'r3', name: 'LA ARDENT',
   fecha: '21 DE MAYO DE 1982', hora: '14:10', horaQue: 'despegue',
   desc: 'Tres A-4Q de la Armada, sin Hércules: cada litro contado. El blanco asignado no está; el alternativo, los buques de San Carlos.',
-  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', rumbo: 'blanco alternativo: bahía San Carlos' },
+  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'blanco alternativo: bahía San Carlos' },
+  horaDespegue: '14:10',
   goal: { kind: 'ship', ship: 'HMS ARDENT', dist: LARGO },
   climax: 'suelta',
   // LA BRP-250 hasta que exista la MK-82 Snakeye: es la bomba con cola retardadora que el juego ya
@@ -284,7 +287,8 @@ const r4 = {
   id: 'r4', name: 'LA PLYMOUTH',
   fecha: '8 DE JUNIO DE 1982', hora: '≈13:00', horaQue: 'ataque',
   desc: 'Seis Dagger salen de Río Grande hacia Bahía Agradable. Al ras y muy rápidos, se pasan, y encuentran una fragata sola en el estrecho.',
-  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', rumbo: 'rumbo: Bahía Agradable' },
+  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'rumbo: Bahía Agradable' },
+  horaDespegue: null,   // (sin fuente argentina de la hora: el rotulo no la escribe)
   goal: { kind: 'ship', ship: 'HMS PLYMOUTH', dist: LARGO },
   climax: 'suelta',
   // Bombas de 250 kg (la BRP-250 es la de 250 que el juego tiene; cual era exactamente, a confirmar).
@@ -350,7 +354,8 @@ const r5 = {
   id: 'r5', name: 'EL INVINCIBLE',
   fecha: '30 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
   desc: 'Dos Super Étendard con el último Exocet y cuatro A-4C salen juntos de Río Grande a buscar al portaaviones. Primero lanzás el misil; después, lo escoltás.',
-  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', rumbo: 'blanco: el grupo de portaaviones' },
+  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'blanco: el grupo de portaaviones' },
+  horaDespegue: '12:30',
   goal: { kind: 'ship', ship: 'HMS INVINCIBLE', dist: LARGO * 1.2 },
   climax: 'pulso',
   // DONDE SE LANZA EL EXOCET: a esta fraccion de la ida, no en el blanco. Lo que queda de ahi al
@@ -378,8 +383,52 @@ const r5 = {
   contexto: 'R5_CONTEXTO', epi: 'R5_LO_QUE_PASO',
 };
 
+// ---------------------------------------------------------------------------------------------
+// r6 · EL RESCATE DEL BELGRANO — 2 y 3 de mayo de 1982 (21/11, pedido del autor; MISIONES_SUELTAS S-01)
+// Fuentes: Armada (argentina.gob.ar/armada/crucero-ara-general-belgrano); Boletin del Centro Naval 829. El crucero
+// fue torpedeado el 2 de mayo a las 16:02; la busqueda se ordeno unas seis horas despues. El Neptune 2-P-112 busco de
+// noche unas nueve horas, muy bajo, sin indicios, y volvio a su base a las 06:30. Hacia las 05:00 lo relevo el 2-P-111
+// (con un motor que consumia aceite de mas: en tiempos normales no habria volado), tambien muy bajo por el techo de
+// nubes. Poco despues de las 09:00 vio una MANCHA DE ACEITE de unos 300 m de ancho que se extendia al SE y abrio una
+// busqueda en cuadrados crecientes; los destructores D-26 y D-29 y el aviso A-3 fueron para alla.
+// ⚠ A CONFIRMAR (PREGUNTAS_HISTORICAS «EL RESCATE DEL BELGRANO»): las horas de despegue (≈), la base, el humo y los
+// circulos (son mecanica de juego, el autor 21/11), y donde exactamente.
+// SE VUELA: ida por el pasillo bajo la tormenta (nubes a 150 m), y en la zona, fundido al MAR ABIERTO del motor de las
+// islas: LA BUSQUEDA (systems/islas/busqueda.js). Vuelta por el pasillo, con la nafta justa.
+const LARGO_BELGRANO = 12000;
+const r6 = {
+  id: 'r6', name: 'EL RESCATE DEL BELGRANO',
+  fecha: '3 DE MAYO DE 1982', hora: '≈09:00', horaQue: 'mancha',
+  desc: PENDIENTE,
+  despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'zona de búsqueda: el hundimiento del Belgrano' },
+  goal: { kind: 'distance', meters: LARGO_BELGRANO },
+  // LA BUSQUEDA: donde (el crucero se hundio en 55°24'S 61°32'O; las balsas derivaron al SE), con que rumbo se entra y
+  // el clima del dia (data/islas_clima.js: TEMPORAL — lluvia, viento, mar muy grueso, relampagos)
+  busqueda: { lon: -61.1, lat: -55.6, rumbo: 135, clima: 'temporal' },
+  // EL TECHO: nubes a 150 m (la capa del pasillo baja hasta ahi; en el mar abierto, el velo de BUSQ.TECHO)
+  techoNubes: 150,
+  chancha: false,
+  // (SIN RADAR BRITANICO: la busqueda fue lejos de la flota — sin barra, sin red, sin Sea Dart)
+  cfg: cfgReal({ sky: 'storm', rain: 1, fog: 1, fogLen: 1, squad: 1, caza: 0, radar: 'off', fuelScale: 0.04 }),
+  fases: [
+    { tipo: 'rasante', hasta: 1, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
+    { tipo: 'vuelta', hasta: 2, solo: MAR, obstacles: 0.8, bombs: 0, bidones: false, caza: 0 },
+  ],
+  par: PAR,
+  escuadrilla: 'ESCUADRILLA AERONAVAL DE EXPLORACIÓN',
+  // LAS DOS SALIDAS (el autor: "son dos salidas con 2 aviones marcando la hora cuando despega el avion"): cada
+  // Neptune trae su dia y su hora (el rotulo del despegue) y si ve o no la mancha (`encuentra`)
+  aviones: [
+    { chapa: '2-P-111', plane: 'neptune', carga: 'nada', cargaTxt: 'MARCADORES DE HUMO', fecha: '3 DE MAYO DE 1982', hora: '≈03:00', encuentra: true,
+      papel: 'EL RELEVO: LLEGA A LA ZONA HACIA LAS 05:00' },
+    { chapa: '2-P-112', plane: 'neptune', carga: 'nada', cargaTxt: 'MARCADORES DE HUMO', fecha: '2 DE MAYO DE 1982', hora: '≈21:30', encuentra: false,
+      papel: 'LA NOCHE: NUEVE HORAS BARRIENDO LA ZONA' },
+  ],
+  contexto: 'R6_CONTEXTO', epi: 'R6_LO_QUE_PASO',
+};
+
 /** Las salidas, en orden de fecha: es el orden del LIBRO DE VUELO. */
-export const LIBRO_VUELO = [r1, r2, r3, r5, r4];
+export const LIBRO_VUELO = [r6, r1, r2, r3, r5, r4];
 
 /** LAS QUE VIENEN (17/10, el autor: "agregar todas las misiones que relevamos en la documentacion, todas
  *  las que sucedieron, pero el resto ponerlas disabled debajo"). Los hechos reales de MISIONES_SUELTAS.md
@@ -387,7 +436,6 @@ export const LIBRO_VUELO = [r1, r2, r3, r5, r4];
  *  al lado de la fecha. Sin nombres de personas (la regla de arriba): Owen Crippa es «el Aermacchi».
  *  `s` = su numero en MISIONES_SUELTAS.md. `fecha` null = el doc todavia no la fija. */
 export const LIBRO_PROXIMAS = [
-  { s: 1, es: 'EL RESCATE DEL BELGRANO', en: 'THE BELGRANO RESCUE', fecha: { es: '3 DE MAYO DE 1982', en: '3 MAY 1982' } },
   { s: 2, es: 'EL NEPTUNE', en: 'THE NEPTUNE', fecha: { es: '4 DE MAYO DE 1982', en: '4 MAY 1982' } },
   { s: 9, es: 'EL AERMACCHI DEL ESTRECHO', en: 'THE AERMACCHI OVER THE SOUND', fecha: { es: '21 DE MAYO DE 1982', en: '21 MAY 1982' } },
   { s: 7, es: 'LOS DOS PUCARÁ', en: 'THE TWO PUCARÁS', fecha: { es: '21 DE MAYO DE 1982', en: '21 MAY 1982' } },
@@ -424,5 +472,7 @@ export const LIBRO_SCENES = {
   R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4), 'El Dagger era la versión israelí del Mirage 5, de la Fuerza Aérea: más rápido que el Skyhawk, pero sin sonda para cargar nafta en vuelo.', 'Por eso volaba con tres tanques y dos bombas de 250 kg: el alcance justo para ir, atacar y volver.', '8 de junio. Dos escuadrillas de Dagger, PERRO y GATO, salen de Río Grande. Uno vuelve porque un pájaro le rompe el parabrisas: quedan cinco.', 'El Dagger no carga nafta en vuelo: lo que llevás es lo que hay.']),
   R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', r4.name, ['8 de junio de 1982. Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.', 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.'], 'rot_lqp'),
   R5_CONTEXTO: tarjeta('R5_CONTEXTO', r5.name, [dato(r5), 'Era el último Exocet: de los cinco que llegaron de Francia quedaba uno. Esta vez salía acompañado por cuatro A-4C de la Fuerza Aérea.', 'El Super Étendard lanza de lejos y se vuelve. El A-4C no lleva misiles: su trabajo es que el Exocet llegue.', '30 de mayo. Salen de Río Grande y cargan de dos KC-130 en la ida. Entran al ras por el sur del grupo de portaaviones.']),
+  R6_CONTEXTO: tarjeta('R6_CONTEXTO', r6.name, [dato(r6), PENDIENTE]),
+  R6_LO_QUE_PASO: tarjeta('R6_LO_QUE_PASO', r6.name, [PENDIENTE], 'rot_lqp'),
   R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', r5.name, ['30 de mayo de 1982. Según la Argentina, el Exocet y las bombas alcanzaron al HMS Invincible. Según los británicos, el misil cayó al mar y los A-4C atacaron a la fragata Avenger sin acertar.', 'Dos de los cuatro A-4C fueron derribados; sus pilotos no volvieron.'], 'rot_lqp'),
 };

@@ -660,7 +660,8 @@ export function flightSystem(dt, deps) {
   // (LAS ISLAS: solo adentro de la zona de un radar britanico — data/islas_teatro.js RADARES; afuera no te ve nadie)
   run.radarVisto = alt > techoRadar(RADAR_ALT) && !islasSinRadar() && (!islasEnPasillo() || islasZonaGb());   // (las islas sin radar: nadie te avisa)
   // (LAS ISLAS con el radar apagado: lo mismo que el radar por voz, no carga nada — systems/islas)
-  if (cfg.radar === 'voz' || islasSinRadar()) run.detection = 0;
+  // (y SIN RADAR, `cfg.radar === 'off'`: el tablero ya lo escondia, pero la barra cargaba igual — EL RESCATE DEL BELGRANO)
+  if (cfg.radar === 'voz' || cfg.radar === 'off' || islasSinRadar()) run.detection = 0;
   else {
     // (en los modos sueltos la barra tarda lo que diga la dificultad de la corrida: `cfg.detCargaS`, game.js)
     // (GUERRA ELECTRONICA: carga mas lento, `run.detK`; EL TRACKER: al ras se vacia mas rapido, `run.trackerK`)

@@ -78,16 +78,16 @@ app.whenReady().then(async () => {
   if (d.fila.id === 'secCampanas') ok('ESC vuelve a la raiz, sobre CAMPAÑAS'); else bad('ESC desde CAMPAÑAS: ' + JSON.stringify(d.fila));
   await tap('Down'); await tap('Return');                   // a LIBRO DE VUELO
   d = await L();
-  // las cinco salidas, despues LAS QUE VIENEN en gris (17/10, deshabilitadas: el '-') y ATRAS
+  // las seis salidas (21/11: EL RESCATE DEL BELGRANO), despues LAS QUE VIENEN en gris (17/10, deshabilitadas: el '-') y ATRAS
   const jugables = d.filas.filter(f => /^libro\d$/.test(f)), proximas = d.filas.filter(f => /^proxima\d+-$/.test(f));
-  const esperado = [...['libro0', 'libro1', 'libro2', 'libro3', 'libro4'], ...proximas, 'back'];
-  if (proximas.length && jugables.length === 5 && JSON.stringify(d.filas) === JSON.stringify(esperado)) ok('adentro del LIBRO DE VUELO: las cinco salidas, ' + proximas.length + ' en desarrollo debajo y ATRAS');
+  const esperado = [...['libro0', 'libro1', 'libro2', 'libro3', 'libro4', 'libro5'], ...proximas, 'back'];
+  if (proximas.length && jugables.length === 6 && JSON.stringify(d.filas) === JSON.stringify(esperado)) ok('adentro del LIBRO DE VUELO: las seis salidas, ' + proximas.length + ' en desarrollo debajo y ATRAS');
   else bad('filas del libro: ' + JSON.stringify(d.filas));
   if (d.fila.id === 'libro' && d.fila.k === 0) ok('el cursor arranca en la primera salida');
   else bad('el cursor arranca en ' + JSON.stringify(d.fila));
   await shot('1_historia');
 
-  for (let k = 0; k < 5; k++) {
+  for (let k = 0; k < 6; k++) {
     console.log(`\n${k + 2}. salida ${k + 1}:`);
     paso = 'salida ' + (k + 1);
     d = await hasta(x => x.state === 'campmenu' && x.fila.id === 'libro' && x.fila.k === k, 'Down');

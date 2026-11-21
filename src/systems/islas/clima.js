@@ -22,6 +22,8 @@ export function arrancar(id) {
   C.k = 1; C.t = 0; C.prox = rnd(CLIMA_CADA[0], CLIMA_CADA[1]); C.giro = rnd(-25, 25);
   C.avisar = C.a; calcular();
 }
+/** Un clima FIJO (la salida que lo trae del dia: EL RESCATE DEL BELGRANO, temporal): no cambia solo. */
+export function fijo(id) { arrancar(id); C.prox = Infinity; }
 /** Cambia al clima `id` (o a uno al azar) mezclando. */
 export function cambiar(id) {
   C.de = mezcla(); C.a = CLIMAS.find(c => c.id === id) || sortear(C.a && C.a.id);

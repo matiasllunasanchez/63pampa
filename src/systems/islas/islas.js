@@ -18,6 +18,7 @@ import * as teatro from './teatro.js';
 import * as chancha from '../chancha.js';
 import * as harriers from './harriers.js';
 import * as clima from './clima.js';
+import * as busqueda from './busqueda.js';
 import { CLIMAS } from '../../data/islas_clima.js';
 import { GRADIENTE, HIELO } from '../../data/frio.js';
 import * as frio from '../frio.js';
@@ -76,7 +77,7 @@ export const ISLAS_NOMBRES = [
 // `radar`: LA LLAVE DEL RADAR DE LAS ISLAS (19/11, el autor: "la mecanica de radar tiene que estar en las
 // islas, activable o desactivable segun mision"). Prendido es la del pasillo tal cual; apagado, la barra
 // no carga y no sale ningun misil. Hasta que haya misiones en las islas la pone PRUEBAS (`__malvinas`).
-const I = { on: false, puesto: false, lugar: null, avisoT: 0, ir: null, radar: true, tut: false };
+const I = { on: false, puesto: false, lugar: null, avisoT: 0, ir: null, radar: true, tut: false, mar: null };
 // LA MARCA DEL JUGADOR (autor 19/11: "marcar objetivo en mapa con cursor de mouse y con joystick… el que quiera
 // el usuario… y seleccionar puntos existentes"): un punto cualquiera del mapa, o un lugar/base/buque elegido en
 // el MAPA de la pausa. Manda sobre la BASE COSTERA: la brujula y la marca del pasillo la señalan a ella.
@@ -93,8 +94,12 @@ export const progreso = () => mundo.progreso();
 /** Prende (o apaga) las islas para la PROXIMA entrada al arena, y empieza a cargar el mundo. */
 // `tut`: LA ETAPA 4 DEL TUTORIAL (20/11, el autor: "otra etapa que es cuando llega a la isla"): la unica puerta a
 // las islas que no es PRUEBAS. Sin ella `enPasillo()` sigue exigiendo S.test.
-export function activar(on = true, tut = false) {
-  I.on = !!on; I.tut = !!on && !!tut; I.puesto = false; I.lugar = null;
+/** `mar` (libro de vuelo r6, EL RESCATE DEL BELGRANO): MAR ABIERTO — { lon, lat, rumbo, alt, clima, busqueda: { encuentra,
+ *  semilla } }. Sin teatro, sin base, sin correa del borde (fuera del mapa todo es agua) y con LA BUSQUEDA
+ *  (systems/islas/busqueda.js). La puerta es game.js `empezarBusqueda`. */
+export function activar(on = true, tut = false, mar = null) {
+  I.on = !!on; I.tut = !!on && !!tut; I.mar = on ? mar : null; I.puesto = false; I.lugar = null;
+  busqueda.apagar(); if (!on) geoExterna.on = false;
   objetivo.reiniciar(); teatro.reiniciar(); MARCA.on = false; P3.man = null; soltarPose(); manDzV = 0; clima.reiniciar(); frio.reiniciar();
   if (I.on) mundo.cargar();
   return I.on;
@@ -114,6 +119,16 @@ export function ubicar(A) {
     return true;
   }
   if (I.puesto) return true;
+  if (I.mar) {
+    const [ax, az] = mundo.lonLatAbs(I.mar.lon, I.mar.lat);
+    mundo.fijarOrigen(ax, az);
+    const o = mundo.org();
+    A.pos.x = ax - o[0]; A.pos.z = az - o[1]; A.pos.y = I.mar.alt || 60;
+    A.yaw = (I.mar.rumbo || 0) * Math.PI / 180; A.pitch = 0; A.roll = 0;
+    A.fwd = forward(A.yaw, 0); A.vel = forward(A.yaw, 0);
+    I.puesto = true;
+    return true;
+  }
   let [cx, cz] = mundo.lonLatAbs(INICIO.lon, INICIO.lat);
   // el punto mas hondo de los alrededores: que el arranque caiga en el agua del estrecho, no en la costa
   let best = [cx, cz], bestH = 1e9;
@@ -178,7 +193,7 @@ const GIRO_T = 0.35;          // segundos en que el giro llega a lo que pide la 
 const VX_FONDO = 30;          // la velocidad de costado del pasillo con A/D apretada a fondo
 
 /** ¿Las islas estan corriendo sobre el pasillo AHORA? Solo desde PRUEBAS (S.test) y en el vuelo. */
-export const enPasillo = () => I.on && (!!S.test || I.tut) && (S.state === 'play' || S.state === 'relevo' || S.state === 'dead');
+export const enPasillo = () => I.on && (!!S.test || I.tut || !!I.mar) && (S.state === 'play' || S.state === 'relevo' || S.state === 'dead');
 /** ¿Se esta mirando con LA CAMARA DEL PASILLO? (autor, 19/11: "TODO debe parecerse MUCHISIMO a pasillo").
  *  La vista de atras y la cabina son la camara exacta del pasillo —`proj()`: focal 135, horizonte en la fila
  *  96, el avion 14 m adelante (1,6 en cabina)— con el sprite del pasillo, sus efectos, su giro de mundo. Solo
@@ -199,8 +214,10 @@ export function pasoPasillo(dt) {
     geoExterna.tierra = (x, wz) => x == null ? mundo.sueloH(P3.x, P3.z) > 0.3
       : mundo.sueloH(aMundo(x, 0, wz - run.dist, _geo).x, _geo.z) > 0.3;
     // EL OBJETIVO (systems/islas/objetivo.js): la BASE COSTERA, en la tierra plana mas cercana. La brujula lo marca.
-    if (objetivo.colocar(P3.x, P3.z)) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
-    P3.sostiene = SOSTIENE_T; plane.y = AIR_START_Y; P3.muerto = false; P3.altFija = null;
+    // (en MAR ABIERTO no hay base: hay LA BUSQUEDA, con el clima del dia fijo, y el avion entra a la altura que trae)
+    if (I.mar) { busqueda.armar(P3.x, P3.z, P3.yaw, I.mar.busqueda); if (I.mar.clima) clima.fijo(I.mar.clima); }
+    else if (objetivo.colocar(P3.x, P3.z)) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
+    P3.sostiene = I.mar ? 0 : SOSTIENE_T; plane.y = I.mar ? (I.mar.alt || 60) : AIR_START_Y; P3.muerto = false; P3.altFija = null;
   }
   if (P3.sostiene > 0) {
     P3.sostiene = run.throttle > 0.3 ? 0 : P3.sostiene - dt;
@@ -225,7 +242,7 @@ export function pasoPasillo(dt) {
   if (!(man && man.rumbo)) P3.yaw += P3.giro * dt;
   plane.x = 0;
   // la correa del borde del mapa, como siempre
-  const k = Math.max(0, Math.min(1, (BORDE - mundo.alBorde(P3.x, P3.z)) / 8000));
+  const k = I.mar ? 0 : Math.max(0, Math.min(1, (BORDE - mundo.alBorde(P3.x, P3.z)) / 8000));
   if (k > 0) { let d = mundo.rumboAlCentro(P3.x, P3.z) - P3.yaw; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; P3.yaw += d * k * dt; }
   // EL TURBO, con rampa (como la llama del pasillo, render/plane.js `flameF`): lo leen la tobera, el humo y
   // la camara (systems/islas/avion3d.js, camara.js)
@@ -243,14 +260,16 @@ export function pasoPasillo(dt) {
   P3.od += m;   // el cuentakilometros: con el, las balas siguen sobre el mapa (`proyectiles`)
   bombas(dt, m);
   // EL TEATRO (teatro.js, docs/proyecto/PLAN_TEATRO_MALVINAS.md): las bases, los buques y las PAC del 24 de mayo
-  teatro.armar();
-  teatro.paso(dt, { x: P3.x, z: P3.z, g: P3.g, yaw: P3.yaw, y: plane.y }, enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, estallido, S.state === 'play');
-  avisosRadar();
+  if (!I.mar) teatro.armar();
+  if (!I.mar) teatro.paso(dt, { x: P3.x, z: P3.z, g: P3.g, yaw: P3.yaw, y: plane.y }, enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, estallido, S.state === 'play');
+  if (!I.mar) avisosRadar();
   tiempo(dt);
+  // LA BUSQUEDA (mar abierto): lo que se ve, el humo que se suelta, los circulos
+  if (I.mar && S.state === 'play') { busqueda.paso(dt, { x: P3.x, z: P3.z, yaw: P3.yaw, alto: P3.g + plane.y, suelta: I.humo }); I.humo = false; }
   // LAS OLEADAS DEL RADAR SALEN DEL RADAR (20/11, el autor: "deben provenir de diversas zonas"): el Sea Dart que
   // larga la barra llena (flight.js) nace 230 m adelante en el carril; en las islas se lo corre hacia el buque del
   // radar que te ve —en su direccion, hasta 900 m— y sale de ahi con su humo. Si el buque quedo atras, como siempre.
-  { const rg = teatro.radares().find(r => r.n === teatro.zona().gb);
+  { const rg = I.mar ? null : teatro.radares().find(r => r.n === teatro.zona().gb);
     if (rg) {
       const pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, sy = Math.sin(P3.yaw), cy = Math.cos(P3.yaw);
       const dx = rg.x - P3.x, dz = rg.z - P3.z, d = sy * dx - cy * dz, l = cy * dx + sy * dz;
@@ -385,6 +404,17 @@ export const avionMuerto = () => P3.muerto;
 /** El objetivo, para la escena 3D (objetivo3d.js), o null. */
 export const objetivoDe = () => (enPasillo() && objetivo.OBJ.on ? objetivo.OBJ : null);
 /** La base ya cayo y paso el rato del festejo: la mision termina (game.js vuelve a PRUEBAS). */
+/** LA BUSQUEDA (mar abierto): soltar un humo este cuadro, sus eventos, su tablero, si termino, para la escena 3D. */
+/** Carga el mapa antes de hacer falta (la busqueda del libro entra a mitad de vuelo: que no frene). */
+export const precargar = () => mundo.cargar();
+export const soltarHumo = () => { if (I.mar) I.humo = true; };
+export const enMar = () => enPasillo() && !!I.mar;
+export const busquedaEventos = () => (I.mar ? busqueda.tomarEventos() : []);
+export const busquedaHud = () => (enPasillo() && I.mar ? busqueda.hud() : null);
+export const busquedaHecha = () => !!I.mar && busqueda.hecho();
+export const busquedaEscena = () => (enPasillo() && I.mar ? busqueda.escena() : null);
+/** El viento de ahora sobre el mapa [x, z] m/s (el humo se tuerce con el). */
+export const vientoMapa = () => { const c = clima.ahora(); return c ? [c.vx, c.vz] : [0, 0]; };
 export const misionCumplida = () => enPasillo() && objetivo.OBJ.on && !objetivo.OBJ.vivo && objetivo.OBJ.cayoT > 4;
 /** LA BRUJULA del tablero (render/hud.js): el rumbo del avion y hacia donde y a cuanto queda el objetivo. */
 export function brujula() {
@@ -392,9 +422,11 @@ export function brujula() {
   const o = blanco();
   return { rumbo: P3.yaw, obj: o ? Math.atan2(o.x - P3.x, -(o.z - P3.z)) : null, dist: o ? Math.hypot(o.x - P3.x, o.z - P3.z) : null };
 }
-/** A donde apunta todo (brujula, marca del pasillo): la marca del jugador, o la base costera viva, o nada. */
+/** A donde apunta todo (brujula, marca del pasillo): la marca del jugador, o la base costera viva, o nada.
+ *  (En MAR ABIERTO, lo que diga la busqueda: el centro de la zona o el humo de las balsas.) */
 function blanco() {
   if (MARCA.on) return MARCA;
+  if (I.mar) { const b = busqueda.blanco(); return b ? { x: b.x, z: b.z, g: 0, n: T('busq_zona') } : null; }
   const O = objetivo.OBJ;
   return O.on && O.vivo ? { x: O.x, z: O.z, g: O.g, n: T('islasObjetivoCorto') } : null;
 }
@@ -871,6 +903,8 @@ if (typeof window !== 'undefined') {
       P3.g = Math.max(mundo.sueloH(P3.x, P3.z), 0); plane.y = O.g + (on.alt || 20) - P3.g; plane.vy = 0;
       return true;
     }
+    // { local: [x, z], alt }: a un punto LOCAL del mapa (la busqueda del mar abierto: __busqueda('balsas'))
+    if (on && typeof on === 'object' && on.local) { P3.x = on.local[0]; P3.z = on.local[1]; if (on.alt != null) plane.y = on.alt; if (on.rumbo != null) P3.yaw = on.rumbo * Math.PI / 180; return true; }
     if (on && typeof on === 'object') { I.ir = on; return true; }   // ir a un lugar: { lon, lat, alt, rumbo }
     if (on === '?') return { on: I.on, estado: mundo.estado(), prog: +mundo.progreso().toFixed(2), org: mundo.org(), lugar: I.lugar && I.lugar.n,
       // el recorrido sobre el mapa y lo que lo mueve (para medir viraje y rolido sin mirar)

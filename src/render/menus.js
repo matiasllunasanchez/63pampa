@@ -1013,7 +1013,8 @@ export function drawCampMenu(w) {
 function libroAvText(m) {
   return r => {
     const a = m.aviones[r.i], pl = PLANES.find(p => p.key === a.plane);
-    return { name: a.chapa + '  ·  ' + (pl ? pl.name : a.plane), desc: a.cargaTxt };
+    // (con hora propia —dos salidas del mismo avion, el BELGRANO—: el dia y la hora antes de la carga)
+    return { name: a.chapa + '  ·  ' + (pl ? pl.name : a.plane), desc: (a.hora ? (a.fecha || m.fecha) + ' · ' + a.hora + ' · ' : '') + a.cargaTxt };
   };
 }
 export const LIBRO_AV_ROWS = { y0: 108, rh: 34, headH: 18 };

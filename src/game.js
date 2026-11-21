@@ -22,6 +22,7 @@ import { leeDe } from './data/cartas_lee.js';
 import { perfilDe, puedeManiobra } from './data/perfiles.js';
 import * as frio from './systems/frio.js';
 import { ALTO } from './data/tuning.js';
+import { BUSQ } from './data/busqueda.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
 import { multOf } from './core/util.js';
@@ -2607,7 +2608,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function libroElegir() {
       libroAvSel = 0;
       const m = libroDef();
-      const distintos = new Set(m.aviones.map(a => a.plane + '|' + a.carga)).size;
+      // (…o la misma salida a OTRA HORA: EL RESCATE DEL BELGRANO, dos Neptune iguales en dos salidas — 21/11)
+      const distintos = new Set(m.aviones.map(a => a.plane + '|' + a.carga + '|' + (a.hora || ''))).size;
       if (distintos > 1) setState('libroavion'); else libroDespegar();
     }
     function libroAvNav(dir) {
@@ -2631,6 +2633,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       reset(); setRunObjective();
       run.t = 0; fadeT = 1.0; sfxOne('lv1');
       setState(afterBrief());
+      if (S.state === 'takeoff') rotLibro = armarRotulo();
+      if (m.busqueda) islas.precargar();   // (la busqueda entra al mapa a mitad de vuelo: que ya este cargado)
       beep(880, 0.12, 'square', 0.06);
     }
     /** El roster y las chapas de la salida en curso, con el avion elegido al mando. */
@@ -3823,6 +3827,73 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let escapaT0 = -1;   // el rotulo LE DISTE! ESCAPA YA! (cuando arranco, performance.now; -1 = no)
     let rotuloT0 = -1, rasPrev = false;   // el rotulo RASANTE: cuando arranco (performance.now) y el flanco
     let toT = 0, toCount = 4;
+    // EL DESPEGUE DEL LIBRO DE VUELO (21/11, el autor: "que los despegues sean automaticos, que despegue solo y que la
+    // UI no aparezca completamente hasta que no se libera el control del avion… poner ubicacion y hora y dia… efecto
+    // de tipeo. Todo esto mientras despega. Esto repetible para todas las misiones de ahora en adelante"). Sin cuenta:
+    // la carrera de siempre y LIBRO_AUTO_S de piloto automatico mientras se tipea el rotulo (hud.drawRotuloDespegue);
+    // al tomar el control el rotulo se va y el tablero ENTRA con un fundido (`hudEntra`).
+    const LIBRO_AUTO_S = 4.5, ROTULO_SALE = 0.8, HUD_ENTRA = 0.9;
+    let rotLibro = null, rotSale = 0, hudEntra = 1;
+    // EL TECHO DE NUBES DE LA SALIDA (`techoNubes`, m: EL RESCATE DEL BELGRANO, nubes a 150 m): la capa del pasillo
+    // (render/nubes_altas.js) baja hasta ahi —su base es NUBES − ESPESOR— y vuelve a la de siempre en otra mision
+    const NUBES_BASE = ALTO.NUBES;
+    // LA BUSQUEDA EN EL MAR (libro r6): el humo con el gatillo (flanco) y la espera despues de que el destructor te tomo
+    let humoAntes = false, busqFinT = 0;
+    const busqDef = () => (libro && !libro.tut ? libroDef().busqueda || null : null);
+    /** LLEGASTE A LA ZONA: fundido, y el MAR ABIERTO del motor de las islas (systems/islas/busqueda.js). */
+    function empezarBusqueda() {
+      const b = busqDef(), av = libroDef().aviones[libro.av || 0] || {};
+      clearWorld({ keepFx: false });
+      islas.activar(true, false, { lon: b.lon, lat: b.lat, rumbo: b.rumbo, alt: Math.max(40, Math.min(120, plane.y)), clima: b.clima,
+        busqueda: { encuentra: av.encuentra !== false, semilla: hashTexto(libroDef().id + '/' + (libro.av || 0)) } });
+      busqFinT = 0; humoAntes = true; fadeT = 2.2; run.dist = objectiveDist - 1;
+      cartel(T('busq_entra'), P.accent, T('busq_entra_sub'));
+    }
+    /** EL DESTRUCTOR TE TOMO (o la zona quedo barrida): de vuelta al pasillo, a casa con la nafta que quede. */
+    function terminarBusqueda() {
+      cartelSostenido('busq', false);
+      islas.activar(false);
+      clearWorld({ keepFx: false });
+      volverDelBlanco();
+    }
+    /** Un cuadro de la busqueda: el humo, los avisos y la consigna de la fase. */
+    function pasoBusqueda(dt) {
+      if (!islas.enMar()) return;
+      // EL PASILLO QUEDA UN METRO ANTES DE LA ZONA mientras se busca: su odometro no corre (si no, la vuelta se cumplia
+      // sola y la mision cerraba en medio del mar), y sin llegar a la meta — flight.js corta ahi, antes de los mandos y
+      // la nafta, y el avion quedaba clavado
+      run.dist = Math.min(run.dist, objectiveDist - 1);
+      if (inp.fire && !humoAntes) islas.soltarHumo();
+      humoAntes = !!inp.fire;
+      for (const e of islas.busquedaEventos()) {
+        if (e.k === 'indicio') cartel(T('busq_ind_' + e.id), '#c9ced3', T('busq_nada'));
+        else if (e.k === 'mancha') { cartel(T('busq_mancha'), P.accent, T('busq_mancha_sub'), { alerta: true }); beep(660, 0.12, 'square', 0.05); }
+        else if (e.k === 'balsas') { cartel(T('busq_balsas', { h: e.reloj }), '#7fe07a', T('busq_balsas_sub'), { alerta: true }); beep(880, 0.16, 'square', 0.06); }
+        else if (e.k === 'perdidas') cartel(T('busq_perdidas'), P.warn, T('busq_perdidas_sub'), { alerta: true });
+        else if (e.k === 'humo') { cartel(T(e.ok ? 'busq_humo_ok' : 'busq_humo_lejos'), e.ok ? '#7fe07a' : '#c9ced3', T('busq_humo_sub', { n: e.quedan })); sfxOne('swoosh'); }
+        else if (e.k === 'sinHumo') cartel(T('busq_sin_humo'), P.warn);
+        else if (e.k === 'marcadas') cartel(T('busq_marcadas'), '#7fe07a', T('busq_marcadas_sub'), { alerta: true });
+        else if (e.k === 'tomadas') { cartel(T('busq_tomadas'), '#7fe07a', T('busq_tomadas_sub'), { alerta: true }); beep(980, 0.2, 'square', 0.06, 1200); }
+        else if (e.k === 'barrido') cartel(T('busq_barrido'), P.accent, T('busq_barrido_sub'), { alerta: true });
+        else if (e.k === 'fuera') cartel(T('busq_fuera'), P.warn, T('busq_fuera_sub'));
+      }
+      // LA CONSIGNA de la fase, arriba mientras dure
+      const h = islas.busquedaHud();
+      const C = h && {
+        mancha: ['busq_mancha_buscar', 'busq_mancha_buscar_sub'], balsas: ['busq_balsas_buscar', 'busq_balsas_buscar_sub'],
+        marcar: ['busq_marcar', 'busq_marcar_sub'], circulos: ['busq_circulos', 'busq_circulos_sub'], barrido: ['busq_barrer', 'busq_barrer_sub'] }[h.fase];
+      const n = h ? (h.fase === 'barrido' ? Math.round(h.prog * 8) : h.humos) : 0;
+      cartelSostenido('busq', !!C, C ? T(C[0]) : '', P.accent, null, C ? T(C[1], { n, p: h.prog == null ? 0 : Math.round(h.prog * 100) }) : null);
+      if (islas.busquedaHecha()) { busqFinT += dt; if (busqFinT > 4) terminarBusqueda(); }
+    }
+    /** El rotulo de la salida en curso: el lugar, la zona, el dia y la hora del despegue (la del avion elegido si
+     *  la trae: el RESCATE DEL BELGRANO tiene dos salidas). null fuera del libro, en el tutorial o con carrera. */
+    function armarRotulo() {
+      if (!libro || libro.tut || carrera || cfg.start === 'air') return null;
+      const m = libroDef(), av = m.aviones[libro.av || 0] || {}, d = m.despegue || {};
+      const hora = av.hora || m.horaDespegue;
+      return { t: 0, lineas: [d.desde, d.zona, av.fecha || m.fecha, hora ? hora + ' HS' : null].filter(Boolean) };
+    }
     // EL DESPEGUE JUGABLE (core/despegue.js): la carrera en curso, o null si el despegue es la animacion
     // de siempre. Lo pide la mision con `despegueJugable: true` (hoy la etapa 1 del tutorial).
     let carrera = null, carreraFallas = 0;
@@ -3988,7 +4059,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (islas.activa()) run.squad = run.lives = 1;   // LAS ISLAS: un solo avion, sin relevos (el generico, PILOTOS_AVION)
       squad.resetFila();   // la fila de pilotos, en orden (core/squad.js)
       squad.resetSquad();
-      toT = 0; toCount = 4;
+      toT = 0; toCount = 4; rotLibro = null; rotSale = 0; hudEntra = 1;
+      { const m = curMission(); ALTO.NUBES = m && m.techoNubes ? m.techoNubes + ALTO.ESPESOR : NUBES_BASE; }
       carrera = curMission() && curMission().despegueJugable && !cfg.cliff && cfg.start !== 'air' ? nuevaCarrera() : null; carreraFallas = 0;
       // LA CAMARA ARRANCA DONDE ESTA EL AVION, no en una constante. Con ACANTILADO el avion nace
       // sobre la meseta (`resetPlane`: PORT_H + 1.2 = 16.2 m) y la camara quedaba clavada en 4,
@@ -5957,18 +6029,26 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         }
         // EL PILOTO AUTOMATICO de los modos sueltos (data/modos_sueltos.js ARRANQUE): despegado, el avion sigue
         // solo —a la altura de crucero, centrado— con otra cuenta: TOMAS EL CONTROL DEL AVION EN 3, 2, 1
-        const auto = conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0;
+        const auto = conAuto && autoAire && suelto() ? ARRANQUE.autoS : rotLibro ? LIBRO_AUTO_S : 0;
         if (auto && toT > 3) {
           const k = Math.min(1, dt * 1.6);
           plane.y += (AIR_START_Y - plane.y) * k; plane.x += (0 - plane.x) * k;
         }
         const cn = toT < 3 ? 3 - Math.floor(toT) : auto ? 3 - Math.floor((toT - 3) * 3 / auto) + 10 : -1;
-        if (cn !== toCount && cn >= 0 && cn !== 10) { toCount = cn; beep(cn % 10 > 0 ? 520 : 980, 0.14, 'square', 0.06); }
+        if (cn !== toCount && cn >= 0 && cn !== 10 && !rotLibro) { toCount = cn; beep(cn % 10 > 0 ? 520 : 980, 0.14, 'square', 0.06); }
+        // el TIPEO del rotulo: un tic chico cada dos letras mientras se escribe
+        if (rotLibro) {
+          const tot = rotLibro.lineas.reduce((a, l) => a + l.length, 0), n0 = Math.floor(rotLibro.t * hud.ROTULO_CPS);
+          rotLibro.t += dt;
+          const n1 = Math.floor(rotLibro.t * hud.ROTULO_CPS);
+          if (n1 > n0 && n1 % 2 === 0 && n1 <= tot + rotLibro.lineas.length * hud.ROTULO_PAUSA * hud.ROTULO_CPS) beep(1900 + (n1 % 5) * 90, 0.012, 'square', 0.012);
+        }
         engineFly(run.spd, false, 0.017 * Math.min(1, toT));
         if (toT >= 3 + auto) {
           if (conAuto && suelto()) rutaSys.setLibre(run.dist + ARRANQUE.libreM);   // y adelante, la zona sin radar ni nada
           conAuto = false; autoAire = false;
           // SIN CARTEL (pedido del autor, 12/9): que aparezca el HUD ya dice que el avion es tuyo.
+          if (rotLibro) hudEntra = 0;   // (el del libro entra con un fundido)
           setState('play'); run.shake = Math.min(6, run.shake + 1);
           squad.beginExit();   // la formacion sale de plano detras de la camara (render/squad.js)
         }
@@ -6710,17 +6790,23 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // EL RADAR POR VOZ (M1_CAMBIOS 6): el vuelo anota si te verian, el orquestador lo dice. Mientras
       // sigas arriba te vuelven a hablar — quien espacia los avisos es `cada`, no un gate aparte.
       if (run.radarVisto && avisosMision()) avisar(avisosMision(), 'radar');
+      // EL ROTULO DEL LIBRO se va y el tablero entra (ver LIBRO_AUTO_S)
+      if (rotLibro) { rotLibro.t += dt; rotSale += dt / ROTULO_SALE; if (rotSale >= 1) rotLibro = null; }
+      if (hudEntra < 1) hudEntra = Math.min(1, hudEntra + dt / HUD_ENTRA);
       stepLecciones();
       stepTutorial(dt);
       if (fs === 'objective') {
         // EL EXOCET LLEGA (libro r5): se adelanta solo hasta el portaaviones y estalla alla; la mision se
         // cierra cuando estalla (pasoEscolta), no en este cuadro
         if (libroEnTramo() === 'escolta') { if (!(escolta.final > 0)) { escolta.final = ESCOLTA_FINAL; persec.alBlanco(); } }
+        // EL RESCATE DEL BELGRANO (libro r6): la zona no es un final, es LA BUSQUEDA en mar abierto
+        else if (busqDef() && !run.climaxHecho) { if (!islas.enMar()) empezarBusqueda(); }
         else { finishObjective(); return; }
       }
       if (fs && fs.death) { onDeath(fs.death); return; }
       // LAS ISLAS: el rumbo y el suelo real, despues del vuelo de siempre (no hace nada fuera de ellas)
       { const mi = islas.pasoPasillo(dt); if (mi) { onDeath(mi); return; } }
+      pasoBusqueda(dt);
       // LAS ISLAS: la base cayo y paso el festejo → la mision termina y se vuelve a PRUEBAS
       // (en el TUTORIAL no: la base rota es un paso, y la etapa la cierra su ultimo paso)
       if (islas.misionCumplida() && !(libro && libro.tut)) { freezeRun(); engineOff(); salirTest(); return; }
@@ -7138,6 +7224,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LAS ISLAS: la red del radar de la zona en la que estas, radial desde su centro (render/islas_radar.js), sobre
       // el mundo 3D y debajo de lo que vuela —como la red del pasillo, que va sobre el mar—
       if (islas.enPasillo() && arena3D.isOn()) drawRedIslas(islas.redRadar(run.t));
+      // EL TECHO DE NUBES DE LA BUSQUEDA (libro r6): arriba de BUSQ.TECHO estas adentro de la nube y no se ve el mar
+      if (islas.enMar()) {
+        const a = Math.max(0, Math.min(0.93, (plane.y - (BUSQ.TECHO - 20)) / 60));
+        if (a > 0) { ctx.fillStyle = 'rgba(196,204,210,' + a.toFixed(3) + ')'; ctx.fillRect(-300, -300, W + 600, H + 600); }
+      }
       if (!world3D.isOn() && !arena3D.isOn() && !islas.enPasillo()) {   // ---- mundo 2D: en el climax 3D lo reemplaza el blit de arriba ----
       // cielo y sol 2D: en mar-abierto-3D los pone three (nubes/islas siguen 2D encima)
       // EL FONDO GIRA CON EL RUMBO (zigzag Z2). Es lo mas barato del item y lo que mas vende que
@@ -7783,7 +7874,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // fundido y la RADIO, y la primera version apagaba el bloque entero — medido, el avion se
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
-        ctx.save(); ctx.scale(U, U); if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
+        ctx.save(); ctx.scale(U, U); ctx.globalAlpha = hudEntra; if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(), temp: islas.temperatura() || frio.estado(),
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
@@ -7912,7 +8003,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
       // (en la carrera jugable, no mientras habla el tutorial: chocaba con las teclas del dialogo)
-      if (S.state === 'takeoff' && !(carrera && dlgPausa)) hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto(), !!carrera);
+      if (S.state === 'takeoff' && !(carrera && dlgPausa)) hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().despegue || null : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto(), !!carrera, rotLibro);
+      if (S.state === 'play' && rotLibro) hud.drawRotuloDespegue(rotLibro, rotSale);
       // LA CORTA FINAL: las ventanas se resuelven ACA y no en el HUD, con las mismas constantes que
       // despues CALIFICAN la toma. Si el dibujo tuviera su propia idea de "velocidad correcta", el
       // instrumento y el juez podrian discrepar — y no hay nada peor que un HUD en verde y un

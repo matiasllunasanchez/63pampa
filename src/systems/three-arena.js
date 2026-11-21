@@ -47,7 +47,8 @@ import * as objetivo3d from './islas/objetivo3d.js';
 import * as estallido3d from './islas/estallido3d.js';
 import * as teatro3d from './islas/teatro3d.js';
 import * as radar3d from './islas/radar3d.js';
-import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo, mira as islasMira, tomarEstallidos, avionMuerto, teatroEscena, teatroTodo, cazasEnMapa, chanchaEnMapa, radaresEscena } from './islas/islas.js';
+import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo, mira as islasMira, tomarEstallidos, avionMuerto, teatroEscena, teatroTodo, cazasEnMapa, chanchaEnMapa, radaresEscena, busquedaEscena, vientoMapa } from './islas/islas.js';
+import * as busqueda3d from './islas/busqueda3d.js';
 import { sueloH as islasSuelo, SUN as ISLAS_SOL } from './islas/mundo.js';
 
 const THREE = window.THREE || null;
@@ -260,6 +261,8 @@ export function frame(w) {
     // LAS EXPLOSIONES EN 3D: en todas las camaras
     estallido3d.crear(A3.scene); estallido3d.frame(tomarEstallidos(), dtI, (x, z) => Math.max(islasSuelo(x, z), 0));
     objetivo3d.frame(A3.scene, islasObjetivo());
+    // LA BUSQUEDA EN EL MAR (libro r6): la mancha, los indicios, las balsas y el humo
+    busqueda3d.frame(A3.scene, busquedaEscena(), performance.now() / 1000, vientoMapa());
     // EL TEATRO (systems/islas/teatro3d.js): bases, buques, PAC; y los Harriers del duelo, solo desde arriba
     teatro3d.frame(A3.scene, teatroEscena(), cazasEnMapa(), A3.cam, arriba ? chanchaEnMapa() : null);
     // (la red desde arriba; en las vistas del pasillo la dibuja el pasillo en 2D: su mar va encima del 3D)
