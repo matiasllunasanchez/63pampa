@@ -18,6 +18,7 @@ import * as teatro from './teatro.js';
 import * as chancha from '../chancha.js';
 import * as harriers from './harriers.js';
 import * as clima from './clima.js';
+import { CLIMAS } from '../../data/islas_clima.js';
 import { GRADIENTE, HIELO } from '../../data/frio.js';
 import * as frio from '../frio.js';
 import { RADAR_BAJO } from '../../data/islas_teatro.js';
@@ -467,6 +468,13 @@ function tiempo(dt) {
 }
 /** El clima de ahora (systems/islas/clima.js) para game.js: la lluvia, la nieve y la tormenta del pasillo. */
 export const climaAhora = () => (enPasillo() && I.puesto ? clima.ahora() : null);
+/** EL CLIMA DESDE LA PAUSA (20/11): su nombre y el que sigue (◄ ►), puesto de una (sin mezcla: se elige para verlo). */
+export const climaNombre = () => { const c = clima.ahora(); return c ? (getLang() === 'en' ? c.en : c.n) : ''; };
+export function climaPaso(dir) {
+  const c = clima.ahora(); if (!c) return;
+  const i = CLIMAS.findIndex(x => x.id === c.id), j = ((i + dir) % CLIMAS.length + CLIMAS.length) % CLIMAS.length;
+  clima.arrancar(CLIMAS[j].id);
+}
 /** LA TEMPERATURA EXTERIOR (°C) donde esta el avion: la del clima al nivel del mar, menos GRADIENTE cada 1000 m;
  *  y el hielo juntado (0..1). La muestra el reloj de temperatura del tablero (render/hud.js). */
 export function temperatura() {

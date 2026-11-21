@@ -2293,6 +2293,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       ...(suelto() ? [{ id: 'cartas', label: T('pauseCartas') }] : []),   // VER CARTAS: solo PATRIA y CICLO
       // EL MAPA DE LAS ISLAS (desarrollo, 19/11): arriba de OPCIONES, solo volando las islas
       ...(islas.enPasillo() ? [{ id: 'mapa', label: T('pauseMapa') }] : []),
+      // EL CLIMA DE LAS ISLAS (20/11, el autor): ◄ ► (o ENTER) lo cambia en el acto (systems/islas/clima.js)
+      ...(islas.enPasillo() && islas.climaAhora() ? [{ id: 'clima', label: T('pauseClima', { n: islas.climaNombre() }) }] : []),
       { id: 'opciones', label: T('optTitle') },
       { id: 'controls', label: T('pauseControls') },
       ...(gameMode === 'campaign' ? [{ id: 'save', label: T('pauseSaveRow') }] : []),
@@ -2391,6 +2393,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function pauseLado(dir) {
       if (pauseView === 'mapa') { mapaMover(dir * MAPA_PASO * 0.6, 0); return; }
       if (pauseView === 'controls') { ctrlTabMover(dir); return; }
+      if (pauseView === 'menu') { const r = pauseRows()[pauseSel]; if (r && r.id === 'clima') { islas.climaPaso(dir); beep(520, 0.05, 'square', 0.04); return; } }
       if (pauseView === 'opciones') { const r = opcRows()[opcSel]; if (r && r.id === 'musica') { musicaToggle(); return; } if (r && r.id === 'pista') { (dir < 0 ? prevTrack : nextTrack)(); beep(520, 0.05, 'square', 0.04); return; } }
       if (pauseView !== 'cartas' || cartasN < 2) return;
       const s2 = Math.max(0, Math.min(cartasN - 1, cartasSel + dir));
@@ -2414,6 +2417,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       const r = pauseRows()[pauseSel];
       if (r.id === 'resume') pauseToggle();
       else if (r.id === 'controls') { pauseView = 'controls'; beep(600, 0.06, 'square', 0.05); }
+      else if (r.id === 'clima') { islas.climaPaso(1); beep(520, 0.05, 'square', 0.04); }
       else if (r.id === 'mapa') { pauseView = 'mapa'; mapaCur = null; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'opciones') { pauseView = 'opciones'; opcSel = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'cartas') { pauseView = 'cartas'; cartasSel = 0; cartasCrece = 0; cartasLeer = cartasLeerV = 0; beep(600, 0.06, 'square', 0.05); }
