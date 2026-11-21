@@ -124,8 +124,8 @@ Generado de `src/data/tutorial.js`, en el orden en que salen. **PAUSA** = frena 
 ### TUT2_RASANTE
 22. **PAUSA** · PICHÓN: Ahora el RASANTE. Bajá hasta que arriba del avión diga PERFECTO y aguantá cuatro segundos sin tocar el agua.
 23. **PAUSA** · EL TURCO: Ahí aparece una barrita con un cachito azul y una marquita que va y viene. Hay que embocarle con el gas cuando pasa por lo azul.
-24. **PAUSA** · PICHÓN: Cada toque bueno es un segundo de poder y vuelve a llenar la raya naranja de abajo. Tocar afuera la quema.
-25. **PAUSA** · EL TURCO: Cuando lo activás: picá, o mantené el gas un segundo. Si se te vacía la raya, sale solo.
+24. **PAUSA** · PICHÓN: Cada toque bueno es un segundo de poder y vuelve a llenar la barra naranja de abajo. Tocar afuera la quema.
+25. **PAUSA** · EL TURCO: Cuando lo activás: picá, o mantené el gas un segundo. Si se te vacía la barra, sale solo.
 26. **REMATE** · PICHÓN: ¡Eso es RASANTE! El avión se mantiene al ras del agua. Dura lo que juntaste: mirá la barra azul.
 
 ### TUT2_RAS_ESQUIVA
@@ -157,7 +157,7 @@ Generado de `src/data/tutorial.js`, en el orden en que salen. **PAUSA** = frena 
 1. **PAUSA** · EL TURCO: Hoy la pasada de verdá. Te he colgao una bomba de práctica. Pesa como una de verdá, así que ojo.
 
 ### TUT3_RADAR
-2. **PAUSA** · PICHÓN: Antes del buque, el radar inglés. Barre hasta una altura: es esa raya del altímetro.
+2. **PAUSA** · PICHÓN: Antes del buque, el radar inglés. Barre hasta una altura: es el nivel del radar, la marca roja del altímetro.
 3. **PAUSA** · EL TURCO: Si cruzás, te quema. Subí un poquito pa' verlo, y bajá rápido.
 4. **EN JUEGO** · PICHÓN: Por eso volamos al ras, Tero. Por debajo del radar, no existimos...
 5. **REMATE** · EL TURCO: ¿Viste? El radar avisa cuando empieza a detectar algo y luego se activa. Tenés poco tiempo pa' bajar al ras del agua y mantenerte oculto.
@@ -210,7 +210,7 @@ Generado de `src/data/tutorial.js`, en el orden en que salen. **PAUSA** = frena 
 
 ### TUT4_RELIEVE
 6. **PAUSA** · EL TURCO: Ojo, que acá la altura se mide desde el suelo de abajo. Si viene un cerro, se te come la altura y te hace pingo.
-7. **PAUSA** · PICHÓN: Volá pegado al relieve, abajo de la raya del radar. Si el suelo sube de golpe, dale gas antes.
+7. **PAUSA** · PICHÓN: Volá pegado al relieve, por debajo del nivel del radar. Si el suelo sube de golpe, dale gas antes.
 8. **REMATE** · PICHÓN: Así. El cerro también te tapa del radar.
 
 ### TUT4_RADAR
@@ -222,7 +222,7 @@ Generado de `src/data/tutorial.js`, en el orden en que salen. **PAUSA** = frena 
 12. **PAUSA** · PICHÓN: Las ráfagas se esquivan cambiando de línea. Y el Sidewinder viene de cola: rompé y bajá.
 
 ### TUT4_MAPA
-13. **PAUSA** · PICHÓN: En la pausa está el mapa. Marcá un punto y la brújula te lleva ahí.
+13. **PAUSA** · PICHÓN: Con la M, o desde la pausa, abrís el mapa. Marcá un punto y la brújula te lleva ahí.
 14. **PAUSA** · EL TURCO: Marcá la base costera, que la vamo' a visitar.
 15. **REMATE** · EL TURCO: Bien. Ahora seguí la brújula.
 

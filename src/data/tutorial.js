@@ -211,7 +211,8 @@ const ETAPA4 = [
 ];
 
 export const TUTORIAL_ETAPAS = [
-  { ...base, id: 'tut1', etapa: 1, name: 'DESPEGAR Y VOLAR', despegueJugable: true,
+  // (21/11, el autor: "karera2 en la etapa 1 del tutorial")
+  { ...base, id: 'tut1', etapa: 1, name: 'DESPEGAR Y VOLAR', despegueJugable: true, musica: 'original:karera2',
     desc: { es: 'Gas, altura, el radar y el agua. Lo justo para no caerse.', en: 'Throttle, altitude, radar and the sea. Just enough not to fall.' },
     // (su propia fase: SOLO OLAS — sin pajaros ni nada mas en la primera etapa)
     fases: [{ tipo: 'rasante', hasta: 1, solo: ['ola'], bombs: 0, bidones: false }],
@@ -240,7 +241,7 @@ export const TUTORIAL_ETAPAS = [
     ],
     aviones: [{ ...AVION[0], carga: 'tanques_bomba' }],
     cfg: P({ sky: 'dusk', terrain: 'sea', carga: 'tanques_bomba', radar: 'normal', fuelOn: true, fuelScale: 0.2 }), pasos: ETAPA3,   // (sin poderes: el RASANTE te clava al ras y no deja subir a soltar la bomba)
-    consejos: { es: ['Volá abajo de la raya del radar: si la cruzás, te quema.', 'Soltá la bomba alta y temprano.', 'Ya podés volar el LIBRO DE VUELO, en HISTORIA.'],
+    consejos: { es: ['Volá por debajo del nivel del radar: si lo pasás, te ven.', 'Soltá la bomba alta y temprano.', 'Ya podés volar el LIBRO DE VUELO, en HISTORIA.'],
       en: ['Stay under the radar line: cross it and you get burned.', 'Drop the bomb high and early.', 'You can now fly the FLIGHT LOG, in CAMPAIGN.'] } },
   { ...base, id: 'tut4', etapa: 4, name: 'LAS ISLAS', islas: true,
     desc: { es: 'Aprendé a sobrevolar las islas.', en: 'Learn to fly over the islands.' },
@@ -359,8 +360,8 @@ const LISTA = [
   escena('TUT2_RASANTE',
     T(PICHON, 'pichon_radio_explicando', 'Ahora el RASANTE. Bajá hasta que arriba del avión diga PERFECTO y aguantá cuatro segundos sin tocar el agua.'),
     T(TURCO, 'turco_radio_aprueba', 'Ahí aparece una barrita con un cachito azul y una marquita que va y viene. Hay que embocarle con el gas cuando pasa por lo azul.'),
-    T(PICHON, 'pichon_radio_neutro', 'Cada toque bueno es un segundo de poder y vuelve a llenar la raya naranja de abajo. Tocar afuera la quema.'),
-    T(TURCO, 'turco_radio_desconfiado', 'Cuando lo activás: picá, o mantené el gas un segundo. Si se te vacía la raya, sale solo.')),
+    T(PICHON, 'pichon_radio_neutro', 'Cada toque bueno es un segundo de poder y vuelve a llenar la barra naranja de abajo. Tocar afuera la quema.'),
+    T(TURCO, 'turco_radio_desconfiado', 'Cuando lo activás: picá, o mantené el gas un segundo. Si se te vacía la barra, sale solo.')),
   escena('TUT2_RASANTE_OK', T(PICHON, 'pichon_radio_risa', '¡Eso es RASANTE! El avión se mantiene al ras del agua. Dura lo que juntaste: mirá la barra azul.')),
   escena('TUT2_RAS_ESQUIVA',
     T(TURCO, 'turco_radio_escucha', 'Las olas chicas las cruzás, pero no te hace inmortal: ahí vienen unos globos al ras. Esquivalos.')),
@@ -389,7 +390,7 @@ const LISTA = [
     T(TURCO, 'turco_radio_desconfiado', 'Hoy la pasada de verdá. Te he colgao una bomba de práctica. Pesa como una de verdá, así que ojo.'),
 ),
   escena('TUT3_RADAR',
-    T(PICHON, 'pichon_radio_explicando', 'Antes del buque, el radar inglés. Barre hasta una altura: es esa raya del altímetro.'),
+    T(PICHON, 'pichon_radio_explicando', 'Antes del buque, el radar inglés. Barre hasta una altura: es el nivel del radar, la marca roja del altímetro.'),
     T(TURCO, 'turco_radio_desconfiado', 'Si cruzás, te quema. Subí un poquito pa\' verlo, y bajá rápido.'),
     B(PICHON, 'pichon_radio_orgullo', 'Por eso volamos al ras, Tero. Por debajo del radar, no existimos...')),
   escena('TUT3_RADAR_OK', T(TURCO, 'turco_radio_aprueba', '¿Viste? El radar avisa cuando empieza a detectar algo y luego se activa. Tenés poco tiempo pa\' bajar al ras del agua y mantenerte oculto.')),
@@ -435,7 +436,7 @@ const LISTA = [
   escena('TUT4_RUMBO_OK', T(TURCO, 'turco_radio_risa', 'Eso. Ya sabés pa\' dónde va la nariz.')),
   escena('TUT4_RELIEVE',
     T(TURCO, 'turco_radio_desconfiado', 'Ojo, que acá la altura se mide desde el suelo de abajo. Si viene un cerro, se te come la altura y te hace pingo.'),
-    T(PICHON, 'pichon_radio_explicando', 'Volá pegado al relieve, abajo de la raya del radar. Si el suelo sube de golpe, dale gas antes.')),
+    T(PICHON, 'pichon_radio_explicando', 'Volá pegado al relieve, por debajo del nivel del radar. Si el suelo sube de golpe, dale gas antes.')),
   escena('TUT4_RELIEVE_OK', T(PICHON, 'pichon_radio_sonrisa', 'Así. El cerro también te tapa del radar.')),
   escena('TUT4_RADAR',
     T(PICHON, 'pichon_radio_alerta', 'Los radares ingleses tienen su zona: la bahía San Carlos y los buques de piquete. Adentro, arriba de veinte metros, te ven.'),

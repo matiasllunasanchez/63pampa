@@ -160,6 +160,29 @@ function apretados(lista, t) {
 }
 
 const FUENTE = h => `bold ${Math.max(4, Math.round(h * 0.55))}px monospace`;
+
+/** EL MANDO DE «CONTINUAR» (21/11, el autor: "reemplazar PRESIONA CUALQUIER TECLA PARA CONTINUAR por CONTINUAR, con un
+ *  dibujo de TECLA o de BOTON DE JOYSTICK sin ninguna indicacion, con el efecto de presionar, repitiendolo"): una tecla
+ *  en blanco (o un boton redondo sin simbolo) que se aprieta sola una y otra vez. `x, y` arriba a la izquierda; devuelve
+ *  el ancho. */
+export function teclaGenerica(x, y, h, t, pad) {
+  const aprieta = (t * 1.25) % 1 < 0.22;
+  ctx.save();
+  if (pad) {
+    const r = h / 2 - 0.5, cx = x + h / 2, my = y + h / 2 + (aprieta ? 0.6 : 0);
+    ctx.fillStyle = '#1c2226'; ctx.beginPath(); ctx.arc(cx, y + h / 2 + 1, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = aprieta ? '#e8a33d' : '#2b3337'; ctx.beginPath(); ctx.arc(cx, my, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#7f9099'; ctx.lineWidth = 0.8; ctx.stroke();
+  } else {
+    const w = h * 1.5, dy = aprieta ? 1 : 0;
+    ctx.fillStyle = '#5b666c'; redondo(x, y + 1, w, h - 1, 1.6); ctx.fill();
+    ctx.fillStyle = aprieta ? '#e8a33d' : '#d9dfe2'; redondo(x, y + dy, w, h - 2 - dy, 1.6); ctx.fill();
+    ctx.restore();
+    return w;
+  }
+  ctx.restore();
+  return h;
+}
 const AIRE = 1;   // (21/11, "linea visual mas corta": menos aire entre mandos)
 /** Cuanto mide cada glifo de ancho, con el alto `h`. */
 function ancho(g, h) {

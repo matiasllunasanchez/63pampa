@@ -3195,7 +3195,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // carpeta de music original, y nunca terminar: siempre alguna reproduce"): como el libro de vuelo,
       // una de music/original al azar y, al terminar, otra (systems/audio.js, sortearMision).
       setRunMusic(gameMode === 'campaign', curLevel, keepMusic, !!S.test,
-        gameMode === 'campaign' ? (curMission() || {}).musica : null,   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
+        gameMode === 'campaign' ? (curMission() || {}).musica
+          // (el TUTORIAL corre como 'cycle': su tema fijo de music/original llega igual — 21/11, karera2 en la etapa 1)
+          : libro && libro.tut && /^original:/.test((curMission() || {}).musica || '') ? curMission().musica : null,   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
         !!libro || suelto());
     }
 
@@ -3901,9 +3903,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let rotLibro = null, rotSale = 0, hudEntra = 1;
     // EL ROTULO DE LA CARRERA JUGABLE (21/11): se queda mientras dura la primera pausa de dialogo y se va cuando se cierra
     let dspVisto = false, dspSale = 0;
+    /** ¿Un despegue del TUTORIAL? (con carrera jugable o el de siempre): ahi el tutorial corre desde la pista */
+    const despTut = () => !!(libro && libro.tut);
     /** El encabezado del despegue (hud.drawTakeoff), en la grilla de diseño. */
     function dibujarDespegue() {
-      hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? (curMission().despegue ? { ...curMission().despegue, fecha: curMission().date } : null) : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto(), !!carrera, rotLibro, carrera ? dspSale : null);
+      hud.drawTakeoff(toT, (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? (curMission().despegue ? { ...curMission().despegue, fecha: curMission().date } : null) : null, conAuto && autoAire && suelto() ? ARRANQUE.autoS : 0, suelto(), !!carrera || despTut(), rotLibro, carrera || despTut() ? dspSale : null);
     }
     // EL TECHO DE NUBES DE LA SALIDA (`techoNubes`, m: EL RESCATE DEL BELGRANO, nubes a 150 m): la capa del pasillo
     // (render/nubes_altas.js) baja hasta ahi —su base es NUBES − ESPESOR— y vuelve a la de siempre en otra mision
@@ -5703,7 +5707,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function stepTutorial(dt) {
       if (!libro || !libro.tut) return;
       if (tutFinT >= 0) { tutFinT -= dt; if (tutFinT < 0) tutFelicitar(); return; }
-      if ((S.state !== 'play' && S.state !== 'landing' && !(S.state === 'takeoff' && carrera)) || dlgPausa || !tutSys.activo()) return;
+      if ((S.state !== 'play' && S.state !== 'landing' && !(S.state === 'takeoff' && (carrera || despTut()))) || dlgPausa || !tutSys.activo()) return;
       // LOS DIALOGOS REACCIONAN (18/11, el autor: "si me choco, que me diga 'tene cuidado'"): los golpes ya tienen
       // su banco (`avisos`, via aguantarGolpe); ROZAR EL AGUA sin chocar tambien se comenta, cada tanto
       if (S.state === 'play' && run.scrapeVib > 0.6 && run.t > tutRoceT && !radioVis()) {
@@ -6115,6 +6119,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 
       // EL DESPEGUE JUGABLE: la carrera con el gas (core/despegue.js) en vez de la animacion
       if (S.state === 'takeoff' && carrera) { pasoDespegue(dt); return; }
+      // LAS ETAPAS SIN CARRERA (2 y 3) TAMBIEN ARRANCAN EN PAUSA (21/11, el autor: "en las etapas debe arrancar en pausa con
+      // el texto amarillo arriba y el primer dialogo de pausa"): el tutorial corre desde la pista, y el rotulo se va al
+      // cerrarse ese primer dialogo
+      if (S.state === 'takeoff' && despTut()) { stepTutorial(dt); if (dspVisto || toT > 6) dspSale = Math.min(1, dspSale + dt / 0.6); }
       // despegue automático desde Puerto Argentino: el control llega a los 3 s
       if (S.state === 'takeoff') {
         toT += dt;
@@ -8021,7 +8029,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
         ctx.save(); ctx.scale(U, U); ctx.globalAlpha = hudEntra; if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), sinCinta: enCabina() || (!!libro && !!libro.tut && !(dlgPausa && lecFoco && lecFoco.foco.includes('ruta'))), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
-        radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(), temp: islas.temperatura() || frio.estado(),
+        radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(), temp: islas.temperatura() || frio.estado() || (islas.enPasillo() ? null : { c: frio.tempPasillo(cfg, plane.y), hielo: 0, canon: 0 }),   // (21/11: en la pista tambien, "debe estar siempre")
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
         // …el MOMENTO de soltar (titila en verde: la cinta, su avion, el altimetro y el estante) y
@@ -8152,7 +8160,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       ctx.save(); ctx.scale(U, U);
       if (inLobby()) screens.drawPpalBg(ppalPrev, ppalIdx, ppalFade);   // portada / lobby
       // (en la carrera jugable, no mientras habla el tutorial: chocaba con las teclas del dialogo)
-      if (S.state === 'takeoff' && !(carrera && dlgPausa)) dibujarDespegue();
+      if (S.state === 'takeoff' && !((carrera || despTut()) && dlgPausa)) dibujarDespegue();
       if (S.state === 'play' && rotLibro) hud.drawRotuloDespegue(rotLibro, rotSale);
       // LA CORTA FINAL: las ventanas se resuelven ACA y no en el HUD, con las mismas constantes que
       // despues CALIFICAN la toma. Si el dibujo tuviera su propia idea de "velocidad correcta", el
@@ -8315,7 +8323,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         }
         // EL ROTULO DEL DESPEGUE, ENCIMA DEL VELO (21/11, el autor: "el juego arranca en pausa, te muestra el texto en
         // amarillo sobre el velo, luego el dialogo, y cuando desaparece el dialogo de pausa se va el lugar y la fecha")
-        if (S.state === 'takeoff' && carrera) dibujarDespegue();
+        if (S.state === 'takeoff' && (carrera || despTut())) dibujarDespegue();
         ctx.restore();
       }
       // NOMBRES DE LOS BOTONES SEGUN EL MANDO. El juego se escribio con nomenclatura PlayStation
@@ -9501,7 +9509,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // (SONDA, 13/11: `window.__congelado` frena el mundo sin menu, para comparar dibujos cuadro contra cuadro)
       if (typeof window !== 'undefined' && window.__congelado) { draw(); requestAnimationFrame(frame); return; }
       if (paused && !PAUSABLE()) paused = false;
-      if (dlgPausa && ((S.state !== 'play' && S.state !== 'landing' && !(S.state === 'takeoff' && carrera)) || (dlgT > 1 && !radioVis()))) { dlgPausa = false; lecFoco = null; retenerRadio(false); }
+      if (dlgPausa && ((S.state !== 'play' && S.state !== 'landing' && !(S.state === 'takeoff' && (carrera || despTut()))) || (dlgT > 1 && !radioVis()))) { dlgPausa = false; lecFoco = null; retenerRadio(false); }
       // …Y EL DIALOGO CONGELADO TAMBIEN (19/11, el autor: "mientras esta en pausa TODO, incluso la musica, debe pausarse"):
       // el mundo quieto del tutorial y las lecciones calla musica y motor igual que la pausa; al seguir, retoma
       pausarAudio(paused || dlgPausa, paused);   // la pausa calla todo; el dialogo calla los efectos pero deja la musica (systems/audio.js)
@@ -9525,6 +9533,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // tapar el dialogo ni los textos de lugar"): `fadeT` baja en update(), que con el dialogo congelado no corre —
         // el tutorial arranca en pausa y el negro de entrada quedaba clavado encima de la caja y del rotulo
         fadeT = Math.max(0, fadeT - raw);
+        if (S.state === 'takeoff') dspVisto = true;   // (el rotulo del despegue se va cuando se cierre este dialogo)
         // el tipeo, con el mismo tic de las letras que la historia
         const antes = Math.floor(dlgTyped);
         dlgTyped += raw * TYPE_CPS;   // (Infinity + algo sigue siendo Infinity: la linea ya esta entera)

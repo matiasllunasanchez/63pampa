@@ -735,6 +735,7 @@ const TOPE = [false, true].map(b => speedTarget({ t: 1e5, rasLevel: 4, mult: 10,
 // medio exacto de la pantalla (queda a siete pixeles).
 const X_SALUD = COL(0), X_NAFTA = COL(1), X_MACH = COL(2);      // el grupo lento, bajo la cara
 const X_CARGA = W - MARGEN - (2 * CUADRO + RACK_W + 2 * AIRE);  // el grupo que se carga, al borde
+let tempX = 0;   // donde quedo el termometro en el ultimo cuadro (lo lee el foco de las lecciones)
 const X_CHANCHA = X_CARGA, X_CANON = X_CARGA + (CUADRO + AIRE), X_RACK = X_CANON + (CUADRO + AIRE);
 // (corrido 6 a la izquierda, 15/10, el autor: "corre un poco los elementos del medio a la izquierda" — para que
 // el radar propio entre en el hueco de la derecha, entre el vuelo y lo que se carga)
@@ -768,7 +769,7 @@ const ANCLA_DE = { salud: 'salud', nafta: 'nafta', mach: 'mach', vel: 'velocidad
 const CHANCHA_ICONO = true;
 export function zonaHud(id) {
   if (CHANCHA_ICONO && id === 'chancha' && !enCabina()) return { x: X_NAFTA + CUADRO - 11, y: CUADROS_Y - 1, w: 12, h: 12, redondo: true };
-  if (id === 'temp' && !enCabina()) return { x: X_CHANCHA, y: CUADROS_Y, w: CUADRO, h: CUADRO };
+  if (id === 'temp' && !enCabina()) return { x: tempX, y: CUADROS_Y, w: CUADRO, h: CUADRO };
   const an = enCabina() && ANCLA_DE[id] ? CABINA_ANCLAS[ANCLA_DE[id]] : null;
   if (an) return an.length === 4 ? { x: an[0] / U, y: an[1] / U, w: (an[2] - an[0]) / U, h: (an[3] - an[1]) / U }
     : { x: (an[0] - an[2]) / U, y: (an[1] - an[2]) / U, w: 2 * an[2] / U, h: 2 * an[2] / U, redondo: true };
@@ -1702,22 +1703,59 @@ function escarcha(id, x, y, nivel) {
 // Cinco marcas —0, 1, 2, 3, 4—, la de 1 mas larga, y la aguja en acento desde el regimen del cono (core/mach.js).
 const MACH_CHICO_TOPE = 4;
 function machChico(x, y, mach) {
-  const r = 4.6, cx = x + CUADRO - r - 1.5, cy = y + r + 1.5;
+  // (21/11, el autor: "mas chico, sin la M en el medio donde esta la aguja: que no tape el velocimetro"): en la esquina,
+  // por FUERA del arco de la escala del velocimetro (centro x+13, y+16, radio 10)
+  const r = 3.2, cx = x + CUADRO - r - 0.8, cy = y + r + 0.8;
   const ang = f => Math.PI * 0.75 + Math.PI * 1.5 * Math.max(0, Math.min(1, f));   // 270°, de abajo-izq a abajo-der
   ctx.save();
   ctx.fillStyle = '#0d1418'; ctx.beginPath(); ctx.arc(cx, cy, r + 0.6, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = '#4e5a62'; ctx.lineWidth = 0.6; ctx.stroke();
+  // (21/11, el autor: "la aguja mas cortita, como un cursor, en amarillo, y va marcando de amarillo las barras que
+  // alcanza"): las marcas de 0..4 se prenden en acento a medida que el mach llega, y la aguja es una punta corta en el borde
   for (let m = 0; m <= MACH_CHICO_TOPE; m++) {
-    const a = ang(m / MACH_CHICO_TOPE), r0 = m === 1 ? r - 1.8 : r - 1.1;
-    ctx.strokeStyle = m === 1 ? P.foam : '#8fa3ad'; ctx.lineWidth = 0.6;
+    const a = ang(m / MACH_CHICO_TOPE), r0 = m === 1 ? r - 1.4 : r - 0.8;
+    ctx.strokeStyle = mach >= m ? P.accent : '#5d6a71'; ctx.lineWidth = 0.6;
     ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.stroke();
   }
   const a = ang(mach / MACH_CHICO_TOPE);
-  ctx.strokeStyle = mach >= M_CONO ? P.accent : P.foam; ctx.lineWidth = 0.8; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (r - 0.8), cy + Math.sin(a) * (r - 0.8)); ctx.stroke();
-  ctx.font = '2.6px monospace'; ctx.fillStyle = P.dim; ctx.textAlign = 'center';
-  ctx.fillText('M', cx, cy + r - 0.6);
+  ctx.strokeStyle = P.accent; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * (r - 1.6), cy + Math.sin(a) * (r - 1.6)); ctx.lineTo(cx + Math.cos(a) * (r + 0.3), cy + Math.sin(a) * (r + 0.3)); ctx.stroke();
   ctx.restore();
+}
+// (21/11, el autor: "los valores no hacen falta tal como los pusiste: una escala logica de hielo, con el 0 en el
+// medio"): de -20 a +20, el 0 arriba de todo (marca larga y su numero, el unico), la franja del hielo en amarillo
+const TA_MIN = -20, TA_MAX = 20;
+function termoArco(x, y, t, f0, col) {
+  const f = c => (c - TA_MIN) / (TA_MAX - TA_MIN);
+  plate(x, y, CUADRO, CUADRO);
+  const cx = x + CUADRO / 2, cy = y + CUADRO - 4, R = 10.8;
+  const A0 = Math.PI * 1.13, A1 = Math.PI * 1.87;                  // de abajo-izquierda a abajo-derecha, por arriba
+  const ang = v => A0 + (A1 - A0) * Math.max(0, Math.min(1, v));
+  ctx.save();
+  // la franja amarilla del HIELO: de -12 a +2 °C (pegada al 0, del lado frio)
+  ctx.strokeStyle = '#e8c23d'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(cx, cy, R - 1.6, ang(f(-12)), ang(f(2))); ctx.stroke();
+  // las marcas cada 5 °C; el 0 largo y con su numero; frio en celeste, calor en naranja
+  for (let c = TA_MIN; c <= TA_MAX; c += 5) {
+    const a = ang(f(c)), cero = c === 0, r0 = cero ? R - 3.2 : c % 10 === 0 ? R - 2 : R - 1.2;
+    ctx.strokeStyle = cero ? '#e8eef0' : c < 0 ? '#7fc8ff' : '#ff9a6a'; ctx.lineWidth = cero ? 0.8 : 0.5;
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke();
+  }
+  ctx.font = '3px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#e8eef0';
+  ctx.fillText('0', cx, cy - R - 1.2);
+  // °C abajo a la izquierda, y el valor en su color abajo a la derecha
+  ctx.fillStyle = '#9fb0b6'; ctx.textAlign = 'left'; ctx.fillText('°C', x + 2.5, y + CUADRO - 2);
+  ctx.textAlign = 'right'; ctx.font = 'bold 5px monospace'; ctx.fillStyle = col;
+  ctx.fillText(Math.round(t.c) + '°', x + CUADRO - 2, y + CUADRO - 2);
+  // la aguja: blanca, desde el eje de abajo; en la franja del hielo, celeste
+  const a = ang(f(t.c)), hielo = t.c <= 2;
+  ctx.strokeStyle = hielo ? '#9fdcff' : '#e8eef0'; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (R - 0.8), cy + Math.sin(a) * (R - 0.8)); ctx.stroke();
+  ctx.fillStyle = '#5d6a71'; ctx.beginPath(); ctx.arc(cx, cy, 1.1, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // el borde celeste con hielo juntandose, critico cuando ya hay mucho (como antes)
+  if (t.hielo > 0.25) bordePlaca(x, y, CUADRO, CUADRO, '#9fdcff');
+  if (t.hielo > 0.6) bordeCritico(x, y, CUADRO, CUADRO);
 }
 function drawTemperatura(x, y, t) {
   const f = c => (c - T_MIN) / (T_MAX - T_MIN), estado = t.c <= 2 ? 'frio' : t.c <= 15 ? 'templado' : 'calor';
@@ -1731,11 +1769,11 @@ function drawTemperatura(x, y, t) {
     if (estado === 'frio') { ctx.strokeStyle = col; ctx.lineWidth = 0.6; for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3; ctx.beginPath(); ctx.moveTo(bx + 6 - Math.cos(a) * 2, by + 2 - Math.sin(a) * 2); ctx.lineTo(bx + 6 + Math.cos(a) * 2, by + 2 + Math.sin(a) * 2); ctx.stroke(); } }
     else if (estado === 'calor') { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(bx + 6, by + 2, 1.3, 0, Math.PI * 2); ctx.fill(); }
   };
-  const fn = () => { relojFila(x, y, {
-    val: f(t.c), col: P.foam, ico, txt: Math.round(t.c) + '°', uni: 'C', txtCol: col,
-    zonas: [[0, f(1), '#5ab4ff']],
-    borde: t.hielo > 0.25 ? '#9fdcff' : null, critico: t.hielo > 0.6,
-  }); escarcha('temp', x, y, t.hielo || 0); };
+  // OTRO ESTILO DE RELOJ (21/11, el autor, con la foto de un "CARB. TEMP": "la temperatura puede ser de este estilo,
+  // asi variamos indicadores"): un arco ANCHO Y BAJO de lado a lado, la aguja desde abajo al medio, la franja del
+  // HIELO en amarillo (como "keep needle out of yellow arc"), las marcas -20 … 30 y °C debajo del arco
+  void ico;
+  const fn = () => { termoArco(x, y, t, f, col); escarcha('temp', x, y, t.hielo || 0); };
   if (!enCabina() || enTablero) return fn();
   // EN CABINA, a su relojito (el mismo traslado y escala que `alTablero`)
   ctx.save();
@@ -3260,7 +3298,11 @@ export function drawHUD(h) {
   if (h.brujula) drawBrujula(X_MACH, CUADROS_Y, h.brujula);
   // (21/11, el autor: "no pongas arriba el coso, metelo todo en horizontal"): en la fila, en el lugar que era el
   // reloj de la Chancha (que paso a ser el icono de arriba de la nafta)
-  if (h.temp) drawTemperatura(X_CHANCHA, CUADROS_Y, h.temp);
+  // (21/11, el autor: "el indicador de temperatura del lado izquierdo: nafta, temperatura, velocidad, nivel"): en
+  // tercera persona va donde estaba el machimetro grande (el mach chico vive en el velocimetro); con la brujula de las
+  // islas en ese lugar, y en la cabina, se queda donde estaba
+  tempX = !enCabina() && !h.brujula ? X_MACH : X_CHANCHA;
+  if (h.temp) drawTemperatura(tempX, CUADROS_Y, h.temp);
   marcaFalla(xVuelo(2), CUADROS_Y, gAl);
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).

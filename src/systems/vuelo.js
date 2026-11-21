@@ -27,7 +27,10 @@ import { FLY_X, ALA_PX, ROCIO_ABRE, ROCIO_BAJA, ROCIO_RAS_ABRE, ROCIO_RAS_BAJA,
          AGUA_RAS_GRADOS, ESTELA_ALT, ROCIO_TURBO, BANDA_ALT, RAS_POLVO, PIQUE } from '../data/tuning.js';
 import { sueloEn } from '../core/geografia.js';
 import { PITCH_LERP } from '../core/physics.js';
-const CAM_ATRASO = 2.2;   // m que la camara puede quedar atras del avion en vertical (ver el tope, abajo)
+import { inp } from '../core/input.js';
+const CAM_ATRASO = 2.2;
+const PICADA_T = 3;   // s de picada sostenida para que el avion se dibuje trompa abajo
+let picadaT = 0;   // m que la camara puede quedar atras del avion en vertical (ver el tope, abajo)
 import { TURBO, ALTO } from '../data/tuning.js';
 
 // cuanto sube la camara con turbo (unidades de mundo): el efecto de 'alejarse'
@@ -133,7 +136,10 @@ export function stepVuelo(dt, o) {
   cam.y = Math.max(plane.y + camLift - CAM_ATRASO, Math.min(plane.y + camLift + CAM_ATRASO, cam.y));
   // LA PICADA SE VE (21/11, "poner la grafica del avion que baja en picada casi vertical"): bajando fuerte y sin pirueta,
   // el dibujo pasa a la pose empinada trompa abajo (render/plane.js, la hoja 2). Con histeresis para que no titile
-  run.picada = !run.mv && !enCabina() && (run.picada ? plane.vy < -7 : plane.vy < -11);
+  // (21/11, el autor: "solo si mantengo el stick izquierdo hacia ABAJO 3 segundos sin parar"): la picada (inp.d, S o
+  // stick izq ↓) sostenida PICADA_T s seguidos; soltarla un instante vuelve a contar de cero
+  picadaT = inp.d > 0.3 && !run.mv ? picadaT + dt : 0;
+  run.picada = !run.mv && !enCabina() && picadaT >= PICADA_T;
   const piso = o.ras ? o.ras.piso : 3.4;
   if (cam.y < piso) cam.y = piso;
   // PRIMERA PERSONA (core/cabina.js): el ojo en el avion — sin retardo, sin piso, sin paneo

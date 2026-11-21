@@ -63,7 +63,7 @@ let boostSc = 1;   // factor animado del achique por turbo
 //     FILA_SALE — en el borde ya no titila entre dos poses.
 //   · FUNDIDO de fila: al cambiar de cabeceo, el frame viejo se apaga encima del nuevo en FILA_FUNDE s.
 const ALABEO_RAD = 1.05;                       // el alabeo a fondo que traen los frames (~60°, ver muzzles)
-const FILA_ENTRA = 0.36, FILA_SALE = 0.26, FILA_FUNDE = 0.11;
+const FILA_ENTRA = 0.36, FILA_SALE = 0.26, FILA_FUNDE = 0.11, FILA_MIN = 0.35;
 let filaSost = 1, filaAnt = 1, filaCambioT = -1, filaPrevCuadro = 1;
 // LA HOJA FINA (14/10, probada en el A-4 y pasada a todos: "rehornear mas secuencias para que se vea mas fluido"):
 // sheet5.png, 13 alabeos (uno cada 10°) x 5 cabeceos (±14° de a 7°), con sus anclas (ANCLAS.fino), sus
@@ -137,12 +137,13 @@ const TOBERA_F = 7 / 84;
  */
 /** El giro libre de [Q]/[E] (`run.freeRoll`, core/horizon.js) partido como el tonel de la seña: `b` lo que pone
  *  la HOJA (alabeo del sprite, -1..1) y `rot` lo que falta, en radianes. Siempre del lado que se gira. */
+// (21/11, el autor: "el giro con el stick derecho inclina el avion 45° y lo hace girar sobre su eje torcido: el eje
+// tiene que estar RECTO a la vision del jugador"): antes los primeros 60° los ponia el cuadro alabeado de la hoja y el
+// resto una rotacion — y ese cuadro ya trae el avion visto en perspectiva de costado, asi que al girar encima el eje
+// quedaba cruzado. Ahora el cuadro es el DERECHO (de cola a la camara) y todo el giro es la rotacion en pantalla.
 function giroLibre() {
   const fr = run.freeRoll || 0;
-  if (!fr) return { b: 0, rot: 0 };
-  const sg = Math.sign(fr), A = Math.abs(fr) % (2 * Math.PI), S60 = Math.PI / 3;
-  const b = Math.min(1, A / S60, (2 * Math.PI - A) / S60);
-  return { b: sg * b, rot: fr - sg * b * S60 };
+  return { b: 0, rot: fr };
 }
 
 export function tobera(x, y0, f, esc, forzar) {
@@ -1065,13 +1066,18 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   const colPose = rolling ? (NF - 1) / 2 : Math.round((1 - bank) / 2 * (NF - 1));
   const pcPose = run.senalT > 0 && run.senalPitch ? run.senalPitch : Math.max(-1, Math.min(1, plane.pitch));
   // la fila con HISTERESIS: para cambiar hay que pasar FILA_ENTRA; para volver a nivel, bajar de FILA_SALE
-  if (filaSost === 1) { if (pcPose > FILA_ENTRA) filaSost = 0; else if (pcPose < -FILA_ENTRA) filaSost = 2; }
-  else if (filaSost === 0 ? pcPose < FILA_SALE : pcPose > -FILA_SALE) filaSost = Math.abs(pcPose) > FILA_ENTRA ? (pcPose > 0 ? 0 : 2) : 1;
-  const ahoraS = performance.now() / 1000;
+  // (21/11, el autor: "cuando voy muy arriba o muy abajo el avion pierde muchisima calidad"): topando el techo o rozando
+  // el agua el cabeceo rebota y la fila cambiaba varias veces por segundo — cada cambio funde dos cuadros y el avion
+  // se veia borroneado. Ahora una fila se queda al menos FILA_MIN s antes de poder cambiar otra vez
+  const ahoraS = performance.now() / 1000, puedeFila = ahoraS - filaCambioT >= FILA_MIN;
+  if (puedeFila) {
+    if (filaSost === 1) { if (pcPose > FILA_ENTRA) filaSost = 0; else if (pcPose < -FILA_ENTRA) filaSost = 2; }
+    else if (filaSost === 0 ? pcPose < FILA_SALE : pcPose > -FILA_SALE) filaSost = Math.abs(pcPose) > FILA_ENTRA ? (pcPose > 0 ? 0 : 2) : 1;
+  }
   if (ancho13) {
     // el angulo que pide el cabeceo, y la fila mas cercana; se cambia recien pasado 1/4 de paso de mas
     const ang = 14 * Math.max(-1, Math.min(1, pcPose / FINO_TOPE));
-    if (Math.abs(ang - FINO_GRADOS[finoFila]) > 3.5 + 1.75) finoFila = FINO_GRADOS.reduce((m, g, i) => Math.abs(g - ang) < Math.abs(FINO_GRADOS[m] - ang) ? i : m, 0);
+    if (ahoraS - finoCambioT >= FILA_MIN && Math.abs(ang - FINO_GRADOS[finoFila]) > 3.5 + 1.75) finoFila = FINO_GRADOS.reduce((m, g, i) => Math.abs(g - ang) < Math.abs(FINO_GRADOS[m] - ang) ? i : m, 0);
     if (finoFila !== finoPrev) { finoAnt = finoPrev; finoCambioT = ahoraS; finoPrev = finoFila; }
   }
   const rowPose = ancho13 ? finoFila : filaSost;

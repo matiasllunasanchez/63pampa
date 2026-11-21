@@ -15,6 +15,7 @@ import { sinceReady, txtOf, palabrasVisibles } from '../core/dialogue.js';
 import { PLACA_DE_CUADRO } from '../data/placas.js';
 import { HUD_TECHO, cintaCaja, vozMin, VOZ, pilotoCaja, sinTilde, pisoCabina } from './hud.js';
 import { enCabina } from '../core/cabina.js';
+import { padActivo } from '../core/input.js';
 import { retrato } from './retratos.js';
 
 // Segundos que la pantalla de victoria espera antes de traer la frase de cierre. No es un valor
@@ -227,7 +228,7 @@ export function drawResults(w) {
       ctx.font = finFont(8); ctx.fillStyle = P.accent; ctx.fillText(T('tutConsejos'), W / 2, 116);
       bloque(R.tut.consejos.map(c => '· ' + c), 130, 12, P.ink);
     }
-    if (stT2 > 1.4 && Math.sin(w.t * 4) > -0.3) { ctx.font = finFont(8); bloque([T('continuePrompt')], H - 7, 10, P.accent); }
+    if (stT2 > 1.4) continuar(W / 2, H - 7, w.t);
     return;
   }
   // ORDEN DE LECTURA: el PREMIO (estrellas + Malvinas) arriba de todo y grande, después el TOTAL,
@@ -246,9 +247,7 @@ export function drawResults(w) {
   // SIN NUMEROS (`puntos: false` de la mision, hoy el tutorial): ni premio, ni total, ni desglose.
   // Queda el titular —MISION FINALIZADA, arriba— y el pie, con el mismo reloj del recuento completo.
   if (R.puntos === false) {
-    if (done && stT > 1.1 && Math.sin(w.t * 4) > -0.3) {
-      ctx.font = finFont(8); bloque([T('continuePrompt')], H - 7, 10, P.accent);
-    }
+    if (done && stT > 1.1) continuar(W / 2, H - 7, w.t);
     return;
   }
 
@@ -279,9 +278,7 @@ export function drawResults(w) {
   }
 
   if (done) {
-    if (stT > 1.1 && Math.sin(w.t * 4) > -0.3) {
-      ctx.textAlign = 'center'; ctx.font = finFont(8); bloque([T('continuePrompt')], H - 7, 10, P.accent);
-    }
+    if (stT > 1.1) continuar(W / 2, H - 7, w.t);
   }
 }
 
@@ -339,6 +336,19 @@ function franja(y0, y1, a) {
   ctx.fillStyle = g; ctx.fillRect(0, y0 - 6, W, y1 - y0 + 12);
 }
 /** Dibuja los renglones centrados con sombra; `y` es la base del primero. */
+/** «CONTINUAR» (21/11): la palabra en negrita y en acento, con una tecla (o un boton de joystick) que se aprieta sola
+ *  delante. `align`: 'center' (centrado en `x`) o 'right' (termina en `x`). `y` = la linea de base del texto. */
+export function continuar(x, y, t, align = 'center', px0 = 8) {
+  ctx.save();
+  ctx.font = 'bold ' + labelFont(px0); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const txt = T('continuePrompt'), wt = ctx.measureText(txt).width, h = Math.round(px0 * 1.05);
+  const pad = padActivo(), wk = pad ? h : h * 1.5, gap = 3, total = wk + gap + wt;
+  const x0 = align === 'right' ? x - total : x - total / 2;
+  glifos.teclaGenerica(x0, y - h + 1, h, t, pad);
+  ctx.fillStyle = P.accent; ctx.fillText(txt, x0 + wk + gap, y);
+  ctx.strokeStyle = P.accent; ctx.lineWidth = 0.3; ctx.strokeText(txt, x0 + wk + gap, y);   // (mas negrita)
+  ctx.restore();
+}
 function bloque(lines, y, lh, color) {
   ctx.save();
   ctx.shadowColor = FIN_TXT.sombra; ctx.shadowBlur = 2; ctx.shadowOffsetY = 1;
@@ -1435,11 +1445,7 @@ export function cajaVN(o) {
   if (o.cursor && Math.sin(t * 14) > -0.5) px(curX, curY - 5, 3, 6, P.accent);
   // EL DIALOGO QUE FRENA EL JUEGO dice como se sigue (21/11, el autor: "aclarar al final del dialogo, como tiene la
   // campaña, PRESIONAR CUALQUIER TECLA PARA CONTINUAR"): abajo a la derecha, cuando la linea ya termino de escribirse
-  if (o.continuar && o.cursor) {
-    ctx.font = '5px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = Math.sin(t * 3) > -0.2 ? '#9fb0b6' : '#5d6a71';
-    ctx.fillText(T('dlgContinuar'), bx + bw - 8, by + bh - 5);
-    ctx.textAlign = 'left';
-  }
+  if (o.continuar && o.cursor) continuar(bx + bw - 8, by + bh - 5, t, 'right', 6);
   // LA BARRITA DE TIEMPO. Solo la radio en vuelo la trae, y ocupa el lugar del "OK": las dos
   // contestan la misma pregunta —cuanto falta para la proxima linea— y la radio la contesta sola
   // porque el jugador tiene las manos en el avion y no puede apretar nada.

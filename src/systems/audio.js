@@ -102,7 +102,16 @@ function sortearMision() {
   return true;
 }
 // termina una: sale otra al azar, sin hueco
-musMision.addEventListener('ended', () => { if (enMision && sortearMision()) { musMision.play().catch(() => { }); syncPlayerBtn(); } });
+// UN TEMA FIJO de music/original (`musica: 'original:<nombre>'` en la mision — 21/11, el autor: "karera2 en la etapa 1
+// del tutorial"): suena ese, y al terminar vuelve a empezar en vez de sortear otro
+let misionFija = false;
+function fijarMision(nombre) {
+  const src = MUSIC_MISION.find(s => decodeURIComponent(s.split('/').pop()).replace(/\.[^.]+$/, '').toLowerCase() === nombre.toLowerCase());
+  if (!src) return false;
+  misionSrc = src; if (!musMision.src.endsWith(src.split('/').pop())) musMision.src = src;
+  return true;
+}
+musMision.addEventListener('ended', () => { if (enMision && misionFija) { try { musMision.currentTime = 0; } catch (e) { } musMision.play().catch(() => { }); return; } if (enMision && sortearMision()) { musMision.play().catch(() => { }); syncPlayerBtn(); } });
 
 // PLAYLIST del REPRODUCTOR: la base del juego + el soundtrack, presentadas como TRACK 1..N.
 // Es la lista que se puede cambiar en vuelo (modos que NO son historia) y de la que la campaña
@@ -899,7 +908,9 @@ export function setRunMusic(isCampaign, level, keep, prueba, pista, mision) {
     // POR AHORA, TODO VUELO SUENA CON music/original (21/11, el autor: "reproducí todas las que no están en la carpeta
     // olds pero están en original, quiero probar; las de olds son MUY rápidas desde el inicio"): la campaña, las
     // pruebas y los modos sueltos tambien sortean de ahi. Para volver a lo de antes: SOLO_ORIGINAL = false.
-    enMision = (SOLO_ORIGINAL || (!!mision && !prueba && pedida < 0)) && sortearMision();
+    const fija = typeof pista === 'string' && pista.startsWith('original:') ? pista.slice(9) : null;
+    misionFija = !!fija && fijarMision(fija);
+    enMision = misionFija || ((SOLO_ORIGINAL || (!!mision && !prueba && pedida < 0)) && sortearMision());
     if (antes && !enMision && !musMision.paused) musMision.pause();
   }
   if (prueba && !keep && trackIdx !== ZONA_IDX) {
@@ -942,8 +953,9 @@ function saltarMision() {
   syncPlayerBtn();
   if (musicStarted && !muted && !musPausa) musMision.play().catch(() => { });   // (en la pausa suena al seguir)
 }
-export function nextTrack() { if (enMision) return saltarMision(); setTrack(trackIdx + 1); }
-export function prevTrack() { if (enMision) return saltarMision(); setTrack(trackIdx - 1); }
+// (un tema FIJO no se cambia — 21/11, el autor: "siempre, sin posibilidad de cambio")
+export function nextTrack() { if (enMision && misionFija) return; if (enMision) return saltarMision(); setTrack(trackIdx + 1); }
+export function prevTrack() { if (enMision && misionFija) return; if (enMision) return saltarMision(); setTrack(trackIdx - 1); }
 
 // avance automatico al terminar cada pista (ver 'ENCADENADO' arriba).
 PLAYLIST.forEach((a2, i) => a2.addEventListener('ended', () => {
