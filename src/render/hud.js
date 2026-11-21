@@ -746,6 +746,7 @@ export function zonaHud(id) {
   if (an) return an.length === 4 ? { x: an[0] / U, y: an[1] / U, w: (an[2] - an[0]) / U, h: (an[3] - an[1]) / U }
     : { x: (an[0] - an[2]) / U, y: (an[1] - an[2]) / U, w: 2 * an[2] / U, h: 2 * an[2] / U, redondo: true };
   if (id in Z_RELOJ) return { x: Z_RELOJ[id], y: CUADROS_Y, w: CUADRO, h: CUADRO };
+  if (id === 'temp') return { x: X_MACH, y: CUADROS_Y - CUADRO - 4, w: CUADRO, h: CUADRO };   // el termometro (drawTemperatura)
   if (id === 'rack') return { x: X_RACK, y: CUADROS_Y, w: RACK_W, h: CUADRO };
   if (id === 'ruta') return cajaCinta ? { x: cajaCinta.x, y: MARGEN, w: cajaCinta.w, h: 11 } : null;
   return null;

@@ -101,6 +101,10 @@ function cumple(c, s, dt) {
   }
   if (c.rasante) return !!s.rasante;
   if (c.salBajo != null) return (s.sal || 0) <= c.salBajo;
+  if (c.hieloSobre != null) return (s.hielo || 0) >= c.hieloSobre;   // EL HIELO (systems/frio.js): juntarlo en la nube…
+  if (c.hieloBajo != null) return (s.hielo || 0) <= c.hieloBajo;     // …y sacarselo al ras del mar
+  if (c.marca) return !!s.marca;                                     // LAS ISLAS: un punto marcado en el MAPA de la pausa
+  if (c.objIslas) return !!s.objIslas;                               // …y la BASE COSTERA rota
   if (c.chancha) return !!s.chancha;
   return true;
 }

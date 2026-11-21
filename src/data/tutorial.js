@@ -94,6 +94,10 @@ const ETAPA1 = [
   // adentro de la nube (systems/salitre.js)
   { dice: 'TUT1_SAL', foco: ['alt'], teclas: ['Gas'], sal: 0.45,
     sigue: [{ salBajo: 0.05, consigna: 'tutC_sal' }], remate: 'TUT1_SAL_OK' },
+  // EL HIELO (20/11, el autor: "meter las nuevas mecanicas de clima y frio"; data/frio.js): lavando el vidrio en la nube,
+  // con el frio del amanecer, se junta hielo en las alas. Se muestra el termometro y se derrite bajando al ras del mar
+  { dice: 'TUT1_HIELO', foco: ['temp', 'alt'], teclas: ['Gas', 'Dive'],
+    sigue: [{ hieloSobre: 0.15, consigna: 'tutC_hielo' }, { hieloBajo: 0.05, consigna: 'tutC_deshiela' }], remate: 'TUT1_HIELO_OK' },
   { dice: 'TUT1_TURBO', foco: ['vel'], teclas: ['Boost'],
     sigue: [{ usa: ['turbo'], consigna: 'tutC_turbo' }], remate: 'TUT1_TURBO_OK' },
   // LA PAUSA GUIADA: el juego abre la pausa en CONTROLES, y para seguir hay que cerrarla
@@ -159,6 +163,28 @@ const ETAPA3 = [
   { dice: 'TUT3_FIN', remate: 'TUT3_FIN_OK' },
 ];
 
+// LA ETAPA 4 · LAS ISLAS (20/11, el autor: "otra etapa que es cuando llega a la isla y las variantes que haya en la
+// isla"; "directo"): arranca ya volando sobre las Malvinas reales (systems/islas/, `islas: true` en la etapa) — la
+// llegada desde el pasillo todavia no existe (docs/proyecto/PLAN_ARENA_2.md). Lo que las islas tienen distinto: el
+// rumbo y la brujula, la altura desde el suelo, las zonas de radar, los Harriers, el clima y el frio, el MAPA de la
+// pausa, la base costera y la eyeccion.
+const ETAPA4 = [
+  { dice: 'TUT4_HOLA' },
+  { dice: 'TUT4_RUMBO', foco: ['mach'], teclas: ['Fly'],
+    sigue: [{ usa: ['l', 'r'], consigna: 'tutC_virar' }], remate: 'TUT4_RUMBO_OK' },
+  { dice: 'TUT4_RELIEVE', foco: ['alt'], teclas: ['Gas'],
+    sigue: [{ bajoTecho: 8, consigna: 'tutC_relieve' }], remate: 'TUT4_RELIEVE_OK' },
+  { dice: 'TUT4_RADAR', foco: ['alt'] },
+  { dice: 'TUT4_HARRIER' },
+  { dice: 'TUT4_CLIMA', foco: ['temp'] },
+  { dice: 'TUT4_MAPA', teclas: ['Pause'], abre: 'mapa',
+    sigue: [{ marca: true, consigna: 'tutC_marca' }, { cierra: true, consigna: 'tutC_pausa' }], remate: 'TUT4_MAPA_OK' },
+  { dice: 'TUT4_BLANCO', foco: ['mach', 'rack'], teclas: ['Msl', 'Aim'],
+    sigue: [{ suelta: true, consigna: 'tutC_suelta' }, { objIslas: true, consigna: 'tutC_baseIslas' }], remate: 'TUT4_BLANCO_OK' },
+  { dice: 'TUT4_EYECCION', teclas: ['Eyecta'] },
+  { dice: 'TUT4_FIN', remate: 'TUT4_FIN_OK' },
+];
+
 export const TUTORIAL_ETAPAS = [
   { ...base, id: 'tut1', etapa: 1, name: 'DESPEGAR Y VOLAR', despegueJugable: true,
     desc: { es: 'Gas, altura, el radar y el agua. Lo justo para no caerse.', en: 'Throttle, altitude, radar and the sea. Just enough not to fall.' },
@@ -191,6 +217,15 @@ export const TUTORIAL_ETAPAS = [
     cfg: P({ sky: 'dusk', terrain: 'sea', carga: 'tanques_bomba', radar: 'normal', fuelOn: true, fuelScale: 0.2 }), pasos: ETAPA3,   // (sin poderes: el RASANTE te clava al ras y no deja subir a soltar la bomba)
     consejos: { es: ['Volá abajo de la raya del radar: si la cruzás, te quema.', 'Soltá la bomba alta y temprano.', 'Ya podés volar el LIBRO DE VUELO, en HISTORIA.'],
       en: ['Stay under the radar line: cross it and you get burned.', 'Drop the bomb high and early.', 'You can now fly the FLIGHT LOG, in CAMPAIGN.'] } },
+  { ...base, id: 'tut4', etapa: 4, name: 'LAS ISLAS', islas: true,
+    desc: { es: 'Malvinas de verdad: rumbo, relieve, radares, Harriers, clima, el mapa y la base.', en: 'The real Falklands: heading, terrain, radars, Harriers, weather, the map and the base.' },
+    // EN VUELO sobre el estrecho de San Carlos (islas.js INICIO), con bomba y el radar del pasillo; sin nafta (la Chancha
+    // ya se enseño). Un solo tramo largo: la etapa la cierran los pasos, como las otras
+    bomba: 'brp', dificultad: 'facil',
+    aviones: [{ ...AVION[0], carga: 'tanques_bomba' }],
+    cfg: P({ sky: 'cloudy', terrain: 'sea', start: 'air', carga: 'tanques_bomba', radar: 'normal' }), pasos: ETAPA4,
+    consejos: { es: ['En las islas la altura se mide desde el suelo: el cerro te la come.', 'Marcá en el MAPA de la pausa y seguí la brújula.', 'Adentro de un radar inglés, abajo de 20 m.'],
+      en: ['On the islands altitude is measured from the ground: hills eat it.', 'Mark a point on the pause MAP and follow the compass.', 'Inside a British radar, stay under 20 m.'] } },
 ];
 
 // ---------------------------------------------------------------------------------------------
@@ -229,6 +264,11 @@ const LISTA = [
     T(TURCO, 'turco_radio_desconfiado', 'En una misión de verdá, allá ashiba te ve el radar. Subís, te lavás y te volvés a bajar antes de que te llegue a detectar.'),
     T(PICHON, 'pichon_radio_pensativo', 'Mmmmm... Se me ocurre algo para probar. Bueno busca alguna nube mientras.')),
   escena('TUT1_SAL_OK', T(PICHON, 'pichon_radio_sonrisa', 'Ahí está. Ahora sí se ve mejor. Bajá, que te ven.')),
+  escena('TUT1_HIELO',
+    T(TURCO, 'turco_radio_preocupado', 'E ura, ¿sentís que el avión pesa? Ha sido el hielo: en la nube, con este frío, se te pega en las alas. Y el A-4 no tiene con qué sacarlo.'),
+    T(PICHON, 'pichon_radio_explicando', 'Mirá el termómetro: con un grado o menos y humedad se junta hielo. Pesa y te quita sustentación, así que dale más gas.'),
+    T(TURCO, 'turco_radio_aprueba', 'Bajá al ras del mar, que el aire de abajo es más templao y te lo derrite. O subí por encima de las nubes, que ahí es seco.')),
+  escena('TUT1_HIELO_OK', T(PICHON, 'pichon_radio_sonrisa', 'Se derritió. Por eso volamos abajo, Tero.')),
   escena('TUT1_TABLERO',
     T(TURCO, 'turco_radio_aprueba', 'Ahora el tablero. En el medio, lo que cambia ligero: velocidá, horizonte, altura y gas.'),
     T(PICHON, 'pichon_radio_explicando', 'Lo demás se mira de reojo. Si algo se prende, es porque hay que mirarlo.'),
@@ -265,7 +305,9 @@ const LISTA = [
   escena('TUT2_CANON_OK', T(TURCO, 'turco_radio_risa', 'Tres. Bieeeeen, uuraa.')),
   escena('TUT2_CALOR',
     T(PICHON, 'pichon_radio_explicando', 'El cañón calienta. Si tirás de corrido se traba hasta que se enfría: ese reloj te lo marca.'),
-    T(TURCO, 'turco_radio_sonrisa', 'Probalo, chango. Mete fuego hasta que trabe, que lo quiero escuchar.')),
+    T(TURCO, 'turco_radio_sonrisa', 'Probalo, chango. Mete fuego hasta que trabe, que lo quiero escuchar.'),
+    // EL CAÑON CON FRIO (20/11, data/frio.js CANON_T): se dice, no se practica
+    T(PICHON, 'pichon_radio_pensativo', 'Y con frío fuerte, allá arriba, se traba antes: la humedad se congela en el aire que lo hace andar.')),
   escena('TUT2_CALOR_OK', T(PICHON, 'pichon_radio_orgullo', '¿Ves? Se enfría solo. Ráfagas cortas, Tero.')),
   escena('TUT2_MOVILES',
     T(PICHON, 'pichon_radio_explicando', 'Ahora el viento los mueve. No tires adonde está: tirá adonde va a estar.'),
@@ -345,6 +387,42 @@ const LISTA = [
     T(PICHON, 'pichon_radio_orgullo', 'La primera. Y mañana, la guerra de verdad.'),
     T(TURCO, 'turco_radio_aprueba', 'Mañana, changuito. Hoy, mate.')),
   escena('TUT3_FIN_OK', T(PICHON, 'pichon_radio_sonrisa', 'Yo cebo.')),
+  // LA ETAPA 4 · LAS ISLAS (borrador del 20/11: espera las correcciones del autor, como las otras)
+  escena('TUT4_HOLA',
+    T(TURCO, 'turco_radio_sonrisa', 'Llegaste a las islas, Tero. Acá ya no hay pasillo: el mapa es de verdá y el suelo sube y baja.'),
+    T(PICHON, 'pichon_radio_explicando', 'Malvinas a escala real. Lo que aprendiste vale igual, pero ahora virás de verdad y elegís para dónde ir.')),
+  escena('TUT4_RUMBO',
+    T(PICHON, 'pichon_radio_explicando', 'Donde estaba el mach ahora va la brújula: tu rumbo y para dónde queda el objetivo.'),
+    T(TURCO, 'turco_radio_aprueba', 'Virá pa\' los dos lao y mirá cómo gira la brújula.')),
+  escena('TUT4_RUMBO_OK', T(TURCO, 'turco_radio_risa', 'Eso. Ya sabés pa\' dónde va la nariz.')),
+  escena('TUT4_RELIEVE',
+    T(TURCO, 'turco_radio_desconfiado', 'Ojo, que acá la altura se mide desde el suelo de abajo. Si viene un cerro, se te come la altura y te hace pingo.'),
+    T(PICHON, 'pichon_radio_explicando', 'Volá pegado al relieve, abajo de la raya del radar. Si el suelo sube de golpe, dale gas antes.')),
+  escena('TUT4_RELIEVE_OK', T(PICHON, 'pichon_radio_sonrisa', 'Así. El cerro también te tapa del radar.')),
+  escena('TUT4_RADAR',
+    T(PICHON, 'pichon_radio_alerta', 'Los radares ingleses tienen su zona: la bahía San Carlos y los buques de piquete. Adentro, arriba de veinte metros, te ven.'),
+    T(TURCO, 'turco_radio_aprueba', 'Y cerca de Puerto Argentino es nuestra cobertura: ahí los Harrier no se meten.')),
+  escena('TUT4_HARRIER',
+    T(TURCO, 'turco_radio_grito', 'Si te ven, sale la patrulla de Harrier culiaos a buscarte la cola. La flecha roja te dice de dónde vienen.'),
+    T(PICHON, 'pichon_radio_explicando', 'Las ráfagas se esquivan cambiando de línea. Y el Sidewinder viene de cola: rompé y bajá.')),
+  escena('TUT4_CLIMA',
+    T(PICHON, 'pichon_radio_pensativo', 'El tiempo acá cambia solo: llovizna, temporal, nevisca, niebla. Y el viento del oeste te sacude.'),
+    T(TURCO, 'turco_radio_preocupado', 'Con frío y humedad se te junta hielo, como en la nube. Mirá el termómetro y buscá aire más templao.')),
+  escena('TUT4_MAPA',
+    T(PICHON, 'pichon_radio_explicando', 'En la pausa está el mapa. Marcá un punto y la brújula te lleva ahí.'),
+    T(TURCO, 'turco_radio_sonrisa', 'Marcá la base costera, que la vamo\' a visitar.')),
+  escena('TUT4_MAPA_OK', T(TURCO, 'turco_radio_aprueba', 'Bien. Ahora seguí la brújula.')),
+  escena('TUT4_BLANCO',
+    T(PICHON, 'pichon_radio_explicando', 'La base costera: seguí la brújula, entrá bajo y soltá la bomba alta y temprano, como con el buque.'),
+    T(TURCO, 'turco_radio_desconfiado', 'Y no te quedés dando vueltas encima, que te ven.')),
+  escena('TUT4_BLANCO_OK', T(PICHON, 'pichon_radio_risa', '¡Le diste a la base!')),
+  escena('TUT4_EYECCION',
+    T(TURCO, 'turco_radio_preocupado', 'Una más, y ojalá no la usés nunca. Si te quedás sin nafta o el avión no da más, eyectate.'),
+    T(PICHON, 'pichon_radio_explicando', 'Sostené los dos rolidos juntos. Si caés en tierra te rescatan; en el mar es otra historia.')),
+  escena('TUT4_FIN',
+    T(TURCO, 'turco_radio_sonrisa', 'Bueno, Tero. Ya conocés las islas. Esta noche te pinto otra estrellita.'),
+    T(PICHON, 'pichon_radio_orgullo', 'Ahora sí, lo sabés todo.')),
+  escena('TUT4_FIN_OK', T(TURCO, 'turco_radio_aprueba', 'Volvé entero, changuito. Hay mate.')),
   // LOS AVISOS: el avion no se cae, pero el golpe se comenta (una al azar, sin repetir la anterior)
   banco('AV_TUT_AGUA',
     T(TURCO, 'turco_radio_grito', '¡El mar, Tero! Pegao, sí. Adentro, no.'),

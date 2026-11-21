@@ -46,12 +46,12 @@ app.whenReady().then(async () => {
   if (JSON.parse(await js('__pausedbg()')).modo === 'tutorial') ok('TUTORIAL esta en el menu de modos'); else { bad('no hay fila TUTORIAL'); return fin(); }
   await tap('Return');
   let d = await LB();
-  if (JSON.stringify(d.filas) === JSON.stringify(['tut0', 'tut1', 'tut2', 'back'])) ok('adentro: las tres etapas (en DEV abiertas) y ATRAS');
+  if (JSON.stringify(d.filas) === JSON.stringify(['tut0', 'tut1', 'tut2', 'tut3', 'back'])) ok('adentro: las cuatro etapas (en DEV abiertas) y ATRAS');
   else bad('filas del tutorial: ' + JSON.stringify(d.filas));
   if (d.fila.id === 'tut' && d.fila.k === 0) ok('el cursor arranca en la etapa 1'); else bad('el cursor arranca en ' + JSON.stringify(d.fila));
 
   // LAS ETAPAS, con teclas: el piloto automatico (ver `volar`) — cada una con los pasos que tiene que ver
-  const ETAPAS = [{ k: 0, pasos: 13, nombre: 'la etapa 1 (despegar y volar)' }, { k: 1, pasos: 10, nombre: 'la etapa 2 (pelear)' },
+  const ETAPAS = [{ k: 0, pasos: 14, nombre: 'la etapa 1 (despegar y volar)' }, { k: 1, pasos: 10, nombre: 'la etapa 2 (pelear)' },
     { k: 2, pasos: 9, nombre: 'la etapa 3 (la pasada y la vuelta)' }];
   // TUT_DESDE=<k>: vuela solo desde esa etapa (para iterar sobre una; en DEV estan todas abiertas)
   const DESDE = +process.env.TUT_DESDE || 0;
@@ -70,7 +70,7 @@ app.whenReady().then(async () => {
     if (et.k === 1) { if (r.rotos >= 6) ok(`rompio ${r.rotos} blancos de practica (globos y el Harrier)`); else bad('blancos rotos: ' + r.rotos); }
     d = null;
     for (let i = 0; i < 40; i++) { d = await LB(); if (d.state === 'campmenu') break; await sleep(250); }
-    const sig = Math.min(2, et.k + 1);
+    const sig = Math.min(3, et.k + 1);   // (la etapa 4, LAS ISLAS, no la vuela el fixture: ver tools/ o la sonda)
     if (d && d.state === 'campmenu' && d.fila.id === 'tut' && d.fila.k === sig) ok(`vuelve al tutorial, sobre la etapa ${sig + 1}`);
     else bad('no volvio al tutorial: ' + JSON.stringify(d && { st: d.state, fila: d.fila }));
   }
@@ -173,7 +173,7 @@ async function volar(k) {
     if (clave === 'tutC_momentum') await tap('4', 400);
     if (clave === 'tutC_chancha') await tap('J', 400);
     if (clave === 'tutC_tonel') { await sostener('lado', null); await tap('Left', 70); await tap('Left', 70); await tap('Left', 600); }
-    if (clave === 'tutC_sal') await sostener('alt', s.alt < 485 ? 'W' : null);   // adentro de la nube (ALTO.NUBES 480)
+    if (clave === 'tutC_sal' || clave === 'tutC_hielo') await sostener('alt', s.alt < 485 ? 'W' : null);   // adentro de la nube (ALTO.NUBES 480)
     else if (clave === 'tutC_subi' || clave === 'tutC_radarSube') await sostener('alt', 'W');
     else if (clave === 'tutC_baja' || clave === 'tutC_radarBaja') await sostener('alt', 'S');
     else if (b && clave) {

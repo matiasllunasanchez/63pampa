@@ -2575,6 +2575,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (!TUTORIAL_ETAPAS[k]) return;
       libro = { k, av: null, tut: true };
       gameMode = 'cycle'; S.test = false;
+      // LA ETAPA 4 (20/11) se vuela sobre LAS ISLAS; las otras, en el pasillo (y apagan las islas que hubiera dejado PRUEBAS)
+      islas.activar(!!TUTORIAL_ETAPAS[k].islas, true);
       // (18/11, "no arranco despegando"): el arranque que CICLO se guarda mientras encadena blancos en vuelo no
       // puede colarse aca — el reset lo devolvia DESPUES de que la etapa pidiera pista, y se arrancaba volando
       startCiclo = null;
@@ -5541,7 +5543,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         mv: run.mv || null, bombasVuelo: pmissiles.filter(p => !p.tanque).length, climaxHecho: !!run.climaxHecho,
         faltan: objectiveDist > 0 ? (objectiveDist - run.dist) / objectiveDist : 1, aterrizando: S.state === 'landing', tren: landDown, aterrizo: tutAterrizo,
         pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), chancha: chancha.enCurso(),
-        aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0,
+        aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0, hielo: run.hielo || 0,
+        marca: islas.marcado(), objIslas: !!islas.objetivoDe() && !islas.objetivoDe().vivo,
         radio: radioVis() }, SCENES);
       if (!a) return;
       const decirLn = ln => ln && decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
@@ -5569,6 +5572,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (a.paso.abre) {
           paused = true; pauseSel = 0; pauseView = 'controls'; pauseMsgT = -9;
           ctrlTab = Math.max(0, CTRL_CATEGORIAS.findIndex(c => c.id === a.paso.abre));
+          if (a.paso.abre === 'mapa') { pauseView = 'mapa'; mapaCur = null; }   // LAS ISLAS: el MAPA de la pausa (marcar)
           engineOff(); beep(430, 0.07, 'square', 0.05, -80);
         }
       }
@@ -6664,8 +6668,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       squad.gastoLider(fuelAntes - run.fuel);
       // LA SAL EN EL PARABRISAS (17/11): pega volando bajo sobre el mar, se va volando alto; el M-60 la evita
       // EL FRIO EN EL PASILLO (systems/frio.js): la temperatura del cielo y la altura, el hielo en las nubes o la
-      // lluvia, el cañon que se traba, la turbulencia del frente frio. (Las islas lo hacen con su clima; el tutorial no)
-      if (!islas.enPasillo() && !(libro && libro.tut)) {
+      // lluvia, el cañon que se traba, la turbulencia del frente frio. (Las islas lo hacen con su clima.) EL TUTORIAL TAMBIEN (20/11, el autor: "meter las
+      // nuevas mecanicas de clima y frio"): la etapa 1 enseña el hielo que se junta en la nube
+      if (!islas.enPasillo()) {
         const y = plane.y, nub = Math.abs(y - ALTO.NUBES) < ALTO.ESPESOR, seco = y >= ALTO.NUBES + ALTO.ESPESOR;
         frio.paso(dt, { temp: frio.tempPasillo(cfg, y), enNube: nub, seco, rasante: y < 40 && run.sobreAgua,
           humedo: nub || cfg.rain > 0 || (!!cfg.fog && y < 40), sacude: cfg.sky === 'storm' ? 1 : cfg.rain >= 2 ? 0.5 : 0 });
@@ -6701,7 +6706,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LAS ISLAS: el rumbo y el suelo real, despues del vuelo de siempre (no hace nada fuera de ellas)
       { const mi = islas.pasoPasillo(dt); if (mi) { onDeath(mi); return; } }
       // LAS ISLAS: la base cayo y paso el festejo → la mision termina y se vuelve a PRUEBAS
-      if (islas.misionCumplida()) { freezeRun(); engineOff(); salirTest(); return; }
+      // (en el TUTORIAL no: la base rota es un paso, y la etapa la cierra su ultimo paso)
+      if (islas.misionCumplida() && !(libro && libro.tut)) { freezeRun(); engineOff(); salirTest(); return; }
       // SECO (V6, rehecho 25/9): relevo con "me quede sin combustible", o eyeccion si era el ultimo
       // LAS ISLAS (19/11, el autor: "se quedo sin nafta y exploto… debe caer y estrellarse y quiza yo como jugador
       // puedo eyectarlo para salvarlo"): sin relevo ni estallido — el motor se apaga, el gas no sube y el avion

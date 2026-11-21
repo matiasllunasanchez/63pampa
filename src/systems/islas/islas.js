@@ -5,8 +5,8 @@
 // (mundo.js + terreno3d.js), sus tres vistas (camara.js) y el A-4B de Blender como malla (avion3d.js).
 // Lo que este archivo agrega al pasillo esta explicado abajo, en `pasoPasillo`.
 //
-// SE ENTRA SOLO POR PRUEBAS (data/pruebas.js → sonda __malvinas → POR LA PATRIA). Nada del menu normal ni
-// de la campaña pasa por aca: `enPasillo()` exige S.test.
+// SE ENTRA POR PRUEBAS (data/pruebas.js → sonda __malvinas → POR LA PATRIA) y por la ETAPA 4 DEL TUTORIAL
+// (`activar(true, true)`). Nada mas del menu normal ni de la campaña pasa por aca: `enPasillo()` exige una de las dos.
 //
 // EL LUGAR MAS CERCANO aparece en pantalla al acercarse (orientacion sin flechas). Los nombres son los que
 // usa Dusk Patrol para 1982 y estan A VERIFICAR (ver LUGARES).
@@ -69,7 +69,7 @@ const LUGAR_R = 6000;
 // `radar`: LA LLAVE DEL RADAR DE LAS ISLAS (19/11, el autor: "la mecanica de radar tiene que estar en las
 // islas, activable o desactivable segun mision"). Prendido es la del pasillo tal cual; apagado, la barra
 // no carga y no sale ningun misil. Hasta que haya misiones en las islas la pone PRUEBAS (`__malvinas`).
-const I = { on: false, puesto: false, lugar: null, avisoT: 0, ir: null, radar: true };
+const I = { on: false, puesto: false, lugar: null, avisoT: 0, ir: null, radar: true, tut: false };
 // LA MARCA DEL JUGADOR (autor 19/11: "marcar objetivo en mapa con cursor de mouse y con joystick… el que quiera
 // el usuario… y seleccionar puntos existentes"): un punto cualquiera del mapa, o un lugar/base/buque elegido en
 // el MAPA de la pausa. Manda sobre la BASE COSTERA: la brujula y la marca del pasillo la señalan a ella.
@@ -84,8 +84,10 @@ export const listo = () => mundo.listo();
 export const progreso = () => mundo.progreso();
 
 /** Prende (o apaga) las islas para la PROXIMA entrada al arena, y empieza a cargar el mundo. */
-export function activar(on = true) {
-  I.on = !!on; I.puesto = false; I.lugar = null;
+// `tut`: LA ETAPA 4 DEL TUTORIAL (20/11, el autor: "otra etapa que es cuando llega a la isla"): la unica puerta a
+// las islas que no es PRUEBAS. Sin ella `enPasillo()` sigue exigiendo S.test.
+export function activar(on = true, tut = false) {
+  I.on = !!on; I.tut = !!on && !!tut; I.puesto = false; I.lugar = null;
   objetivo.reiniciar(); teatro.reiniciar(); MARCA.on = false; clima.reiniciar(); frio.reiniciar();
   if (I.on) mundo.cargar();
   return I.on;
@@ -169,7 +171,7 @@ const GIRO_T = 0.35;          // segundos en que el giro llega a lo que pide la 
 const VX_FONDO = 30;          // la velocidad de costado del pasillo con A/D apretada a fondo
 
 /** ¿Las islas estan corriendo sobre el pasillo AHORA? Solo desde PRUEBAS (S.test) y en el vuelo. */
-export const enPasillo = () => I.on && !!S.test && (S.state === 'play' || S.state === 'relevo' || S.state === 'dead');
+export const enPasillo = () => I.on && (!!S.test || I.tut) && (S.state === 'play' || S.state === 'relevo' || S.state === 'dead');
 /** ¿Se esta mirando con LA CAMARA DEL PASILLO? (autor, 19/11: "TODO debe parecerse MUCHISIMO a pasillo").
  *  La vista de atras y la cabina son la camara exacta del pasillo —`proj()`: focal 135, horizonte en la fila
  *  96, el avion 14 m adelante (1,6 en cabina)— con el sprite del pasillo, sus efectos, su giro de mundo. Solo
@@ -389,6 +391,8 @@ export function marcar(u, v, n) {
   MARCA.g = Math.max(mundo.sueloH(MARCA.x, MARCA.z), 0); MARCA.n = n; MARCA.on = true;
 }
 export function desmarcar() { MARCA.on = false; }
+/** ¿Hay un punto marcado en el mapa? (el tutorial: el paso del MAPA) */
+export const marcado = () => MARCA.on;
 
 /** EL MAPA DE DESARROLLO (systems/islas/mapa.js, lo dibuja render/islas_mapa.js): la imagen y lo de este cuadro.
  *  `cursor` = { u, v } o null. */
