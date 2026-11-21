@@ -117,7 +117,7 @@ va como `PENDIENTE`. **Ninguno nombra personas.**
   cuatro MK-82 del A-4Q (se cuelga una bomba). El rótulo dice la carga real.
 - **La MK-82 Snakeye**: la Ardent vuela con la BRP-250, que es la bomba con cola retardadora que existe.
 - **La antiaérea propia de Pradera del Ganso** en la vuelta de la Glasgow.
-- **El Neptune** que pasa los datos del Sheffield: va en el contexto, no hay radio propuesta.
+- **El Neptune** que pasa los datos del Sheffield: **desde el 21/11/2026 es la PARTE 1 de la misión del Sheffield** (decisión del autor: *"Es una mision de 2 partes"*). Se vuela el Neptune, se encuentra la flota y la fijación pasa a la parte 2, el ataque con los Super Étendard. Detalle en `MISIONES_SUELTAS.md`, S-02.
 - **El pasillo que se abre en tres** (la Ardent) y **el rebote** de la bomba (la Plymouth).
 - **Las líneas de radio que no son citas**: no hay ninguna. Si querés radio en la ida (el Neptune, la
   cita con el Hércules), proponela y la pongo.

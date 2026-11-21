@@ -131,6 +131,17 @@ un video, con el avión visto desde arriba sobre las islas).
 **✅ El hecho (17/10): el Neptune del 4 de mayo.** Va en el **Libro de vuelo, justo antes del
 Sheffield**: primero encontrás la flota, después la atacás con el Super Étendard.
 
+**✅ DECIDIDO (21/11/2026): es la PARTE 1 del Sheffield, no una misión aparte.**
+
+> *"el NEPTUNE es parte de la mision de sheffield entonces."* · *"Es una mision de 2 partes"*
+
+- **El Sheffield (4/5) = una misión en dos partes, el mismo día.** Parte 1: el Neptune encuentra la
+  flota y pasa la fijación. Parte 2: los dos Super Étendard atacan (lo que ya está en el juego, `r1`).
+- **Lo que consigue la parte 1 pasa a la parte 2:** cuanto mejor la fijación, más cerca del blanco
+  deja el briefing del Super Étendard.
+- El Libro de vuelo pasa de **19 a 18 misiones**.
+- **Falta en el código:** el avión Neptune (`data/planes.js`) y la parte 1 dentro de `r1`.
+
 > *"Ok entonces primero la de sheffield ponemos una mision del neptune primero, deberiamos ir
 > rasante y cada tanto subir? o como deberia ser?"*
 
@@ -187,7 +198,8 @@ justo lo que te delata.** Asomarse, barrer, bajar antes de que te encuentren.
 · 2). Así pasó el 4 de mayo con el Sheffield, según lo que recuerdo — **falta confirmarlo con
 fuentes**. Esta misión es la que hace posible M4.
 
-**🔵 Para decidir:** cuándo se desbloquea, y si va atada a una fecha real.
+~~**🔵 Para decidir:** cuándo se desbloquea, y si va atada a una fecha real.~~ → Resuelto el 21/11:
+va dentro del Sheffield, como parte 1.
 
 ---
 
@@ -716,7 +728,12 @@ bruma**. Su última comunicación es una pregunta:
 > **«¿Me pueden decir dónde estoy?»**
 
 **Se vuela el Pucará**, como S-07, con niebla cerrada. Es la cita real de un piloto que no volvió:
-**va palabra por palabra**, y hay que chequearla con una fuente argentina antes de usarla.
+**va palabra por palabra**.
+
+**Fuente de la frase (21/11/2026):** el documental *Malvinas día por día*. El autor lo toma como fuente
+confiable: **se puede usar**. No aparece en las fuentes escritas consultadas (Presidencia, Fundación
+Malvinas); si aparece una, se suma. Las fuentes escritas dicen **nubes muy bajas**, no niebla, y que el
+avión chocó contra un cerro; sus restos aparecieron en 1986.
 
 ---
 
