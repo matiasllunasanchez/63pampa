@@ -89,6 +89,11 @@ def marcas(raiz, mat, x, y, z, r, n=24):
         o.location = (x + math.sin(a) * rr, y + math.cos(a) * rr, z)
         o.rotation_euler = (0, 0, -a)
 
+# LOS RELOJES DE RELLENO ANDAN (20/11, el autor: "las agujas que no tienen indicador y son solo relleno, que se muevan,
+# tiemblen y cada tanto bajen o suban"): se hornean SIN aguja y se anotan aca; el juego les pone la aguja viva
+# (render/cabina.js, con la ancla `deco` de cada uno)
+DECO = []
+
 def reloj_hundido(raiz, m, x, y, r, vivo):
     """Un reloj REDONDO hundido en el tablero: el aro, la esfera negra y (si es decorativo) sus marcas y
     una aguja. Los vivos quedan con la esfera limpia: la aguja y las marcas las pone el juego."""
@@ -96,9 +101,7 @@ def reloj_hundido(raiz, m, x, y, r, vivo):
     cilindro_z('esfera', raiz, m['esfera'], (x, y, Z_TABLERO + 0.0065), r, 0.002, seg=28)
     if not vivo:
         marcas(raiz, m['marca'], x, y, Z_TABLERO + 0.0085, r)
-        o = caja('aguja', (0, 0, 0), (r * 0.06, r * 0.75, 0.002), raiz, m['marca'])
-        a = (x * 37 + y * 11) % 6.28
-        o.location = (x + math.sin(a) * r * 0.32, y + math.cos(a) * r * 0.32, Z_TABLERO + 0.009); o.rotation_euler = (0, 0, -a)
+        DECO.append((x, y, r))
 
 def franjas(raiz, m, c, w, h):
     """Un rotulo de EMERGENCIA: chapa amarilla con franjas negras en diagonal."""
@@ -605,6 +608,10 @@ def anclas(cam):
     x0, y0 = px((ex - ew / 2, ey + eh / 2, Z_TABLERO + 0.0075)); x1, y1 = px((ex + ew / 2, ey - eh / 2, Z_TABLERO + 0.0075))
     out['rack'] = [round(x0, 2), round(y0, 2), round(x1, 2), round(y1, 2)]
     out['colimador'] = [round(v, 2) for v in px((0, -0.01, -0.52))]
+    out['deco'] = []
+    for (x, y, r) in DECO:
+        cx, cy = px((x, y, Z_TABLERO + 0.0075)); ex, _ = px((x + r, y, Z_TABLERO + 0.0075))
+        out['deco'].append([round(cx, 2), round(cy, 2), round(ex - cx, 2)])
     return out
 
 if __name__ == '__main__':

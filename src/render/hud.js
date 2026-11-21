@@ -1910,6 +1910,24 @@ export function anchoSquad() {
 // EL RELOJ DEL TALLER (16/11, el autor: "avion gris atras, tuerca completamente naranja sin opacidad, circulo
 // con opacidad al 50%"): encima del avion, un circulo naranja a media luz que se llena en sentido horario de 0
 // a `f` (1 = listo), y el engranaje naranja macizo al medio.
+/** LA CHANCHA EN LAS ISLAS: su silueta con un aro que se llena (como el relojito del taller), el aro en `col`, y lo
+ *  que falta al costado. Arriba de la nafta; en cabina, en el relojito de la Chancha del tablero. */
+function chanchaIcono(f, col, txt, lista) {
+  const an = enCabina() ? CABINA_ANCLAS.chancha : null;
+  const cx = an ? an[0] / U : X_NAFTA + CUADRO / 2, cy = an ? an[1] / U : CUADROS_Y - 11, R = an ? an[2] / U : 7;
+  ctx.save();
+  if (!an) { ctx.globalAlpha = 0.75; ctx.fillStyle = '#0a0e11'; ctx.beginPath(); ctx.arc(cx, cy, R + 1.5, 0, Math.PI * 2); ctx.fill(); }
+  ctx.globalAlpha = 0.45; ctx.lineWidth = 1; ctx.strokeStyle = col;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = lista ? 0.65 + 0.35 * Math.sin(run.t * 6) : 1;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, Math.min(1, f))); ctx.stroke();
+  ctx.globalAlpha = 1;
+  iconoEn(cx, cy, 'chancha', col);
+  if (txt) { ctx.font = uiFont(NUMEROS.fam, 4.5, ''); ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.fillText(txt, cx + R + 2.5, cy + 2); }
+  ctx.restore();
+}
+
 function relojTaller(cx, cy, f) {
   const R = 4, NAR = P.accent;
   ctx.save();
@@ -2858,6 +2876,16 @@ export function drawHUD(h) {
     // RESERVA, que baja mientras te pasa nafta. Antes mostraba TU tanque, y un numero de la Chancha
     // que subia no se entendia.
     const suReserva = !!ch && ch.conn;
+    // LAS ISLAS (20/11, el autor: "la Chancha no hace falta que sea un indicador asi, puede ser solo un icono que va
+    // cargando como cuando esta en reparacion el avion, y en otro lado"): la silueta con su aro que se llena, arriba de
+    // la nafta (en cabina, en su relojito del tablero)
+    if (h.chIslas != null) {
+      const f = suReserva ? ch.reserva : enCita ? 1 : cv;
+      const txt = enCita ? (ch.fase === 'eta' ? (ch.espera ? '' : Math.ceil(ch.eta) + 's') : ch.conn ? Math.round(ch.reserva * 100) + '%' : '')
+        : lista ? '' : h.chIslasS + 's';
+      chanchaIcono(f, lista ? verde : enCita ? P.accent : P.dim, txt, lista);
+      donde.chancha = [X_NAFTA + CUADRO / 2, CUADROS_Y - 11];
+    } else
     reloj(xCha, CUADROS_Y, conFalla({
       // la de la IDA planificada no depende de la barra: aguja al tope y LISTA, aunque la barra este baja
       val: suReserva ? ch.reserva : gastada ? 0 : h.chIdaLista ? 1 : cv, ico: 'chancha', fin: 'emergencia',
@@ -2872,7 +2900,7 @@ export function drawHUD(h) {
         : ch.conn ? Math.round(ch.reserva * 100) + '%' : ch.espera ? '--' : Math.ceil(Math.max(0, ch.win)) + 's')
         : h.chIdaLista || (h.chIslas != null && cv >= 1) ? T('ch_lista') : h.chIslas != null ? h.chIslasS + 's' : Math.round(cv * 100) + '%',
       txtCol: lista ? verde : ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim }, gCh));
-    marcaFalla(xCha, CUADROS_Y, gCh);
+    if (h.chIslas == null) marcaFalla(xCha, CUADROS_Y, gCh);
   }
 
   // ---- EL RADAR PROPIO (15/10, data/radar_propio.js): solo en los aviones que lo llevan ------------
