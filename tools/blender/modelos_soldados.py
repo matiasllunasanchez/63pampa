@@ -266,3 +266,18 @@ def cupula(T, K, bando='arg'):
     bloque('bolso', g, K['mat_cel']('bolso', '#4f5638'), (0, YK, 0), (0.5, 0.3, 0.36), bisel=0.04)
     pieza('franja_bolso', g, K['mat_cel']('franja_bolso', '#d8b62a'), (0.52, 0.08, 0.38), (0, YK + 0.12, 0))
     return g
+
+# ============================ LAS ISLAS: LOS SOLDADOS CON VIDA (21/11) ============================
+# El autor: "pone algunos corriendo y haciendo cosas, darle un poco mas de vida". Las mallas sueltas que exporta
+# exportar_malla.py (`--modulo soldados --modelo <nombre>`, sin argumentos): tres cuadros del paso para que la
+# carrera se anime (systems/islas/teatro3d.js los alterna), el mismo con una CAJA en brazos (los que cargan
+# entre el deposito y el camion) y el CUERPO A TIERRA, cada uno britanico y argentino.
+def _con_caja(T, K, paso, bando):
+    g = soldado_corre(T, K, paso, '0', bando)
+    bloque('caja', g, K['mat_cel']('caja', '#8a6a3a'), (-0.30, Y_CADERA + 0.30, 0), (0.34, 0.30, 0.42), bisel=0.02)
+    return g
+for _b in ('brit', 'arg'):
+    for _p in ('0', '2', '4'):
+        globals()['isl_corre_%s_%s' % (_b, _p)] = (lambda b, p: lambda T, K: soldado_corre(T, K, p, '0', b))(_b, _p)
+        globals()['isl_carga_%s_%s' % (_b, _p)] = (lambda b, p: lambda T, K: _con_caja(T, K, p, b))(_b, _p)
+    globals()['isl_tierra_%s' % _b] = (lambda b: lambda T, K: soldado_tierra(T, K, '0', b))(_b)

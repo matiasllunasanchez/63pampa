@@ -83,8 +83,9 @@ float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
   return mix(mix(a,b,f.x), mix(c,d,f.x), f.y); }
 float stepq(float v, float n, float b){ float f = clamp(v,0.0,1.0)*n; float i = floor(f); float fr = f - i;
   return min(i + step(b, smoothstep(0.32, 0.68, fr)), n)/n; }
-const vec3 SUNT = vec3(0.98, 0.98, 0.95);   // overcast: light is diffuse, cool and nearly white
-const vec3 SHDT = vec3(0.50, 0.53, 0.60);
+const vec3 SUNT = vec3(1.03, 1.00, 0.95);   // overcast: light is diffuse; el lado del sol apenas calido
+const vec3 SHDT = vec3(0.42, 0.42, 0.51);   // la sombra fria, mas honda (21/11: profundidad)
+#define RELUZ 2.1                           // exageracion de la pendiente SOLO para la luz (no la geometria)
 
 ${mundo.DET_AMP_GLSL}
 vec2 muv(vec2 xz){ return (xz + uOrg)/uMap; }
@@ -219,12 +220,34 @@ vec3 shadeLand(vec3 p, float t, float b){
     // el GRANO del suelo
     alb *= 1.0 + (hash12(floor(p.xz/0.7)) - 0.5)*0.18*cerca;
   }
-  // overcast light: mostly from the sky dome, a weak directional part, soft baked shadows
-  float dif = clamp(dot(n, uSun)*1.3 + 0.4, 0.0, 1.0);
-  float L = (0.5*dif + 0.5*n.y) * mix(0.6, 1.0, hs.a) * cloudSh(p) * jetSh(p);
+  // EL RELIEVE EN LA LUZ (21/11, el autor: "dale mas profundidad al terreno, parece muy plano muy PISO"). Las
+  // laderas de Malvinas son suaves (el mapa es de 125 m): con la normal real todo mira al cielo y la luz sale
+  // pareja. La LUZ usa una normal con la pendiente exagerada (RELUZ); la geometria y mundo.sueloH no cambian.
+  vec2 gL = -cn.xz/cn.y*RELUZ + a*dd.gb*1.6;
+  vec3 nl = normalize(vec3(-gL.x, 1.0, -gL.y));
+  // la oclusion grande: el fondo de los valles se apaga, las lomas y crestas se aclaran (curvatura del mapa)
+  float hc = hs.r, R1 = 260.0, R2 = 720.0;
+  float m1 = textureLod(uHeight, muv(p.xz + vec2(R1, 0.0)), 0.0).r + textureLod(uHeight, muv(p.xz - vec2(R1, 0.0)), 0.0).r
+           + textureLod(uHeight, muv(p.xz + vec2(0.0, R1)), 0.0).r + textureLod(uHeight, muv(p.xz - vec2(0.0, R1)), 0.0).r;
+  float m2 = textureLod(uHeight, muv(p.xz + vec2(R2, R2)*0.707), 0.0).r + textureLod(uHeight, muv(p.xz - vec2(R2, R2)*0.707), 0.0).r
+           + textureLod(uHeight, muv(p.xz + vec2(R2, -R2)*0.707), 0.0).r + textureLod(uHeight, muv(p.xz - vec2(R2, -R2)*0.707), 0.0).r;
+  float cav = clamp((hc - (m1*0.6 + m2*0.4)*0.25)/45.0, -1.0, 1.0);   // + loma, − hondonada
+  float ao = 1.0 + 0.14*max(cav, 0.0) - 0.34*max(-cav, 0.0);
+  // color por ALTURA: la turba del bajo mas oscura y calida, el alto mas gris y palido (se lee el desnivel)
+  float hk = smoothstep(15.0, 650.0, h);
+  alb *= mix(vec3(1.0), mix(vec3(0.91, 0.89, 0.87), vec3(1.04, 1.04, 1.07), hk), 1.0 - snow);   // (la nieve no se tine)
+  // la piedra de las laderas empinadas (con la pendiente de la luz: los rios de piedra bajan por ahi)
+  float roca2 = smoothstep(0.20, 0.36, (1.0 - nl.y) + (nz - 0.5)*0.10) * smoothstep(60.0, 200.0, h) * (1.0 - snow);
+  alb = mix(alb, mix(vec3(0.56,0.57,0.60), vec3(0.44,0.45,0.50), nz2), roca2*0.55*(1.0 - cerca*0.4));
+  // sol bajo de mayo detras del manto: un costado claro y calido, el otro frio; el temporal lo apaga a medias,
+  // el despejado lo prende
+  float key = (1.0 - 0.45*uOscuro) * (1.0 + 0.35*clamp(-uNubes*2.5, 0.0, 1.0));
+  float dl = dot(nl, uSun) - uSun.y;                                     // 0 en el llano
+  float dif = clamp(0.56 + dl*2.4*key, 0.0, 1.0);
+  float L = (0.72*dif + 0.28*nl.y) * ao * mix(0.42, 1.0, hs.a) * cloudSh(p) * jetSh(p);
   float ter = fract(h/18.0);
   L *= 1.0 - 0.14*smoothstep(0.02, 0.1, slope)*step(0.82, ter);
-  L = stepq(L, 4.0, b);
+  L = stepq(L*1.08, 5.0, b);
   return mix(alb*SHDT, alb*SUNT, L);
 }
 // LAS OLAS (autor, 19/11: "no hay olas, el agua parece un piso"): una superficie de verdad, no el plano
@@ -312,6 +335,9 @@ void main(){
   float tMax = min(FARD, tW);
   float t = 0.0;
   bool hitL = false;
+  // EL CONTORNO DE LAS CRESTAS: el rayo que roza una loma y sigue de largo (pega mas lejos, en el mar o en el
+  // cielo) es el borde de esa loma. Se guarda el roce mas fino (altura sobre el suelo / distancia) y donde fue.
+  float mnr = 1e9, tmn = 0.0;
   if (ro.y > uHMax) t = rd.y < -1e-5 ? (ro.y - uHMax)/(-rd.y) : 1e9;
   if (t < tMax) {
     float tp = t;
@@ -319,6 +345,7 @@ void main(){
       vec3 p = ro + rd*t;
       float d = p.y - hgt(p.xz);
       if (d < 0.0) { hitL = true; break; }
+      if (t > 40.0 && d/t < mnr) { mnr = d/t; tmn = t; }
       if (p.y > uHMax && rd.y > 0.0) break;
       tp = t;
       t += max(d*0.42, 0.35 + t*0.0016);
@@ -359,13 +386,24 @@ void main(){
     hp = ro + rd*t; col = shadeWater(hp, rd, t, b); tHit = t;
   }
   else col = sky(rd, b);
+  // el contorno: oscurece el pixel si una loma mas cerca lo rozo a menos de ~1,5 pixel (solo si lo de atras
+  // esta bastante mas lejos: no es la misma ladera). Se nubla con la distancia de la loma, no la del fondo.
+  float edge = 0.0;
+  if (tc > 1e8 && tmn > 0.0 && mnr < 1.6/uFoc && tmn < 7000.0 && (!hitL || t > tmn*1.3 + 80.0)) {
+    float fe = 1.0 - exp(-tmn*0.00032*uBruma);
+    edge = (1.0 - fe) * 0.55;
+  }
   if (tHit < 1e8) {
     float avgY = max(0.5*(ro.y + hp.y), 0.0);
-    float fd = 1.0 - exp(-tHit*0.00032*uBruma*exp(-avgY/2200.0));
+    // LA PERSPECTIVA AEREA POR ALTURA (21/11): el bajo y el mar se nublan antes que las cumbres, asi los planos
+    // se separan (la loma de adelante recortada contra el valle brumoso de atras)
+    float hf = mix(0.40, 1.25, exp(-max(hp.y, 0.0)/200.0));
+    float fd = 1.0 - exp(-tHit*0.00032*uBruma*hf*exp(-avgY/2200.0));
     fd = max(fd, smoothstep(8000.0/max(uBruma, 0.6), FARD/max(uBruma*0.8, 0.6), tHit));
     col = mix(col, hazeCol(rd), fd);
     gl_FragDepth = depthFor(tHit, rd);
   } else gl_FragDepth = 1.0;
+  col = mix(col, col*vec3(0.42, 0.40, 0.50), edge);
   // (la luz del cielo cubierto se apaga con el temporal; el relampago la prende de golpe)
   col *= 1.0 - 0.28*uOscuro;
   col = mix(col, vec3(0.92, 0.94, 1.0), uFlash*0.55);

@@ -21,6 +21,11 @@ export const TILE = 10240, N = 1024, CN = 512;   // periodo (m) y resolucion del
 export const MAP_NX = ISLAS_DEM.nx, MAP_NZ = ISLAS_DEM.nz, MAP_CELL = ISLAS_DEM.cell;
 export const MAP_W = MAP_NX * MAP_CELL, MAP_D = MAP_NZ * MAP_CELL;
 const SEA_FLOOR_M = -150;
+// EL RELIEVE EXAGERADO (21/11, el autor: "parece muy plano muy PISO"): los cerros de Malvinas son lomas de 125 m por
+// texel con laderas suaves; volando a 150 m se leian chatos. La tierra (h > 0) se estira EXAG en vertical UNA vez, al
+// decodificar: el dibujo, las sombras horneadas, la fisica (sueloH) y el mapa leen el mismo numero. La costa (h = 0)
+// y el fondo del mar no se mueven. Monte Usborne: 705 m reales → ~950 en el juego.
+export const EXAG = 1.35;
 // EL SOL DE MAYO: bajo y al norte, detras del manto de nubes (el de Dusk Patrol). Ilumina poco y de
 // costado; lo que mas se nota de el son las sombras horneadas de los cerros.
 export const SUN = (() => { const v = [-0.913, 0.191, 0.353], l = Math.hypot(...v); return v.map(c => c / l); })();
@@ -113,7 +118,7 @@ async function decodeDEM() {
     const k = j * nx + i, zz = raw[k] | (raw[n + k] << 8), r = zz & 1 ? -((zz + 1) >> 1) : zz >> 1;
     const l = i ? V[k - 1] : 0, u = j ? V[k - nx] : 0, ul = i && j ? V[k - nx - 1] : 0;
     V[k] = r + (i && j ? l + u - ul : i ? l : u);
-    H[k] = V[k] * q;
+    H[k] = V[k] * q; if (H[k] > 0) H[k] *= EXAG;
   }
   return H;
 }

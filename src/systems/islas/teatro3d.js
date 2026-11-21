@@ -8,6 +8,7 @@
 //
 // De lejos se apagan (LEJOS): los soldados primero; los buques, lo ultimo.
 import { grupoDe } from './avion3d.js';
+import { pose } from './soldados.js';
 
 const MEDIDA = { harrier: 14.5, t21: 117, t42: 125, log: 126, nido_rapier: 12, manpad: 6, camion_aa: 9, radar: 9, carpa: 8,
   deposito: 14, puesto: 8, pucara: 14.25, herc: 29.8 };
@@ -25,6 +26,16 @@ function escala(clave, g) {
   const b = geo.boundingBox, sx = b.max.x - b.min.x, sy = b.max.y - b.min.y, sz = b.max.z - b.min.z;
   K[clave] = ALTO[clave] ? ALTO[clave] / sy : (MEDIDA[clave] || 10) * (EXAGERA[clave] || 1) / Math.max(sx, sz);
   return K[clave];
+}
+// LOS SOLDADOS: todas sus poses a la MISMA escala (la del alto de la carrera, ALTO_SOLDADO): el cuerpo a tierra es bajo
+// y por su alto saldria gigante
+const ALTO_SOLDADO = 4.6, ALTO_MALLA = 2.08;   // (×2,2: mas que la ronda vieja — corriendo, a 100 m, se tienen que leer)
+function grupoSoldado(clave) {
+  const g = grupoDe(clave);
+  if (!g) return null;
+  g.scale.setScalar(ALTO_SOLDADO / ALTO_MALLA); g.rotation.order = 'YXZ'; g.visible = false;
+  escena.add(g);
+  return g;
 }
 /** El grupo de `o` (lo crea cuando su malla llego). */
 function grupo(o, clave) {
@@ -64,18 +75,18 @@ export function frame(sc, E, cazas, cam, cha) {
     // el que se hunde: escora y baja
     g.position.set(b.x, b.vivo ? 0 : -6, b.z); g.rotation.set(0, -b.rot, b.vivo ? 0 : 0.35);
   }
+  // LOS SOLDADOS (systems/islas/soldados.js): uno por uno, con la malla de su pose (la carrera en tres cuadros, con
+  // caja, o cuerpo a tierra); cada pose es un grupo propio que se prende y se apaga (cambiar mallas cada cuadro es basura)
   for (const s of E.soldados) {
-    s.__gs = s.__gs || [];
-    for (let i = 0; i < s.n; i++) {
-      const o = s.__gs[i] || (s.__gs[i] = {});
-      const g = grupo(o, 'soldado_corre');
-      if (!g) continue;
-      const a = s.fase + i * 0.55, x = s.x + Math.cos(a) * s.r, z = s.z + Math.sin(a) * s.r;
-      if (!s.vivo) { g.visible = false; continue; }
-      if (!lejos(g, cam, x, s.g, z, LEJOS.soldado)) continue;
-      // de costado a la ronda: el rumbo es la tangente
-      g.position.set(x, s.g, z); g.rotation.set(0, -Math.atan2(-Math.sin(a), -Math.cos(a)) + Math.PI / 2, 0);
-    }
+    const clave = pose(s);
+    s.__p = s.__p || {};
+    const g = s.__p[clave] || (s.__p[clave] = grupoSoldado(clave));
+    if (s.__vis && s.__vis !== g) s.__vis.visible = false;
+    if (!g) { s.__vis = null; continue; }
+    s.__vis = g;
+    if (!lejos(g, cam, s.x, s.g, s.z, LEJOS.soldado)) continue;
+    // (la malla mira a −x: rotar `π − yaw` la pone mirando a donde va; el caido, un poco torcido)
+    g.position.set(s.x, s.g, s.z); g.rotation.set(0, Math.PI - s.yaw + (s.vivo ? 0 : 0.6), 0);
   }
   for (const c of E.pac) {
     c.__gs = c.__gs || [{}, {}];
@@ -107,7 +118,7 @@ export function frame(sc, E, cazas, cam, cha) {
 export function apagar(E) {
   if (!E) return;
   for (const o of [...E.piezas, ...E.buques]) if (o.__g) o.__g.visible = false;
-  for (const s of E.soldados) for (const o of s.__gs || []) if (o.__g) o.__g.visible = false;
+  for (const s of E.soldados) for (const g of Object.values(s.__p || {})) if (g) g.visible = false;
   for (const c of E.pac) for (const o of c.__gs || []) if (o.__g) o.__g.visible = false;
   for (const o of frame.cazas || []) if (o.__g) o.__g.visible = false;
   if (frame.cha && frame.cha.__g) frame.cha.__g.visible = false;

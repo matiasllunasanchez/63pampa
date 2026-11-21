@@ -22,6 +22,7 @@ import { missiles, pmissiles, bullets } from '../../core/world.js';
 import * as harriers from './harriers.js';
 import { posBomba } from './objetivo.js';
 import { beep, sfxOne } from '../audio.js';
+import * as soldados from './soldados.js';
 
 // LA HUELLA de cada pieza en metros (radio para balas y bombas, alto) y sus golpes
 const HUELLA = {
@@ -43,6 +44,7 @@ export function reiniciar() {
   const fuera = o => { if (o && o.__g && o.__g.parent) o.__g.parent.remove(o.__g); };
   for (const o of [...T.piezas, ...T.buques]) fuera(o);
   for (const x of [...T.soldados, ...T.pac]) for (const o of x.__gs || []) fuera(o);
+  for (const x of T.soldados) for (const g of Object.values(x.__p || {})) if (g.parent) g.parent.remove(g);
   harriers.reiniciar();
   T.armado = false; T.piezas.length = T.buques.length = T.pac.length = T.soldados.length = T.radares.length = 0; T.t = 0; T.bases = [];
   T.zona = { gb: null, arg: null, visto: false }; T.vistoT = 99; T.eventos.length = 0;
@@ -89,14 +91,11 @@ export function armar() {
   for (const b of BASES) {
     const [cx, cz] = mundo.lonLatLocal(b.lon, b.lat);
     const base = { n: b.n, bando: b.bando, x: cx, z: cz, visto: b.bando === 'arg' };
+    const grupos = [];   // (los soldados van despues de las piezas: su tarea depende de lo que hay en la base)
     for (const [tipo, n] of Object.entries(b.piezas)) {
       for (let i = 0; i < n; i++) {
         const a = rnd() * 6.283, d = b.r * (0.25 + 0.75 * Math.sqrt(rnd()));
-        if (tipo === 'soldados') {
-          const p = tierraCerca(cx + Math.cos(a) * d, cz + Math.sin(a) * d, 6, 500);
-          if (p) T.soldados.push({ x: p[0], z: p[1], g: p[2], r: 8 + rnd() * 10, n: 3 + ((rnd() * 3) | 0), fase: rnd() * 6.283, v: 1.6 + rnd() * 0.8, base, vivo: true });
-          continue;
-        }
+        if (tipo === 'soldados') { grupos.push([cx + Math.cos(a) * d, cz + Math.sin(a) * d]); continue; }
         const H = HUELLA[tipo] || { r: 6, h: 4, hp: 2 };
         const p = tierraCerca(cx + Math.cos(a) * d, cz + Math.sin(a) * d, H.r);
         if (!p) continue;
@@ -104,6 +103,8 @@ export function armar() {
           r: H.r, h: H.h, hp: H.hp, vivo: true, cd: 2 + rnd() * ARMA_CD(tipo) });
       }
     }
+    // LOS SOLDADOS (systems/islas/soldados.js): cada grupo con su tarea —ronda, trota, carga, guardia—
+    for (const [x, z] of grupos) soldados.crear(T.soldados, { base, x, z, r: b.r, bando: b.bando, piezas: T.piezas, rnd, tierra: tierraCerca });
     T.bases = T.bases || []; T.bases.push(base);
   }
   for (const s of BUQUES) {
@@ -268,8 +269,8 @@ export function paso(dt, P, pz, boom, jugando) {
   }
   // ---- LAS BASES que pasaste cerca quedan en el mapa ----
   for (const b of T.bases || []) if (!b.visto && Math.hypot(b.x - P.x, b.z - P.z) < 4500) b.visto = true;
-  // ---- LOS SOLDADOS caminan en ronda ----
-  for (const s of T.soldados) s.fase += dt * s.v / s.r;
+  // ---- LOS SOLDADOS: su tarea, y se cubren si pasas bajo ----
+  soldados.paso(T.soldados, dt, P, rnd); T.ultP = P;
   // ---- TUS BALAS sobre el mapa (islas.js las ancla: `__islasB`) ----
   for (const bl of bullets) {
     const q = bl.__islasB;
@@ -280,6 +281,8 @@ export function paso(dt, P, pz, boom, jugando) {
       bl.done = true; golpe(e, 1, boom); break;
     }
     if (bl.done) continue;
+    // (la rafaga contra la gente: el que toca cae, los de cerca corren)
+    if (by < P.g + 60 && soldados.bala(T.soldados, q.x, q.z, by, rnd)) { bl.done = true; continue; }
     for (const b of T.buques) {
       if (!b.vivo || by > b.h + 4) continue;
       if (enCasco(b, q.x, q.z)) { bl.done = true; if (rnd() < 0.15) golpe(b, 1, boom); break; }
@@ -331,7 +334,7 @@ function golpe(e, n, boom, y) {
 /** Una bomba que pego en tierra (islas.js `bombas`): rompe lo que haya en el radio. */
 export function impacto(x, z, boom) {
   for (const e of T.piezas) if (e.vivo && Math.hypot(e.x - x, e.z - z) < e.r + 22) golpe(e, 3, boom);
-  for (const s of T.soldados) if (s.vivo && Math.hypot(s.x - x, s.z - z) < s.r + 25) s.vivo = false;
+  soldados.bomba(T.soldados, x, z, 25, rnd);
 }
 
 /** Lo que dibuja teatro3d.js (y el mapa de la pausa). */
@@ -344,6 +347,13 @@ export const bases = () => (T.armado ? T.bases || [] : []);
 // SONDA (consola y PRUEBAS): cuanto se armo y lo mas cercano a (x, z)
 if (typeof window !== 'undefined') window.__teatroIslas = () => JSON.stringify({ armado: T.armado, piezas: T.piezas.length, buques: T.buques.length,
   pac: T.pac.map(c => c.estado + ':' + c.quedan), soldados: T.soldados.length,
+  soldCerca: T.ultP && T.soldados.length ? Math.min(...T.soldados.map(s => Math.hypot(s.x - T.ultP.x, s.z - T.ultP.z))) | 0 : null, alto: T.ultP && (T.ultP.g + T.ultP.y) | 0,
+  sold: T.soldados.reduce((o, s) => { const k = (s.vivo ? s.est : 'muerto') + '/' + s.tarea; o[k] = (o[k] || 0) + 1; return o; }, {}),
   conGrupo: T.piezas.filter(e => e.__g).length, visibles: T.piezas.filter(e => e.__g && e.__g.visible).length,
   buqueGrupo: T.buques.filter(e => e.__g).length, cerca: T.cerca && [T.cerca.n, T.cerca.d | 0, T.cerca.l | 0, T.cerca.dist | 0],
   ej: T.piezas.slice(0, 2).map(e => [e.tipo, e.x | 0, e.z | 0, e.g | 0]), bq: T.buques.map(e => [e.n, e.x | 0, e.z | 0, !!e.__g, e.__g ? e.__g.visible : null]) });
+// SONDA de los soldados (21/11): donde estan los de una tarea, para ir a mirarlos; y lon/lat → mapa
+if (typeof window !== 'undefined') {
+  window.__soldados = tarea => JSON.stringify(T.soldados.filter(s => !tarea || s.tarea === tarea).slice(0, 6).map(s => [s.x | 0, s.z | 0, s.g | 0, s.est, s.tarea, s.bando, s.caja]));
+  window.__lonLatLocal = (lon, lat) => mundo.lonLatLocal(lon, lat);
+}
