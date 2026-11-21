@@ -810,7 +810,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // (docs/produccion/MUSICA_CAPAS.md) — el banco para escuchar si la musica acompaña al juego.
     const DEV_ROWS = [{ id: 'pruebas' }, { id: 'cines' }, { id: 'maniobras' }, { id: 'misiones' }, { id: 'smallmusica' }];
     const quickRows = () => (subMenu === 'dev' ? DEV_ROWS
-      : [{ id: 'cycle' }, { id: 'survival' }, { id: 'persec' }, { id: 'arena' }, { id: 'pasadas' }]
+      : [{ id: 'cycle' }, { id: 'survival' }, { id: 'persec' }, { id: 'islas' }, { id: 'arena' }, { id: 'pasadas' }]
         .filter(r => !modoEnCuarentena(r.id)))
       .concat([{ id: 'back', back: true }]);
     /** Vuelve de una herramienta del MODO DEV a su submenu, con el cursor en ella. */
@@ -1911,6 +1911,17 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       else if (id === 'arena') goArena();
       else if (id === 'pasadas') goPasadas();
       else if (id === 'persec') goPersec();
+      // SOBREVUELO DE LAS ISLAS (21/11, el autor: "en juego rapido poner sobrevuelo de las islas, como esta ahora
+      // ISLAS PROTOTIPO, con clima y demas aleatorio, y las unidades y las bases de hoy"): el mismo arranque que la
+      // fila de PRUEBAS (con el radar de las zonas), y al salir vuelve a JUEGO RAPIDO
+      else if (id === 'islas') {
+        prbTasks.length = 0; prbTrasAvion = null;
+        islas.activar(false); prbNeutro();
+        S.test = true; testBack = 'quickmenu';
+        beep(700, 0.08, 'square', 0.05);
+        const a = pruebasApi();
+        a.sonda('malvinas', true); a.sonda('malvinas', { radar: true }); a.avion(() => a.patria({ fuelOn: true }));
+      }
       else goSurvival();
     }
     // ---------- LA MISION SUELTA (PLAN_MISIONES_FASES §1, fase S0) ----------

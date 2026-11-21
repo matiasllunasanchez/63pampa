@@ -1055,6 +1055,7 @@ function quickText(r) {
   if (r.id === 'cycle') return { name: T('modeCycle'), desc: T('modeCycleDesc') };
   if (r.id === 'survival') return { name: T('modeSurvival'), desc: T('modeSurvivalDesc') };
   if (r.id === 'persec') return { name: T('modePersec'), desc: T('modePersecDesc') };
+  if (r.id === 'islas') return { name: T('modeIslas'), desc: T('modeIslasDesc') };
   if (r.id === 'arena') return { name: T('modeArena'), desc: T('modeArenaDesc') };
   // las cuatro del MODO DEV: los mismos rotulos que tenian en el menu principal
   if (r.id === 'pruebas') return { name: T('modePruebas'), desc: T('modePruebasDesc') };

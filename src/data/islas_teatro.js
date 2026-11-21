@@ -101,15 +101,18 @@ export const PAC_VE = 3500;
 // ⚠ A VERIFICAR (docs/historia/PREGUNTAS_HISTORICAS.md): los alcances son de juego, no los reales (el TPS-43
 // veia mucho mas lejos, pero el relieve le tapaba el oeste; el Tipo 965 del Coventry era el piquete de radar).
 export const RADARES = [
-  { n: 'RADAR PUERTO ARGENTINO', bando: 'arg', lon: -57.86, lat: -51.69, r: 55000 },
-  { n: 'HMS COVENTRY', bando: 'gb', buque: 'HMS COVENTRY', r: 38000 },
-  { n: 'HMS BROADSWORD', bando: 'gb', buque: 'HMS BROADSWORD', r: 24000 },
-  { n: 'BAHIA SAN CARLOS', bando: 'gb', lon: -59.07, lat: -51.52, r: 18000 },
+  // (21/11, el autor: "los radares no deben cubrir toda la isla, solo las zonas que realmente cubren"): zonas
+  // acotadas — la nuestra cubre Puerto Argentino y los montes; las de ellos, el Estrecho y la bahia — y entre medio
+  // queda isla sin cubrir
+  { n: 'RADAR PUERTO ARGENTINO', bando: 'arg', lon: -57.86, lat: -51.69, r: 22000 },
+  { n: 'HMS COVENTRY', bando: 'gb', buque: 'HMS COVENTRY', r: 16000 },
+  { n: 'HMS BROADSWORD', bando: 'gb', buque: 'HMS BROADSWORD', r: 11000 },
+  { n: 'BAHIA SAN CARLOS', bando: 'gb', lon: -59.07, lat: -51.52, r: 10000 },
 ];
 // m sobre el suelo: abajo de esto el radar britanico no te ve — EL MISMO TECHO DEL PASILLO (RADAR_ALT, 20/11, el
 // autor: "el efecto del radar debe ser igual a pasillo"); era 45
 export const RADAR_BAJO = RADAR_ALT;
-export const PAC_VECTOR = 30000;   // hasta cuanto viene una PAC cuando el radar te ve
+export const PAC_VECTOR = 22000;   // hasta cuanto viene una PAC cuando el radar te ve
 export const PAC_VEL_VECTOR = 300; // m/s como minimo cuando viene a buscarte (y 1,7 veces la tuya: te alcanza)
 export const PAC_OLVIDA = 10;      // s sin que el radar te vea: la PAC vuelve a su circulo
 export const RAFAGA_ISLAS = 6;     // tiros de cada rafaga de cañon de los Harriers (el pasillo: 2)
