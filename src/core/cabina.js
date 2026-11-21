@@ -29,3 +29,6 @@ export const cabina = {
 /** ¿Se esta mirando desde la cabina AHORA? Solo en el vuelo: los menus, el despegue (la formacion
  *  viene detras del ojo) y las cinematicas siguen en tercera. */
 export const enCabina = () => cabina.on && (S.state === 'play' || S.state === 'relevo' || S.state === 'dead');
+
+// SONDA (21/11, los espejos): la primera persona a mano en el pasillo, para probar y filmar — __primeraPersona(true)
+if (typeof window !== 'undefined') window.__primeraPersona = on => { cabina.on = !!on; return cabina.on; };

@@ -68,6 +68,11 @@ module.exports = [
   // ============ 4. RASANTE Y EL RADAR ============
   // la cabina, rasante sobre el estrecho
   { id: 'cabina', dur: 3.4, ...ISLAS({ lon: -59.30, lat: -51.60, alt: 20, rumbo: 60, vista: 2, radar: false, piloto: 18 }) },
+  // (prueba de los espejos: dos Harriers en la cola, en cabina — no va al trailer: `--solo espejos`)
+  { id: 'espejos', dur: 3.0, ...ISLAS({ lon: -59.30, lat: -51.60, alt: 40, rumbo: 60, vista: 2, radar: false, piloto: 40 }),
+    marcas: [{ t: 0, js: `window.__harrierCola(220)` }], solo: true },
+  { id: 'espejos_pasillo', dur: 3.0, prep: MOMENTO('colaAviso', { alt: 13, vagar: 4, ritmo: 0.6 }), calentar: 4,
+    antes: [{ js: `window.__primeraPersona(true)` }], solo: true },
   // entrando a la Bahia San Carlos: la red del radar de ellos, los buques y lo que te tiran
   { id: 'radar_red', dur: 3.6, ...ISLAS({ lon: -59.125, lat: -51.52, alt: 22, rumbo: 90, vista: 1, radar: true, piloto: 18 }) },
   { id: 'costa', dur: 2.8, prep: MOMENTO('costa', { alt: 10, vagar: 14, ritmo: 0.6 }), calentar: 3.5 },

@@ -579,7 +579,7 @@ def cabina(T, K):
         cinta('espejo_marco', [m['marco']], tramo, 0.058, 0.032, sg)
         # el VIDRIO: una cinta redondeada de punta a punta, el mar abajo y el cielo arriba
         m0 = max(3, int(n_t * 0.04)); vid = tramo[m0:n_t - m0]
-        cinta('espejo_vidrio', [mar_e, cielo_e], vid, 0.044, 0.036, sg, corte=int(len(vid) * 0.42))
+        cinta('espejo_vidrio_' + ('izq' if sg < 0 else 'der'), [mar_e, cielo_e], vid, 0.044, 0.036, sg, corte=int(len(vid) * 0.42))
     # LOS ZOCALOS DEL CANOPY con su acolchado, que bajan desde los costados del parabrisas
     for sg in (-1, 1):
         tubo_curvo('zocalo', raiz, m['marco'], [(sg * 0.42, -0.13, -0.52), (sg * 0.46, -0.16, -0.20), (sg * 0.47, -0.17, 0.05)], 0.04,
@@ -736,5 +736,8 @@ if __name__ == '__main__':
         G['acelerador'].rotation_euler = (-k * ACELERADOR_RECORRIDO, 0, 0)
         foto('acelerador_%d.png' % (k + 1))
     G['acelerador'].rotation_euler = (0, 0, 0)
+    # LOS VIDRIOS DE LOS ESPEJOS, solos: su forma es la MASCARA donde el juego dibuja el reflejo vivo (render/cabina.js)
+    for lado in ('izq', 'der'):
+        solo({o.name for o in todos if o.name.startswith('espejo_vidrio_' + lado)}); foto('espejo_%s.png' % lado)
     json.dump(anclas(cam), open(os.path.join(OUT, 'anclas.json'), 'w'), indent=1)
     print('HORNEADO', OUT)

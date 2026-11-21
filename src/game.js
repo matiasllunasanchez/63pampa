@@ -7791,7 +7791,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           // en primera persona el barrido va ANTES de la cabina — barre el mundo por el vidrio, no la chapa
           // ni el tablero (encima los dejaba corridos y con pinta de agujereados)
           if (!zoomOn) { drawTurbo(); turboHecho = true; drawSalitre(run.sal); drawLavado(run.lavaK || 0); }
-          drawCabina();
+          // LOS ESPEJOS (21/11): en las islas, la camara de atras; en el pasillo, lo que viene de atras puesto a mano —
+          // los Harriers de la cola (caza.js, en el marco de la camara de persecucion: el avion va a PZ_AFUERA) y
+          // los misiles que te pasaron o te persiguen (z detras del avion)
+          const atras = islas.enPasillo() ? arena3D.espejo() : null;
+          const contactos = atras ? null : [
+            ...caza.snapshot().map(h => ({ l: h.x - plane.x, up: h.y - plane.y, d: CABINA.PZ_AFUERA - h.z, bank: h.bank || 0, tipo: 'caza' })),
+            ...missiles.filter(m => !m.done && m.z < PZ).map(m => ({ l: m.x - plane.x, up: (m.y || 0) - plane.y, d: PZ - m.z, tipo: 'misil' })),
+          ];
+          drawCabina(atras, contactos);
           const apunta = proj(plane.x, plane.y + plane.pitch * 5, 70);   // la mira va SOBRE el vidrio
           drawMira(cfg.mira, W / 2 + cm.x, apunta.y + (hzP || 0) + cm.y, 17, 0.9);
         }

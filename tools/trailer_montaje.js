@@ -35,7 +35,7 @@ const TEXTOS = [
 
 // cuando arranca cada plano en el video
 const inicio = {};
-{ let t = 0; for (const p of GUION) { inicio[p.id] = t; t += p.dur; } inicio.__fin = t; }
+{ let t = 0; for (const p of GUION) { if (p.solo) continue; inicio[p.id] = t; t += p.dur; } inicio.__fin = t; }
 
 const HTML = `<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face { font-family: 'OtflagSans'; src: url('../assets/fonts/OtflagSans-Medium.otf'); }

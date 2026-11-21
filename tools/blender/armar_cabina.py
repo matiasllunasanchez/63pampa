@@ -37,6 +37,9 @@ if __name__ == '__main__':
     capas = {
         'palanca': capa(['palanca_%d_%d.png' % (j, i) for j in range(3) for i in range(3)], 3, 'cabina_palanca.png'),
         'acelerador': capa(['acelerador_%d.png' % k for k in range(3)], 3, 'cabina_acelerador.png'),
+        # las mascaras de los espejos (la forma del vidrio): ahi va el reflejo vivo
+        'espejo_izq': capa(['espejo_izq.png'], 1, 'cabina_espejo_izq.png'),
+        'espejo_der': capa(['espejo_der.png'], 1, 'cabina_espejo_der.png'),
     }
     anclas = json.load(open(os.path.join(OUT, 'anclas.json')))
     open(os.path.join(RAIZ, 'src', 'data', 'cabina_anclas.js'), 'w').write(

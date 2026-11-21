@@ -8,7 +8,7 @@
 // ahi los relojes vivos de render/hud.js; hoy el HUD de siempre sigue encima.
 //
 // Sin la imagen (todavia no cargo) no se dibuja cabina: se ve el mundo y el HUD, nada se rompe.
-import { ctx, W, H } from './ctx.js';
+import { ctx, cv, W, H, HOR, SC, F } from './ctx.js';
 import { inp } from '../core/input.js';
 import { run } from '../core/run.js';
 import { CABINA_CAPAS, CABINA_ANCLAS } from '../data/cabina_anclas.js';
@@ -76,11 +76,101 @@ function drawAgujas() {
   ctx.lineCap = 'butt';
 }
 
-export function drawCabina() {
+// LOS ESPEJOS REFLEJAN (21/11, el autor: "deben reflejar lo de atras, se puede?"). No hay una camara para atras —el
+// pasillo dibuja solo hacia adelante—, asi que el reflejo sale del MUNDO YA DIBUJADO: antes de poner la cabina encima
+// se copia una franja vertical de ese lado, con el horizonte a la altura donde el espejo lo tiene, y se dibuja
+// DADA VUELTA, un poco oscurecida (es un vidrio) y recortada con la forma del vidrio (assets/planes/cabina_espejo_*,
+// horneada con la cabina). Asi el espejo cambia con el cielo, el horizonte que rola, el clima y la tierra o el mar.
+const ESPEJO = {};
+for (const [n, src] of [['espejo_izq', '../assets/planes/cabina_espejo_izq.png'], ['espejo_der', '../assets/planes/cabina_espejo_der.png']]) {
+  ESPEJO[n] = { img: new Image(), cv: null };
+  ESPEJO[n].img.src = src;
+}
+const ESPEJO_HOR = 0.58;   // a que altura del vidrio cae el horizonte (el mar abajo, como el horneado)
+const ESPEJO_ZOOM = 1.9;   // cuanto mundo entra: la franja que se copia es este tanto mas grande que el vidrio
+function copiarEspejos(atras, contactos) {
+  for (const n in ESPEJO) {
+    const E = ESPEJO[n], c = CABINA_CAPAS[n];
+    if (!c || !(E.img.complete && E.img.naturalWidth)) { E.listo = false; continue; }
+    if (!E.cv) { E.cv = document.createElement('canvas'); E.cv.width = c.fw; E.cv.height = c.fh; E.cx = E.cv.getContext('2d'); }
+    const x = E.cx, tw = E.cv.width, th = E.cv.height;
+    if (atras) {
+      // EN LAS ISLAS, LA CAMARA DE ATRAS (systems/three-arena.js `espejo`): ya viene dada vuelta; a cada espejo su mitad
+      const izq = n === 'espejo_izq', hw = atras.width / 2;
+      x.save(); x.globalCompositeOperation = 'copy'; x.imageSmoothingEnabled = false;
+      x.drawImage(atras, izq ? 0 : hw, 0, hw, atras.height, 0, 0, tw, th);
+      x.restore();
+      vidrio(E, x, tw, th);
+      continue;
+    }
+    // la franja del mundo: del lado del espejo, mas hacia afuera (lo que queda atras y al costado)
+    const sw = c.w * ESPEJO_ZOOM, sh = c.h * ESPEJO_ZOOM;
+    const sx = c.x + c.w / 2 - sw / 2 + (c.x < W / 2 ? -sw * 0.6 : sw * 0.6), sy = HOR - sh * ESPEJO_HOR;
+    x.save();
+    x.globalCompositeOperation = 'copy'; x.imageSmoothingEnabled = false;
+    x.setTransform(-1, 0, 0, 1, tw, 0);                          // dado vuelta: es un espejo
+    x.drawImage(cv, Math.max(0, sx * SC), Math.max(0, sy * SC), sw * SC, sh * SC, 0, 0, tw, th);
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.restore();
+    // LO QUE VIENE DE ATRAS EN EL PASILLO (los Harriers en tu cola, los misiles): no hay escena para atras, asi que
+    // cada uno se pone a mano con su direccion — `contactos` = [{ l, up, d, tipo }] en metros (d = cuanto atras)
+    for (const k of contactos || []) contacto(x, tw, th, k, n === 'espejo_izq');
+    vidrio(E, x, tw, th);
+  }
+}
+/** Un contacto de atras en el espejo `izq`/der. EL PASILLO ESTA COMPRIMIDO (el Harrier de la cola anda a ~6 m detras y
+ *  25 m al costado): un cono de espejo de verdad no lo agarraria nunca. Asi que cada espejo cubre una FRANJA DE
+ *  COSTADO —el izquierdo lo que viene por la izquierda, el derecho por la derecha, los dos lo de atras al medio— y
+ *  el tamaño crece cuanto mas cerca esta. */
+const ESP_LADO = 14, ESP_ANCHO = 30;   // m: el centro de la franja de cada espejo y cuanto cubre
+function contacto(x, tw, th, k, izq) {
+  if (!(k.d > 0.5)) return;
+  const rel = (k.l - (izq ? -ESP_LADO : ESP_LADO)) / ESP_ANCHO;
+  const px0 = tw / 2 + rel * tw, py0 = th * ESPEJO_HOR - (k.up / ESP_ANCHO) * tw;
+  if (px0 < -8 || px0 > tw + 8 || py0 < -8 || py0 > th + 8) return;
+  const L = Math.min(tw * 0.7, Math.max(3, tw * (k.tipo === 'misil' ? 3 : 9) / (k.d + 10)));
+  x.save(); x.translate(px0, py0); x.rotate(-(k.bank || 0));
+  if (k.tipo === 'misil') {
+    // de frente: la punta clara y el humo que se abre atras de el (para arriba en el espejo no: se queda chico)
+    x.fillStyle = '#e9e4d6'; x.fillRect(-L * 0.25, -L * 0.25, Math.max(1, L * 0.5), Math.max(1, L * 0.5));
+    x.fillStyle = 'rgba(255,170,90,0.85)'; x.fillRect(-L * 0.12, -L * 0.12, Math.max(1, L * 0.24), Math.max(1, L * 0.24));
+  } else {
+    // el Harrier DE FRENTE: las alas, el fuselaje y la deriva, oscuros contra el cielo
+    x.fillStyle = '#23292e';
+    x.fillRect(-L / 2, -Math.max(1, L * 0.05), L, Math.max(1, L * 0.11));
+    x.fillRect(-Math.max(1, L * 0.09), -Math.max(1, L * 0.12), Math.max(2, L * 0.18), Math.max(2, L * 0.22));
+    x.fillRect(-Math.max(0.5, L * 0.03), -Math.max(1.5, L * 0.32), Math.max(1, L * 0.06), Math.max(1.5, L * 0.22));
+  }
+  x.restore();
+}
+function vidrio(E, x, tw, th) {
+    x.save();
+    // el VIDRIO: un poco mas oscuro y frio, y un brillo en diagonal
+    x.fillStyle = 'rgba(18,28,38,0.22)'; x.fillRect(0, 0, tw, th);
+    const g = x.createLinearGradient(0, 0, tw, th * 0.5);
+    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.45, 'rgba(255,255,255,0.10)'); g.addColorStop(0.6, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, tw, th);
+    // la FORMA del vidrio
+    x.globalCompositeOperation = 'destination-in';
+    x.drawImage(E.img, 0, 0, tw, th);
+    x.restore();
+    E.listo = true;
+}
+function drawEspejos() {
+  for (const n in ESPEJO) {
+    const E = ESPEJO[n], c = CABINA_CAPAS[n];
+    if (E.listo) ctx.drawImage(E.cv, c.x, c.y, c.w, c.h);
+  }
+}
+
+/** `atras` = el cuadro de la camara de atras (las islas) o null; `contactos` = lo que viene de atras en el pasillo. */
+export function drawCabina(atras = null, contactos = null) {
   if (!lista()) return;
   const s = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
+  copiarEspejos(atras, contactos);   // (ANTES de la cabina: lo que se copia es el mundo)
   ctx.drawImage(IMG, 0, 0, W, H);
+  drawEspejos();
   drawAgujas();
   drawManos();
   ctx.imageSmoothingEnabled = s;

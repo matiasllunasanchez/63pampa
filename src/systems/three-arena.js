@@ -267,6 +267,12 @@ export function frame(w) {
     teatro3d.frame(A3.scene, teatroEscena(), cazasEnMapa(), A3.cam, arriba ? chanchaEnMapa() : null);
     // (la red desde arriba; en las vistas del pasillo la dibuja el pasillo en 2D: su mar va encima del 3D)
     radar3d.frame(A3.scene, arriba ? radaresEscena() : null, A3.cam, dtI, (x, z) => islasSuelo(x, z));
+    // LOS ESPEJOS DE LA CABINA (21/11, el autor: "en isla deberia" reflejar de verdad): en las islas hay escena 3D,
+    // asi que el espejo es una CAMARA QUE MIRA PARA ATRAS — terreno, buques, los Harriers que te persiguen y sus
+    // misiles—. Un render chico a una textura, leido a un lienzo 2D que render/cabina.js recorta con la forma de
+    // cada vidrio. Solo en cabina (de afuera no hay espejos).
+    A3.espejoOk = false;
+    if (pas && islasCam.vista() === islasCam.CABINA) espejoAtras(rr, w, A);
     islas3d.frame(A3.cam, w, A, res);
     rr.render(A3.scene, A3.cam);
     A3.on = true;
@@ -431,6 +437,43 @@ function mirarCam(A) {
 // ---------- interfaz para el juego ----------
 export function available() { return has3D && !A3.failed; }
 export function isOn() { return A3.on; }
+const ESPEJO_W = 64, ESPEJO_H = 128;   // el cuadro de atras: los dos espejos (altos, 1:4) se reparten su mitad izquierda y derecha
+function espejoAtras(rr, w, A) {
+  if (!A3.espejoRT) {
+    A3.espejoRT = new THREE.WebGLRenderTarget(ESPEJO_W, ESPEJO_H);
+    if ('colorSpace' in A3.espejoRT.texture && THREE.SRGBColorSpace) A3.espejoRT.texture.colorSpace = THREE.SRGBColorSpace;
+    A3.espejoCam = new THREE.PerspectiveCamera(40, ESPEJO_W / ESPEJO_H, 0.5, 16000);
+    A3.espejoPx = new Uint8Array(ESPEJO_W * ESPEJO_H * 4);
+    A3.espejoCv = document.createElement('canvas'); A3.espejoCv.width = ESPEJO_W; A3.espejoCv.height = ESPEJO_H;
+    A3.espejoCx = A3.espejoCv.getContext('2d'); A3.espejoImg = A3.espejoCx.createImageData(ESPEJO_W, ESPEJO_H);
+  }
+  // desde el ojo, mirando para atras (el rumbo al reves, horizontal: un espejo no cabecea con el morro)
+  const c = A3.espejoCam, o = new THREE.Vector3().setFromMatrixPosition(A3.cam.matrixWorld);
+  const f = new THREE.Vector3(0, 0, -1).applyQuaternion(A3.cam.quaternion); f.y = 0;
+  if (f.lengthSq() < 1e-6) f.set(0, 0, -1);
+  f.normalize();
+  c.position.copy(o); c.up.set(0, 1, 0); c.lookAt(o.x - f.x, o.y + 0.02, o.z - f.z);
+  c.far = A3.cam.far; c.updateProjectionMatrix(); c.updateMatrixWorld();
+  islas3d.frame(c, w, A, { x: ESPEJO_W, y: ESPEJO_H });
+  rr.setRenderTarget(A3.espejoRT);
+  rr.render(A3.scene, c);
+  rr.setRenderTarget(null);
+  rr.readRenderTargetPixels(A3.espejoRT, 0, 0, ESPEJO_W, ESPEJO_H, A3.espejoPx);
+  // (los pixeles vienen de abajo para arriba; y un espejo da vuelta izquierda y derecha)
+  const P = A3.espejoPx, D = A3.espejoImg.data;
+  for (let y = 0; y < ESPEJO_H; y++) {
+    const fy = (ESPEJO_H - 1 - y) * ESPEJO_W;
+    for (let x = 0; x < ESPEJO_W; x++) {
+      const s = (y * ESPEJO_W + (ESPEJO_W - 1 - x)) * 4, d = (fy + x) * 4;
+      D[d] = P[s]; D[d + 1] = P[s + 1]; D[d + 2] = P[s + 2]; D[d + 3] = 255;
+    }
+  }
+  A3.espejoCx.putImageData(A3.espejoImg, 0, 0);
+  A3.espejoOk = true;
+}
+/** EL CUADRO DE ATRAS para los espejos de la cabina (islas), o null fuera de ellas. */
+export function espejo() { return A3.on && A3.espejoOk ? A3.espejoCv : null; }
+
 export function view() { return A3.islasPasillo && A3.on ? useRenderer(islasCam.RENDER_W, islasCam.RENDER_H).domElement : useRenderer(AW, AH).domElement; }
 /** Donde se pega el cuadro en la grilla del juego: en la vista pasillo de las islas, el lienzo con margen en
  *  el mismo lugar que el mar 3D del pasillo; si no, la pantalla. */

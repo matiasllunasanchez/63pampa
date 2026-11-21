@@ -303,13 +303,14 @@ function pegarMusica(video, destino) {
   if (SONIDO) {
     // el preload lee esto: el OfflineAudioContext tiene que medir de entrada todo lo que se va a filmar (el
     // arranque, lo que se calienta y lo que se graba), con margen
-    const planosS = SOLO.length ? GUION.filter(p => SOLO.includes(p.id)) : GUION;
+    const planosS = SOLO.length ? GUION.filter(p => SOLO.includes(p.id)) : GUION.filter(p => !p.solo);
     const seg = planosS.reduce((a, p) => a + (p.calentar === undefined ? CALENTAR : p.calentar) + (p.despues ? (p.calentar2 || 1) : 0) + p.dur + 0.5, 0);
     process.env.TR_AUDIO = '1'; process.env.TR_AUDIO_MAX = String(Math.ceil(90 + seg * 1.3));
   }
   await app.whenReady();
   await abrir();
-  const planos = SOLO.length ? GUION.filter(p => SOLO.includes(p.id)) : GUION;
+  // (los planos `solo: true` son de prueba: entran solo si se los pide con --solo)
+  const planos = SOLO.length ? GUION.filter(p => SOLO.includes(p.id)) : GUION.filter(p => !p.solo);
   if (!planos.length) { console.error('no hay planos: ' + SOLO.join(',')); app.exit(1); return; }
 
   console.log('RASANTE — filmando el trailer');

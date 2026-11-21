@@ -975,6 +975,14 @@ if (typeof window !== 'undefined') {
     return activar(on);
   };
 }
+// SONDA (21/11, los espejos de la cabina): dos Harriers en la cola, a `d` metros atras y un poco arriba, persiguiendo
+if (typeof window !== 'undefined') window.__harrierCola = (d = 250) => {
+  if (!enPasillo() || !I.puesto) return false;
+  const sy = Math.sin(P3.yaw), cy = Math.cos(P3.yaw), alto = P3.g + plane.y;
+  const atras = (dd, l, up) => ({ x: P3.x - sy * dd + cy * l, z: P3.z + cy * dd + sy * l, y: alto + up, yaw: P3.yaw });
+  harriers.soltar({ x: P3.x, z: P3.z, alt: alto, n: 'SONDA' }, [atras(d, -18, 12), atras(d + 140, 30, 25)], 2);
+  return true;
+};
 // SONDA: la red del radar (cuantos tramos y los primeros)
 if (typeof window !== 'undefined') window.__redIslas = () => { const R = redRadar(1); return JSON.stringify(R ? { n: R.tramos.length / 6, cerca: R.tramos.filter((v, i) => i % 6 === 1 && v > 102).length, alfa: R.tramos.filter((v, i) => i % 6 === 4).slice(0, 10).map(v => +v.toFixed(2)), xs: R.tramos.filter((v, i) => i % 6 === 0 && R.tramos[i + 1] > 102).slice(0, 10).map(v => Math.round(v)), P: [Math.round(P3.x), Math.round(P3.z), Math.round(P3.g), Math.round(plane.y)] } : null); };
 
