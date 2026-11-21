@@ -473,7 +473,8 @@ export function playaClase(x, wz, pl) {
  *  suelo que sube se le come la altura). Lo prende el sistema de las islas; core no importa systems. */
 // `sinRoce` (LAS ISLAS, 19/11): tocar el agua o la tierra es CHOCAR — sin el roce que levanta al avion al piso
 // (systems/flight.js). El autor: "el avion no puede subir solo cuando esta cerca de la tierra o del agua".
-export const geoExterna = { on: false, tierra: () => false, sinRoce: false };
+// (`campo`: LAS ISLAS dicen donde esta el carril sobre el mapa y su suelo, para el pasto del pasillo — render/world.js)
+export const geoExterna = { on: false, tierra: () => false, sinRoce: false, campo: null };
 
 /** ¿HAY TIERRA en este punto del mundo? La pregunta que decide si el avion roza agua o suelo, si
  *  la estela se dibuja, de que color salta el polvo. Sin geografia: la formula de siempre. */

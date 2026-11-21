@@ -31,6 +31,68 @@ window.RASANTE_DEV = false;
 window.rasanteVentana = { pantallaCompleta: () => { } };   // la filmacion no cambia la ventana
 window.rasanteMusica = { original: () => { try { return ipcRenderer.sendSync('musica-original'); } catch (e) { return []; } } };
 
+// ---------- 3. EL SONIDO, cuadro a cuadro (TR_AUDIO=1; 21/11, el autor: "grabar con sonido de bombas y demas") ----------
+// El audio del juego no se puede grabar en tiempo real por lo mismo que el video: su reloj es de pared. Asi que
+// tambien se RENDERIZA, por sus dos caminos:
+//   · los SAMPLES (<audio>: bombas, misiles, explosiones, la radio) — `Audio` se cambia por uno que no suena y que
+//     ANOTA, cuadro por cuadro, que archivo suena, desde que segundo y a que volumen. tools/trailer.js arma la
+//     pista con eso, exacta al cuadro. La MUSICA (assets/music) no se anota: la del trailer la pone el montaje.
+//   · el WEB AUDIO (el motor, los pitidos, el ruido) — el AudioContext es un OfflineAudioContext que avanza
+//     cuadro a cuadro con el reloj virtual (suspend en cada cuadro). Las capas de musica no cargan.
+const TR_AUDIO = typeof process !== 'undefined' && process.env && process.env.TR_AUDIO === '1';
+const TRA = { on: TR_AUDIO, voces: new Set(), log: [], srcs: [], srcIdx: new Map(), cuadros: [], grabando: false,
+  oac: null, t0: 0, sr: 24000, max: +((typeof process !== 'undefined' && process.env.TR_AUDIO_MAX) || 600), fin: null, resumeOrig: null };
+if (TR_AUDIO) {
+  const durCache = new Map();
+  const dur = url => {
+    if (!url) return NaN;
+    if (durCache.has(url)) return durCache.get(url);
+    let d = NaN; try { d = +ipcRenderer.sendSync('tr-dur', url); } catch (e) { }
+    durCache.set(url, d); return d;
+  };
+  let vid = 0;
+  class FakeAudio {
+    constructor(src) {
+      this._id = ++vid; this.volume = 1; this.loop = false; this.paused = true; this._pos = 0; this.playbackRate = 1;
+      this.muted = false; this.preservesPitch = true; this.preload = 'auto'; this.autoplay = false; this._l = {}; this._src = ''; this._dur = NaN; this._ended = false;
+      if (src) this.src = src;
+      TRA.voces.add(this);
+    }
+    set src(v) { this._src = v ? new URL(v, location.href).href : ''; this._pos = 0; this._ended = false; this._dur = /^data:/.test(this._src) ? 600 : dur(this._src); }
+    get src() { return this._src; }
+    get currentSrc() { return this._src; }
+    get duration() { return this._dur; }
+    get currentTime() { return this._pos; }
+    set currentTime(v) { this._pos = Math.max(0, +v || 0); this._ended = false; }
+    get ended() { return this._ended; }
+    get readyState() { return 4; }
+    play() { this.paused = false; this._ended = false; return Promise.resolve(); }
+    pause() { this.paused = true; }
+    load() { }
+    canPlayType() { return 'probably'; }
+    addEventListener(t, f) { (this._l[t] = this._l[t] || []).push(f); }
+    removeEventListener(t, f) { if (this._l[t]) this._l[t] = this._l[t].filter(x => x !== f); }
+    _emit(t) { for (const f of this._l[t] || []) { try { f.call(this, { type: t, target: this }); } catch (e) { } } if (typeof this['on' + t] === 'function') try { this['on' + t]({ type: t, target: this }); } catch (e) { } }
+    cloneNode() { const a = new FakeAudio(this._src); a.volume = this.volume; a.loop = this.loop; return a; }
+  }
+  window.Audio = FakeAudio;
+  // el AudioContext: uno solo, offline, que avanza con el reloj virtual
+  const OAC = window.OfflineAudioContext;
+  TRA.resumeOrig = OAC.prototype.resume;
+  window.AudioContext = window.webkitAudioContext = function () {
+    if (TRA.oac) return TRA.oac;
+    const c = new OAC(2, Math.round(TRA.sr * TRA.max), TRA.sr);
+    c.resume = () => Promise.resolve();          // (el juego no lo mueve: lo mueve el reloj)
+    c.suspend(128 / TRA.sr);
+    TRA.fin = c.startRendering();
+    TRA.oac = c; TRA.t0 = performance.now();      // (el reloj virtual ya esta parcheado cuando el juego lo pide)
+    return c;
+  };
+  // las capas de musica (systems/capas.js) no se cargan: la musica la pone el montaje
+  const f0 = window.fetch.bind(window);
+  window.fetch = (u, o) => (/\/music\//.test(String(u)) ? Promise.reject(new Error('sin musica en el trailer')) : f0(u, o));
+}
+
 // ---------- 2. el reloj en la mano ----------
 (() => {
   const real = {
@@ -81,8 +143,39 @@ window.rasanteMusica = { original: () => { try { return ipcRenderer.sendSync('mu
 
   function soltarTodo() { for (const c of held.keys()) ev('keyup', c, false); held.clear(); }
 
-  function paso(ms) {
+  // EL SONIDO AVANZA CON EL RELOJ: los samples corren su posicion (loop / fin) y el offline renderiza hasta VT
+  function avanzarSamples(ms) {
+    for (const v of TRA.voces) {
+      if (v.paused) continue;
+      v._pos += ms / 1000 * (v.playbackRate || 1);
+      if (v._dur > 0 && v._pos >= v._dur) {
+        if (v.loop) v._pos %= v._dur;
+        else { v._pos = v._dur; v.paused = true; v._ended = true; v._emit('ended'); }
+      }
+    }
+  }
+  async function avanzarOffline() {
+    const c = TRA.oac;
+    if (!c) return;
+    const q = 128 / TRA.sr, t = Math.floor(((VT - TRA.t0) / 1000) / q) * q;
+    if (t <= c.currentTime + 1e-9 || t >= TRA.max - q) return;
+    try { const p = c.suspend(t); TRA.resumeOrig.call(c); await p; } catch (e) { }
+  }
+  function anotarSamples(ms) {
+    const voces = [];
+    for (const v of TRA.voces) {
+      if (v.paused || v.muted || !(v.volume > 0.001) || !v._src || /\/music\/|^data:/.test(v._src)) continue;
+      let i = TRA.srcIdx.get(v._src);
+      if (i === undefined) { i = TRA.srcs.length; TRA.srcs.push(v._src); TRA.srcIdx.set(v._src, i); }
+      voces.push([v._id, i, +v._pos.toFixed(4), +v.volume.toFixed(4), v.playbackRate || 1]);
+    }
+    TRA.log.push(voces);
+    TRA.cuadros.push([(VT - TRA.t0) / 1000, ms / 1000]);
+  }
+
+  async function paso(ms) {
     VT += ms;
+    if (TRA.on) { avanzarSamples(ms); await avanzarOffline(); }
     // los timers vencidos, en orden de vencimiento. El tope evita que un intervalo de 1 ms que se
     // reencola solo cuelgue el cuadro: con 256 por cuadro ya hay de sobra para cualquier cosa real.
     for (let g = 0; g < 256; g++) {
@@ -147,11 +240,12 @@ window.rasanteMusica = { original: () => { try { return ipcRenderer.sendSync('mu
     // UN CUADRO: sostiene las teclas, avanza el reloj y devuelve el canvas del juego en PNG.
     // Todo junto en una sola llamada porque cada ida y vuelta al proceso principal cuesta, y a
     // 60 cuadros por segundo de video eso se multiplica por miles.
-    cuadro(ms, conPng) {
+    async cuadro(ms, conPng) {
       if (piloto) pilotar();
       if (qte) jugarPulso();
       for (const [c, n] of held) { held.set(c, n + 1); ev('keydown', c, n > 0); }
-      paso(ms);
+      await paso(ms);
+      if (TRA.on && TRA.grabando && conPng) anotarSamples(ms);
       if (!conPng) return '';
       const cv = document.getElementById('g');
       return cv.toDataURL('image/png').slice(22);   // sin el "data:image/png;base64,"
@@ -163,5 +257,28 @@ window.rasanteMusica = { original: () => { try { return ipcRenderer.sendSync('mu
     soltarTodo,
     toque(code) { ev('keydown', code, false); ev('keyup', code, false); },
     apretadas: () => [...held.keys()],
+    // EL SONIDO: grabar (solo los cuadros que van al video) y, al final, lo anotado y lo renderizado
+    grabandoAudio(on) { TRA.grabando = !!on; return TRA.on; },
+    audioLog: () => JSON.stringify({ srcs: TRA.srcs, log: TRA.log }),
+    async audioOffline() {
+      // termina de renderizar (lo que falta hasta el final, rapido) y devuelve los tramos grabados en PCM 16 bit
+      const c = TRA.oac;
+      if (!c) return '';
+      try { TRA.resumeOrig.call(c); } catch (e) { }
+      const buf = await TRA.fin, sr = TRA.sr, L = buf.getChannelData(0), R = buf.getChannelData(1);
+      const n = TRA.cuadros.reduce((a, [, d]) => a + Math.round(d * sr), 0), out = new Int16Array(n * 2);
+      let k = 0;
+      for (const [t, d] of TRA.cuadros) {
+        const i0 = Math.round(t * sr), m = Math.round(d * sr);
+        for (let i = 0; i < m; i++) {
+          const a = L[i0 + i] || 0, b = R[i0 + i] || 0;
+          out[k++] = Math.max(-32768, Math.min(32767, a * 32767)); out[k++] = Math.max(-32768, Math.min(32767, b * 32767));
+        }
+      }
+      // base64 de a pedazos (un String.fromCharCode de 20 MB revienta la pila)
+      const u8 = new Uint8Array(out.buffer); let s = '';
+      for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+      return btoa(s);
+    },
   };
 })();

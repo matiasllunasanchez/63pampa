@@ -29,7 +29,9 @@ const fs = require('fs');
 const { spawn, spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
-const GUION = require('./trailer_guion.js');
+// `--guion <archivo>`: otro guion (el de siempre es tools/trailer_guion.js)
+const _g = (() => { const a = process.argv.find(x => x.startsWith('--guion=')); if (a) return a.slice(8); const i = process.argv.indexOf('--guion'); return i >= 0 ? process.argv[i + 1] : null; })();
+const GUION = require(_g ? path.resolve(_g) : './trailer_guion.js');
 
 // ---------- argumentos ----------
 const argv = process.argv.slice(2);
@@ -45,6 +47,7 @@ const MUSICA = flag('musica', '');
 const MUSICA_DESDE = +flag('desde', 0);                  // segundo de la pista donde entra
 const CALENTAR = +flag('calentar', 0.5);                 // segundos sin grabar antes de cada plano
 
+const SONIDO = tiene('sonido');                         // los efectos del juego, renderizados (trailer_preload.js)
 const W = 960, H = 540;                                  // el canvas del juego (render/ctx.js: 480x270 x2)
 let win = null, ff = null, errores = [], nCuadros = 0, t0 = 0;
 
@@ -61,6 +64,16 @@ async function abrir() {
     catch (err) { e.returnValue = []; }
   });
   ipcMain.on('pantalla-completa', () => { });
+  // EL SONIDO: cuanto dura cada sample (el <audio> de mentira del preload lo pregunta al cargarlo)
+  ipcMain.on('tr-dur', (e, url) => {
+    let d = NaN;
+    try {
+      const f = decodeURIComponent(new URL(url).pathname);
+      const r = spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' });
+      d = parseFloat(r.stdout);
+    } catch (err) { }
+    e.returnValue = isFinite(d) ? d : 1;
+  });
 
   win = new BrowserWindow({
     width: 1280, height: 720, show: !tiene('oculto'),
@@ -154,6 +167,7 @@ function escribir(p, buf) {
 /** Graba `n` cuadros, corriendo las marcas del plano en su cuadro. */
 async function grabar(plano, n) {
   const ms = (1000 / FPS).toFixed(4);
+  if (SONIDO) await js('window.__tr.grabandoAudio(true)');
   const marcas = (plano.marcas || []).map(m => ({ ...m, c: Math.round((m.t || 0) * FPS) }));
   for (let i = 0; i < n; i++) {
     for (const m of marcas) if (m.c === i) await aplicar(m);
@@ -165,6 +179,56 @@ async function grabar(plano, n) {
       process.stdout.write(`\r   ${seg}s de video · ${real}s de pared · ${plano.id}            `);
     }
   }
+  if (SONIDO) await js('window.__tr.grabandoAudio(false)');
+}
+
+// ---------- el sonido: la pista exacta al cuadro ----------
+// Los samples se arman aca con lo que anoto el preload (archivo, desde donde, volumen, cuadro por cuadro) y se
+// suman al Web Audio que renderizo el OfflineAudioContext. Sale un WAV de 48 kHz estereo.
+const SR = 48000;
+function decodificar(url, cache) {
+  if (cache.has(url)) return cache.get(url);
+  let f; try { f = decodeURIComponent(new URL(url).pathname); } catch (e) { f = url; }
+  const r = spawnSync('ffmpeg', ['-v', 'error', '-i', f, '-f', 'f32le', '-ac', '2', '-ar', String(SR), '-'], { maxBuffer: 1 << 30 });
+  const pcm = r.status ? new Float32Array(0) : new Float32Array(r.stdout.buffer, r.stdout.byteOffset, r.stdout.length / 4);
+  cache.set(url, pcm); return pcm;
+}
+async function pistaSonido(destino) {
+  const { srcs, log } = JSON.parse(await js('window.__tr.audioLog()'));
+  const porCuadro = SR / FPS, total = Math.round(log.length * porCuadro);
+  const mix = new Float32Array(total * 2), cache = new Map(), volPrev = new Map();
+  log.forEach((voces, f) => {
+    const s0 = Math.round(f * porCuadro), s1 = Math.round((f + 1) * porCuadro), n = s1 - s0;
+    const vivas = new Set();
+    for (const [id, si, pos, vol, rate] of voces) {
+      vivas.add(id);
+      const pcm = decodificar(srcs[si], cache), frames = pcm.length / 2;
+      const v0 = volPrev.has(id) ? volPrev.get(id) : vol;   // (rampa dentro del cuadro: sin clics)
+      for (let i = 0; i < n; i++) {
+        const p = pos * SR + i * rate, j = Math.floor(p);
+        if (j >= frames - 1) break;
+        const fr = p - j, g = v0 + (vol - v0) * (i / n);
+        mix[(s0 + i) * 2] += (pcm[j * 2] * (1 - fr) + pcm[j * 2 + 2] * fr) * g;
+        mix[(s0 + i) * 2 + 1] += (pcm[j * 2 + 1] * (1 - fr) + pcm[j * 2 + 3] * fr) * g;
+      }
+      volPrev.set(id, vol);
+    }
+    for (const id of [...volPrev.keys()]) if (!vivas.has(id)) volPrev.delete(id);
+  });
+  // el Web Audio (24 kHz estereo, 16 bit), a 48 kHz y sumado
+  const b64 = await js('window.__tr.audioOffline()');
+  const dir = path.dirname(destino), crudoSamples = path.join(dir, '.samples.f32'), crudoWa = path.join(dir, '.webaudio.s16');
+  fs.writeFileSync(crudoSamples, Buffer.from(mix.buffer));
+  fs.writeFileSync(crudoWa, Buffer.from(b64 || '', 'base64'));
+  const r = spawnSync('ffmpeg', ['-y', '-v', 'error',
+    '-f', 'f32le', '-ar', String(SR), '-ac', '2', '-i', crudoSamples,
+    '-f', 's16le', '-ar', '24000', '-ac', '2', '-i', crudoWa,
+    '-filter_complex', '[1]aresample=48000[w];[0][w]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95',
+    '-c:a', 'pcm_s16le', destino], { encoding: 'utf8' });
+  if (r.status) console.error(r.stderr.slice(-2000));
+  if (tiene('sonido-crudo')) { fs.writeFileSync(destino + '.json', JSON.stringify({ srcs: srcs.map(u => path.basename(decodeURIComponent(u))), log })); }
+  else { fs.unlinkSync(crudoSamples); fs.unlinkSync(crudoWa); }
+  console.log(`   sonido: ${srcs.length} samples distintos · ${(total / SR).toFixed(1)} s -> ${destino}`);
 }
 
 /** Una marca del guion: ejecuta js, aprieta, suelta o toca teclas. */
@@ -186,6 +250,12 @@ async function preparar(plano) {
   if (plano.prep) await aplicar({ js: plano.prep });
   for (const m of plano.antes || []) await aplicar(m);
   await calentar(Math.round((plano.calentar === undefined ? CALENTAR : plano.calentar) * FPS), plano.teclear !== false);
+  // `despues`: lo que necesita el juego YA cargado (las islas: el mapa tarda en llegar, y una teletransportacion
+  // antes de eso no se aplica) y `calentar2` segundos mas, para que se acomode
+  if (plano.despues) {
+    await aplicar({ js: plano.despues });
+    await calentar(Math.round((plano.calentar2 || 1) * FPS), plano.teclear !== false);
+  }
 }
 
 // ---------- modo foto: tres estampas de cada plano ----------
@@ -230,6 +300,13 @@ function pegarMusica(video, destino) {
 
 // ---------- main ----------
 (async () => {
+  if (SONIDO) {
+    // el preload lee esto: el OfflineAudioContext tiene que medir de entrada todo lo que se va a filmar (el
+    // arranque, lo que se calienta y lo que se graba), con margen
+    const planosS = SOLO.length ? GUION.filter(p => SOLO.includes(p.id)) : GUION;
+    const seg = planosS.reduce((a, p) => a + (p.calentar === undefined ? CALENTAR : p.calentar) + (p.despues ? (p.calentar2 || 1) : 0) + p.dur + 0.5, 0);
+    process.env.TR_AUDIO = '1'; process.env.TR_AUDIO_MAX = String(Math.ceil(90 + seg * 1.3));
+  }
   await app.whenReady();
   await abrir();
   const planos = SOLO.length ? GUION.filter(p => SOLO.includes(p.id)) : GUION;
@@ -250,6 +327,7 @@ function pegarMusica(video, destino) {
     for (const p of planos) { await preparar(p); await grabar(p, Math.round(p.dur * FPS)); }
     ff.stdin.end();
     await new Promise(r => ff.on('exit', r));
+    if (SONIDO) await pistaSonido(SALIDA.replace(/\.mp4$/, '_sonido.wav'));
     const seg = (nCuadros / FPS).toFixed(1);
     console.log(`\n   ${nCuadros} cuadros · ${seg}s de video en ${((Date.now() - t0) / 1000).toFixed(0)}s de pared`);
     if (MUSICA && fs.existsSync(MUSICA) && pegarMusica(crudo, SALIDA)) { fs.unlinkSync(crudo); }

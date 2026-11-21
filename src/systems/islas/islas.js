@@ -238,6 +238,9 @@ export function pasoPasillo(dt) {
   if (I.ir) { const q = I.ir; I.ir = null; const [x, z] = mundo.lonLatLocal(q.lon, q.lat); P3.x = x; P3.z = z; if (q.rumbo != null) P3.yaw = q.rumbo * Math.PI / 180; P3.g = Math.max(mundo.sueloH(x, z), 0); if (q.alt) plane.y = q.alt; }
   geoExterna.on = true; geoExterna.sinRoce = true;
   carteles.queda = enCabina() ? null : 3;   // (los carteles de las islas: 3 s, render/hud.js `corre`)
+  // EL CAMPO DEL PASILLO sobre el mapa (render/world.js `drawCampoIslas`): donde esta el carril en el mapa y el suelo
+  { const c = geoExterna.campo || (geoExterna.campo = { h: mundo.sueloH });
+    c.x = P3.x; c.z = P3.z; c.yaw = P3.yaw; c.g = P3.g; c.pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA; }
   // EL VIRAJE: lo de costado se vuelve rumbo, con peso
   let pide = Math.max(-1, Math.min(1, plane.vx / VX_FONDO)) * GIRO_MAX;
   // EL DERRAPE (Q+D y E+A, el del pasillo; 21/11, el autor: "no hace lo mismo que pasillo en isla, debe hacerlo"): IGUAL

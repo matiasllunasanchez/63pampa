@@ -195,7 +195,10 @@ vec3 shadeLand(vec3 p, float t, float b){
   // agua, a un cierto radio del avion, y que de lejos sea textura pintada nomas"): matas de pasto blanco y de
   // brezo, el tussac verde oscuro y mas grande cerca de la costa, piedras sueltas y el grano del suelo. Fijas al
   // MAPA (pasan rapido bajo el avion: cuentan la velocidad, como la espuma del agua) y solo cerca del ojo.
-  float cerca = 1.0 - smoothstep(110.0, 280.0, t);
+  // (21/11, el autor: "el terreno en isla se ve demasiado PUNTITO"): hasta 280 m las matas de 2 m y las piedras median
+  // menos de un pixel y titilaban como ruido; ahora solo MUY cerca (el pasto de lejos lo pone el del pasillo encima,
+  // render/world.js drawCampoIslas), y sin el grano por pixel
+  float cerca = 1.0 - smoothstep(22.0, 55.0, t);
   if (cerca > 0.0) {
     float tussac = smoothstep(28.0, 6.0, h) * (1.0 - sand);
     vec2 gq = p.xz/mix(2.4, 3.6, tussac), gi = floor(gq), gf = fract(gq) - 0.5;
@@ -217,8 +220,6 @@ vec3 shadeLand(vec3 p, float t, float b){
     vec2 si = floor(p.xz/1.6);
     float piedra = step(0.986 - run*0.04 - rock*0.03, hash12(si + 3.0)) * (1.0 - snow) * step(length(fract(p.xz/1.6) - 0.5), 0.32);
     alb = mix(alb, mix(vec3(0.66,0.66,0.64), vec3(0.47,0.48,0.50), hash12(si + 8.0)), piedra*cerca);
-    // el GRANO del suelo
-    alb *= 1.0 + (hash12(floor(p.xz/0.7)) - 0.5)*0.18*cerca;
   }
   // EL RELIEVE EN LA LUZ (21/11, el autor: "dale mas profundidad al terreno, parece muy plano muy PISO"). Las
   // laderas de Malvinas son suaves (el mapa es de 125 m): con la normal real todo mira al cielo y la luz sale

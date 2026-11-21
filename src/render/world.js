@@ -30,7 +30,7 @@ import { tierraH, tierraPend, hayRelieve, pedreroAt, turbalAt, ruido } from '../
 // LA GEOGRAFIA (PLAN_GEOGRAFIA G1): el suelo por tramos. Sin geografia, cada pregunta de ahi
 // contesta lo que contestaba cfg.terrain — y aca, ademas, ni se hace: ver `geoOn` en drawSea.
 import { geoActiva, sueloEn, orillaS, ladoEn, playaCerca, playaClase, alturaSuelo, escalaRelieve, bajioFila, bajioEn,
-  esTierraEn, geo } from '../core/geografia.js';
+  esTierraEn, geo, geoExterna } from '../core/geografia.js';
 import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R, EYEC_ASIENTO_T } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
@@ -3840,4 +3840,101 @@ function lineasMarco() {
   g.fillRect(-W / 2, -W / 2, W, W);
   lineasCache = c;
   return c;
+}
+
+/** EL CAMPO DEL PASILLO SOBRE LAS ISLAS (21/11, el autor con una captura del pasillo de tierra: "tiene que haber esto
+ *  tambien en isla / arena") — los matojos, las piedras y los manchones de pasto seco de `drawLand`, puestos sobre el
+ *  relieve 3D del mapa real. La grilla es del MAPA (no del carril, que gira con el avion: el pasto se correria al virar),
+ *  cada cosa a la altura de su suelo y TAPADA por las lomas que tenga adelante (tres muestras de la linea de vista).
+ *  Lo pone systems/islas/islas.js en `geoExterna.campo` ({ x, z, yaw, g, pz, h }); se dibuja despues del blit 3D. */
+const CAMPO = { SP: 3, LEJOS: 105, ALTO_MAX: 110, MANCHA: 8 };
+const _campo = [];
+export function drawCampoIslas() {
+  const C = geoExterna.on && geoExterna.campo;
+  if (!C || !C.h || cam.y > CAMPO.ALTO_MAX) return;
+  refreshGround();
+  const sy = Math.sin(C.yaw), cy = Math.cos(C.yaw);
+  // lo que se ve: un trapecio adelante (camZ 2..LEJOS, de costado lo que tapa la pantalla); su caja en el mapa
+  const half = d => (W / 2 + 24) * d / F;
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (const [cz, l] of [[2, -half(2)], [2, half(2)], [CAMPO.LEJOS, -half(CAMPO.LEJOS)], [CAMPO.LEJOS, half(CAMPO.LEJOS)]]) {
+    const d = cz - C.pz, l2 = l + cam.x - plane.x, X = C.x + sy * d + cy * l2, Z = C.z - cy * d + sy * l2;
+    x0 = Math.min(x0, X); x1 = Math.max(x1, X); z0 = Math.min(z0, Z); z1 = Math.max(z1, Z);
+  }
+  // del mapa al carril: profundidad desde la camara y costado
+  const aCarril = (X, Z) => { const dx = X - C.x, dz = Z - C.z; return [cy * dx + sy * dz + plane.x, sy * dx - cy * dz + C.pz]; };
+  const aMapa = (x, cz) => { const d = cz - C.pz, l = x - plane.x; return [C.x + sy * d + cy * l, C.z - cy * d + sy * l]; };
+  // ¿lo tapa una loma? tres puntos de la linea de vista, contra el suelo de abajo
+  const tapado = (x, y, cz) => {
+    for (const t of [0.35, 0.6, 0.85]) {
+      const [X, Z] = aMapa(cam.x + (x - cam.x) * t, cz * t);
+      if (C.h(X, Z) - C.g > cam.y + (y - cam.y) * t + 0.4) return true;
+    }
+    return false;
+  };
+  const climaP = climaDe(cfg), quieto = (PASTO_LEAN[climaP] || 0) === 0;
+  const L = _campo; L.length = 0;
+  const S = CAMPO.SP;
+  for (let X = Math.floor(x0 / S) * S; X <= x1; X += S) for (let Z = Math.floor(z0 / S) * S; Z <= z1; Z += S) {
+    const ix = Math.round(X / S), iz = Math.round(Z / S), h1 = hash2(ix, iz);
+    if (h1 < 0.55) continue;                                               // disperso, como el pasillo
+    const h2 = hash2(ix + 1013, iz - 271), h3 = hash2(ix - 577, iz + 977);
+    const jx = X + (h2 - 0.5) * S * 1.7, jz = Z + (h3 - 0.5) * S * 1.7;
+    const [x, cz] = aCarril(jx, jz);
+    if (cz < 2.5 || cz > CAMPO.LEJOS) continue;
+    const g = C.h(jx, jz);
+    if (g < 0.5) continue;                                                 // agua o la orilla misma
+    const y = g - C.g, s = proj(x, y, cz);
+    if (s.x < -6 || s.x > W + 6 || s.y < HOR - 40 || s.y > H + 4) continue;
+    if (tapado(x, y, cz)) continue;
+    L.push({ cz, s, k: F / cz, h1, h2, h3, jx, jz });
+  }
+  // los MANCHONES (pasto seco, murtilla, turba pelada), antes que el pasto
+  const base = hex2rgb(theme.land.near);
+  const M = CAMPO.MANCHA;
+  for (let X = Math.floor(x0 / M) * M; X <= x1; X += M) for (let Z = Math.floor(z0 / M) * M; Z <= z1; Z += M) {
+    const ix = Math.round(X / M), iz = Math.round(Z / M), h1 = hash2(ix * 7 + 3, iz * 5 - 11);
+    if (h1 < 0.62) continue;
+    const h2 = hash2(ix - 41, iz + 97), h3 = hash2(ix + 13, iz * 3 + 7);
+    const jx = X + (h2 - 0.5) * M, jz = Z + (h3 - 0.5) * M, [x, cz] = aCarril(jx, jz);
+    if (cz < 4 || cz > CAMPO.LEJOS * 0.85) continue;
+    const g = C.h(jx, jz);
+    if (g < 0.5) continue;
+    const y = g - C.g, c = proj(x, y, cz);
+    if (c.x < -60 || c.x > W + 60 || c.y < HOR - 40 || c.y > H + 10 || tapado(x, y, cz)) continue;
+    const R = 1.4 + h2 * 2.2, rx = R * F / cz, ry = Math.max(1, rx * Math.min(0.5, Math.max(0.12, (cam.y - y) / cz)));
+    const t = MANCHA_TONOS[(h3 * MANCHA_TONOS.length) | 0];
+    const col = 'rgb(' + [0, 1, 2].map(i => Math.round(base[i] + (t[i] - base[i]) * t[3])).join(',') + ')';
+    ctx.globalAlpha = Math.min(1, cz / 14) * (0.35 + h1 * 0.25) * (1 - cz / CAMPO.LEJOS);
+    const gr = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, rx);
+    gr.addColorStop(0, col); gr.addColorStop(0.6, col); gr.addColorStop(1, col.replace('rgb(', 'rgba(').replace(')', ',0)'));
+    ctx.save(); ctx.translate(c.x, c.y); ctx.scale(1, ry / Math.max(0.5, rx)); ctx.translate(-c.x, -c.y);
+    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(c.x, c.y, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+  // EL PASTO Y LAS PIEDRAS, de lejos a cerca (lo de adelante tapa a lo de atras)
+  L.sort((a, b) => b.cz - a.cz);
+  for (const m of L) {
+    const { s, k, h1, h2, h3, cz } = m;
+    const fade = Math.min(1, (cz - 3) / 9) * (1 - (cz / CAMPO.LEJOS) * 0.8);
+    if (fade <= 0.03) continue;
+    ctx.globalAlpha = fade * 0.85;
+    if (h1 > 0.94) {                                                       // la piedra (la cuarcita horneada)
+      if (!veg.piedras(s.x, s.y, k * 2.2, h2)) {
+        const w = Math.max(1, k * 0.75), hh = Math.max(1, k * 0.55);
+        px(s.x - w / 2, s.y - hh, w, hh, theme.land.rock);
+        px(s.x - w / 2, s.y - hh, w, Math.max(1, hh * 0.4), '#6b6552');
+      }
+      continue;
+    }
+    const ci = (h3 * TUFTS.length) | 0;
+    const lean = quieto ? 0 : pastoLean(m.jx, m.jz, run.t, climaP);
+    if (k > 2.5 && veg.matojo(s.x, s.y, k * (0.65 + h2 * 0.6) * 2.3, h2, lean, TUFT_TIP[ci])) continue;
+    const w = Math.max(1, k * 0.55), hh = Math.max(1, k * (0.65 + h2 * 0.6) * (1 - PASTO_ACOSTAR * lean));
+    const bx = s.x - w / 2, by = s.y - hh, dx = lean * hh, hB = hh * 0.5;
+    px(bx, s.y - hB, w, hB, TUFTS[ci]);
+    px(bx + dx * 0.5, by, w, hh - hB + 1, TUFTS[ci]);
+    px(bx + dx, by, w, Math.max(1, hh * 0.4), TUFT_TIP[ci]);
+  }
+  ctx.globalAlpha = 1;
 }

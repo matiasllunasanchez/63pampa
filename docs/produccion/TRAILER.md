@@ -128,3 +128,29 @@ necesitan: casi todos siembran lo suyo con `a.luego(t, …)` —la tormenta pone
 La musica entra con `--musica` (y `--desde <segundo>`), con fundido de 1,2 s a la entrada y 2 s a
 la salida. El corte actual va con `zona_rasante.m4a` y mide **-14,2 LUFS integrados**, que es el
 nivel de plataforma.
+
+---
+
+## El trailer de ACCESO ANTICIPADO (21/11) — con sonido
+
+```bash
+npm run trailer -- --guion tools/trailer_guion_ea.js --sonido --oculto --out trailer/ea/crudo.mp4
+node_modules/.bin/electron tools/trailer_montaje.js
+```
+
+Cinco bloques con su texto (JUGA CON LOS AVIONES · MEJORAS REALES · LAS MISIONES · RASANTE Y EL RADAR · LA
+FEROCIDAD) y `zona_rasante` desde el segundo 0, cortada en seco al titulo. El guion es `tools/trailer_guion_ea.js`;
+el montaje (`tools/trailer_montaje.js`) dibuja los textos con las letras del juego y mezcla.
+
+**EL SONIDO TAMBIEN SE RENDERIZA (`--sonido`).** Por la misma razon que el video: el reloj del audio es de pared.
+`tools/trailer_preload.js` cambia `Audio` por uno mudo que anota, cuadro por cuadro, que sample suena, desde que
+segundo y a que volumen; y el `AudioContext` por un `OfflineAudioContext` que avanza con el reloj virtual
+(suspend en cada cuadro). `tools/trailer.js` arma con eso `<salida>_sonido.wav`, exacto al cuadro. La musica del
+juego no entra (la pone el montaje).
+
+**Dos banderas del juego que solo prende el que filma:** `window.__trailerInmortal` (onDeath no corre: el piloto
+automatico se choca los cerros de las islas y el relevo lo devolvia al inicio de la mision) y
+`window.__trailerAviones` (el carrusel sin candados; en el juego, en prod, solo se elige el A-4B).
+
+**Las islas necesitan `despues`:** la teletransportacion y la camara se aplican recien con el mapa cargado
+(`despues` + `calentar2` en el plano; antes de eso no hacen nada y el plano sale negro).

@@ -1013,7 +1013,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     /** EN PROD, SOLO EL A-4B (17/11, el autor: "en POR LA PATRIA y CICLO DE MUERTE, en modo productivo dejar
      *  solo el Skyhawk A-4B, pero permitir recorrer todos los otros aviones… sin poder seleccionarlos"). Los
      *  demas se ven en el carrusel —en gris, con candado— y ENTER no arranca. En DEV se eligen todos. */
-    const avionBloqueado = i => !DEV && i !== CAMPAIGN_PLANE;
+    // (el TRAILER los muestra libres: tools/trailer_preload.js pone `__trailerAviones`; en el juego nadie lo toca)
+    const avionBloqueado = i => !DEV && !(typeof window !== 'undefined' && window.__trailerAviones) && i !== CAMPAIGN_PLANE;
 
     // ---------- TIPOS DE OBJETIVO ----------
     // Un objetivo es ENCHUFABLE: agregar un tipo nuevo (base, convoy, escolta...) es agregar
@@ -5413,6 +5414,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // Tener el embudo unico es lo que hace confiable la ventana de gracia: durante 'relevo' ni
     // flight ni collision corren, asi que no existe camino que pueda matar dos veces seguidas.
     function onDeath(cause) {
+      // (el TRAILER: tools/trailer_preload.js, plano a plano; en el juego nadie lo toca)
+      if (typeof window !== 'undefined' && window.__trailerInmortal) return;
       ultimaCausa = cause;   // la sonda __seawolf la muestra (un relevo no pasa por die)
       // LA MISION QUE NO DEJA CAER EL AVION (`sinMuerte` de data/missions.js, hoy el tutorial). Solo
       // donde se juega LA mision —campaña o selector—, nunca en POR LA PATRIA ni en los modos sueltos.
@@ -7230,7 +7233,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         ctx.imageSmoothingEnabled = sm;
         // …y lo que el pasillo pinta SOBRE EL AGUA (la estela, el rocio, los piques): en la vista pasillo cae
         // exacto, porque la camara es la misma
-        if (bl.pasillo) { world.drawWake(); world.drawPiques(); }
+        if (bl.pasillo) { world.drawCampoIslas(); world.drawWake(); world.drawPiques(); }   // (y el PASTO del pasillo sobre la tierra)
         solPant = null;   // sin telon 2D no hay sol que anclar: el destello no puede quedar del cuadro anterior
       }
 
