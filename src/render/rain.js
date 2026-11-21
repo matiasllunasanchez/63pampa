@@ -37,7 +37,11 @@ const SPAN_X = X1 - X0, SPAN_Y = Y1 - Y0;
 // PARALAJE por profundidad: tres capas. La de adelante cae rapido, larga y visible; la del fondo
 // es lenta, corta y apenas se insinua. Sin esto la lluvia se lee como una textura pegada al vidrio.
 const LAYERS = [0.42, 0.7, 1];
-const V_BASE = 210;      // velocidad de caida de la capa de adelante (px de mundo por segundo)
+const V_BASE = 210;
+// LAS ISLAS LLUEVEN MAS RAPIDO (21/11, el autor: "lluvia mas rapida… en la isla, no en pasillo: pasillo estaba bien"):
+// la prende game.js con el clima de las islas
+let rapida = false;
+export function lluviaRapida(on) { rapida = !!on; }      // velocidad de caida de la capa de adelante (px de mundo por segundo)
 const LEN = 13;          // largo de la raya de la capa de adelante
 
 // INCLINACION propia de la lluvia. Vertical perfecta se ve muerta; el viento la acuesta mas.
@@ -78,7 +82,10 @@ export function stepRain(dt) {
   if (!n) return;
   const a = fallAngle(), dx = -Math.sin(a), dy = Math.cos(a);
   for (const p of drops) {
-    const v = V_BASE * p.d * dt * (nieve ? NIEVE_V : 1);
+    // (21/11, el autor: "la lluvia debe ser mas rapida, y si se va mas rapido, MAS RAPIDA"): la velocidad del avion
+    // la acelera —a 300 km/h, el doble; con turbo, mas—; la nieve, solo un poco
+    const vel = rapida ? 2.5 * (1 + Math.min(3, (run.spd || 0) / 110) * (nieve ? 0.25 : 1)) : 1;
+    const v = V_BASE * p.d * dt * vel * (nieve ? NIEVE_V : 1);
     p.x += dx * v; p.y += dy * v;
     if (nieve) { p.h = (p.h || Math.random() * 6) + dt * (1.5 + p.d); p.x += Math.sin(p.h) * 12 * p.d * dt; }
     // RECICLADO POR ENVOLTURA. Al salir por arriba o por abajo se re-sortea la x: si la gota
@@ -200,7 +207,7 @@ export function drawRain() {
   }
   // A mas velocidad, la raya se ESTIRA. Es gratis y ata la lluvia a lo que estas haciendo: en
   // turbo la lluvia se alarga sola.
-  const stretch = 1 + Math.min(1.15, run.spd / 250);
+  const stretch = rapida ? 1.3 + Math.min(2.4, run.spd / 130) : 1 + Math.min(1.15, run.spd / 250);
   ctx.save();
   ctx.strokeStyle = RAIN_C;
   ctx.lineCap = 'butt';

@@ -32,6 +32,13 @@ export function drawMapaIslas(d, t) {
   // (los nombres que se pisarian con uno ya escrito quedan solo como punto: los montes del este estan juntos)
   const puestos = [];
   ctx.save(); ctx.beginPath(); ctx.rect(m.x, m.y, m.w, m.h); ctx.clip();   // (los nombres no se salen del mapa)
+  // LAS DOS ISLAS (21/11): en grande y crema, debajo de los lugares, centradas sobre cada isla
+  ctx.font = 'bold 9px monospace'; ctx.textAlign = 'center';
+  for (const l of d.islas || []) {
+    const [x, y] = aP(l);
+    ctx.globalAlpha = 0.85; nombre(l.n, Math.round(x), Math.round(y), '#f0e6c4'); ctx.globalAlpha = 1;
+  }
+  ctx.font = 'bold 6px monospace'; ctx.textAlign = 'left';
   for (const l of d.lugares) {
     const [x, y] = aP(l), w = ctx.measureText(l.n).width + 2;
     ctx.fillStyle = '#ffd84a'; ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);

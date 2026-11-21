@@ -478,7 +478,7 @@ export function initInput(cv, a) {
     e.preventDefault(); cv.focus(); audio(); flags.anyPress = true;
     const p = canvasPos(e);
     if (S.state === 'title') { a.startTitle(); return; }                 // PORTADA: cualquier tap
-    // EL MAPA DE LAS ISLAS (pausa): click izquierdo = marcar el objetivo; derecho = ir ahi
+    // EL MAPA DE LAS ISLAS (pausa): click izquierdo = marcar el objetivo; derecho o RUEDITA = ir ahi (teletransporte)
     if (a.mapaAbierto && a.mapaAbierto()) { a.mapaClick(p.x, p.y, e.button); return; }
     // se pasa la Y CRUDA: la fila la resuelve game.js con la geometria real del menu
     if (S.state === 'modeselect') { a.modeSelect(p.y); return; }

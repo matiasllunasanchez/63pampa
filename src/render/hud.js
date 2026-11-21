@@ -741,7 +741,11 @@ const Z_RELOJ = { salud: X_SALUD, nafta: X_NAFTA, mach: X_MACH, vel: xVuelo(0), 
 // de la cabina algunas cosas se superponen, los bordes rojos a veces se superponen")
 const ANCLA_DE = { salud: 'salud', nafta: 'nafta', mach: 'mach', vel: 'velocidad', horizonte: 'adi', alt: 'altitud', gas: 'gas',
   chancha: 'chancha', canon: 'canon', rack: 'rack' };
+// LA CHANCHA ES UN ICONO (21/11): su zona es el circulo de arriba de la nafta; la fila es de la temperatura
+const CHANCHA_ICONO = true;
 export function zonaHud(id) {
+  if (CHANCHA_ICONO && id === 'chancha' && !enCabina()) return { x: X_NAFTA + CUADRO / 2 - 9, y: CUADROS_Y - 20, w: 18, h: 18, redondo: true };
+  if (id === 'temp' && !enCabina()) return { x: X_CHANCHA, y: CUADROS_Y, w: CUADRO, h: CUADRO };
   const an = enCabina() && ANCLA_DE[id] ? CABINA_ANCLAS[ANCLA_DE[id]] : null;
   if (an) return an.length === 4 ? { x: an[0] / U, y: an[1] / U, w: (an[2] - an[0]) / U, h: (an[3] - an[1]) / U }
     : { x: (an[0] - an[2]) / U, y: (an[1] - an[2]) / U, w: 2 * an[2] / U, h: 2 * an[2] / U, redondo: true };
@@ -1207,10 +1211,11 @@ const cajaIzq = { der: 0, abajo: 0 };
 // EN CABINA LOS CARTELES VAN ABAJO, sobre la consola (20/11: el parabrisas ya esta bastante tapado): la pila se
 // apoya en el borde de abajo y crece hacia arriba
 const CINTA_CABINA_Y = 79;
+let islasHud = false;   // LAS ISLAS: sin cinta; los carteles arrancan arriba, bajan al entrar y se van por la derecha
 function drawCartel() {
   // LA PILA (8/10): el primero va arriba, debajo de la cinta, y cada uno se apoya debajo del anterior.
   // La altura de cada lugar se SUAVIZA (c.y): cuando entra uno nuevo, los demas bajan, no saltan.
-  let techo = MARGEN + CARTEL_Y;
+  let techo = islasHud ? MARGEN : MARGEN + CARTEL_Y;
   const lista = cartelesAhora(performance.now() / 1000);
   if (enCabina()) {
     let alto = 0;
@@ -1243,14 +1248,16 @@ function drawUnCartel(a, techo) {
   const w2 = c.sub ? ctx.measureText(c.sub).width : 0;
   const w = Math.round(Math.max(w1, w2) + (c.alerta ? 20 : 12)), h = c.sub ? 12 + SUB_PX + 2 : 12;
   // el lugar en la pila, suavizado (lo guarda el propio cartel del store: es estado de dibujo, nada mas)
-  const x = Math.round(W / 2 - w / 2), techo0 = techo;
+  // (LAS ISLAS, fuera de la cabina: entra BAJANDO desde arriba y se va por la DERECHA)
+  const corre = islasHud && !enCabina(), dx = corre && a.sale ? Math.round((1 - k) * (W / 2 + w)) : 0;
+  const x = Math.round(W / 2 - w / 2) + dx, techo0 = techo;
   if (!enCabina() && x < cajaIzq.der + 3 && techo < cajaIzq.abajo + 3) techo = cajaIzq.abajo + 3;
   if (a.c.y == null) a.c.y = techo;
   a.c.y += (techo - a.c.y) * 0.25;
   // ENTRA Y SALE FUNDIDO, en su lugar (16/11): antes subia por detras de la placa de km y puntos y la pisaba
-  const y = Math.round(a.c.y);
+  const y = Math.round(a.c.y - (corre && !a.sale ? (1 - k) * (h + techo + 4) : 0));
   ctx.save();
-  ctx.globalAlpha = Math.max(0, Math.min(1, k));
+  ctx.globalAlpha = corre ? 1 : Math.max(0, Math.min(1, k));
   plate(x, y, w, h);
   // LA ALERTA (8/10): la caja late en su color, el borde va doble, y dos flechas a los costados
   // apuntan a la caja titilando — lo que antes hacia el rotulo grande, adentro del cuadrado de arriba
@@ -1270,10 +1277,10 @@ function drawUnCartel(a, techo) {
   bordePlaca(x, y, w, h, col);
   ctx.textAlign = 'center';
   ctx.font = avisoFont(8); ctx.fillStyle = col;
-  conApertura(c.txt, W / 2, y + 9, 8);
+  conApertura(c.txt, W / 2 + dx, y + 9, 8);
   if (c.sub) {
     ctx.font = fSub; ctx.fillStyle = c.subCol || P.foam;
-    conApertura(c.sub, W / 2, y + 11 + SUB_PX - (c.alerta ? 1 : 0), SUB_PX);
+    conApertura(c.sub, W / 2 + dx, y + 11 + SUB_PX - (c.alerta ? 1 : 0), SUB_PX);
   }
   ctx.textAlign = 'left';
   ctx.restore();
@@ -2638,8 +2645,12 @@ export function drawHUD(h) {
   // la distancia y no como volaste. POR LA PATRIA es el unico donde una corrida es una corrida:
   // infinita, sin objetivo, y se acaba cuando te caes.
   // EL CARTEL (core/cartel.js) va ANTES de la cinta: baja desde atras de ella y vuelve a esconderse ahi
+  // LAS ISLAS (21/11, el autor: "en ISLA o ARENA este indicador pierde sentido: quitarlo y usar ese espacio para los
+  // toasts de mensajes, apareciendo desde arriba hacia abajo y luego se van por la derecha"): sin la cinta de km
+  islasHud = !!h.brujula;
   drawCartel();
-  if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa, h.ruta);
+  if (islasHud) { /* sin cinta */ }
+  else if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa, h.ruta);
   else if (gameMode === 'survival') drawCorridaBar();
   // LA AMENAZA de los modos sueltos (cuanto aprieta el mundo ahora, data/modos_sueltos.js OLEADA): chica,
   // arriba a la derecha — en el CICLO, debajo del filo derecho de la cinta, que ahi llega hasta el borde
@@ -2880,10 +2891,11 @@ export function drawHUD(h) {
     // LAS ISLAS (20/11, el autor: "la Chancha no hace falta que sea un indicador asi, puede ser solo un icono que va
     // cargando como cuando esta en reparacion el avion, y en otro lado"): la silueta con su aro que se llena, arriba de
     // la nafta (en cabina, en su relojito del tablero)
-    if (h.chIslas != null) {
-      const f = suReserva ? ch.reserva : enCita ? 1 : cv;
+    // (21/11: EN TODOS LADOS — el lugar de la fila es de la TEMPERATURA)
+    if (CHANCHA_ICONO) {
+      const f = suReserva ? ch.reserva : enCita ? 1 : gastada ? 0 : h.chIdaLista ? 1 : cv;
       const txt = enCita ? (ch.fase === 'eta' ? (ch.espera ? '' : Math.ceil(ch.eta) + 's') : ch.conn ? Math.round(ch.reserva * 100) + '%' : '')
-        : lista ? '' : h.chIslasS + 's';
+        : lista ? '' : h.chIslas != null ? h.chIslasS + 's' : Math.round(cv * 100) + '%';
       chanchaIcono(f, lista ? verde : enCita ? P.accent : P.dim, txt, lista);
       donde.chancha = [X_NAFTA + CUADRO / 2, CUADROS_Y - 11];
     } else
@@ -2901,7 +2913,7 @@ export function drawHUD(h) {
         : ch.conn ? Math.round(ch.reserva * 100) + '%' : ch.espera ? '--' : Math.ceil(Math.max(0, ch.win)) + 's')
         : h.chIdaLista || (h.chIslas != null && cv >= 1) ? T('ch_lista') : h.chIslas != null ? h.chIslasS + 's' : Math.round(cv * 100) + '%',
       txtCol: lista ? verde : ch && ch.conn ? P.accent : ch && ch.fase === 'cita' && ch.win < 8 ? P.warn : P.dim }, gCh));
-    if (h.chIslas == null) marcaFalla(xCha, CUADROS_Y, gCh);
+    if (!CHANCHA_ICONO) marcaFalla(xCha, CUADROS_Y, gCh);
   }
 
   // ---- EL RADAR PROPIO (15/10, data/radar_propio.js): solo en los aviones que lo llevan ------------
@@ -3042,7 +3054,9 @@ export function drawHUD(h) {
   // OBJETIVO es un triangulo naranja en el borde con su distancia abajo.
   // (VA EN EL LUGAR DEL MACH: el hueco de al lado del gas es el de la Chancha, que en las islas tambien va)
   if (h.brujula) drawBrujula(X_MACH, CUADROS_Y, h.brujula);
-  if (h.temp) drawTemperatura(X_MACH, CUADROS_Y - CUADRO - 4, h.temp);
+  // (21/11, el autor: "no pongas arriba el coso, metelo todo en horizontal"): en la fila, en el lugar que era el
+  // reloj de la Chancha (que paso a ser el icono de arriba de la nafta)
+  if (h.temp) drawTemperatura(X_CHANCHA, CUADROS_Y, h.temp);
   marcaFalla(xVuelo(2), CUADROS_Y, gAl);
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).

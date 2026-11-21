@@ -295,6 +295,14 @@ export function paso(dt, P, pz, boom, jugando) {
     }
   }
 }
+/** EL AVION CONTRA LO QUE HAY EN EL MAPA (21/11): una pieza de pie (su radio y su alto) o el casco de un buque.
+ *  Devuelve la causa de muerte, o null. (Lo derribado ya no estorba: queda aplastado.) */
+export function choca(x, z, alto) {
+  if (!T.armado) return null;
+  for (const e of T.piezas) if (e.vivo && Math.hypot(x - e.x, z - e.z) < e.r * 0.8 && alto < e.g + e.h) return e.tipo === 'canon' || e.tipo === 'rapier' || e.tipo === 'manpad' ? 'death_aagun' : 'death_bldg';
+  for (const b of T.buques) if (b.vivo && alto < b.h && enCasco(b, x, z)) return 'death_ship';
+  return null;
+}
 /** Donde esta un radar (el de un buque va con el; si lo hundiste, no hay radar). */
 function posRadar(r) {
   if (r.b) return r.b.vivo ? r.b : null;

@@ -66,7 +66,7 @@ export function cartelesAhora(now) {
   return carteles.vivos.filter(c => c.t0 >= 0).map(c => {
     const t = now - c.t0;
     const k = t < CARTEL_ENTRA ? t / CARTEL_ENTRA : !c.sostenido && t > DUR - CARTEL_SALE ? Math.max(0, (DUR - t) / CARTEL_SALE) : 1;
-    return { c, k: 1 - (1 - k) * (1 - k) };   // frena al llegar
+    return { c, k: 1 - (1 - k) * (1 - k), sale: t >= CARTEL_ENTRA && k < 1 };   // frena al llegar (`sale`: ya se esta yendo)
   });
 }
 

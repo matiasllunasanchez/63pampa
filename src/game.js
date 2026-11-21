@@ -160,7 +160,7 @@ import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // A
 import * as menus from './render/menus.js';
 import { drawMapaIslas, marco as marcoMapa } from './render/islas_mapa.js';
 import { drawRedIslas, drawAmenazas } from './render/islas_radar.js';
-import { stepRain, stepSpray, drawRain, RAIN_N, modoNieve } from './render/rain.js';
+import { stepRain, stepSpray, drawRain, RAIN_N, modoNieve, lluviaRapida } from './render/rain.js';
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
 import { setNiebla, luzDelCielo } from './render/borde.js';
 import * as chafita from './render/chafita.js';
@@ -987,12 +987,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function climaIslas() {
       const c = islas.enPasillo() ? islas.climaAhora() : null;
       if (!c) {
-        if (climaAntes) { cfg.rain = climaAntes.rain; if (cfg.sky !== climaAntes.sky) { cfg.sky = climaAntes.sky; applyCfg(); } climaAntes = null; modoNieve(false); }
+        if (climaAntes) { cfg.rain = climaAntes.rain; if (cfg.sky !== climaAntes.sky) { cfg.sky = climaAntes.sky; applyCfg(); } climaAntes = null; modoNieve(false); lluviaRapida(false); }
         return;
       }
       if (!climaAntes) climaAntes = { rain: cfg.rain, sky: cfg.sky };
       cfg.rain = Math.max(0, Math.min(3, Math.round(c.lluvia)));
-      modoNieve(c.nieve > 0.5);
+      modoNieve(c.nieve > 0.5); lluviaRapida(true);
       // (la tormenta del pasillo: relampagos, truenos y su ambiente; el cielo 2D no se ve en las islas)
       const sky = c.tormenta > 0.5 ? 'storm' : climaAntes.sky === 'storm' ? 'cloudy' : climaAntes.sky;
       if (cfg.sky !== sky) { cfg.sky = sky; applyCfg(); }
@@ -2383,7 +2383,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       cartel(T('islasMarcaBorrada'), P.dim);
       beep(400, 0.06, 'square', 0.05);
     }
-    /** IR AHI (I / △ / click derecho): el avion salta al cursor, como antes hacia ENTER. */
+    /** IR AHI (I / △ / click derecho / ruedita): el avion salta al cursor, como antes hacia ENTER. */
     function mapaSaltar() {
       if (!mapaCur) { beep(160, 0.06, 'square', 0.04); return; }
       islas.mapaIr(mapaCur.u, mapaCur.v); mapaCur = null; pauseView = 'menu'; pauseToggle();
@@ -4161,7 +4161,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       mapaPunto: dir => mapaPunto(dir),
       mapaBorrar: () => mapaBorrar(),
       mapaSaltar: () => mapaSaltar(),
-      mapaClick: (x, y, boton) => { const q = mapaUVde(x, y); if (!q || !mapaPoner(q.u, q.v)) return; if (boton === 2) mapaSaltar(); else mapaMarcar(); },
+      mapaClick: (x, y, boton) => { const q = mapaUVde(x, y); if (!q || !mapaPoner(q.u, q.v)) return; if (boton === 2 || boton === 1) mapaSaltar(); else mapaMarcar(); },   // (la RUEDITA tambien teletransporta: desarrollo, 21/11)
       mapaHover: (x, y) => { const q = mapaUVde(x, y); if (q) mapaPoner(q.u, q.v); },
       pauseBack: () => pauseBack(),
       // submenu de HISTORIA y lista de partidas guardadas
@@ -4238,6 +4238,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           return false;
         }
         if (S.state !== 'play') return false;
+        // LAS ISLAS: la media vuelta y las verticales (systems/islas/islas.js `maniobra`); el resto sigue abajo
+        { const r = islas.maniobra(seq, id => damage.fx().moves && avionPuede(id)); if (r !== null) return r; }
         // EL BANCO DEL PICHON: en campaña solo disparan las piruetas APRENDIDAS (el guion las
         // inventa una por una). El tonel clasico no pasa por aca (startRoll) y queda siempre.
         // Fuera de campaña no cambia nada: rige cfg.moves como siempre.

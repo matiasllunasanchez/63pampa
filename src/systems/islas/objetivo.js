@@ -24,6 +24,14 @@ const MEDIO_X = 30, MEDIO_Z = 62, TECHO = 24;
 export const OBJ = { on: false, nombre: 'BASE COSTERA', malla: 'base_costera', x: 0, z: 0, g: 0, rot: 0, vivo: true, cayoT: 0 };
 const BOMBAS = new Map();   // pm (la bomba del pasillo) → { x, z, dx, dz, v, g0 }
 
+/** EL AVION CONTRA LA BASE (21/11, el autor: "no colisione con la base de tierra, deberia"): (x, z) del avion y su
+ *  altura absoluta `alto`. true si esta adentro de la planta y por debajo del techo. */
+export function choca(x, z, alto) {
+  if (!OBJ.on || alto > OBJ.g + TECHO * (OBJ.vivo ? 1 : 0.4)) return false;
+  const ex = x - OBJ.x, ez = z - OBJ.z, c = Math.cos(OBJ.rot), s = Math.sin(OBJ.rot);
+  return Math.abs(ex * c + ez * s) <= MEDIO_X && Math.abs(-ex * s + ez * c) <= MEDIO_Z;
+}
+
 export function reiniciar() { OBJ.on = false; OBJ.vivo = true; OBJ.cayoT = 0; BOMBAS.clear(); }
 
 /** Pone la base en la tierra plana mas cercana a (x0, z0). Devuelve true si encontro lugar. */

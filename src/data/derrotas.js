@@ -15,7 +15,7 @@ export const DERROTAS = {
   death_sea: { que: 'que_mar', hist: 'hist_mar' },
   death_land: TIERRA, death_cliff: TIERRA, death_pared: TIERRA,
   death_mast: CHOQUE, death_tree: CHOQUE, death_flag: CHOQUE, death_tower: CHOQUE, death_wire: CHOQUE,
-  death_bldg: CHOQUE, death_depot: CHOQUE, death_radar: CHOQUE, death_aagun: CHOQUE, death_lcu: CHOQUE,
+  death_bldg: CHOQUE, death_ship: CHOQUE, death_depot: CHOQUE, death_radar: CHOQUE, death_aagun: CHOQUE, death_lcu: CHOQUE,
   death_balloon: CHOQUE, death_barrera: CHOQUE,
   death_palos: { que: 'que_palos', hist: 'hist_palos' },
   death_estallido: { que: 'que_estallido', hist: 'hist_estallido' },

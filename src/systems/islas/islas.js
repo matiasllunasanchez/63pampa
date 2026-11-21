@@ -65,6 +65,13 @@ export const LUGARES = [
   { n: 'ESTRECHO DE SAN CARLOS', lon: -59.30, lat: -51.62 },
 ];
 const LUGAR_R = 6000;
+// LAS DOS ISLAS, rotuladas en grande en el MAPA de la pausa (21/11, el autor: "ISLA SOLEDAD (derecha), ISLA GRAN MALVINA
+// (izquierda)"). No son puntos elegibles: el rotulo va en el medio de cada isla (Soledad, sobre Lafonia, donde no hay
+// otros nombres)
+export const ISLAS_NOMBRES = [
+  { n: 'ISLA GRAN MALVINA', lon: -60.25, lat: -51.76 },
+  { n: 'ISLA SOLEDAD', lon: -58.65, lat: -52.0 },
+];
 
 // `radar`: LA LLAVE DEL RADAR DE LAS ISLAS (19/11, el autor: "la mecanica de radar tiene que estar en las
 // islas, activable o desactivable segun mision"). Prendido es la del pasillo tal cual; apagado, la barra
@@ -88,7 +95,7 @@ export const progreso = () => mundo.progreso();
 // las islas que no es PRUEBAS. Sin ella `enPasillo()` sigue exigiendo S.test.
 export function activar(on = true, tut = false) {
   I.on = !!on; I.tut = !!on && !!tut; I.puesto = false; I.lugar = null;
-  objetivo.reiniciar(); teatro.reiniciar(); MARCA.on = false; clima.reiniciar(); frio.reiniciar();
+  objetivo.reiniciar(); teatro.reiniciar(); MARCA.on = false; P3.man = null; clima.reiniciar(); frio.reiniciar();
   if (I.on) mundo.cargar();
   return I.on;
 }
@@ -201,10 +208,19 @@ export function pasoPasillo(dt) {
   if (I.ir) { const q = I.ir; I.ir = null; const [x, z] = mundo.lonLatLocal(q.lon, q.lat); P3.x = x; P3.z = z; if (q.rumbo != null) P3.yaw = q.rumbo * Math.PI / 180; P3.g = Math.max(mundo.sueloH(x, z), 0); if (q.alt) plane.y = q.alt; }
   geoExterna.on = true; geoExterna.sinRoce = true;
   // EL VIRAJE: lo de costado se vuelve rumbo, con peso
-  const pide = Math.max(-1, Math.min(1, plane.vx / VX_FONDO)) * GIRO_MAX;
+  let pide = Math.max(-1, Math.min(1, plane.vx / VX_FONDO)) * GIRO_MAX;
+  // EL DERRAPE (Q+D y E+A, el del pasillo): sobre el mapa no es un viraje, es TIRARSE DE COSTADO como una moto de
+  // agua — lo de costado corre al avion de lado y el rumbo apenas se tuerce
+  if (run.mv === 'derrape') {
+    const cy0 = Math.cos(P3.yaw), sy0 = Math.sin(P3.yaw), lat = plane.vx * 1.4 * dt;
+    P3.x += cy0 * lat; P3.z += sy0 * lat;
+    pide *= 0.15;
+  }
+  // LAS MANIOBRAS DE LAS ISLAS (`maniobra`): la media vuelta y la vertical mandan sobre el rumbo y la altura
+  const man = pasoManiobra(dt);
   // (CON HIELO EN LAS ALAS cuesta virar: el viraje pierde hasta HIELO.CONTROL — systems/frio.js)
   P3.giro += (pide * (1 - HIELO.CONTROL * (run.hielo || 0)) - P3.giro) * Math.min(1, dt / GIRO_T);
-  P3.yaw += P3.giro * dt;
+  if (!(man && man.rumbo)) P3.yaw += P3.giro * dt;
   plane.x = 0;
   // la correa del borde del mapa, como siempre
   const k = Math.max(0, Math.min(1, (BORDE - mundo.alBorde(P3.x, P3.z)) / 8000));
@@ -213,7 +229,7 @@ export function pasoPasillo(dt) {
   // la camara (systems/islas/avion3d.js, camara.js)
   P3.turbo += (((run.boost && run.fuel > 0) ? 1 : 0) - P3.turbo) * Math.min(1, dt * 4);
   // AVANZAR
-  const m = run.spd * U * VEL_MAPA * (1 + (TURBO_MAPA - 1) * P3.turbo) * dt;
+  const m = run.spd * U * VEL_MAPA * (1 + (TURBO_MAPA - 1) * P3.turbo) * dt * (man ? man.avanza : 1);
   // LAS LINEAS DE VELOCIDAD, de mas (autor: "falta el efecto particulas"): las del pasillo nacen pocas
   // y solo pasados los 115; sobre el mapa siempre hay algunas, y con el turbo, un chorro largo y rapido
   if (S.state === 'play' && run.spd > 60) {
@@ -258,6 +274,13 @@ export function pasoPasillo(dt) {
   // y en una loma era subirla solo. En las islas tocar la tierra es chocar; el agua sigue con su roce.
   // (y ya no hay roce que lo levante — flight.js `geoExterna.sinRoce`—: tocar la tierra es chocar, en todas las vistas)
   if (S.state === 'play' && g > 0.3 && plane.y <= 0.5) return 'death_land';
+  // LO QUE HAY EN EL MAPA TAMBIEN SE CHOCA (21/11): la base del objetivo, las piezas de las bases y los buques
+  if (S.state === 'play') {
+    const alto = P3.g + plane.y;
+    if (objetivo.choca(P3.x, P3.z, alto)) return 'death_bldg';
+    const c = teatro.choca(P3.x, P3.z, alto);
+    if (c) return c;
+  }
   // SIN NAFTA EL AGUA TAMBIEN TE MATA: el roce del pasillo te dejaba planeando sobre las olas para siempre
   if (S.state === 'play' && cfg.fuelOn && run.fuel <= 0 && plane.y <= 0.6) return 'death_sea';
   // DESDE ARRIBA EL AVION MANTIENE LA ALTURA (autor, 19/11): desde la vista cenital no hay como medirla, asi que
@@ -401,6 +424,7 @@ export function mapaDatos(cursor) {
   if (!enPasillo() || !I.puesto || !mundo.listo()) return null;
   const o = mundo.org(), ax = P3.x + o[0], az = P3.z + o[1];
   const [lon, lat] = mapa.lonLat(ax, az);
+  const islasN = ISLAS_NOMBRES.map(l => { const [x, z] = mundo.lonLatAbs(l.lon, l.lat); return { n: l.n, ...mapa.aUV(x, z) }; });
   const lug = LUGARES.map(l => { const [x, z] = mundo.lonLatAbs(l.lon, l.lat); return { n: l.n, ...mapa.aUV(x, z), d: Math.hypot(x - ax, z - az), r: Math.atan2(x - ax, -(z - az)) }; });
   const cerca = lug.reduce((a, b) => (b.d < a.d ? b : a), lug[0]);
   const O = objetivo.OBJ;
@@ -430,7 +454,7 @@ export function mapaDatos(cursor) {
   }
   const marca = MARCA.on ? { ...mapa.aUV(MARCA.x + o[0], MARCA.z + o[1]), n: MARCA.n, d: Math.hypot(MARCA.x - P3.x, MARCA.z - P3.z) } : null;
   return {
-    img: mapa.imagen(), avion: { ...mapa.aUV(ax, az), rumbo: P3.yaw }, obj, lugares: lug, cursor: cur, teatro: teat, puntos, marca,
+    img: mapa.imagen(), avion: { ...mapa.aUV(ax, az), rumbo: P3.yaw }, obj, lugares: lug, islas: islasN, cursor: cur, teatro: teat, puntos, marca,
     lat: mapa.gm(lat, 'N', 'S'), lon: mapa.gm(lon, 'E', 'O'), alt: Math.round(P3.g + plane.y), suelo: Math.round(P3.g),
     rumbo: Math.round(((P3.yaw * 180 / Math.PI) % 360 + 360) % 360), cerca,
   };
@@ -470,6 +494,66 @@ function tiempo(dt) {
     humedo: enNube || (!seco && (c.lluvia > 0.5 || c.nieve > 0.5)) || (c.bruma > 2.5 && plane.y < 150),
     sacude: Math.max(c.tormenta, Math.max(0, c.lluvia - 1.5)) });
 }
+// LAS MANIOBRAS DE LAS ISLAS (21/11, el autor: "en arena / isla DEBO PODER hacer otras piruetas para invertir
+// direccion, es decir ir hacia atras, o ir vertical hacia arriba, o vertical hacia abajo en picada"). En el pasillo no
+// hay para donde darse vuelta; sobre el mapa si. Combos con el stick que vuela (WASD / flechas / stick izquierdo):
+//   W W S      MEDIA VUELTA POR ARRIBA (Immelmann): trepa, se da vuelta arriba y sale al reves, mas alto
+//   S S W      MEDIA VUELTA POR ABAJO (Split-S): medio tonel, pica y sale al reves, mas bajo
+//   S W W W    VERTICAL ARRIBA: la trompa al cielo, sube derecho (el mapa casi no avanza)
+//   W S S S    PICADA VERTICAL: la trompa al suelo, baja derecho; saca sola a MAN_PISO m del suelo
+// (las del pasillo que eran solo de altura —el SPLIT-S y el POP-UP— se dejan: aca las reemplazan estas)
+const MAN = {
+  uud: { k: 'vuelta', sube: 1, dur: 2.0, h: 55, avion: 'splits' },
+  ddu: { k: 'vuelta', sube: -1, dur: 1.7, h: 45, avion: 'splits' },
+  duuu: { k: 'vertical', dir: 1, dur: 2.6, v: 70, avion: 'climb' },
+  uddd: { k: 'vertical', dir: -1, dur: 2.6, v: 80, avion: 'dive' },
+};
+const MAN_PISO = 35;
+/** El combo `seq` (game.js `combo`): true si arranco una maniobra de las islas, false si la consume sin hacer nada,
+ *  null si no es de las islas (sigue el pasillo). `puede(id)` = si el avion la hace (data/perfiles.js). */
+export function maniobra(seq, puede) {
+  if (!enPasillo() || !I.puesto) return null;
+  const s = seq.toLowerCase();
+  if (s === 'duu' || s === 'udd') return false;        // (el POP-UP y el SPLIT-S del pasillo: aca son las de abajo)
+  const d = MAN[s];
+  if (!d) return null;
+  if (P3.man || run.mv || !puede(d.avion)) return false;
+  if (d.k === 'vuelta' && d.sube < 0 && plane.y < d.h + MAN_PISO) return false;   // (abajo no hay lugar)
+  P3.man = { ...d, t: 0, yaw0: P3.yaw, lado: Math.random() < 0.5 ? -1 : 1 };
+  cartel(T('man_' + d.k + (d.k === 'vuelta' ? (d.sube > 0 ? '_arriba' : '_abajo') : (d.dir > 0 ? '_arriba' : '_abajo'))), P.accent);
+  return true;
+}
+/** Un cuadro de la maniobra en curso: corre el rumbo y la altura; devuelve { rumbo, avanza } o null. */
+function pasoManiobra(dt) {
+  const M = P3.man;
+  P3.manPitch = 0; P3.manRoll = 0;
+  if (!M) return null;
+  if (S.state !== 'play') { P3.man = null; return null; }
+  M.t += dt;
+  const u = Math.min(1, M.t / M.dur), e = u * u * (3 - 2 * u);
+  let out;
+  if (M.k === 'vuelta') {
+    // el rumbo da la media vuelta entera; la altura sube (o baja) y vuelve a quedar, con la trompa al cielo en el medio
+    P3.giro = 0;
+    P3.yaw = M.yaw0 + Math.PI * e * M.lado;
+    plane.y += M.sube * M.h * Math.PI / M.dur * Math.sin(Math.PI * u) * 0.5 * dt * 2;
+    plane.vy = 0;
+    P3.manPitch = M.sube * Math.sin(Math.PI * u) * 1.35;
+    P3.manRoll = M.sube > 0 ? Math.PI * Math.max(0, (u - 0.55) / 0.45) * M.lado : Math.PI * Math.min(1, u / 0.3) * (1 - Math.max(0, (u - 0.6) / 0.4)) * M.lado;
+    out = { rumbo: true, avanza: 0.45 };
+  } else {
+    // VERTICAL: entra en 0,4 s, sube (o baja) derecho y sale a nivel en el ultimo cuarto
+    const sube = Math.min(1, M.t / 0.4) * (u > 0.75 ? 1 - (u - 0.75) / 0.25 : 1);
+    plane.y += M.dir * M.v * sube * dt; plane.vy = 0;
+    P3.manPitch = M.dir * 1.4 * sube;
+    out = { rumbo: false, avanza: 1 - 0.75 * sube };
+    // la picada saca sola antes del suelo
+    if (M.dir < 0 && plane.y < MAN_PISO + (P3.g > 0.3 ? 15 : 0)) { P3.man = null; return out; }
+  }
+  if (u >= 1) P3.man = null;
+  return out;
+}
+
 /** El clima de ahora (systems/islas/clima.js) para game.js: la lluvia, la nieve y la tormenta del pasillo. */
 export const climaAhora = () => (enPasillo() && I.puesto ? clima.ahora() : null);
 /** EL CLIMA DESDE LA PAUSA (20/11): su nombre y el que sigue (◄ ►), puesto de una (sin mezcla: se elige para verlo). */
@@ -587,10 +671,10 @@ export const marco = () => ({ x: P3.x, z: P3.z, yaw: P3.yaw, g: P3.g });
 export function estadoA() {
   if (!enPasillo() || !mundo.listo() || !I.puesto) return null;
   const sp = Math.max(1, run.spd * U * VEL_MAPA);
-  const pitch = Math.atan2(plane.vy, sp) * 0.8 + plane.pitch * 0.12;
+  const pitch = P3.manPitch ? P3.manPitch : Math.atan2(plane.vy, sp) * 0.8 + plane.pitch * 0.12;
   // el ALABEO: el del pasillo, el giro de las piruetas y EL ROLIDO SOBRE SU EJE (Q/E, flechas, stick
   // derecho: `run.freeRoll`, que en el pasillo rola el dibujo y el horizonte)
-  const roll = Math.max(-1, Math.min(1, plane.bank)) * BANK_FULL + (run.mvRoll || 0) + (run.freeRoll || 0);
+  const roll = Math.max(-1, Math.min(1, plane.bank)) * BANK_FULL + (run.mvRoll || 0) + (run.freeRoll || 0) + (P3.manRoll || 0);
   const f = forward(P3.yaw, pitch);
   const A = P3.A || (P3.A = { pos: { x: 0, y: 0, z: 0 } });
   A.pos.x = P3.x; A.pos.y = P3.g + Math.max(plane.y, 0.3); A.pos.z = P3.z;
