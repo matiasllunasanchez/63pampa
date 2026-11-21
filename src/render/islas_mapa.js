@@ -77,6 +77,18 @@ export function drawMapaIslas(d, t) {
     ctx.strokeRect(Math.round(x - r) + 0.5, Math.round(y - r) + 0.5, Math.round(r * 2), Math.round(r * 2));
     if (!d.obj.vivo) { ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.stroke(); }
   }
+  // LA GUIA DEL TUTORIAL: una flecha que late sobre la base costera, MARCA ACA, y abajo del mapa como se hace
+  if (d.guia) {
+    const [x, y] = aP(d.guia), b = Math.round(Math.abs(Math.sin(t * 4)) * 4);
+    ctx.fillStyle = '#ffe14d'; ctx.strokeStyle = '#000';
+    ctx.beginPath(); ctx.moveTo(x, y - 7 - b); ctx.lineTo(x - 5, y - 15 - b); ctx.lineTo(x + 5, y - 15 - b); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; nombre(T('mapaGuiaAca'), Math.round(x), Math.round(y - 18 - b), '#ffe14d'); ctx.textAlign = 'left';
+    const gy = m.y + m.h - 14;
+    ctx.globalAlpha = 0.9; ctx.fillStyle = '#070a0d'; ctx.fillRect(m.x + 2, gy, m.w - 4, 12); ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#ffe14d'; ctx.strokeRect(m.x + 2.5, gy + 0.5, m.w - 5, 11);
+    ctx.font = 'bold 5px monospace'; ctx.fillStyle = '#ffe14d'; ctx.textAlign = 'center';
+    ctx.fillText(T('mapaGuia'), m.x + m.w / 2, gy + 8); ctx.textAlign = 'left';
+  }
   // LA MARCA DEL JUGADOR (ENTER / ✕ / click): un rombo amarillo que late, con su nombre
   if (d.marca) {
     const [x, y] = aP(d.marca), r = 4 + Math.sin(t * 6) * 0.8;

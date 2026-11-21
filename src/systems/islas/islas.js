@@ -83,7 +83,7 @@ const I = { on: false, puesto: false, lugar: null, avisoT: 0, ir: null, radar: t
 // el MAPA de la pausa. Manda sobre la BASE COSTERA: la brujula y la marca del pasillo la señalan a ella.
 // (x, z relativos a `mundo.org()`, como P3; `n` = el nombre que se muestra)
 const CAM_ARRIBA = 4, CAM_ABAJO = 9.5;   // cuanto puede quedar la camara por debajo / por encima del avion (m)
-const MARCA = { on: false, x: 0, z: 0, g: 0, n: '' };
+const MARCA = { on: false, x: 0, z: 0, g: 0, n: '', t: -99 };   // `t`: cuando se marco (la brujula titila)
 
 export const activa = () => I.on;
 /** ¿Las islas estan corriendo CON el radar apagado? (flight.js no carga la barra; el HUD no la muestra) */
@@ -457,7 +457,10 @@ export const misionCumplida = () => enPasillo() && objetivo.OBJ.on && !objetivo.
 export function brujula() {
   if (!enPasillo() || !I.puesto) return null;
   const o = blanco();
-  return { rumbo: P3.yaw, obj: o ? Math.atan2(o.x - P3.x, -(o.z - P3.z)) : null, dist: o ? Math.hypot(o.x - P3.x, o.z - P3.z) : null };
+  // `titila`: recien marcado (3 s), la brujula late para que se mire (21/11, el autor: "deberia marcarte la brujula, o
+  // titilar una vez marcado el objetivo, y tenes que seguir la brujula")
+  return { rumbo: P3.yaw, obj: o ? Math.atan2(o.x - P3.x, -(o.z - P3.z)) : null, dist: o ? Math.hypot(o.x - P3.x, o.z - P3.z) : null,
+    titila: MARCA.on && performance.now() / 1000 - MARCA.t < 3.5 };
 }
 /** A donde apunta todo (brujula, marca del pasillo): la marca del jugador, o la base costera viva, o nada.
  *  (En MAR ABIERTO, lo que diga la busqueda: el centro de la zona o el humo de las balsas.) */
@@ -484,7 +487,7 @@ export function marcar(u, v, n) {
   if (!enPasillo() || !I.puesto) return;
   const o = mundo.org(), [ax, az] = mapa.deUV(u, v);
   MARCA.x = ax - o[0]; MARCA.z = az - o[1];
-  MARCA.g = Math.max(mundo.sueloH(MARCA.x, MARCA.z), 0); MARCA.n = n; MARCA.on = true;
+  MARCA.g = Math.max(mundo.sueloH(MARCA.x, MARCA.z), 0); MARCA.n = n; MARCA.on = true; MARCA.t = performance.now() / 1000;
 }
 export function desmarcar() { MARCA.on = false; }
 /** ¿Hay un punto marcado en el mapa? (el tutorial: el paso del MAPA) */
@@ -518,7 +521,8 @@ export function mapaDatos(cursor) {
   }
   // LOS PUNTOS ELEGIBLES (el cursor se les pega; Q/E y L1/R1 saltan de uno a otro, de oeste a este)
   const puntos = [...lug.map(l => ({ k: 'lugar', n: l.n, u: l.u, v: l.v })),
-    ...teat.filter(q => q.k !== 'pac').map(q => ({ k: q.k, n: q.n, u: q.u, v: q.v })),
+    // (un buque no tiene nombre —SIN IDENTIFICADOR—: el cursor dice que es un buque y nada mas; antes escribia «null»)
+    ...teat.filter(q => q.k !== 'pac').map(q => ({ k: q.k, n: q.n || T(q.k === 'buque' ? 'mapaBuque' : 'mapaPunto'), u: q.u, v: q.v })),
     ...(obj && obj.vivo ? [{ k: 'obj', n: obj.n, u: obj.u, v: obj.v }] : [])].sort((a, b) => a.u - b.u);
   const asp = mundo.MAP_D / mundo.MAP_W;
   if (cur) {
@@ -526,8 +530,12 @@ export function mapaDatos(cursor) {
     for (const q of puntos) { const dd = Math.hypot(q.u - cur.u, (q.v - cur.v) * asp); if (dd < bd) { bd = dd; best = q; } }
     cur.punto = best;
   }
+  // LA GUIA DEL TUTORIAL en el mapa (21/11, el autor: "dentro del mapa no me dice donde quiere ir o marcar, ni como
+  // hacerlo"): mientras no marcaste nada, la base costera resaltada y como se marca (render/islas_mapa.js)
+  const guia = I.tut && !MARCA.on && obj && obj.vivo ? { u: obj.u, v: obj.v, n: obj.n } : null;
   const marca = MARCA.on ? { ...mapa.aUV(MARCA.x + o[0], MARCA.z + o[1]), n: MARCA.n, d: Math.hypot(MARCA.x - P3.x, MARCA.z - P3.z) } : null;
   return {
+    guia,
     img: mapa.imagen(), avion: { ...mapa.aUV(ax, az), rumbo: P3.yaw }, obj, lugares: lug, islas: islasN, cursor: cur, teatro: teat, puntos, marca,
     lat: mapa.gm(lat, 'N', 'S'), lon: mapa.gm(lon, 'E', 'O'), alt: Math.round(P3.g + plane.y), suelo: Math.round(P3.g),
     rumbo: Math.round(((P3.yaw * 180 / Math.PI) % 360 + 360) % 360), cerca,

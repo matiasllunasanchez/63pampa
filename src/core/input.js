@@ -59,7 +59,19 @@ const MIRA_QUIETA = 5000, MIRA_SUELTA = 4;
 //   'ps'    PlayStation y el resto (default: es la nomenclatura con la que se escribio el juego)
 // Se muta, no se reasigna (regla de los stores del repo).
 // `conectado`: si hay un mando ahora. Lo leen las LECCIONES para mostrar el boton y no la tecla.
-export const padInfo = { kind: 'ps', id: '', conectado: false };
+let fijoIni = null;
+try { fijoIni = localStorage.getItem('rasante_mando'); } catch (e) { /* sin almacenamiento: queda en automatico */ }
+export const padInfo = { kind: 'ps', id: '', conectado: false, uso: null, fijo: fijoIni === 'pad' || fijoIni === 'teclado' ? fijoIni : null };
+/** ¿Se le muestran al jugador los mandos del JOYSTICK? (21/11, el autor: "que se asuma si se esta usando el joystick
+ *  o el teclado"): manda EL ULTIMO QUE SE TOCO —una tecla pasa a teclado, un boton o un stick del mando pasa a
+ *  joystick—. Antes de tocar nada, si hay mando conectado se asume el mando. */
+export const padActivo = () => padInfo.fijo ? padInfo.fijo === 'pad' : padInfo.conectado && padInfo.uso !== 'teclado';
+/** EL SWITCH de CONTROLES (21/11, el autor: "un selector grande TECLADO ↔ JOYSTICK, y que cambie todo"): lo elegido
+ *  manda en TODO el juego (carteles, tutorial, pausa, controles) y queda guardado; deja de adivinar por el ultimo toque. */
+export function mandoCambiar() {
+  padInfo.fijo = padActivo() ? 'teclado' : 'pad';
+  try { localStorage.setItem('rasante_mando', padInfo.fijo); } catch (e) { /* no se guarda: vale por esta sesion */ }
+}
 const XBOX_RE = /xbox|xinput|x-?box|045e|microsoft/i;
 function readPadKind(gp) {
   const id = (gp && gp.id) || '';
@@ -173,6 +185,7 @@ export function initInput(cv, a) {
   }
 
   addEventListener('keydown', e => {
+    padInfo.uso = 'teclado';
     audio();
     readCaps(e);                                                          // CAPS LOCK gobierna la mira
     // PAUSA DE DIALOGO: CUALQUIER TECLA FRESCA ACEPTA. Es el idioma que el juego ya habla en el
@@ -652,6 +665,8 @@ export function initInput(cv, a) {
     // primera pulsacion del pad: DESBLOQUEA el audio (el navegador no lo hace con el gamepad, solo
     // con teclado/mouse/tactil → sin esto, jugando SOLO con joystick no sonaba la metralla ni la musica)
     if (pressed.some((p, i) => p && !btnPrev[i])) audio();
+    // el ultimo mando tocado decide que glifos se muestran (padActivo)
+    if (pressed.some(p => p) || gp.axes.some(v => Math.abs(v) > 0.5)) padInfo.uso = 'pad';
     // ✕ ACEPTA, ◯ VUELVE (18/11, el autor: "en los menues y demas, aceptar tiene que ser la X de PlayStation, y
     // atras o NO el circulo"). Las pantallas que avanzan con "cualquier tecla" (historia, derribo, recuento,
     // victoria) solo avanzan con ✕ o START; ◯ es VOLVER — en un dialogo, la linea anterior (como la flecha
@@ -811,7 +826,10 @@ export function initInput(cv, a) {
       // con ▲ y se lanza con R3 (o L1), sea bomba, tanques o chafitas.
       // ◯ = LAS CHAPITAS en vuelo (8/10). Era el unico boton sin dueño en 'play' (en los menus y la
       // pausa sigue siendo volver: esas pantallas lo leen antes y no llegan aca).
-      if (hit(1) && S.state === 'play') a.chapitas();
+      // (21/11, el autor: "el freno de las piruetas, una combinación simple de turbo"): R2 + ◯ = EL FRENO en el pasillo.
+      // Con el turbo apretado ◯ frena (cobra, mortal) y no suelta chafitas; sin turbo, ◯ siguen siendo las chafitas
+      const frenoCombo = S.state === 'play' && down(7) && down(1);
+      if (hit(1) && S.state === 'play' && !down(7)) a.chapitas();
       // □ (X) EN EL PASILLO = EL RADAR PROPIO, como la [Y] (18/11: L2 paso a ser el gas; □ repetia el secundario de L1)
       if (hit(2) && S.state === 'play' && a.radarToggle) a.radarToggle();
       // □ (X) = EL TREN en la aproximacion final, como la [T] (18/11): ahi no hay secundario que soltar, y ✕ es
@@ -827,7 +845,7 @@ export function initInput(cv, a) {
       const miraStick = S.state === 'play' && ax(3) < -0.5, r3 = down(11) && S.state === 'play';
       setPad('apunta', miraStick);
       setPad('fire', down(5) || down(0) || (r3 && miraStick));  // R1 = metralleta (✕ tambien; R3 con la mira = la bomba)
-      setPad('turbo', down(7));                                // turbo (gatillo)
+      setPad('turbo', down(7) && !frenoCombo);                 // turbo (gatillo) — con ◯ deja de empujar: frena
       // L1 (□ tambien) = EL SECUNDARIO ELEGIDO en el pasillo, como [Z]: la bomba, los TANQUES (mantener
       // apunta, soltar tira) o las CHAFITAS (al apretar). Lo elegido se TOMA al apretar y se sostiene
       // hasta soltar: cambiar con la cruceta a mitad de una mira no tira nada solo. Fuera del pasillo,
@@ -846,7 +864,7 @@ export function initInput(cv, a) {
       if (S.state === 'pulso' && (hit(4) || hit(2))) a.pulsoTap('Z');
       // ◯ (B) = EL FRENO en el 3D (lo leen ARENA y PASADA; 18/11: L2 paso a ser el gas). En el pasillo ◯ son las chafitas.
       // …y EN EL PASILLO, la cruceta ◄ (19/11): las piruetas de freno —cobra, mortal— lo piden, y ◄ quedo libre
-      setPad('brake', S.state === 'arena' || S.state === 'pasada' ? (down(1) ? 1 : 0) : enPasillo && down(14) ? 1 : 0);
+      setPad('brake', S.state === 'arena' || S.state === 'pasada' ? (down(1) ? 1 : 0) : enPasillo && (frenoCombo || down(14)) ? 1 : 0);
 
       // ---- STICK DERECHO ----
       // X = GIRO LIBRE DEL HORIZONTE (lo que en teclado son [Q]/[E]).

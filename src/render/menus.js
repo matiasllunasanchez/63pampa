@@ -2,6 +2,7 @@
 //
 // Igual que las demas pantallas: reciben `w`, un snapshot chico de solo lectura. No leen estado
 // global ni lo modifican — la seleccion la maneja el input; aca solo se dibuja.
+import * as glifos from './glifos.js';
 import { DEV } from '../core/dev.js';
 import { ctx, U, DW as W, DH as H, W as NW, H as NH, px, panel, titleFont, menuFont, descFont, labelFont, uiFont, wrapText, FONT_OTHERS, filaFont, rotuloChicoFont } from './ctx.js';
 import { drawMira } from './miras.js';
@@ -1289,8 +1290,10 @@ export function drawControles(w) {
   // OPACO abajo: se abre ENCIMA de OPCIONES o de la pausa, y lo de atras no puede trasluzarse
   ctx.fillStyle = '#0b1013'; ctx.fillRect(0, 0, NW, NH); panel();
   const cat = CTRL_CATEGORIAS[(w.tab + CTRL_N) % CTRL_N], padTxt = w.padTxt || (t => t);
-  ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = titleFont(22);
-  ctx.fillText(T('optSecCtrl'), NW / 2, 36);
+  // (21/11: el titulo a la izquierda para dejarle la derecha al switch TECLADO ↔ JOYSTICK)
+  ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.font = titleFont(22);
+  ctx.fillText(T('optSecCtrl'), 40, 38);
+  switchMando(!!w.joy);
   // LAS PESTAÑAS: todas a la vista, la elegida encendida y subrayada
   ctx.font = labelFont(9);
   const anchos = CTRL_CATEGORIAS.map(c => ctx.measureText(T('ctrlCat_' + c.id)).width), sep = 18;
@@ -1320,31 +1323,27 @@ export function drawControles(w) {
       ctx.textAlign = 'left'; ctx.fillStyle = P.foam; ctx.font = menuFont(8);
       ctx.fillText(MOVES[id].name, x0, y, 74);                      // (los nombres largos se aprietan: no tapan el combo)
       const xc = x0 + 80, kb = sinPar(COMBO[id]), pad = COMBO_PAD[id] ? sinPar(COMBO_PAD[id]) : null;
-      if (!pad) {
-        iconoTeclado(xc, y - 5); iconoJoy(xc + 10, y - 5);
-        ctx.font = 'bold ' + labelFont(8); ctx.fillStyle = P.accent; ctx.fillText(kb, xc + 22, y);
-      } else {
-        // distintos: el de teclado en la linea del nombre y el del joystick apretado debajo, dentro de la fila
-        iconoTeclado(xc, y - 5);
-        ctx.font = 'bold ' + labelFont(7); ctx.fillStyle = P.accent; ctx.fillText(kb, xc + 12, y - 0.5);
-        iconoJoy(xc, y + 1.5);
-        ctx.font = 'bold ' + labelFont(6.5); ctx.fillStyle = P.accent; ctx.fillText(pad, xc + 12, y + 6);
-      }
+      // (21/11: el switch TECLADO ↔ JOYSTICK de arriba elige cual se ve; uno solo, mas grande)
+      const joy = !!w.joy, txt = joy && pad ? padTxt(pad) : kb;
+      if (joy) iconoJoy(xc, y - 5); else iconoTeclado(xc, y - 5);
+      ctx.font = 'bold ' + labelFont(8); ctx.fillStyle = P.accent; ctx.fillText(txt, xc + 12, y);
     });
     yFin = 70 + mitad * rh + 2;
   } else {
     ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(7);
     ctx.fillText(T('ctrlColAccion'), xa, 78);
-    ctx.textAlign = 'right'; ctx.fillText(T('optColKb'), xk, 78); ctx.fillText(T('optColPad'), xv, 78);
+    ctx.textAlign = 'right'; ctx.fillText(T(w.joy ? 'optColPad' : 'optColKb'), xv, 78);
     // 18 de alto por fila, salvo que no entren con las notas abajo: entonces se aprietan (MOVILIDAD tiene nueve)
     const rh = Math.min(18, Math.floor((NH - 34 - cat.notas.length * 11 - 6 - 96 + 11) / Math.max(1, cat.filas.length)));
     cat.filas.forEach((k, i) => {
       const y = 96 + i * rh;
       if (i % 2) { ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.025; ctx.fillRect(xa - 8, y - 11, xv - xa + 16, rh); ctx.globalAlpha = 1; }
       ctx.textAlign = 'left'; ctx.fillStyle = P.body; ctx.font = menuFont(10);
-      ctx.fillText(T('ctrl' + k), xa, y, xk - xa - 120);
-      teclas(T('ctrl' + k + 'K'), xk, y);
-      teclas(padTxt(T('ctrl' + k + 'P')), xv, y);
+      ctx.fillText(T('ctrl' + k), xa, y, xv - xa - 200);
+      // (21/11, el autor: "en el menu de controles dibujar los sticks"): las teclas o el joystick DIBUJADOS
+      // (render/glifos.js) — uno solo, el que elige el switch de arriba —, alineados a la derecha
+      if (w.joy) mandoDibujado(padTxt(T('ctrl' + k + 'P')), true, xv, y);
+      else mandoDibujado(T('ctrl' + k + 'K'), false, xv, y);
     });
     yFin = 96 + cat.filas.length * rh;
   }
@@ -1355,6 +1354,29 @@ export function drawControles(w) {
   ctx.textAlign = 'center'; ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(7);
   ctx.fillText(T('ctrlHint'), NW / 2, NH - 10);
   ctx.textAlign = 'left';
+}
+
+/** EL SWITCH TECLADO ↔ JOYSTICK (21/11): grande, arriba a la derecha del titulo, con la perilla del lado elegido.
+ *  Se mueve con ▲ ▼ (game.js `mandoCambiar`) y cambia TODO el juego, no solo esta pantalla. */
+function switchMando(joy) {
+  const w = 150, h = 20, x = NW - 40 - w, y = 20, m = w / 2;
+  ctx.fillStyle = '#141c20'; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#3a464c'; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  // la perilla: el lado elegido encendido
+  const kx = joy ? x + m : x;
+  ctx.fillStyle = P.accent; ctx.globalAlpha = 0.9; ctx.fillRect(kx + 2, y + 2, m - 4, h - 4); ctx.globalAlpha = 1;
+  ctx.font = labelFont(9); ctx.textAlign = 'center';
+  ctx.fillStyle = joy ? P.dim : '#0b1013'; ctx.fillText(T('ctrlSwTeclado'), x + m / 2, y + 14);
+  ctx.fillStyle = joy ? '#0b1013' : P.dim; ctx.fillText(T('ctrlSwJoy'), x + m + m / 2, y + 14);
+  ctx.fillStyle = P.dim; ctx.font = labelFont(6); ctx.globalAlpha = 0.8;
+  ctx.fillText('▲ ▼', x + w / 2, y + h + 8); ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
+/** Un mando dibujado (teclas, stick, botones) con su borde derecho en `xr` y la linea de base del texto en `y`. */
+function mandoDibujado(texto, pad, xr, y) {
+  const g = glifos.glifosDe(texto, pad), h = 14, w = glifos.medir(g, h);
+  glifos.dibujar(g, Math.round(xr - w), y - 11, h, performance.now() / 1000, P.body);
 }
 
 // ---------- MENU DE PAUSA (overlay sobre la partida congelada) ----------
@@ -1709,7 +1731,7 @@ export function drawPause(w) {
   ctx.fillStyle = P.accent; ctx.font = titleFont(24);
   ctx.fillText(w.titulo || T('pauseTitle'), NW / 2, 56);
 
-  if (w.view === 'controls') { drawControles({ tab: w.ctrlTab | 0, padTxt: w.padTxt, velo: false }); return; }
+  if (w.view === 'controls') { drawControles({ tab: w.ctrlTab | 0, padTxt: w.padTxt, joy: w.joy, velo: false }); return; }
 
   if (w.view === 'save') {
     const x = 52, y0 = 96, rh = 17;

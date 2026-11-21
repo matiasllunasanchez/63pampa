@@ -91,7 +91,8 @@ export function crear(escena) {
   // el HALO del motor: un punto grande, naranja y sumado
   R.halos = capa('puntos', 18); R.halos.material.blending = THREE.AdditiveBlending; R.halos.material.opacity = 0.55;
   escena.add(R.halos); crearHumo(escena);
-  R.bombas = capa('puntos', 5); R.sombras = capa('puntos', 5);
+  // (21/11, el autor: "la bomba en ISLA no se ve: tiene que verse claramente cuando cae"): casi el doble, y una estela
+  R.bombas = capa('puntos', 9); R.sombras = capa('puntos', 6);
   R.sombras.material.transparent = true; R.sombras.material.opacity = 0.55; R.sombras.renderOrder = 4;
   escena.add(R.lineas); escena.add(R.puntos); escena.add(R.grandes); escena.add(R.sombras); escena.add(R.bombas);
   // LA MIRA de la vista de arriba: cuatro esquinas naranjas adelante del avion (islas.js `mira`)
@@ -131,6 +132,8 @@ export function frame(lista, visible, mira = null, zoom = 1, dt = 1 / 60, medio 
       if (B.n < MAX) { B.p.setXYZ(B.n, q.p.x, q.p.y, q.p.z); B.c.setXYZ(B.n, BOMBA[0], BOMBA[1], BOMBA[2]); B.n++; }
       if (S.n < MAX) { S.p.setXYZ(S.n, sx, q.s.y, sz); S.c.setXYZ(S.n, SOMBRA[0], SOMBRA[1], SOMBRA[2]); S.n++; }
       seg(q.p, { x: sx, y: q.s.y, z: sz }, HILO, 0.5, 0.1);   // el hilo que une la bomba con su sombra
+      // LA ESTELA: un trazo corto hacia arriba (de donde viene cayendo), claro arriba y apagado abajo
+      seg({ x: q.p.x, y: q.p.y + Math.min(25, 4 + a * 0.15), z: q.p.z }, q.p, BOMBA, 0.15, 0.9);
       continue;
     }
     const c = COLOR[q.k] || COLOR.misil, L = capas[GRANDE[q.k] ? 1 : 0];

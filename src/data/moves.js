@@ -197,7 +197,7 @@ export const COMBO = {
  *  letras (Q/E/S/A/D) o el freno [G] (en el joystick, la cruceta ◄) van aca. */
 export const COMBO_PAD = {
   spin: 'der← izq↓ der→ · der→ izq↓ der←',
-  cobra: '[◄] · ⟳↑↓↑', mortal: '[◄] → ↑↓ · ⟳↑↑↓', cobrainv: '[◄]+izq↓ · ⟳↓↓↑',
+  cobra: '[R2+◯] · ⟳↑↓↑', mortal: '[R2+◯] → ↑↓ · ⟳↑↑↓', cobrainv: '[R2+◯]+izq↓ · ⟳↓↓↑',
   derrape: 'der←+izq→ y der→+izq← · der→+izq← y der←+izq→',
 };
 

@@ -32,7 +32,7 @@ export function cartel(txt, col, sub, o) {
   const v = carteles.vivos;
   const ya = v.find(x => x.txt === txt && x.sub === (sub || null) && !x.id);
   if (ya) { ya.t0 = -1; return; }
-  v.unshift({ txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null, t0: -1, id: null, y: null });
+  v.unshift({ txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null, glifos: (o && o.glifos) || null, t0: -1, id: null, y: null });
   while (v.length > TOPE) v.pop();
 }
 
@@ -42,8 +42,8 @@ export function cartelSostenido(id, on, txt, col, o, sub) {
   const v = carteles.vivos, ya = v.find(x => x.id === id);
   if (on) {
     // (sigue arriba, pero lo que dice puede cambiar mientras tanto: la consigna del tutorial cuenta)
-    if (ya) { ya.sostenido = true; ya.txt = txt; ya.col = col || null; ya.sub = sub || null; return; }
-    v.unshift({ txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null, t0: -1, id, sostenido: true, y: null });
+    if (ya) { ya.sostenido = true; ya.txt = txt; ya.col = col || null; ya.sub = sub || null; ya.glifos = (o && o.glifos) || null; return; }
+    v.unshift({ txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null, glifos: (o && o.glifos) || null, t0: -1, id, sostenido: true, y: null });
     while (v.length > TOPE) v.pop();
   } else if (ya && ya.sostenido) { ya.sostenido = false; ya.soltar = true; }
 }

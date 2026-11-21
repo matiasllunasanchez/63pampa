@@ -127,7 +127,7 @@ import * as persec from './systems/persec.js';
 import { drawCaza, zv as zvCaza, setLucesCaza } from './render/caza.js';
 import { drawPersec, drawCinta, cintaRect } from './render/persec.js';
 import { drawChancha } from './render/chancha.js';
-import { inp, mouse, pointer, puntero, flags, padInfo, initInput } from './core/input.js';
+import { inp, mouse, pointer, puntero, flags, padInfo, padActivo, mandoCambiar, initInput } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
 import { drawPlane } from './render/plane.js';
 import { drawBullet } from './render/ammo.js';
@@ -171,6 +171,7 @@ import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
 import { drawMira } from './render/miras.js';
 import { drawCabina } from './render/cabina.js';
+import { glifosDe } from './render/glifos.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { BOMBA_CARGA_T, BOMBA_CARGA_VZ, CH_VAIVEN } from './data/tuning.js';
@@ -2341,6 +2342,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       { id: 'opciones', label: T('optTitle') },
       { id: 'controls', label: T('pauseControls') },
       ...(gameMode === 'campaign' ? [{ id: 'save', label: T('pauseSaveRow') }] : []),
+      // LA PRACTICA LIBRE DEL TUTORIAL (21/11): la etapa se termina cuando el jugador quiere
+      ...(libro && libro.tut && tutSys.libre() ? [{ id: 'terminar', label: T('pauseTerminar') }] : []),
       { id: 'quit', label: T('pauseQuit'), quit: true },
     ];
     // OPCIONES de la pausa (19/11, el autor: "un menu llamado OPCIONES dentro de PAUSA y ahi adentro la musica
@@ -2429,7 +2432,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       else if (pauseView === 'save') {
         const n = pauseSaveRows().length;
         if (n) saveSel = (saveSel + dir + n) % n;
-      } else return;                       // CONTROLES: no hay nada que navegar
+      } else if (pauseView === 'controls') { mandoCambiar(); beep(640, 0.06, 'square', 0.05); return; }   // ▲▼: el switch TECLADO ↔ JOYSTICK
+      else return;
       beep(520, 0.05, 'square', 0.04);
     }
     /** Izquierda / derecha en la pausa: en VER CARTAS, pasar de carta (en el menu no hacen nada). */
@@ -2465,6 +2469,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       else if (r.id === 'opciones') { pauseView = 'opciones'; opcSel = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'cartas') { pauseView = 'cartas'; cartasSel = 0; cartasCrece = 0; cartasLeer = cartasLeerV = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'save') { pauseView = 'save'; saveSel = 0; beep(600, 0.06, 'square', 0.05); }
+      else if (r.id === 'terminar') { tutTermina = true; pauseToggle(); }
       else if (r.id === 'quit') {
         // SALIR: la partida muere aca (sin guardado implicito — guardar es una decision del
         // jugador, no un efecto colateral de irse)
@@ -4010,6 +4015,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       dlgPausa = false; retenerRadio(false, true);   // …ni su congelada: morir o salir durante el dialogo dejaria el mundo
                           // quieto sin nadie que lo suelte, y eso no se arregla desde adentro
       lecFoco = null; lecIdx = 0;   // las lecciones de la mision vuelven a empezar con la corrida
+      tutTermina = false;
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
       // LA METRALLA Y SU CINTA (data/upgrades.js): en campaña, las cartas que se ganaron en el banco
       // del Pichon; de fabrica —y en los demas modos, decision del autor (9/10: "fuera de campaña
@@ -4297,7 +4303,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       cargaNav: dir => cargaNav(dir),
       cargaConfirm: () => cargaConfirm(),
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
-      optNav: dir => { if (optCtrl) return; optNav(dir); beep(500, 0.04, 'square', 0.03); },
+      optNav: dir => { if (optCtrl) { mandoCambiar(); beep(640, 0.06, 'square', 0.05); return; } optNav(dir); beep(500, 0.04, 'square', 0.03); },
       optChange: dir => { if (optCtrl) { ctrlTabMover(dir); return; } optChange(dir); beep(560, 0.05, 'square', 0.04); },
       // ESC en OPCIONES: si estan abiertos los CONTROLES, los cierra (devuelve true); si no, sale como siempre
       optBack: () => { if (!optCtrl) return false; optCtrl = false; beep(400, 0.06, 'square', 0.05); return true; },
@@ -4895,7 +4901,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // (8/10: el ¡LE DISTE! ya salio arriba durante la camara lenta; al salir de ella, GRANDE, ¡ESCAPÁ YA!)
       escapaT0 = performance.now();
       fases.tapar(FASE_ESCAPE);
-      estrellas.llenar(BL_BLANCO.ESCAPE_EST);   // (8/10: eran todas — el escape era imposible)
+      estrellas.llenar(libro && libro.tut ? 1 : BL_BLANCO.ESCAPE_EST);   // (8/10: eran todas — el escape era imposible; en el tutorial, una)
       // EL RADAR ENTERO EN ROJO, pero en 0,99 y no en 1: el 1 dispara la oleada de misiles EN EL
       // ACTO, y el avion todavia esta arriba por el salto — medido, un misil lo bajaba medio segundo
       // despues del cruce. La presion la ponen las cuatro estrellas, con su siembra de siempre; la
@@ -5198,6 +5204,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       run.cargaBomba = 0;   // la proxima, con la mira todavia puesta, se carga de nuevo
       // EL CLUNK del gancho que se abre: una bomba no despega con un silbido de cohete, se CAE.
       beep(90, 0.12, 'square', 0.05, 55); boom(0.04, true);
+      // …Y EL SILBIDO DE LA CAIDA (21/11, el autor: "desprender algun sonido; si no veo el numero de la bomba que se
+      // descuenta, nunca me doy cuenta que la lance"); en LAS ISLAS, ademas, el cartel
+      beep(1500, 1.2, 'sine', 0.03, 420);
+      if (islas.enPasillo()) cartel(T('islasBombaFuera'), P.accent);
     }
 
     // EL ESPECTACULO DEL DERRIBO: bola de fuego pixel, pedazos con inercia, chispas y sonido.
@@ -5665,9 +5675,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // pasar de rolar")
         inp: Object.assign({}, inp, { rollL: inp.rollL || inp.rollAx < -0.3, rollR: inp.rollR || inp.rollAx > 0.3 }),
         pasados: tutPasados, rotos: tutRotos, esquivados: tutEsquivados, overheat: !!run.overheat, enVuelo: S.state === 'play',
-        mv: run.mv || null, bombasVuelo: pmissiles.filter(p => !p.tanque).length, climaxHecho: !!run.climaxHecho,
+        mv: run.mv || null, bombasVuelo: pmissiles.filter(p => !p.tanque).length, climaxHecho: !!run.climaxHecho, termina: tutTermina, pego: blancoSys.alarma() || !!run.climaxHecho,
         faltan: objectiveDist > 0 ? (objectiveDist - run.dist) / objectiveDist : 1, aterrizando: S.state === 'landing', tren: landDown, aterrizo: tutAterrizo,
-        pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), chancha: chancha.enCurso(),
+        pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), momentumLleno: !tempo.active() && tempo.meterVal() >= 1, chancha: chancha.enCurso(),
         aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0, hielo: run.hielo || 0,
         marca: islas.marcado(), objIslas: !!islas.objetivoDe() && !islas.objetivoDe().vivo,
         radio: radioVis() }, SCENES);
@@ -5711,11 +5721,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     }
     /** Siembra los blancos de un paso: `n` en fila hacia adelante, repartidos de costado y a la altura del
      *  rasante (el caza, en tu linea: viene de frente). */
+    let tutTermina = false;   // TERMINAR ETAPA, desde la pausa (la practica libre del tutorial)
+    const TUT_REENCARE_EXTRA = 1500;   // m de mas en la otra pasada del tutorial (blanco.js REENCARE_M + esto)
     function sembrarBlancos(bl) {
       for (let k = 0; k < (bl.n || 1); k++) {
         // `linea`: en la linea del avion, apenas corridos (para ESQUIVAR, no para tirarles); `y`: a esa altura
         const x = bl.tipo === 'jet' ? plane.x : bl.linea ? plane.x + [0, -2, 2][k % 3] : [-5, 4, -1, 6, -6][k % 5] * (bl.ancho || 1);
-        const y = bl.y != null ? bl.y : bl.tipo === 'jet' ? Math.max(8, Math.min(16, plane.y)) : 9 + (k % 3) * 2;
+        // (`y: 'avion'`: a la altura a la que vas, para esquivarlo de costado — 21/11)
+        const y = bl.y === 'avion' ? Math.max(2.5, Math.min(14, plane.y)) : bl.y != null ? bl.y : bl.tipo === 'jet' ? Math.max(8, Math.min(16, plane.y)) : 9 + (k % 3) * 2;
         sembrarPractica(bl.tipo, x, y, BOMBA_Z_TOPE + k * (bl.paso || 45), !!bl.mueve);
       }
     }
@@ -6910,7 +6923,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           // OTRA PASADA del mismo avion (la mision da varias): tambien vuelve a encontrar el buque como lo dejo
           if (c === 'reencare') placaDefT = 1.6;
           // EN EL TUTORIAL errar no cuesta la bomba: la otra pasada vuelve a traer una (el casco espera)
-          if (c === 'reencare' && libro && libro.tut) { const e = blancoSys.estado(); e.centroN = Math.max(1, e.centroN | 0); }
+          if (c === 'reencare' && libro && libro.tut) {
+            const e = blancoSys.estado(); e.centroN = Math.max(1, e.centroN | 0);
+            // (21/11, el autor: "el reinicio esta MUY cerca: darte mas espacio, o activar momentum"): la otra pasada
+            // arranca TUT_REENCARE_EXTRA mas lejos, y con la barra del MOMENTUM llena para frenar el tiempo
+            run.dist -= TUT_REENCARE_EXTRA; blancoSys.alOdometro();
+            tempo.llenar(); cartel(T('tutReencare'), P.accent, T('tutReencareSub'));
+          }
           if (av && av['bl_' + c]) avisar(av, 'bl_' + c);
         }
         // EL CRUCE es el fin del ataque: se le pasa por encima al buque y corta a negro. Hundido,
@@ -6991,6 +7010,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
             // bajo el negro nadie maneja: nada puede pegarte ni podes irte al agua sin verlo
             for (const o of obstacles) o.done = true;
             missiles.length = 0; plane.y = Math.max(plane.y, 5);
+            // (EN EL TUTORIAL sin el video ni el negro: "sin tanta transicion" — 21/11)
+            if (libro && libro.tut) { vir = null; finViraje(); return; }
             if (vir.t >= BL_BLANCO.VIR_NEGRO) { viraje(); return; }
           }
         }
@@ -7683,7 +7704,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (!(islas.enPasillo() && !islas.vistaPasillo())) drawChancha();   // (en las islas, en las vistas del pasillo)
       // LAS ISLAS: LA MARCA DEL OBJETIVO en las vistas del pasillo (islas.js `objetivoPasillo`): cuatro
       // esquinas naranjas donde cae la base en el carril y, abajo, el nombre y a cuanto esta
-      { const ob = ayudas() ? islas.objetivoPasillo() : null;   // (un INDICADOR DE AYUDA: segun la dificultad)
+      // (EN EL TUTORIAL no: se sigue la BRUJULA — 21/11, el autor: "la marca en el horizonte no deberia estar")
+      { const ob = ayudas() && !(libro && libro.tut) ? islas.objetivoPasillo() : null;   // (un INDICADOR DE AYUDA: segun la dificultad)
         if (ob) {
           const q = proj(ob.x, ob.y, ob.z), k = Math.max(5, Math.min(26, 1200 / ob.z)), c = P.accent;
           if (q.x > -20 && q.x < W + 20 && q.y > -20 && q.y < H + 20) {
@@ -7927,7 +7949,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // fundido y la RADIO, y la primera version apagaba el bloque entero — medido, el avion se
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
-        ctx.save(); ctx.scale(U, U); ctx.globalAlpha = hudEntra; if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
+        ctx.save(); ctx.scale(U, U); ctx.globalAlpha = hudEntra; if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), sinCinta: enCabina() || (!!libro && !!libro.tut && !(dlgPausa && lecFoco && lecFoco.foco.includes('ruta'))), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(), temp: islas.temperatura() || frio.estado(),
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
@@ -7958,6 +7980,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         fueraRadar: S.state === 'play' && !radarAlcance(),
         // (islas: en la zona de NUESTRO radar la placa dice ZONA RADAR en azul)
         radarPropio: S.state === 'play' && islas.radarZonaArg(),
+        radarBandera: islas.enPasillo() ? (islas.radarZonaArg() ? 'arg' : islas.radarZonaGb() ? 'gb' : null) : null,
         oleada: suelto() ? oleadaDe(kmCorrida()) : null,
         fallados: suelto() ? falladosEnFila().length + (estadoAvion(fallasDe(alMando(run))) !== 'bien' ? 1 : 0) : 0,
         // LA CITA DE IDA DISPONIBLE (planificada, sin barra): el reloj de la Chancha se pone en LISTA
@@ -8154,7 +8177,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         cartas: pauseView === 'cartas' ? cartasDeLaCorrida() : null, lee: leeDe,
         cartasSel, cartasCrece: (cartasCrece = Math.min(1, cartasCrece + 0.12)), cartasLeer: (cartasLeerV += (cartasLeer - cartasLeerV) * 0.22),
         alto: (m, n) => { cartasLeerMax = m; cartasN = n; },
-        saveRows: pauseSaveRows(), t: pauseT, msg: pauseT - pauseMsgT, ctrlTab, padTxt: padInfo.conectado ? padTexto : null,
+        saveRows: pauseSaveRows(), t: pauseT, msg: pauseT - pauseMsgT, ctrlTab, padTxt: padActivo() ? padTexto : null, joy: padActivo(),
       });
       // PAUSA DE DIALOGO: velo y CAJA DE LAS PANTALLAS, sin una sola fila de menu. El mundo queda
       // abajo como contexto —igual que en la pausa— y lo unico que se lee es quien habla: busto,
@@ -8207,16 +8230,16 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         ctx.save(); ctx.scale(U, U);
         const caja = screens.cajaVN({
           personaje: radioBox.personaje, cara: radioBox.cara, wrap: radioBox.wrap,
-          ease: radioBox.ease, cursor: dlgT > DLG_GRACIA && dlgTyped === Infinity, parpadeo: dlgT, barra: null, arriba,
+          ease: radioBox.ease, cursor: dlgT > DLG_GRACIA && dlgTyped === Infinity, parpadeo: dlgT, barra: null, arriba, continuar: true,
           typed: dlgTyped,
         });
         // LAS TECLAS: las pone el juego, no el personaje. Salen de la tabla de CONTROLES (la misma de
         // OPCIONES → CONTROLES) en su version de teclado o de mando, segun haya uno conectado.
         if (lecFoco && lecFoco.teclas.length && caja) {
-          const pad = padInfo.conectado;
-          const items = lecFoco.teclas.map(id => ({
-            rot: T('ctrl' + id), tecla: pad ? padTexto(T('ctrl' + id + 'P')) : T('ctrl' + id + 'K') }));
-          screens.teclasLeccion(items, arriba ? caja.by + caja.bh + 4 : caja.by - 15);
+          const pad = padActivo();
+          const items = lecFoco.teclas.map(id => { const tecla = pad ? padTexto(T('ctrl' + id + 'P')) : T('ctrl' + id + 'K');
+            return { rot: T('ctrl' + id), tecla, glifos: glifosDe(tecla, pad) }; });
+          screens.teclasLeccion(items, arriba ? caja.by + caja.bh + 4 : caja.by - 15, performance.now() / 1000);
         }
         ctx.restore();
       }
@@ -8242,7 +8265,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         }),
       });
       // LOS CONTROLES abiertos desde OPCIONES: encima, con su propio panel
-      if (S.state === 'options' && optCtrl) menus.drawControles({ tab: ctrlTab, padTxt: padInfo.conectado ? padTxt : null, velo: false });
+      if (S.state === 'options' && optCtrl) menus.drawControles({ tab: ctrlTab, padTxt: padActivo() ? padTxt : null, joy: padActivo(), velo: false });
       // MEJORAS DEL PICHON: mismo snapshot de solo lectura que OPCIONES. `card` se resuelve acá
       // (es una función en la fila) para que el render siga sin tocar nada del juego.
       if (S.state === 'mejoras') menus.drawMejoras({
@@ -8431,6 +8454,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LA LETRA DE UN ROL (FONTS en render/ctx.js), en vivo: __fuente('desc', 'Mayorice'); y una
       // PANTALLA de menu directo, para fotografiarla: __pantalla('campmenu')
       window.__fuente = (rol, fam) => probarFuente(rol, fam);
+      // CONTROLES abiertos en la pestaña `tab`, para fotografiarlos: __controles(0)
+      window.__controles = tab => { setState('options'); optCtrl = true; ctrlTab = tab | 0; return ctrlTab; };
       window.__pantalla = st => { if (st === 'campmenu') campIr('raiz'); setState(st); return S.state; };
       // LA LETRA DE LOS NUMEROS de los relojes, para comparar candidatas: __fuenteNum('Thernaly')
       window.__fuenteNum = f => { NUMEROS.fam = f; return f; };
@@ -8608,6 +8633,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // chapas, y que fila marca el menu. La usa tools/fixture_libro.js.
     if (typeof window !== 'undefined') window.__escSin = v => { escoltaSinAmenazas = v !== 0; return escoltaSinAmenazas; };
     // sonda: donde va el tutorial (el fixture la lee para saber que hacer)
+    // SONDA (21/11): abrir una etapa del tutorial (0..), como desde el menu
+    if (typeof window !== 'undefined') window.__tutorial = k => { abrirTutorial(k | 0); return S.state; };
     if (typeof window !== 'undefined') window.__tutdbg = () => JSON.stringify(Object.assign({ st: S.state, dlg: dlgPausa,
       alt: +plane.y.toFixed(1), x: +plane.x.toFixed(1), pasados: tutPasados, rotos: tutRotos, over: !!run.overheat,
       blanco: (() => { let b = null; for (const o of obstacles) if (o.practica && !o.done && o.hp > 0 && o.z > PZ + 4 && (!b || o.z < b.z)) b = o;
@@ -9365,10 +9392,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       { const tc = libro && libro.tut ? tutSys.consigna() : null;
         // (sin cuenta, la TECLA del paso — teclado o joystick, segun lo conectado: 19/11, "el tutorial nunca dice con
         // que tecla se tira el MOMENTUM")
-        const tecla = tc && tc.teclas && tc.teclas.length ? tc.teclas.map(id => padInfo.conectado ? padTexto(T('ctrl' + id + 'P')) : T('ctrl' + id + 'K')).join('   ') : null;
-        const sub = !tc ? null : tc.hecho ? T('tutBien') : tc.prog == null ? tecla
-          : Math.floor(tc.prog) + ' / ' + tc.n;
-        cartelSostenido('tut', !!tc && (S.state === 'play' || S.state === 'landing' || (S.state === 'takeoff' && !!carrera)) && !dlgPausa && !paused, tc ? T(tc.clave, { n: tc.n }) : '', tc && tc.hecho ? '#8fd16a' : P.accent, null, sub); }
+        // (21/11, el autor: "repeti el texto con el movimiento del stick, y no uses la palabra STICK: mostra una perilla
+        // igual a la del joystick, o en teclado dibuja una tecla"): la consigna lleva SIEMPRE los mandos del paso,
+        // DIBUJADOS (render/glifos.js), y abajo la cuenta si la hay — los segundos, con SEGS)
+        const pad = padActivo();
+        const gl = tc && tc.teclas && tc.teclas.length && !tc.hecho
+          ? tc.teclas.flatMap((id, k) => [...(k ? [{ k: 'sep' }] : []), ...glifosDe(pad ? padTexto(T('ctrl' + id + 'P')) : T('ctrl' + id + 'K'), pad)]) : null;
+        const sub = !tc ? null : tc.hecho ? T('tutBien') : tc.prog == null ? null
+          : Math.floor(tc.prog) + ' / ' + tc.n + (tc.segs ? ' ' + T('tutSegs') : '');
+        cartelSostenido('tut', !!tc && (S.state === 'play' || S.state === 'landing' || (S.state === 'takeoff' && !!carrera)) && !dlgPausa && !paused, tc ? T(tc.clave, { n: tc.n }) : '', tc && tc.hecho ? '#8fd16a' : P.accent, { glifos: gl }, sub); }
       // ¡PELIGRO! BAJA ALTURA ARRIBA, APAGADO PARA PROBAR (19/11, el autor: "por ahora quitemos el cartel de peligro
       // baja altura arriba y dejemos solo el que sale de cada control (comentemoslo, no lo borremos)"). Queda el del
       // altimetro (render/hud.js `avisoSostenido('alt', …)`). Para volver: descomentar la linea de abajo.
@@ -9467,7 +9499,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // tiempo de juego— y en TODOS los estados, que es lo que le permite despedirse sola cuando
       // el pasillo se termina (muerte, relevo, climax, devcam). El sistema devuelve señales y el
       // % de tanque del cuadro; escribir `run.fuel` es del orquestador, como corresponde.
-      chancha.centrar(islas.enPasillo());   // LAS ISLAS: la canasta en el eje del avion (systems/chancha.js)
+      // LAS ISLAS: la canasta en el eje del avion (systems/chancha.js); y EN EL TUTORIAL tambien (21/11, el autor: "nunca
+      // aparecio el Hercules: tiene que bajar hasta el avion y estar visible"): a 48 m quedaba fuera de cuadro
+      chancha.centrar(islas.enPasillo() || (!!libro && !!libro.tut));
       const ch = chancha.tick(dt, {
         rateK: suelto() && run.kc130 ? 1.6 : 1,   // (SEGUNDO KC-130: carga mas rapido)
         inPlay: S.state === 'play' && !cfg.devcam,

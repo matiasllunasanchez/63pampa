@@ -47,7 +47,7 @@ export function consigna() {
     : c.aciertos != null ? Math.min(c.aciertos, acum)
     : c.esquiva != null ? Math.min(c.esquiva, acum)
     : c.usa ? c.usa.filter(k => vistos[k]).length : null;
-  return { clave: c.consigna, n, prog, hecho: okT > 0, teclas: pasos[i].teclas || [] };
+  return { clave: c.consigna, n, prog, hecho: okT > 0, teclas: pasos[i].teclas || [], segs: c.bajoTecho != null };
 }
 
 /** ¿Faltan pasos ANTES de la aproximacion final? Mientras si, game.js no deja empezar el aterrizaje: la vuelta
@@ -60,7 +60,10 @@ export function antesDeAterrizar() {
 
 /** Para las sondas y los fixtures. */
 export const estado = () => ({ paso: i, id: pasos[i] ? pasos[i].dice : null, fase, sub, fin, n: pasos.length });
+/** ¿El paso actual es la PRACTICA LIBRE (se termina desde la pausa)? */
+export const libre = () => !fin && fase === 'practica' && !!(pasos[i] && pasos[i].libre);
 
+const USA_T = 0.4;   // s que hay que sostener cada mando de un paso `usa`
 /** ¿Se cumple la condicion `c` con la foto `s`? Las que se cuentan acumulan en `acum`. */
 function cumple(c, s, dt) {
   if (c.despega) return !!s.enVuelo;
@@ -72,7 +75,14 @@ function cumple(c, s, dt) {
     return acum >= c.bajoTecho;
   }
   if (c.usa) {
-    for (const k of c.usa) if (s.inp && s.inp[k]) vistos[k] = true;
+    // (21/11, el autor: "rolar no toma bien: toma cualquier pirueta o movimiento para los lados"): antes alcanzaba UN
+    // cuadro con el mando tocado —un toque al pasar, una pirueta en curso—. Ahora hay que SOSTENERLO `USA_T` s, y lo
+    // que se hace durante una pirueta (`s.mv`) no cuenta: es la pirueta la que mueve el avion, no el mando pedido
+    for (const k of c.usa) {
+      const on = s.inp && s.inp[k] && !s.mv;
+      vistos['t_' + k] = on ? (vistos['t_' + k] || 0) + dt : 0;
+      if (vistos['t_' + k] >= USA_T) vistos[k] = true;
+    }
     return c.usa.every(k => vistos[k]);
   }
   if (c.pasa != null) { acum = s.pasados - base.pasados; return acum >= c.pasa; }
@@ -85,11 +95,17 @@ function cumple(c, s, dt) {
   if (c.maniobra) { if (s.mv === c.maniobra) vistos.mv = true; return !!vistos.mv && !s.mv; }
   if (c.suelta) return s.bombasVuelo > 0;
   if (c.hunde) return !!s.climaxHecho;
+  // la practica libre: el jugador eligio TERMINAR ETAPA en la pausa
+  if (c.termina) return !!s.termina;
+  // la bomba ya pego en el blanco (el buque tiene daño)
+  if (c.pega) return !!s.pego;
   if (c.tren) return !!s.tren;
   if (c.aterriza) return !!s.aterrizo;
   if (c.cierra) return !s.pausado;
   if (c.secundaria) return s.secundaria === c.secundaria;
   if (c.momentum) return !!s.momentum;
+  // la barra del MOMENTUM se volvio a llenar sola (y no esta lanzado)
+  if (c.momentumLleno) return !!s.momentumLleno;
   // EL RASANTE (19/11, el autor: "tiene que enseñarme como funciona"): entrar al estado (4 s de PERFECTO),
   // acertar el azul de la barrita (se suman entre entradas: perder el estado no borra lo hecho) y soltarlo
   if (c.aguante) return !!s.aguante;
@@ -135,7 +151,12 @@ export function tick(dt, s, escenas) {
   if (fase === 'intro' && s.radio) return null;
   if (fase === 'intro') {
     const ls = (escenas[p.dice] || {}).lineas || [];
-    if (linea < ls.length) return { tipo: 'decir', linea: ls[linea++], foco: p.foco || [], teclas: p.teclas || [] };
+    if (linea < ls.length) {
+      const ln = ls[linea++];
+      // (la charla que no enseña va por la radio en vuelo y no frena: data/tutorial.js `B`)
+      if (ln.ingame) return { tipo: 'radio', linea: ln };
+      return { tipo: 'decir', linea: ln, foco: p.foco || [], teclas: p.teclas || [] };
+    }
     fase = 'practica'; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: s.pasados, rotos: s.rotos, esquivados: s.esquivados || 0 };
     return { tipo: 'mundo', paso: p };
   }
@@ -159,3 +180,7 @@ export function tick(dt, s, escenas) {
   }
   return null;
 }
+
+// SONDA (21/11): saltar al paso que dice `id` (p. ej. 'TUT1_ROLAR'), para mirarlo sin volar todo lo de antes
+if (typeof window !== 'undefined') window.__tutIr = (id, practica) => { const k = pasos.findIndex(p => p.dice === id); if (k < 0) return false; i = k; entrar();
+  if (practica) { fase = 'practica'; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: 0, rotos: 0, esquivados: 0 }; } return true; };

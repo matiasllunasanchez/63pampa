@@ -3,6 +3,7 @@
 // Cada funcion recibe `w`: un snapshot chico de solo lectura con lo que necesita mostrar. No leen
 // estado global — asi se pueden dibujar en cualquier momento (util para probarlas sueltas) y se ve
 // de un vistazo de que dependen.
+import * as glifos from './glifos.js';
 import { ctx, DW as W, DH as H, px, panel, wrapText, titleFont, menuFont, descFont, labelFont, handFont, rotuloChicoFont, avisoFont, uiFont } from './ctx.js';
 import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
@@ -1432,6 +1433,13 @@ export function cajaVN(o) {
   }
   const t = o.parpadeo || 0;
   if (o.cursor && Math.sin(t * 14) > -0.5) px(curX, curY - 5, 3, 6, P.accent);
+  // EL DIALOGO QUE FRENA EL JUEGO dice como se sigue (21/11, el autor: "aclarar al final del dialogo, como tiene la
+  // campaña, PRESIONAR CUALQUIER TECLA PARA CONTINUAR"): abajo a la derecha, cuando la linea ya termino de escribirse
+  if (o.continuar && o.cursor) {
+    ctx.font = '5px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = Math.sin(t * 3) > -0.2 ? '#9fb0b6' : '#5d6a71';
+    ctx.fillText(T('dlgContinuar'), bx + bw - 8, by + bh - 5);
+    ctx.textAlign = 'left';
+  }
   // LA BARRITA DE TIEMPO. Solo la radio en vuelo la trae, y ocupa el lugar del "OK": las dos
   // contestan la misma pregunta —cuanto falta para la proxima linea— y la radio la contesta sola
   // porque el jugador tiene las manos en el avion y no puede apretar nada.
@@ -1548,11 +1556,13 @@ function drawVozPropia(yo, o) {
 /** LAS TECLAS DE UNA LECCION (M1_CAMBIOS 8): una fila de plaquitas centradas, «ROTULO  tecla», que
  *  cuelga de la caja de dialogo de la pausa. `items` = [{ rot, tecla }], ya traducidos y en la
  *  version del aparato que se esta usando — esto solo dibuja. `y` es el techo de la fila. */
-export function teclasLeccion(items, y) {
-  const ALTO = 11, PAD = 4, GAP = 6, SEP = 4;
+export function teclasLeccion(items, y, t = 0) {
+  const ALTO = 11, PAD = 4, GAP = 6, SEP = 4, GH = 8;
+  // (21/11, el autor: "no uses la palabra STICK: mostra una perilla, o en teclado dibuja una tecla") — si el item
+  // trae `glifos` (render/glifos.js), la tecla va dibujada en vez de escrita
   const medir = it => {
     ctx.font = '5px monospace'; const a = ctx.measureText(it.rot).width;
-    ctx.font = 'bold 6px monospace'; const b = ctx.measureText(it.tecla).width;
+    ctx.font = 'bold 6px monospace'; const b = it.glifos ? glifos.medir(it.glifos, GH) : ctx.measureText(it.tecla).width;
     return { a, b, w: Math.ceil(PAD + a + SEP + b + PAD) };
   };
   const ms = items.map(medir);
@@ -1565,7 +1575,8 @@ export function teclasLeccion(items, y) {
     ctx.globalAlpha = 0.94; ctx.fillStyle = '#070b0f'; ctx.fillRect(x, y, m.w, ALTO);
     ctx.globalAlpha = 1; ctx.strokeStyle = P.accent; ctx.strokeRect(x + 0.5, y + 0.5, m.w - 1, ALTO - 1);
     ctx.font = '5px monospace'; ctx.fillStyle = P.dim; ctx.fillText(it.rot, x + PAD, y + 7);
-    ctx.font = 'bold 6px monospace'; ctx.fillStyle = P.ink; ctx.fillText(it.tecla, x + PAD + m.a + SEP, y + 8);
+    if (it.glifos) glifos.dibujar(it.glifos, x + PAD + m.a + SEP, y + (ALTO - GH) / 2, GH, t);
+    else { ctx.font = 'bold 6px monospace'; ctx.fillStyle = P.ink; ctx.fillText(it.tecla, x + PAD + m.a + SEP, y + 8); }
     x += m.w + GAP;
   });
   ctx.restore();

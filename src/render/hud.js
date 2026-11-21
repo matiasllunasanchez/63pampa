@@ -12,6 +12,9 @@ import { ctx, px, DW as W, DH as H, PZ, U, SC, avisoFont, uiFont, labelFont } fr
 import { enCabina } from '../core/cabina.js';
 import { CABINA_ANCLAS } from '../data/cabina_anclas.js';
 import { drawManos } from './cabina.js';
+import * as glifos from './glifos.js';
+const GLIFO_H = 9;   // el alto de la fila de mandos dibujados de un cartel (render/glifos.js)
+const GLIFO_CUENTA = '4px monospace';   // la cuenta (1 / 2, 3 / 8 SEGS) al lado de los mandos
 import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
 import { cargaDe } from '../data/cargas.js';
@@ -1259,7 +1262,7 @@ function drawCartel() {
   const lista = cartelesAhora(performance.now() / 1000);
   if (enCabina()) {
     let alto = 0;
-    for (const a of lista) if (a.k > 0) alto += ((a.c.sub ? 12 + (a.c.alerta ? 8 : 4) + 2 : 12) + 2) * a.k;
+    for (const a of lista) if (a.k > 0) alto += ((a.c.glifos && a.c.glifos.length ? 12 + GLIFO_H + 2 : a.c.sub ? 12 + (a.c.alerta ? 8 : 4) + 2 : 12) + 2) * a.k;
     techo = H - 3 - pisoCabina.alto - alto;
   }
   for (const a of lista) {
@@ -1286,7 +1289,13 @@ function drawUnCartel(a, techo) {
   const SUB_PX = c.alerta ? 8 : 4, fSub = c.alerta ? avisoFont(7) : `${SUB_PX}px monospace`;
   ctx.font = fSub;
   const w2 = c.sub ? ctx.measureText(c.sub).width : 0;
-  const w = Math.round(Math.max(w1, w2) + (c.alerta ? 20 : 12)), h = c.sub ? 12 + SUB_PX + 2 : 12;
+  // LOS MANDOS DIBUJADOS (21/11, el tutorial: render/glifos.js) en una fila propia, abajo
+  // …Y COMPACTO (21/11, "ahorremos espacio, las veces mas chicas"): con mandos, la segunda linea es UNA fila — el
+  // mando y, a su derecha, la cuenta en chiquito
+  const gl = a.c.glifos && a.c.glifos.length ? a.c.glifos : null;
+  const wCuenta = gl && c.sub ? (ctx.font = GLIFO_CUENTA, ctx.measureText(c.sub).width + 4) : 0;
+  const w3 = gl ? glifos.medir(gl, GLIFO_H) + wCuenta : 0;
+  const w = Math.round(Math.max(w1, gl ? 0 : w2, w3) + (c.alerta ? 20 : 12)), h = gl ? 12 + GLIFO_H + 2 : c.sub ? 12 + SUB_PX + 2 : 12;
   // el lugar en la pila, suavizado (lo guarda el propio cartel del store: es estado de dibujo, nada mas)
   // (LAS ISLAS, fuera de la cabina — 21/11, el autor: "que aparezcan como aparece radar pero de derecha a izquierda,
   // que se puedan stackear… que queden 3 segs y se vayan hacia la derecha": entra CORRIENDO desde la derecha y se va
@@ -1320,9 +1329,15 @@ function drawUnCartel(a, techo) {
   ctx.textAlign = 'center';
   ctx.font = avisoFont(8); ctx.fillStyle = col;
   conApertura(c.txt, W / 2 + dx, y + 9, 8);
-  if (c.sub) {
+  if (c.sub && !gl) {
     ctx.font = fSub; ctx.fillStyle = c.subCol || P.foam;
     conApertura(c.sub, W / 2 + dx, y + 11 + SUB_PX - (c.alerta ? 1 : 0), SUB_PX);
+  }
+  if (gl) {
+    ctx.textAlign = 'left';
+    const gx = Math.round(W / 2 + dx - w3 / 2), gy = y + h - GLIFO_H - 2;
+    const gw = glifos.dibujar(gl, gx, gy, GLIFO_H, performance.now() / 1000);
+    if (c.sub) { ctx.font = GLIFO_CUENTA; ctx.fillStyle = c.subCol || P.dim; ctx.fillText(c.sub, gx + gw + 4, gy + GLIFO_H - 2); }
   }
   ctx.textAlign = 'left';
   ctx.restore();
@@ -1667,6 +1682,7 @@ function drawBrujula(x, y, b) {
       ctx.fillText((b.dist / 1000).toFixed(1) + 'km', cx, y + CUADRO - 3);
     }
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    if (b.titila && Math.sin(performance.now() / 90) > 0) bordePlaca(x, y, CUADRO, CUADRO, P.accent);
   });
 }
 
@@ -2260,7 +2276,18 @@ function vigilaAlerta(n) {
   alertaN = n;
 }
 
-export function drawAlerta(x, y, w, n, prog, fuera, propio) {
+/** Una bandera de 8x5 (la argentina celeste-blanca-celeste con el sol; la britanica, la Union Jack en chiquito). */
+function banderita(x, y, b) {
+  if (b === 'arg') {
+    px(x, y, 8, 5, '#74acdf'); px(x, y + 2, 8, 1, '#ffffff'); px(x + 3, y + 1.5, 2, 2, '#ffffff'); px(x + 3.5, y + 2, 1, 1, '#f6b40e');
+  } else {
+    px(x, y, 8, 5, '#012169');
+    px(x, y + 2, 8, 1, '#ffffff'); px(x + 3, y, 2, 5, '#ffffff');
+    px(x, y + 2.25, 8, 0.5, '#c8102e'); px(x + 3.5, y, 1, 5, '#c8102e');
+  }
+  ctx.strokeStyle = '#000000aa'; ctx.lineWidth = 0.5; ctx.strokeRect(x - 0.25, y - 0.25, 8.5, 5.5);
+}
+export function drawAlerta(x, y, w, n, prog, fuera, propio, bandera) {
   // EN LA ZONA DE NUESTRO RADAR (islas, 21/11): no es FUERA DE RADAR sino ZONA RADAR en azul, el radar girando
   if (propio && fuera) fuera = false; else propio = false;
   // LAS ALARMAS ENTRAN Y SALEN (pedido del autor, 11/9 a la noche), como la placa del RADAR: a
@@ -2303,7 +2330,7 @@ export function drawAlerta(x, y, w, n, prog, fuera, propio) {
   // la zona usa este MISMO ancho (`wTot`), o la placa asomaba por fuera del marco.
   ctx.font = avisoFont(9);
   const wz = Math.max(w - RADAR_W + 1, ...['hud_detectando', 'hud_fuera_radar', 'hud_zona_radar']
-    .map(k => Math.ceil(ctx.measureText(T(k)).width) + 10));
+    .map(k => Math.ceil(ctx.measureText(T(k)).width) + 10 + (bandera ? 9 : 0)));
   const wTot = RADAR_W - 1 + wz;
   cajaIzq.der = x + wTot; cajaIzq.abajo = y + ALERTA_H;   // (los carteles no la pisan: drawCartel)
   if (alertaK < 1) {
@@ -2326,8 +2353,12 @@ export function drawAlerta(x, y, w, n, prog, fuera, propio) {
     // leyera; ahora se lee Y dice de que instrumento es. Fijo, sin latir: el que late es DETECTANDO.
     ctx.fillStyle = propio ? RADAR_AZUL.eje : detectando ? (latido ? RADAR_VERDE.punta : RADAR_VERDE.cerca)
       : fuera ? P.foam : RADAR_VERDE.eje;
+    // LA BANDERA DE LA ZONA (islas, 21/11, el autor: "la zona radar en isla puede mostrar la bandera de cada bando
+    // ademas de los colores"): chiquita, a la izquierda del rotulo — y el rotulo se corre para dejarle lugar
+    const bw = bandera && !fuera && !detectando ? 9 : 0;
+    if (bw) banderita(x + RADAR_W + 3, y + 5, bandera);
     ctx.fillText(T(detectando ? 'hud_detectando' : fuera ? 'hud_fuera_radar' : 'hud_zona_radar'),
-      x + RADAR_W - 1 + Math.round(wz / 2), y + 11);
+      x + RADAR_W - 1 + Math.round((wz + bw) / 2), y + 11);
     ctx.restore();
     ctx.textAlign = 'left';
   }
@@ -2692,7 +2723,7 @@ export function drawHUD(h) {
   // …O SI ESTAS FUERA DEL HORIZONTE DE RADAR (PLAN_NAFTA_ALCANCE N2): el panel es el que lo dice
   // desde el 25/9, asi que en una mision con ruta tiene que estar aunque no haya sistema de busqueda.
   if (h.estrellas > 0 || h.busqueda || h.fueraRadar) {
-    drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas | 0, h.escondite, !!h.fueraRadar, !!h.radarPropio);
+    drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas | 0, h.escondite, !!h.fueraRadar, !!h.radarPropio, h.radarBandera || null);
     ty += ALERTA_H + AIRE;
   }
   // …Y DEBAJO, LA CARGA DEL RADAR, que entra y sale sola (ver drawRadar).
@@ -2721,7 +2752,9 @@ export function drawHUD(h) {
   // toasts de mensajes, apareciendo desde arriba hacia abajo y luego se van por la derecha"): sin la cinta de km
   islasHud = !!h.brujula;
   drawCartel();
-  if (islasHud) { /* sin cinta */ }
+  // (21/11, el autor: "dentro de la cabina la barra de arriba molesta; en el tutorial, una vez que la explica, que
+  // desaparezca"): `sinCinta` la saca (game.js: en cabina, y en el tutorial fuera de su explicacion)
+  if (islasHud || h.sinCinta) { /* sin cinta */ }
   else if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa, h.ruta);
   else if (gameMode === 'survival') drawCorridaBar();
   // LA AMENAZA de los modos sueltos (cuanto aprieta el mundo ahora, data/modos_sueltos.js OLEADA): chica,

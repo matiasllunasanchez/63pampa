@@ -53,7 +53,8 @@ export const BANDA_ALT = 4.5;
 // Consecuencia que hay que conocer: adentro del estado el multiplicador lo da el aguante y no la
 // altura, asi que entre 4,5 y 6 se puede cobrar por encima del x10 estando fuera de la banda. Lo
 // compensa el clavado, que te asienta de vuelta adentro (`run.aguY` topea en BANDA_ALT).
-export const PERF_ALT = 6;
+// (21/11, el autor: "el margen de PERFECTO agrandarlo un poco mas"): de 6 a 7,5
+export const PERF_ALT = 7.5;
 export const SPAWN_EDGE = 6;              // ~el alcance de un obstaculo aereo (3 + 2,1 del avion)
 export const SPAWN_X = FLY_X + SPAWN_EDGE;
 // EL CARRIL SE ENSANCHO, ASI QUE LA CADENCIA SE COMPENSA. El caudal de obstaculos se mide por
