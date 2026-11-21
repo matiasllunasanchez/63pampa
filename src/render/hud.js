@@ -2409,14 +2409,14 @@ function vigilaAlerta(n) {
   alertaN = n;
 }
 
-/** Una bandera de 8x5 (la argentina celeste-blanca-celeste con el sol; la britanica, la Union Jack en chiquito). */
+/** Una bandera de 8x5: la argentina celeste-blanca-celeste con el sol; la de ellos, la de INGLATERRA (21/11, el autor:
+ *  "la bandera es INGLATERRA, no esa" — la cruz roja de San Jorge sobre blanco, no la Union Jack). */
 function banderita(x, y, b) {
   if (b === 'arg') {
     px(x, y, 8, 5, '#74acdf'); px(x, y + 2, 8, 1, '#ffffff'); px(x + 3, y + 1.5, 2, 2, '#ffffff'); px(x + 3.5, y + 2, 1, 1, '#f6b40e');
   } else {
-    px(x, y, 8, 5, '#012169');
-    px(x, y + 2, 8, 1, '#ffffff'); px(x + 3, y, 2, 5, '#ffffff');
-    px(x, y + 2.25, 8, 0.5, '#c8102e'); px(x + 3.5, y, 1, 5, '#c8102e');
+    px(x, y, 8, 5, '#ffffff');
+    px(x, y + 2, 8, 1, '#ce1124'); px(x + 3.5, y, 1, 5, '#ce1124');
   }
   ctx.strokeStyle = '#000000aa'; ctx.lineWidth = 0.5; ctx.strokeRect(x - 0.25, y - 0.25, 8.5, 5.5);
 }
@@ -2484,12 +2484,14 @@ export function drawAlerta(x, y, w, n, prog, fuera, propio, bandera) {
     // son una sola noticia, y contarla en dos tiempos la parte en dos.
     // ZONA RADAR EN VERDE BRILLANTE, el del radar (pedido del autor, 26/9). Era blanco para que se
     // leyera; ahora se lee Y dice de que instrumento es. Fijo, sin latir: el que late es DETECTANDO.
-    ctx.fillStyle = propio ? RADAR_AZUL.eje : detectando ? (latido ? RADAR_VERDE.punta : RADAR_VERDE.cerca)
-      : fuera ? P.foam : RADAR_VERDE.eje;
+    // (la de NUESTRA zona tambien en verde: 21/11, el autor: "la palabra zona radar dejamos verde" — el azul queda en el icono)
     // LA BANDERA DE LA ZONA (islas, 21/11, el autor: "la zona radar en isla puede mostrar la bandera de cada bando
     // ademas de los colores"): chiquita, a la izquierda del rotulo — y el rotulo se corre para dejarle lugar
+    // (ANTES del color del rotulo: la bandera deja puesto el suyo y el texto salia dorado o rojo)
     const bw = bandera && !fuera && !detectando ? 9 : 0;
     if (bw) banderita(x + RADAR_W + 3, y + 5, bandera);
+    ctx.fillStyle = detectando ? (latido ? RADAR_VERDE.punta : RADAR_VERDE.cerca)
+      : fuera ? P.foam : RADAR_VERDE.eje;
     ctx.fillText(T(detectando ? 'hud_detectando' : fuera ? 'hud_fuera_radar' : 'hud_zona_radar'),
       x + RADAR_W - 1 + Math.round((wz + bw) / 2), y + 11);
     ctx.restore();

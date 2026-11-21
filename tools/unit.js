@@ -14,7 +14,8 @@ import {
 
 import { PRUEBAS, momentos } from '../src/data/pruebas.js';
 import { oleadaDe, RAMPA, OLEADA } from '../src/data/modos_sueltos.js';
-import { perfilDe, puedeManiobra } from '../src/data/perfiles.js';
+import { perfilDe, puedeManiobra, ESQUIVE } from '../src/data/perfiles.js';
+import { chanceEsquive, esDisparo } from '../src/core/esquive.js';
 import { tirarFallas as tirarFallasP } from '../src/data/fallas.js';
 import { motivoRota as motivoRotaP, cartaDe as cartaDeP } from '../src/data/banco_suelto.js';
 
@@ -4443,4 +4444,14 @@ test('la suelta: con la holgura de FACIL, un buque mas alla del corte de la bomb
   const tope = BL.HOLGURA.facil * 1.4;            // FACIL con la BRP
   assert.equal(holgura(0, 11, 0, 0, 157, 14 + 600, tope, 0), null, 'a 600 m no hay envion que alcance antes del corte');
   assert.notEqual(holgura(0, 11, 0, 0, 157, 14 + 260, tope, 0), null, 'a 260 m si');
+});
+
+test('esquive: base por avion, la pirueta suma, hay tope y solo se esquivan disparos', () => {
+  const ch = (k, mv) => { const p = perfilDe(k); return chanceEsquive(p.esquive, p.maniobras, mv); };
+  assert.ok(ch('pampa', null) > ch('sky', null) && ch('sky', null) > ch('herc', null), 'liviano > A-4 > Hercules');
+  assert.ok(ch('sky', 'barrel') > ch('sky', null) + 0.3, 'una pirueta sube bastante');
+  assert.ok(ch('mirage', 'jink') < ch('sky', 'jink') + perfilDe('mirage').esquive, 'el rigido le saca menos a la pirueta');
+  for (const k of Object.keys(ESQUIVE.PIRUETA)) assert.ok(ch('pampa', k) <= ESQUIVE.TOPE, 'tope ' + k);
+  assert.ok(esDisparo('death_aa') && esDisparo('death_sidewinder'));
+  for (const c of ['death_sea', 'death_bomb', 'death_onda', 'death_palos', 'death_mast']) assert.equal(esDisparo(c), false, c);
 });

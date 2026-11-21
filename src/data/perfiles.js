@@ -16,6 +16,8 @@
 //              frio al cañon (el Colt Mk 12 del A-4 era neumatico; los DEFA de 30 mm, a gas), `sal` en el parabrisas,
 //              `arranque` fallas al salir de una base helada, `turbulencia` cuanto lo sacude el frente frio.
 //              Investigacion y fuentes: docs/historia/CLIMA_FRIO_AVIONES.md (lo marcado ⚠ alla es diseño)
+//   esquive    la chance BASE de que un disparo que te alcanza pase de largo (0..1). Las piruetas la suben mientras
+//              duran (ESQUIVE, abajo). Liviano y chico, mas; grande y lento, casi nada
 //
 // Lo historico que sostiene algunas: el A-4 era un avion viejo y con repuestos cortados por el embargo (mas
 // fallas); de los Super Etendard no se perdio ninguno (menos fallas). El resto es diseño de juego.
@@ -31,27 +33,48 @@ export const MANIOBRAS = {
   pesado: ['mask', 'climb', 'climbmax', 'dive', 'divemax'],
 };
 
-const BASE = { maniobras: 'agil', rolido: 1, bancoKm: null, grupos: {}, fallasK: 1, frio: {} };
+const BASE = { maniobras: 'agil', rolido: 1, bancoKm: null, grupos: {}, fallasK: 1, frio: {}, esquive: 0.08 };
+
+/** EL ESQUIVE (21/11, el autor: "cualquier pirueta aumenta muchisimo las chances de no recibir disparos y esquivarlos,
+ *  va a depender del avion… un % de esquive base segun avion que aumenta bastante con ciertas piruetas que puede o no
+ *  puede hacer cada avion"). Cuando un DISPARO te alcanza (no un choque, no una bomba propia, no la onda) se tira la
+ *  chance: base del avion + lo que suma la pirueta en curso × su clase. Si sale, pasa de largo (core/esquive.js). Las
+ *  piruetas que el avion no puede hacer no suman porque no las puede hacer. Numeros de juego. */
+export const ESQUIVE = {
+  TOPE: 0.75,               // nunca invulnerable: aun en la mejor pirueta, uno de cada cuatro te pega
+  // lo que suma cada pirueta MIENTRAS DURA (data/moves.js; las de las islas con `isl_` + su clase)
+  PIRUETA: {
+    jink: 0.4, breakt: 0.4, sturn: 0.35, tonel: 0.35, splits: 0.4, derrape: 0.4,
+    barrel: 0.45, spin: 0.45, mortal: 0.5, cobrainv: 0.5, cobra: 0.3,
+    hiyo: 0.25, loyo: 0.25, popup: 0.15, mask: 0.15, climb: 0.1, climbmax: 0.1, dive: 0.1, divemax: 0.15,
+    isl_vuelta: 0.5, isl_vertical: 0.35,
+  },
+  // cuanto del bono de la pirueta le toca a cada clase de avion (uno duro la hace mas lenta y abierta)
+  CLASE: { agil: 1, rigido: 0.85, pesado: 0.6 },
+  // LO QUE SE ESQUIVA: lo que te tiran. Chocar, la bomba propia, la onda y los palos del buque, no.
+  CAUSAS: ['death_aa', 'death_aagun', 'death_gunfire', 'death_missile', 'death_sidewinder', 'death_aden', 'death_caza',
+    'death_popa', 'death_45', 'death_seacat', 'death_seawolf', 'death_seadart'],
+};
 
 export const PERFILES = {
   // los SKYHAWK: el caballo de tiro. Todo, la base de todo; el banco le tira bombas y taller, y se rompe mas
-  sky: { fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 } },
-  a4q: { fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 }, frio: { arranque: 1.1 } },
+  sky: { esquive: 0.1, fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 } },
+  a4q: { esquive: 0.1, fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 }, frio: { arranque: 1.1 } },
   // el DAGGER: rapido y nervioso, de ala delta. Rola un poco menos y no hace las de giro largo; el banco, cañon
-  dagger: { maniobras: 'rigido', rolido: 0.9, grupos: { armas: 1.6 }, frio: { canon: 0.5, turbulencia: 0.9 } },
+  dagger: { esquive: 0.12, maniobras: 'rigido', rolido: 0.9, grupos: { armas: 1.6 }, frio: { canon: 0.5, turbulencia: 0.9 } },
   // el SUPER ETENDARD: el del Exocet. Menos cartas (cada 8 km) pero inteligencia; casi no falla
-  supere: { rolido: 0.9, bancoKm: 8, grupos: { inteligencia: 2 }, fallasK: 0.5, frio: { canon: 0.5, arranque: 0.7 } },
+  supere: { esquive: 0.09, rolido: 0.9, bancoKm: 8, grupos: { inteligencia: 2 }, fallasK: 0.5, frio: { canon: 0.5, arranque: 0.7 } },
   // el MIRAGE 5P: el mas rapido y el mas duro de rolar; armas y defensa
-  mirage: { maniobras: 'rigido', rolido: 0.85, grupos: { armas: 1.4, defensa: 1.3 }, frio: { canon: 0.5, turbulencia: 0.9 } },
+  mirage: { esquive: 0.12, maniobras: 'rigido', rolido: 0.85, grupos: { armas: 1.4, defensa: 1.3 }, frio: { canon: 0.5, turbulencia: 0.9 } },
   // los LIVIANOS: rolan rapido, hacen todo, y el banco abre mas seguido (baratos, faciles de atender)
-  pucara: { rolido: 1.35, bancoKm: 5, frio: { canon: 0.8, sal: 0.5, arranque: 1.5, turbulencia: 1.3 } },
-  mb339: { rolido: 1.3, bancoKm: 5, frio: { canon: 0.5, arranque: 1.4, turbulencia: 1.3 } },
-  pampa: { rolido: 1.25, bancoKm: 5, frio: { canon: 0.5, arranque: 0.8, turbulencia: 1.2 } },
+  pucara: { esquive: 0.15, rolido: 1.35, bancoKm: 5, frio: { canon: 0.8, sal: 0.5, arranque: 1.5, turbulencia: 1.3 } },
+  mb339: { esquive: 0.16, rolido: 1.3, bancoKm: 5, frio: { canon: 0.5, arranque: 1.4, turbulencia: 1.3 } },
+  pampa: { esquive: 0.16, rolido: 1.25, bancoKm: 5, frio: { canon: 0.5, arranque: 0.8, turbulencia: 1.2 } },
   // el HERCULES: 70 toneladas. Nada acrobatico, rola lentisimo; el banco le da municion, taller y chapa
-  herc: { maniobras: 'pesado', rolido: 0.25, grupos: { taller: 1.6, defensa: 1.5 }, frio: { hielo: 0.2, sal: 0.6, arranque: 0.8, turbulencia: 0.5 } },
+  herc: { esquive: 0.02, maniobras: 'pesado', rolido: 0.25, grupos: { taller: 1.6, defensa: 1.5 }, frio: { hielo: 0.2, sal: 0.6, arranque: 0.8, turbulencia: 0.5 } },
   // los de patrulla y transporte de las secundarias
-  neptune: { maniobras: 'pesado', rolido: 0.3, frio: { hielo: 0.4, sal: 0.7, arranque: 1.3, turbulencia: 0.6 } },
-  guarani: { maniobras: 'pesado', rolido: 0.35, frio: { turbulencia: 0.9 } },
+  neptune: { esquive: 0.03, maniobras: 'pesado', rolido: 0.3, frio: { hielo: 0.4, sal: 0.7, arranque: 1.3, turbulencia: 0.6 } },
+  guarani: { esquive: 0.05, maniobras: 'pesado', rolido: 0.35, frio: { turbulencia: 0.9 } },
   // el ESCUADRON FENIX (civiles): rolan como lo que son, ejecutivos
   learjet: { maniobras: 'rigido', rolido: 0.7, frio: { hielo: 0.3, arranque: 0.8, turbulencia: 0.8 } },
   citation: { maniobras: 'rigido', rolido: 0.7, frio: { hielo: 0.4, turbulencia: 0.9 } },
@@ -59,8 +82,8 @@ export const PERFILES = {
   mu2: { maniobras: 'rigido', rolido: 0.7, frio: { hielo: 0.6, turbulencia: 0.9 } },
   aerostar: { maniobras: 'rigido', rolido: 0.75, frio: { hielo: 0.7, turbulencia: 1.1 } },
   // los CHINOOK (sin armas en el juego): rotores sin antihielo, mojados y sacudidos
-  chinook_faa: { frio: { hielo: 1.5, sal: 0.8, arranque: 1.3, turbulencia: 1.4 } },
-  chinook_ej: { frio: { hielo: 1.5, sal: 0.8, arranque: 1.3, turbulencia: 1.4 } },
+  chinook_faa: { esquive: 0.03, frio: { hielo: 1.5, sal: 0.8, arranque: 1.3, turbulencia: 1.4 } },
+  chinook_ej: { esquive: 0.03, frio: { hielo: 1.5, sal: 0.8, arranque: 1.3, turbulencia: 1.4 } },
   commander: { maniobras: 'rigido', rolido: 0.65, frio: { hielo: 0.5 } },
 };
 
@@ -98,6 +121,11 @@ export function capacidadesDe(pl, lang = 'es') {
   pz('pirueta', man !== 'pesado', man === 'rigido' ? (en ? 'SOME MANOEUV.' : 'PIRUETAS LIMIT.') : (en ? 'MANOEUVRES' : 'PIRUETAS'),
     man === 'pesado' ? 'Ninguna pirueta ni freno: solo pegarse al piso y trepar o picar' : man === 'rigido' ? 'Piruetas y frenos, sin TONEL BARRIL, TIRABUZON ni los mortales' : 'Todas las piruetas y los frenos',
     man === 'pesado' ? 'No piruetas or brakes: only hugging the ground and climbing or diving' : man === 'rigido' ? 'Piruetas and brakes, without BARREL ROLL, CORKSCREW or back flips' : 'Every pirueta and brake');
+  // EL ESQUIVE (21/11): la base, y cuanto le rinde una pirueta (la clase)
+  const esq = Math.round(pf.esquive * 100), cla = Math.round(ESQUIVE.CLASE[man] * 100);
+  pz('casco', true, (en ? 'DODGE ' : 'ESQUIVE ') + esq + '%',
+    'Un disparo que te alcanza pasa de largo el ' + esq + '% de las veces; en plena pirueta, mucho mas' + (cla < 100 ? ' (las piruetas le rinden el ' + cla + '%)' : ''),
+    'A hit that reaches you misses ' + esq + '% of the time; mid-manoeuvre, far more' + (cla < 100 ? ' (manoeuvres give ' + cla + '%)' : ''));
   const rol = pf.rolido < 0.5 ? ['MUY LENTO', 'VERY SLOW'] : pf.rolido < 0.95 ? ['LENTO', 'SLOW'] : pf.rolido > 1.1 ? ['RAPIDO', 'FAST'] : ['NORMAL', 'NORMAL'];
   const vel = pl.vuelo && pl.vuelo.vel ? Math.round(pl.vuelo.vel * 100) : 100;
   pz('reloj', true, (en ? 'SPEED ' : 'VEL. ') + vel + '%', 'Velocidad ' + vel + '% del Skyhawk · rolido con Q / E ' + rol[0].toLowerCase(),

@@ -169,7 +169,7 @@ Generado de `src/data/tutorial.js`, en el orden en que salen. **PAUSA** = frena 
 
 ### TUT3_BLANCO  _(espera un momento del vuelo)_
 9. **PAUSA** · PICHÓN: Ahí está el buque. La bomba tiene que caer más de un segundo para armarse: soltala alta y temprano. Prestá atención a la marca verde.
-10. **PAUSA** · EL TURCO: Con el joystick: mantené el stick derecho pa' abajo y aparece la mira, que te muestra dónde cae. Sin soltarlo, hundí el stick, el R3, y sale. Con teclado, F y ESPACIO.
+10. **PAUSA** · EL TURCO: Mantené la mira, vago, que te muestra ande cae. Cuando se ponga verde sobre el buque, ahí la largás. Ni antes ni después. *(21/11, el autor: el Turco no nombra teclas — las pone la plaquita de abajo)*
 11. **PAUSA** · PICHÓN: Y si errás, otra pasada. El casco no se va a ningún lado.
 
 ### TUT3_ESCAPE
@@ -187,8 +187,8 @@ Generado de `src/data/tutorial.js`, en el orden en que salen. **PAUSA** = frena 
 19. **REMATE** · EL TURCO: La Chancha no falla nunca. Bueno, casi nunca.
 
 ### TUT3_PIRUETAS
-20. **PAUSA** · PICHÓN: Y el tonel no es la única. En la pausa están las demás piruetas.
-21. **EN JUEGO** · EL TURCO: Ni las mirés, Tero. Cerrá y volvé entero, no desfigurao.
+20. **PAUSA** · PICHÓN: Y el tonel no es la única. Las demás piruetas están en CONTROLES, en la pausa.
+21. **EN JUEGO** · EL TURCO: Ya las vas a buscar, Tero. Ahora volvé entero, no desfigurao. *(21/11: ya no abre la pausa)*
 22. **REMATE** · PICHÓN: Algún día las probamos todas.
 
 ### TUT3_FIN

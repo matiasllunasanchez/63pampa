@@ -2360,7 +2360,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // EL MAPA DE LAS ISLAS (desarrollo, 19/11): arriba de OPCIONES, solo volando las islas
       ...(islas.enPasillo() ? [{ id: 'mapa', label: T('pauseMapa') }] : []),
       // EL CLIMA DE LAS ISLAS (20/11, el autor): ◄ ► (o ENTER) lo cambia en el acto (systems/islas/clima.js)
-      ...(islas.enPasillo() && islas.climaAhora() ? [{ id: 'clima', label: T('pauseClima', { n: islas.climaNombre() }) }] : []),
+      // (LA FILA CLIMA, SOLO EN DEV — 21/11, el autor: "quitar la configuracion de clima en la demo, dejarla en dev": desde
+      // PRUEBAS y el MODO DEV; no en JUEGO RAPIDO, el libro ni el tutorial)
+      ...(islas.enPasillo() && islas.climaAhora() && S.test && testBack !== 'quickmenu' ? [{ id: 'clima', label: T('pauseClima', { n: islas.climaNombre() }) }] : []),
       { id: 'opciones', label: T('optTitle') },
       { id: 'controls', label: T('pauseControls') },
       ...(gameMode === 'campaign' ? [{ id: 'save', label: T('pauseSaveRow') }] : []),
@@ -3164,6 +3166,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       run.vuelo = (avSel && avSel.vuelo) || null;
       run.rolidoK = perfilDe(avSel && avSel.key).rolido;   // el giro libre [Q]/[E] de ESTE avion (data/perfiles.js)
       frio.reiniciar(); frio.avion(perfilDe(avSel && avSel.key).frio);   // EL FRIO de ESTE avion (data/perfiles.js `frio`)
+      { const pf = perfilDe(avSel && avSel.key); run.esquiveBase = pf.esquive; run.esquiveClase = pf.maniobras; }   // EL ESQUIVE de ESTE avion (data/perfiles.js)
       fallasFrioHechas = false;
       run.canon = (avSel && avSel.canon) || null;
       run.calibre = calibreDe(avSel && avSel.key);   // 20 o 30 mm contra los sistemas del buque (PLAN_DEFENSAS_BUQUE)
@@ -8036,7 +8039,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // fundido y la RADIO, y la primera version apagaba el bloque entero — medido, el avion se
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
-        ctx.save(); ctx.scale(U, U); ctx.globalAlpha = hudEntra; if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), sinCinta: enCabina() || (!!libro && !!libro.tut && !(dlgPausa && lecFoco && lecFoco.foco.includes('ruta'))), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
+        ctx.save(); ctx.scale(U, U); ctx.globalAlpha = hudEntra; if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), sinCinta: enCabina() || (!!libro && !!libro.tut && !(dlgPausa && lecFoco && lecFoco.foco.includes('ruta')) && !blancoSys.asomado()), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(), temp: islas.temperatura() || frio.estado() || (islas.enPasillo() ? null : { c: frio.tempPasillo(cfg, plane.y), hielo: 0, canon: 0 }),   // (21/11: en la pista tambien, "debe estar siempre")
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,

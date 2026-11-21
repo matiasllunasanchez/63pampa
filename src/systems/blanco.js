@@ -244,6 +244,9 @@ export const spawnsCut = dist => blanco.on && !blanco.escapando && dist >= objet
 // (…y NO en el escape: ahi lo que siembran las estrellas es justamente lo que hay que esquivar)
 
 /** Una seña para Puma, una sola vez por pasada. */
+/** ¿El buque ya ASOMO en el horizonte? (lo que el ojo ve: VISIBLE_Z). En el tutorial prende la cinta de la distancia
+ *  apenas aparece (21/11, el autor: "apenas aparece debe aparecer la barra de distancia arriba"). */
+export const asomado = () => blanco.on && !blanco.escapando && blanco.z - PZ < BL.VISIBLE_Z;
 const seña = c => { if (!blanco.dicho[c]) { blanco.dicho[c] = 1; blanco.cues.push(c); } };
 
 /** Las señas pendientes, y se vacian (game.js las pasa a la radio). */

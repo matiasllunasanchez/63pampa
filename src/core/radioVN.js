@@ -104,15 +104,29 @@ export function decir(raw, caraDe) {
   const { personaje, txt } = partirHablante(raw);
   radio.personaje = personaje;
   radio.cara = personaje && caraDe ? caraDe(personaje) || null : null;
-  radio.wrap = wrapChars(txt, ANCHO);
+  // LO QUE NO ENTRA EN DOS RENGLONES SALE EN OTRO BLOQUE (21/11, el autor: "hay dialogos in game que no entran en 2
+  // lineas, separalos en 2 bloques"): la caja muestra dos renglones; el resto queda en `sigue` y sale, del mismo que
+  // habla, apenas se vence este (tickRadio). Antes el tercer renglon se cortaba y no se leia nunca.
+  const renglones = wrapChars(txt, ANCHO);
+  radio.wrap = renglones.slice(0, BLOQUE);
+  sigue.length = 0; sigue.push(...renglones.slice(BLOQUE));
   // el historial se llena SIEMPRE, use o no el panel: cambiar de presentacion en OPCIONES no puede
   // dejar un log vacio esperando a que alguien vuelva a hablar
   log.push({ personaje: radio.personaje, cara: radio.cara, txt, t: 0 });
   while (log.length > LOG_N) log.shift();
-  radio.dur = Math.min(T_MAX, Math.max(T_MIN, T_MIN + txt.length * T_POR_CHAR));
+  radio.dur = durDe(radio.wrap);
   radio.t = 0;
   radio.activa = true;
   radio.ease = 0;
+}
+const BLOQUE = 2;            // los renglones que entran en la caja
+const sigue = [];            // los renglones que esperan su bloque (los de la misma linea)
+const durDe = filas => { const n = filas.join(' ').length; return Math.min(T_MAX, Math.max(T_MIN, T_MIN + n * T_POR_CHAR)); };
+/** El bloque que sigue de la misma linea: mismo personaje y cara, sin volver a anotarlo en el historial. */
+function siguienteBloque() {
+  radio.wrap = sigue.splice(0, BLOQUE);
+  radio.dur = durDe(radio.wrap);
+  radio.t = 0;
 }
 
 /** Corta la linea en curso (cambio de estado, muerte, fin de mision). */
@@ -121,6 +135,7 @@ export function callar() {
   radio.t = 0;
   radio.ease = 0;
   radio.wrap.length = 0;              // se MUTA el array, no se reemplaza
+  sigue.length = 0;
   radio.personaje = null;
   radio.cara = null;
 }
@@ -148,7 +163,7 @@ export function tickRadio(dt, congelada) {
   // significa "esto se va a ir solo" y aca eso deja de ser cierto.
   if (congelada) return;
   radio.t += dt;
-  if (radio.t >= radio.dur) radio.activa = false;
+  if (radio.t >= radio.dur) { if (sigue.length) siguienteBloque(); else radio.activa = false; }
 }
 
 /** Cuanto queda, 0..1. Es lo que dibuja la barrita. */

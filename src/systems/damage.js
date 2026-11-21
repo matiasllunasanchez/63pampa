@@ -23,6 +23,7 @@ import { W } from '../render/ctx.js';
 import { boom, beep, sfxOne } from './audio.js';
 import { applyHit, effects, tierOf, isFatal, absorber, dmgRoce, recargar, ESCUDO, DMG, agonia } from '../core/damage.js';
 import { tickDesgaste } from '../core/desgaste.js';
+import { esDisparo, chanceEsquive } from '../core/esquive.js';
 
 /** Avion nuevo: chapa sana y escudo lleno. La llama el arranque de corrida Y el relevo del
  *  escuadron — cada avion del escuadron entra entero, que es lo que hace que el escuadron siga
@@ -69,11 +70,24 @@ export function humoAveria(dt) {
   }, { vx: 0, vy: 9 });
 }
 
+/** La pirueta que cuenta para el esquive: la del pasillo (`run.mv`) o la de las islas (`run.mvEsq`, fresca). */
+const piruetaEsq = () => run.mv || (run.t - (run.mvEsqT ?? -9) < 0.25 ? run.mvEsq : null);
+/** La chance de esquivar AHORA (la base y la clase del avion las pone el arranque: run.esquiveBase / run.esquiveClase). */
+export const esquiveAhora = () => chanceEsquive(run.esquiveBase ?? 0.08, run.esquiveClase || 'agil', piruetaEsq());
+
 /**
  * Un impacto. Devuelve TRUE si el avion cae (el que llama arma su `{ death }` como siempre).
  * Devuelve FALSE si lo aguanto: acá se avisa, se sacude y se sigue volando.
  */
 export function takeHit(cause) {
+  // EL ESQUIVE (data/perfiles.js ESQUIVE): un disparo que te alcanzo puede pasar de largo — la base del avion, y
+  // mucho mas en plena pirueta. No se cobra, no sacude; sale el cartelito y cuenta como esquivado.
+  if (esDisparo(cause) && Math.random() < esquiveAhora()) {
+    stats.dodges = (stats.dodges || 0) + 1; run.esquivoT = run.t;
+    popup(W / 2, 50, T('esquivo'), P.accent);
+    beep(1250, 0.07, 'triangle', 0.035, 1900);
+    return false;
+  }
   const before = run.integ;
   // LA CAUSA, para el cartel que sale de atras de la caja de SALUD (render/hud.js drawAvisosCaja, 19/11)
   run.golpeCausa = cause; run.golpeN = (run.golpeN | 0) + 1;

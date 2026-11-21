@@ -85,7 +85,8 @@ function mallaTrinchera(t) {
   return m;
 }
 // ---- LAS BANDERAS (teatro.js `banderas`): un mastil blanco y el paño que flamea con el viento del clima. La
-// argentina, celeste y blanca con el sol; la britanica, la Union Jack. Exageradas como todo lo de tierra.
+// argentina, celeste y blanca con el sol; la de ellos, la de INGLATERRA (21/11, el autor: "la bandera es INGLATERRA, no
+// esa": la cruz roja de San Jorge sobre blanco, no la Union Jack). Exageradas como todo lo de tierra.
 const BAND = { MASTIL: 18, ANCHO: 9, SEG: 12 };
 const TEX = {};
 function texBandera(bando) {
@@ -100,12 +101,9 @@ function texBandera(bando) {
     for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; x.beginPath(); x.moveTo(48 + Math.cos(a) * 6, 30 + Math.sin(a) * 6); x.lineTo(48 + Math.cos(a) * 9, 30 + Math.sin(a) * 9); x.stroke(); }
     x.fillStyle = '#c8840a'; x.fillRect(46, 28, 1, 1); x.fillRect(49, 28, 1, 1); x.fillRect(47, 32, 2, 1);
   } else {
-    cv.width = 120; cv.height = 60;
-    x.fillStyle = '#012169'; x.fillRect(0, 0, 120, 60);
-    const diag = (w, c) => { x.strokeStyle = c; x.lineWidth = w; x.beginPath(); x.moveTo(0, 0); x.lineTo(120, 60); x.moveTo(120, 0); x.lineTo(0, 60); x.stroke(); };
-    diag(12, '#ffffff'); diag(4, '#c8102e');
-    x.fillStyle = '#ffffff'; x.fillRect(50, 0, 20, 60); x.fillRect(0, 20, 120, 20);
-    x.fillStyle = '#c8102e'; x.fillRect(54, 0, 12, 60); x.fillRect(0, 24, 120, 12);
+    cv.width = 100; cv.height = 60;
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 100, 60);
+    x.fillStyle = '#ce1124'; x.fillRect(43, 0, 14, 60); x.fillRect(0, 23, 100, 14);
   }
   const t = new THREE.CanvasTexture(cv);
   t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearFilter;
@@ -113,7 +111,7 @@ function texBandera(bando) {
   return (TEX[bando] = t);
 }
 function grupoBandera(b) {
-  const g = new THREE.Group(), alto = b.bando === 'arg' ? BAND.ANCHO * 0.625 : BAND.ANCHO * 0.5;
+  const g = new THREE.Group(), alto = BAND.ANCHO * (b.bando === 'arg' ? 0.625 : 0.6);   // (la de Inglaterra es 3:5)
   const mastil = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, BAND.MASTIL, 6), new THREE.MeshBasicMaterial({ color: '#d9d6cc' }));
   mastil.position.y = BAND.MASTIL / 2; g.add(mastil);
   const geo = new THREE.PlaneGeometry(BAND.ANCHO, alto, BAND.SEG, 1);

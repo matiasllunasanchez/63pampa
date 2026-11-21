@@ -149,6 +149,10 @@ export const run = {
   rollCd: 0,       // cooldown COMPARTIDO de todas las piruetas
   rollDir: 1,      // hacia que lado rola
   // PIRUETAS de combate (data/moves.js). mv = id activo o null; las ejecuta systems/moves.js.
+  mvEsq: null,     // la pirueta de las islas que cuenta para el esquive (systems/damage.js), con su `mvEsqT`
+  mvEsqT: -9,
+  esquiveBase: 0.08, esquiveClase: 'agil',   // EL ESQUIVE del avion (data/perfiles.js; lo pone el arranque)
+  esquivoT: -9,    // cuando fue el ultimo esquive (para el que lo quiera mostrar)
   mv: null,        // 'splits' | 'breakt' | 'hiyo' | 'loyo' | 'jink' | 'sturn' | 'mask' | 'popup'
   mvT: 0,          // tiempo transcurrido de la maniobra
   mvDir: 1,        // sentido elegido (donde aplica)
@@ -235,7 +239,7 @@ export function resetRun() {
     windT: 0, windF: 1,
     fireT: 0, tiroT: 9, giro: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
     rollCd: 0,
-    mv: null, mvT: 0, mvY0: 0, mvX0: 0, mvFase: '', mvCanto: 0, mvPose: 0, mvLado: 0, derrapeAgua: 0, mvRoll: 0, mvGiro: 0, mvSteep: 0, mvCobra: 0, mvMortal: 0, mvTonelV: null, exoGastado: false, mvFreno: 0, mvSeed: 0, mvTgt: 0, camPan: 0,
+    mv: null, mvEsq: null, mvEsqT: -9, esquivoT: -9, mvT: 0, mvY0: 0, mvX0: 0, mvFase: '', mvCanto: 0, mvPose: 0, mvLado: 0, derrapeAgua: 0, mvRoll: 0, mvGiro: 0, mvSteep: 0, mvCobra: 0, mvMortal: 0, mvTonelV: null, exoGastado: false, mvFreno: 0, mvSeed: 0, mvTgt: 0, camPan: 0,
     // alabeo VIVO del control por ALABEO (cfg.control = 1), en radianes. Es el estado del avion:
   // plane.vx sale de aca, no al reves. Ver core/physics.js.
   bankA: 0,
