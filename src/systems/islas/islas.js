@@ -11,7 +11,7 @@
 // EL LUGAR MAS CERCANO aparece en pantalla al acercarse (orientacion sin flechas). Los nombres son los que
 // usa Dusk Patrol para 1982 y estan A VERIFICAR (ver LUGARES).
 import { popup, explodeAt, columnaBomba, proj } from '../../core/fx.js';
-import { cartel, cartelSostenido } from '../../core/cartel.js';
+import { cartel, cartelSostenido, carteles } from '../../core/cartel.js';
 import { T, getLang } from '../../core/i18n.js';
 import * as objetivo from './objetivo.js';
 import * as teatro from './teatro.js';
@@ -22,7 +22,7 @@ import * as busqueda from './busqueda.js';
 import { CLIMAS } from '../../data/islas_clima.js';
 import { GRADIENTE, HIELO } from '../../data/frio.js';
 import * as frio from '../frio.js';
-import { RADAR_BAJO } from '../../data/islas_teatro.js';
+import { RADAR_BAJO, BOMBA } from '../../data/islas_teatro.js';
 import * as mapa from './mapa.js';
 import { P } from '../../data/palette.js';
 // la mitad de la grilla del juego (480 de ancho): systems no importa render (tools/lint_layers.js)
@@ -203,12 +203,13 @@ export const vistaPasillo = () => enPasillo() && camara.vista() !== camara.ARRIB
 /** Un cuadro de vuelo, DESPUES de flightSystem: vira, avanza sobre el mapa y le pasa el suelo al avion.
  *  Devuelve una causa de muerte si el terreno se le vino encima, o null. */
 export function pasoPasillo(dt) {
-  if (!enPasillo()) { geoExterna.on = false; return null; }
+  if (!enPasillo()) { geoExterna.on = false; carteles.queda = null; return null; }
   if (!mundo.listo()) return null;
   if (!I.puesto) {
     const A0 = { pos: { x: 0, y: 0, z: 0 }, yaw: 0 };
     ubicar(A0);
     P3.x = A0.pos.x; P3.z = A0.pos.z; P3.yaw = A0.yaw; P3.g = Math.max(mundo.sueloH(P3.x, P3.z), 0);
+    P3.ini = { x: P3.x, z: P3.z, yaw: P3.yaw };   // EL INICIO DE LA MISION: ahi reaparece el avion nuevo
     cabina.on = camara.vista() === camara.CABINA;
     // (por PUNTO: la rociada, el polvo, los piques de las balas y las bombas preguntan donde caen, no solo bajo el avion)
     geoExterna.tierra = (x, wz) => x == null ? mundo.sueloH(P3.x, P3.z) > 0.3
@@ -223,24 +224,43 @@ export function pasoPasillo(dt) {
     P3.sostiene = run.throttle > 0.3 ? 0 : P3.sostiene - dt;
     if (P3.sostiene > 0) { plane.y = AIR_START_Y; plane.vy = Math.max(0, plane.vy); }
   }
-  if (S.state === 'play' && P3.muerto && run.t > 0) P3.muerto = false;   // el relevo: el avion nuevo ya vuela
+  // EL AVION NUEVO (el relevo, o volver a jugar despues del derribo) ARRANCA EN EL INICIO DE LA MISION (21/11, el autor:
+  // "morir en isla debe respawnear en el inicio de la mision, no donde mori"): mismo punto, mismo rumbo, a la altura
+  // de salida y sostenido hasta que des gas, como la primera vez
+  if (S.state === 'play' && P3.muerto && run.t > 0) {
+    P3.muerto = false;
+    if (P3.ini) {
+      P3.x = P3.ini.x; P3.z = P3.ini.z; P3.yaw = P3.ini.yaw; P3.g = Math.max(mundo.sueloH(P3.x, P3.z), 0); P3.giro = 0; P3.man = null; soltarPose();
+      plane.y = I.mar ? (I.mar.alt || 60) : AIR_START_Y; plane.vy = 0; plane.vx = 0; cam.y = plane.y;
+      P3.sostiene = I.mar ? 0 : SOSTIENE_T; P3.altFija = null;
+    }
+  }
   if (I.ir) { const q = I.ir; I.ir = null; const [x, z] = mundo.lonLatLocal(q.lon, q.lat); P3.x = x; P3.z = z; if (q.rumbo != null) P3.yaw = q.rumbo * Math.PI / 180; P3.g = Math.max(mundo.sueloH(x, z), 0); if (q.alt) plane.y = q.alt; }
   geoExterna.on = true; geoExterna.sinRoce = true;
+  carteles.queda = enCabina() ? null : 3;   // (los carteles de las islas: 3 s, render/hud.js `corre`)
   // EL VIRAJE: lo de costado se vuelve rumbo, con peso
   let pide = Math.max(-1, Math.min(1, plane.vx / VX_FONDO)) * GIRO_MAX;
-  // EL DERRAPE (Q+D y E+A, el del pasillo): sobre el mapa no es un viraje, es TIRARSE DE COSTADO como una moto de
-  // agua — lo de costado corre al avion de lado y el rumbo apenas se tuerce
-  if (run.mv === 'derrape') {
-    const cy0 = Math.cos(P3.yaw), sy0 = Math.sin(P3.yaw), lat = plane.vx * 1.4 * dt;
-    P3.x += cy0 * lat; P3.z += sy0 * lat;
-    pide *= 0.15;
-  }
+  // EL DERRAPE (Q+D y E+A, el del pasillo; 21/11, el autor: "no hace lo mismo que pasillo en isla, debe hacerlo"): IGUAL
+  // QUE EN EL PASILLO — el avion cruza la pantalla de borde a borde con la camara casi quieta (moves.js `derrapeLead`),
+  // asi que mientras dura NO se lo vuelve al centro: `plane.x` corre libre en el carril y el rumbo apenas se tuerce.
+  // Al terminar, lo que se corrio pasa al MAPA de una (abajo, `plane.x = 0`).
+  const derrapa = run.mv === 'derrape';
+  if (derrapa) pide *= 0.15;
   // LAS MANIOBRAS DE LAS ISLAS (`maniobra`): la media vuelta y la vertical mandan sobre el rumbo y la altura
   const man = pasoManiobra(dt);
   // (CON HIELO EN LAS ALAS cuesta virar: el viraje pierde hasta HIELO.CONTROL — systems/frio.js)
   P3.giro += (pide * (1 - HIELO.CONTROL * (run.hielo || 0)) - P3.giro) * Math.min(1, dt / GIRO_T);
   if (!(man && man.rumbo)) P3.yaw += P3.giro * dt;
-  plane.x = 0;
+  if (!derrapa) {
+    // LO QUE CORRIO EL DERRAPE PASA AL MAPA: el avion y la camara quedan donde estaban en el mundo (P3 se corre lo que
+    // el avion, la camara del pasillo lo mismo para atras) y la camara vuelve sola a su lugar detras de el
+    if (P3.derrapaba && plane.x) {
+      const cy0 = Math.cos(P3.yaw), sy0 = Math.sin(P3.yaw);
+      P3.x += cy0 * plane.x; P3.z += sy0 * plane.x; cam.x -= plane.x;
+    }
+    plane.x = 0;
+  }
+  P3.derrapaba = derrapa;
   // la correa del borde del mapa, como siempre
   const k = I.mar ? 0 : Math.max(0, Math.min(1, (BORDE - mundo.alBorde(P3.x, P3.z)) / 8000));
   if (k > 0) { let d = mundo.rumboAlCentro(P3.x, P3.z) - P3.yaw; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; P3.yaw += d * k * dt; }
@@ -262,7 +282,7 @@ export function pasoPasillo(dt) {
   // EL TEATRO (teatro.js, docs/proyecto/PLAN_TEATRO_MALVINAS.md): las bases, los buques y las PAC del 24 de mayo
   if (!I.mar) teatro.armar();
   if (!I.mar) teatro.paso(dt, { x: P3.x, z: P3.z, g: P3.g, yaw: P3.yaw, y: plane.y }, enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, estallido, S.state === 'play');
-  if (!I.mar) avisosRadar();
+  if (!I.mar) avisosRadar(dt);
   tiempo(dt);
   // LA BUSQUEDA (mar abierto): lo que se ve, el humo que se suelta, los circulos
   if (I.mar && S.state === 'play') { busqueda.paso(dt, { x: P3.x, z: P3.z, yaw: P3.yaw, alto: P3.g + plane.y, suelta: I.humo }); I.humo = false; }
@@ -338,8 +358,12 @@ export function mallaDe(clave, numeral) {
 // y las que pegan (la base o la tierra) se sacan del pasillo con su estallido.
 const _b = { x: 0, y: 0, z: 0 }, _geo = { x: 0, y: 0, z: 0 };
 function bombas(dt, m) {
-  for (const pm of pmissiles) {
+  for (let i = pmissiles.length - 1; i >= 0; i--) {
+    const pm = pmissiles[i];
     if (pm.exocet || pm.tanque || !('extra' in pm) || objetivo.seguida(pm)) continue;
+    // LA BOMBA TRABADA (21/11, el autor: "tambien hay probabilidades normales de que se trabe la bomba"): no sale del
+    // soporte — sigue colgada (vuelve al estante) y se puede volver a intentar
+    if (!I.mar && Math.random() < BOMBA.TRABA) { pmissiles.splice(i, 1); run.msl = (run.msl || 0) + 1; cartel(T('islasTrabada'), P.warn, T('islasTrabadaSub')); continue; }
     aMundo(pm.x, 0, pm.z, _b);
     objetivo.soltada(pm, _b.x, _b.z, P3.yaw, P3.g);
   }
@@ -405,6 +429,16 @@ export const avionMuerto = () => P3.muerto;
 export const objetivoDe = () => (enPasillo() && objetivo.OBJ.on ? objetivo.OBJ : null);
 /** La base ya cayo y paso el rato del festejo: la mision termina (game.js vuelve a PRUEBAS). */
 /** LA BUSQUEDA (mar abierto): soltar un humo este cuadro, sus eventos, su tablero, si termino, para la escena 3D. */
+/** EL EXOCET DESDE LAS ISLAS (21/11, el autor: "la unica forma es un Super Etendard y estar a una distancia X para
+ *  poder lanzar el Exocet con el PULSO"): a cuantos km esta el portaaviones mas cercano (null sin ninguno), y el
+ *  Exocet que llego (game.js, al cerrar el Pulso bien): le pega a ese portaaviones (teatro.js `exocet`). */
+function portaCerca() {
+  let c = null, cd = Infinity;
+  for (const q of teatro.portaaviones()) { const d = Math.hypot(q.x - P3.x, q.z - P3.z); if (d < cd) { cd = d; c = q; } }
+  return c ? { ...c, d: cd } : null;
+}
+export const portaavionesKm = () => { if (!I.on || !I.puesto || I.mar) return null; const c = portaCerca(); return c ? c.d / 1000 : null; };
+export const exocetLlego = () => { const c = portaCerca(); return c ? teatro.exocet(c.x, c.z, 3000, 0.35) : null; };
 /** Carga el mapa antes de hacer falta (la busqueda del libro entra a mitad de vuelo: que no frene). */
 export const precargar = () => mundo.cargar();
 export const soltarHumo = () => { if (I.mar) I.humo = true; };
@@ -471,7 +505,8 @@ export function mapaDatos(cursor) {
   const E = teatro.escena(), teat = [];
   if (E) {
     for (const b of teatro.bases()) if (b.visto) teat.push({ k: 'base', bando: b.bando, n: b.n, ...mapa.aUV(b.x + o[0], b.z + o[1]) });
-    for (const b of E.buques) if (b.visto) teat.push({ k: 'buque', bando: 'gb', vivo: b.vivo, n: b.n, ...mapa.aUV(b.x + o[0], b.z + o[1]) });
+    // (SIN IDENTIFICADOR: un buque visto es un trazo gris, sin nombre ni bando — data/islas_teatro.js BUQUES)
+    for (const b of E.buques) if (b.visto) teat.push({ k: 'buque', bando: null, vivo: b.vivo, n: null, ...mapa.aUV(b.x + o[0], b.z + o[1]) });
     for (const c of E.pac) if (c.vista && c.estado !== 'muerta') teat.push({ k: 'pac', bando: 'gb', n: c.n, ...mapa.aUV(c.x + o[0], c.z + o[1]), r: c.r / mundo.MAP_W });
     // la PAC que viene a buscarte: un punto rojo donde esta (si nuestro radar la ve)
     for (const c of E.pac) if (c.vista && c.estado === 'vector') teat.push({ k: 'pacv', bando: 'gb', n: c.n, ...mapa.aUV(c.vx + o[0], c.vz + o[1]) });
@@ -684,15 +719,33 @@ export function temperatura() {
 }
 
 /** LAS ZONAS DE RADAR, en carteles (teatro.js `zona` y sus eventos): entrar a una, que te vean, que vengan. */
-function avisosRadar() {
+function avisosRadar(dt) {
   for (const e of teatro.tomarEventos()) {
     if (e.k === 'zona_gb') cartel(T('islasZonaGb'), P.warn, T('islasZonaGbSub'));
-    else if (e.k === 'zona_arg') cartel(T('islasZonaArg'), P.accent, e.n);
+    else if (e.k === 'zona_arg') I.argCartel = 0;
     else if (e.k === 'se_van') cartel(T('islasSeVan'), P.accent, T('islasSeVanSub'));
     else if (e.k === 'encima') cartel(T('islasEncima'), P.warn, T('islasEncimaSub'));
     else if (e.k === 'bajado') { cartel(T('islasBajado'), P.accent); run.score += 1500; }
     // (que la PAC salio a buscarte lo sabes solo si nuestro radar la ve)
+    // LE DISTE A (21/11, el autor: "no sabemos que barco es, pero cuando impactamos que aparezca un toast arriba que
+    // diga LE DISTE A SHEFFIELD"): el nombre recien aca; si era nuestro, se sabe tarde
+    else if (e.k === 'le_diste') {
+      const amigo = e.bando === 'arg';
+      const sub = amigo ? T('islasEraNuestro') : T('islasGolpe_' + e.res, { d: e.dano || 0 });
+      cartel(T(e.res === 'cerca' ? 'islasCasiA' : 'islasLeDiste', { n: e.n }), amigo ? P.warn : e.res === 'detona' || e.res === 'exocet_hunde' ? '#7fe07a' : P.accent, sub, { alerta: e.res !== 'balas' && e.res !== 'cerca' });
+      if (!amigo && e.res !== 'balas' && e.res !== 'cerca') run.score += e.res === 'detona' || e.res === 'exocet_hunde' ? 6000 : 800;
+    }
+    else if (e.k === 'hundido') cartel(T('islasHundido', { n: e.n }), e.bando === 'arg' ? P.warn : '#7fe07a', e.bando === 'arg' ? T('islasEraNuestro') : null, { alerta: true });
+    else if (e.k === 'fuego_amigo') cartel(T('islasFuegoAmigo'), P.warn, T('islasFuegoAmigoSub', { n: e.n }), { alerta: true });
     else if (e.k === 'vienen' && e.avisa) cartel(T('islasVienen'), P.warn, T('islasVienenSub', { d: (e.d / 1000).toFixed(0) }));
+  }
+  // ZONA DE RADAR ARGENTINO (21/11, el autor): un cartel de 3 s al entrar, en el celeste del radar propio; despues
+  // lo dice la placa del radar del tablero, en azul (hud.js `drawAlerta`)
+  if (I.argCartel != null) {
+    I.argCartel += dt;
+    const on = I.argCartel < 3 - 1 - 0.28 && !!teatro.zona().arg;   // (al soltarlo queda 1 s y sale en 0,28)
+    cartelSostenido('zona_arg', on, T('islasZonaArg'), '#8fc8ec');
+    if (!on) I.argCartel = null;
   }
   // (que te VE ya no lleva cartel propio: lo dicen la barra, el velo verde y las balizas del pasillo)
 }
@@ -719,7 +772,7 @@ const RED_ANILLO = 400, RED_PASO = 120, RED_RAYOS = 96, RED_LEJOS = 4500, RED_CE
 export function redRadar(t) {
   if (!vistaPasillo() || !I.puesto) return null;
   const z = teatro.zona();
-  const r = teatro.radares().find(q => q.n === z.gb || q.n === z.arg);
+  const r = teatro.radares().find(q => q.n === z.red);   // (teatro.js: encima del radar, o recien entrado a la nuestra)
   if (!r) return null;
   const pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, sy = Math.sin(P3.yaw), cy = Math.cos(P3.yaw);
   const out = [];
@@ -768,6 +821,8 @@ export function redRadar(t) {
 
 /** Adentro de la zona de un radar britanico (el alcance del radar del pasillo, flight.js / game.js). */
 export const radarZonaGb = () => enPasillo() && I.puesto && !!teatro.zona().gb;
+/** Adentro de la zona de NUESTRO radar (y fuera de la de ellos): la placa del radar del tablero, en azul. */
+export const radarZonaArg = () => enPasillo() && I.puesto && !!teatro.zona().arg && !teatro.zona().gb;
 
 /** El avion esta sobre tierra (la eyeccion: caes entre los tuyos o al agua). */
 export const sobreTierra = () => enPasillo() && P3.g > 0.3;
@@ -919,3 +974,14 @@ if (typeof window !== 'undefined') {
 }
 // SONDA: la red del radar (cuantos tramos y los primeros)
 if (typeof window !== 'undefined') window.__redIslas = () => { const R = redRadar(1); return JSON.stringify(R ? { n: R.tramos.length / 6, cerca: R.tramos.filter((v, i) => i % 6 === 1 && v > 102).length, alfa: R.tramos.filter((v, i) => i % 6 === 4).slice(0, 10).map(v => +v.toFixed(2)), xs: R.tramos.filter((v, i) => i % 6 === 0 && R.tramos[i + 1] > 102).slice(0, 10).map(v => Math.round(v)), P: [Math.round(P3.x), Math.round(P3.z), Math.round(P3.g), Math.round(plane.y)] } : null); };
+
+// SONDA (DEV · MANIOBRAS, 21/11): lanza una maniobra de las islas por su combo ('uud', 'ddu', 'duuu', 'uddd'), o el
+// derrape del pasillo ('derrape'). Sube el avion a 150 m si esta bajo (la media vuelta por abajo pide altura) y lo
+// suelta del sostenido. Devuelve true si salio (false: las islas todavia no estan puestas).
+if (typeof window !== 'undefined') window.__maniobraIslas = seq => {
+  if (!enPasillo() || !I.puesto || S.state !== 'play') return false;
+  if (seq !== 'derrape' && plane.y < 120) { plane.y = 150; cam.y = plane.y; }
+  P3.sostiene = 0;
+  if (seq === 'derrape') return typeof window.__mv === 'function' ? (window.__mv('derrape', 1), true) : false;
+  return !!maniobra(seq, () => true);
+};

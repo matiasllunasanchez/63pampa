@@ -17,7 +17,7 @@
 // ven, y la PAC mas cercana VIENE (estado 'vector') hasta tenerte a ojo; si el radar te pierde PAC_OLVIDA s, vuelve
 // a su circulo. Adentro de la nuestra los Harriers no entran: los que te perseguian se van (harriers.js `retirar`).
 import * as mundo from './mundo.js';
-import { BASES, BUQUES, PAC, ARMAS, PAC_VE, PAC_VUELVE, RADARES, RADAR_BAJO, PAC_VECTOR, PAC_VEL_VECTOR, PAC_OLVIDA } from '../../data/islas_teatro.js';
+import { BASES, BUQUES, PAC, ARMAS, PAC_VE, PAC_VUELVE, RADARES, RADAR_BAJO, PAC_VECTOR, PAC_VEL_VECTOR, PAC_OLVIDA, DEFENSA, DANADO_MIN, BOMBA, FUSILES } from '../../data/islas_teatro.js';
 import { missiles, pmissiles, bullets } from '../../core/world.js';
 import * as harriers from './harriers.js';
 import { posBomba } from './objetivo.js';
@@ -28,14 +28,16 @@ import * as soldados from './soldados.js';
 const HUELLA = {
   carpa: { r: 7, h: 4, hp: 2 }, deposito: { r: 11, h: 7, hp: 4 }, puesto: { r: 6, h: 6, hp: 3 }, radar: { r: 7, h: 8, hp: 2 },
   rapier: { r: 8, h: 4, hp: 2 }, manpad: { r: 4, h: 2, hp: 1 }, canon: { r: 6, h: 4, hp: 2 }, camion: { r: 6, h: 4, hp: 2 },
-  pucara: { r: 9, h: 5, hp: 2 }, herc: { r: 18, h: 11, hp: 4 },
+  pucara: { r: 9, h: 5, hp: 2 }, herc: { r: 18, h: 11, hp: 4 }, blindado: { r: 6, h: 4, hp: 3 },
 };
 // la MALLA de cada pieza (assets/mallas)
 const MALLA = { carpa: 'carpa', deposito: 'deposito', puesto: 'puesto', radar: 'radar', rapier: 'nido_rapier', manpad: 'manpad',
-  canon: 'camion_aa', camion: 'camion_aa', pucara: 'pucara', herc: 'herc', soldado: 'soldado_corre', harrier: 'harrier' };
+  canon: 'camion_aa', camion: 'camion_aa', blindado: 'camion_aa', pucara: 'pucara', herc: 'herc', soldado: 'soldado_corre', harrier: 'harrier' };
 export const mallaDe = tipo => MALLA[tipo] || tipo;
 
-const T = { armado: false, piezas: [], buques: [], pac: [], soldados: [], t: 0, radares: [], zona: { gb: null, arg: null, visto: false }, vistoT: 99, eventos: [] };
+const RED_SOBRE = 3500;   // m: la red del radar se ve volando ENCIMA de el
+export const RED_ARG_T = 5; // s: la nuestra, al entrar a la zona (el cartel, 3 s, y 2 s mas)
+const T = { armado: false, piezas: [], buques: [], pac: [], soldados: [], trincheras: [], banderas: [], t: 0, radares: [], zona: { gb: null, arg: null, visto: false }, vistoT: 99, eventos: [] };
 let semilla = 1;
 const rnd = () => ((semilla = (semilla * 16807) % 2147483647) / 2147483647);
 
@@ -45,6 +47,8 @@ export function reiniciar() {
   for (const o of [...T.piezas, ...T.buques]) fuera(o);
   for (const x of [...T.soldados, ...T.pac]) for (const o of x.__gs || []) fuera(o);
   for (const x of T.soldados) for (const g of Object.values(x.__p || {})) if (g.parent) g.parent.remove(g);
+  for (const o of [...T.trincheras, ...T.banderas]) fuera(o);
+  T.trincheras.length = T.banderas.length = 0;
   harriers.reiniciar();
   T.armado = false; T.piezas.length = T.buques.length = T.pac.length = T.soldados.length = T.radares.length = 0; T.t = 0; T.bases = [];
   T.zona = { gb: null, arg: null, visto: false }; T.vistoT = 99; T.eventos.length = 0;
@@ -105,14 +109,34 @@ export function armar() {
     }
     // LOS SOLDADOS (systems/islas/soldados.js): cada grupo con su tarea —ronda, trota, carga, guardia—
     for (const [x, z] of grupos) soldados.crear(T.soldados, { base, x, z, r: b.r, bando: b.bando, piezas: T.piezas, rnd, tierra: tierraCerca });
+    // LAS TRINCHERAS de los nuestros (soldados.js `trinchera`): en el borde de la base, mirando afuera
+    if (b.bando === 'arg') {
+      const n = 2 + Math.floor(b.r / 160);
+      for (let i = 0; i < n; i++) {
+        const a = i / n * 6.283 + rnd() * 0.8, d = b.r * (0.75 + 0.35 * rnd());
+        soldados.trinchera(T.soldados, T.trincheras, { base, x: cx + Math.cos(a) * d, z: cz + Math.sin(a) * d, cx, cz, rnd, tierra: tierraCerca });
+      }
+    }
+    // LA BANDERA de la base (21/11, el autor: "que haya banderas tanto argentinas como britanicas en las bases")
+    // (y las nuestras, ademas, en los costados de la base: 21/11, "banderas argentinas en los otros lados")
+    for (let i = 0, nb = b.bando === 'arg' ? 3 : 1; i < nb; i++) {
+      const a = rnd() * 6.283, d = i ? b.r * 0.7 : 0, p = tierraCerca(cx + Math.cos(a) * d, cz + Math.sin(a) * d, 4, 300);
+      if (p) T.banderas.push({ x: p[0], z: p[1], g: p[2], bando: b.bando, fase: rnd() * 6.283 });
+    }
     T.bases = T.bases || []; T.bases.push(base);
   }
   for (const s of BUQUES) {
-    const [x0, z0] = mundo.lonLatLocal(s.lon, s.lat), largo = s.malla === 't21' ? 117 : 125, rot = s.rumbo * Math.PI / 180;
+    const esc = s.esc || 1, [x0, z0] = mundo.lonLatLocal(s.lon, s.lat), largo = (s.malla === 't21' ? 117 : 125) * esc, rot = s.rumbo * Math.PI / 180;
     const p = aguaCerca(x0, z0, largo, rot, !!s.bahia);
     if (!p) continue;
-    T.buques.push({ n: s.n, malla: s.malla, x: p[0], z: p[1], x0: p[0], z0: p[1], rot, largo, manga: 14, h: 22, hp: 3, vivo: true,
-      patrulla: s.patrulla || 0, fase: rnd() * 6.283, cd: 3 + rnd() * 4, cdT: 1 + rnd() * 2, visto: false });
+    // CON VIDA (100) Y SIN IDENTIFICADOR: el nombre solo sale en el cartel de LE DISTE A (data/islas_teatro.js BUQUES)
+    const b = { n: s.n, malla: s.malla, clase: s.clase || s.malla, def: s.def || null, esc, bando: s.bando || 'gb',
+      x: p[0], z: p[1], x0: p[0], z0: p[1], rot, largo, manga: 14 * Math.max(0.45, esc), h: 22 * Math.max(0.35, Math.min(1.3, esc)), vida: 100, vivo: true,
+      patrulla: s.patrulla || 0, fase: rnd() * 6.283, cd: { largo: 2 + rnd() * 5, medio: 2 + rnd() * 4, corto: 1 + rnd() * 2 }, visto: false,
+      hund: 0, humoT: 0, golpeT: -99 };
+    T.buques.push(b);
+    // SU PABELLON (la bandera la llevaban: en todas las dificultades), a popa
+    T.banderas.push({ b, x: b.x, z: b.z, g: 0, bando: b.bando, fase: rnd() * 6.283 });
   }
   for (const r of RADARES) {
     if (r.buque) { const b = T.buques.find(q => q.n === r.buque); if (b) T.radares.push({ ...r, b }); continue; }
@@ -143,10 +167,18 @@ export function paso(dt, P, pz, boom, jugando) {
   // el punto del CARRIL donde cae algo del mapa (la cuenta de islas.js `aMundo`, al reves): d adelante, l de costado
   const carril = (x, z) => { const dx = x - P.x, dz = z - P.z; return { d: sy * dx - cy * dz, l: cy * dx + sy * dz, dist: Math.hypot(dx, dz) }; };
   // (con EL SONIDO DEL PASILLO de cada arma: systems/collision.js — el Rapier, el misil al hombro, el puesto, el buque)
-  const tira = (x, z, y, tipo, tiro, sonido) => {
+  // `tipo`: 'traza' (cañon, ametralladora, fusil), 'misil' (el generico), 'dart' (SEA DART), 'cat' / 'wolf' (SEA CAT /
+  // SEA WOLF, guiados: systems/collision.js); `i` corre en abanico las rafagas de varios
+  const tira = (x, z, y, tipo, tiro, sonido, i = 0) => {
     const c = carril(x, z);
-    if (c.d < pz + 40 || c.d > tiro || Math.abs(c.l) > c.d * 0.8) return false;   // atras, lejos o de costado
-    missiles.push({ x: c.l, y: Math.max(1, y - P.g), z: c.d + pz, done: false, tracer: tipo === 'traza', teatro: true });
+    if (c.d < pz + 40 || Math.abs(c.l) > c.d * 0.8) return false;   // atras o de costado
+    // LEJOS: la trazadora no llega; el MISIL entra al carril desde `tiro` adelante, en la linea del que lo tiro (como si
+    // ya viniera volando: el pasillo no tiene donde poner algo a 9 km)
+    if (c.d > tiro) { if (tipo === 'traza') return false; c.l *= tiro / c.d; c.d = tiro; }
+    const m = { x: c.l + i * 9 * (i % 2 ? 1 : -1), y: Math.max(1, y - P.g), z: c.d + pz + i * 8, done: false, tracer: tipo === 'traza', teatro: true };
+    if (tipo === 'dart') m.tipo = 'dart';
+    else if (tipo === 'cat' || tipo === 'wolf') { m.tipo = 'wolf'; m.def = tipo; m.vx = 0; m.vy = 0; }
+    missiles.push(m);
     if (sonido === 'manpad') beep(520, 0.12, 'sawtooth', 0.04, 900);
     else if (sonido === 'buque') sfxOne('lanzaMisil');
     else if (tipo === 'traza') beep(300, 0.05, 'square', 0.04);
@@ -167,9 +199,10 @@ export function paso(dt, P, pz, boom, jugando) {
     e.base.visto = true;
     e.cd = tira(e.x, e.z, e.g + 3, A.tipo, A.tiro, e.tipo) ? A.cada * (0.8 + rnd() * 0.4) : 0.3;
   }
-  // ---- LOS BUQUES: los de piquete van y vienen; todos tiran misil y cañon ----
+  // ---- LOS BUQUES: los de piquete van y vienen; cada uno tira con lo suyo segun a que distancia estes ----
   for (const b of T.buques) {
-    if (!b.vivo) continue;
+    // EL QUE SE HUNDE: escora y baja de a poco (teatro3d.js lo dibuja con `hund`); su bandera con el
+    if (!b.vivo) { b.hund = Math.min(b.h * 1.1, b.hund + dt * 0.5); continue; }
     if (b.patrulla) {
       b.fase += dt * 7 / b.patrulla;   // ~7 m/s
       const k = Math.sin(b.fase) * b.patrulla * 0.5, rumbo = b.rot0 === undefined ? (b.rot0 = b.rot) : b.rot0;
@@ -178,11 +211,32 @@ export function paso(dt, P, pz, boom, jugando) {
     }
     const dist = Math.hypot(b.x - P.x, b.z - P.z);
     if (dist < 6000) b.visto = true;
-    if (!jugando) continue;
-    const A = ARMAS.buque;
-    b.cd -= dt; b.cdT -= dt;
-    if (b.cd <= 0) b.cd = dist < A.alcance && tira(b.x, b.z, 14, 'misil', A.tiro, 'buque') ? A.cada * (0.8 + rnd() * 0.4) : 0.3;
-    if (b.cdT <= 0) b.cdT = dist < A.traza.alcance && tira(b.x, b.z, 10, 'traza', A.traza.tiro) ? A.traza.cada : 0.3;
+    // EL DAÑADO HUMEA (cada tanto, desde algun lugar del casco)
+    if (b.vida < 75) {
+      b.humoT -= dt;
+      if (b.humoT <= 0) { b.humoT = 1.2 + rnd() * 1.2; const k = (rnd() - 0.5) * b.largo * 0.6; boom(b.x + Math.sin(b.rot) * k, b.h * 0.5, b.z - Math.cos(b.rot) * k, 0.5 + (75 - b.vida) / 100, 'humea'); }
+    }
+    if (!jugando || b.bando !== 'gb') continue;
+    // LAS TRES BANDAS (data/islas_teatro.js DEFENSA): largo, medio y corto, cada una con su arma y su cadencia; DAÑADO
+    // TIRA MENOS. EL MURO del portaaviones: adentro de `muro`, rafagas de Sea Dart una tras otra
+    const D = DEFENSA[b.clase] || DEFENSA.log, k = DANADO_MIN + (1 - DANADO_MIN) * b.vida / 100, muro = D.muro && dist < D.muro;
+    for (const banda of ['largo', 'medio', 'corto']) {
+      const A = D[banda];
+      if (!A) continue;
+      b.cd[banda] -= dt;
+      if (b.cd[banda] > 0) continue;
+      if (dist > A.alcance) { b.cd[banda] = 0.5; continue; }
+      const arma = banda === 'medio' && b.def ? b.def : A.arma, n = muro && banda === 'largo' ? 3 : A.n || 1;
+      let ok = false;
+      for (let i = 0; i < n; i++) ok = tira(b.x, b.z, banda === 'corto' ? 10 : 14, arma, A.tiro, banda === 'corto' ? null : 'buque', i) || ok;
+      b.cd[banda] = !ok ? 0.3 : muro && banda === 'largo' ? 0.8 : A.cada * (0.8 + rnd() * 0.4) / k;
+    }
+  }
+  // LAS BANDERAS DE LOS BUQUES van con el buque, a popa (y se hunden con el)
+  for (const f of T.banderas) {
+    const b = f.b;
+    if (!b) continue;
+    f.x = b.x - Math.sin(b.rot) * b.largo * 0.38; f.z = b.z + Math.cos(b.rot) * b.largo * 0.38; f.g = b.h * 0.45 - b.hund;
   }
   // ---- LAS ZONAS DE RADAR: en cual estas y si te ven ----
   const Z = { gb: null, arg: null, visto: false };
@@ -193,6 +247,16 @@ export function paso(dt, P, pz, boom, jugando) {
   Z.visto = !!Z.gb && P.y > RADAR_BAJO && jugando;
   if (Z.gb !== T.zona.gb && Z.gb) T.eventos.push({ k: 'zona_gb', n: Z.gb });
   if (Z.arg !== T.zona.arg && Z.arg) T.eventos.push({ k: 'zona_arg', n: Z.arg });
+  // LA RED SOBRE EL TERRENO (21/11, el autor: "los radares solo se marcan como una malla sobre el terreno si el avion
+  // vuela SOBRE el radar"): la del radar que tenes a menos de RED_SOBRE; y la nuestra, ademas, al entrar a su zona
+  // (el cartel ZONA DE RADAR ARGENTINO y 2 s mas: despues queda solo la placa azul del tablero)
+  Z.argT = Z.arg ? (Z.arg === T.zona.arg ? (T.zona.argT || 0) + dt : 0) : 99;
+  Z.red = null;
+  for (const r of T.radares) {
+    const q = posRadar(r);
+    if (q && Math.hypot(q.x - P.x, q.z - P.z) < RED_SOBRE) { Z.red = r.n; break; }
+  }
+  if (!Z.red && Z.arg && Z.argT < RED_ARG_T) Z.red = Z.arg;
   T.zona = Z;
   // TU VELOCIDAD sobre el mapa (suavizada): la PAC que viene tiene que poder alcanzarte
   // (un salto —la sonda, el mapa— no es velocidad: pasado de 600 m/s se ignora)
@@ -271,6 +335,19 @@ export function paso(dt, P, pz, boom, jugando) {
   for (const b of T.bases || []) if (!b.visto && Math.hypot(b.x - P.x, b.z - P.z) < 4500) b.visto = true;
   // ---- LOS SOLDADOS: su tarea, y se cubren si pasas bajo ----
   soldados.paso(T.soldados, dt, P, rnd); T.ultP = P;
+  // ---- LOS QUE TIRAN DESDE TIERRA: los soldados britanicos cerca y abajo (data/islas_teatro.js FUSILES) ----
+  if (jugando) {
+    T.fusilT = (T.fusilT || 0) - dt;
+    if (T.fusilT <= 0) {
+      T.fusilT = FUSILES.cada / FUSILES.max * (0.7 + rnd() * 0.6);
+      const cerca = T.soldados.filter(q => q.vivo && q.bando === 'gb' && alto - q.g < FUSILES.techo && Math.hypot(q.x - P.x, q.z - P.z) < FUSILES.alcance);
+      if (cerca.length) {
+        cerca.sort((a, b) => Math.hypot(a.x - P.x, a.z - P.z) - Math.hypot(b.x - P.x, b.z - P.z));
+        const q = cerca[(rnd() * Math.min(cerca.length, FUSILES.max)) | 0];
+        tira(q.x, q.z, q.g + 1.5, 'traza', FUSILES.tiro);
+      }
+    }
+  }
   // ---- TUS BALAS sobre el mapa (islas.js las ancla: `__islasB`) ----
   for (const bl of bullets) {
     const q = bl.__islasB;
@@ -278,14 +355,14 @@ export function paso(dt, P, pz, boom, jugando) {
     const by = P.g + (bl.y || 0);
     for (const e of T.piezas) {
       if (!e.vivo || Math.abs(q.x - e.x) > e.r || Math.abs(q.z - e.z) > e.r || by > e.g + e.h + 2) continue;
-      bl.done = true; golpe(e, 1, boom); break;
+      bl.done = true; golpe(e, 1, boom); if (rnd() < 0.5) boom(q.x, by, q.z, 0.5, 'astillas', q.dx * 40, q.dz * 40); break;
     }
     if (bl.done) continue;
     // (la rafaga contra la gente: el que toca cae, los de cerca corren)
     if (by < P.g + 60 && soldados.bala(T.soldados, q.x, q.z, by, rnd)) { bl.done = true; continue; }
     for (const b of T.buques) {
       if (!b.vivo || by > b.h + 4) continue;
-      if (enCasco(b, q.x, q.z)) { bl.done = true; if (rnd() < 0.15) golpe(b, 1, boom); break; }
+      if (enCasco(b, q.x, q.z)) { bl.done = true; balaBuque(b, q.x, by, q.z, boom); break; }
     }
   }
   // ---- TUS BOMBAS contra los buques (las de tierra las resuelve `impacto`) ----
@@ -294,7 +371,7 @@ export function paso(dt, P, pz, boom, jugando) {
     if (!q) continue;
     for (const b of T.buques) {
       if (!b.vivo || q.alto > b.h || !enCasco(b, q.x, q.z)) continue;
-      pmissiles.splice(i, 1); golpe(b, 2, boom, q.alto); break;
+      pmissiles.splice(i, 1); bombaBuque(b, q, boom); break;
     }
   }
 }
@@ -324,12 +401,71 @@ function enCasco(b, x, z) {
   return Math.abs(lado) < b.manga * 0.6 && Math.abs(largo) < b.largo * 0.5;
 }
 function golpe(e, n, boom, y) {
+  // (FUEGO AMIGO: le pegaste a algo nuestro — el cartel lo dice despues, nunca antes; una vez cada tanto por base)
+  if (e.bando === 'arg' && e.base && T.t - (e.base.amigoT ?? -99) > 8) { e.base.amigoT = T.t; T.eventos.push({ k: 'fuego_amigo', n: e.base.n }); }
   e.hp -= n;
   if (e.hp > 0) { boom(e.x, (y !== undefined ? y : (e.g || 0) + 2), e.z, 0.35, 'fuego'); return; }
   e.vivo = false;
   const grande = e.largo ? 2.4 : e.tipo === 'deposito' || e.tipo === 'herc' ? 1.6 : 1;
   boom(e.x, (e.g || 0) + (e.h || 4) * 0.4, e.z, grande, 'fuego');
 }
+
+/** LA BALA DE CAÑON contra un casco: un rasguño (BOMBA.BALA), chispas, y el cartel una vez cada tanto. */
+function balaBuque(b, x, y, z, boom) {
+  b.vida = Math.max(BOMBA.PISO, b.vida - BOMBA.BALA);
+  if (rnd() < 0.4) boom(x, Math.max(1, y), z, 0.5, 'chispas');
+  if (T.t - b.golpeT > 5) { b.golpeT = T.t; T.eventos.push({ k: 'le_diste', n: b.n, bando: b.bando, res: 'balas', vida: b.vida }); }
+}
+/** LA BOMBA contra un casco (data/islas_teatro.js BOMBA): ¿pega?, ¿detona?, ¿perfora?, ¿atraviesa o queda adentro?,
+ *  y el daño segun la ZONA (las maquinas, el resto del casco, las puntas). Solo la detonacion lo hunde. */
+function bombaBuque(b, q, boom) {
+  const B = BOMBA, ev = { k: 'le_diste', n: b.n, bando: b.bando };
+  if (rnd() > B.PEGA) { boom(q.x, 0, q.z, 0.9, 'agua'); ev.res = 'cerca'; T.eventos.push(ev); return; }   // al agua, pegada al casco
+  b.golpeT = T.t;
+  const ex = q.x - b.x, ez = q.z - b.z;
+  const u = Math.min(1, Math.abs(ex * Math.sin(b.rot) - ez * Math.cos(b.rot)) / (b.largo / 2));
+  const zona = u < 0.3 ? 'maquinas' : u < 0.75 ? 'casco' : 'punta';
+  ev.zona = zona;
+  if (rnd() < B.DETONA) {
+    ev.res = 'detona'; boom(q.x, Math.max(2, q.alto), q.z, 2.6 * Math.max(0.6, b.esc), 'detona'); hundir(b);
+  } else if (rnd() < (zona === 'punta' ? B.PERFORA_PUNTA : B.PERFORA)) {
+    const atraviesa = rnd() < B.ATRAVIESA, [a0, a1] = B.DANO[zona];
+    let d = a0 + rnd() * (a1 - a0);
+    if (atraviesa) d = Math.max(30, d * B.DANO_ATRAVIESA);
+    b.vida = Math.max(B.PISO, b.vida - d);
+    ev.res = atraviesa ? 'atraviesa' : 'queda'; ev.dano = Math.round(d);
+    boom(q.x, Math.max(2, q.alto), q.z, 1.1 * Math.max(0.6, b.esc), 'perfora');
+    // (la que atraviesa sale por el otro lado y cae al agua: la columna, del otro costado)
+    if (atraviesa) boom(q.x + Math.cos(b.rot) * b.manga, 0, q.z + Math.sin(b.rot) * b.manga, 0.7, 'agua');
+  } else {
+    const d = B.DANO_REBOTA[0] + rnd() * (B.DANO_REBOTA[1] - B.DANO_REBOTA[0]);
+    b.vida = Math.max(B.PISO, b.vida - d);
+    ev.res = 'rebota'; ev.dano = Math.round(d); boom(q.x, Math.max(2, q.alto), q.z, 1, 'chispas');
+  }
+  ev.vida = Math.round(b.vida);
+  T.eventos.push(ev);
+}
+function hundir(b) {
+  if (!b.vivo) return;
+  b.vida = 0; b.vivo = false;
+  T.eventos.push({ k: 'hundido', n: b.n, bando: b.bando });
+}
+/** EL EXOCET que llego (game.js, al cerrar EL PULSO desde las islas): al buque britanico mas cercano a (x, z) dentro de
+ *  `r` m. Detona mas seguido que una bomba (`detona`) y si no, le saca 45-65. Devuelve su nombre o null. */
+export function exocet(x, z, r = 60000, detona = 0.35) {
+  let b = null, bd = r;
+  for (const q of T.buques) { if (!q.vivo || q.bando !== 'gb') continue; const d = Math.hypot(q.x - x, q.z - z); if (d < bd) { bd = d; b = q; } }
+  if (!b) return null;
+  b.golpeT = T.t;
+  const ev = { k: 'le_diste', n: b.n, bando: b.bando, res: 'exocet' };
+  if (rnd() < detona) { ev.res = 'exocet_hunde'; hundir(b); }
+  else b.vida = Math.max(BOMBA.PISO, b.vida - (45 + rnd() * 20));
+  ev.vida = Math.round(b.vida);
+  T.eventos.push(ev);
+  return b.n;
+}
+/** LOS PORTAAVIONES (para el Exocet): los vivos, con su punto. */
+export const portaaviones = () => T.buques.filter(b => b.clase === 'cv' && b.vivo).map(b => ({ n: b.n, x: b.x, z: b.z }));
 
 /** Una bomba que pego en tierra (islas.js `bombas`): rompe lo que haya en el radio. */
 export function impacto(x, z, boom) {
@@ -340,7 +476,7 @@ export function impacto(x, z, boom) {
 /** Lo que dibuja teatro3d.js (y el mapa de la pausa). */
 export function escena() {
   if (!T.armado) return null;
-  return { piezas: T.piezas, buques: T.buques, pac: T.pac, soldados: T.soldados, t: T.t };
+  return { piezas: T.piezas, buques: T.buques, pac: T.pac, soldados: T.soldados, trincheras: T.trincheras, banderas: T.banderas, t: T.t };
 }
 export const bases = () => (T.armado ? T.bases || [] : []);
 
@@ -356,4 +492,23 @@ if (typeof window !== 'undefined') window.__teatroIslas = () => JSON.stringify({
 if (typeof window !== 'undefined') {
   window.__soldados = tarea => JSON.stringify(T.soldados.filter(s => !tarea || s.tarea === tarea).slice(0, 6).map(s => [s.x | 0, s.z | 0, s.g | 0, s.est, s.tarea, s.bando, s.caja]));
   window.__lonLatLocal = (lon, lat) => mundo.lonLatLocal(lon, lat);
+}
+// SONDA (21/11): `__bombaBuque(nombre, n)` le tira n bombas al centro del buque y cuenta como salieron (sin dibujo);
+// `__buques()` la vida de cada uno
+if (typeof window !== 'undefined') {
+  window.__bombaBuque = (n, k = 1, cuenta = false, repone = false) => {
+    const b = T.buques.find(q => q.n === n);
+    if (!b) return null;
+    if (repone) { b.vida = 100; b.vivo = true; b.hund = 0; }
+    const r = {};
+    for (let i = 0; i < k && b.vivo; i++) {
+      const u = (Math.random() - 0.5) * 0.9 * b.largo;
+      bombaBuque(b, { x: b.x + Math.sin(b.rot) * u, z: b.z - Math.cos(b.rot) * u, alto: b.h * 0.5 }, () => {});
+      const e = T.eventos[T.eventos.length - 1]; r[e.res] = (r[e.res] || 0) + 1;
+      if (cuenta) T.eventos.length = 0;
+    }
+    return JSON.stringify({ r, vida: Math.round(b.vida), vivo: b.vivo });
+  };
+  window.__misilesTipos = () => missiles.filter(m => m.teatro && !m.done).reduce((o, m) => { const k = m.tracer ? 'traza' : m.tipo === 'wolf' ? m.def : m.tipo || 'misil'; o[k] = (o[k] || 0) + 1; return o; }, {});
+  window.__buques = () => JSON.stringify(T.buques.map(b => [b.n, b.bando, b.clase, Math.round(b.vida), b.vivo, b.x | 0, b.z | 0]));
 }

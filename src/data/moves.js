@@ -211,7 +211,18 @@ export const maniobras = () => Object.keys(MOVES).map(id => ({ id, ...MOVES[id] 
     id: m.id, titulo: m.name,
     desc: (COMBO[m.id] || '—') + '   ·   ' + m.dur + ' s'
       + '   ·   ' + (m.steer ? 'palanca ' + m.steer : 'sin palanca'),
-  }));
+  })).concat(MANIOBRAS_ISLAS);
+
+// LAS DE LAS ISLAS (21/11, el autor: "las maniobras estan todas en DEV MANIOBRAS? las nuevas tambien? las de
+// arena?"): no son de MOVES —las vuela systems/islas/islas.js `maniobra` sobre el mapa— asi que se listan aparte y
+// se ven de UNA forma: LA LANZO YO, sobre LAS ISLAS (`islas`: el combo que la dispara; el derrape es el del pasillo)
+export const MANIOBRAS_ISLAS = [
+  { id: 'isl_uud', islas: 'uud', titulo: 'ISLAS · MEDIA VUELTA POR ARRIBA', desc: 'W W S   ·   Immelmann: la camara espera la trompa y gira a la cola' },
+  { id: 'isl_ddu', islas: 'ddu', titulo: 'ISLAS · MEDIA VUELTA POR ABAJO', desc: 'S S W   ·   Split-S: rola, pica y sale al reves, mas bajo' },
+  { id: 'isl_duuu', islas: 'duuu', titulo: 'ISLAS · VERTICAL ARRIBA', desc: 'S W W W   ·   la trompa al cielo, lejos; Q/E gira sobre su eje' },
+  { id: 'isl_uddd', islas: 'uddd', titulo: 'ISLAS · PICADA VERTICAL', desc: 'W S S S   ·   de panza, trompa abajo; saca sola cerca del suelo' },
+  { id: 'isl_derrape', islas: 'derrape', titulo: 'ISLAS · DERRAPE', desc: 'Q+D y despues E+A   ·   la moto de agua del pasillo, sobre el mapa' },
+];
 
 // LAS TRES PRESENTACIONES (la regla del 16/8: toda maniobra se diseña una vez y se entrega en tres
 // formas). Cada una es una llamada a los verbos de `pruebasApi()` — exactamente el mismo patron que
@@ -223,7 +234,17 @@ export const MV_VISTAS = [
   {
     id: 'yo', titulo: 'LA LANZO YO',
     desc: 'El poder del jugador: tu avion la vuela, como con el combo',
-    setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mv', mv); }); },
+    setup: (a, mv) => {
+      // (LAS DE LAS ISLAS: arranca LAS ISLAS sin radar y la lanza cuando el mapa ya esta puesto; reintenta hasta que sale)
+      const isl = MANIOBRAS_ISLAS.find(m => m.id === mv);
+      if (isl) {
+        a.sonda('malvinas', true); a.sonda('malvinas', { radar: false }); a.patria({ fuelOn: false });
+        const prueba = t => g => { if (!g.sonda('maniobraIslas', isl.islas) && t < 30) g.luego(t + 0.5, prueba(t + 0.5)); };
+        a.luego(2, prueba(2));
+        return;
+      }
+      a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mv', mv); });
+    },
   },
   {
     id: 'companero', titulo: 'UN COMPAÑERO',

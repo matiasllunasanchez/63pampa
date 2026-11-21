@@ -1284,14 +1284,16 @@ function drawUnCartel(a, techo) {
   const w2 = c.sub ? ctx.measureText(c.sub).width : 0;
   const w = Math.round(Math.max(w1, w2) + (c.alerta ? 20 : 12)), h = c.sub ? 12 + SUB_PX + 2 : 12;
   // el lugar en la pila, suavizado (lo guarda el propio cartel del store: es estado de dibujo, nada mas)
-  // (LAS ISLAS, fuera de la cabina: entra BAJANDO desde arriba y se va por la DERECHA)
-  const corre = islasHud && !enCabina(), dx = corre && a.sale ? Math.round((1 - k) * (W / 2 + w)) : 0;
+  // (LAS ISLAS, fuera de la cabina — 21/11, el autor: "que aparezcan como aparece radar pero de derecha a izquierda,
+  // que se puedan stackear… que queden 3 segs y se vayan hacia la derecha": entra CORRIENDO desde la derecha y se va
+  // por la derecha; la pila los pone uno debajo del otro, sin pisarse)
+  const corre = islasHud && !enCabina(), dx = corre ? Math.round((1 - k) * (W / 2 + w)) : 0;
   const x = Math.round(W / 2 - w / 2) + dx, techo0 = techo;
   if (!enCabina() && x < cajaIzq.der + 3 && techo < cajaIzq.abajo + 3) techo = cajaIzq.abajo + 3;
   if (a.c.y == null) a.c.y = techo;
   a.c.y += (techo - a.c.y) * 0.25;
   // ENTRA Y SALE FUNDIDO, en su lugar (16/11): antes subia por detras de la placa de km y puntos y la pisaba
-  const y = Math.round(a.c.y - (corre && !a.sale ? (1 - k) * (h + techo + 4) : 0));
+  const y = Math.round(a.c.y);
   ctx.save();
   ctx.globalAlpha = corre ? 1 : Math.max(0, Math.min(1, k));
   plate(x, y, w, h);
@@ -2101,11 +2103,11 @@ const RADAR_ONDAS = [
   [[1, 3, 5], [2, 2, 2], [2, 6, 6], [3, 1, 1], [3, 7, 7], [4, 1, 1], [4, 7, 7], [5, 1, 1], [5, 7, 7], [6, 2, 2], [6, 6, 6], [7, 3, 5]],
 ];
 
-function radarAlerta(x, y, visto, activo, fuera, fuerte) {
+function radarAlerta(x, y, visto, activo, fuera, fuerte, azul) {
   // `fuerte` es el medio latido encendido del anuncio de entrada (ver drawAlerta): la pantalla
   // pega el mismo salto a verde vivo que el rotulo, en fase con el. Se pasa el BOOLEANO y no el
   // reloj para que el latido sea UNO solo — dos senos calculados por separado se despegan.
-  const V = fuera ? RADAR_GRIS : activo || fuerte ? RADAR_VERDE : RADAR_OPACO;
+  const V = azul ? RADAR_AZUL : fuera ? RADAR_GRIS : activo || fuerte ? RADAR_VERDE : RADAR_OPACO;
   const cx = x + 4, cy = y + 4;
   for (const [f, a, b] of RADAR_ARO) px(x + a, y + f, b - a + 1, 1, V.aro);
   if (fuera) {
@@ -2248,7 +2250,9 @@ function vigilaAlerta(n) {
   alertaN = n;
 }
 
-export function drawAlerta(x, y, w, n, prog, fuera) {
+export function drawAlerta(x, y, w, n, prog, fuera, propio) {
+  // EN LA ZONA DE NUESTRO RADAR (islas, 21/11): no es FUERA DE RADAR sino ZONA RADAR en azul, el radar girando
+  if (propio && fuera) fuera = false; else propio = false;
   // LAS ALARMAS ENTRAN Y SALEN (pedido del autor, 11/9 a la noche), como la placa del RADAR: a
   // nivel cero queda SOLO EL RADAR, gris, y las balizas salen de atras de el con la primera alarma
   // y se vuelven a esconder cuando se apagan todas. Cuatro balizas apagadas eran un tablero de nada
@@ -2272,7 +2276,7 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   // Y SE ACABA SOLO CON LA PRIMERA ALARMA, sin una linea que lo diga: cuando la barra se llena
   // salta la oleada, se enciende una baliza, y las balizas entran por arriba del rotulo (`alertaK`).
   // De ahi en mas el panel cuenta la alarma, que es la noticia mas grande.
-  const detectando = !fuera && run.detection > 0.001;
+  const detectando = !fuera && !propio && run.detection > 0.001;
   const latido = Math.sin(run.t * 14) > 0;
   // DONDE ESTAS PARADO, AL LADO DEL ICONO (pedido del autor, 25/9/2026): "el cartel de fuera de
   // radar debe estar dentro del box del radar". Antes era una placa propia un renglon mas abajo, y
@@ -2310,7 +2314,7 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
     // son una sola noticia, y contarla en dos tiempos la parte en dos.
     // ZONA RADAR EN VERDE BRILLANTE, el del radar (pedido del autor, 26/9). Era blanco para que se
     // leyera; ahora se lee Y dice de que instrumento es. Fijo, sin latir: el que late es DETECTANDO.
-    ctx.fillStyle = detectando ? (latido ? RADAR_VERDE.punta : RADAR_VERDE.cerca)
+    ctx.fillStyle = propio ? RADAR_AZUL.eje : detectando ? (latido ? RADAR_VERDE.punta : RADAR_VERDE.cerca)
       : fuera ? P.foam : RADAR_VERDE.eje;
     ctx.fillText(T(detectando ? 'hud_detectando' : fuera ? 'hud_fuera_radar' : 'hud_zona_radar'),
       x + RADAR_W - 1 + Math.round(wz / 2), y + 11);
@@ -2332,7 +2336,7 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   }
   // EL RADAR, ENCIMA y quieto: es lo unico que queda cuando no suena nada
   plate(x, y, RADAR_W, ALERTA_H);
-  radarAlerta(x + 3, y + 3, visto, n > 0, fuera, detectando && latido);
+  radarAlerta(x + 3, y + 3, visto, n > 0, fuera, detectando && latido, propio);
   chapitasRadar(x + 3, y + 3);
   // …Y EL BORDE DE LA CAJA EN VERDE mientras estas en la zona (pedido del autor, 26/9: "y los bordes
   // de la caja"), el mismo verde del rotulo: la caja entera dice "aca el radar existe". Se va con
@@ -2342,7 +2346,7 @@ export function drawAlerta(x, y, w, n, prog, fuera) {
   // apagado en el bajo. En la zona a secas queda fijo — lo que parpadea es lo que esta pasando.
   if (!fuera && alertaK < 1 && (!detectando || latido)) {
     ctx.save(); ctx.globalAlpha = 1 - alertaK;
-    bordePlaca(x, y, wTot, ALERTA_H, detectando ? RADAR_VERDE.punta : RADAR_VERDE.eje);
+    bordePlaca(x, y, wTot, ALERTA_H, propio ? RADAR_AZUL.eje : detectando ? RADAR_VERDE.punta : RADAR_VERDE.eje);
     ctx.restore();
   }
 }
@@ -2678,7 +2682,7 @@ export function drawHUD(h) {
   // …O SI ESTAS FUERA DEL HORIZONTE DE RADAR (PLAN_NAFTA_ALCANCE N2): el panel es el que lo dice
   // desde el 25/9, asi que en una mision con ruta tiene que estar aunque no haya sistema de busqueda.
   if (h.estrellas > 0 || h.busqueda || h.fueraRadar) {
-    drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas | 0, h.escondite, !!h.fueraRadar);
+    drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas | 0, h.escondite, !!h.fueraRadar, !!h.radarPropio);
     ty += ALERTA_H + AIRE;
   }
   // …Y DEBAJO, LA CARGA DEL RADAR, que entra y sale sola (ver drawRadar).

@@ -2161,7 +2161,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // El catalogo se DERIVA de data/moves.js (`maniobras()`), igual que el de CINEMATICAS se
     // deriva de las timelines: una pirueta nueva aparece sola.
     const mvRows = () => maniobras().concat([{ id: 'back', back: true }]);
-    const mvVarRows = () => MV_VISTAS.concat([{ id: 'back', back: true, volver: 'mvVarsBack' }]);
+    // (las de LAS ISLAS se ven de una sola forma: LA LANZO YO)
+    const mvVarRows = () => (mvPick && mvPick.islas ? MV_VISTAS.filter(v => v.id === 'yo') : MV_VISTAS).concat([{ id: 'back', back: true, volver: 'mvVarsBack' }]);
     function mvNav(dir) {
       const rows = mvRows();
       mvSel = (mvSel + dir + rows.length) % rows.length;
@@ -2673,10 +2674,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // otro lado y la mision se pierde (systems/pulso.js `exocetErrado`).
     // (EL INVINCIBLE no entra aca: su lanzamiento esta guionado en un punto de la ida — `lanzamiento`.)
     let exocetAvisado = false, exocetLejos = false;
-    const exocetLanzable = () => !!(cargaDe(cfg.carga) || {}).exocet && runClimax() === 'pulso'
-      && !(curMission() && curMission().lanzamiento) && objectiveDist > 0;
-    /** Los km que faltan al blanco (con ruta, los reales; sin ruta, los del pasillo). */
-    const kmAlBlanco = () => rutaSys.hay() ? rutaSys.alBlanco() : Math.max(0, objectiveDist - run.dist) / 1000;
+    // EN LAS ISLAS (21/11): el blanco del Exocet son los PORTAAVIONES (contra el borde del mapa, imposibles de alcanzar
+    // de otra forma); uno por salida (`islasExo`: el que esta en vuelo; `run.exoGastado`: ya se tiro)
+    let islasExo = false;
+    const exocetLanzable = () => !!(cargaDe(cfg.carga) || {}).exocet && (islas.enPasillo()
+      ? !run.exoGastado && islas.portaavionesKm() != null
+      : runClimax() === 'pulso' && !(curMission() && curMission().lanzamiento) && objectiveDist > 0);
+    /** Los km que faltan al blanco (con ruta, los reales; sin ruta, los del pasillo; en las islas, al portaaviones). */
+    const kmAlBlanco = () => islas.enPasillo() ? (islas.portaavionesKm() ?? 999) : rutaSys.hay() ? rutaSys.alBlanco() : Math.max(0, objectiveDist - run.dist) / 1000;
     const exocetATiro = () => exocetLanzable() && kmAlBlanco() <= EXOCET_ALCANCE_KM;
     /** La tecla con el Exocet colgado: adentro del alcance entra al PULSO; afuera, avisa. */
     function lanzarExocet() {
@@ -2686,6 +2691,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         return;
       }
       exocetLejos = kmAlBlanco() > 5;   // de lejos el buque se ve chico en el parabrisas (fxLejos)
+      islasExo = islas.enPasillo();
+      if (islasExo) { run.exoGastado = true; pulso.setExocet(true); }
       pulso.enter(true); fadeT = 0.4;
     }
     /** LO QUE LA RECTA DEL EXOCET MARCA (16/10): el blanco mas cercano adelante y en el carril del avion —
@@ -6200,7 +6207,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           const sig = pulso.update(dtReal, dt);
           // EL PREMIO entra al recuento como una fila mas (freezeRun lo suma al total, y de ahi
           // salen las estrellas de la mision): el climax no tiene una moneda propia.
-          if (sig === 'objective') { cobrarPulso(); finishObjective(); }
+          // EL EXOCET DE LAS ISLAS: bien cargado le pega al portaaviones; mal, se pierde — y en los dos casos se sigue
+          // volando (el Pulso no cierra nada sobre el mapa abierto)
+          if (islasExo && (sig === 'objective' || (sig && (sig.spent || sig.death)))) {
+            islasExo = false;
+            if (sig === 'objective') { cobrarPulso(); islas.exocetLlego(); }
+            else cartel(T('islasExoPerdido'), P.warn, T('islasExoPerdidoSub'));
+            setState('play'); fadeT = 0.6;
+          }
+          else if (sig === 'objective') { cobrarPulso(); finishObjective(); }
           // 2º FALLO: cuesta un avion del escuadron (mismo camino que la pasada gastada — no te
           // derribaron, se te fue la pasada). Volando solo no hay avion que cobrar: se sigue.
           else if (sig && sig.spent) { if (canRelevo(run.lives)) onPassSpent(sig); else pulso.reencarar(); }
@@ -7903,6 +7918,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         ruta: rutaSys.hay() ? { pos: blancoSys.escapando() ? rutaSys.dato().blancoKm : rutaSys.pos(), blanco: rutaSys.dato().blancoKm, radarKm: rutaSys.dato().radarKm || 0 } : null,
         // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
         fueraRadar: S.state === 'play' && !radarAlcance(),
+        // (islas: en la zona de NUESTRO radar la placa dice ZONA RADAR en azul)
+        radarPropio: S.state === 'play' && islas.radarZonaArg(),
         oleada: suelto() ? oleadaDe(kmCorrida()) : null,
         fallados: suelto() ? falladosEnFila().length + (estadoAvion(fallasDe(alMando(run))) !== 'bien' ? 1 : 0) : 0,
         // LA CITA DE IDA DISPONIBLE (planificada, sin barra): el reloj de la Chancha se pone en LISTA

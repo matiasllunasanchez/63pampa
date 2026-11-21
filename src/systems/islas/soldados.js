@@ -53,6 +53,41 @@ export function crear(lista, { base, x, z, r, bando, piezas, rnd, tierra }) {
   }
 }
 
+// LAS TRINCHERAS ARGENTINAS (21/11, el autor: "soldados argentinos debe haber tambien, muchos en trincheras, que se
+// note que son argentinos: son chicos con casco grande, sin barba, eran jovenes de 18"): una trinchera en zigzag
+// alrededor de la base, mirando para afuera, con los conscriptos adentro asomando el torso y el casco. Si pasas bajo
+// o cae algo cerca, se AGACHAN (desaparecen bajo el parapeto) unos segundos y vuelven a asomar.
+const TRINCH = { TRAMO: 16, TRAMOS: 4, QUIEBRE: 0.55, CADA: 4.2, ASOMA: 1.9, AGACHA: 4.4 };   // m (exagerados como el soldado)
+/** Una trinchera cerca de (x, z), mirando hacia afuera de la base (`cx`, `cz`). La empuja a `trincheras` y sus
+ *  soldados a `lista`. */
+export function trinchera(lista, trincheras, { base, x, z, cx, cz, rnd, tierra }) {
+  const p0 = tierra(x, z, 12, 300);
+  if (!p0) return;
+  const afuera = Math.atan2(p0[1] - cz, p0[0] - cx), dir = afuera + Math.PI / 2;
+  // el zigzag: TRAMOS tramos que se quiebran para un lado y para el otro, centrados en p0
+  const pts = [];
+  let px = p0[0] - Math.cos(dir) * TRINCH.TRAMO * TRINCH.TRAMOS / 2, pz = p0[1] - Math.sin(dir) * TRINCH.TRAMO * TRINCH.TRAMOS / 2;
+  pts.push([px, pz]);
+  for (let i = 0; i < TRINCH.TRAMOS; i++) {
+    const a = dir + (i % 2 ? -TRINCH.QUIEBRE : TRINCH.QUIEBRE);
+    px += Math.cos(a) * TRINCH.TRAMO; pz += Math.sin(a) * TRINCH.TRAMO;
+    pts.push([px, pz]);
+  }
+  if (pts.some(([a, b]) => mundo.sueloH(a, b) < 1.5)) return;   // (ni al agua ni a la playa)
+  trincheras.push({ base, bando: 'arg', pts, afuera });
+  // LOS CONSCRIPTOS, a lo largo, cada CADA metros (alguno falta: no es una fila de soldaditos de plomo)
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [ax, az] = pts[i], [bx, bz] = pts[i + 1], L = Math.hypot(bx - ax, bz - az);
+    for (let d = TRINCH.CADA / 2; d < L; d += TRINCH.CADA) {
+      if (rnd() < 0.25) continue;
+      const k = d / L, sx = ax + (bx - ax) * k, sz = az + (bz - az) * k, yaw = afuera + (rnd() - 0.5) * 0.5;
+      lista.push({ x: sx, z: sz, g: Math.max(0, mundo.sueloH(sx, sz)), yaw, yaw0: yaw, bando: 'arg', base, vivo: true,
+        tarea: 'trinchera', est: 'anda', v: 0, t: 1 + rnd() * 6, anim: 0, caja: false, obj: null, calma: 0, susto: -1,
+        hund: TRINCH.ASOMA, i });
+    }
+  }
+}
+
 /** Va hacia (x, z) a `v` m/s; true al llegar. */
 function ir(s, x, z, v, dt) {
   const dx = x - s.x, dz = z - s.z, d = Math.hypot(dx, dz);
@@ -65,7 +100,9 @@ function ir(s, x, z, v, dt) {
 
 /** EL SUSTO: corre de costado a la pasada del avion (`yaw`, su rumbo; o lejos de un punto) y se tira al suelo. */
 function asustar(s, dx, dz, rnd) {
-  if (!s.vivo || s.est === 'huye' || s.est === 'tierra' || s.calma > 0) return;
+  if (!s.vivo || s.est === 'huye' || s.est === 'tierra' || s.est === 'agacha' || s.calma > 0) return;
+  // (el de la trinchera no corre: se agacha)
+  if (s.tarea === 'trinchera') { s.est = 'agacha'; s.susto = rnd() * 0.35; s.t = TIERRA_T[0] + rnd() * (TIERRA_T[1] - TIERRA_T[0]); return; }
   const d = Math.hypot(dx, dz) || 1, lejos = 18 + rnd() * 30, desv = (rnd() - 0.5) * 1.2;
   const ux = dx / d, uz = dz / d, c = Math.cos(desv), sn = Math.sin(desv);
   s.est = 'huye'; s.caja = false; s.susto = rnd() * 0.6;
@@ -90,11 +127,20 @@ export function paso(lista, dt, P, rnd) {
         if (s.susto > 0) { s.susto -= dt; s.v = 0; break; }
         if (ir(s, s.obj[0], s.obj[1], VEL.huye, dt)) { s.est = 'tierra'; s.t = TIERRA_T[0] + rnd() * (TIERRA_T[1] - TIERRA_T[0]); s.v = 0; }
         break;
+      case 'agacha':
+        s.v = 0;
+        if (s.susto > 0) { s.susto -= dt; break; }
+        if ((s.t -= dt) <= 0) { s.est = 'anda'; s.calma = CALMA_T; s.t = 1 + rnd() * 3; }
+        break;
       case 'tierra':
         s.v = 0;
         if ((s.t -= dt) <= 0) { s.est = 'anda'; s.calma = CALMA_T; s.t = 0.5 + rnd(); s.obj = null; }
         break;
       default: tarea(s, dt, rnd);
+    }
+    if (s.tarea === 'trinchera') {
+      const h = s.est === 'agacha' && s.susto <= 0 ? TRINCH.AGACHA : TRINCH.ASOMA;
+      s.hund += (h - s.hund) * Math.min(1, dt * (h > s.hund ? 9 : 2.5));   // (se agacha de golpe, asoma despacio)
     }
     if (s.v > 0) {
       s.g = Math.max(0, mundo.sueloH(s.x, s.z));
@@ -127,6 +173,12 @@ function tarea(s, dt, rnd) {
       if (ir(s, q[0], q[1], s.ida ? VEL.carga : VEL.vuelve, dt)) { s.ida = !s.ida; s.caja = s.ida; s.t = 1 + rnd() * 1.5; }
       break;
     }
+    case 'trinchera': {
+      // VIGILA: mira para un lado y para el otro, de a ratos (sin salirse del parapeto)
+      if ((s.t -= dt) > 0) break;
+      s.yaw = s.yaw0 + (rnd() - 0.5) * 1.1; s.t = 2 + rnd() * 5;
+      break;
+    }
     case 'guardia': {
       if (s.t > 0) { s.t -= dt; s.v = 0; break; }
       if (!s.obj) {
@@ -144,7 +196,7 @@ export function bomba(lista, x, z, radio, rnd) {
   for (const s of lista) {
     if (!s.vivo) continue;
     const d = Math.hypot(s.x - x, s.z - z);
-    if (d < radio) { s.vivo = false; continue; }
+    if (d < radio) { s.vivo = false; if (s.tarea === 'trinchera') s.hund = 0.8; continue; }
     if (d < ALARMA.BOMBA) { s.calma = 0; asustar(s, s.x - x, s.z - z, rnd); }
   }
 }
@@ -153,7 +205,7 @@ export function bala(lista, x, z, y, rnd) {
   let pego = false;
   for (const s of lista) {
     if (!s.vivo || Math.abs(s.x - x) > 25 || Math.abs(s.z - z) > 25) continue;
-    if (y < s.g + 4 && Math.abs(s.x - x) < 2.5 && Math.abs(s.z - z) < 2.5) { s.vivo = false; pego = true; continue; }
+    if (y < s.g + 4 && Math.abs(s.x - x) < 2.5 && Math.abs(s.z - z) < 2.5 && s.est !== 'agacha') { s.vivo = false; if (s.tarea === 'trinchera') s.hund = 0.8; pego = true; continue; }
     if (Math.hypot(s.x - x, s.z - z) < ALARMA.BALA) { s.calma = 0; asustar(s, s.x - x, s.z - z, rnd); }
   }
   return pego;

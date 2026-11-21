@@ -14,9 +14,11 @@
 // esperan turno. El nuevo entra arriba, debajo de la cinta, y los que estaban bajan un lugar; cada
 // uno cumple su propio reloj. Hay ademas carteles SOSTENIDOS (`cartelSostenido`): quedan mientras
 // dure lo que avisan (el PELIGRO del roce) y se van cuando se termina.
-export const carteles = { vivos: [] };
+// `queda`: los segundos que se queda cada cartel (null = CARTEL_QUEDA). LAS ISLAS lo ponen en 3 (21/11, el autor:
+// "que queden 3 segs y se vayan hacia la derecha")
+export const carteles = { vivos: [], queda: null };
 export const CARTEL_ENTRA = 0.22, CARTEL_QUEDA = 2.2, CARTEL_SALE = 0.28;
-const DUR = CARTEL_ENTRA + CARTEL_QUEDA + CARTEL_SALE;
+const durDe = () => CARTEL_ENTRA + (carteles.queda ?? CARTEL_QUEDA) + CARTEL_SALE;
 const TOPE = 3;
 const SOLTAR_T = 1;   // lo que queda un sostenido despues de apagarse   // cuantos a la vez: el cuarto empuja afuera al mas viejo
 
@@ -49,7 +51,7 @@ export function cartelSostenido(id, on, txt, col, o, sub) {
 /** Una vez por cuadro (game.js), con el reloj de pared en segundos: arranca los nuevos y saca los
  *  que cumplieron. Un sostenido no avanza su reloj mientras siga prendido. */
 export function tickCarteles(now) {
-  const v = carteles.vivos;
+  const v = carteles.vivos, DUR = durDe();
   for (const c of v) {
     if (c.t0 < 0) c.t0 = now;
     // SE APAGO LO QUE AVISABA: queda SOLTAR_T y sale (8/10, el autor: "debe salir al segundo de no
@@ -63,6 +65,7 @@ export function tickCarteles(now) {
 /** Los carteles que se ven ahora, de arriba hacia abajo, cada uno con cuanto esta afuera (0..1).
  *  Lo lee el HUD, que los apila. */
 export function cartelesAhora(now) {
+  const DUR = durDe();
   return carteles.vivos.filter(c => c.t0 >= 0).map(c => {
     const t = now - c.t0;
     const k = t < CARTEL_ENTRA ? t / CARTEL_ENTRA : !c.sostenido && t > DUR - CARTEL_SALE ? Math.max(0, (DUR - t) / CARTEL_SALE) : 1;

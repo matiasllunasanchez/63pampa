@@ -53,7 +53,8 @@ export function drawMapaIslas(d, t) {
   // EL TEATRO (systems/islas/teatro.js): las bases (celeste lo nuestro, rojo lo britanico), los buques (un
   // trazo) y las PAC (su circulo, punteado). Lo britanico aparece recien cuando lo pasaste cerca.
   for (const q of d.teatro || []) {
-    const [x, y] = aP(q), col = q.bando === 'arg' ? '#8fc8ec' : '#e0503c';
+    // (un BUQUE no se sabe de quien es: sin identificador — 21/11, el autor — va en gris)
+    const [x, y] = aP(q), col = q.k === 'buque' ? '#b8c0c6' : q.bando === 'arg' ? '#8fc8ec' : '#e0503c';
     ctx.fillStyle = ctx.strokeStyle = col;
     if (q.k === 'base') { ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
     else if (q.k === 'buque') { if (q.vivo) ctx.fillRect(Math.round(x) - 1, Math.round(y), 3, 1); else ctx.fillRect(Math.round(x), Math.round(y), 1, 1); }

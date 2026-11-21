@@ -76,22 +76,30 @@ def boina(padre, K, color, x, y, z=0.0):
     elipsoide('banda', (x - 0.01, y - 0.035, z), (0.115, 0.022, 0.105), padre, K['mat_cel']('banda', '#2a2118'), seg=12, anillos=4)
     elipsoide('escudo', (x - 0.10, y - 0.01, z - 0.03), (0.02, 0.025, 0.02), padre, K['mat_cel']('escudo', '#c9b98a'), seg=6, anillos=4)
 
+# EL CASCO MAS GRANDE EN LAS ISLAS (21/11, el autor: "que se note que son argentinos: son chicos con casco grande,
+# sin barba, eran jovenes de 18"): a 100 m de la camara el casco es lo que dice quien es. Las isl_*_arg lo llevan
+# CASCO_ISLAS veces mas grande (el del pasillo queda como estaba).
+CASCO_ISLAS = 1.4
+CASCO_K = [1.0]
+
 def casco_m1(padre, m, x, y, z=0.0):
     """EL CASCO M1 del conscripto (rehecho 4/10 con la foto del autor: "es horrible el casco, hace un
     casco mas asi"): la CUPULA ALTA Y REDONDA —mas alta que una bocha aplastada—, el borde en CAMPANA
     que se abre apenas en los costados y la nuca, la funda de RED (manchado) y LAS ANTIPARRAS: la banda
     que lo rodea y los dos vidrios redondos al frente (-x, hacia donde mira). Le queda GRANDE: baja
     hasta las cejas y sobresale de la cabeza."""
+    k = CASCO_K[0]
+    y = y + 0.06 * (k - 1)   # (el grande sube un poco: sigue bajando hasta las cejas, no tapa la cara)
     cupula = [(-0.105, 0.232, 0.240), (-0.090, 0.222, 0.230), (-0.060, 0.210, 0.216), (-0.010, 0.206, 0.210),
               (0.050, 0.195, 0.198), (0.100, 0.165, 0.168), (0.140, 0.115, 0.118), (0.165, 0.055, 0.056), (0.172, 0.012, 0.012)]
-    TI.columna('casco', padre, m['HELM'], x, z, [(y + dy, w, d) for dy, w, d in cupula], expo=2.0)
+    TI.columna('casco', padre, m['HELM'], x, z, [(y + dy * k, w * k, d * k) for dy, w, d in cupula], expo=2.0)
     # el borde de la campana, un filo apenas mas oscuro
-    TI.columna('borde', padre, m['GEAR'], x, z, [(y - 0.112, 0.236, 0.244), (y - 0.098, 0.236, 0.244)], expo=2.0)
+    TI.columna('borde', padre, m['GEAR'], x, z, [(y - 0.112 * k, 0.236 * k, 0.244 * k), (y - 0.098 * k, 0.236 * k, 0.244 * k)], expo=2.0)
     # LAS ANTIPARRAS: la banda elastica alrededor y los dos vidrios ambar con su marco
-    TI.columna('banda', padre, m['BANDA'], x, z, [(y - 0.035, 0.212, 0.217), (y + 0.010, 0.208, 0.212)], expo=2.0)
+    TI.columna('banda', padre, m['BANDA'], x, z, [(y - 0.035 * k, 0.212 * k, 0.217 * k), (y + 0.010 * k, 0.208 * k, 0.212 * k)], expo=2.0)
     for dz in (-0.075, 0.075):
-        elipsoide('marco', (x - 0.205, y - 0.010, z + dz), (0.03, 0.058, 0.058), padre, m['BANDA'], seg=12, anillos=6)
-        elipsoide('antiparra', (x - 0.222, y - 0.010, z + dz), (0.022, 0.045, 0.045), padre, m['ANTIPARRA'], seg=12, anillos=6)
+        elipsoide('marco', (x - 0.205 * k, y - 0.010 * k, z + dz * k), (0.03 * k, 0.058 * k, 0.058 * k), padre, m['BANDA'], seg=12, anillos=6)
+        elipsoide('antiparra', (x - 0.222 * k, y - 0.010 * k, z + dz * k), (0.022 * k, 0.045 * k, 0.045 * k), padre, m['ANTIPARRA'], seg=12, anillos=6)
 
 def _cabeza(padre, m, y, x=0.0, K=None, color='verde'):
     elipsoide('cuello', (x - 0.01, y + 0.09, 0), (0.06, 0.06, 0.07), padre, m['SKIN'], seg=8, anillos=6)
@@ -276,8 +284,15 @@ def _con_caja(T, K, paso, bando):
     g = soldado_corre(T, K, paso, '0', bando)
     bloque('caja', g, K['mat_cel']('caja', '#8a6a3a'), (-0.30, Y_CADERA + 0.30, 0), (0.34, 0.30, 0.42), bisel=0.02)
     return g
+def _casco_islas(f):
+    """El modelo con el casco de las islas (CASCO_ISLAS) y despues, como estaba."""
+    def h(T, K):
+        CASCO_K[0] = CASCO_ISLAS
+        try: return f(T, K)
+        finally: CASCO_K[0] = 1.0
+    return h
 for _b in ('brit', 'arg'):
     for _p in ('0', '2', '4'):
-        globals()['isl_corre_%s_%s' % (_b, _p)] = (lambda b, p: lambda T, K: soldado_corre(T, K, p, '0', b))(_b, _p)
-        globals()['isl_carga_%s_%s' % (_b, _p)] = (lambda b, p: lambda T, K: _con_caja(T, K, p, b))(_b, _p)
-    globals()['isl_tierra_%s' % _b] = (lambda b: lambda T, K: soldado_tierra(T, K, '0', b))(_b)
+        globals()['isl_corre_%s_%s' % (_b, _p)] = _casco_islas((lambda b, p: lambda T, K: soldado_corre(T, K, p, '0', b))(_b, _p))
+        globals()['isl_carga_%s_%s' % (_b, _p)] = _casco_islas((lambda b, p: lambda T, K: _con_caja(T, K, p, b))(_b, _p))
+    globals()['isl_tierra_%s' % _b] = _casco_islas((lambda b: lambda T, K: soldado_tierra(T, K, '0', b))(_b))

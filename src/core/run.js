@@ -167,6 +167,7 @@ export const run = {
   // EL TONEL EN VERTICAL (hoja 6): null = no; un numero = cuanto giro sobre su eje, en grados, con la trompa
   // al cielo (0 = la cara de la fila de 100° de la cobra, + = el sentido de [E]). Rota el dibujo SOLO run.mvGiro.
   mvTonelV: null,
+  exoGastado: false,   // LAS ISLAS: el Exocet de la salida ya se tiro contra los portaaviones (game.js lanzarExocet)
   mvFreno: 0,      // cuanto esta frenando la maniobra ahora (0..1): lo leen el vuelo (objetivo) y la camara-dron
   mvSeed: 0,       // semilla del jink (sus quiebres son aleatorios pero estables por ejecucion)
   mvTgt: 0,        // altura OBJETIVO de las maniobras que trepan a un techo (ASCENSO / SOBRE EL RADAR)
@@ -234,7 +235,7 @@ export function resetRun() {
     windT: 0, windF: 1,
     fireT: 0, tiroT: 9, giro: 0, msl: MSL_MAX, mslCd: 0, mslRegen: 0,
     rollCd: 0,
-    mv: null, mvT: 0, mvY0: 0, mvX0: 0, mvFase: '', mvCanto: 0, mvPose: 0, mvLado: 0, derrapeAgua: 0, mvRoll: 0, mvGiro: 0, mvSteep: 0, mvCobra: 0, mvMortal: 0, mvTonelV: null, mvFreno: 0, mvSeed: 0, mvTgt: 0, camPan: 0,
+    mv: null, mvT: 0, mvY0: 0, mvX0: 0, mvFase: '', mvCanto: 0, mvPose: 0, mvLado: 0, derrapeAgua: 0, mvRoll: 0, mvGiro: 0, mvSteep: 0, mvCobra: 0, mvMortal: 0, mvTonelV: null, exoGastado: false, mvFreno: 0, mvSeed: 0, mvTgt: 0, camPan: 0,
     // alabeo VIVO del control por ALABEO (cfg.control = 1), en radianes. Es el estado del avion:
   // plane.vx sale de aca, no al reves. Ver core/physics.js.
   bankA: 0,

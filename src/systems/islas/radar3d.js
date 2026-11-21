@@ -69,7 +69,7 @@ export function frame(scene, E, cam, dt, suelo) {
     const q = R[r.n] || (R[r.n] = armar(scene, r, E.alt, suelo));
     // (el radar de un buque va con el; la red se armo con el relieve de donde estaba: en el mar da igual)
     q.obj.position.set(r.x, 0, r.z);
-    const dentro = E.zona && (E.zona.gb === r.n || E.zona.arg === r.n);
+    const dentro = E.zona && E.zona.red === r.n;   // (teatro.js: encima del radar, o recien entrado a la nuestra)
     q.k += ((dentro ? 1 : 0) - q.k) * Math.min(1, dt * 1.5);
     q.mat.uniforms.uOp.value = q.k * (r.bando === 'gb' && E.zona.visto ? 1 : 0.7);
     q.mat.uniforms.uT.value = t;

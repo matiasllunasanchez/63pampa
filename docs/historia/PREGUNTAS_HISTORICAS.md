@@ -1736,3 +1736,13 @@ De `src/data/libro_vuelo.js` (r6) y `src/data/busqueda.js`. Lo confirmado: la Ar
 - **El techo de nubes a 150 m** y el temporal: puestos por el autor; las fuentes dicen "bajo techo" sin la cifra.
 - **Helicópteros:** el autor los quiere como opción; no se encontró registro de helicópteros en la búsqueda aérea. ¿Cuáles fueron, si hubo?
 - **Los otros aviones de apoyo** (Beechcraft B-200, Electra L-188, Fokker F-28) no existen en el juego todavía.
+
+## Los buques de las islas: armas, bombas y lo nuestro en el agua (21/11)
+
+De `src/data/islas_teatro.js` (BUQUES, DEFENSA, BOMBA, FUSILES). Los números son de juego:
+- **Las defensas por clase:** Tipo 42 con Sea Dart (largo) y cañón de 4,5"; Tipo 21 y Tipo 12 con Sea Cat; Tipo 22 (Broadsword) con Sea Wolf; los logísticos y las LCU, solo ametralladoras. ¿Es así para cada buque del 24 de mayo?
+- **Las bombas:** en el juego pega el 60% de las que caen sobre el casco, detona el 7% de las que pegan, perfora el 88% en el centro (55% en las puntas) y la mitad atraviesa. ¿Hay una cifra documentada de bombas que no estallaron en mayo de 1982?
+- **Los portaaviones** (Hermes e Invincible) van contra el borde este del mapa; en la realidad estaban mucho más al este. ¿Distancia típica a las islas en mayo?
+- **Lo nuestro en el agua el 24 de mayo:** se pusieron el ARA Bahía Buen Suceso en Bahía Fox (dañado el 16), el costero Monsunen cerca de Darwin y el guardacostas GC Islas Malvinas de Prefectura en Puerto Argentino. ¿Dónde estaba cada uno ese día? ¿Hubo otros?
+- **Las LCU** de San Carlos: nombres puestos como ejemplo (F1, F4, T2: las de Fearless e Intrepid).
+- **Los blindados** británicos (Scorpion / Scimitar) en la cabeza de playa: ¿cuántos y dónde?
