@@ -73,6 +73,13 @@ let filaSost = 1, filaAnt = 1, filaCambioT = -1, filaPrevCuadro = 1;
 const FINO_ON = !(typeof location !== 'undefined' && /[?&]fino=0\b/.test(location.search));
 const FINO_NF = 13, FINO_GRADOS = [14, 7, 0, -7, -14], FINO_TOPE = 0.7;   // pitch 0,7 = 14°
 let finoFila = 2, finoAnt = 2, finoCambioT = -1, finoPrev = 2;
+// LA TREPADA SOSTENIDA SE ASIENTA (21/11, el autor: "el dibujo del avion cambia… se ve mas feo — trepando, arriba"):
+// con W sostenido el cabeceo quedaba clavado en el tope (la fila de 14°, la que muestra el lomo plano) toda la trepada y
+// hasta en el techo, donde ya no sube. El tope es el TIRON: pasados ASIENTA_T s con la trompa arriba, la pose baja a
+// ASIENTA_POSE (la fila de 7°) en ASIENTA_DUR s, y vuelve al tope recien si se suelta y se tira de nuevo. Solo el
+// dibujo: el vuelo y la camara no cambian.
+const ASIENTA_T = 1.2, ASIENTA_DUR = 0.8, ASIENTA_POSE = 0.45;
+let arribaT = 0, arribaPrev = -1;
 
 const BOB_Y  = 1.5;    // amplitud del bob vertical (px)
 const BOB_X  = 0.75;    // amplitud de la deriva horizontal (px) — desfasada del bob → flota en "8"
@@ -1064,7 +1071,11 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // LA POSE, resuelta aca arriba por el mismo motivo: la estela lee TIPS[fila][columna] y tiene
   // que ser LA MISMA pose que el sprite dibuja, no una copia de la formula que pueda quedar vieja.
   const colPose = rolling ? (NF - 1) / 2 : Math.round((1 - bank) / 2 * (NF - 1));
-  const pcPose = run.senalT > 0 && run.senalPitch ? run.senalPitch : Math.max(-1, Math.min(1, plane.pitch));
+  const pcCrudo = run.senalT > 0 && run.senalPitch ? run.senalPitch : Math.max(-1, Math.min(1, plane.pitch));
+  { const ahora = performance.now() / 1000, dtA = arribaPrev < 0 ? 0 : Math.min(0.1, ahora - arribaPrev); arribaPrev = ahora;
+    arribaT = pcCrudo > ASIENTA_POSE && !run.mv && run.t > 0 ? arribaT + dtA : 0; }
+  const asienta = Math.max(0, Math.min(1, (arribaT - ASIENTA_T) / ASIENTA_DUR));
+  const pcPose = asienta > 0 ? pcCrudo + (Math.min(pcCrudo, ASIENTA_POSE) - pcCrudo) * asienta * asienta * (3 - 2 * asienta) : pcCrudo;
   // la fila con HISTERESIS: para cambiar hay que pasar FILA_ENTRA; para volver a nivel, bajar de FILA_SALE
   // (21/11, el autor: "cuando voy muy arriba o muy abajo el avion pierde muchisima calidad"): topando el techo o rozando
   // el agua el cabeceo rebota y la fila cambiaba varias veces por segundo — cada cambio funde dos cuadros y el avion

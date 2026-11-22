@@ -9,7 +9,7 @@ import { P } from '../data/palette.js';
 import { T, L } from '../core/i18n.js';
 import { wrapChars } from '../core/util.js';
 import { clamp01 } from '../core/physics.js';
-import { radio, restante, visible, log } from '../core/radioVN.js';
+import { radio, restante, visible, log, bloque as radioBloque } from '../core/radioVN.js';
 import { run } from '../core/run.js';
 import { sinceReady, txtOf, palabrasVisibles } from '../core/dialogue.js';
 import { PLACA_DE_CUADRO } from '../data/placas.js';
@@ -1594,7 +1594,7 @@ export function drawRadioVN() {
   const yo = pilotoCaja();
   // ¿HABLA MI AVION? Entonces la linea sale de mi cara (ver drawVozPropia).
   if (hablaYo(yo, radio.personaje)) {
-    drawVozPropia(yo, { filas: radio.wrap.slice(0, 2), font: '5px monospace', paso: VOZ.fila,
+    drawVozPropia(yo, { filas: radioBloque(), font: '5px monospace', paso: VOZ.fila,
       ease: radio.ease, barra: restante() });
     propiaRadio = true;
     return;
@@ -1604,7 +1604,7 @@ export function drawRadioVN() {
   // habla, y el canal —radio o charla— no cambia eso. La dibuja `drawCharla`, que corre despues y es
   // la dueña de esa caja; aca solo se la deja anotada para este cuadro. (El modo PANEL no cambia:
   // sigue colgando de la cinta, porque es un registro de lo dicho y no una voz que pasa.)
-  radioOtro = { personaje: radio.personaje, cara: radio.cara, wrap: radio.wrap.slice(0, 2),
+  radioOtro = { personaje: radio.personaje, cara: radio.cara, wrap: radioBloque(),
     typed: null, barra: restante() };
 }
 
