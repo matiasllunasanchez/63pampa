@@ -15,7 +15,7 @@ import {
 import * as aero from '../src/core/aero.js';
 import { AR } from '../src/data/arena.js';
 import * as tempo from '../src/systems/tempo.js';
-import { TEMPO_SCALE, TEMPO_NIVELES, tempoNivel } from '../src/data/tuning.js';
+import { TEMPO_SCALE, TEMPO_SUAVE, TEMPO_NIVELES, tempoNivel } from '../src/data/tuning.js';
 
 const G = 22, TH = 55, DIVE = 30;   // gravedad, empuje y picada (game.js)
 const DT = 1 / 60;
@@ -249,9 +249,13 @@ console.log('\nmomentum — el especial del pasillo (tecla 4, se carga con TIEMP
   while (tempo.meterVal() < 1 && t < 60) { if (tempo.tick(DT, true, 0) === 'ready') readies++; t += DT; }
   check(`se carga en ${N0.cast} s (nivel 0)`, t, N0.cast, 0.05);
   check(`aviso 'ready' UNA sola vez`, readies, 1, 0);
-  if (tempo.toggle(0) === 'on' && tempo.scale() === TEMPO_SCALE)
-    console.log(`  ✓ ${'llena se LANZA'.padEnd(42)} escala ${TEMPO_SCALE}`);
+  // (21/11: DOS NIVELES — el primer toque lanza SUAVE, el segundo baja a TEMPO_SCALE sin cortar)
+  if (tempo.toggle(0) === 'on' && tempo.scale() === TEMPO_SUAVE)
+    console.log(`  ✓ ${'llena se LANZA (suave)'.padEnd(42)} escala ${TEMPO_SUAVE}`);
   else { bad++; console.log('  ✗ la barra llena no lanza'); }
+  if (tempo.toggle(0) === 'mas' && tempo.scale() === TEMPO_SCALE && tempo.active())
+    console.log(`  ✓ ${'otro toque: mas lento'.padEnd(42)} escala ${TEMPO_SCALE}`);
+  else { bad++; console.log('  ✗ el segundo toque no baja a TEMPO_SCALE'); }
   // el lanzamiento dura `dur` segundos REALES y se corta solo; el tiempo que pasa lanzado NO
   // recarga la barra que se esta gastando
   t = 0;

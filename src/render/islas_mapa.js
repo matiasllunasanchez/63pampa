@@ -7,6 +7,8 @@ import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 
 const X0 = 8, Y0 = 26, MW = 300, MH = NH - Y0 - 10;
+// EL OBJETIVO DESTACADO (21/11): medio lado del cuadro (px), cada cuanto sale el aro (s) y cuanto se abre (px)
+const OBJ_R = 5, OBJ_PULSO = 1.4, OBJ_ARO = 10;
 
 /** Donde cae el mapa en pantalla (lo usa tambien game.js para mover el cursor en pixeles parejos). */
 export function marco(img) {
@@ -71,11 +73,33 @@ export function drawMapaIslas(d, t) {
     }
   }
   // EL OBJETIVO: un cuadro naranja (tachado si ya cayo) que late
+  // (21/11, el autor: "la base costera la deberia marcar el juego o indicarla SOLA en el mapa; no queda claro donde esta
+  // ni adonde ir"): viva, el mapa la destaca sin que la marques — un cuadro mas grande con un aro que se abre (el PULSO,
+  // OBJ_PULSO s), su NOMBRE y los km al lado, y una linea punteada desde tu avion (el rumbo que marca la brujula)
   if (d.obj) {
-    const [x, y] = aP(d.obj), r = 3 + (d.obj.vivo ? Math.sin(t * 6) * 0.8 : 0);
+    const [x, y] = aP(d.obj), r = (d.obj.vivo ? OBJ_R : 3) + (d.obj.vivo ? Math.sin(t * 6) * 0.8 : 0);
+    if (d.obj.vivo) {
+      const [ax, ay] = aP(d.avion);
+      ctx.save(); ctx.strokeStyle = P.accent; ctx.globalAlpha = 0.7; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+      ctx.beginPath(); ctx.moveTo(Math.round(ax) + 0.5, Math.round(ay) + 0.5); ctx.lineTo(Math.round(x) + 0.5, Math.round(y) + 0.5); ctx.stroke();
+      ctx.setLineDash([]);
+      const u = (t % OBJ_PULSO) / OBJ_PULSO;
+      ctx.globalAlpha = 0.9 * (1 - u); ctx.beginPath(); ctx.arc(x, y, r + 2 + u * OBJ_ARO, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+      ctx.strokeRect(Math.round(x - r) + 0.5, Math.round(y - r) + 0.5, Math.round(r * 2), Math.round(r * 2));
+    }
     ctx.strokeStyle = d.obj.vivo ? P.accent : P.dim; ctx.lineWidth = 1;
     ctx.strokeRect(Math.round(x - r) + 0.5, Math.round(y - r) + 0.5, Math.round(r * 2), Math.round(r * 2));
     if (!d.obj.vivo) { ctx.beginPath(); ctx.moveTo(x - r, y - r); ctx.lineTo(x + r, y + r); ctx.stroke(); }
+    else {
+      ctx.fillStyle = P.accent; ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
+      // (el nombre a la derecha; si no entra, a la izquierda)
+      ctx.font = 'bold 6px monospace';
+      const txt = d.obj.n + ' ' + (d.obj.d / 1000).toFixed(1) + ' km', w = ctx.measureText(txt).width;
+      const lx = x + r + 4 + w > m.x + m.w ? x - r - 4 - w : x + r + 4;
+      nombre(txt, Math.round(lx), Math.round(y) + 2, P.accent);
+    }
   }
   // LA GUIA DEL TUTORIAL: una flecha que late sobre la base costera, MARCA ACA, y abajo del mapa como se hace
   if (d.guia) {

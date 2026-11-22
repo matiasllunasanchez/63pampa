@@ -38,6 +38,7 @@ import { bullets, missiles, pmissiles, streaks } from '../../core/world.js';
 import { geoExterna } from '../../core/geografia.js';
 import { inp } from '../../core/input.js';
 import { KMH_U } from '../../data/tuning.js';
+import { DEFENSAS } from '../../data/defensas.js';
 import { AIR_START_Y } from '../../data/runways.js';
 
 const BORDE = 12000;         // a esta distancia del borde del mapa empieza la vuelta automatica
@@ -222,7 +223,12 @@ export function pasoPasillo(dt) {
     // EL TUTORIAL, CON UN CLIMA FIJO Y LEGIBLE (21/11, el autor: "en tutorial aleatorio o lo que convenga"): cubierto, el mas
     // comun del otoño de 1982, con viento y frio pero sin lluvia ni niebla que tapen lo que se explica
     if (I.tut) clima.fijo(CLIMA_TUT);
-    else if (objetivo.colocar(P3.x, P3.z)) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
+    // (21/11, el autor: "la base costera la deberia marcar el juego o indicarla sola en el mapa; no queda claro donde esta
+    // ni adonde ir"): el `if (I.tut)` de arriba se habia comido el `else` del MAR y en el tutorial la base NO SE PONIA —sin
+    // base no habia brujula, ni cuadro en el mapa, ni forma de cerrar TUT4_BLANCO—. La base va siempre que no sea mar
+    // abierto; la brujula la señala sola mientras no marques otra cosa (`blanco`). En el tutorial sin el cartel: lo
+    // presenta el Turco en el paso del mapa.
+    if (!I.mar && objetivo.colocar(P3.x, P3.z) && !I.tut) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
     P3.sostiene = I.mar ? 0 : SOSTIENE_T; plane.y = I.mar ? (I.mar.alt || 60) : AIR_START_Y; P3.muerto = false; P3.altFija = null;
   }
   if (P3.sostiene > 0) {
@@ -302,7 +308,8 @@ export function pasoPasillo(dt) {
       const pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, sy = Math.sin(P3.yaw), cy = Math.cos(P3.yaw);
       const dx = rg.x - P3.x, dz = rg.z - P3.z, d = sy * dx - cy * dz, l = cy * dx + sy * dz;
       for (const m of missiles) {
-        if (m.tipo !== 'dart' || m.__islasO) continue;
+        // (los del TEATRO no: ya salen de SU buque, en su linea — corrérselos al del radar confundia de donde venian, 21/11)
+        if (m.tipo !== 'dart' || m.__islasO || m.teatro) continue;
         m.__islasO = true;
         if (d < 250 || Math.abs(l) > d * 0.8) continue;   // (de costado no llega: el misil del pasillo viene de frente)
         const k = Math.min(1, 900 / Math.hypot(d, l));
@@ -324,6 +331,9 @@ export function pasoPasillo(dt) {
   // (y ya no hay roce que lo levante — flight.js `geoExterna.sinRoce`—: tocar la tierra es chocar, en todas las vistas)
   if (S.state === 'play' && g > 0.3 && plane.y <= 0.5) return 'death_land';
   // LO QUE HAY EN EL MAPA TAMBIEN SE CHOCA (21/11): la base del objetivo, las piezas de las bases y los buques
+  // …Y LOS HARRIERS (21/11, el autor: "los aviones DEBEN PODER COLISIONAR; si chocan mueren ambos"): harriers.js ya lo
+  // hizo caer en llamas; aca lo cobras vos (en el tutorial `sinMuerte` lo aguanta, como cualquier golpe)
+  if (harriers.tomarChoque() && S.state === 'play') return 'death_jet';
   if (S.state === 'play') {
     const alto = P3.g + plane.y;
     if (objetivo.choca(P3.x, P3.z, alto)) return 'death_bldg';
@@ -428,7 +438,25 @@ export function amenazas() {
     const dist = Math.hypot(dx, dz, h.y - P3.g - plane.y);
     if (d > 8) { const s = proj(plane.x + l, y, d + pz); return { x: s.x, y: s.y, adelante: true, dist }; }
     return { x: l, y: plane.y - y, adelante: false, dist };   // (atras: el lado y el arriba/abajo, en metros)
-  });
+  }).concat(misilesQueVienen(pz));
+}
+// EL MISIL QUE TE VIENE (21/11, el autor: "los misiles que salen de los barcos: no queda claro adonde tiran… una señal de
+// que vienen hacia vos, como la flecha roja de los Harriers"): cada misil enemigo del carril (los del teatro y las oleadas
+// del radar; no las trazadoras ni los del Harrier, que tienen lo suyo) va a `drawAmenazas` con su nombre, los segundos que
+// le faltan y donde estas vos en pantalla: en cuadro, un rombo y la raya hasta tu avion; fuera, la flecha en el borde.
+const MISIL_AVISO_S = 6;   // s: el que tarda mas que esto en llegar todavia no se marca
+function misilesQueVienen(pz) {
+  const out = [], yo = proj(plane.x, plane.y, pz);
+  for (const m of missiles) {
+    if (m.done || m.tracer || m.senuelo || m.tipo === 'aden' || m.tipo === 'aim9' || m.z <= pz + 2) continue;
+    const vel = m.tipo === 'wolf' ? (DEFENSAS[m.def] || DEFENSAS.wolf).vel : 85;   // (lo que le suma collision.js a run.spd)
+    const seg = (m.z - pz) / Math.max(1, run.spd + vel);
+    if (seg > MISIL_AVISO_S) continue;
+    const s = proj(m.x, m.y, m.z);
+    const n = m.tipo === 'dart' ? 'SEA DART' : m.tipo === 'wolf' ? (DEFENSAS[m.def] || DEFENSAS.wolf).nombre : T('golpe_missile');
+    out.push({ misil: true, n, seg, x: s.x, y: s.y, adelante: true, dist: m.z - pz, yo: { x: yo.x, y: yo.y } });
+  }
+  return out;
 }
 /** EL AVISO de la rafaga de los Harriers (el punto fijado) para el dibujo del pasillo. */
 export const avisosAden = () => (enPasillo() ? harriers.avisos() : []);
@@ -904,7 +932,7 @@ export function proyectiles() {
       h = o.__islasH || (o.__islasH = []);
       h.push(p); if (h.length > ESTELA_N) h.shift();
     }
-    PROY.push({ k, p, c, h });
+    PROY.push({ k, p, c, h, L: k === 'misil' ? estelaCarril(o) : null, nace: !(o.atras > 0) });   // (`nace`: salio aca, no a mitad de vuelo)
   };
   for (const b of bullets) add(b, 'bala', -6);
   for (const m of missiles) add(m, m.tracer ? 'traza' : 'misil', 14);
@@ -915,6 +943,29 @@ export function proyectiles() {
     add(m, 'propio', -14);
   }
   return PROY;
+}
+// LA ESTELA DEL MISIL ENEMIGO, EN EL CARRIL (21/11, el autor: "los misiles que salen de los barcos: no queda claro adonde
+// tiran"). El misil del pasillo vive en el carril, que gira con el avion: anotada en el MAPA (`__islasH`, las bocanadas de
+// proyectiles3d.js) su estela barria el agua como un faro en cada viraje y no se leia ni de donde venia ni adonde iba.
+// Esta se anota EN EL CARRIL (profundidad de mundo: z + run.dist, como la del Sea Wolf del pasillo) y se pasa al mapa
+// cada cuadro: es siempre una raya de humo recta desde donde salio hasta la cabeza, apuntandote. Al nacer se le SIEMBRA
+// el tramo hasta el que lo tiro (teatro.js `atras`, hasta SEMBRAR_MAX m): asi se ve que salio de ese buque.
+const ESTELA_VIDA = 3.2;      // s que dura una bocanada de la estela
+const ESTELA_PASO = 9;        // m entre bocanadas
+const SEMBRAR_MAX = 1500, SEMBRAR_PASO = 30;   // el tramo sembrado hasta el que lo tiro (m)
+function estelaCarril(o) {
+  const pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA, t = run.t, zw = o.z + run.dist;
+  let e = o.__islasL;
+  if (!e) {
+    e = o.__islasL = [];
+    const a = Math.min(SEMBRAR_MAX, o.atras || 0), lx = o.x - plane.x, dz = Math.max(1, o.z - pz), n = Math.hypot(lx, dz);
+    // (hacia atras en la linea del misil a vos: el que lo tiro esta ahi; lo mas lejano, mas viejo — se apaga antes)
+    for (let k = a; k > 0; k -= SEMBRAR_PASO) e.push({ x: o.x + lx / n * k, y: o.y, zw: zw + dz / n * k, t: t - ESTELA_VIDA * 0.55 * k / a });
+  }
+  const u = e[e.length - 1];
+  if (!u || Math.hypot(o.x - u.x, o.y - u.y, zw - u.zw) > ESTELA_PASO) e.push({ x: o.x, y: o.y || 0, zw, t });
+  while (e.length && t - e[0].t > ESTELA_VIDA) e.shift();
+  return e.map(q => { const w = aMundo(q.x, q.y, q.zw - run.dist, {}); w.u = Math.max(0, (t - q.t) / ESTELA_VIDA); return w; });
 }
 // LAS BALAS DERECHO (19/11, el autor: "que el avion dispare derecho"): el carril gira con el avion, y una bala
 // dibujada en el carril se iba con el en cada viraje (desde arriba, un abanico). Ahora cada bala se ANCLA al mapa

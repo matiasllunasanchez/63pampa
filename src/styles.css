@@ -290,6 +290,28 @@
     pointer-events: none;
   }
 
+  /* EL EFECTO CRT (22/11, OPCIONES -> CRT): una capa de CSS encima del canvas, el render no se entera.
+     SUTIL A PROPOSITO: el HUD tiene relojes y numeros chicos que tienen que seguir leyendose.
+     - scanlines: una raya oscura por FILA DEL BUFFER (180), en la mitad de abajo de cada pixel del juego
+     - mascara de fosforo: franjas R G B de 3 px de pantalla, casi invisibles
+     - viñeta leve en los bordes
+     Sin curvatura (la mira del mouse tiene que caer donde se ve), sin parpadeo, sin corrimiento de color. */
+  #crt {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: none;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+      radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, .28) 100%),
+      linear-gradient(to bottom, transparent 55%, rgba(0, 0, 0, .13) 55%) 0 0 / 100% calc(100% / 180),
+      linear-gradient(90deg, rgba(255, 40, 40, .035) 33%, rgba(40, 255, 40, .025) 33% 66%, rgba(60, 60, 255, .035) 66%) 0 0 / 3px 100%;
+  }
+  body.crt-si #crt {
+    display: block;
+  }
+
   /* EL ARRANQUE (render/arranque.js): negro → se funde el gabinete con el tubo apagado → el tubo SE
      PRENDE como un televisor. Las clases del body ya vienen del HTML, asi el primer pintado es negro.
      El fundido (1.4s) es ARRANQUE.FUNDE: si se cambia uno, el otro. */

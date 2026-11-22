@@ -149,7 +149,9 @@ export const BL = {
    *  envion, no segundos, asi que los mismos metros cubren MENOS TIEMPO cuanto mas rapido venis
    *  (a 140 el normal da 2,1 s en vez de 3) y mas tiempo cuanto mas alto soltas. La ayuda no
    *  aplana el modo: le pone un piso. */
-  HOLGURA: { facil: 280, normal: 135, dificil: 75, experto: 0 },
+  // (21/11, el autor: "es un margen muy muy chico el que se muestra la mira redonda"): el TUTORIAL tiene la suya, la
+  // mas ancha de la tabla medida (340 → ~5,8 s a crucero)
+  HOLGURA: { tutorial: 340, facil: 280, normal: 135, dificil: 75, experto: 0 },
 
 
   /** La luz de SOLTA: el HUD simula la bomba desde el estado actual del avion y prende verde

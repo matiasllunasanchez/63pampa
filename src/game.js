@@ -116,7 +116,7 @@ import { trayectoria } from './core/balistica.js';
 import { blanco, balaTope, cajaSistema, sistemasATiro } from './core/blanco.js';
 import { drawTrayectoria, drawLineaExocet } from './render/trayectoria.js';
 const BL_ALT_IDEAL = BL_BLANCO.ALT_IDEAL;
-import { drawBlanco, drawBlancoHud } from './render/blanco.js';
+import { drawBlanco, drawBlancoHud, SEMAFORO } from './render/blanco.js';
 import { drawRotuloVuelo, ROTULO, ROTULO_T, ROTULO_NOMBRE, ROTULO_ESCAPE, ROTULO_FALLO } from './render/rotulo.js';
 import { tarjetaPiloto, TARJETA_LADO, tarjetaLugar, NUMEROS } from './render/hud.js';
 import { PILOTOS_AVION } from './data/pilotos_avion.js';
@@ -143,8 +143,9 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
          setRasante, sfxStop } from './systems/audio.js';
 import * as world3D from './legacy/three-world.js';
-import { cv, ctx, W, H, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, labelFont, probarFuente, setPZ, titleFont } from './render/ctx.js';
+import { cv, ctx, W, H, DW, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, labelFont, probarFuente, setPZ, titleFont } from './render/ctx.js';
 import * as screens from './render/screens.js';
+import { drawMando, drawDemoRasante } from './render/mando.js';
 import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog, retener as retenerRadio } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
@@ -152,6 +153,8 @@ import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG
 import { drawBrillo, inicioLuz, luz } from './render/brillo.js';
 import { lucesEnemigo } from './render/luces_enemigos.js';
 import { drawNubesAltas, nubesAltas } from './render/nubes_altas.js';
+import { drawSierras } from './render/sierras.js';
+import { drawNubesCielo } from './render/nubes_cielo.js';   // las nubes y la vida del cielo de fondo (21/11)
 import { setFrente, sortearFrente, resetFrente, hayFrente, frenteManda, stepFrente } from './systems/frente.js';
 import { drawFrenteMuro, drawFrenteNiebla } from './render/frente.js';
 import { drawRayos } from './render/rayos.js';
@@ -915,7 +918,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         .replace(/gatillo|trigger/gi, 'RT');
     }
     /** Una zona de foco por nombre. Casi todas son del HUD; la cinta de SEGUIR es de la persecucion. */
-    const zonaLeccion = id => id === 'seguir' ? cintaRect() : hud.zonaHud(id);
+    // (el SEMAFORO de la suelta vive en coordenadas de mundo: se pasa a las de diseño — 21/11)
+    const zonaLeccion = id => id === 'seguir' ? cintaRect()
+      : id === 'semaforo' ? { x: SEMAFORO.x / U, y: SEMAFORO.y / U, w: SEMAFORO.w / U, h: SEMAFORO.h / U } : hud.zonaHud(id);
     // EL NEGRO DE UN DIALOGO QUE PARA EL MUNDO. Lo usan los DOS: la pausa de dialogo (que ademas le
     // hace agujeros para el foco de una leccion) y la charla en vuelo. Un solo numero: el dia que
     // el velo cambie, cambia en los dos o se ven distintos el mismo negro.
@@ -966,6 +971,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     /** La salida en curso: una del LIBRO DE VUELO o, con `libro.tut`, una etapa del TUTORIAL. El tutorial
      *  viaja por el mismo camino que el libro (semilla fija, escuadrilla propia, vuelta a su menu). */
     const libroDef = () => libro && (libro.tut ? TUTORIAL_ETAPAS : LIBRO_VUELO)[libro.k];
+    // EL TUTORIAL SIN BUQUE NO TIENE FIN (21/11, el autor: "la flechita de objetivo en etapa 1 no va"; "etapa 1 no deberia
+    // tener FIN, veo de lejos la espuma o niebla que tapa al barco"): las etapas que se cierran por los pasos (objetivo
+    // LEJOS, `distance`) no dibujan ni la cuña del objetivo ni el buque con su banco de niebla en el horizonte
+    const sinObjetivoVisible = () => !!(libro && libro.tut && libroDef() && libroDef().goal && libroDef().goal.kind === 'distance');
     // EL TUTORIAL: obstaculos que pasaron al costado en esta corrida (la condicion `pasa`) y la cuenta
     // para volver a su menu una vez dicho todo (ver stepTutorial)
     // `tutAterrizo`: las ruedas tocaron en la etapa 3 — el avion rueda hasta parar y el tutorial dice lo ultimo
@@ -3201,7 +3210,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       setRunMusic(gameMode === 'campaign', curLevel, keepMusic, !!S.test,
         gameMode === 'campaign' ? (curMission() || {}).musica
           // (el TUTORIAL corre como 'cycle': su tema fijo de music/original llega igual — 21/11, karera2 en la etapa 1)
-          : libro && libro.tut && /^(original|lista):/.test((curMission() || {}).musica || '') ? curMission().musica : null,   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
+          : libro && libro.tut && /^(original|lista):/.test((curMission() || {}).musica || '') ? curMission().musica
+          // LAS ISLAS LIBRES (22/11, el autor: "misty mountains y todos los temas originales en el mapa de islas libre de
+          // forma aleatoria, no en tutorial"): music/original + Misty al azar, y al terminar otra
+          : islas.activa() && !libro ? 'azar:soundtrack/misty_malvinas.m4a'
+          : null,   // S.test: PRUEBAS y el selector de misiones → ZONA RASANTE
         !!libro || suelto());
     }
 
@@ -3235,6 +3248,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // CUAN CERCA DEL FICHIN (3/10): 1 el gabinete entero, 2 y 3 acercan y el juego crece
       { label: () => T('optZoom'), opts: ZOOMS, names: () => ZOOMS.map(String),
         get: () => cfg.fichinZoom, set: v => { cfg.fichinZoom = v; setZoomFichin(v); }, save: 'rasante_fichin_zoom4' },   // la clave cambia con cada default nuevo (3/10 el 2; 4/10 el 3, despues segun el monitor): asi todos arrancan en el nuevo
+      // EL EFECTO CRT (22/11): una clase en el body; la capa es CSS (#crt en styles.css)
+      { label: () => T('optCrt'), opts: ['si', 'no'], names: yesNo,
+        get: () => cfg.crt, set: v => { cfg.crt = v; document.body.classList.toggle('crt-si', v === 'si'); }, save: 'rasante_crt' },
       // PANTALLA COMPLETA o VENTANA (autor, 4/10). El juego abre a pantalla completa (electron/main.js);
       // si lo guardado es VENTANA, loadOpts() lo pide al cargar. En la web no hay a quien pedirselo.
       { label: () => T('optPantalla'), opts: ['completa', 'ventana'], names: () => [T('optPantalla_completa'), T('optPantalla_ventana')],
@@ -4557,6 +4573,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (!tempo.active() && tempo.meterVal() >= 1 && !alcanza('momentum')) return;   // USAR CUESTA (16/10)
         const r = tempo.toggle(nivelMomentum());
         if (r === 'empty') { beep(140, 0.09, 'square', 0.05); return; }
+        // el SEGUNDO NIVEL (21/11): mas lento todavia, con lo que queda de barra
+        if (r === 'mas') { sfxOne('momSlow'); beep(250, 0.09, 'square', 0.05, -120); cartel(T('tempoMas'), P.accent); return; }
         if (r === 'on') { cobrar('momentum'); sfxOne('momSlow'); }
         beep(r === 'on' ? 330 : 520, 0.09, 'square', 0.05, r === 'on' ? -160 : 160);   // slide abajo = el tiempo cae
         cartel(r === 'on' ? T('tempoOn') : T('tempoOff'), P.accent);
@@ -4640,42 +4658,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     });
 
 
-    // LAS NUBES DEL CIELO (28/9: "mejorar las nubes con la misma tecnica" que el humo del Sea Wolf):
-    // cada nube es un racimo de COPOS superpuestos —una base chata y copetes que suben—, en dos tonos:
-    // la panza en sombra y el lomo tomando la luz del horizonte. Antes eran dos rectangulos grises.
-    // La forma se sortea UNA vez por nube (`copos`) y se conserva: la nube deriva, no cambia.
-    const clouds = Array.from({ length: 6 }, () => {
-      const w = 28 + Math.random() * 44;
-      const n = 5 + ((Math.random() * 4) | 0);
-      return { x: Math.random() * W, y: 10 + Math.random() * 32, w, alfa: 0.55 + Math.random() * 0.3,
-        copos: Array.from({ length: n }, (_, i) => {
-          const u = n === 1 ? 0.5 : i / (n - 1), alto = Math.sin(u * Math.PI);   // mas alto en el medio
-          return { dx: (u - 0.5) * w * 0.85 + (Math.random() - 0.5) * 4, r: 3 + alto * (3 + Math.random() * 4), dy: -alto * (2 + Math.random() * 3) };
-        }) };
-    });
-    /** Una nube del cielo en `cx`: primero la SOMBRA (todos los copos corridos abajo, en el tono
-     *  oscuro), despues el CUERPO y encima el LOMO en la luz del horizonte. Pixelada: circulos
-     *  rellenos redondeados a la grilla. */
-    function drawNube(cx, c) {
-      // LOS TONOS SALEN DEL CIELO DE AHORA, aclarados: una nube es vapor iluminado, no humo. Con el
-      // gris fijo de antes, sobre un atardecer pintado de nubes blancas se leian como manchas sucias.
-      const sk = theme.sky, sombra = mixNube(sk.skyMid || P.cloud, '#b8bcc0', 0.45);
-      const luz = mixNube(sk.horizon || P.cloud, '#ffffff', 0.55);
-      const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(Math.round(x), Math.round(y), Math.max(1, Math.round(r)), 0, Math.PI * 2); ctx.fill(); };
-      ctx.save();
-      ctx.globalAlpha = c.alfa * 0.8; ctx.fillStyle = sombra;
-      for (const k of c.copos) circ(cx + k.dx, c.y + k.dy + 1.5, k.r);
-      px(cx - c.w * 0.45, c.y, c.w * 0.9, 3, sombra);                     // la base chata, en sombra
-      ctx.globalAlpha = c.alfa; ctx.fillStyle = mixNube(sombra, luz, 0.5);
-      for (const k of c.copos) circ(cx + k.dx, c.y + k.dy, k.r * 0.9);
-      ctx.globalAlpha = c.alfa * 0.7; ctx.fillStyle = luz;
-      for (const k of c.copos) circ(cx + k.dx - k.r * 0.2, c.y + k.dy - k.r * 0.35, k.r * 0.5);   // el lomo que toma la luz
-      ctx.restore();
-    }
-    const mixNube = (a, b, t) => {
-      const h = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16)), A = h(a), B = h(b);
-      return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
-    };
+    // LAS NUBES DEL CIELO: desde el 21/11 en render/nubes_cielo.js (eran racimos de circulos: "parecen globos")
     const isles = Array.from({ length: 4 }, (_, i) => ({ x: i * 90 + Math.random() * 50, w: 40 + Math.random() * 70, h: 5 + Math.random() * 10, seed: (Math.random() * 9999) | 0 }));
 
     // ---------- FONDOS por clima (assets/world/terrain_back) ----------
@@ -5748,6 +5731,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         faltan: objectiveDist > 0 ? (objectiveDist - run.dist) / objectiveDist : 1, aterrizando: S.state === 'landing', tren: landDown, aterrizo: tutAterrizo,
         pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), momentumLleno: !tempo.active() && tempo.meterVal() >= 1, chancha: chancha.enCurso(),
         aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0, hielo: run.hielo || 0,
+        chafitas: chapitasSys.nubesEnElAire().length > 0,
         marca: islas.marcado(), objIslas: !!islas.objetivoDe() && !islas.objetivoDe().vivo,
         radio: radioVis(),
         // (el tablero entero en pantalla: el paso que marca indicadores lo espera — systems/tutorial.js)
@@ -5757,7 +5741,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (a.tipo === 'decir') {
         beep(430, 0.06, 'square', 0.04);
         decirLn(a.linea);
-        lecFoco = { foco: a.foco, teclas: a.teclas };
+        lecFoco = { foco: a.foco, teclas: a.teclas, mando: a.mando, demo: a.demo };
         dlgPausa = true; retenerRadio(true); dlgT = 0; dlgTyped = 0;
         engineOff();
       } else if (a.tipo === 'mundo') {
@@ -5774,6 +5758,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // el vidrio ya salado para enseñar a limpiarlo (sin el cartel de la primera vez: lo explican ellos)
         if (a.paso.sal != null) { run.sal = Math.max(run.sal || 0, a.paso.sal); run.salAviso = true; }
         if (a.paso.nafta != null && cfg.fuelOn) run.fuel = Math.min(run.fuel, a.paso.nafta);
+        if (a.paso.chafitas) chapitasSys.ponerCargas(Math.max(run.chapitas | 0, a.paso.chafitas));   // las chafitas para practicar
         // LA PAUSA GUIADA (`abre`): el juego abre la pausa sola, en CONTROLES y en la pestaña que se explica
         if (a.paso.abre) {
           paused = true; pauseSel = 0; pauseView = 'controls'; pauseMsgT = -9;
@@ -5819,18 +5804,21 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     }
     /** LAS MARCAS DEL TUTORIAL: un anillo que late y una flecha arriba de cada blanco de practica. Van sobre
      *  el mundo; en la pausa de una linea, encima del velo (lo que se explica no se tapa). */
+    const MARCA_TUT = '#6fe3ff';
     function marcasTutorial(tReloj) {
       if (!libro || !libro.tut) return;
       for (const o of obstacles) {
         if (!o.practica || o.done || !(o.hp > 0) || o.z <= PZ + 3) continue;
         const s = proj(o.x, o.y || 0, o.z);
         if (!(s.k > 0)) continue;
-        const r = Math.max(5, (o.type === 'jet' ? 5 : 3.2) * s.k) + 1.5 * Math.sin(tReloj * 6);
+        // (21/11, el autor: "la mira de los globos u objetivos son demasiado gordos y se pierden con la mira, deben tener
+        // otro color"): celeste y fina — la mira es naranja/acento, y el anillo del blanco no puede parecerse
+        const r = Math.max(4, (o.type === 'jet' ? 4.5 : 2.8) * s.k) + 0.8 * Math.sin(tReloj * 6);
         ctx.save();
-        ctx.strokeStyle = P.accent; ctx.fillStyle = P.accent; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.95;
+        ctx.strokeStyle = MARCA_TUT; ctx.fillStyle = MARCA_TUT; ctx.lineWidth = 0.7; ctx.globalAlpha = 0.9;
         ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.stroke();
-        const ya = s.y - r - 3 - 2 * Math.abs(Math.sin(tReloj * 4));
-        ctx.beginPath(); ctx.moveTo(s.x, ya); ctx.lineTo(s.x - 4, ya - 6); ctx.lineTo(s.x + 4, ya - 6); ctx.closePath(); ctx.fill();
+        const ya = s.y - r - 2 - 1.5 * Math.abs(Math.sin(tReloj * 4));
+        ctx.beginPath(); ctx.moveTo(s.x, ya); ctx.lineTo(s.x - 2.5, ya - 4); ctx.lineTo(s.x + 2.5, ya - 4); ctx.closePath(); ctx.fill();
         ctx.restore();
       }
     }
@@ -7456,44 +7444,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       }
       }
       // nubes
-      for (const c of clouds) {
-        const cx = ((c.x - cam.x * 2.2 - run.t * 2 - zfx) % (W + 120) + W + 120) % (W + 120) - 60;
-        drawNube(cx, c);
-      }
+      drawNubesCielo(zfx, solPant);
       // LOS RAYOS DE LA TORMENTA, al fondo: despues del cielo y las nubes, antes de las sierras (render/rayos.js)
       if (cfg.sky === 'storm') drawRayos(rayosVivos());
       drawFrenteMuro();   // la pared del FRENTE DE TORMENTA, con el fondo (render/frente.js)
-      // COLINAS en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo;
-      // la imagen de clima queda detras como relleno). Cresta QUEBRADA sorteada por seed y en
-      // DOS TONOS — las laderas que miran al sol (izquierda) se iluminan, las otras quedan en
-      // sombra. El dibujo viejo eran dos triangulos planos de un solo color: carton pintado.
-      for (const is of isles) {
-        const ix = ((is.x - cam.x * 3.5 - zfx) % (W + 160) + W + 160) % (W + 160) - 80;
-        const hsh = n => { const v = Math.sin(is.seed * 12.9898 + n * 78.233) * 43758.5453; return v - Math.floor(v); };
-        const N = 6, peak = 1 + Math.round(hsh(99) * (N - 2));
-        const ys = [0];                                   // altura de cada vertice de la cresta
-        for (let j = 1; j < N; j++) {
-          const env = 1 - Math.abs(j - peak) / Math.max(peak, N - peak);
-          ys.push(is.h * (0.3 + 0.7 * env) * (0.7 + hsh(j) * 0.55));
-        }
-        ys.push(0);
-        const xj = j => ix + (j / N) * is.w;
-        ctx.fillStyle = P.island;                         // masa base (el lado en sombra)
-        ctx.beginPath(); ctx.moveTo(ix, HOR + 1);
-        for (let j = 1; j <= N; j++) ctx.lineTo(xj(j), HOR + 1 - ys[j]);
-        ctx.fill();
-        ctx.fillStyle = '#2a3844';                        // laderas al sol: las que SUBEN
-        for (let j = 0; j < N; j++) {
-          if (ys[j + 1] <= ys[j]) continue;
-          ctx.beginPath();
-          ctx.moveTo(xj(j), HOR + 1 - ys[j]); ctx.lineTo(xj(j + 1), HOR + 1 - ys[j + 1]);
-          ctx.lineTo(xj(j + 1), HOR + 1); ctx.lineTo(xj(j), HOR + 1);
-          ctx.fill();
-        }
-        ctx.globalAlpha = 0.35;                           // bruma al pie: asienta la sierra
-        px(ix, HOR - 1, is.w, 2, theme.sky.horizon);
-        ctx.globalAlpha = 1;
-      }
+      // LAS SIERRAS en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo; la imagen de clima
+      // queda detras como relleno). Horneadas en pixel art como las nubes, con laderas al sol, roca, nieve y una
+      // cordillera lejana detras (22/11, render/sierras.js). El dibujo viejo era un poligono en dos tonos planos.
+      drawSierras(isles, zfx, solPant);
 
       // RELLENO BAJO EL MUNDO, cuando rota (alabeo del momentum, u HORIZONTE GIRATORIO): con el
       // mundo girado la esquina de abajo deja de estar tapada por el borde de la pantalla.
@@ -7506,7 +7464,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (S.state === 'momentum' || mundoGira) px(-70, H, W + 140, 150, cfg.terrain === 'land' ? theme.land.near : theme.water.base2);
       // EL BUQUE DE LA APROXIMACION va EN EL HORIZONTE: adentro del suelo, antes de las lomadas (13/11 — ver
       // `alHorizonte` en render/world.js drawSea), asi todo lo que se levanta lo tapa
-      const barcoHorizonte = runClimax() === 'suelta' ? null : () => world.drawApproachBarge(objectiveDist, objectiveShip,
+      const barcoHorizonte = runClimax() === 'suelta' || sinObjetivoVisible() ? null : () => world.drawApproachBarge(objectiveDist, objectiveShip,
         S.state === 'pulso' ? fxLejos(pulso.shipFx(pulsoRender.ventana(cine.state(), run.t))) : null,
         runClimax() === 'pasada' && S.state !== 'pulso');
       if (!world3D.isSea()) world.drawSea(barcoHorizonte);   // el mar 2D solo cuando three no lo esta poniendo
@@ -7545,7 +7503,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (runClimax() === 'suelta') { drawBlanco(); drawRecibe(); const sws = seawolfSys.snapshot(PZ); drawHumoSW(sws); drawZonaSW(sws, PZ); drawArtilleria(artilleria.snapshot()); }
       // cuña roja en el horizonte: hacia donde vamos. En LA SUELTA no: el buque ya esta en el mundo y
       // lleva su propia flecha de cerca — dos marcas para lo mismo eran "muchas flechas" (23/9).
-      if (runClimax() !== 'suelta') world.drawObjectiveMarker(objectiveDist, { nombre: nombreObjetivo(), km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null });
+      if (runClimax() !== 'suelta' && !sinObjetivoVisible()) world.drawObjectiveMarker(objectiveDist, { nombre: nombreObjetivo(), km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null });
       world.drawWake();
       // EL REFLEJO DE LA LUNA, con el agua y debajo de lo que vuela (render/noche.js, 4/10)
       drawReflejoLuna(nocheDe(cfg.sky), solPant);
@@ -7886,7 +7844,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (hzW) ctx.restore();
       }
       // EL HUD DE LA SUELTA: cabina, nivelado, sobre el avion (la foto la arma el sistema).
-      if (S.state === 'play' && runClimax() === 'suelta') drawBlancoHud(blancoSys.hud());
+      if (S.state === 'play' && runClimax() === 'suelta') drawBlancoHud(blancoSys.hud(), !!(dlgPausa && lecFoco && lecFoco.foco.includes('semaforo')));
       // EL GLOBO DE TU SEÑA (data/senales.js), encima del avion: el ala de canto tapaba el texto
       if (S.state === 'play' && senalGlobo) squadRender.drawSenalPropia(senalGlobo);
       // LA COLA, segunda pasada: lo que quedo MAS CERCA que el avion — el sobrepaso enorme
@@ -8156,7 +8114,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // mi cara (el globo quedaria debajo de la caja de charla) y va arriba con las demas.
         // …SALVO CON EL DIALOGO CONGELADO: ahi la linea se dice en la caja grande de las pantallas
         // (abajo, con el velo), y dejar tambien el toast seria el mismo texto dos veces.
-        if (!dlgPausa) { if (cfg.radioUI === 'panel') screens.drawRadioPanel(); else screens.drawRadioVN({ charla: charla.hablando() }); }
+        if (!dlgPausa) { if (cfg.radioUI === 'panel') screens.drawRadioPanel(); else screens.drawRadioVN({ charla: charla.hablando() }); } else screens.vozSinRadio();
         // LA CHARLA EN VUELO, en su propia caja y un escalon arriba del toast. Va DESPUES de la
         // radio para que, si las dos coinciden, la conversacion quede encima del aviso.
         // SIEMPRE, con `dlg` en null cuando no hay charla: la caja del otro se va sola y para eso
@@ -8326,7 +8284,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           lecFoco.foco.forEach(id => {
             const z = zonaLeccion(id);
             if (!z) return;
-            const txt = T('foco_' + id), w = ctx.measureText(txt).width + 3;
+            // (21/11, el autor: "dice MACH y ya es brujula"): en las islas ese reloj es la brujula
+            const txt = T(id === 'mach' && islas.activa() ? 'foco_brujula' : 'foco_' + id), w = ctx.measureText(txt).width + 3;
             const cx = z.x + z.w / 2, abajo = z.y > DH / 2, y = abajo ? z.y - PADZ - 2 : z.y + z.h + PADZ + 5;
             ctx.globalAlpha = 0.9; ctx.fillStyle = '#0a0e11'; ctx.fillRect(cx - w / 2, y - 3.5, w, 4.5);
             ctx.globalAlpha = 0.85 + 0.15 * Math.sin(dlgT * 5); ctx.fillStyle = P.accent; ctx.fillText(txt, cx, y);
@@ -8339,6 +8298,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // de relojes—, la caja sube al techo.
         const arriba = zonas.some(z => z.y > DH / 2);
         ctx.save(); ctx.scale(U, U);
+        // EL MANDO DIBUJADO (render/mando.js, 21/11): la lamina del joystick o del teclado, sobre el velo
+        if (lecFoco && lecFoco.mando) { ctx.fillStyle = '#05080acc'; ctx.fillRect(0, 0, DW, DH); drawMando({ pad: padActivo(), t: performance.now() / 1000, a: Math.min(1, dlgT / 0.3) }); }
+        // LA BARRITA DEL RASANTE EN GRANDE (render/mando.js, 21/11), mientras la explican
+        if (lecFoco && lecFoco.demo === 'rasante') { const oy = arriba ? 48 : 0; ctx.fillStyle = '#05080aa8'; ctx.fillRect(0, 20 + oy, DW, 82); drawDemoRasante({ t: performance.now() / 1000, a: Math.min(1, dlgT / 0.3), oy }); }
         const caja = screens.cajaVN({
           personaje: radioBox.personaje, cara: radioBox.cara, wrap: radioBox.wrap,
           ease: radioBox.ease, cursor: dlgT > DLG_GRACIA && dlgTyped === Infinity, parpadeo: dlgT, barra: null, arriba, continuar: true,

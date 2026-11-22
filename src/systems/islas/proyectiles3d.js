@@ -42,6 +42,9 @@ function texRedonda() {
 }
 const HUMO_MAX = 2400, HUMO_VIDA = 5.5, HUMO_PASO = 7;
 const H = { obj: null, pos: null, tam: null, alfa: null, p: [], t: 0, ult: new WeakMap() };
+// LA ESTELA DEL ENEMIGO (21/11): el tamaño de la bocanada nueva y lo que crece al apagarse (m), y su opacidad de nacida
+const ESTELA_TAM = [3.2, 6], ESTELA_ALFA = 0.7;
+const TR = [];   // las bocanadas de la estela de este cuadro
 function crearHumo(escena) {
   const g = new THREE.BufferGeometry();
   H.pos = new THREE.BufferAttribute(new Float32Array(HUMO_MAX * 3), 3);
@@ -148,8 +151,13 @@ export function frame(lista, visible, mira = null, zoom = 1, dt = 1 / 60, medio 
       const llave = q.h || q;
       const u = H.ult.get(llave);
       if (!u) {
-        for (let i = 0; i < 9; i++) bocanada(q.p.x + (Math.random() - 0.5) * 8, q.p.y + Math.random() * 4, q.p.z + (Math.random() - 0.5) * 8, 7 + Math.random() * 6, 2.2, 7);
+        // (la nube del lanzamiento solo si salio ACA: el que entra a mitad de vuelo ya trae su tramo sembrado — `q.L`)
+        if (q.nace !== false) for (let i = 0; i < 9; i++) bocanada(q.p.x + (Math.random() - 0.5) * 8, q.p.y + Math.random() * 4, q.p.z + (Math.random() - 0.5) * 8, 7 + Math.random() * 6, 2.2, 7);
         H.ult.set(llave, { x: q.p.x, y: q.p.y, z: q.p.z });
+      } else if (q.L) {
+        // EL ENEMIGO TRAE SU ESTELA DEL CARRIL (islas.js `estelaCarril`, 21/11): una raya recta de humo desde el que lo tiro
+        // hasta la cabeza, que se dibuja nueva cada cuadro (no se queda en el mapa: si no, barria el agua en cada viraje)
+        for (const b of q.L) TR.push(b);
       } else {
         const d = Math.hypot(q.p.x - u.x, q.p.y - u.y, q.p.z - u.z);
         if (d > 300) { u.x = q.p.x; u.y = q.p.y; u.z = q.p.z; }   // (un salto: el carril se rehizo)
@@ -168,7 +176,15 @@ export function frame(lista, visible, mira = null, zoom = 1, dt = 1 / 60, medio 
     const b = H.p[i], u = (H.t - b.t0) / b.vida;
     H.pos.setXYZ(i, b.x, b.y + u * 6, b.z); H.tam.setX(i, b.tam * (1 + u * b.crece)); H.alfa.setX(i, 0.55 * (1 - u) * (1 - u));
   }
-  H.obj.geometry.setDrawRange(0, H.p.length);
+  // …y LA ESTELA DEL MISIL ENEMIGO, de este cuadro (`u` = su edad, 0..1): mas gruesa y mas opaca que la de las bocanadas,
+  // para que la raya se lea de lejos contra el mar (ESTELA_TAM, ESTELA_ALFA)
+  let n = H.p.length;
+  for (const b of TR) {
+    if (n >= HUMO_MAX) break;
+    H.pos.setXYZ(n, b.x, b.y + b.u * 5, b.z); H.tam.setX(n, ESTELA_TAM[0] + b.u * ESTELA_TAM[1]); H.alfa.setX(n, ESTELA_ALFA * (1 - b.u)); n++;
+  }
+  TR.length = 0;
+  H.obj.geometry.setDrawRange(0, n);
   H.pos.needsUpdate = H.tam.needsUpdate = H.alfa.needsUpdate = true;
   [R.puntos, R.grandes, R.bombas, R.sombras, R.halos].forEach((o, i) => { o.geometry.setDrawRange(0, capas[i].n); capas[i].p.needsUpdate = capas[i].c.needsUpdate = true; });
   R.lineas.geometry.setDrawRange(0, nl);

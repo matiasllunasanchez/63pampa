@@ -21,9 +21,13 @@
 // resueltos por el orquestador (game.js sabe de S.state, cfg.devcam y las mejoras), y gracias a
 // eso tools/feeltest.js lo corre tal cual, como a core/aero.js.
 
-import { TEMPO_SCALE, tempoNivel } from '../data/tuning.js';
+import { TEMPO_SCALE, TEMPO_SUAVE, tempoNivel } from '../data/tuning.js';
 
+// DOS NIVELES (21/11, el autor: "momentum tiene que durar mas y tener dos niveles: uno, y si apretas otra vez es igual
+// de lento que ahora"): el primer toque parte el tiempo SUAVE (TEMPO_SUAVE); otro toque con el poder puesto lo lleva
+// a lo lento de siempre (TEMPO_SCALE) con lo que queda de barra; el tercero lo corta. Duracion y recarga, en la tabla
 let on = false;        // ¿el tiempo esta partido AHORA?
+let fase = 0;          // 1 = suave, 2 = lento (el de siempre); 0 apagado
 let meter = 0;         // 0..1, la barra del especial (arranca VACIA: el primero tambien se espera)
 let dur = tempoNivel(0).dur;   // lo que dura el lanzado EN CURSO (se fija al lanzar, ver toggle)
 
@@ -32,12 +36,13 @@ let dur = tempoNivel(0).dur;   // lo que dura el lanzado EN CURSO (se fija al la
  * 'on' (lanzado) | 'off' (cortado a mano: descarta el resto) | 'empty' (la barra no esta llena).
  */
 export function toggle(nivel) {
-  if (on) { on = false; meter = 0; return 'off'; }
+  if (on && fase === 1) { fase = 2; return 'mas'; }
+  if (on) { on = false; fase = 0; meter = 0; return 'off'; }
   if (meter < 1) return 'empty';
   // LA DURACION SE FIJA AL LANZAR: si justo te llega una mejora con el especial corriendo, el que
   // ya lanzaste termina como empezo. Cambiarla en el aire haria saltar la barra que se vacia.
   dur = tempoNivel(nivel).dur;
-  on = true; return 'on';
+  on = true; fase = 1; return 'on';
 }
 
 /**
@@ -52,13 +57,13 @@ export function toggle(nivel) {
  */
 export function tick(dt, inPlay, nivel) {
   if (!inPlay) {
-    if (on) { on = false; meter = 0; }
+    if (on) { on = false; fase = 0; meter = 0; }
     return null;
   }
   let ready = null;
   if (on) {
     meter -= dt / dur;
-    if (meter <= 0) { meter = 0; on = false; }  // se agoto: el mundo vuelve de golpe
+    if (meter <= 0) { meter = 0; on = false; fase = 0; }  // se agoto: el mundo vuelve de golpe
   } else if (meter < 1) {                       // lanzado no recarga: primero se gasta el super
     meter = Math.min(1, meter + dt / tempoNivel(nivel).cast);
     if (meter >= 1) ready = 'ready';
@@ -67,7 +72,9 @@ export function tick(dt, inPlay, nivel) {
 }
 
 /** multiplicador del dt del mundo: 1 en tiempo real, TEMPO_SCALE con el poder lanzado. */
-export const scale = () => (on ? TEMPO_SCALE : 1);
+export const scale = () => (on ? (fase === 2 ? TEMPO_SCALE : TEMPO_SUAVE) : 1);
+/** 1 suave, 2 lento, 0 apagado (para el cartel y el HUD). */
+export const nivelFase = () => (on ? fase : 0);
 
 export const active = () => on;
 export const meterVal = () => meter;
@@ -75,7 +82,7 @@ export const meterVal = () => meter;
 /** arranque de partida: barra vacia, poder apagado. */
 /** Llena la barra (el TUTORIAL, para enseñarlo sin hacer esperar: data/tutorial.js `llena`). */
 export function llenar() { meter = 1; }
-export function resetTempo() { on = false; meter = 0; dur = tempoNivel(0).dur; }
+export function resetTempo() { on = false; fase = 0; meter = 0; dur = tempoNivel(0).dur; }
 
 // sondas para las pruebas headless (mismo patron que __adbg/__aset del arena)
 if (typeof window !== 'undefined') {

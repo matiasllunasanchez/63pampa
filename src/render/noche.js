@@ -21,6 +21,7 @@ import { NOCHE } from '../data/noche.js';
 import { tapaHorizonte } from './paredes.js';
 import { tapaColinas } from './colinas.js';
 import { techoGigante, trazarGigantes, oscuroGigante } from './world.js';
+import { drawVidaNoche } from './cielo_vida.js';
 
 /** Que noche hace con el cielo `sky` (null = de dia, no se oscurece nada). */
 export const nocheDe = sky => NOCHE.CIELOS[sky] || null;
@@ -154,6 +155,9 @@ export function drawNoche(n, astro, giro) {
     px(x - 0.5, y - 0.5, 1, 1, `rgb(${Math.min(255, cr + 40)},${Math.min(255, cg + 40)},${Math.min(255, cb + 40)})`);
   }
   ctx.restore();
+  // LA VIDA DEL CIELO DE NOCHE (21/11, el autor: "de noche alguna estrella fugaz, algun satelite, o rara vez algo
+  // desconocido"): encima de la oscuridad, que debajo no se verian (render/cielo_vida.js)
+  drawVidaNoche();
   ctx.restore();   // el giro
 }
 

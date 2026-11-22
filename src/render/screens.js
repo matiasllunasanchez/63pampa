@@ -1526,6 +1526,10 @@ let techoAhora = null, techoPrev = null;
  *  se dibuja antes que la voz, asi que mira el cuadro de antes — un cuadro no se ve. */
 export const techoBanda = () => techoPrev;
 function nuevoCuadroVoz() { techoPrev = techoAhora; techoAhora = null; propiaRadio = false; radioOtro = null; }
+/** CON EL DIALOGO CONGELADO no se dibuja el toast (drawRadioVN), y la caja de la derecha (drawCharla) seguia mostrando
+ *  la ultima linea de radio que vio: el remate del paso anterior quedaba al lado de la pausa nueva (21/11, el autor:
+ *  "quedo un dialogo de la etapa anterior"). game.js llama esto en vez de drawRadioVN mientras dura la pausa. */
+export const vozSinRadio = () => { nuevoCuadroVoz(); otroUlt = null; otroK = 0; };   // (y sin fundido: el reloj de la caja esta quieto)
 const subeTecho = y => { techoAhora = techoAhora == null ? y : Math.min(techoAhora, y); };
 const hablaYo = (yo, nombre) => !!(yo && nombre && sinTilde(nombre) === sinTilde(yo.nombre));
 

@@ -14,7 +14,7 @@ import { CABINA_ANCLAS } from '../data/cabina_anclas.js';
 import { drawManos } from './cabina.js';
 import * as glifos from './glifos.js';
 const GLIFO_H = 9;
-const FILA_H = 13;   // el alto de un cartel con mando: una sola fila (mando · texto · cuenta)   // el alto de la fila de mandos dibujados de un cartel (render/glifos.js)
+const FILA_H = 17;   // (22/11, el autor: "agrandemos la zona negra para que la flecha del stick se vea": la flecha sale 2 px por arriba y abajo de la perilla)   // el alto de un cartel con mando: una sola fila (mando · texto · cuenta)   // el alto de la fila de mandos dibujados de un cartel (render/glifos.js)
 const GLIFO_CUENTA = '4px monospace';   // la cuenta (1 / 2, 3 / 8 SEGS) al lado de los mandos
 import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
@@ -671,6 +671,7 @@ export function vozMin() {
 // la caja que la cinta ocupo ESTE cuadro. Se borra al empezar cada HUD: una caja vieja, de un
 // cuadro que ya paso, colgaria la radio de una cinta que no esta.
 let cajaCinta = null;
+let cajaZona = null;   // el ultimo lugar donde se dibujo ZONA RADAR / FUERA DE RADAR (zonaHud 'radar')
 export const cintaCaja = () => cajaCinta;
 // LA COLUMNA DERECHA, de arriba abajo, y las dos medidas juntas porque son la misma decision: los
 // primeros 12 px de esa esquina NO son del canvas (ahi vive el boton de sonido, que es HTML — ver
@@ -777,6 +778,7 @@ export function zonaHud(id) {
   if (id === 'temp') return { x: X_MACH, y: CUADROS_Y - CUADRO - 4, w: CUADRO, h: CUADRO };   // el termometro (drawTemperatura)
   if (id === 'rack') return { x: X_RACK, y: CUADROS_Y, w: RACK_W, h: CUADRO };
   if (id === 'ruta') return cajaCinta ? { x: cajaCinta.x, y: MARGEN, w: cajaCinta.w, h: 11 } : null;
+  if (id === 'radar') return cajaZona;   // (21/11, el autor: "no se explican que el indicador es la zona de radar")
   return null;
 }
 
@@ -2466,6 +2468,7 @@ export function drawAlerta(x, y, w, n, prog, fuera, propio, bandera) {
     .map(k => Math.ceil(ctx.measureText(T(k)).width) + 10 + (bandera ? 9 : 0)));
   const wTot = RADAR_W - 1 + wz;
   cajaIzq.der = x + wTot; cajaIzq.abajo = y + ALERTA_H;   // (los carteles no la pisan: drawCartel)
+  cajaZona = { x, y, w: wTot, h: ALERTA_H };   // (la zona del foco 'radar' del tutorial, 21/11)
   if (alertaK < 1) {
     plate(x + RADAR_W - 1, y, wz, ALERTA_H);
     // TRES COSAS QUE PUEDE DECIR, y las tres son el mismo dato en tres momentos:
@@ -3277,7 +3280,10 @@ export function drawHUD(h) {
     // sin marca de techo FUERA DE RADAR: no hay techo (PLAN_NAFTA_ALCANCE N2)
     marcas: divNafta.concat(h.fueraRadar || h.sinRadar ? [] : [[fA(techo), P.warn]]).concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
       // EL SALTO: la altura del buque debajo de tu linea, en amarillo, desde que soltas hasta el cruce
-      .concat(h.saltoAlt != null ? [[fA(h.saltoAlt), SALTO_COL]] : []).concat([[fA(ALTO.NUBES), P.foam]]),
+      .concat(h.saltoAlt != null ? [[fA(h.saltoAlt), SALTO_COL]] : []).concat([[fA(ALTO.NUBES), P.foam]])
+      // EL TECHO DE PERFECTO (21/11, el autor: "marcar el limite final de perfecto"): con los poderes, la marca larga
+      // en el acento donde PERFECTO deja de cargar — abajo de esa raya se carga el RASANTE
+      .concat(cfg.poderes !== false ? [[fA(PERF_ALT), P.accent]] : []),
     // …y EL BORDE DE LA PLACA en verde, FIJO mientras estes en altura de soltar (se lee de reojo sin
     // buscar la aguja, como el borde del turbo en el velocimetro) y TITILANDO cuando ademas es el
     // momento de soltar: el mismo latido que la cinta y el estante.

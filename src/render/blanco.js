@@ -17,6 +17,7 @@ import { estructura } from '../data/estructuras.js';
 import { PERFIL } from '../data/blanco.js';
 import { mez } from './paredes.js';
 import { flechaIn } from './rotulo.js';
+import { T } from '../core/i18n.js';
 import * as enemyArt from './enemies.js';
 import { drawMira } from './miras.js';
 import * as fuego from './fuego.js';
@@ -384,7 +385,10 @@ function corchetes(listo, alt, previa) {
   // corchetes y mira dicen "ahora" junto con la cinta, el altimetro y el estante.
   // …y ANTES, en la PREVIA (8/10): verde FIJO —llegando a la zona, corregi—; titila recien cuando es ya
   const verde = !!listo && Math.floor(performance.now() / 160) % 2 === 0;
-  const COL = listo ? (verde ? '#7fe07a' : '#2e8f3a') : previa ? '#7fe07a' : P.warn;
+  // (21/11, el autor: "el borde corchete verde CONFUNDE"): los corchetes ya no se ponen verdes — dicen "ahi esta el
+  // blanco" y nada mas. CUANDO soltar lo dice el SEMAFORO de arriba (`semaforo`)
+  void verde;
+  const COL = '#e8eef0';
   // EL MISMO APARECER DEL BUQUE (drawBlanco), tres veces mas rapido: enteros al primer tercio
   const apM = Math.min(1, 3 * Math.max(0, (BL.VISIBLE_Z - blanco.z) / (BL.VISIBLE_Z - BL.APARECE_Z)));
   if (apM <= 0) return;
@@ -422,13 +426,52 @@ function corchetes(listo, alt, previa) {
  *  QUEDO SOLO LA MARCA DEL BLANCO (playtest 23/9: "el texto de arriba, con metros y pasada y que se
  *  yo, quitalo"). La distancia, las bombas y la luz de SOLTA se fueron: el momento de soltar lo
  *  dicen Puma por radio y el tablero titilando en verde (render/hud.js), y la altura el altimetro. */
-export function drawBlancoHud(h) {
-  if (!h || !h.enAtaque) return;
+// `forzar`: el tutorial lo esta nombrando (foco 'semaforo'): el semaforo sale aunque el buque no este a tiro todavia
+export function drawBlancoHud(h, forzar) {
+  // (el paso del tutorial que lo nombra llega antes de que el buque se arme: sin foto, el semaforo en LEJOS)
+  if (!h || !h.enAtaque) { if (forzar) semaforo(h || {}, true); return; }
   corchetes(h.listo, h.alt, h.previa);
+  semaforo(h);
   // LA MIRA SOLO EN VERDE: en la ventana de distancia Y a buena altura. Antes adentro de los
   // corchetes iba tambien una cuenta atras en numeros; el autor los saco el 26/9 ("quitemos los
   // numeros dentro"), asi que lo que queda es binario y se lee de un golpe: o hay mira, o no hay.
   if (h.listo) mira();
+}
+
+/** EL SEMAFORO DE LA SUELTA (21/11, el autor: "no queda claro cuando y como es el momento en donde hay que lanzar la
+ *  bomba"; "el borde corchete verde confunde"; "no tenes forma de medir segundos"). Arriba al medio, con su titulo:
+ *  RECORRIDO DE BOMBA y tres luces. Lo que dice cada una no pide medir nada:
+ *    ROJO      lejos todavia (o fuera de altura: la palabra dice SUBI o BAJA)
+ *    AMARILLO  ya llega: preparate (la PREVIA, BL.PREVIA_S antes de la ventana)
+ *    VERDE     ¡SOLTA! — soltar AHORA pega armada (`listo`, el mismo dato que la mira y el tablero)
+ *  y si la ventana se fue sin soltar, ROJO con TARDE. */
+// (a la derecha y debajo del horizonte: arriba al medio lo pisaban los carteles — OTRA PASADA, TOMA DISTANCIA)
+export const SEMAFORO = { x: W - 84, y: 108, w: 64, h: 30 };   // (en coordenadas de mundo; el foco del tutorial)
+function semaforo(h, forzar) {
+  if (!forzar && blanco.z < PZ) return;
+  const est = h.listo ? 2 : h.tarde ? -1 : h.alt ? 0 : h.previa ? 1 : 0;
+  const txt = h.listo ? T('semSolta') : h.tarde ? T('semTarde') : h.alt < 0 ? T('semBaja') : h.alt > 0 ? T('semSubi')
+    : h.previa ? T('semPrepara') : T('semLejos');
+  const late = Math.floor(performance.now() / 160) % 2 === 0;
+  const cx = SEMAFORO.x + SEMAFORO.w / 2, y = SEMAFORO.y, LW = SEMAFORO.w, LH = SEMAFORO.h;
+  ctx.save();
+  ctx.globalAlpha = 0.9; ctx.fillStyle = '#070b0f'; ctx.fillRect(cx - LW / 2, y, LW, LH);
+  ctx.globalAlpha = 1; ctx.strokeStyle = est === 2 ? VERDE_SUELTA : '#5d6a71'; ctx.lineWidth = 1;
+  ctx.strokeRect(cx - LW / 2 + 0.5, y + 0.5, LW - 1, LH - 1);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = 'bold 6px monospace'; ctx.fillStyle = P.dim;
+  ctx.fillText(T('semTitulo'), cx, y + 6);
+  // las tres luces: apagadas oscuras, la del estado prendida (la verde late con el tablero)
+  const luces = [['#ff4a3a', '#3a1512'], ['#ffcf3a', '#3a3112'], [VERDE_SUELTA, '#123a18']];
+  luces.forEach(([on, off], i) => {
+    const prende = i === Math.max(0, est) && !(i === 2 && !late);
+    ctx.fillStyle = prende ? on : off;
+    ctx.beginPath(); ctx.arc(cx - 14 + i * 14, y + 15, 4, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.font = 'bold 7px monospace';
+  ctx.fillStyle = est === 2 ? VERDE_SUELTA : est === 1 ? '#ffcf3a' : '#ff6a5a';
+  ctx.fillText(txt, cx, y + 25);
+  ctx.restore();
 }
 
 /** LA MIRA SOBRE EL BUQUE: la MISMA que usa el avion — la que cada uno eligio en OPCIONES

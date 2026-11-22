@@ -28,7 +28,9 @@ export function glifosDe(texto, pad) {
   const gesto = pad && grupos.length === 1 && /\bstick\b/i.test(grupos[0]) && /\b[RL]3\b/.test(grupos[0]);
   if (gesto) {
     const st = glifosDe(grupos[0].split('+')[0].trim(), true)[0];
-    if (st && st.k === 'stick') return [{ ...st, mantiene: true, clic: true }];
+    // (21/11, el autor: "el R3 esta re chico"): el R3 escrito adentro del hongo no se leia; al lado va su boton, a la
+    // altura entera del glifo
+    if (st && st.k === 'stick') return [{ ...st, mantiene: true, clic: true }, { k: 'hombro', t: st.lado + '3' }];
   }
   if (pad && grupos.some(g => g.includes('+'))) {
     return grupos.flatMap((g, gi) => [...(gi ? [{ k: 'sep' }] : []),
@@ -186,7 +188,7 @@ export function teclaGenerica(x, y, h, t, pad) {
 const AIRE = 1;   // (21/11, "linea visual mas corta": menos aire entre mandos)
 /** Cuanto mide cada glifo de ancho, con el alto `h`. */
 function ancho(g, h) {
-  if (g.k === 'sep') return 3;
+  if (g.k === 'sep') return 6;   // la «ó» entre alternativas (22/11, el autor: "la letra ó con acento en vez del |")
   if (g.k === 'stick') return h + (g.dirs.length ? 2 : 0) + (g.veces > 1 ? 8 : 0);
   if (g.k === 'cara' || g.k === 'cruceta' || g.k === 'rola') return h;
   ctx.font = FUENTE(h);
@@ -226,7 +228,8 @@ export function dibujar(lista, x, y, h, t = 0, col = '#e8eef0', ritmo = false) {
     if (aprieta && g.k !== 'stick') y += 1;
     const my = y + h / 2;
     if (g.k === 'sep') {
-      ctx.fillStyle = '#5d6a71'; ctx.fillRect(Math.round(cx + w / 2), Math.round(y + h * 0.3), 1, Math.max(2, Math.round(h * 0.4)));
+      ctx.font = `bold ${Math.max(4, Math.round(h * 0.6))}px monospace`; ctx.fillStyle = '#9aa7ad';
+      ctx.fillText('ó', cx + w / 2, my + 0.5);
     } else if (g.k === 'tecla') {
       // LA TECLA: la tapa clara, el borde de abajo mas oscuro (la profundidad) y la letra
       ctx.fillStyle = '#5b666c'; redondo(cx, y + 1, w, h - 1, 1.6); ctx.fill();

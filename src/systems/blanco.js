@@ -743,6 +743,8 @@ export function hud() {
     alt: vivo && aTiro()
       ? (plane.y > altIdeal()[1] ? -1 : plane.y < altIdeal()[0] ? 1 : 0) : 0,
     enAtaque: vivo && aTiro(),
+    // SE PASO LA VENTANA: la tuvo y ya no (el semaforo dice TARDE — render/blanco.js `semaforo`, 21/11)
+    tarde: vivo && aTiro() && !!blanco.tuvoVentana && !blanco.enDist && !blanco.listo,
     rack: { ala: blanco.ala, alaN: blanco.alaN, centroN: blanco.centroN, bloqueada: !aTiro(), bomba: blanco.bomba, trabada: blanco.trabada },
     // LA ALTURA DEL SALTO: desde que soltaste hasta el cruce, cuanto mide el buque justo debajo de
     // tu linea — por encima de eso pasas limpio. La marca amarilla del altimetro.

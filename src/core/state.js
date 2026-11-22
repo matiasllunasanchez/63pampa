@@ -182,6 +182,8 @@ export const cfg = {
   // quedaba con el gabinete de marco. El ARRANQUE sigue siendo en el fichin (game.js, 21/10): al echar la
   // ficha se acerca y pasa a este.
   fondo: 'resplandor',
+  // EL EFECTO CRT (22/11): scanlines + fosforo + viñeta en CSS (#crt en styles.css). Prendido de fabrica.
+  crt: 'si',
   // …y cuan cerca se lo mira: 1 el gabinete entero, 2 hasta la mitad de las manos, 3 un poco mas.
   // El 2 de fabrica el 3/10; el 3 desde el 4/10 (autor).
   fichinZoom: 3,   // al arrancar lo pisa zoomDePantalla() (render/ambiente.js): notebook 3, 1920 el 2, 4K el 1

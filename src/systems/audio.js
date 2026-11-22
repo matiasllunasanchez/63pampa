@@ -101,11 +101,15 @@ const SOLO_ORIGINAL = true;   // ver setRunMusic (21/11)
 const musMision = new Audio(); musMision.volume = 0.22;
 let enMision = false, misionSrc = '';
 /** Carga en musMision una pista de MUSIC_MISION al azar, distinta de la anterior. */
+// EL AZAR CON EXTRAS (`musica: 'azar:carpeta/archivo|…'` — 22/11, el autor: "misty mountains y todos los temas
+// originales en el mapa de islas libre, de forma aleatoria"): el mismo sorteo de music/original con esas pistas sumadas
+let azarPool = null;
 function sortearMision() {
-  if (!MUSIC_MISION.length) return false;
+  const pool = azarPool || MUSIC_MISION;
+  if (!pool.length) return false;
   let src;
-  do src = MUSIC_MISION[(Math.random() * MUSIC_MISION.length) | 0];
-  while (MUSIC_MISION.length > 1 && src === misionSrc);
+  do src = pool[(Math.random() * pool.length) | 0];
+  while (pool.length > 1 && src === misionSrc);
   misionSrc = src; musMision.src = src;
   return true;
 }
@@ -956,6 +960,9 @@ export function setRunMusic(isCampaign, level, keep, prueba, pista, mision) {
     // pruebas y los modos sueltos tambien sortean de ahi. Para volver a lo de antes: SOLO_ORIGINAL = false.
     const fija = typeof pista === 'string' && pista.startsWith('original:') ? pista.slice(9) : null;
     const lista = typeof pista === 'string' && pista.startsWith('lista:') ? pista.slice(6) : null;
+    const azar = typeof pista === 'string' && pista.startsWith('azar:') ? pista.slice(5) : null;
+    azarPool = azar ? [...MUSIC_MISION, ...azar.split('|').map(x => x.trim()).filter(Boolean)
+      .map(r => '../assets/music/' + r.split('/').map(encodeURIComponent).join('/'))] : null;
     misionLista = null;
     misionFija = lista ? fijarLista(lista) : !!fija && fijarMision(fija);
     enMision = misionFija || ((SOLO_ORIGINAL || (!!mision && !prueba && pedida < 0)) && sortearMision());

@@ -177,8 +177,11 @@ export function paso(dt, P, pz, boom, jugando) {
     if (c.d < pz + 40 || Math.abs(c.l) > c.d * 0.8) return false;   // atras o de costado
     // LEJOS: la trazadora no llega; el MISIL entra al carril desde `tiro` adelante, en la linea del que lo tiro (como si
     // ya viniera volando: el pasillo no tiene donde poner algo a 9 km)
+    // (`atras`: cuanto le falta al tramo hasta el que lo tiro — islas.js dibuja ese tramo de humo hacia atras, para que se
+    // lea de donde salio; 21/11, el autor: "los misiles que salen de los barcos: no queda claro adonde tiran")
+    const atras = Math.max(0, c.d - tiro);
     if (c.d > tiro) { if (tipo === 'traza') return false; c.l *= tiro / c.d; c.d = tiro; }
-    const m = { x: c.l + i * 9 * (i % 2 ? 1 : -1), y: Math.max(1, y - P.g), z: c.d + pz + i * 8, done: false, tracer: tipo === 'traza', teatro: true };
+    const m = { x: c.l + i * 9 * (i % 2 ? 1 : -1), y: Math.max(1, y - P.g), z: c.d + pz + i * 8, done: false, tracer: tipo === 'traza', teatro: true, atras };
     if (tipo === 'dart') m.tipo = 'dart';
     else if (tipo === 'cat' || tipo === 'wolf') { m.tipo = 'wolf'; m.def = tipo; m.vx = 0; m.vy = 0; }
     missiles.push(m);

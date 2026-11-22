@@ -35,7 +35,7 @@ import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R, EYEC_ASIENTO_T } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
 import { OLA_GIGANTE } from '../data/tuning.js';
-import { MAR_HONDO, MAR_GRANO, OLA_CRESTA, PIQUE, SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, RADAR_MARCO_LIBRE, RADAR_MARCO_LLENO, RADAR_MARCO_LINEAS, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
+import { MAR_HONDO, MAR_GRANO, OLA_CRESTA, ESPUMA_VAR, MAR_LEJOS, PIQUE, SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, RADAR_MARCO_LIBRE, RADAR_MARCO_LLENO, RADAR_MARCO_LINEAS, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
   ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD, ESTELA_TURBO, ESTELA_TURBO_A } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
 import { SHIP_CLASS } from '../data/ships.js';
@@ -1280,6 +1280,68 @@ function juntarOlas(dv) {
  *  ventana coincida con el mar dibujado es de JUSTICIA, ver el comentario de arriba. */
 export function olasDelCuadro() { return juntarOlas(); }
 
+/** EL MAR DE LEJOS (21/11, el autor: "cuando venis desde muy alto se nota el ancho total del mar/olas, se ve el
+ *  borde; variables aunque sea relleno"). Desde arriba el campo de puntos (SEA_FAR_Z) quedaba abajo de la
+ *  pantalla como una alfombra con borde, y de ahi al horizonte el mar era un degrade liso. Esto lo rellena:
+ *  motas de espuma sueltas de aca al horizonte, a todo lo ancho.
+ *
+ *  FIJAS AL MUNDO. Se recorre en BANDAS de profundidad [z, 2z) y en cada una la grilla tiene paso potencia de
+ *  dos (en z y en x), anclada a la distancia recorrida: la grilla de una banda contiene a la de la siguiente,
+ *  y el sorteo de la mota es un hash del punto de MUNDO — la mota que cruza de banda sigue ahi. El BRILLO sale
+ *  del mismo mar (core/sea.js): la marejada larga rueda por debajo y se lee como franjas, las olas largas que
+ *  se ven desde arriba. Y el sorteo pasa por una MANCHA grande: hay zonas de espuma y zonas lisas.
+ *
+ *  Barato a proposito: un hash por candidato y la cuenta del mar solo para las que salen. Volando rasante
+ *  cae todo en los ultimos dos o tres pixeles del horizonte y casi no corre. */
+function marLejano(dv, farZ, clima, landVisible, coastMode, geoOn) {
+  const R = MAR_LEJOS, k0 = cam.y * F;
+  if (cam.y < 0.5) return;
+  const zIni = Math.max(farZ * R.DESDE, k0 / (rowEnd() - HOR + 2));   // lo mas cerca que asoma en pantalla
+  const zFin = k0 / R.HOR_PX;                                         // pegado al horizonte, nada
+  const pMar = R.P[clima] || R.P.calm, foam = theme.water.crest, spark = theme.water.spark;
+  for (let zB = zIni; zB < zFin; zB *= 2) {
+    const zm = zB * 1.41, zTope = Math.min(zB * 2, zFin);
+    const dzW = Math.max(0.25, 2 ** Math.round(Math.log2(R.FILA_PX * zm * zm / k0)));
+    const dxW = Math.max(0.25, 2 ** Math.round(Math.log2(R.COL_PX * zm / F)));
+    for (let wz = Math.ceil((dv + zB) / dzW) * dzW; wz < dv + zTope; wz += dzW) {
+      const camZ = wz - dv, k = F / camZ;
+      if (landVisible && wz < cfg.coast + PORT_AMP + PORT_FOAM) continue;
+      let xL = -Infinity, xR = Infinity;
+      if (geoOn) {
+        const suelo = sueloEn(wz);
+        if (suelo === 'land' || playaCerca(wz)) continue;
+        if (suelo === 'coast') { const S0 = orillaS(wz); if (ladoEn(wz) > 0) xL = S0 + 1; else xR = -S0 - 1; }
+      } else if (coastMode) xL = shoreAt(wz) + 1;
+      // entra de a poco donde terminan los puntos, y se apaga contra el horizonte
+      const entra = Math.min(1, (camZ - farZ * R.DESDE) / (farZ * (1 - R.DESDE)));
+      const dy = k0 / camZ;
+      const filo = Math.min(1, (dy - R.HOR_PX) / 4);
+      const aFila = R.ALFA * SEA_ALPHA2D * entra * filo;
+      if (aFila <= 0.02) continue;
+      const cx = cam.x - bendW(camZ), half = (W / 2 + 70) / k;
+      const x0 = Math.ceil(Math.max(xL, cx - half) / dxW) * dxW, x1 = Math.min(xR, cx + half);
+      const iz = Math.round(wz * 4);
+      const largo = Math.max(1, Math.min(4, k * 1.6));                // px de la mota: de lejos un punto
+      for (let wx = x0; wx < x1; wx += dxW) {
+        const hx = Math.round(wx * 4);
+        const hs = hash2(hx, iz);
+        if (hs > pMar * 1.6) continue;                                // rapido: casi nadie pasa
+        const m = ruido(wx / R.MANCHA, wz / R.MANCHA, 919);           // la mancha: 0 liso … 1 cargado
+        if (hs > pMar * (0.2 + m * 1.4)) continue;
+        const h = seaBase(wx, wz, run.t, clima);
+        let hn = (h + 1.4) / 4.8; hn = hn < 0 ? 0 : hn > 1 ? 1 : hn;
+        const a = aFila * (0.25 + hn * hn * 1.1);
+        if (a <= 0.03) continue;
+        const h2 = hash2(hx + 17, iz - 29);
+        ctx.globalAlpha = Math.min(1, a);
+        const sxp = W / 2 + (wx - cx) * k, syp = HOR + (cam.y - h) * k;
+        pxFino(sxp - largo * (0.5 + h2) / 2, syp, largo * (0.5 + h2), 0.5, hn > 0.8 && h2 > 0.6 ? spark : foam);
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
 function drawSeaDots(landVisible, coastMode, geoOn) {
   const SPX = 0.93, SPZ = 1.0, farZ = SEA_FAR_Z;  // densidad x4, y ademas /U al subir la resolucion
   const dv = run.dist + momentum.drift();
@@ -1298,15 +1360,26 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
   // …salvo la LUNA (autor, 4/10: "el reflejo de la luna esta feo, este largo, quitalo"): de noche el
   // camino de luz se leia como una escalera de bloques blancos hasta el avion.
   const astro = !!SKY_ASTRO[cfg.sky] && cfg.sky !== 'moon';
-  const startZ = Math.ceil((dv + 4) / SPZ) * SPZ;
+  // DESDE ALTO, lo de abajo de la pantalla ya esta lejos: se arranca en la primera fila que asoma (con 10 m de
+  // margen por si una ola levanta los puntos). A ras no cambia nada; arriba se ahorra recorrer filas invisibles
+  // (21/11: con las filas mas juntas de `pasoFila`, a 300 m eran cientos)
+  const zVis = Math.max(4, (cam.y - 10) * F / (rowEnd() - HOR + 4));
+  const startZ = Math.ceil((dv + zVis) / SPZ) * SPZ;
   // paso ADAPTATIVO: cerca muestrea a SPZ/SPX plenos; lejos el paso crece para mantener
   // ~1px de separacion en pantalla (los puntos subpixel no se ven y este loop corre
   // TODO el vuelo — el mar es 2D siempre fuera del momentum)
-  const G = MAR_GRANO, rampa = rampaOla();
+  const G = MAR_GRANO, rampa = rampaOla(), EV = ESPUMA_VAR;
+  const pasoFila = Math.min(0.0019, MAR_LEJOS.FILA_ALTO / (Math.max(1, cam.y) * F));
+  const desdeAlto = pasoFila < 0.0019;   // …y entonces cada punto se corre en z dentro de su fila: sin renglones
+  // EL RELLENO DE LEJOS va primero: los puntos de cerca se pintan encima (21/11, ver marLejano)
+  marLejano(dv, farZ, clima, landVisible, coastMode, geoOn);
   let wz = startZ;
   while (wz < dv + farZ) {
     const camZ = wz - dv, wzFila = wz;
-    const pasoZ = Math.max(SPZ, camZ * camZ * 0.0019);
+    // DESDE ALTO, FILAS MAS JUNTAS (21/11, el autor: "cuando venis desde muy alto … se ve el borde"): el 0,0019
+    // daba ~1 px entre filas a la altura del rasante, pero la separacion en pantalla crece con cam.y — a 60 m
+    // eran 15 px y el mar se leia como renglones de puntos. Se topa en FILA_ALTO px (ver `pasoFila`)
+    const pasoZ = Math.max(SPZ, camZ * camZ * pasoFila);
     wz += pasoZ;
     // sin puntos sobre tierra ni rompiente. La orilla del puerto SERPENTEA (portJut), asi que a
     // esta profundidad puede haber columnas de agua y columnas de tierra: solo se descarta la fila
@@ -1332,7 +1405,9 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
     const dotW = Math.min(G.TAM_MAX, Math.max(G.TAM_MIN, k * G.TAM));
     // franja acorde al FRUSTUM: el ancho visible crece con la distancia (antes era ±74 fijo
     // y el mar quedaba "cortito" a lo lejos, p.ej. detras de la pista durante el despegue)
-    const half = Math.min(320, (W / 2 + 10) * camZ / F + 6);
+    // (21/11, el autor: "se ve el borde" — sin el tope de 320 m: lejos, la pantalla abarca mas que eso y el
+    // campo se cortaba a los costados. No cuesta: lejos el paso en x crece con la distancia, ~350 columnas igual)
+    const half = (W / 2 + 10) * camZ / F + 6;
     // EL EJE DE LA PANTALLA A ESTA PROFUNDIDAD (zigzag Z1). Los puntos se dibujan con proj(), que
     // ya dobla — pero QUE PUNTOS se recorren sale de esta ventana, y si quedara centrada en
     // cam.x el mar se terminaria antes de tiempo del lado de adentro de la curva y sobraria del
@@ -1367,7 +1442,7 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
         if (a > aporteDom) { aporteDom = a; olaDom = o; }
       }
       const h = hBase + hOla;
-      const s = proj(wx, h, camZ);
+      const s = proj(wx, h, desdeAlto ? camZ + (hash2(Math.round(wx * 4), Math.round(wzFila * 4) + 7) - 0.5) * pasoZ : camZ);
       if (s.x < -4 || s.x > W + 4 || s.y < HOR - 2) continue;
       let hn = (h + 1.4) / 4.8;                              // altura normalizada ~0..1
       hn = hn < 0 ? 0 : hn > 1 ? 1 : hn;
@@ -1443,9 +1518,17 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
       // probabilidad se modula con una banda diagonal alineada al viento, asi que la espuma sale
       // en TIRAS —spindrift, la espuma que el viento arrastra de cresta en cresta— en vez de
       // repartida pareja. Es el mismo seno que peina la superficie en core/sea.js.
-      if (hn > foamTh && Math.sin(wx * 3.7 + wz * 2.9) > foamGate(wx, wz)) {
-        ctx.globalAlpha = SEA_ALPHA2D * fade * (clima === 'storm' ? 1.15 : 0.85);
-        pxFino(s.x - dotW / 2, s.y - 0.5, dotW, Math.max(0.5, dotW * 0.7), theme.water.spark);
+      // …DESPAREJA (21/11, el autor: "mas variabilidad de espuma"): una mancha fija al mundo corre el umbral
+      // (zonas de cabrillas y zonas lisas), cada mota sale de su tamaño y en lo mas cargado se estira en tira.
+      // La mancha solo se evalua cerca del umbral: el resto de los puntos no paga el ruido.
+      if (hn > foamTh - EV.VAR * 0.5) {
+        const mancha = ruido(wx / EV.CELDA, wzFila / EV.CELDA, 877);
+        if (hn > foamTh + (0.5 - mancha) * EV.VAR && Math.sin(wx * 3.7 + wz * 2.9) > foamGate(wx, wz)) {
+          const hf = hash2(Math.round(wx * 4), Math.round(wzFila * 4));
+          const fw = dotW * (EV.TAM[0] + hf * (EV.TAM[1] - EV.TAM[0])) * (mancha > EV.TIRA ? EV.LARGO : 1);
+          ctx.globalAlpha = SEA_ALPHA2D * fade * (clima === 'storm' ? 1.15 : 0.85) * (0.7 + mancha * 0.5);
+          pxFino(s.x - fw / 2, s.y - 0.5, fw, Math.max(0.5, dotW * 0.7), hf > 0.75 ? P.foam : theme.water.spark);
+        }
       }
       // destello en las crestas cercanas (titileo determinista, sin flicker feo)
       //
@@ -1641,7 +1724,12 @@ function crestas(olas, dv, clima) {
     const fade = Math.min(1, (camZ - 3) / 9) * (1 - (camZ / C.Z_MAX) * 0.45) * aparece;
     const wzR = dv + camZ;
     const cx = cam.x - bendW(camZ);
-    const half = Math.min(320, (W / 2 + 10) / k + 6);
+    // A TODO LO ANCHO (21/11, el autor: "olas mas largas: cuando venis desde muy alto se nota el ancho total
+    // del mar/olas, se ve el borde"). Era `min(320, …)`: pasados ~170 m la pantalla abarca mas que 320 m de
+    // costado y la cresta de una marejada —que es de lado a lado— terminaba en dos puntas en el medio del mar.
+    // Sin el tope no cuesta mas: el paso en x crece con la distancia, siempre son ~(W+140)/PASO_PX columnas.
+    // (+70 de margen: con el horizonte girado asoman las esquinas)
+    const half = (W / 2 + 70) / k + 6;
     const paso = C.PASO_PX / k;                                    // m de mundo por columna
     const grosor = Math.max(0.5, k * (C.GROSOR + C.GROSOR_H * o.h));   // px de mundo
     const rompe = o.breakT ? Math.min(1.6, run.t - o.breakT) * C.ROMPE * Math.min(3, k) : 0;

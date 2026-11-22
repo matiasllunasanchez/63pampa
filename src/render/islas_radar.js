@@ -21,13 +21,28 @@ export function drawRedIslas(R) {
 // LOS HARRIERS QUE TE PERSIGUEN (systems/islas/islas.js `amenazas`): adelante y en cuadro, un recuadro rojo con la
 // distancia; atras o fuera de cuadro, una flecha roja en el borde, del lado por donde vienen, con ATRAS y los metros.
 const ROJO = '#ff4a36', PISO_Y = H - 78;   // (el tablero ocupa la franja de abajo)
+const MISIL_URGE = 1.5;   // s: el misil que llega antes que esto late rapido y en blanco (21/11)
 export function drawAmenazas(L, t) {
   if (!L || !L.length) return;
   ctx.font = '5px monospace'; ctx.textAlign = 'center';
   const late = 0.65 + 0.35 * Math.sin(t * 10);
   for (const a of L) {
-    const km = a.dist >= 1000 ? (a.dist / 1000).toFixed(1) + ' km' : Math.round(a.dist) + ' m';
-    if (a.adelante && a.x > 8 && a.x < W - 8 && a.y > 8 && a.y < PISO_Y) {
+    const km = a.misil ? a.n + ' ' + a.seg.toFixed(1) + ' s' : a.dist >= 1000 ? (a.dist / 1000).toFixed(1) + ' km' : Math.round(a.dist) + ' m';
+    // EL MISIL QUE TE VIENE (21/11, el autor: "no queda claro adonde tiran"; islas.js `misilesQueVienen`): en cuadro, un
+    // ROMBO que late mas rapido cuanto menos le falta, la RAYA punteada hasta tu avion (adonde va) y su nombre con los
+    // segundos; fuera de cuadro, la flecha del borde de abajo, con el mismo rotulo
+    if (a.misil && a.x > 8 && a.x < W - 8 && a.y > 8 && a.y < PISO_Y) {
+      const urge = a.seg < MISIL_URGE, lt = 0.6 + 0.4 * Math.sin(t * (urge ? 26 : 12)), r = urge ? 7 : 5;
+      ctx.globalAlpha = 0.55 * lt; ctx.strokeStyle = ROJO; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(Math.round(a.x) + 0.5, Math.round(a.y) + 0.5); ctx.lineTo(Math.round(a.yo.x) + 0.5, Math.round(a.yo.y) + 0.5); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = lt;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y - r); ctx.lineTo(a.x + r, a.y); ctx.lineTo(a.x, a.y + r); ctx.lineTo(a.x - r, a.y); ctx.closePath();
+      ctx.strokeStyle = '#1c0804'; ctx.lineWidth = 3; ctx.stroke(); ctx.strokeStyle = urge ? '#ffffff' : ROJO; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = ROJO; ctx.fillText(km, Math.round(a.x), Math.round(a.y - r - 3));
+      ctx.globalAlpha = 1;
+      continue;
+    }
+    if (a.adelante && !a.misil && a.x > 8 && a.x < W - 8 && a.y > 8 && a.y < PISO_Y) {
       const r = 6;
       ctx.strokeStyle = ROJO; ctx.lineWidth = 1; ctx.globalAlpha = late;
       ctx.strokeRect(Math.round(a.x - r) + 0.5, Math.round(a.y - r) + 0.5, r * 2, r * 2);

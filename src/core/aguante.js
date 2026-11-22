@@ -96,6 +96,8 @@ export const AGU = {
   // adelante cada acierto le prende una letra. Siete letras mas el borde son los otros ocho.
   CONC_GATE: 4,    // aciertos antes de que la palabra aparezca (cuentan igual)
   CONC_LETRAS: 8,  // las 7 letras de RASANTE + el borde: los segundos que la palabra puede mostrar
+  // (21/11, el autor: "el tiempo de rasante deberia durar mas"): cada acierto paga SEG_ACIERTO segundos de poder (era 1)
+  SEG_ACIERTO: 1.5,
   CONC_TOPE: 12,   // el techo. Cae justo donde topea un jugador bueno bajo presion (12 aciertos)
   // EL PISO PARA QUE ARRANQUE. Por debajo de esto el flow no se dispara y lo juntado se pierde: el
   // poder cambia la camara y la lamina del avion de golpe, y dos segundos de eso no se leen como

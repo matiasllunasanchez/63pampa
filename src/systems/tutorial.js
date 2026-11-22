@@ -132,6 +132,7 @@ function cumple(c, s, dt) {
   if (c.marca) return !!s.marca;                                     // LAS ISLAS: un punto marcado en el MAPA de la pausa
   if (c.objIslas) return !!s.objIslas;                               // …y la BASE COSTERA rota
   if (c.chancha) return !!s.chancha;
+  if (c.chafitas) return !!s.chafitas;                               // LAS CHAFITAS: una nube en el aire
   return true;
 }
 
@@ -169,7 +170,7 @@ export function tick(dt, s, escenas) {
       const ln = ls[linea++];
       // (la charla que no enseña va por la radio en vuelo y no frena: data/tutorial.js `B`)
       if (ln.ingame) return { tipo: 'radio', linea: ln };
-      return { tipo: 'decir', linea: ln, foco: p.foco || [], teclas: p.teclas || [] };
+      return { tipo: 'decir', linea: ln, foco: p.foco || [], teclas: p.teclas || [], mando: !!p.mando, demo: p.demo || null };
     }
     fase = 'practica'; tp = 0; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: s.pasados, rotos: s.rotos, esquivados: s.esquivados || 0 };
     return { tipo: 'mundo', paso: p };
@@ -187,6 +188,9 @@ export function tick(dt, s, escenas) {
       return null;
     }
     // sin (mas) condiciones: el remate y al paso siguiente
+    // (21/11, el autor: "pajarracos hecho pingo quedo cortado"): si la ultima linea del paso fue de radio en vuelo (`B`),
+    // el remate la pisaba en el mismo cuadro. El remate espera a que la radio se calle
+    if (p.remate && s.radio) return null;
     const rem = p.remate && escenas[p.remate] ? escenas[p.remate].lineas[0] : null;
     i++;
     if (i >= pasos.length) { fin = true; return { tipo: 'fin', linea: rem }; }

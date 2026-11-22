@@ -32,12 +32,34 @@ const PISO = 45;                                  // m sobre el relieve (mira 40
 const CONO = 0.13, CAÑON_R = 1100, CAÑON_CD = [3.5, 5.5];
 const MISIL_R = [900, 3200], MISIL_CONO = 0.4, MISIL_CD = 7;
 const HP = 3, LEJOS = 12000, TIEMPO = 150;
+// EL CHOQUE EN EL AIRE (21/11, el autor: "los aviones DEBEN PODER COLISIONAR; si chocan mueren ambos (lo choco un Harrier)
+// y la IA debe intentar no chocar"). Hasta aca el Harrier te atravesaba. Ahora:
+//   · CHOQUE_R: si en el cuadro los dos centros pasan a menos de esto (barrido: a 400 m/s de cierre son 7 m por cuadro),
+//     CHOCAN: el Harrier revienta y cae, y vos tambien (islas.js devuelve `death_jet`; el tutorial lo aguanta como
+//     cualquier golpe — game.js `onDeath` con `sinMuerte`).
+//   · LA IA SE ABRE: si siguiendo como van (las dos velocidades) van a pasar a menos de EVITA_D en los proximos EVITA_T s,
+//     el Harrier deja de apuntarte y se aparta —arriba o abajo y para el costado, lejos de donde pasarias— durante
+//     EVITA_SOSTIENE s. Gira con su GIRO y sube con su SUBE de siempre, asi que si lo encaras de golpe igual lo chocas.
+const CHOQUE_R = 9;                                // m (medias envergaduras: A-4 ~4,2 + Sea Harrier ~3,9)
+// (medido en Node contra este archivo, 400 encuentros a 230 m/s: sin la IA, con tirones de altura del jugador 1 de cada 3
+// termina en choque; con estos numeros, menos de 1 en 100 — pasa cerca, a menos de 30 m, en 1 de cada 3. Mas EVITA_T o
+// EVITA_D lo vuelven intocable; menos EVITA_MIRA, mas atento)
+const EVITA_T = 1.2, EVITA_D = 40, EVITA_SOSTIENE = 1, EVITA_MIRA = 0.5;
 const H = [];          // los Harriers en el aire
 let ult = null;        // tu posicion del cuadro anterior (tu velocidad)
+let chocado = false;   // un Harrier te choco este cuadro (islas.js `tomarChoque` lo cobra)
+/** ¿Te choco un Harrier? (y se borra) — islas.js lo vuelve la causa de muerte `death_jet`. */
+export function tomarChoque() { const c = chocado; chocado = false; return c; }
+/** La distancia minima al origen del segmento a→b (el barrido de lo relativo en un cuadro). */
+function minSeg(ax, ay, az, bx, by, bz) {
+  const dx = bx - ax, dy = by - ay, dz = bz - az, L = dx * dx + dy * dy + dz * dz;
+  const u = L > 1e-9 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy + az * dz) / L)) : 0;
+  return Math.hypot(ax + dx * u, ay + dy * u, az + dz * u);
+}
 const rnd = (a, b) => a + Math.random() * (b - a);
 const envolver = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 
-export function reiniciar() { H.length = 0; ult = null; }
+export function reiniciar() { H.length = 0; ult = null; chocado = false; }
 export const activo = () => H.some(h => h.fase !== 'cae');
 /** Los de la PAC `c`: cuantos vuelan (persiguiendo o volviendo) y cuantos bajaste. */
 export function estadoDe(c) {
@@ -60,13 +82,15 @@ export function soltar(c, aviones, n) {
 export function retirar() { for (const h of H) if (h.fase === 'caza') { h.fase = 'vuelve'; h.rafaga = null; } }
 
 /** UN CUADRO. `P` = el avion en el mapa ({ x, z, g, yaw, y }), `pz` = su profundidad en el carril, `boom` = la
- *  explosion 3D (islas.js `estallido`). Devuelve eventos: [{ k: 'bajado' | 'volvio', c }]. */
+ *  explosion 3D (islas.js `estallido`). Devuelve eventos: [{ k: 'bajado' | 'volvio' | 'choque', c }]. */
 export function paso(dt, P, pz, boom, jugando) {
   const out = [];
   if (!H.length) { ult = null; return out; }
   const yo = { x: P.x, y: P.g + P.y, z: P.z };
   const vel = ult && dt > 0 ? { x: (yo.x - ult.x) / dt, y: (yo.y - ult.y) / dt, z: (yo.z - ult.z) / dt } : { x: 0, y: 0, z: 0 };
-  if (Math.hypot(vel.x, vel.z) > 900) { vel.x = vel.y = vel.z = 0; }   // (un salto de la sonda no es velocidad)
+  const salto = Math.hypot(vel.x, vel.z) > 900;
+  if (salto) { vel.x = vel.y = vel.z = 0; }   // (un salto de la sonda no es velocidad)
+  const antes = salto ? null : ult;           // (para el choque barrido: donde estabas el cuadro anterior)
   ult = yo;
   const vYo = Math.hypot(vel.x, vel.z);
   const sy = Math.sin(P.yaw), cy = Math.cos(P.yaw);
@@ -99,6 +123,31 @@ export function paso(dt, P, pz, boom, jugando) {
       h.v += (240 - h.v) * Math.min(1, dt * 0.5);
       if (Math.hypot(meta.x - h.x, meta.z - h.z) < 600) { out.push({ k: 'volvio', c: h.pac }); H.splice(i, 1); continue; }
     }
+    // LA IA SE ABRE (21/11, ver EVITA_*): siguiendo como van los dos, ¿a cuanto pasan y cuando? Si es pegado y pronto,
+    // en vez de apuntarte se aparta hacia el lado (y la altura) en que ya iba a pasar, para agrandar la distancia
+    h.miraT = (h.miraT || 0) - dt;
+    if (jugando && h.miraT <= 0) {
+      h.miraT = EVITA_MIRA;   // (no lo ve en cada cuadro: el piloto tarda en darse cuenta)
+      const rx = h.x - yo.x, ry = h.y - yo.y, rz = h.z - yo.z;
+      const wx = Math.sin(h.yaw) * h.v - vel.x, wy = (h.vy || 0) - vel.y, wz = -Math.cos(h.yaw) * h.v - vel.z;
+      const w2 = wx * wx + wy * wy + wz * wz, tca = w2 > 1 ? -(rx * wx + ry * wy + rz * wz) / w2 : -1;
+      if (tca > 0 && tca < EVITA_T) {
+        const mx = rx + wx * tca, my = ry + wy * tca, mz = rz + wz * tca;
+        if (Math.hypot(mx, my, mz) < EVITA_D) {
+          const mh = Math.hypot(mx, mz), lado = h.i ? -1 : 1;   // (de frente y justo encima: cada numeral a un costado)
+          const bajo = h.y - 70 < Math.max(mundo.sueloH(h.x, h.z), 0) + PISO;   // (abajo no hay lugar: por arriba)
+          h.evita = { t: EVITA_SOSTIENE, ux: mh > 3 ? mx / mh : Math.cos(h.yaw) * lado, uz: mh > 3 ? mz / mh : Math.sin(h.yaw) * lado,
+            sube: my >= -3 || bajo ? 1 : -1 };
+        }
+      }
+    }
+    if (h.evita) {
+      const e = h.evita;
+      e.t -= dt;
+      meta = { x: h.x + Math.sin(h.yaw) * 600 + e.ux * 500, y: h.y + e.sube * 90, z: h.z - Math.cos(h.yaw) * 600 + e.uz * 500 };
+      if (e.t <= 0) h.evita = null;
+    }
+    const hx0 = h.x, hy0 = h.y, hz0 = h.z;   // (para el choque barrido)
     // EL GIRO: rumbo hacia la meta con su tope, y el alabeo que lo acompaña
     const quiere = Math.atan2(meta.x - h.x, -(meta.z - h.z)), dif = envolver(quiere - h.yaw);
     const giro = Math.max(-GIRO * dt, Math.min(GIRO * dt, dif));
@@ -110,7 +159,21 @@ export function paso(dt, P, pz, boom, jugando) {
     const yMeta = Math.max(meta.y, piso);
     const vy = Math.max(-SUBE, Math.min(SUBE, (yMeta - h.y) * 1.2));
     h.pitch += (Math.atan2(vy, h.v) - h.pitch) * Math.min(1, dt * 3);
-    h.x += fx * h.v * dt; h.z += fz * h.v * dt; h.y += vy * dt;
+    h.x += fx * h.v * dt; h.z += fz * h.v * dt; h.y += vy * dt; h.vy = vy;
+    // EL CHOQUE (21/11, ver CHOQUE_R): lo relativo barrido en el cuadro (de donde estaban los dos a donde estan). Mueren
+    // los dos: el Harrier revienta y cae en llamas, y vos lo cobras en islas.js (`tomarChoque` → death_jet)
+    if (jugando && !chocado) {
+      const d = antes ? minSeg(hx0 - antes.x, hy0 - antes.y, hz0 - antes.z, h.x - yo.x, h.y - yo.y, h.z - yo.z)
+        : Math.hypot(h.x - yo.x, h.y - yo.y, h.z - yo.z);
+      if (d < CHOQUE_R) {
+        chocado = true;
+        h.fase = 'cae'; h.rafaga = null; h.evita = null; h.cae = { vy: -12, giro: (Math.random() < 0.5 ? -1 : 1) * 3.5, humo: 0 };
+        h.pac.__bajados = (h.pac.__bajados || 0) + 1;
+        boom(h.x, h.y, h.z, 1.6, 'avion', 0, 0);
+        out.push({ k: 'choque', c: h.pac });   // (no es un derribo tuyo: sin puntos ni cartel de BAJADO)
+        continue;
+      }
+    }
     if (h.fase !== 'caza' || !jugando) continue;
     // ---- LOS TIROS ----
     const aMi = Math.atan2(dx0, -dz0), apunta = Math.abs(envolver(aMi - h.yaw));

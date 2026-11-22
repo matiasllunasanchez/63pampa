@@ -14,7 +14,7 @@ import { reflejoLuz } from './luces_enemigos.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
 import { geoActiva, geoPorPunto, esTierraEn, sueloEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
-import { inp } from '../core/input.js';
+import { inp, padActivo } from '../core/input.js';
 import { proj } from '../core/fx.js';
 import { hzSprite, hzWorld } from '../core/horizon.js';
 import { P } from '../data/palette.js';
@@ -754,8 +754,12 @@ export function drawShadow(wx, wy, z, f) {
 // sprite, en un lienzo aparte, con un celeste escarchado encima SOLO donde hay avion (source-atop) y fuera del
 // fuselaje (la franja del medio). Mas hielo, mas blanco y mas puntitos.
 let hieloCv = null;
+// (22/11, el autor: "el avion se deforma cuando atraviesa las nubes superiores": al entrar a la nube empieza el hielo, y
+// este lienzo era del tamaño EN PANTALLA (dW x dH en unidades del mundo) — el sprite se achicaba ahi sin suavizado y se
+// volvia a estirar encima del bueno: una copia gruesa y corrida pegada al avion. Ahora el lienzo es del tamaño del
+// CUADRO DE LA HOJA, y se achica una sola vez, al dibujarlo, igual que el sprite.)
 function hieloAlas(img, sx, sy, fw, fh, dW, dH, nivel) {
-  const w = Math.max(1, Math.ceil(dW)), h = Math.max(1, Math.ceil(dH));
+  const w = Math.max(1, Math.round(fw)), h = Math.max(1, Math.round(fh));
   if (!hieloCv) hieloCv = document.createElement('canvas');
   if (hieloCv.width !== w || hieloCv.height !== h) { hieloCv.width = w; hieloCv.height = h; }
   const c = hieloCv.getContext('2d');
@@ -767,12 +771,14 @@ function hieloAlas(img, sx, sy, fw, fh, dW, dH, nivel) {
   c.fillStyle = `rgba(205,238,255,${a})`;
   c.fillRect(0, 0, medio0, h); c.fillRect(medio1, 0, w - medio1, h);
   // los puntitos de escarcha: siempre en el mismo lugar (no titilan), mas cuanto mas hielo
+  // (contados y del tamaño de un pixel EN PANTALLA, como antes: el lienzo ahora es mas grande que el dibujo)
   c.fillStyle = 'rgba(245,252,255,0.9)';
-  const n = Math.round(w * h * 0.03 * nivel);
+  const pw = Math.max(1, Math.round(w / Math.max(1, dW))), ph = Math.max(1, Math.round(h / Math.max(1, dH)));
+  const n = Math.round(dW * dH * 0.03 * nivel), cw = Math.max(1, Math.floor(w / pw)), ch = Math.max(1, Math.floor(h / ph));
   for (let i = 0; i < n; i++) {
-    const px = (i * 73 + 11) % w, py = (i * 151 + 7) % h;
+    const px = ((i * 73 + 11) % cw) * pw, py = ((i * 151 + 7) % ch) * ph;
     if (px >= medio0 && px < medio1) continue;
-    c.fillRect(px, py, 1, 1);
+    c.fillRect(px, py, pw, ph);
   }
   c.globalCompositeOperation = 'source-over';
   ctx.drawImage(hieloCv, -dW / 2, -dH / 2, dW, dH);
@@ -1403,6 +1409,15 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     const fija = proj(plane.x, plane.y + plane.pitch * AIM_PITCH, 70);
     const em = miraMezcla * miraMezcla * (3 - 2 * miraMezcla);
     const c = { x: fija.x + (vm.sx - fija.x) * em, y: fija.y + (vm.sy - fija.y) * em };
+    // CON JOYSTICK, UNA MARCA CHICA AL FRENTE (21/11, el autor: "no se si con joystick la mira gigante suma. Con mouse
+    // si. Con joystick importa donde esta el avion y donde mira de frente, no la mira"): sin mouse que la mueva, la mira
+    // grande tapaba lo que viene; queda un punto con dos rayitas adelante de la trompa, adonde van las balas
+    if (padActivo() && em < 0.05) {
+      ctx.globalAlpha = 0.85;
+      px(c.x - 0.75, c.y - 0.75, 1.5, 1.5, P.accent);
+      px(c.x - 5, c.y - 0.5, 2.5, 1, P.accent); px(c.x + 2.5, c.y - 0.5, 2.5, 1, P.accent);
+      ctx.globalAlpha = 1;
+    } else
     // MIRA elegible desde el menu [M] (cfg.mira, 1..9). Si la hoja no cargo aun, reticulo vectorial.
     if (!drawMira(cfg.mira, c.x, c.y, MIRA_SIZE, 0.7 + 0.2 * em)) {
       ctx.globalAlpha = 0.7;

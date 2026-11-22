@@ -566,6 +566,8 @@ export const CH_APARECE_Y = 30;
 export const CH_SALIDA = 2.6;    // s que tarda en irse por arriba una vez que termino
 
 export const TEMPO_SCALE = 0.35;    // el mundo a ~1/3: se nota de verdad, no un slow-mo timido
+// EL PRIMER NIVEL (21/11, systems/tempo.js): mas suave que el de siempre; el segundo toque baja a TEMPO_SCALE
+export const TEMPO_SUAVE = 0.6;
 // MOMENTUM SE CARGA CON TIEMPO, NO CON PUNTOS (pedido del autor, 26/9/2026): "tiene que ser por
 // tiempo de casteo, y mejorar con cada mejora — tiene que tener un tiempo de casteo, no por puntos".
 //
@@ -584,6 +586,9 @@ export const TEMPO_SCALE = 0.35;    // el mundo a ~1/3: se nota de verdad, no un
 //   Cada mejora le saca un segundo a la recarga y le suma dos decimas de efecto: a diez mejoras,
 //   cada 10 s y 5 de efecto. Es el techo a proposito: mas corto que 10 y el especial deja de ser
 //   especial — pasa a ser el modo en que se juega.
+// (21/11, el autor: "momentum tiene que durar mas… pero tarda menos"): la tabla de antes con la recarga al 70 % y el
+// efecto al 160 % — era { cast: 20, dur: 3 } … { cast: 10, dur: 5 }
+const TEMPO_RECARGA = 0.7, TEMPO_DURA = 1.6;
 export const TEMPO_NIVELES = [
   { cast: 20, dur: 3.0 },
   { cast: 19, dur: 3.2 },
@@ -596,7 +601,7 @@ export const TEMPO_NIVELES = [
   { cast: 12, dur: 4.6 },
   { cast: 11, dur: 4.8 },
   { cast: 10, dur: 5.0 },
-];
+].map(r => ({ cast: +(r.cast * TEMPO_RECARGA).toFixed(1), dur: +(r.dur * TEMPO_DURA).toFixed(1) }));
 /** El renglon del nivel `n`, con piso en 0 y techo en la ultima fila. */
 export const tempoNivel = n => TEMPO_NIVELES[Math.max(0, Math.min(TEMPO_NIVELES.length - 1, n | 0))];
 // ⚠ LA CHANCHA SIGUE POR PUNTOS: `CH_CHARGE` son 2000 y su comentario hablaba de "~3x TEMPO_CHARGE".
@@ -1026,6 +1031,29 @@ export const MAR_HONDO = {
 // "demasiado brillosas, variar tonalidades de profundidad").
 export const MAR_GRANO = { TAM: 0.05, TAM_MIN: 0.5, TAM_MAX: 1.5, PX: 2.5, MAX: 8, JIT: 0.3, ESPUMA: 0.86, ALFA: 1.1,
   HONDO_TONO: 0.9, HONDO_ALFA: 1.2, LEJOS_Z: 160, LEJOS_TONO: 0.2, LEJOS_ALFA: 0.35 };
+
+// ---------- LA ESPUMA DESPAREJA Y EL MAR DE LEJOS (render/world.js, 21/11) ----------
+// 21/11, el autor, despues de jugar el tutorial: "mas variabilidad de espuma; olas mas largas (cuando venis
+// desde muy alto se nota el ancho total del mar/olas, se ve el borde); variables aunque sea relleno".
+//
+// ESPUMA_VAR — la espuma del campo de puntos deja de ser pareja: una mancha de ruido fija al mundo (CELDA m)
+// corre el umbral de cresta ±VAR/2 (hay zonas de cabrillas y zonas lisas), cada mota sale de un tamaño distinto
+// (TAM: de TAM[0] a TAM[1] veces el grano) y adentro de las manchas mas cargadas (> TIRA) la mota se estira en una tira de
+// LARGO veces su ancho — la cabrilla que el viento arrastra.
+export const ESPUMA_VAR = { CELDA: 70, VAR: 0.22, TAM: [0.6, 1.9], TIRA: 0.7, LARGO: 2.6 };
+// MAR_LEJOS — EL RELLENO del mar mas alla del campo de puntos (SEA_FAR_Z), hasta el horizonte. Desde arriba el
+// campo de puntos terminaba en una fila y de ahi para arriba el mar era un degrade liso: ese era el borde. Son
+// motas de espuma sueltas, fijas al mundo (no titilan), con el brillo del MISMO mar (core/sea.js: la marejada
+// larga se lee como franjas que ruedan). Se recorre en bandas de profundidad con paso potencia de dos, asi lo
+// que estaba en una banda sigue en la siguiente.
+//   DESDE   desde que fraccion de SEA_FAR_Z entra (se funde con el final de los puntos)
+//   FILA_PX px de pantalla entre filas · COL_PX px entre columnas candidatas
+//   P       probabilidad de mota por candidato, por clima · MANCHA m de las manchas de espuma (variabilidad)
+//   ALFA    opacidad de una mota · HOR_PX: a menos de esto del horizonte no se dibuja (todo es una raya)
+export const MAR_LEJOS = { DESDE: 0.55, FILA_PX: 2.5, COL_PX: 5, P: { calm: 0.16, breeze: 0.26, storm: 0.38 },
+  MANCHA: 160, ALFA: 0.55, HOR_PX: 1.2,
+  // FILA_ALTO: desde alto, px maximos entre filas del CAMPO DE PUNTOS (drawSeaDots); a ras sigue el paso de siempre
+  FILA_ALTO: 3 };
 
 // ---------- LA CRESTA DE ESPUMA DE LAS OLAS (render/world.js `crestas`, 2/10) ----------
 // Una franja de espuma a lo largo del filo de cada ola que se choca. PASO_PX: ancho de columna en

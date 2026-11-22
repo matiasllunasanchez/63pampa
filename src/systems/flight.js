@@ -505,7 +505,7 @@ export function flightSystem(dt, deps) {
   // o si llegaste al tope. Perder la precision deja de ser solo castigo: es tambien la puerta.
   const flowSeg = agu.tomarFlow();
   // (sin PODERES —la etapa 1 del tutorial— el flow no se dispara: "active RASANTE y no se entendio que era", 18/11)
-  if (flowSeg > 0 && cfg.poderes !== false) rasante.lanzar(flowSeg);
+  if (flowSeg > 0 && cfg.poderes !== false) rasante.lanzar(flowSeg * AGU.SEG_ACIERTO);   // (cada acierto, SEG_ACIERTO s)
   run.multShow = agu.activo() ? agu.multAguante() : run.mult;
   run.score += (run.boost ? 2 : 1) * 12 * run.multShow * dt;
   // superficie LETAL: tocar el suelo (o el agua) = explotar. Sobre tierra hay que volar en la banda

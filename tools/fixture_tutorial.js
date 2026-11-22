@@ -172,6 +172,7 @@ async function volar(k) {
     if (clave === 'tutC_secBomba') await tap('2', 300);
     if (clave === 'tutC_momentum') await tap('4', 400);
     if (clave === 'tutC_chancha') await tap('J', 400);
+    if (clave === 'tutC_chafitas') await tap('H', 400);   // (21/11: el paso de las chafitas)
     if (clave === 'tutC_tonel') { await sostener('lado', null); await tap('Left', 70); await tap('Left', 70); await tap('Left', 600); }
     if (clave === 'tutC_sal' || clave === 'tutC_hielo') await sostener('alt', s.alt < 485 ? 'W' : null);   // adentro de la nube (ALTO.NUBES 480)
     else if (clave === 'tutC_subi' || clave === 'tutC_radarSube') await sostener('alt', 'W');
