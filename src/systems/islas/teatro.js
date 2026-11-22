@@ -21,7 +21,7 @@ import { BASES, BUQUES, PAC, ARMAS, PAC_VE, PAC_VUELVE, RADARES, RADAR_BAJO, PAC
 import { missiles, pmissiles, bullets } from '../../core/world.js';
 import * as harriers from './harriers.js';
 import { posBomba } from './objetivo.js';
-import { beep, sfxOne } from '../audio.js';
+import { beep, sfxOne, salpicon } from '../audio.js';
 import * as soldados from './soldados.js';
 
 // LA HUELLA de cada pieza en metros (radio para balas y bombas, alto) y sus golpes
@@ -37,7 +37,7 @@ export const mallaDe = tipo => MALLA[tipo] || tipo;
 
 const RED_SOBRE = 3500;   // m: la red del radar se ve volando ENCIMA de el
 export const RED_ARG_T = 5; // s: la nuestra, al entrar a la zona (el cartel, 3 s, y 2 s mas)
-export const fuegoCerca = () => !!(T.armado && T.fuego);
+export const fuegoCerca = () => !!(T.armado && T.fuego && T.fuegoT > 0);
 /** (sonda) el buque britanico vivo mas cercano a (x, z) */
 export const buqueCerca = (x, z) => T.buques.filter(b => b.vivo && b.bando === 'gb').sort((a, b) => Math.hypot(a.x - x, a.z - z) - Math.hypot(b.x - x, b.z - z))[0] || null;
 const T = { armado: false, piezas: [], buques: [], pac: [], soldados: [], trincheras: [], banderas: [], t: 0, radares: [], zona: { gb: null, arg: null, visto: false }, vistoT: 99, eventos: [] };
@@ -208,8 +208,9 @@ export function paso(dt, P, pz, boom, jugando) {
   // tuyo (salpicones chicos adelante y a los costados) y cada tanto una COLUMNA del cañon grande camina sobre tu rumbo.
   // El sonido (las balas pasando, la chapa, el agua) lo pone audio.js con `fuegoCerca()`
   T.fuego = false;
-  T.salpT = (T.salpT ?? 0) - dt; T.columnaT = (T.columnaT ?? 2) - dt;
-  if (jugando) for (const b of T.buques) {
+  T.salpT = (T.salpT ?? 0) - dt; T.columnaT = (T.columnaT ?? 2) - dt; T.fuegoT = (T.fuegoT ?? 0) - dt;
+  // (solo mientras un buque TIRA de verdad con su arma corta — `fuegoT`, lo carga el disparo, abajo)
+  if (jugando && T.fuegoT > 0) for (const b of T.buques) {
     if (!b.vivo || b.bando !== 'gb') continue;
     const D = DEFENSA[b.clase] || DEFENSA.log, A = D.corto;
     if (!A || Math.hypot(b.x - P.x, b.z - P.z) > A.alcance) continue;
@@ -218,7 +219,7 @@ export function paso(dt, P, pz, boom, jugando) {
     if (T.salpT <= 0) {
       T.salpT = 0.18 + rnd() * 0.35;
       const d = 60 + rnd() * 260, l = (rnd() - 0.5) * 90, x = P.x + sy * d + cy * l, z = P.z - cy * d + sy * l;
-      if (enAgua(x, z)) boom(x, 0, z, 0.35 + rnd() * 0.3, 'agua');
+      if (enAgua(x, z)) { boom(x, 0, z, 0.35 + rnd() * 0.3, 'agua'); salpicon(1 - Math.min(1, (d + Math.abs(l)) / 350)); }
     }
     if (T.columnaT <= 0) {
       T.columnaT = 2.2 + rnd() * 1.6;
@@ -257,6 +258,7 @@ export function paso(dt, P, pz, boom, jugando) {
       const arma = banda === 'medio' && b.def ? b.def : A.arma, n = muro && banda === 'largo' ? 3 : A.n || 1;
       let ok = false;
       for (let i = 0; i < n; i++) ok = tira(b.x, b.z, banda === 'corto' ? 10 : 14, arma, A.tiro, banda === 'corto' ? null : 'buque', i) || ok;
+      if (ok && banda === 'corto') T.fuegoT = 1.4;   // la rafaga corta: su agua alrededor tuyo dura lo que tardan en llegar
       b.cd[banda] = !ok ? 0.3 : muro && banda === 'largo' ? 0.8 : A.cada * (0.8 + rnd() * 0.4) / k;
     }
   }

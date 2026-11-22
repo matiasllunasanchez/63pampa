@@ -325,7 +325,17 @@ let engAltT = 0;   // temporizador del crossfade normal↔normal2
 // (el loop `gun`) de una, a su volumen, sin el fundido de entrada de los loops. (Hubo una CARGA al
 // apretar, antes de la rafaga: el autor la saco el mismo dia.)
 let tirabaPrev = false;
-let chapaT = 0.4, aguaT = 0.25;   // el proximo golpe de chapa y salpicon del fuego del buque (ver updateSfx)
+let chapaT = 0.4;   // el proximo golpe de chapa del fuego del buque (ver updateSfx)
+// (sonda) que loops y one-shots estan sonando ahora, con su volumen — para verificar el fuego del buque sin escucharlo
+if (typeof window !== 'undefined') window.__sfxdbg = () => {
+  const o = {};
+  for (const k in sfxLoopA) { const a = sfxLoopA[k]; if (a && !a.paused) o[k] = +a.volume.toFixed(3); }
+  for (const rel in sfxPool) for (const a of sfxPool[rel].a) if (a && !a.paused && !a.ended) o[rel.split('/').pop()] = +a.volume.toFixed(3);
+  return JSON.stringify({ muted, started: musicStarted, o });
+};
+/** EL SONIDO DE UN BALAZO EN EL AGUA (21/11, el autor: "sonidos de agua aleatorios por cada efecto de agua que aparece"):
+ *  uno de los dos salpicones, a volumen al azar; `cerca` 0..1 lo sube cuanto mas cerca cayo */
+export function salpicon(cerca = 0.5) { sfxOne('agua' + ((Math.random() * 2) | 0), Math.min(1, (0.55 + 0.45 * cerca) * (0.8 + Math.random() * 0.2))); }
 // `w` es un snapshot de solo lectura del mundo. Antes esto leia 7 variables del closure de
 // game.js; pasarlas explicitas deja el modulo probable por si solo y sin dependencias ocultas.
 const slowPrev = {};
@@ -407,11 +417,10 @@ export function updateSfx(dt, w) {
     if (w.state === 'play' && w.fuegoBuque) {
       sfxTgt.balasCerca = SFX_DEF.balasCerca.v;
       chapaT -= dt;
-      if (chapaT <= 0) { chapaT = 0.6 + Math.random() * 1.6; sfxOne('chapa' + ((Math.random() * 4) | 0), 0.6 + Math.random() * 0.4); }
-      // las balas que caen al agua, con su propio reloj (0,5 a 2 s)
-      aguaT -= dt;
-      if (aguaT <= 0) { aguaT = 0.5 + Math.random() * 1.5; sfxOne('agua' + ((Math.random() * 2) | 0), 0.5 + Math.random() * 0.5); }
-    } else { chapaT = 0.4; aguaT = 0.25; }
+      // (la chapa, al azar mientras dura la rafaga: balas que rozan el avion — 21/11, "lo mismo con el sonido metalico")
+      if (chapaT <= 0) { chapaT = 0.3 + Math.random() * 0.8; sfxOne('chapa' + ((Math.random() * 4) | 0), 0.8 + Math.random() * 0.2); }
+      // (el agua ya no va por reloj: suena con CADA pique que se ve — `salpicon()`, lo llaman game.js y teatro.js)
+    } else chapaT = 0.4;
     // …y la del buque de LA SUELTA, desde que la bomba revienta en el casco (systems/blanco.js)
     if (w.state === 'play' && w.alarmaBuque) sfxTgt.alarm = SFX_DEF.alarm.v;
   }

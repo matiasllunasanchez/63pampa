@@ -58,8 +58,15 @@ const TIPO_22 = [
 ];
 
 export const ARMAMENTO = {
-  // EL BLANCO DEL TUTORIAL (data/tutorial.js, etapa 3): un casco viejo y desarmado — no tira nada
-  'CASCO DE PRÁCTICA': { clase: 'casco de práctica', sistemas: [] },
+  // EL BLANCO DEL TUTORIAL (data/tutorial.js, etapa 3): un casco viejo con LO JUSTO para enseñar la defensa (21/11, el
+  // autor: "no se escucha nada… y deberia aparecer la zona ovalada de ataque de corto alcance"): dos 20 mm y un Sea Cat
+  // con su director. Sin cañon de 4,5". En el tutorial no se muere (sinMuerte), asi que tirar no castiga, enseña
+  'CASCO DE PRÁCTICA': { clase: 'casco de práctica', sistemas: [
+    { tipo: 'oerlikon', ...T21.puente },
+    { tipo: 'oerlikon', ...T21.cintura },
+    { tipo: 'seacat_dir', ...T21.director },
+    { tipo: 'seacat_lanz', ...T21.hangar },
+  ] },
   // ---- TIPO 42 Batch 1 ✔ ----
   'HMS SHEFFIELD': { clase: 'Tipo 42', sistemas: TIPO_42 },
   // 12/5: la Glasgow iba en el "combo 42/22" con la BRILLIANT. El Sea Wolf que bajo a la escuadrilla

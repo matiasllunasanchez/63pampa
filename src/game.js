@@ -39,6 +39,7 @@ import { cabina, enCabina, CABINA } from './core/cabina.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts, estallidos,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
+import { piqueAgua } from './core/fx.js';
 import { proj, popup, explodeAt, polvoSuelo, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES, derribar, onda } from './core/fx.js';
 import { ULTIMA_VARIANTE } from './core/fx.js';   // QUITAR con las sondas de v2
 import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T,
@@ -136,7 +137,7 @@ import * as world from './render/world.js';
 import { drawMarco } from './render/marco.js';
 import * as soldierArt from './render/soldiers.js';
 import { theme, applyTheme } from './render/theme.js';
-import { misilCerca, setNivel, currentTrackName, retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando } from './systems/audio.js';
+import { misilCerca, setNivel, currentTrackName, retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando, salpicon as salpiconSfx } from './systems/audio.js';
 import { drawCarga, CARGA, CARGA_T } from './render/carga.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
@@ -3006,7 +3007,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       escapeSys.resetFuga(); senas = null;
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
         // (en el TUTORIAL pegarle no abre el escape: sin radar no hay estrellas que perder, y la vuelta arranca de corrido)
-        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta(),
+        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta(), unGolpe: !!(curMission() && curMission().unGolpe),
           dificultad: curMission() && curMission().dificultad, bomba: bombaDeLaMision(),
           espoletas: suelto() ? espoletasDe(pichon) : 0,   // las del banco suelto
           // el piso de una ESTRUCTURA: la explanada que la geografia le aplana debajo (0 sin geografia)
@@ -3165,8 +3166,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       const avSel = PLANES[selPlane];
       run.vuelo = (avSel && avSel.vuelo) || null;
       run.rolidoK = perfilDe(avSel && avSel.key).rolido;   // el giro libre [Q]/[E] de ESTE avion (data/perfiles.js)
-      frio.reiniciar(); frio.avion(perfilDe(avSel && avSel.key).frio);   // EL FRIO de ESTE avion (data/perfiles.js `frio`)
       { const pf = perfilDe(avSel && avSel.key); run.esquiveBase = pf.esquive; run.esquiveClase = pf.maniobras; }   // EL ESQUIVE de ESTE avion (data/perfiles.js)
+      frio.reiniciar(); frio.avion(perfilDe(avSel && avSel.key).frio);   // EL FRIO de ESTE avion (data/perfiles.js `frio`)
       fallasFrioHechas = false;
       run.canon = (avSel && avSel.canon) || null;
       run.calibre = calibreDe(avSel && avSel.key);   // 20 o 30 mm contra los sistemas del buque (PLAN_DEFENSAS_BUQUE)
@@ -3906,7 +3907,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let rotLibro = null, rotSale = 0, hudEntra = 1;
     // EL ROTULO DE LA CARRERA JUGABLE (21/11): se queda mientras dura la primera pausa de dialogo y se va cuando se cierra
     let dspVisto = false, dspSale = 0;
-    let fuegoBuqueOn = false;   // el buque de LA SUELTA te esta tirando (para el sonido de las balas y la chapa)
+    let fuegoBuqueOn = false;   // el buque de LA SUELTA te esta tirando (la artilleria activa)
+    let piqueRafT = 0;   // el proximo pique de la rafaga del buque en el agua
     /** ¿Un despegue del TUTORIAL? (con carrera jugable o el de siempre): ahi el tutorial corre desde la pista */
     const despTut = () => !!(libro && libro.tut);
     /** El encabezado del despegue (hud.drawTakeoff), en la grilla de diseño. */
@@ -6057,7 +6059,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
       run.flash = Math.max(0, run.flash - dt / FLASH_T);
       updateSfx(dt, { state: S.state, cfg, plane, boost: run.boost, firing: inp.fire && !run.sinCanon, overheat: run.overheat, metralla: run.metralla, canon: !!run.canon, soldiers, alarmaBuque: blancoSys.alarma(),
-        fuegoBuque: fuegoBuqueOn || islas.fuegoBuque(),
+        // (21/11, el autor: "el sonido de las balas lo reproducis cuando no me estan disparando… tiene que sonar cuando las
+        // balas salen desde el barco"): suena mientras dura una RAFAGA recien disparada (systems/artilleria.js `rafaga`,
+        // y en las islas teatro.js `fuegoCerca`) — las balas, la chapa y el agua, al azar adentro de esa ventana
+        fuegoBuque: artilleria.rafaga() || islas.fuegoBuque(),
         tempo: tempo.active(), freno: run.mv === 'cobra' || run.mv === 'cobrainv' });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
@@ -6908,6 +6913,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         needsMomentum: lr === 'escolta' || lr === 'sigue' ? false : needsMomentum, climax: runClimax(),
         climaxDist: lr === 'super' ? objectiveDist * curMission().lanzamiento : objectiveDist });
       squad.gastoLider(fuelAntes - run.fuel);
+      // EL BUQUE DEL TUTORIAL ESPERA (21/11): hasta que el tutorial llega al paso de la bomba, el odometro no deja que el
+      // buque salga de la bruma (queda mas alla de BL.VISIBLE_Z: no se ve, asi que frenarlo no se nota)
+      if (libro && libro.tut && objectiveDist > 0 && tutSys.esperaBlanco()) run.dist = Math.min(run.dist, objectiveDist - BL_BLANCO.VISIBLE_Z - 100);
       // LA SAL EN EL PARABRISAS (17/11): pega volando bajo sobre el mar, se va volando alto; el M-60 la evita
       // EL FRIO EN EL PASILLO (systems/frio.js): la temperatura del cielo y la altura, el hielo en las nubes o la
       // lluvia, el cañon que se traba, la turbulencia del frente frio. (Las islas lo hacen con su clima.) EL TUTORIAL TAMBIEN (20/11, el autor: "meter las
@@ -7048,6 +7056,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // segun el guion"): ahi el avion queda AVERIADO y vuelve a la base — `relevoRompe`, el mismo
         // criterio de todo relevo. Fuera de la campaña, explota.
         if (b && b.roce) {
+          // (EN EL TUTORIAL el avion no se cae: el choque pega en la chapa, sacude y el buque vuelve a la fila — 21/11)
+          if (sinMuerteAhora()) { explodeAt(plane.x, plane.y, PZ + 2, false); run.shake = Math.min(9, run.shake + 6); onDeath(b.roce); return; }
           // (en campaña el choque contra el buque revienta y se pierde la mision — ver onDeath)
           if (relevoRompe()) { die(b.roce); return; }
           crashFX();
@@ -7131,6 +7141,16 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // (21/11: el sonido del fuego del buque — balas cerca y chapa — mientras el buque te tira, systems/audio.js)
         fuegoBuqueOn = artActivo;
         const ar = artilleria.step(dt, { pz: PZ, k: run.defK || 1, activo: artActivo });
+        // LOS PIQUES DE LA RAFAGA (21/11): mientras sale una rafaga del buque, las balas pican el agua alrededor tuyo
+        if (artilleria.rafaga()) {
+          piqueRafT -= dt;
+          if (piqueRafT <= 0) {
+            piqueRafT = 0.1 + Math.random() * 0.25;
+            const dz = 12 + Math.random() * 70, dx = (Math.random() - 0.5) * 40;
+            piqueAgua(plane.x + dx, 0, PZ + dz);
+            salpiconSfx(1 - Math.min(1, (dz + Math.abs(dx)) / 100));   // (su sonido, mas fuerte cuanto mas cerca)
+          }
+        } else piqueRafT = 0;
         if (ar === 'salva') { if (!sfxOne('aguaColumna', 0.8 + Math.random() * 0.2)) beep(90, 0.22, 'sawtooth', 0.05, -40); }   // el cañonazo del 4,5" (21/11: la columna de agua)
         else if (ar === 'roce') { run.score += 50; run.shake = Math.min(6, run.shake + 1.4); }
         else if (ar && ar.golpe) {
@@ -8550,6 +8570,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       window.__fuente = (rol, fam) => probarFuente(rol, fam);
       // LA MIRA: suelta o fija, y el modo (para la vuelta sola a los 5 s): __miradbg()
       window.__miradbg = () => ({ on: mouse.on, aim: cfg.aim, x: Math.round(mouse.x), y: Math.round(mouse.y), st: S.state, dist: Math.round(run.dist), obj: Math.round(objectiveDist), t: +run.t.toFixed(1), fuel: Math.round(run.fuel || 0) });
+      // EL FUEGO DEL BUQUE de la suelta: si la artilleria esta activa, si hay rafaga, cuantas trazadoras y la defensa cercana
+      window.__fuegodbg = () => ({ activo: fuegoBuqueOn, rafaga: artilleria.rafaga(), traz: missiles.filter(m => m.tracer && !m.done).length, sw: !!seawolfSys.snapshot(PZ), clima: runClimax(), sis: blancoSys.negro ? blancoSys.negro() : null });
       // EL HIELO a mano (0..1), para mirar la escarcha de los relojes y las alas — y verla derretirse: __hielo(0.9)
       window.__hielo = n => { if (n != null) run.hielo = +n; return run.hielo; };
       // CONTROLES abiertos en la pestaña `tab`, para fotografiarlos: __controles(0)

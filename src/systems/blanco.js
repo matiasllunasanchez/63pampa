@@ -54,6 +54,10 @@ export function preparar(on, nombre, objectiveDist, geo, carga, opts) {
     if (on) armarSistemas(nombre, o.sistemasIniciales);
   }
   blanco.pasadas = o.pasadas > 0 ? o.pasadas : BL.PASADAS;
+  // UN GOLPE LO HUNDE (`unGolpe` de la mision, hoy el tutorial — 21/11, el autor: "le erre, me pedia volver, marco
+  // vuelta pero reinicio y tengo que volver a darle"): una bomba en el EXTREMO lo dejaba AVERIADO, el tutorial ya
+  // decia "le diste, escapa" y el buque pedia otra pasada. Con esto, la que pega, hunde
+  blanco.unGolpe = !!o.unGolpe;
   // LA DIFICULTAD LA PONE LA MISION, no el jugador (decision del autor, 26/9): el campo
   // `dificultad:` de su renglon en data/missions.js. Una mision sabe si es la primera del juego o
   // la ultima, y el aviso de la suelta es parte de como esta escrita — no una preferencia que se
@@ -240,13 +244,13 @@ export const trabada = () => blanco.on && blanco.trabada && blanco.centroN > 0;
 export const bloqueada = () => blanco.on && blanco.alaN === 0 && blanco.centroN > 0 && !aTiro();
 
 /** RF-01 de la PASADA, reusado: el ultimo tramo se vacia y lo unico adelante es el blanco. */
+/** ¿El buque ya ASOMO en el horizonte? (lo que el ojo ve: VISIBLE_Z). En el tutorial prende la cinta de la distancia
+ *  apenas aparece (21/11, el autor: "apenas aparece debe aparecer la barra de distancia arriba"). */
+export const asomado = () => blanco.on && !blanco.escapando && blanco.z - PZ < BL.VISIBLE_Z;
 export const spawnsCut = dist => blanco.on && !blanco.escapando && dist >= objetivo - BL.VISIBLE_Z * 0.6;
 // (…y NO en el escape: ahi lo que siembran las estrellas es justamente lo que hay que esquivar)
 
 /** Una seña para Puma, una sola vez por pasada. */
-/** ¿El buque ya ASOMO en el horizonte? (lo que el ojo ve: VISIBLE_Z). En el tutorial prende la cinta de la distancia
- *  apenas aparece (21/11, el autor: "apenas aparece debe aparecer la barra de distancia arriba"). */
-export const asomado = () => blanco.on && !blanco.escapando && blanco.z - PZ < BL.VISIBLE_Z;
 const seña = c => { if (!blanco.dicho[c]) { blanco.dicho[c] = 1; blanco.cues.push(c); } };
 
 /** Las señas pendientes, y se vacian (game.js las pasa a la radio). */
@@ -332,7 +336,7 @@ export function golpe(pm, z0) {
     return true;
   }
   const dano = pm.tanque ? (zn === 'centro' ? BL.DANO_CENTRO : BL.DANO_EXTREMO) : bi.dano[zn];
-  blanco.dano += dano * f;
+  blanco.dano += blanco.unGolpe ? 100 : dano * f;
   if (blanco.dano >= 100) {
     blanco.hundido = true; blanco.sinkT = 0;
     run.score += BL.PTS_HUNDIDO;
@@ -529,9 +533,9 @@ export function step(dt) {
     const conNegro = !escape && (!acierto || roce);
     if (conNegro) blanco.altPiso = Math.max(plane.y, 6 + blanco.base - AGUA, roce ? blanco.base + h + 1 : 0);
     else if (roce) plane.y = Math.max(plane.y, blanco.base + h + 1);
-    // ERRASTE: no hay choque que cobrar — el piso del negro ya te pasa por encima de los palos y lo que
-    // sigue es el negro y la camara hacia atras, al de la fila (8/10). El choque es de quien le pego.
-    if (roce && (acierto || escape)) { seña('roce'); return { roce: 'death_palos', escape }; }
+    // (21/11, el autor: "me tengo que poder estrellar contra el buque"): antes, si ERRABAS, el piso del negro te pasaba
+    // por encima de los palos y no habia choque. Ahora por debajo de la silueta SIEMPRE es choque, le hayas pegado o no
+    if (roce) { seña('roce'); return { roce: 'death_palos', escape }; }
     return escape ? 'escape' : acierto ? 'hundido' : null;
   }
   // LA PREDICCION, una vez por cuadro: la leen las señas de Puma y el HUD (lo que titila en verde).

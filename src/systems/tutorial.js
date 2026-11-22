@@ -59,6 +59,15 @@ export function antesDeAterrizar() {
   return k >= 0 && i < k;
 }
 
+/** ¿Falta llegar al paso que espera el BUQUE (`cuando.faltan`)? Mientras si, game.js no deja que el buque salga de la
+ *  bruma: el radar y el secundario se enseñan antes, y "ahi esta el buque" no puede llegar cuando ya lo pasaste
+ *  (21/11, el autor: "ya lo pase, ya le di, ya aparecio escapa, y Pichon dice ahi esta el buque"). */
+export function esperaBlanco() {
+  if (fin) return false;
+  const k = pasos.findIndex(p => p.cuando && p.cuando.faltan != null);
+  return k >= 0 && i < k;
+}
+
 /** Para las sondas y los fixtures. */
 export const estado = () => ({ paso: i, id: pasos[i] ? pasos[i].dice : null, fase, sub, fin, n: pasos.length });
 /** ¿El paso actual es la PRACTICA LIBRE (se termina desde la pausa)? */

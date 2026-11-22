@@ -30,6 +30,7 @@ const VERDE_SUELTA = '#7fe07a';
 /** EL BLANCO, RECORTADO POR LO QUE TIENE DELANTE (13/11): se dibuja DESPUES del terreno (game.js), asi lo que
  *  esta mas lejos queda detras de el, y lo que esta mas cerca —una isla, una ladera, una loma, una ola— lo
  *  tapa con su propio filo (render/oclusion.js). */
+const CUERPO_N = 4, CUERPO_MANGA = 0.12;   // las capas del cuerpo del buque, y su manga (ancho) como fraccion de la eslora
 export function drawBlanco() {
   if (!blanco.on) return;
   if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ * 0.5) return;
@@ -67,7 +68,18 @@ function dibujarBlanco() {
     enemyArt.drawFrame(ctx, est.hoja, 0, 0, s.x, { bottomY: s.y }, len, false, false);
     if (haze > 0.01) { ctx.globalAlpha = apE * haze; enemyArt.drawFrame(ctx, est.hoja, 0, 0, s.x, { bottomY: s.y }, len, false, true); ctx.globalAlpha = apE; }
   } else if (est) drawEstructura(est, s.x, len, s.y, k, haze);
-  else drawCascoDelBuque(blanco.nombre, s.x, len, s.y - hullH, uh, hullH, haze, { hoja: true });
+  else {
+    // EL CUERPO (21/11, el autor: "veo que el barco es una plancha 2D, ¿no podemos agregarle algo de cuerpo?"): el mismo
+    // casco repetido hacia atras —CUERPO_N capas hasta la manga del buque, cada una mas lejos y mas oscura— se lee como
+    // la cubierta y el costado del otro lado. Despues, el casco de siempre adelante
+    const manga = BL.LEN * CUERPO_MANGA;
+    for (let i = CUERPO_N; i >= 1; i--) {
+      const zc = zVista(blanco.z + manga * i / CUERPO_N), sc = proj(BL.X, blanco.base, zc), kc = sc.k;
+      const uhc = Math.max(0.5, BL.LEN * 0.03 * kc), hHc = uhc * 1.5;
+      drawCascoDelBuque(blanco.nombre, sc.x, BL.LEN * kc, sc.y - hHc, uhc, hHc, Math.min(1, haze + 0.45 + 0.4 * i / CUERPO_N), { hoja: true });
+    }
+    drawCascoDelBuque(blanco.nombre, s.x, len, s.y - hullH, uh, hullH, haze, { hoja: true });
+  }
   // LA PERSPECTIVA AEREA: de lejos un buque se ve MAS CLARO, tirado al color del cielo — no mas
   // oscuro. La hoja es gris acero y el mar del pasillo es casi negro, asi que a 1 km el casco era
   // una mancha oscura sobre oscuro y solo se leia la espuma de proa. La misma silueta en blanco,

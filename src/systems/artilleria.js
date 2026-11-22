@@ -56,7 +56,14 @@ function salva(sis) {
 /** Un cuadro. `e` = { activo, pz, k }: `activo` lo resuelve el orquestador (pasillo jugable de la
  *  suelta, sin el negro ni la camara lenta, fuera del escape) — el mismo que la defensa cercana. `k`
  *  frena SOLO los relojes de tiro (el ATAQUE COORDINADO, `run.defK`): las columnas viajan con el mundo. */
+// LA RAFAGA RECIEN SALIDA (21/11, el autor: "el sonido de las balas cuando salen desde el barco, y empiezan a aparecer
+// tiros y salpicaduras en el agua"): cada rafaga de 20/40 mm carga RAFAGA_T s; mientras dura, game.js suena las balas y
+// salpica el agua alrededor tuyo
+const RAFAGA_T = 1.4;
+let rafagaT = 0;
+export const rafaga = () => rafagaT > 0;
 export function step(dt, e) {
+  rafagaT = Math.max(0, rafagaT - dt);
   PZ = e.pz;
   for (const f of fogonazos) f.t += dt;
   while (fogonazos.length && fogonazos[0].t > 0.35) fogonazos.shift();
@@ -91,6 +98,7 @@ export function step(dt, e) {
     const cj = cajaSistema(sis), disp = A.disp * (sis.estado === 'danado' ? 1.6 : 1);
     // `ox`/`oy`: el error de punteria de ESTE tiro. collision.js lo respeta al corregir, asi que la
     // dispersion no se la come el guiado de las trazadoras (casi rectas, pero corrigen un poco)
+    rafagaT = RAFAGA_T;
     for (let i = 0; i < A.n; i++) missiles.push({ tracer: true, x: cj.x, y: cj.y + cj.hy, z: blanco.z + i * 4,
       ox: gauss(disp), oy: gauss(disp * 0.45), done: false });
   }

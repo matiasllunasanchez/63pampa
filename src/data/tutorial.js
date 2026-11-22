@@ -231,7 +231,7 @@ export const TUTORIAL_ETAPAS = [
     desc: { es: 'La bomba, la vuelta y el aterrizaje.', en: 'The bomb, the way home and the landing.' },
     // EL BUQUE: un casco viejo, quieto y sin defensa, y todas las pasadas que hagan falta. Con vuelta: al
     // pegarle se vuelve, y al llegar, la aproximacion final de siempre (systems/fases.js `llegaste`)
-    goal: { kind: 'ship', ship: 'CASCO DE PRÁCTICA', dist: 4200 }, climax: 'suelta', pasadas: 99, defensa: null,
+    goal: { kind: 'ship', ship: 'CASCO DE PRÁCTICA', dist: 9000 }, climax: 'suelta', pasadas: 99, defensa: 'cat', unGolpe: true,   // (21/11: con su zona de corto alcance y sus 20 mm; y la bomba que pega, hunde)
     // la BRP y la ventana mas ancha (18/11, "tiro la bomba bien y no le pega"); con nafta y la Chancha para la vuelta
     bomba: 'brp', dificultad: 'facil', chancha: true, chanchaMinT: 0,
     fases: [
