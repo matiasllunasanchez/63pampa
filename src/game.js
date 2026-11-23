@@ -227,7 +227,7 @@ import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T, SENAS_COMP } from './data/senal
 import { cartel, cartelSostenido, tickCarteles, limpiarCarteles, carteles } from './core/cartel.js';
 import { CARA_DE_RADIO, decirLinea, setVozLibro } from './core/voz.js';
 import { derrota, esChoque, tipoDerribo } from './data/derrotas.js';
-import { SOBREVUELO } from './data/islas_teatro.js';
+import { SOBREVUELO, EYECCION_PREMIO } from './data/islas_teatro.js';
 import { DEV, FULL } from './core/dev.js';
 import { defensaDe } from './data/defensas.js';
 import { calibreDe } from './data/sistemas_buque.js';
@@ -4264,6 +4264,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let escapaT0 = -1;   // el rotulo LE DISTE! ESCAPA YA! (cuando arranco, performance.now; -1 = no)
     let rotuloT0 = -1, rasPrev = false;   // el rotulo RASANTE: cuando arranco (performance.now) y el flanco
     let toT = 0, toCount = 4;
+    let eyectoPend = null;   // LA EYECCION EN LAS ISLAS, mientras el avion vacio cae: { causa, relevo } (ver `eyectar`)
     // EL DESPEGUE DEL LIBRO DE VUELO (21/11, el autor: "que los despegues sean automaticos, que despegue solo y que la
     // UI no aparezca completamente hasta que no se libera el control del avion… poner ubicacion y hora y dia… efecto
     // de tipeo. Todo esto mientras despega. Esto repetible para todas las misiones de ahora en adelante"). Sin cuenta:
@@ -4510,6 +4511,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (islas.activa()) run.squad = run.lives = 1;   // LAS ISLAS: un solo avion, sin relevos (el generico, PILOTOS_AVION)
       squad.resetFila();   // la fila de pilotos, en orden (core/squad.js)
       squad.resetSquad();
+      eyectoPend = null;
       toT = 0; toCount = 4; rotLibro = null; rotSale = 0; hudEntra = 1; dspVisto = false; dspSale = 0;
       { const m = curMission(); ALTO.NUBES = m && m.techoNubes ? m.techoNubes + ALTO.ESPESOR : NUBES_BASE; }
       carrera = curMission() && curMission().despegueJugable && !cfg.cliff && cfg.start !== 'air' ? nuevaCarrera() : null; carreraFallas = 0;
@@ -5246,7 +5248,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  el piloto vuelve: lo deciden los km a la costa propia o a la Gran Malvina. Mas lejos, el
      *  agua del Atlantico Sur a 2-5 °C. Sin ruta se mide contra la fraccion del camino a casa. */
     const sinMuerteAhora = () => (gameMode === 'campaign' || gameMode === 'cycle') && !!curMission() && !!curMission().sinMuerte;
+    // LA EYECCION EN LAS ISLAS ES UNA CAIDA (23/11, el autor: "cuando se eyecta, el avion debe seguir sin nafta cayendo y
+    // debe salir el piloto. Si tenia que explotar por una colision que lo haga, pero recien acabo de eyectarme y no solo
+    // no eyecto sino que exploto el avion"): sale el piloto, el motor se apaga, y el avion sigue cayendo hasta que toca
+    // algo — RECIEN AHI revienta y se cobra la eyeccion (`eyectoPend`, en onDeath): el relevo o el final.
     function eyectar(enTierra, aPedido) {
+      if (eyectoPend) return;   // (ya salto: el avion vacio no tiene a quien eyectar)
       albumDescubrir('eyeccion');   // (el ALBUM, 22/11)
       let rescate;
       if (islas.enPasillo()) rescate = !!enTierra;   // (LAS ISLAS: sobre tierra caes entre los tuyos; en el agua, no)
@@ -5261,6 +5268,21 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       }
       beep(900, 0.08, 'square', 0.05, -300); boom(0.06, true);
       run.eyecArma = 0;
+      if (islas.enPasillo()) {
+        // el piloto sale (la pieza del paracaidas, como abajo) y el avion queda cayendo, vacio y sin motor
+        obstacles.push({ type: 'chunk', done: true, chunkT: 0, paraca: true, x: plane.x, y: plane.y + 0.5, z: PZ + 4,
+          vx: 0, vy: 6, vz: 5, spin: 0, vspin: 0, size: 0.95, hot: false, c: '#d8d2c4', c2: '#8f959b', grav: 0.1, vida: 6, ph: 0, parte: null, arg: true });
+        run.fuel = 0; run.boost = false;
+        const causa = aPedido ? (rescate ? 'death_eyecto_islas_tierra' : 'death_eyecto_islas_mar') : (rescate ? 'death_eyecto_tierra' : 'death_eyecto_mar');
+        eyectoPend = { causa, relevo: !!aPedido && canRelevo(run.lives) };
+        cartelSostenido('islasSeco', false); cartelSostenido('islasEyecta', false);
+        // LOS PUNTOS SEGUN DONDE SALTASTE (data/islas_teatro.js EYECCION_PREMIO): enemiga, se conservan; neutral, algo;
+        // la nuestra, mas
+        const zona = islas.zonaBando(), premio = EYECCION_PREMIO[zona] || 0;
+        run.score += premio;
+        cartel(T('islasEyectado'), P.accent, premio > 0 ? T('eyecPremio_' + zona, { n: premio }) : T('eyecPuntosOk'));
+        return;
+      }
       // SI LA PARTIDA SIGUE, EYECTARSE NO LA CIERRA (23/11, el autor: "si te matan perdes X cantidad de puntos que duela,
       // si te eyectas, los puntos se conservan… siempre que siga la partida"): el avion se pierde (cae apagado y el piloto
       // salta: `derribar` 'seco'), entra el siguiente de la fila y el puntaje queda entero — es la otra cara de PENA_MUERTE
@@ -5893,6 +5915,19 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // (el TRAILER: tools/trailer_preload.js, plano a plano; en el juego nadie lo toca)
       if (typeof window !== 'undefined' && window.__trailerInmortal) return;
       ultimaCausa = cause;   // la sonda __seawolf la muestra (un relevo no pasa por die)
+      // EL AVION VACIO TOCO ALGO (la eyeccion de las islas, `eyectoPend`): ahora si revienta, y lo que se cobra es la
+      // eyeccion — el relevo con los puntos enteros, o el final
+      if (eyectoPend) {
+        const e = eyectoPend; eyectoPend = null;
+        missiles.length = 0;
+        islas.estallarAvion(tipoDerribo(cause) === 'misil', cause === 'death_sea');
+        if (e.relevo && canRelevo(run.lives)) {
+          golpesPopa = 0;
+          squad.startRelevo(e.causa, undefined, true);
+          setState('relevo');
+        } else die(e.causa);
+        return;
+      }
       // LA MISION QUE NO DEJA CAER EL AVION (`sinMuerte` de data/missions.js, hoy el tutorial). Solo
       // donde se juega LA mision —campaña o selector—, nunca en POR LA PATRIA ni en los modos sueltos.
       const sm = (gameMode === 'campaign' || gameMode === 'cycle') && curMission() ? curMission().sinMuerte : null;
@@ -7321,6 +7356,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // EL INVINCIBLE (libro r5): el Super Etendard entra al Pulso en `lanzamiento` y no en el blanco, y
       // en la escolta del A-4C no hay climax — llegar al portaaviones con el misil ES el objetivo.
       const lr = libroEnTramo();
+      // (el avion vacio: nadie lo maneja — sin gas, sin poscombustion, sin cañon; cae)
+      if (eyectoPend) { inp.u = 0; inp.turbo = false; inp.fire = false; inp.mant = 0; }
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist,
         needsMomentum: lr === 'escolta' || lr === 'sigue' ? false : needsMomentum, climax: runClimax(),
         // (el Super Etendard ya no entra solo: lo lanza el jugador en la zona — pasoZonaLanza)
@@ -7401,13 +7438,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (eyecArmT > 0) eyecArmT = Math.max(0, eyecArmT - dt);
       run.eyecArma = eyecArmT / EYEC_ARMA_S;   // (lo lee el recuadro del piloto: EYECCION PREPARADA)
       if (!islas.enPasillo()) { eyecArmT = 0; eyecPadYa = false; run.eyecArma = 0; }
-      if (cfg.fuelOn && run.fuel <= 0 && islas.enPasillo()) { if (islasSeco()) return; }
+      if (eyectoPend) cartelSostenido('islasSeco', false);   // (el avion vacio cae: nada que avisar ni a quien eyectar)
+      else if (cfg.fuelOn && run.fuel <= 0 && islas.enPasillo()) { if (islasSeco()) return; }
       else if (cfg.fuelOn && run.fuel <= 0) { sinCombustible(); return; }
       else cartelSostenido('islasSeco', false);
       // LA EYECCION A PEDIDO EN LAS ISLAS (20/11, el autor: "como me eyecto en teclado? agregar tambien"): con nafta
       // tambien —un avion roto, un Harrier encima—, Q+E juntas (L1+R1) SOSTENIDAS EYECCION_T s. Sostenido y no al
       // toque: Q y E son el rolido, y apretarlas juntas un instante no tiene que tirarte del avion.
-      if (islas.enPasillo() && !(cfg.fuelOn && run.fuel <= 0)) {
+      if (islas.enPasillo() && !eyectoPend && !(cfg.fuelOn && run.fuel <= 0)) {
         if (eyecPadYa) { eyecPadYa = false; eyectaT = 0; cartelSostenido('islasEyecta', false); eyectar(islas.sobreTierra(), true); return; }
         const pide = (inp.rollL && inp.rollR) || flags.padEyect;
         eyectaT = pide ? eyectaT + dt : 0;

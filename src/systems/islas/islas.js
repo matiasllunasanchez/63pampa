@@ -924,6 +924,8 @@ export const radarZonaArg = () => enPasillo() && I.puesto && !!teatro.zona().arg
 /** El avion esta sobre tierra (la eyeccion: caes entre los tuyos o al agua). */
 export const sobreTierra = () => enPasillo() && P3.g > 0.3;
 
+/** La zona en la que estas para la EYECCION: 'gb' (radar britanico), 'arg' (el nuestro) o 'neutral'. */
+export const zonaBando = () => { const z = teatro.zona(); return z.gb ? 'gb' : z.arg ? 'arg' : 'neutral'; };
 /** La altura trabada desde arriba (el candado del altimetro, render/hud.js). */
 export const altFija = () => enPasillo() && P3.altFija !== null;
 

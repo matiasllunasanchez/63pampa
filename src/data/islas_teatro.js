@@ -116,6 +116,11 @@ export const SOBREVUELO = { aviones: ['mb339', 'pucara'], pista: { lon: -57.777,
 export const PUNTOS = { carpa: 250, deposito: 600, puesto: 400, radar: 1200, rapier: 1000, manpad: 600, canon: 800, camion: 500,
   blindado: 900, soldado: 120, harrier: 1500 };
 export const FUEGO_AMIGO = -800;
+// EYECTARSE SEGUN DONDE (23/11, el autor: "si no eyectas, no son puntos, y perdes; si eyectas en zona enemiga conservas
+// puntos, si eyectas en zona neutral sumas algo de puntos, si eyectas en zona aliada / argentina sumas mas puntos"). La
+// zona es la de los radares (teatro.js `zona`): adentro de uno britanico, enemiga; de uno nuestro, aliada; si no, neutral.
+// Morir sin eyectarse cuesta PENA_MUERTE (data/tuning.js).
+export const EYECCION_PREMIO = { gb: 0, neutral: 500, arg: 1500 };
 export const PISTA = { largo: 1250, ancho: 45, margen: 12 };
 export const ATERRIZA_RUMBO = 25, ATERRIZA_ALTO = 3, ATERRIZA_VY = -12;
 
