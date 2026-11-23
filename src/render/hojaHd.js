@@ -10,7 +10,14 @@ import { ctx } from './ctx.js';
 import { SHEET_FW } from '../data/planes.js';
 
 // (la base y la FINA —sheet5, skin_<x>5, tren5, 23/11—: nivelado, en la pista, el lider se dibuja con la fina)
-const CON_HD = /a4-skyhawk\/(sheet5?|skin_[a-z]+5?|tren5?|variante[1-4])\.png(\?.*)?$/;   // (+ las variantes de los numerales)
+// (23/11, "todas las variantes de aviones disponibles"): las carpetas de todos los jugables, cada una con su `_hd` al lado
+const CARPETAS_HD = 'a4-skyhawk|a4q|iai-dagger|super-etendard|pampa-63|mirage-5p|hercules-bombardero|learjet-35a|cessna-citation|'
+  + 'swearingen-merlin|mitsubishi-mu2|aerostar-601|turbo-commander|ia50-guarani|ia58-pucara|mb-339a|sp2h-neptune|'
+  + 'ch47c-chinook-faa|ch47c-chinook-ejercito|uh-1h|bell-212|sa330-puma-ejercito|sa330-puma-prefectura|a109-hirundo|'
+  + 't34c-turbo-mentor|sc7-skyvan';
+const CON_HD = new RegExp('planes\\/(' + CARPETAS_HD + ')\\/(sheet5?|skin_[a-z]+5?|tren5?|variante[1-4])\\.png(\\?.*)?$');   // (+ las variantes de los numerales)
+// (los helicopteros no tienen tren: su capa esta vacia y no se horneo al doble)
+const SIN_TREN = /(chinook|uh-1h|bell-212|sa330|a109)[^/]*\/tren/;
 const HD = new Map();
 // (23/11: en la pista, a 1280 de ventana, un A-4 da ~1,7 — con 1,4..2,0 quedaba a medio fundir; ahora entra entero)
 export const HD_DESDE = 1.05, HD_HASTA = 1.45;   // pixeles de pantalla por pixel de la hoja base
@@ -20,7 +27,7 @@ export function hojaHd(img) {
   let h = HD.get(img);
   if (h === undefined) {
     h = null;
-    if (CON_HD.test(img.src) && !/\/three\//.test(img.src)) { h = new Image(); h.src = img.src.replace(/\.png(\?.*)?$/, '_hd.png$1'); }
+    if (CON_HD.test(img.src) && !/\/three\//.test(img.src) && !SIN_TREN.test(img.src)) { h = new Image(); h.src = img.src.replace(/\.png(\?.*)?$/, '_hd.png$1'); }
     HD.set(img, h);
   }
   return h && h.complete && h.naturalWidth ? h : null;

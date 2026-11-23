@@ -507,6 +507,10 @@ export const CH_ETA = 18;        // s entre el pedido confirmado y la aparicion
 // …y con RUTA (PLAN_NAFTA_ALCANCE, 24/9): el crucero esta comprimido — 520 km en ~40 s — y 18 s de
 // espera la harian llegar cuando ya bajaste al radar. 6 s es la misma espera medida en km.
 export const CH_ETA_RUTA = 6;
+// LA CHANCHA AL ROJO (EL INVINCIBLE, 23/11, data/libro_vuelo.js `chanchaAlRojo`): la de la ida viene cuando la nafta
+// baja de CH_ROJO % (el cuarto rojo del reloj), el transito se cobra para que eso pase al CH_ROJO_EN del tramo alto
+// (volando alto; mas abajo gasta mas y llega antes), y la linea del radar espera RADAR_TRAS_CHANCHA s despues de llenar.
+export const CH_ROJO = 25, CH_ROJO_EN = 0.8, RADAR_TRAS_CHANCHA = 7;
 // EL ENGANCHE: segundos que hay que SOSTENERSE en la caja antes de que empiece a pasar nafta
 // (pedido del autor 24/9). Es el naranja del HUD; pasado esto, verde y carga. Salirse lo reinicia.
 export const CH_ENGANCHE = 1.5;
@@ -2708,3 +2712,8 @@ export const VERT_PLANEO = { G: 3, TH: 12, CAIDA: 1.2, SUBE: 7, AMORT: 4, DEMORA
 // del cartel, los demas cada PASO s; cada golpe dura DURA s y suena SFX (el del autor, 23/11)
 // (23/11: "primero el engine y luego marca los aviones": ANTES: el cartel primero, despues los golpes)
 export const FALLA_ALERTA = { ANTES: 0.6, PASO: 0.45, DURA: 0.9, SFX: 'planeFail' };   // (23/11: el motor que fallaba con el cartel se saco; solo suena cada avion)
+
+// LA MUERTE CUESTA PUNTOS (23/11, el autor: "si te matan perdes X cantidad de puntos que duela, si te eyectas, los puntos
+// se conservan… siempre que siga la partida"): al perder un avion y seguir con el siguiente se va PARTE del puntaje
+// (una tajada y no un fijo: el puntaje de una corrida va de cientos a cientos de miles). Eyectarse no la cobra.
+export const PENA_MUERTE = { PARTE: 0.35 };

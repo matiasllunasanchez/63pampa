@@ -20,8 +20,8 @@ const BORDE = '#7f9099', TINTA = '#1c2226';
 const PAD = [
   { k: 'gat', t: 'LT', x: 30, y: 40, ac: ['Mant'] },
   { k: 'bum', t: 'LB', x: 30, y: 51, ac: ['Msl'] },
-  { k: 'stick', t: 'L', x: 30, y: 66, dirs: 'udlr', ac: ['Fly', 'Gas', 'Dive'] },
-  { k: 'cruz', x: 30, y: 92, ac: ['Secund', 'Chancha', 'Cam'] },
+  { k: 'stick', t: 'L', x: 30, y: 66, dirs: 'udlr', ac: ['Fly', 'Gas', 'Dive'], l3: true },
+  { k: 'cruz', x: 30, y: 92, ac: ['Secund', 'Chancha', 'Eyecta'] },
   { k: 'menu', t: 'START', x: 160, y: 40, ac: ['Pause'], centro: true },
   { k: 'gat', t: 'RT', x: 232, y: 40, ac: ['Boost'] },
   { k: 'bum', t: 'RB', x: 232, y: 51, ac: ['Tempo'] },
@@ -239,18 +239,18 @@ const PUNTAS = [
   { px: 122, py: 72, al: 'izq', ac: ['Mant'] },                       // LT: mantener la altura (22/11)
   { px: 53, py: 163, al: 'izq', ac: ['Msl'] },                        // LB
   // (23/11, el autor: "reduzcamos el ESQUIVAR y todo el resto solo por DIRECCION DE VUELO"): un renglon
-  { px: 68, py: 374, al: 'izq', ac: ['Direccion'], dy: 0 },   // stick izquierdo
+  { px: 68, py: 374, al: 'izq', ac: ['Direccion'], l3: true, dy: 0 },   // stick izquierdo
   { px: 25, py: 446, al: 'izq', ac: ['Secund'] },                     // cruceta ▲
-  { px: 25, py: 485, al: 'izq', ac: [], dy: 0.6 },                    // cruceta ◄ (sin uso)
-  { px: 527, py: 45, al: 'arr', ac: [] },                             // BACK (sin uso)
+  { px: 25, py: 485, al: 'izq', ac: ['Eyecta'], dy: 0.6 },            // cruceta ◄ (23/11: dos toques = eyeccion)
+  { px: 527, py: 45, al: 'arr', ac: ['Cam'], dx: -8 },                // BACK / SELECT (23/11: la camara)
   { px: 733, py: 45, al: 'arr', ac: ['Pause'] },                      // START
   { px: 1138, py: 76, al: 'der', ac: ['Boost'] },                     // RT
   { px: 1186, py: 158, al: 'der', ac: ['Tempo'] },                    // RB (23/11: momentum)
-  { px: 1176, py: 237, al: 'der', ac: ['Radar'] },                    // Y (23/11: el radar)
+  { px: 1176, py: 237, al: 'der', ac: ['Especial'] },                 // Y (23/11: el radar; el autor: "la Y seria ACTIVAR ESPECIAL (si tiene)")
   { px: 1250, py: 295, al: 'der', ac: ['Chapitas'] },                 // B
   { px: 1253, py: 355, al: 'der', ac: ['Msl'] },                      // X (23/11: soltar secundaria)
   { px: 1186, py: 415, al: 'der', ac: ['Gun'] },                      // A
-  { px: 492, py: 668, al: 'izq', ac: ['Cam'] },                       // cruceta ▼
+  { px: 492, py: 668, al: 'izq', ac: [] },                            // cruceta ▼ (23/11: libre; el rasante paso a L3)
   { px: 545, py: 625, al: 'der', ac: ['Chancha'], dx: -1.8, dy: 4.6 },          // cruceta ►
   { px: 776, py: 680, al: 'der', ac: ['Roll', 'Brake', 'MiraB'], r3: true, flechas: true, dy: -19 },   // stick derecho
 ];
@@ -274,6 +274,7 @@ function dibujarPadPng() {
     const x = ox + p.px * s, y = oy + p.py * s;
     const lineas = p.ac.map(ac => [(p.flechas ? FLECHA_PAD[ac] || '' : '') + T(p.flechas && TXT_PAD[ac] || 'ctrl' + ac), colorDe(ac)]);
     if (p.r3) lineas.push([T('mandoR3'), colorDe('TiraB')]);
+    if (p.l3) lineas.push([T('mandoL3'), colorDe('Rasante')]);
     if (!lineas.length) lineas.push([T('mandoSinUso'), P.dim]);
     const al = p.al === 'izq' ? 'right' : p.al === 'der' ? 'left' : 'center';
     const tx = (p.al === 'izq' ? x - 1.8 : p.al === 'der' ? x + 1.8 : x) + (p.dx || 0);
@@ -294,6 +295,7 @@ function dibujarPad(t) {
     const xt = botonGrande(b, t);
     const lineas = b.ac.map(ac => T('ctrl' + ac));
     if (b.r3) lineas.push(T('mandoR3'));
+    if (b.l3) lineas.push(T('mandoL3'));
     ctx.textAlign = b.centro ? 'left' : 'left';
     lineas.forEach((txt, k) => {
       ctx.font = (k ? '' : 'bold ') + '4.5px monospace';

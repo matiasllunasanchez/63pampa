@@ -449,7 +449,7 @@ export function flightSystem(dt, deps) {
   const ras = run.aguante === 1 || rasante.active();
   if (naftaSys.activo()) {
     if (cfg.fuelOn) {
-      const km = run.spd * dt * chAvance() * cvAvance() * kmPorM();
+      const km = run.spd * dt * chAvance() * cvAvance() * kmPorM() * (run.gastoK || 1);   // (gastoK: la Chancha al rojo)
       naftaSys.step(km, plane.y, colgado, turboR, ras);
     }
   } else if (cfg.fuelOn) {

@@ -12,8 +12,8 @@ import { P as PAL } from '../../data/palette.js';
 import { marco } from './islas.js';
 const THREE = window.THREE || null;
 // los POOLS (fijos: nada se crea por cuadro). Las bolas son un anillo que busca un lugar libre antes de pisar.
-const N_BOLA = 520, N_PED = 760, N_PARTE = 36, N_CHAPA = 120, N_EMI = 40, N_ONDA = 4;
-const R = { bolas: [], ped: null, pedV: [], tex: null, vivos: [], partes: [], hoja: null,
+const N_BOLA = 720, N_PED = 900, N_PARTE = 36, N_CHAPA = 160, N_EMI = 56, N_ONDA = 4;
+const R = { bolas: [], ped: null, pedV: [], tex: null, texs: [], vivos: [], partes: [], hoja: null,
   chapas: [], texChapa: null, emi: [], ondas: [], tok: 0, sonda: [], suelo: null };
 
 // LOS IMPACTOS POR ARMA (21/11, el autor: "particulas que se rompan, pedazos de barco o bases o barcazas cuando
@@ -51,6 +51,34 @@ function textura() {
   g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
   const t = new THREE.CanvasTexture(c); return t;
 }
+// LAS BOCANADAS (23/11, el autor: "las explosiones de los edificios y vehiculos y todo en ISLAS debe ser mucho mejor
+// visualmente"): la bola lisa de degradé se leia como un globo. Cada bola de fuego o de humo ahora es una BOCANADA con
+// lobulos (varias bolitas encimadas, con sombra abajo y un grano), girada al azar y girando despacio: el fuego se
+// ve con lenguas y el humo con rulos. Cuatro dibujos distintos (semilla fija) para que no se repita la forma.
+// La lisa queda para los FOGONAZOS (`blanda`), que son luz y no materia.
+const N_BOCANADA = 4;
+function bocanada(semilla) {
+  let sd = semilla * 9301 + 49297;
+  const r = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const lob = 9 + ((r() * 5) | 0);
+  for (let i = 0; i < lob; i++) {
+    const a = r() * 6.283, d = (i === 0 ? 0 : 6 + r() * 13), x = 32 + Math.cos(a) * d, y = 32 + Math.sin(a) * d;
+    const rr = (i === 0 ? 17 : 8 + r() * 9) * (1 - d / 48);
+    const gr = g.createRadialGradient(x - rr * 0.25, y - rr * 0.3, 0, x, y, rr);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.6, 'rgba(225,225,225,0.85)'); gr.addColorStop(1, 'rgba(160,160,160,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
+  }
+  // el grano: unos puntos mas oscuros adentro (el humo no es liso)
+  const im = g.getImageData(0, 0, 64, 64), D = im.data;
+  for (let i = 0; i < D.length; i += 4) {
+    if (!D[i + 3]) continue;
+    const k = 0.82 + r() * 0.18; D[i] *= k; D[i + 1] *= k; D[i + 2] *= k;
+  }
+  g.putImageData(im, 0, 0);
+  return new THREE.CanvasTexture(c);
+}
 
 // LA CHAPA: cuatro recortes pixelados (8x8 cada uno, blanco con borde gris y algun agujero) que el color tiñe
 function texturaChapa() {
@@ -73,6 +101,7 @@ function texturaChapa() {
 export function crear(escena) {
   if (R.ped || !THREE) return;
   R.tex = textura();
+  for (let i = 0; i < N_BOCANADA; i++) R.texs.push(bocanada(i + 1));
   R.texChapa = texturaChapa();
   for (let i = 0; i < N_CHAPA; i++) {
     const t = R.texChapa.clone(); t.repeat.set(1 / CHAPA_CELDAS, 1);
@@ -178,6 +207,9 @@ function bola(o) {
   ib = (ib + 1) % N_BOLA;
   s.userData.v = o; s.visible = false;
   s.material.blending = o.suma ? THREE.AdditiveBlending : THREE.NormalBlending;
+  // (los fogonazos, lisos; el resto, una bocanada girada que gira despacio)
+  s.material.map = o.blanda ? R.tex : R.texs[(Math.random() * N_BOCANADA) | 0];
+  s.material.rotation = Math.random() * 6.283; o.gira = o.blanda ? 0 : rnd(-0.7, 0.7);
 }
 
 /** Un estallido nuevo: { x, y, z, esc, tipo: 'fuego' | 'avion' | 'agua' | 'chispas' | 'astillas' | 'perfora' | 'detona' | 'humea',
@@ -189,7 +221,7 @@ function nuevo(e, suelo) {
   if (e.tipo === 'avion') despiece(e);
   if (!agua) {
     // EL FOGONAZO: blanco, enorme y cortito
-    bola({ x: e.x, y: e.y + 2, z: e.z, vx: 0, vy: 0, vz: 0, t: 0, d: 0, vida: 0.18, r0: 22 * k, r1: 34 * k, c0: [1, 1, 0.9], c1: [1, 0.8, 0.4], a0: 1, a1: 0, suma: true });
+    bola({ x: e.x, y: e.y + 2, z: e.z, vx: 0, vy: 0, vz: 0, t: 0, d: 0, vida: 0.18, r0: 22 * k, r1: 34 * k, c0: [1, 1, 0.9], c1: [1, 0.8, 0.4], a0: 1, a1: 0, suma: true, blanda: true });
     // LA BOLA DE FUEGO: bolas que nacen escalonadas, crecen y viran de amarillo a rojo oscuro
     for (let i = 0; i < 10; i++) bola({ x: e.x + rnd(-4, 4) * k, y: e.y + rnd(0, 5) * k, z: e.z + rnd(-4, 4) * k,
       vx: (e.vx || 0) * 0.6 + rnd(-6, 6) * k, vy: rnd(2, 9) * k, vz: (e.vz || 0) * 0.6 + rnd(-6, 6) * k, t: 0, d: i * 0.04, vida: rnd(0.7, 1.2),
@@ -319,7 +351,7 @@ const IMPACTOS = {
     for (let i = 0, m = 3 + ((Math.random() * 4) | 0); i < m; i++) { const a = rnd(0, 6.283), v = rnd(4, 12) * k;
       punto(e.x, e.y, e.z, Math.cos(a) * v, rnd(5, 12) * k, Math.sin(a) * v, rnd(0.7, 1.3), pick(GRIS_CHAPA).map(c => c * 0.55)); }
     // el chispazo del impacto (chiquito: no es una bola de fuego) y el puff gris
-    bola({ x: e.x, y: e.y, z: e.z, vx: 0, vy: 0, vz: 0, t: 0, d: 0, vida: 0.07, r0: 2.5 * k, r1: 3.5 * k, c0: [1, 1, 0.85], c1: [1, 0.8, 0.4], a0: 1, a1: 0, suma: true });
+    bola({ x: e.x, y: e.y, z: e.z, vx: 0, vy: 0, vz: 0, t: 0, d: 0, vida: 0.07, r0: 2.5 * k, r1: 3.5 * k, c0: [1, 1, 0.85], c1: [1, 0.8, 0.4], a0: 1, a1: 0, suma: true, blanda: true });
     bola({ x: e.x, y: e.y + 0.5, z: e.z, vx: (e.vx || 0) * 0.05, vy: 2, vz: (e.vz || 0) * 0.05, t: 0, d: 0.03, vida: rnd(0.6, 0.9), r0: 1.2 * k, r1: 4.5 * k,
       c0: [0.42, 0.42, 0.42], c1: [0.6, 0.6, 0.6], a0: 0.55, a1: 0, suma: false });
   },
@@ -341,7 +373,7 @@ const IMPACTOS = {
   },
   // BOMBA QUE PERFORA: fogonazo seco, chapa para afuera y arriba, y el agujero queda echando vapor
   perfora(e, k, suelo) {
-    bola({ x: e.x, y: e.y + 0.5, z: e.z, vx: 0, vy: 0, vz: 0, t: 0, d: 0, vida: 0.1, r0: 4 * k, r1: 8 * k, c0: [1, 1, 0.9], c1: [1, 0.75, 0.35], a0: 1, a1: 0, suma: true });
+    bola({ x: e.x, y: e.y + 0.5, z: e.z, vx: 0, vy: 0, vz: 0, t: 0, d: 0, vida: 0.1, r0: 4 * k, r1: 8 * k, c0: [1, 1, 0.9], c1: [1, 0.75, 0.35], a0: 1, a1: 0, suma: true, blanda: true });
     for (let i = 0; i < 2; i++) bola({ x: e.x + rnd(-1, 1) * k, y: e.y + 1, z: e.z + rnd(-1, 1) * k, vx: 0, vy: 3, vz: 0, t: 0, d: 0.02, vida: 0.22,
       r0: 2.5 * k, r1: 5 * k, c0: [1, 0.8, 0.4], c1: [0.7, 0.25, 0.08], a0: 0.9, a1: 0, suma: true });
     for (let i = 0, m = 11 + ((Math.random() * 5) | 0); i < m; i++)
@@ -362,7 +394,7 @@ const IMPACTOS = {
   // BOMBA QUE DETONA: lo grande
   detona(e, k, suelo) {
     const agua = enAgua(e, suelo), piso = agua ? 0.5 : suelo(e.x, e.z) + 0.5;
-    bola({ x: e.x, y: e.y + 3, z: e.z, vx: 0, vy: 0, vz: 0, t: 0, d: 0, vida: 0.25, r0: 40 * k, r1: 62 * k, c0: [1, 1, 0.92], c1: [1, 0.82, 0.45], a0: 1, a1: 0, suma: true });
+    bola({ x: e.x, y: e.y + 3, z: e.z, vx: 0, vy: 0, vz: 0, t: 0, d: 0, vida: 0.25, r0: 40 * k, r1: 62 * k, c0: [1, 1, 0.92], c1: [1, 0.82, 0.45], a0: 1, a1: 0, suma: true, blanda: true });
     // la bola de fuego: crece en camadas y sube
     for (let i = 0; i < 22; i++) bola({ x: e.x + rnd(-6, 6) * k, y: e.y + rnd(0, 8) * k, z: e.z + rnd(-6, 6) * k,
       vx: (e.vx || 0) * 0.3 + rnd(-8, 8) * k, vy: rnd(4, 14) * k, vz: (e.vz || 0) * 0.3 + rnd(-8, 8) * k, t: 0, d: i * 0.035, vida: rnd(1.2, 2),
@@ -384,6 +416,15 @@ const IMPACTOS = {
       vx: 0, vy: rnd(2, 5), vz: 0, t: 0, d: 0, vida: rnd(0.5, 0.8), r0: rnd(2, 4) * k * (1 - u * 0.5), r1: rnd(5, 8) * k * (1 - u * 0.5),
       c0: [1, 0.85, 0.4], c1: [0.7, 0.15, 0.03], a0: 0.95, a1: 0, suma: true, sube: 8 }), { ralenta: 0.8 });
   },
+  // LO DE TIERRA QUE SE DESTRUYE (23/11, el autor: "las explosiones de los edificios y vehiculos y todo en ISLAS debe
+  // ser mucho mejor"): antes todo usaba el 'fuego' generico. Ahora cada cosa revienta como lo que es:
+  //   'casa'   carpa, puesto: se desarma — polvo que corre por el piso, tablas y lona, fuego chico que queda
+  //   'fierro' camion, cañon, Rapier, blindado, radar: reventon con la municion que sigue saltando (estallidos
+  //            segundos), chapa al rojo, el casco que queda ardiendo con humo negro
+  //   'nafta'  deposito, Hercules, Pucara: el HONGO — bola de combustible que sube, anillo de polvo, columna negra larga
+  casa(e, k, suelo) { derribo(e, k, suelo, DERRIBO.casa); },
+  fierro(e, k, suelo) { derribo(e, k, suelo, DERRIBO.fierro); },
+  nafta(e, k, suelo) { derribo(e, k, suelo, DERRIBO.nafta); },
   // BUQUE DAÑADO: el hilo de humo oscuro
   humea(e, k) {
     emisor(e.x, e.y, e.z, 2.6, 0.17, em => ({ x: em.x + rnd(-1, 1) * k, y: em.y, z: em.z + rnd(-1, 1) * k, vx: em.wx + rnd(-0.5, 0.5), vy: rnd(3, 5), vz: em.wz + rnd(-0.5, 0.5),
@@ -391,6 +432,77 @@ const IMPACTOS = {
     { wx: (e.vx || 0) * 0.02 + 1, wz: (e.vz || 0) * 0.02 + 0.6 });
   },
 };
+
+
+// ---------------------------------------------------------------------------------------------------------
+// EL DERRIBO DE LO DE TIERRA (ver IMPACTOS.casa / fierro / nafta)
+const POLVO = [0.46, 0.38, 0.27], POLVO2 = [0.6, 0.54, 0.45];
+const DERRIBO = {
+  casa:   { flash: 16, bola: 9, bolaR: [9, 16], fuegoC1: [0.7, 0.2, 0.04], polvo: 16, polvoR: 1.0, pedazos: 'madera', npz: 28, chispas: 70,
+            secundarios: 0, hongo: false, columna: [10, 14], fuegoQueda: [8, 11], onda: 50 },
+  fierro: { flash: 22, bola: 12, bolaR: [10, 18], fuegoC1: [0.7, 0.16, 0.03], polvo: 10, polvoR: 0.8, pedazos: 'chapa', npz: 26, chispas: 90,
+            secundarios: 4, hongo: false, columna: [18, 24], fuegoQueda: [14, 18], onda: 70 },
+  nafta:  { flash: 34, bola: 20, bolaR: [16, 28], fuegoC1: [0.6, 0.12, 0.02], polvo: 18, polvoR: 1.3, pedazos: 'chapa', npz: 32, chispas: 110,
+            secundarios: 1, hongo: true, columna: [26, 34], fuegoQueda: [18, 24], onda: 110 },
+};
+function derribo(e, k, suelo, D) {
+  const piso = Math.max(0.3, suelo(e.x, e.z)), y = Math.max(e.y, piso + 1);
+  // 1. EL FOGONAZO (luz) y un segundo resplandor naranja que tarda un poco mas
+  bola({ x: e.x, y: y + 1, z: e.z, vx: 0, vy: 0, vz: 0, t: 0, d: 0, vida: 0.16, r0: D.flash * k, r1: D.flash * 1.5 * k, c0: [1, 1, 0.92], c1: [1, 0.85, 0.5], a0: 1, a1: 0, suma: true, blanda: true });
+  bola({ x: e.x, y: y + 2, z: e.z, vx: 0, vy: 0, vz: 0, t: 0, d: 0.05, vida: 0.5, r0: D.flash * 0.8 * k, r1: D.flash * 1.2 * k, c0: [1, 0.6, 0.2], c1: [0.6, 0.15, 0.02], a0: 0.7, a1: 0, suma: true, blanda: true });
+  // 2. LA BOLA DE FUEGO: camadas escalonadas; el corazon blanco-amarillo, el borde rojo oscuro
+  for (let i = 0; i < D.bola; i++) {
+    const a = rnd(0, 6.283), d = rnd(0, 4) * k;
+    bola({ x: e.x + Math.cos(a) * d, y: y + rnd(0, 4) * k, z: e.z + Math.sin(a) * d,
+      vx: Math.cos(a) * rnd(2, 8) * k + (e.vx || 0) * 0.1, vy: rnd(3, 10) * k, vz: Math.sin(a) * rnd(2, 8) * k + (e.vz || 0) * 0.1,
+      t: 0, d: i * 0.03, vida: rnd(0.8, 1.4), r0: rnd(3, 6) * k, r1: rnd(D.bolaR[0], D.bolaR[1]) * k,
+      c0: i < 3 ? [1, 1, 0.8] : [1, 0.85, 0.45], c1: D.fuegoC1, a0: 1, a1: 0, suma: true, sube: 5 });
+  }
+  // las mismas camadas, por DETRAS, en humo oscuro: le da cuerpo al fuego (el aditivo solo se lavaba contra el cielo)
+  for (let i = 0; i < Math.ceil(D.bola * 0.7); i++) bola({ x: e.x + rnd(-3, 3) * k, y: y + rnd(1, 5) * k, z: e.z + rnd(-3, 3) * k,
+    vx: rnd(-3, 3) * k, vy: rnd(4, 9) * k, vz: rnd(-3, 3) * k, t: 0, d: 0.25 + i * 0.05, vida: rnd(2.2, 3.4),
+    r0: rnd(5, 8) * k, r1: rnd(D.bolaR[0] * 1.1, D.bolaR[1] * 1.3) * k, c0: [0.16, 0.13, 0.11], c1: [0.34, 0.33, 0.32], a0: 0.85, a1: 0, suma: false, sube: 4 });
+  // 3. EL HONGO (nafta): un tallo de fuego que sube y una cabeza que se abre arriba
+  if (D.hongo) {
+    for (let i = 0; i < 10; i++) bola({ x: e.x + rnd(-2, 2) * k, y: y + i * 2.2 * k, z: e.z + rnd(-2, 2) * k, vx: 0, vy: rnd(14, 20) * k, vz: 0,
+      t: 0, d: 0.1 + i * 0.03, vida: rnd(1, 1.5), r0: rnd(4, 6) * k, r1: rnd(9, 13) * k, c0: [1, 0.85, 0.4], c1: [0.55, 0.1, 0.02], a0: 1, a1: 0, suma: true });
+    for (let i = 0; i < 14; i++) { const a = (i / 14) * 6.283;
+      bola({ x: e.x + Math.cos(a) * 4 * k, y: y + 22 * k, z: e.z + Math.sin(a) * 4 * k, vx: Math.cos(a) * 9 * k, vy: rnd(4, 8) * k, vz: Math.sin(a) * 9 * k,
+        t: 0, d: 0.45 + rnd(0, 0.15), vida: rnd(1.4, 2), r0: rnd(6, 9) * k, r1: rnd(16, 24) * k, c0: [1, 0.7, 0.3], c1: [0.2, 0.15, 0.13], a0: 1, a1: 0, suma: false, sube: 3 }); }
+  }
+  // 4. EL POLVO QUE CORRE POR EL PISO: un anillo bajo que se abre (lo que mas dice "esto paso en el suelo")
+  for (let i = 0; i < D.polvo; i++) { const a = (i / D.polvo) * 6.283 + rnd(-0.2, 0.2), v = rnd(14, 24) * D.polvoR * k;
+    bola({ x: e.x + Math.cos(a) * 2 * k, y: piso + 1.5 * k, z: e.z + Math.sin(a) * 2 * k, vx: Math.cos(a) * v, vy: rnd(0.5, 2), vz: Math.sin(a) * v,
+      t: 0, d: 0.04, vida: rnd(1.4, 2.2), r0: rnd(3, 5) * k, r1: rnd(10, 16) * k, c0: POLVO, c1: POLVO2, a0: 0.8, a1: 0, suma: false }); }
+  onda(e.x, piso + 0.4, e.z, D.onda * k, 0.6);
+  // 5. LOS PEDAZOS: tablas y lona, o chapa al rojo; y la lluvia de chispas
+  for (let i = 0; i < D.npz; i++) {
+    if (D.pedazos === 'madera') chapa(e, k, { v0: 6, v1: 20, vy0: 10, vy1: 24, inercia: 0.1, vida0: 2, vida1: 3.5, tam0: 0.9, tam1: 2.4, c: pick(MADERA), humo: i < 4 });
+    else chapa(e, k, { v0: 10, v1: 34, vy0: 12, vy1: 34, inercia: 0.2, vida0: 2.5, vida1: 4.5, tam0: 1, tam1: 3.2, caliente: true, humo: i < 8 });
+  }
+  for (let i = 0; i < D.chispas; i++) { const a = rnd(0, 6.283), v = rnd(10, 40) * Math.sqrt(k);
+    punto(e.x, y, e.z, Math.cos(a) * v, rnd(12, 38) * Math.sqrt(k), Math.sin(a) * v, rnd(0.8, 2.2),
+      Math.random() < 0.65 ? [1, rnd(0.6, 0.85), 0.25] : D.pedazos === 'madera' ? pick(MADERA).map(c => c * 0.6) : pick(GRIS_CHAPA).map(c => c * 0.6)); }
+  // 6. LOS SECUNDARIOS: la municion que sigue saltando (fierro) o el tanque que revienta despues (nafta)
+  for (let j = 0; j < D.secundarios; j++) {
+    const dd = 0.35 + j * rnd(0.3, 0.55), a = rnd(0, 6.283), r = rnd(2, 6) * k, sx = e.x + Math.cos(a) * r, sz = e.z + Math.sin(a) * r, sy = y + rnd(0, 3) * k;
+    const kk = D.hongo ? 1.3 : rnd(0.5, 0.8);
+    bola({ x: sx, y: sy, z: sz, vx: 0, vy: 0, vz: 0, t: 0, d: dd, vida: 0.12, r0: 8 * kk * k, r1: 13 * kk * k, c0: [1, 1, 0.85], c1: [1, 0.8, 0.4], a0: 1, a1: 0, suma: true, blanda: true });
+    for (let i = 0; i < 4; i++) bola({ x: sx + rnd(-1, 1) * k, y: sy, z: sz + rnd(-1, 1) * k, vx: rnd(-5, 5) * k, vy: rnd(4, 10) * k, vz: rnd(-5, 5) * k,
+      t: 0, d: dd + i * 0.03, vida: rnd(0.5, 0.9), r0: 2 * kk * k, r1: rnd(7, 11) * kk * k, c0: [1, 0.9, 0.5], c1: D.fuegoC1, a0: 1, a1: 0, suma: true, sube: 4 });
+    // y su chorro de chispas: las trazadoras que se cocinan
+    for (let i = 0; i < 14; i++) { const b = rnd(0, 6.283), v = rnd(15, 40);
+      R.pedV.length < N_PED && R.pedV.push({ x: sx, y: sy, z: sz, vx: Math.cos(b) * v, vy: rnd(10, 35), vz: Math.sin(b) * v, t: -dd, vida: dd + rnd(0.5, 1.1), c: [1, 0.9, 0.5], g: 30 }); }
+  }
+  // 7. LO QUE QUEDA: el fuego en la base y la columna de humo negro con viento
+  const wa = rnd(0, 6.283), wx = Math.cos(wa) * 2, wz = Math.sin(wa) * 2;
+  emisor(e.x, piso + 1, e.z, rnd(D.columna[0], D.columna[1]), 0.22, (em, u) => ({ x: em.x + rnd(-2, 2) * k, y: em.y + rnd(1, 3) * k, z: em.z + rnd(-2, 2) * k,
+    vx: wx + rnd(-1, 1), vy: rnd(5, 8), vz: wz + rnd(-1, 1), t: 0, d: 0, vida: rnd(5, 7), r0: rnd(3, 5) * k, r1: rnd(14, 22) * k * (1 - u * 0.4),
+    c0: [0.09, 0.08, 0.075], c1: [0.3, 0.29, 0.29], a0: 0.8 * (1 - u * 0.5), a1: 0, suma: false, sube: 10 }), { ralenta: 1.3 });
+  emisor(e.x, piso + 0.5, e.z, rnd(D.fuegoQueda[0], D.fuegoQueda[1]), 0.1, (em, u) => ({ x: em.x + rnd(-3, 3) * k, y: em.y + rnd(0, 1.5) * k, z: em.z + rnd(-3, 3) * k,
+    vx: wx * 0.3, vy: rnd(2, 5), vz: wz * 0.3, t: 0, d: 0, vida: rnd(0.5, 0.85), r0: rnd(1.5, 3) * k * (1 - u * 0.6), r1: rnd(4, 7) * k * (1 - u * 0.6),
+    c0: [1, 0.85, 0.4], c1: [0.7, 0.15, 0.03], a0: 0.95, a1: 0, suma: true, sube: 7 }), { ralenta: 0.6 });
+}
 
 /** Un cuadro: `nuevos` = la cola de islas.js; `suelo(x, z)` para el rebote; `dt` en s. */
 export function frame(nuevos, dt, suelo) {
@@ -411,6 +523,7 @@ export function frame(nuevos, dt, suelo) {
     o.x += o.vx * dt; o.y += o.vy * dt; o.z += o.vz * dt;
     const e = 1 - Math.pow(1 - u, 2), r = o.r0 + (o.r1 - o.r0) * e;
     s.position.set(o.x, o.y, o.z); s.scale.set(r, r, 1);
+    if (o.gira) s.material.rotation += o.gira * dt;
     s.material.color.setRGB(o.c0[0] + (o.c1[0] - o.c0[0]) * u, o.c0[1] + (o.c1[1] - o.c0[1]) * u, o.c0[2] + (o.c1[2] - o.c0[2]) * u);
     s.material.opacity = o.a0 + (o.a1 - o.a0) * u;
     s.visible = true;
@@ -421,6 +534,7 @@ export function frame(nuevos, dt, suelo) {
     const p = R.pedV[i];
     p.t += dt;
     if (p.t >= p.vida) { R.pedV.splice(i, 1); continue; }
+    if (p.t < 0) continue;   // (las chispas de un secundario esperan su momento)
     p.vy -= (p.g || 22) * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
     const h = suelo(p.x, p.z);
     if (p.y < h) { p.y = h; p.vy = Math.abs(p.vy) * 0.3; p.vx *= 0.5; p.vz *= 0.5; }
@@ -448,7 +562,7 @@ if (typeof window !== 'undefined') window.__est3d = () => JSON.stringify({ bolas
   vivas: R.bolas.filter(s => s.userData.v).length, ped: R.pedV.length, partes: R.partes.filter(s => s.userData.v).length,
   chapas: R.chapas.filter(s => s.userData.v).length, emisores: R.emi.filter(Boolean).length, fichas: +R.tok.toFixed(1) });
 /** Sonda: `__estallido('perfora')` pone un estallido de ese tipo a `dist` m adelante del avion, a `alto` m sobre el
- *  suelo (o el mar). `__estallido('detona', 200, 3, 1.5)`. Tipos: fuego agua avion chispas astillas perfora detona humea. */
+ *  suelo (o el mar). `__estallido('detona', 200, 3, 1.5)`. Tipos: fuego agua avion chispas astillas perfora detona humea casa fierro nafta. */
 if (typeof window !== 'undefined') window.__estallido = (tipo = 'perfora', dist = 150, alto = null, esc = 1) => {
   const m = marco(); if (!m || !R.ped) return false;
   const x = m.x + Math.sin(m.yaw) * dist, z = m.z - Math.cos(m.yaw) * dist;

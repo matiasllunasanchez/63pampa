@@ -224,6 +224,18 @@ export function ofertaSuelta(owned, ctx, n = BANCO_N, rnd = Math.random) {
   return { cartas: elegir(buenas, n), rota: rota && { ...rota, motivo: motivoRota(rota, ctx.avion) } };
 }
 
+/** EL PRECIO EN PUNTOS de una carta en la TIENDA del sobrevuelo (23/11, data/islas_teatro.js): por grupo; la mejora de
+ *  un item (`requiere`) sale mas, la de uso (`uso`, se gasta) menos. Redondeado a 100. */
+const PRECIO_GRUPO = { armas: 1500, defensa: 1200, alcance: 1300, poderes: 2000, piruetas: 1000, taller: 1000, inteligencia: 1800 };
+export function precioDe(c) {
+  let p = PRECIO_GRUPO[c.grupo] || 1500;
+  if (c.requiere) p *= 1.6;
+  if (c.uso) p *= 0.7;
+  return Math.round(p / 100) * 100;
+}
+/** Cuantas cartas muestra la tienda. */
+export const TIENDA_N = 5;
+
 /** El nivel de MOMENTUM que da la libreta (0 a 3): las cartas de MOMENTUM que se tienen. */
 export const momentumDe = owned => ['momentum1', 'momentum2', 'momentum3'].filter(id => tiene(owned, id)).length;
 /** Cuantos niveles de ESPOLETAS (0 a 2) / de POTENCIA de la metralla (1 a 3) / de CHAPA (0 a 2). */

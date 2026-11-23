@@ -19,6 +19,7 @@ import { PULSO, TOK_GLIFO, PULSO_CINE, PULSO_CINTA, PULSO_IMPACTO, PULSO_TEATRO 
 import { padInfo } from '../core/input.js';
 import { bargeGeom } from './world.js';
 import * as momRender from '../legacy/momentum_render.js';
+import { drawCabina } from './cabina.js';
 import { nuevoReguero, humear, MISIL } from './reguero.js';
 import * as fuego from './fuego.js';
 import * as muni from './municion.js';
@@ -42,7 +43,9 @@ const COCKPIT_MIRA = momRender.MIRA_PLENA;
  *  El REMATE no — es un boton, y su nombre depende de con que estas jugando. Decia 'Z' siempre, asi
  *  que con joystick la prueba pedia una tecla que no ibas a apretar. `padInfo.id` esta vacio hasta
  *  que se toca un mando, y ahi vuelve a decir 'Z'. */
-function glifo(k) {
+function glifo(k, exocet) {
+  // (el Exocet se lanzo con ENTER, el gatillo de la mano derecha: el remate dice esa misma tecla)
+  if (k === 'Z' && exocet && !padInfo.id) return 'ENTER';
   if (k !== 'Z' || !padInfo.id) return TOK_GLIFO[k] || k;
   return padInfo.kind === 'xbox' ? 'LB' : 'L1';
 }
@@ -532,7 +535,7 @@ function tecla(cx, cy, lado, g, est, k) {
   ctx.globalAlpha = (est === 'viene' ? 0.72 : 1) * alfa;
   px(x - r, y - r, lado * escala, lado * escala, borde);
   px(x - r + 1, y - r + 1, lado * escala - 2, lado * escala - 2, cuerpo);
-  const fs = Math.max(6, Math.round(lado * (g.length > 1 ? 0.38 : 0.58)));
+  const fs = Math.max(5, Math.round(lado * (g.length > 3 ? 0.26 : g.length > 1 ? 0.38 : 0.58)));
   ctx.textAlign = 'center';
   ctx.font = 'bold ' + fs + 'px monospace';
   ctx.fillStyle = mal ? mezcla('#ffd9d9', '#3a4954', apagado)
@@ -552,6 +555,50 @@ function tecla(cx, cy, lado, g, est, k) {
   }
 }
 
+// ---------------- LA PANTALLITA DEL EXOCET (23/11, el autor) ----------------
+// "Que cada tecla que yo ponga aparezca arriba una pantallita medio digital verde que vaya poniendo CHECKS de
+// 'DISTANCIA LISTA, POTENCIA LISTA'… supongamos acierto 1 llena 1/3 de barra, 3 aciertos llena barra". Arriba, un
+// visor de fosforo verde con un renglon por item (su barra en celdas, una por tecla, y el ✓ LISTA); debajo, el rotulo
+// LANZAMIENTO DE EXOCET y que hay que hacer. La cinta de teclas sigue donde estaba: es la misma mano.
+const EXO_PANT = {
+  VELO: '#070a0d7a',                 // el velo de la prueba, mas liviano: la cabina se ve
+  X: W / 2 - 118, Y: 10, W: 236, FILA: 15,
+  FONDO: '#031208', BORDE: '#1e6a3a', LUZ: '#6dff9e', MEDIA: '#2f8f55', APAGADA: '#0d2e1a',
+};
+function drawExoPanel(Q, items, t) {
+  const E = EXO_PANT, h = 4 + items.length * E.FILA;
+  // el visor: marco, vidrio y las lineas de barrido del fosforo
+  px(E.X - 2, E.Y - 2, E.W + 4, h + 4, '#0a0f0c');
+  px(E.X - 1, E.Y - 1, E.W + 2, h + 2, E.BORDE);
+  px(E.X, E.Y, E.W, h, E.FONDO);
+  ctx.globalAlpha = 0.18;
+  for (let y = E.Y + 1; y < E.Y + h; y += 2) px(E.X, y, E.W, 1, '#000');
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left'; ctx.font = 'bold 7px monospace';
+  // el cursor del sistema, titilando en el renglon que se esta cargando
+  const actual = items.findIndex(it => it.f < 1);
+  items.forEach((it, i) => {
+    const y = E.Y + 10 + i * E.FILA, listo = it.f >= 1, carga = i === actual;
+    ctx.fillStyle = listo ? E.LUZ : carga ? E.LUZ : E.MEDIA;
+    ctx.fillText((carga && Math.sin(t * 9) > 0 ? '>' : ' ') + it.label, E.X + 6, y);
+    // LA BARRA: una celda por tecla, se prende con cada acierto
+    const n = 3, cw = 22, bx = E.X + 86;
+    for (let c = 0; c < n; c++) {
+      const on = it.f * n >= c + 1 - 1e-6;
+      px(bx + c * (cw + 2), y - 6, cw, 7, on ? E.LUZ : E.APAGADA);
+      if (on) { ctx.globalAlpha = 0.25; px(bx + c * (cw + 2) - 1, y - 7, cw + 2, 9, E.LUZ); ctx.globalAlpha = 1; }
+    }
+    ctx.fillStyle = listo ? E.LUZ : E.MEDIA;
+    ctx.fillText(listo ? '✓ ' + T(it.key === 'rumbo' ? 'exo_listo' : 'exo_lista') : '- - -', bx + n * (cw + 2) + 6, y);
+  });
+  // EL ROTULO, debajo del visor: que es esto y que hay que hacer
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 11px monospace'; ctx.fillStyle = '#ffffff';
+  ctx.fillText(T('exo_titulo'), W / 2, E.Y + h + 16);
+  ctx.font = '7px monospace'; ctx.fillStyle = E.LUZ;
+  ctx.fillText(T('exo_sub'), W / 2, E.Y + h + 27);
+}
+
 /** La prueba entera: acumulador, cinta, tecla del centro y barra de tiempo. */
 function drawCinta(Q, toks, t) {
   if (!toks.length) return;
@@ -561,9 +608,10 @@ function drawCinta(Q, toks, t) {
   // cuanto llevas hecho, y por eso crece hacia la derecha y no se borra nunca.
   ctx.textAlign = 'left';
   ctx.font = 'bold 7px monospace'; ctx.fillStyle = P.dim;
-  ctx.fillText(T('pulso_ataque'), ACUM_X, ACUM_Y - 10);
+  // (en el Exocet lo hecho lo lleva la pantallita verde: ni rotulo ni acumulador)
+  if (!Q.exocet) ctx.fillText(T('pulso_ataque'), ACUM_X, ACUM_Y - 10);
   const hechos = Math.min(toks.length, Math.floor(Q.ci + 0.001));
-  for (let i = 0; i < hechos; i++) {
+  for (let i = 0; i < (Q.exocet ? 0 : hechos); i++) {
     // la ULTIMA acertada sigue destellando mientras dure su golpe; las viejas van apagadas (k=1)
     const k = i === Q.okIdx ? Math.min(1, Q.okT / C.OK_T) : 1;
     tecla(ACUM_X + C.ACUM / 2 + i * C.ACUM_PASO, ACUM_Y, C.ACUM, glifo(toks[i].tok), 'ok', k);
@@ -583,7 +631,7 @@ function drawCinta(Q, toks, t) {
     // margen se va. La cosa que hay que apretar late con el que la aprieta.
     const k = errada ? Math.min(1, Q.errT / C.ROJO_T)
       : est === 'ahora' ? Math.max(0, 1 - Q.hb / Math.max(0.05, Q.hbPer || 0.95)) : 0;
-    tecla(cx, CINTA_Y, lado, glifo(toks[i].tok), est, k);
+    tecla(cx, CINTA_Y, lado, glifo(toks[i].tok, Q.exocet), est, k);
     // el NOMBRE DE LA MANIOBRA sobre la primera tecla de cada compas: es lo que convierte tres
     // flechas en volar un BREAK TURN (regla 2 del plan), y se perderia si la cinta fuera solo teclas.
     if (toks[i].primero && d < 2.5) {
@@ -666,7 +714,11 @@ export function drawPulso(w) {
   // EN TERCERA (`cam: 'chase'`) NO SE DIBUJA NI LA CABINA NI LA SAL: las dos son dispositivos de
   // primera persona. La sal esta entre el ojo y el mundo, y desde afuera del avion no hay vidrio
   // donde pegarse. Ahi el avion lo dibuja el orquestador, con el sprite de siempre.
-  if (!(cine || cineErrado) || (cine || cineErrado).cam.modo !== 'chase') {
+  // LA CONFIGURACION DEL EXOCET va en LA CABINA DE LA V (23/11, el autor: "la cabina de fondo que sea la cabina de
+  // la primera persona V"): la horneada de render/cabina.js, clavada a la pantalla, en vez de la del climax 2D.
+  const exoConfig = Q.exocet && (Q.fase === 'prueba' || Q.fase === 'rojo');
+  if (exoConfig) drawCabina(null, []);
+  else if (!(cine || cineErrado) || (cine || cineErrado).cam.modo !== 'chase') {
     if (typeof window !== 'undefined') window.__cabW = cabW;   // QUITAR con __cabdbg
     const cab = momRender.drawCockpit(cabW);
     drawSal(cab.top, cab.vidrio);
@@ -708,7 +760,8 @@ export function drawPulso(w) {
   //
   // Y no es un velo nuevo: es EL velo que el juego ya usa para decir "esto hay que leerlo". El
   // jugador no tiene que aprender una convencion mas.
-  ctx.fillStyle = PULSO_CINTA.VELO;
+  // (en el Exocet, mas liviano: la cabina de fondo se tiene que ver — es donde estas cargando el misil)
+  ctx.fillStyle = exoConfig ? EXO_PANT.VELO : PULSO_CINTA.VELO;
   ctx.fillRect(0, 0, W, H);
 
   // LA PANTALLA `ELEGI BLANCO` SE BORRO (15/9, PLAN_PULSO_CABINA_VIDEO §0). Mostraba las tres
@@ -716,6 +769,7 @@ export function drawPulso(w) {
   // estorbara: se saco porque la pregunta no existe — esos buques fueron dañados donde fueron
   // dañados, y si lo destruis, ese es el tema.
   if (Q.fase === 'prueba' || Q.fase === 'rojo') {
+    if (exoConfig) drawExoPanel(Q, w.exo || [], t);
     drawCinta(Q, w.toks || [], t);
   } else {
     // FALLO: se dice QUE paso y que se vuelve — el fallo es drama, no una pantalla de derrota

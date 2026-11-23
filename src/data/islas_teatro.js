@@ -100,6 +100,25 @@ export const BUQUES = [
 // DAÑADO TIRA MENOS: la cadencia se estira con la vida que le queda (`DAÑADO_MIN` de la cadencia a vida 0).
 // `muro` (los portaaviones): mas cerca de esto la barrera es total — rafagas de Sea Dart una tras otra.
 const TRAZA = { arma: 'traza', alcance: 2000, tiro: 450, cada: 1.0 };
+// EL SOBREVUELO DE JUEGO RAPIDO (23/11, el autor: "que sea un despegue desde Puerto Argentino, con la mecanica de despegue
+// similar y zona segura… con un Aermacchi o Pucara, los que estaban ahi… quiza el de Owen Crippa"). Se despega con la
+// carrera de siempre y, al levantar, el avion aparece sobre la pista de la BAM MALVINAS (de arriba), rumbo al oeste:
+// es cobertura nuestra, asi que los Harrier no entran (harriers.js `retirar`). Primero el MB-339A —el que volo Owen
+// Crippa el 21 de mayo desde ahi—, despues el Pucara. ⚠ el rumbo de la pista (≈26) es aproximado.
+export const SOBREVUELO = { aviones: ['mb339', 'pucara'], pista: { lon: -57.777, lat: -51.686, rumbo: 260, alt: 18 } };
+// EL SOBREVUELO COMO JUEGO (23/11, el autor: "la idea no es que haya un solo objetivo, es que juntes puntos destruyendo
+// edificios, vehiculos, militares, aviones… y que puedas ir comprando mejoras: para comprar tenes que estar en Puerto
+// Argentino, aterrizar en la pista, y una vez aterrizado una pantalla con las cartas, cada una con su precio en puntos").
+// PUNTOS por lo britanico destruido (lo nuestro RESTA: FUEGO_AMIGO). LA PISTA de la BAM Malvinas (08/26, ~1.250 m x 45 m:
+// A VERIFICAR) y lo que pide el aterrizaje: alineado (ATERRIZA_RUMBO grados), bajo (ATERRIZA_ALTO m sobre la pista) y sin
+// caer a pique (ATERRIZA_VY m/s). Aterrizado: la TIENDA (las cartas del banco suelto con su precio, data/banco_suelto.js
+// `precioDe`), se cargan nafta y bombas, y al salir despegas de nuevo.
+export const PUNTOS = { carpa: 250, deposito: 600, puesto: 400, radar: 1200, rapier: 1000, manpad: 600, canon: 800, camion: 500,
+  blindado: 900, soldado: 120, harrier: 1500 };
+export const FUEGO_AMIGO = -800;
+export const PISTA = { largo: 1250, ancho: 45, margen: 12 };
+export const ATERRIZA_RUMBO = 25, ATERRIZA_ALTO = 3, ATERRIZA_VY = -12;
+
 export const DEFENSA = {
   t42: { largo: { arma: 'dart', alcance: 9000, tiro: 900, cada: 8 }, medio: { arma: 'misil', alcance: 4500, tiro: 700, cada: 6 }, corto: TRAZA },
   t21: { medio: { arma: 'cat', alcance: 4500, tiro: 700, cada: 4.5 }, corto: TRAZA },

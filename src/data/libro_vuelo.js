@@ -72,21 +72,25 @@ const VUELTA_TRANQUILA = [{ hasta: 1.5, obstacles: 0.7, caza: 0 }, { hasta: 2.0,
 // de mar descarta casi todo lo que no es ola ni bandada y deja huecos: la densidad se sube a mano en el
 // transito y el descenso, y un poco en la primera mitad del rasante. (1 = la de siempre.)
 const IDA_DENSA = 2.2, RASANTE_DENSO = 1.5;
-function fases({ lejos = MAR, cerca = DEFENSA, blanco = {}, vuelta = VUELTA_TRANQUILA, grito = {}, casa = true } = {}) {
+function fases({ lejos = MAR, cerca = DEFENSA, blanco = {}, vuelta = VUELTA_TRANQUILA, grito = {}, casa = true, transito = 0.25 } = {}) {
   // EL TRANSITO ALTO ES UN CUARTO DE LA IDA (en t17 era 16%): es donde ocurre la cita con el Hercules,
   // y tiene que alcanzar para que llegue, te enganche y te llene ANTES de la linea del radar (que se
   // ancla al comienzo del descenso). Con 16% pasaba de largo (autor, 12/10).
+  // `transito` ESTIRA EL TRANSITO ALTO (EL INVINCIBLE, 23/11: la Chancha recien con la nafta en rojo): el tramo alto
+  // termina en `transito` y lo que sigue se corre en proporcion. La mision que lo use alarga su `goal.dist` para que el
+  // resto dure lo mismo (ver `estirar`). El silencio de radio queda a los mismos metros antes de la linea.
+  const T = transito, d = (1 - T) / 0.75, tras = p => +(T + (p - 0.25) * d).toFixed(4);
   const ida = [
-    { tipo: 'transito', hasta: 0.12, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
-    { tipo: 'transito', hasta: 0.19, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: +(0.12 * T / 0.25).toFixed(4), solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: +(T - 0.06 * d).toFixed(4), solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
     // EL SILENCIO DE RADIO (autor, 14/10): unos km antes de la linea del radar (~110 reales, 7-8 s de
     // vuelo: la linea es larga y tiene que poder leerse entera ANTES de entrar; al 0.22 eran 4 s) el amigo lo
     // dice. Si ya no queda ningun amigo en el aire, la linea no suena (ver radioTramo en game.js).
-    { tipo: 'transito', hasta: 0.25, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false, radio: 'libro_radar_silencio' },
-    { tipo: 'descenso', hasta: 0.30, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
-    { tipo: 'rasante', hasta: 0.55, solo: lejos, obstacles: RASANTE_DENSO, bombs: 0, bidones: false },
-    { tipo: 'rasante', hasta: 0.82, solo: cerca, bombs: 0, bidones: false },
-    { tipo: 'filo', hasta: 0.88, radar: 6, bombs: 0, bidones: false },
+    { tipo: 'transito', hasta: T, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false, radio: 'libro_radar_silencio' },
+    { tipo: 'descenso', hasta: tras(0.30), solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
+    { tipo: 'rasante', hasta: tras(0.55), solo: lejos, obstacles: RASANTE_DENSO, bombs: 0, bidones: false },
+    { tipo: 'rasante', hasta: tras(0.82), solo: cerca, bombs: 0, bidones: false },
+    { tipo: 'filo', hasta: tras(0.88), radar: 6, bombs: 0, bidones: false },
     { tipo: 'blanco', hasta: 1, solo: cerca, bombs: 0, bidones: false, ...blanco },
   ];
   // SIN VUELTA (`casa: false`): el climax cierra la mision. Es el caso del PULSO — despues de la
@@ -350,26 +354,36 @@ const r4 = {
 //             sprite del Super Etendard) y en `lanzamiento` el lider se vuelve el Exocet: hay que
 //             custodiarlo —tirarle a todo lo que se le cruce— hasta el portaaviones. No suelta nada.
 // (Hasta el 13/11 se jugaban los dos, uno detras del otro; game.js `empezarEscolta` sigue siendo el cambio.)
+// el tramo alto de EL INVINCIBLE, en fraccion de su largo (antes 0.25 de LARGO * 1.2: ~1:37; ahora ~2:40)
+const INV_TRANSITO = 0.357;
 const r5 = {
   id: 'r5', name: 'EL INVINCIBLE',
   fecha: '30 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
   desc: 'Dos Super Étendard con el último Exocet y cuatro A-4C salen juntos de Río Grande a buscar al portaaviones. Primero lanzás el misil; después, lo escoltás.',
   despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'blanco: el grupo de portaaviones' },
   horaDespegue: '12:30',
-  goal: { kind: 'ship', ship: 'HMS INVINCIBLE', dist: LARGO * 1.2 },
+  // EL TRANSITO LARGO (23/11, el autor: "la Chancha debe aparecer MUCHO DESPUES… la gasolina debe llegar al rojo recien
+  // para que la Chancha aparezca, y unos 5 o 10 segundos despues de cargar la zona de radar"; "no tiene sentido recargar
+  // si casi no se gasto"). El tramo alto pasa de ~1:37 a ~2:40 (INV_TRANSITO) y el resto dura lo mismo que antes: el
+  // largo crece lo que crece el transito. En ese tramo se gasta hasta el rojo (`chanchaAlRojo`, game.js gastoAlRojo).
+  goal: { kind: 'ship', ship: 'HMS INVINCIBLE', dist: Math.round(LARGO * 1.2 * 0.75 / (1 - INV_TRANSITO)) },
   climax: 'pulso',
   // DONDE SE LANZA EL EXOCET: a esta fraccion de la ida, no en el blanco. Lo que queda de ahi al
   // portaaviones es la escolta del A-4C (~45% de la ida, ~1:30 de vuelo).
-  lanzamiento: 0.55,
+  lanzamiento: +(INV_TRANSITO + 0.30 * (1 - INV_TRANSITO) / 0.75).toFixed(4),   // (el 0.55 de antes, corrido por el transito largo)
   pulsoLejos: 0.45,           // el buque, de lejos: el encuadre del Pulso multiplicado por esto
   pulsoBombas: 1, pulsoT01: 1,   // el ultimo Exocet; el Pulso de fines de mayo
   cfg: cfgReal({ sky: 'cloudy', squad: 2 }),
   chanchaMinT: 40,
   chanchaVeces: { ida: 1, vuelta: 0 },
+  // LA CHANCHA AL ROJO: la de la ida no viene por km — viene cuando la nafta entra al rojo (el ultimo cuarto), y el
+  // transito gasta para que eso pase hacia el 80% del tramo alto. La linea del radar espera a que te llene (+ unos
+  // segundos). Ver game.js (gastoAlRojo, CH_ROJO).
+  chanchaAlRojo: true,
   // KM APROXIMADOS (a confirmar): el grupo de portaaviones estaba al este de las islas, mas lejos que
   // el Sheffield.
   ruta: { blancoKm: 850, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [620, 400] },
-  fases: fases({ cerca: FLOTA, casa: false }),
+  fases: fases({ cerca: FLOTA, casa: false, transito: INV_TRANSITO }),
   par: Math.round(PAR * 1.2),
   escuadrilla: '2ª ESCUADRILLA AERONAVAL Y GRUPO 4 DE CAZA',
   // `squad` y `chapas` por avion: cada eleccion es su propia escuadrilla — dos Super Etendard, o cuatro

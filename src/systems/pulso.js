@@ -163,9 +163,35 @@ export function enter(desdePasillo, conf) {
  *  fueron dañados, y si lo destruis, ese es el tema. Queda UNA secuencia y una sola pregunta:
  *  ¿te salio la mano o no? */
 function armarSecuencia() {
+  if (Q.exocet) { armarExocet(); return; }
   const pool = poolFor(carry);
   Q.bars = armar(pool, barsFor(Q.t01, 0)).map(compas);
   Q.bi = 0; Q.ti = 0; Q.ci = 0;
+}
+
+// LA CONFIGURACION DEL EXOCET (23/11, el autor: "cada tecla que yo ponga aparezca arriba una pantallita medio digital
+// verde que vaya poniendo CHECKS de 'DISTANCIA LISTA, POTENCIA LISTA'… 3 aciertos llena barra"). En vez de piruetas,
+// un COMPAS POR ITEM de EXO_TECLAS flechas: cada acierto llena 1/EXO_TECLAS de la barra de ese item, y el remate lanza.
+// El avance de cada barra se DERIVA de bi/ti (exoItems) — guardarlo aparte seria otra copia esperando a desincronizarse.
+export const EXO_ITEMS = ['distancia', 'rumbo', 'potencia'];
+export const EXO_TECLAS = 3;
+const EXO_TOKS = ['u', 'd', 'l', 'r'];
+function armarExocet() {
+  Q.bars = EXO_ITEMS.map(k => {
+    const toks = [];
+    for (let i = 0; i < EXO_TECLAS; i++) toks.push(EXO_TOKS[Math.floor(Math.random() * EXO_TOKS.length)]);
+    return { seq: toks.join(''), toks, label: T('exo_item_' + k), item: k, dir: 1, move: null };
+  });
+  Q.bars.push({ seq: REMATE.seq, toks: ['Z'], label: T('exo_lanzar'), remate: true });
+  Q.bi = 0; Q.ti = 0; Q.ci = 0;
+}
+/** Los items de la pantallita verde, con su barra 0..1 (lo lee el render). */
+export function exoItems() {
+  if (!Q || !Q.exocet) return [];
+  return Q.bars.filter(b => b.item).map((b, i) => ({
+    key: b.item, label: b.label,
+    f: i < Q.bi ? 1 : i === Q.bi && Q.fase !== 'cine' ? Q.ti / b.toks.length : Q.fase === 'cine' ? 1 : 0,
+  }));
 }
 
 /** LA SECUENCIA COMO CINTA: todos los tokens en fila, sin los compases de por medio.
@@ -261,7 +287,8 @@ function errar() {
 
 function cerrarCompas() {
   const b = Q.bars[Q.bi];
-  popup(W / 2, 16, b.label, P.foam);   // en el cielo, con la autopista: nunca encima del buque
+  // (en el Exocet el item LISTO lo dice la pantallita verde de arriba: el popup caeria encima)
+  if (!Q.exocet) popup(W / 2, 16, b.label, P.foam);   // en el cielo, con la autopista: nunca encima del buque
   beep(1040, 0.09, 'square', 0.05, 160);
   Q.bi++; Q.ti = 0; Q.beatT = 0;
   if (Q.bi >= Q.bars.length) exito();
@@ -361,7 +388,10 @@ function fallar(motivo) {
  *  el agua para otro lado, y la mision se pierde al terminar la cinematica (`pulso_fallo_exocet`). */
 function exocetErrado(motivo) {
   Q.fase = 'perdido'; Q.faseT = 0; Q.errado = true; Q.motivo = motivo || Q.motivo;
-  cine.start('pulso_fallo_exocet');
+  // SIN CINEMATICA (23/11, el autor: "si me paso de largo o algo que directamente muestre pantalla de has perdido,
+  // no mostremos ahora cinematica porque la que esta es horrible"): el proximo cuadro devuelve la derrota.
+  // (la timeline `pulso_fallo_exocet` sigue en data/cines.js, sin llamar)
+  Q.sinCine = true;
 }
 
 /** Un cuadro de la prueba.
@@ -410,6 +440,7 @@ export function update(dtReal, dtMundo) {
   // premio y por el mismo camino — la corre el director, no este modulo. Cuando termina, recien
   // ahi la mision se cae por el embudo de derrota de siempre.
   if (Q.fase === 'perdido') {
+    if (Q.sinCine) return { death: 'death_exocet_errado' };
     const s = cine.update(dtReal);
     return s && s.done ? { death: Q.errado ? 'death_exocet_errado' : 'death_pulso' } : null;
   }

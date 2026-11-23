@@ -47,7 +47,8 @@ import * as objetivo3d from './islas/objetivo3d.js';
 import * as estallido3d from './islas/estallido3d.js';
 import * as teatro3d from './islas/teatro3d.js';
 import * as radar3d from './islas/radar3d.js';
-import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo, mira as islasMira, tomarEstallidos, avionMuerto, teatroEscena, teatroTodo, cazasEnMapa, chanchaEnMapa, radaresEscena, busquedaEscena, vientoMapa } from './islas/islas.js';
+import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo, mira as islasMira, tomarEstallidos, avionMuerto, teatroEscena, teatroTodo, cazasEnMapa, chanchaEnMapa, radaresEscena, busquedaEscena, vientoMapa, pistaEscena } from './islas/islas.js';
+import * as pista3d from './islas/pista3d.js';
 import * as busqueda3d from './islas/busqueda3d.js';
 import { sueloH as islasSuelo, SUN as ISLAS_SOL } from './islas/mundo.js';
 
@@ -263,6 +264,8 @@ export function frame(w) {
     objetivo3d.frame(A3.scene, islasObjetivo());
     // LA BUSQUEDA EN EL MAR (libro r6): la mancha, los indicios, las balsas y el humo
     busqueda3d.frame(A3.scene, busquedaEscena(), performance.now() / 1000, vientoMapa());
+    // LA PISTA DE LA BAM MALVINAS (el sobrevuelo: ahi se aterriza para la tienda)
+    pista3d.frame(A3.scene, pistaEscena());
     // EL TEATRO (systems/islas/teatro3d.js): bases, buques, PAC; y los Harriers del duelo, solo desde arriba
     teatro3d.frame(A3.scene, teatroEscena(), cazasEnMapa(), A3.cam, arriba ? chanchaEnMapa() : null);
     // (la red desde arriba; en las vistas del pasillo la dibuja el pasillo en 2D: su mar va encima del 3D)

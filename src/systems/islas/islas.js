@@ -23,7 +23,7 @@ import * as busqueda from './busqueda.js';
 import { CLIMAS } from '../../data/islas_clima.js';
 import { GRADIENTE, HIELO } from '../../data/frio.js';
 import * as frio from '../frio.js';
-import { RADAR_BAJO, BOMBA } from '../../data/islas_teatro.js';
+import { RADAR_BAJO, BOMBA, SOBREVUELO, PUNTOS, FUEGO_AMIGO, PISTA, ATERRIZA_RUMBO, ATERRIZA_ALTO, ATERRIZA_VY } from '../../data/islas_teatro.js';
 import * as mapa from './mapa.js';
 import { P } from '../../data/palette.js';
 // la mitad de la grilla del juego (480 de ancho): systems no importa render (tools/lint_layers.js)
@@ -88,6 +88,25 @@ const CAM_ARRIBA = 4, CAM_ABAJO = 9.5;   // cuanto puede quedar la camara por de
 const MARCA = { on: false, x: 0, z: 0, g: 0, n: '', t: -99 };   // `t`: cuando se marco (la brujula titila)
 
 export const activa = () => I.on;
+/** Lleva el avion a un lugar del mapa en el proximo cuadro: `{ lon, lat, alt, rumbo }` (el SOBREVUELO al despegar). */
+export function irA(q) { I.ir = q; }
+/** EL SOBREVUELO COMO JUEGO (23/11, data/islas_teatro.js PUNTOS / PISTA): sin la base costera como objetivo unico; los
+ *  puntos salen de lo que destruis, y aterrizando en la pista de la BAM Malvinas se compra en la TIENDA (game.js). */
+export function modoLibre(on) { I.libre = !!on; }
+/** La pista de la BAM Malvinas en el mapa (local): { x, z, rot (el eje, rad), h (alto del suelo), largo, ancho }. */
+function armarPista() {
+  const p = SOBREVUELO.pista, [x, z] = mundo.lonLatLocal(p.lon, p.lat);
+  I.pista = { x, z, rot: p.rumbo * Math.PI / 180, h: Math.max(0, mundo.sueloH(x, z)), largo: PISTA.largo, ancho: PISTA.ancho };
+}
+/** ¿(x, z) esta sobre la pista? devuelve lo que corre a lo largo y de costado, o null. */
+function enPista(x, z) {
+  const q = I.pista;
+  if (!q) return null;
+  const dx = x - q.x, dz = z - q.z, sy = Math.sin(q.rot), cy = Math.cos(q.rot);
+  const largo = sy * dx - cy * dz, lado = cy * dx + sy * dz;
+  return Math.abs(largo) < q.largo / 2 && Math.abs(lado) < q.ancho / 2 + PISTA.margen ? { largo, lado } : null;
+}
+export const pistaEscena = () => (enPasillo() && I.libre && I.pista ? I.pista : null);
 /** ¿Las islas estan corriendo CON el radar apagado? (flight.js no carga la barra; el HUD no la muestra) */
 export const sinRadar = () => enPasillo() && !I.radar;
 export const listo = () => mundo.listo();
@@ -228,7 +247,9 @@ export function pasoPasillo(dt) {
     // base no habia brujula, ni cuadro en el mapa, ni forma de cerrar TUT4_BLANCO—. La base va siempre que no sea mar
     // abierto; la brujula la señala sola mientras no marques otra cosa (`blanco`). En el tutorial sin el cartel: lo
     // presenta el Turco en el paso del mapa.
-    if (!I.mar && objetivo.colocar(P3.x, P3.z) && !I.tut) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
+    // (en el SOBREVUELO no hay un objetivo: se juntan puntos — modoLibre)
+    if (I.libre) armarPista();
+    else if (!I.mar && objetivo.colocar(P3.x, P3.z) && !I.tut) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
     P3.sostiene = I.mar ? 0 : SOSTIENE_T; plane.y = I.mar ? (I.mar.alt || 60) : AIR_START_Y; P3.muerto = false; P3.altFija = null;
   }
   if (P3.sostiene > 0) {
@@ -329,6 +350,15 @@ export function pasoPasillo(dt) {
   // colisionar si no mantengo gas"): el roce del pasillo LEVANTA al avion al piso, que en el agua es su gracia
   // y en una loma era subirla solo. En las islas tocar la tierra es chocar; el agua sigue con su roce.
   // (y ya no hay roce que lo levante — flight.js `geoExterna.sinRoce`—: tocar la tierra es chocar, en todas las vistas)
+  // EL ATERRIZAJE EN LA BAM MALVINAS (el sobrevuelo): sobre la pista, bajo, alineado con ella (para cualquiera de las dos
+  // cabeceras) y sin caer a pique = aterrizaste — game.js abre la TIENDA. Desalineado o a pique, sigue siendo tierra
+  if (S.state === 'play' && I.libre && enPista(P3.x, P3.z)) {
+    const alto = Math.min(plane.y, P3.g + plane.y - I.pista.h);
+    if (alto < ATERRIZA_ALTO) {
+      let d = P3.yaw - I.pista.rot; d = ((d % Math.PI) + Math.PI * 1.5) % Math.PI - Math.PI / 2;
+      if (Math.abs(d) < ATERRIZA_RUMBO * Math.PI / 180 && plane.vy > ATERRIZA_VY) return 'aterrizo';
+    }
+  }
   if (S.state === 'play' && g > 0.3 && plane.y <= 0.5) return 'death_land';
   // LO QUE HAY EN EL MAPA TAMBIEN SE CHOCA (21/11): la base del objetivo, las piezas de las bases y los buques
   // …Y LOS HARRIERS (21/11, el autor: "los aviones DEBEN PODER COLISIONAR; si chocan mueren ambos"): harriers.js ya lo
@@ -781,6 +811,13 @@ function avisosRadar(dt) {
     else if (e.k === 'se_van') cartel(T('islasSeVan'), P.accent, T('islasSeVanSub'));
     else if (e.k === 'encima') cartel(T('islasEncima'), P.warn, T('islasEncimaSub'));
     else if (e.k === 'bajado') { cartel(T('islasBajado'), P.accent); run.score += 1500; }
+    // LOS PUNTOS DEL SOBREVUELO (data/islas_teatro.js PUNTOS): lo britanico suma, lo nuestro resta; un cartelito que
+    // junta lo de los ultimos segundos
+    else if (e.k === 'destruido' && I.libre) {
+      const n = e.bando === 'arg' ? FUEGO_AMIGO : PUNTOS[e.tipo] || 300;
+      run.score = Math.max(0, run.score + n);
+      I.ptsAcc = (I.ptsT > 0 ? I.ptsAcc : 0) + n; I.ptsT = 2;
+    }
     // (que la PAC salio a buscarte lo sabes solo si nuestro radar la ve)
     // LE DISTE A (21/11, el autor: "no sabemos que barco es, pero cuando impactamos que aparezca un toast arriba que
     // diga LE DISTE A SHEFFIELD"): el nombre recien aca; si era nuestro, se sabe tarde
@@ -793,6 +830,11 @@ function avisosRadar(dt) {
     else if (e.k === 'hundido') cartel(T('islasHundido', { n: e.n }), e.bando === 'arg' ? P.warn : '#7fe07a', e.bando === 'arg' ? T('islasEraNuestro') : null, { alerta: true });
     else if (e.k === 'fuego_amigo') cartel(T('islasFuegoAmigo'), P.warn, T('islasFuegoAmigoSub', { n: e.n }), { alerta: true });
     else if (e.k === 'vienen' && e.avisa) cartel(T('islasVienen'), P.warn, T('islasVienenSub', { d: (e.d / 1000).toFixed(0) }));
+  }
+  // (los puntos juntados, un rato arriba)
+  if (I.ptsT > 0 || I.ptsVivo) {
+    I.ptsT = Math.max(0, (I.ptsT || 0) - dt); I.ptsVivo = I.ptsT > 0;
+    cartelSostenido('pts', I.ptsVivo, (I.ptsAcc >= 0 ? '+' : '') + I.ptsAcc + ' ' + T('islasPuntos'), I.ptsAcc >= 0 ? '#7fe07a' : P.warn);
   }
   // ZONA DE RADAR ARGENTINO (21/11, el autor): un cartel de 3 s al entrar, en el celeste del radar propio; despues
   // lo dice la placa del radar del tablero, en azul (hud.js `drawAlerta`)
@@ -1027,6 +1069,7 @@ export function lugares(A, dt) {
 if (typeof window !== 'undefined') {
   window.__malvinas = (on = true) => {
     if (on && typeof on === 'object' && on.radar != null) { I.radar = !!on.radar; return I.radar; }
+    if (on && typeof on === 'object' && on.libre != null) { I.libre = !!on.libre; if (I.libre && mundo.listo()) armarPista(); return I.libre; }   // (el SOBREVUELO: puntos y tienda)
     if (on && typeof on === 'object' && on.vista != null) { camara.poner(on.vista); cabina.on = on.vista === camara.CABINA; return true; }
     // { aBuque: m }: a m metros del buque britanico mas cercano, de frente, a 15 m (para probar su fuego de cerca)
     if (on && typeof on === 'object' && on.aBuque != null) {

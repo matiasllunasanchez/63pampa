@@ -21,6 +21,7 @@ import { NOCHE } from '../data/noche.js';
 import { tapaHorizonte } from './paredes.js';
 import { tapaColinas } from './colinas.js';
 import { techoGigante, trazarGigantes, oscuroGigante } from './world.js';
+import { siluetaAvion } from './plane.js';
 import { drawVidaNoche } from './cielo_vida.js';
 
 /** Que noche hace con el cielo `sky` (null = de dia, no se oscurece nada). */
@@ -52,7 +53,12 @@ function sortearLejanas() {
  *  la posicion en pantalla de la luna (o null); `giro` = { a, cx, cy } el giro del horizonte (o null):
  *  todo lo que esta EN el mundo —la franja clara del horizonte, las luces lejanas, el reflejo— rola
  *  con el (4/10, el autor: "si doblo, las luces se giran"). */
-const OLA_NOCHE = 0.55;   // cuanto de la luz del velo de la noche le queda a la cara de la ola gigante
+const OLA_NOCHE = 0.55;
+let MASC = null;   // la mascara de la ola gigante (sin el avion), del tamaño del lienzo
+function mascara() {
+  if (!MASC || MASC.c.width !== D.width || MASC.c.height !== D.height) { const c = document.createElement('canvas'); c.width = D.width; c.height = D.height; MASC = { c, g: c.getContext('2d') }; }
+  return MASC;
+}   // cuanto de la luz del velo de la noche le queda a la cara de la ola gigante
 export function drawNoche(n, astro, giro) {
   if (!n) return;
   lienzo();
@@ -101,10 +107,23 @@ export function drawNoche(n, astro, giro) {
     if (trazarGigantes(gd, sx, sy)) {
       // (23/11, el autor: "la ola negra desaparece en algunos momentos"): con la noche azul, el velo le ponia a la
       // pared el MISMO azul que al cielo y se fundian. Sobre la mole el velo es casi negro: queda recortada
-      gd.globalCompositeOperation = 'destination-out'; gd.fillStyle = '#000'; gd.fill();
       // (…y mas tarde el mismo 23/11: "quedo demasiado diferente del agua y del fondo; tiene que mezclarse y ocultar el
       // horizonte, pero no negra literal: una mezcla del agua, mas negra"): el velo de la noche, a la mitad de su luz
-      gd.globalCompositeOperation = 'source-over'; gd.fillStyle = `rgba(${r * OLA_NOCHE | 0},${g * OLA_NOCHE | 0},${b * OLA_NOCHE | 0},${a})`; gd.fill();
+      // (…y SIN EL AVION — "la ola negra se superpone con el avion, si subo la ola se ve por encima": el velo va encima de
+      // todo, asi que el contorno de la ola se arma en una mascara aparte y se le recorta la silueta del avion; el avion
+      // queda con la noche de siempre)
+      const M = mascara();
+      M.g.setTransform(1, 0, 0, 1, 0, 0); M.g.globalCompositeOperation = 'copy'; M.g.fillStyle = 'rgba(0,0,0,0)'; M.g.fillRect(0, 0, M.c.width, M.c.height);
+      M.g.globalCompositeOperation = 'source-over'; M.g.setTransform(gd.getTransform());
+      M.g.beginPath(); trazarGigantes(M.g, sx, sy); M.g.fillStyle = '#000'; M.g.fill();
+      const sa = siluetaAvion();
+      if (sa) { M.g.setTransform(sa.m); M.g.globalCompositeOperation = 'destination-out'; M.g.drawImage(sa.img, sa.sx, sa.sy, sa.sw, sa.sh, sa.dx, sa.dy, sa.dw, sa.dh); }
+      M.g.setTransform(1, 0, 0, 1, 0, 0);
+      gd.save(); gd.setTransform(1, 0, 0, 1, 0, 0);
+      gd.globalCompositeOperation = 'destination-out'; gd.drawImage(M.c, 0, 0);
+      M.g.globalCompositeOperation = 'source-in'; M.g.fillStyle = `rgba(${r * OLA_NOCHE | 0},${g * OLA_NOCHE | 0},${b * OLA_NOCHE | 0},${a})`; M.g.fillRect(0, 0, M.c.width, M.c.height);
+      gd.globalCompositeOperation = 'source-over'; gd.drawImage(M.c, 0, 0);
+      gd.restore();
       const og = oscuroGigante();
       if (og > 0.01) { gd.fillStyle = banda(og); gd.fillRect(-D.width, hy, D.width * 3, D.height * 2); }
     }

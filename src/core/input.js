@@ -99,7 +99,7 @@ const KEYMAP = {
 //                   E Y (momentum) · R B (chafitas) · F X (radar) · 1 2 3 la cruceta, de respaldo
 //   MANO DERECHA    ← → rolar · ↑ mirar arriba · ↓ mantenida la MIRA DE LA BOMBA (el stick der. abajo) ·
 //                   SHIFT der R3 (con la mira, tira la bomba) · CTRL der RB (cañon) · ENTER RT (poscombustion) ·
-//                   NUMPAD 8 4 6 2 la cruceta (▲ secundario · ► Chancha · ▼ camara/relevo · ◄ freno)
+//                   NUMPAD 8 4 6 2 la cruceta (▲ secundario · ► Chancha · ▼ camara/relevo · ◄ freno; en el mando la camara es SELECT)
 // Con la MIRA MOVIL (la mano derecha en el mouse) Q/E vuelven a rolar y R/F a panear, como antes.
 // LA CONFIGURACION CON MOUSE (23/11, el autor: "los de teclado deberian poder jugar con la mano derecha en el teclado o en
 // el mouse, y la mano izquierda siempre en la misma posicion"): con la mano en el mouse SOLO Q y E cambian —ROLAN—; el
@@ -436,6 +436,8 @@ export function initInput(cv, a) {
       if (isDown(e.code)) { a.bancoLeer(1); e.preventDefault(); return; }
       if (isUp(e.code)) { a.bancoLeer(-1); e.preventDefault(); return; }
       if (isConfirm(e.code)) { a.bancoConfirm(); e.preventDefault(); return; }
+      // (la TIENDA del sobrevuelo: ESC despega — 23/11)
+      if (isBack(e.code) && a.bancoSalir) { a.bancoSalir(); e.preventDefault(); return; }
       e.preventDefault(); return;
     }
     if (S.state === 'upgrade') {                                         // EL BANCO DEL PICHON: elegir UNA mejora
@@ -496,7 +498,8 @@ export function initInput(cv, a) {
     }
     // EL REMATE ES LA ACCION DE SOLTAR, no una tecla concreta: cualquier entrada de MISIL lo manda
     // (Z, TAB, y en el mando L1/□). El glifo dice 'Z' con teclado y el boton cuando hay mando.
-    if (!e.repeat && S.state === 'pulso' && (e.code === 'KeyZ' || e.code === 'Tab')) a.pulsoTap('Z');
+    // (y ENTER, 23/11: con la mano derecha en el teclado es el gatillo de la bomba — y con el que se lanza el Exocet)
+    if (!e.repeat && S.state === 'pulso' && (e.code === 'KeyZ' || e.code === 'Tab' || esR3(e.code))) a.pulsoTap('Z');
     // ---- EL TECLADO-JOYSTICK (22/11, ver KEYMAP_LIBRE arriba) ----
     if (!libre()) {
       // Q = LB: el secundario elegido, igual que [Z]
@@ -912,15 +915,14 @@ export function initInput(cv, a) {
       // estante va tanques · bomba · chafitas, y ▲ sube uno, dando la vuelta. ▼ queda como estaba. En el 3D ▲ sigue
       // siendo el poder del modo (el reparto de energia).
       if (hit(12)) { if (enPasillo) a.secundariaPaso(-1); else a.modePower(); }
-      // SELECT / BACK / VIEW = MOMENTUM (camara lenta). Era la ultima accion del juego que solo
-      // existia en el teclado: se podia jugar TODO con el mando menos bajar el tiempo, que es un
-      // poder y no un ajuste. Es el unico boton que estaba libre.
-      if (hit(8) && S.state === 'play') a.rasanteToggle();
-      // CRUCETA ABAJO = CAMARA (lo mismo que [V]). Era la ultima direccion de la cruceta sin dueño
-      // en juego, y hacia falta: en el ARENA y en la PASADA esa tecla conmuta CABINA ↔ TERCERA
-      // PERSONA en vivo, y con el mando no habia forma de cambiar de vista.
-      // (18/11: en el pasillo, con la mecanica prendida, ▼ es EL CAMBIO DE PILOTO —R3 paso a ser la bomba—; si no, la camara)
-      if (hit(13)) { if (S.state === 'play' && cfg.cambioPiloto) a.cambioPiloto(); else a.cycleCamera(); }
+      // SELECT / BACK / VIEW = LA CAMARA (lo mismo que [V]; 23/11, el autor: "cambiar camara ponerlo en el SELECT del
+      // joystick"). En el ARENA y en la PASADA conmuta CABINA ↔ TERCERA PERSONA en vivo.
+      if (hit(8)) a.cycleCamera();
+      // CRUCETA ABAJO: en el pasillo, con la mecanica prendida, EL CAMBIO DE PILOTO (18/11 —R3 paso a ser la bomba—). El
+      // RASANTE se fue al L3 (23/11, el autor: "que el rasante con el L3, y liberar la cruceta de cortar rasante")
+      if (hit(13) && S.state === 'play' && cfg.cambioPiloto) a.cambioPiloto();
+      // L3 = CORTAR RASANTE (el clic del stick que vuela: la salida de emergencia queda bajo el pulgar)
+      if (hit(10) && S.state === 'play') a.rasanteToggle();
       // L3 (CLIC DEL STICK IZQUIERDO) = SOLTAR TANQUES (PLAN_NAFTA_ALCANCE N5), solo en vuelo. L3 era
       // la pista anterior en todas las pantallas (arriba): en 'play' cede, porque el mando no tiene
       // otro boton libre y es la mano que vuela — soltar es una decision de vuelo.
@@ -972,8 +974,11 @@ export function initInput(cv, a) {
       // sostenerlo tiene que valer una sola suelta, como una tecla que no repite.
       if (S.state === 'pulso' && (hit(4) || hit(2))) a.pulsoTap('Z');
       // ◯ (B) = EL FRENO en el 3D (lo leen ARENA y PASADA; 18/11: L2 paso a ser el gas). En el pasillo ◯ son las chafitas.
-      // …y EN EL PASILLO, la cruceta ◄ (19/11): las piruetas de freno —cobra, mortal— lo piden, y ◄ quedo libre
-      setPad('brake', S.state === 'arena' || S.state === 'pasada' ? (down(1) ? 1 : 0) : enPasillo && (frenoCombo || down(14)) ? 1 : 0);
+      // (la cruceta ◄ fue el freno del pasillo hasta el 23/11: el freno es LT + stick derecho arriba y ◄ paso a la EYECCION)
+      setPad('brake', S.state === 'arena' || S.state === 'pasada' ? (down(1) ? 1 : 0) : enPasillo && frenoCombo ? 1 : 0);
+      // CRUCETA ◄ = PREPARAR EYECCION / EYECTAR (23/11, el autor: "para eyectar, debe ser presionar dos veces la flecha
+      // izquierda"): el primer toque la arma, el segundo te saca del avion (game.js `eyeccionPad`)
+      if (hit(14) && S.state === 'play') a.eyeccionPad();
 
       // ---- STICK DERECHO ----
       // X = GIRO LIBRE DEL HORIZONTE (lo que en teclado son [Q]/[E]).
@@ -1071,6 +1076,7 @@ export function initInput(cv, a) {
           if ((nd && !nav.d) || (nu && !nav.u) || ahora - (nav.leerT || 0) > 120) { a.bancoLeer(nd ? 1 : -1); nav.leerT = ahora; }
         }
         if (confirm) a.bancoConfirm();
+        if (hit(1) && a.bancoSalir) a.bancoSalir();   // (◯ / B: salir de la TIENDA del sobrevuelo)
       } else if (S.state === 'upgrade') {
         if ((nu && !nav.u) || (nl && !nav.l)) a.upgNav(-1);
         if ((nd && !nav.d) || (nr && !nav.r)) a.upgNav(1);

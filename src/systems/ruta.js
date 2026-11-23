@@ -16,11 +16,12 @@ let marcas = null;    // sus anclas contra las fases
 let objetivo = 0;
 let lineas = null;     // el horizonte de radar en fracciones: { entra, sale }
 let libre = 0;         // LA ZONA LIBRE del arranque (modos sueltos): hasta este metro, ni radar ni siembra
+let retenido = false;  // EL RADAR RETENIDO (la Chancha al rojo, 23/11): la linea de la ida espera a `soltarRadar`
 
 /** Le pasa a la corrida la ruta de la mision. Una ruta invalida NO se usa (y se avisa por consola):
  *  mejor el juego de siempre que km inventados. El unit test la ataja antes de llegar aca. */
 export function setRuta(r, fases, obj) {
-  ruta = null; marcas = null; lineas = null; libre = 0; objetivo = obj > 0 ? obj : 0;
+  ruta = null; marcas = null; lineas = null; libre = 0; retenido = false; objetivo = obj > 0 ? obj : 0;
   if (!r || !objetivo) return null;
   const e = validarRuta(r, fases);
   if (e.length) { console.warn('[ruta] invalida, se ignora: ' + e.join(' · ')); return null; }
@@ -36,6 +37,20 @@ export const setLibre = m => { libre = m > 0 ? m : 0; };
 export const libreHasta = () => libre;
 export const enLibre = () => libre > 0 && run.dist < libre;
 export const dato = () => ruta;
+
+/** Los km de la ruta en la fraccion `p` del objetivo. */
+export const kmEn = p => (ruta ? posKm(p, marcas) : 0);
+
+/** EL RADAR RETENIDO (EL INVINCIBLE, 23/11, el autor: "la zona de radar recien unos 5 o 10 segundos despues de
+ *  cargar"): mientras esta retenido, la linea de la ida no llega aunque se la pase. `soltarRadar()` la corre a
+ *  donde estas (si ya la habias pasado), y desde ahi el techo baja con su rampa de siempre. */
+export function retenerRadar() { if (ruta && lineas && lineas.entra > 0) retenido = true; }
+export const radarRetenido = () => retenido;
+export function soltarRadar() {
+  if (!retenido) return;
+  retenido = false;
+  lineas = { ...lineas, entra: Math.max(lineas.entra, Math.max(0, run.dist) / objetivo) };
+}
 
 /** Km recorridos desde la base, ahora. */
 export const pos = () => (ruta ? posKm(Math.max(0, run.dist) / objetivo, marcas) : 0);
@@ -56,6 +71,7 @@ export const kmPorM = () => (ruta ? kmPorMetro(Math.max(0, run.dist) / objetivo,
 export function enAlcance() {
   if (enLibre()) return false;
   if (!ruta) return true;
+  if (retenido) return false;
   const p = Math.max(0, run.dist) / objetivo;
   return p >= lineas.entra && (lineas.sale === null || p < lineas.sale);
 }
@@ -64,6 +80,7 @@ export function enAlcance() {
  *  es la puerta unica del techo: detector, red, tinte, estrellas y HUD leen de ahi. Sin ruta
  *  devuelve el mismo numero que recibe. */
 export function techo(t) {
+  if (retenido) return FLY_TOP;   // (el radar retenido: arriba de todo, nadie te ve)
   const base = ruta ? techoAlcance(t, run.dist, objetivo, lineas, FLY_TOP, RUTA_RADAR_RAMPA_M) : t;
   if (!libre || run.dist >= libre + RUTA_RADAR_RAMPA_M) return base;
   // la zona libre: sin techo, y al salir el techo baja en rampa (como al cruzar el horizonte de una ruta)

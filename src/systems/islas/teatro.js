@@ -392,7 +392,7 @@ export function paso(dt, P, pz, boom, jugando) {
     }
     if (bl.done) continue;
     // (la rafaga contra la gente: el que toca cae, los de cerca corren)
-    if (by < P.g + 60 && soldados.bala(T.soldados, q.x, q.z, by, rnd)) { bl.done = true; continue; }
+    if (by < P.g + 60) { const m0 = muertos(); if (soldados.bala(T.soldados, q.x, q.z, by, rnd)) { bl.done = true; contarSoldados(m0); continue; } }
     for (const b of T.buques) {
       if (!b.vivo || by > b.h + 4) continue;
       if (enCasco(b, q.x, q.z)) { bl.done = true; balaBuque(b, q.x, by, q.z, boom); break; }
@@ -433,14 +433,19 @@ function enCasco(b, x, z) {
   const lado = ex * c + ez * s, largo = -ex * s + ez * c;
   return Math.abs(lado) < b.manga * 0.6 && Math.abs(largo) < b.largo * 0.5;
 }
+// COMO REVIENTA CADA COSA (systems/islas/estallido3d.js IMPACTOS.casa / fierro / nafta); lo que no esta, 'fierro'
+const CLASE_DERRIBO = { carpa: 'casa', puesto: 'casa', deposito: 'nafta', herc: 'nafta', pucara: 'nafta' };
 function golpe(e, n, boom, y) {
   // (FUEGO AMIGO: le pegaste a algo nuestro — el cartel lo dice despues, nunca antes; una vez cada tanto por base)
   if (e.bando === 'arg' && e.base && T.t - (e.base.amigoT ?? -99) > 8) { e.base.amigoT = T.t; T.eventos.push({ k: 'fuego_amigo', n: e.base.n }); }
   e.hp -= n;
-  if (e.hp > 0) { boom(e.x, (y !== undefined ? y : (e.g || 0) + 2), e.z, 0.35, 'fuego'); return; }
+  const clase = CLASE_DERRIBO[e.tipo] || 'fierro';
+  // el golpe que no lo termina: chispas en el fierro, astillas en la lona, y una llamita
+  if (e.hp > 0) { const hy = y !== undefined ? y : (e.g || 0) + 2; boom(e.x, hy, e.z, 0.35, 'fuego'); boom(e.x, hy, e.z, 0.7, clase === 'casa' ? 'astillas' : 'chispas'); return; }
   e.vivo = false;
-  const grande = e.largo ? 2.4 : e.tipo === 'deposito' || e.tipo === 'herc' ? 1.6 : 1;
-  boom(e.x, (e.g || 0) + (e.h || 4) * 0.4, e.z, grande, 'fuego');
+  T.eventos.push({ k: 'destruido', tipo: e.tipo, bando: e.bando });   // (los PUNTOS del sobrevuelo: islas.js)
+  const grande = e.largo ? 2.4 : e.tipo === 'deposito' || e.tipo === 'herc' ? 1.6 : e.tipo === 'manpad' ? 0.7 : 1;
+  boom(e.x, (e.g || 0) + (e.h || 4) * 0.4, e.z, grande, clase);
 }
 
 /** LA BALA DE CAÑON contra un casco: un rasguño (BOMBA.BALA), chispas, y el cartel una vez cada tanto. */
@@ -503,7 +508,15 @@ export const portaaviones = () => T.buques.filter(b => b.clase === 'cv' && b.viv
 /** Una bomba que pego en tierra (islas.js `bombas`): rompe lo que haya en el radio. */
 export function impacto(x, z, boom) {
   for (const e of T.piezas) if (e.vivo && Math.hypot(e.x - x, e.z - z) < e.r + 22) golpe(e, 3, boom);
+  const m0 = muertos();
   soldados.bomba(T.soldados, x, z, 25, rnd);
+  contarSoldados(m0);
+}
+/** Los soldados caidos por bando (para los PUNTOS: los de un tiro o una bomba se cuentan por diferencia). */
+const muertos = () => { const o = { gb: 0, arg: 0 }; for (const s of T.soldados) if (!s.vivo) o[s.bando === 'arg' ? 'arg' : 'gb']++; return o; };
+function contarSoldados(m0) {
+  const m1 = muertos();
+  for (const b of ['gb', 'arg']) for (let i = m0[b]; i < m1[b]; i++) T.eventos.push({ k: 'destruido', tipo: 'soldado', bando: b });
 }
 
 /** Lo que dibuja teatro3d.js (y el mapa de la pausa). */

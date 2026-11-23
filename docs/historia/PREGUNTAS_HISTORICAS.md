@@ -1752,3 +1752,9 @@ De `src/data/islas_teatro.js` (BUQUES, DEFENSA, BOMBA, FUSILES). Los números so
 De `tools/blender/armar_laminas.py` (`assets/libro/`), las del Invincible:
 - **El mapa** (`mapa_invincible`) es esquemático: la ida pasa al sur de las islas, la cruz del reabastecimiento con los KC-130 va en ~61,2°O 53,0°S y el blanco en ~56,0°O 52,45°S. ¿Dónde cargaron de verdad y dónde estaba el grupo de portaaviones el 30 de mayo?
 - **El Invincible** es un modelo simple hecho para la lámina (cajas): la rampa va a 9° (la real era de 7°) para que se lea.
+
+## El sobrevuelo desde Puerto Argentino (23/11)
+
+De `src/data/islas_teatro.js` (`SOBREVUELO`): el sobrevuelo de JUEGO RÁPIDO despega de la BAM Malvinas con un MB-339A (el avión de Owen Crippa, 21 de mayo) o un Pucará.
+- **La pista:** se puso en ~57,777°O 51,686°S con rumbo ≈260° (pista ≈08/26). ¿Orientación y largo reales de la pista de Puerto Argentino en 1982?
+- **El avión de Owen Crippa:** ¿matrícula del MB-339A que voló el 21 de mayo contra el Argonaut? (en el juego no se muestra todavía).

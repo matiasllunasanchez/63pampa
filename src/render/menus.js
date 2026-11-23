@@ -1809,9 +1809,9 @@ export function drawBanco(w) {
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(18);
-  ctx.fillText(T('banco_titulo'), NW / 2, 22);
+  ctx.fillText(T(w.tienda ? 'tienda_titulo' : 'banco_titulo'), NW / 2, 22);
   ctx.fillStyle = P.dim; ctx.font = descFont(9);
-  ctx.fillText(T('banco_sub', { n: w.libreta }), NW / 2, 35);
+  ctx.fillText(w.tienda ? T('tienda_sub') : T('banco_sub', { n: w.libreta }), NW / 2, 35);
   const todas = w.rota ? [...w.offer, w.rota] : w.offer;
   const sel = Math.min(w.sel, todas.length - 1);
   const leerMax = carrusel(todas, sel, w, i => (i >= w.offer.length ? T('banco_rota') : null));
@@ -1825,7 +1825,18 @@ export function drawBanco(w) {
     if (on) { ctx.fillStyle = c; ctx.fillRect(cx - 7, cy + 12, 14, 2); }
   });
   ctx.fillStyle = P.dim; ctx.font = descFont(9); ctx.textAlign = 'center';
-  ctx.fillText(T(sel >= w.offer.length ? 'banco_hint_rota' : 'banco_hint'), NW / 2, NH - 8);
+  ctx.fillText(T(w.tienda ? 'tienda_hint' : sel >= w.offer.length ? 'banco_hint_rota' : 'banco_hint'), NW / 2, NH - 8);
+  // LA TIENDA DEL SOBREVUELO (23/11): los puntos que tenes y el precio de la marcada (en verde si alcanza)
+  if (w.tienda) {
+    const tn = w.tienda;
+    ctx.textAlign = 'left'; ctx.font = labelFont(10); ctx.fillStyle = P.ink;
+    ctx.fillText(T('tienda_puntos', { n: tn.puntos }), 14, 22);
+    if (tn.precio != null) {
+      ctx.font = labelFont(10);
+      ctx.fillStyle = tn.puntos >= tn.precio ? '#7fe07a' : P.warn;
+      ctx.fillText(T('tienda_precio', { n: tn.precio }), 14, 34);
+    }
+  }
   ctx.textAlign = 'left';
   return { leerMax };
 }

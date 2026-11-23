@@ -149,6 +149,20 @@ const lejos = (g, cam, x, y, z, max) => {
   return g.visible;
 };
 
+// LA RUINA: cada malla de la pieza muerta con su material PROPIO (los de la malla se comparten entre todas las
+// copias: oscurecer el compartido quemaria las vivas tambien) que se va al negro quemado
+const DERRUMBE_S = 1.1;
+let CARBON = null;
+function quemar(g) {
+  if (!CARBON) CARBON = new THREE.Color(0.07, 0.055, 0.045);
+  g.userData.quemados = [];
+  g.traverse(o => {
+    if (!o.isMesh || !o.material) return;
+    const conv = m => { const c = m.clone(); if (c.color) { c.userData.c0 = c.color.clone(); g.userData.quemados.push(c); } return c; };
+    o.material = Array.isArray(o.material) ? o.material.map(conv) : conv(o.material);
+  });
+}
+
 /** Un cuadro. `E` = teatro.js `escena()`; `cazas` = los Harriers del duelo en el mapa (solo desde arriba: en las
  *  vistas del pasillo los dibuja el pasillo); `cam` = la camara de three. */
 export function frame(sc, E, cazas, cam, cha) {
@@ -158,10 +172,19 @@ export function frame(sc, E, cazas, cam, cha) {
     const g = grupo(e, e.malla);
     if (!g || !lejos(g, cam, e.x, e.g, e.z, LEJOS.pieza)) continue;
     g.position.set(e.x, e.g, e.z); g.rotation.set(0, -e.rot, 0);
-    // la pieza rota queda aplastada y ladeada
+    // la pieza rota queda aplastada y ladeada — pero NO DE GOLPE (23/11, el autor: "hoy el edificio desaparece
+    // completamente, si va a desaparecer que sea con una explosion acorde o que se incendie"): se DERRUMBA en
+    // DERRUMBE_S (se hunde y se ladea mientras la explosion de estallido3d.js la tapa) y queda CARBONIZADA —
+    // sus materiales se oscurecen hasta el negro quemado — con el fuego y el humo que le dejo el derribo encima.
     const k = escala(e.malla, g);
-    g.scale.set(k, e.vivo ? k : k * 0.3, k);
-    if (!e.vivo) g.rotation.z = 0.25;
+    if (e.vivo) { g.scale.set(k, k, k); continue; }
+    const ud = g.userData;
+    if (ud.caeT == null) { ud.caeT = performance.now(); quemar(g); }
+    const u = Math.min(1, (performance.now() - ud.caeT) / (DERRUMBE_S * 1000)), q = 1 - Math.pow(1 - u, 3);
+    g.scale.set(k * (1 + 0.15 * q), k * (1 - 0.68 * q), k * (1 + 0.15 * q));
+    g.rotation.z = 0.25 * q; g.rotation.x = -0.12 * q;
+    g.position.y = e.g - 0.4 * q;
+    for (const m of ud.quemados) m.color.copy(m.userData.c0).lerp(CARBON, Math.min(1, u * 1.6));
   }
   for (const b of E.buques) {
     const g = grupo(b, b.malla);

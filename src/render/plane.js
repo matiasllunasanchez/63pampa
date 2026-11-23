@@ -714,6 +714,29 @@ export function drawGear(g, u) {
  *  TREN_SUBE del cuadro —lo que asoma bajo el ala— y el sprite la va tapando; el ultimo tramo se apaga.
  *  Devuelve false si la capa no esta (build web, horno viejo): quien llama cae a drawGear. */
 const TREN_SUBE = 0.13;
+// …Y SE METE EN EL ALA, NO LA ATRAVIESA (23/11, el autor: "las ruedas al despegar desaparecen muy por encima de la
+// trompa del avion"): al subir, las patas asomaban por arriba del ala y al costado del fuselaje. Ahora se recorta todo
+// lo que pase de la RAIZ de la pata —la fila mas alta de la capa en ese cuadro, medida una vez de la hoja—: sube y se
+// va comiendo contra el ala, como de verdad.
+const raizTren = new Map();
+function raizDe(im, sx, sy, sw, sh) {
+  let m = raizTren.get(im);
+  if (!m) { m = new Map(); raizTren.set(im, m); }
+  const k = sx + ',' + sy;
+  if (m.has(k)) return m.get(k);
+  let r = 0;
+  try {
+    const c = document.createElement('canvas'); c.width = sw; c.height = sh;
+    const o = c.getContext('2d', { willReadFrequently: true });
+    o.drawImage(im, sx, sy, sw, sh, 0, 0, sw, sh);
+    const d = o.getImageData(0, 0, sw, sh).data;
+    let top = -1;
+    for (let i = 3; i < d.length && top < 0; i += 4) if (d[i] > 8) top = Math.floor((i >> 2) / sw);
+    r = top < 0 ? 0 : top / sh;
+  } catch (e) { r = 0; }
+  m.set(k, r);
+  return r;
+}
 export function drawTren(pl, g, col, row, x, y, w, h, fino) {
   const im = pl && (fino ? pl.tren5 : pl.tren);
   if (!(im && im.complete && im.naturalWidth)) return false;
@@ -721,8 +744,12 @@ export function drawTren(pl, g, col, row, x, y, w, h, fino) {
   const a0 = ctx.globalAlpha;
   ctx.globalAlpha = a0 * Math.min(1, g * 5);
   const k = pl.px || 1;
-  ctx.drawImage(im, col * SHEET_FW * k, row * SHEET_FH * k, SHEET_FW * k, SHEET_FH * k, x, y - (1 - g) * TREN_SUBE * h, w, h);
-  encimaHd(im, col * SHEET_FW * k, row * SHEET_FH * k, SHEET_FW * k, SHEET_FH * k, x, y - (1 - g) * TREN_SUBE * h, w, h, mezclaHd(w, k));
+  const sx = col * SHEET_FW * k, sy = row * SHEET_FH * k, sw = SHEET_FW * k, sh = SHEET_FH * k, yy = y - (1 - g) * TREN_SUBE * h;
+  const corta = g < 1;
+  if (corta) { const r = y + raizDe(im, sx, sy, sw, sh) * h; ctx.save(); ctx.beginPath(); ctx.rect(x - w, r, w * 3, h * 2); ctx.clip(); }
+  ctx.drawImage(im, sx, sy, sw, sh, x, yy, w, h);
+  encimaHd(im, sx, sy, sw, sh, x, yy, w, h, mezclaHd(w, k));
+  if (corta) ctx.restore();
   ctx.globalAlpha = a0;
   return true;
 }
@@ -789,7 +816,12 @@ function hieloAlas(img, sx, sy, fw, fh, dW, dH, nivel) {
   c.globalCompositeOperation = 'source-over';
   ctx.drawImage(hieloCv, -dW / 2, -dH / 2, dW, dH);
 }
+/** LA SILUETA DEL AVION de este cuadro (la hoja, el recorte y la transformacion en pixeles del lienzo), o null:
+ *  render/noche.js la usa de mascara (23/11, el autor: "la ola negra se superpone con el avion"). */
+let silueta = null;
+export const siluetaAvion = () => silueta;
 export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
+  silueta = null;
   // `dz` (solo DIBUJO, la fisica no se entera): en el CAMBIO DE PILOTO el que entra viene DESDE ATRAS
   // —mas cerca de la camara, o sea mas grande y mas abajo— hasta su puesto (core/squad.js,
   // cambioEntraDz). Detras del plano de la camara no se dibuja: todavia no llego.
@@ -1238,6 +1270,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     const conBase = !F3 && !hoja4 && img !== hoja2;
     if (!(conBase && drawTren(pl, run.gear, col, row, -dW / 2, -dH / 2, dW, dH, fino))) drawGear(run.gear, 1);
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
+    // (la silueta, para que la NOCHE no le pase el oscurecido de la ola gigante por encima — render/noche.js)
+    silueta = { img, sx: sx4, sy: sy4, sw: FW4, sh: FH4, dx: -dW / 2, dy: -dH / 2, dw: dW, dh: dH, m: ctx.getTransform() };
     // LA HOJA DE CERCA (render/hojaHd.js): grande en pantalla —el despegue— se funde encima la horneada al doble
     // (tambien con la FINA, que es la de volar nivelado — la pista —: tiene su `sheet5_hd`)
     const aHd = conBase ? mezclaHd(dW, PX) : 0;

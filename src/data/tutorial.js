@@ -275,11 +275,14 @@ export const TUTORIAL_ETAPAS = [
   { ...base, id: 'tut4', etapa: 4, name: 'LAS ISLAS', islas: true,
     musica: 'lista:original/fenretardo.mp3|original/Virus Rasante.m4a|original/Carnavalitox.mp3|original/Chamoide.m4a',
     desc: { es: 'Aprendé a sobrevolar las islas.', en: 'Learn to fly over the islands.' },
-    // EN VUELO sobre el estrecho de San Carlos (islas.js INICIO), con bomba y el radar del pasillo; sin nafta (la Chancha
-    // ya se enseño). Un solo tramo largo: la etapa la cierran los pasos, como las otras
-    bomba: 'brp', dificultad: 'facil',
+    // DESPEGANDO DE PUERTO ARGENTINO (23/11, el autor: "en la etapa 4 debe aparecer el avion despegando en las islas, para
+    // no aparecer directamente en conflicto"): el despegue de siempre y, al levantar, sobre la pista de la BAM MALVINAS,
+    // en cobertura nuestra — el mismo arranque que el SOBREVUELO de JUEGO RAPIDO (`desdePuerto`, data/islas_teatro.js
+    // SOBREVUELO). Antes arrancaba en vuelo sobre el estrecho de San Carlos. Con bomba y el radar del pasillo; sin nafta
+    // (la Chancha ya se enseño). Un solo tramo largo: la etapa la cierran los pasos, como las otras
+    bomba: 'brp', dificultad: 'facil', desdePuerto: true,
     aviones: [{ ...AVION[0], carga: 'tanques_bomba' }],
-    cfg: P({ sky: 'cloudy', terrain: 'sea', start: 'air', carga: 'tanques_bomba', radar: 'normal' }), pasos: ETAPA4,
+    cfg: P({ sky: 'cloudy', terrain: 'sea', start: 'runway', carga: 'tanques_bomba', radar: 'normal' }), pasos: ETAPA4,
     consejos: { es: ['En las islas la altura se mide desde el suelo: el cerro te la come.', 'Marcá en el MAPA de la pausa y seguí la brújula.', 'Adentro de un radar inglés, abajo de 20 m.'],
       en: ['On the islands altitude is measured from the ground: hills eat it.', 'Mark a point on the pause MAP and follow the compass.', 'Inside a British radar, stay under 20 m.'] } },
 ];

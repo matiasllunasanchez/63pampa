@@ -2184,6 +2184,28 @@ function esquinasHielo(x, y, lado, nivel) {
   }
   ctx.globalAlpha = 1;
 }
+/** EYECCION PREPARADA (23/11, el autor: "que aparezca EYECCION PREPARADA desde el recuadro del piloto"): la cruceta ◄
+ *  la arma (game.js `eyeccionPad`) y hasta que se vence el marco del piloto titila en rojo y al costado sale la placa,
+ *  con una barrita que se gasta: lo que queda para el segundo toque. */
+function eyeccionPreparada(x, y) {
+  const u = run.eyecArma || 0;
+  if (u <= 0) return;
+  const on = Math.floor(run.t * 6) % 2 === 0;
+  ctx.save();
+  ctx.strokeStyle = on ? '#ff3a24' : '#8a1d12'; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, PILOTO.lado - 1, PILOTO.alto - 1);
+  ctx.strokeRect(x - 0.5, y - 0.5, PILOTO.lado + 1, PILOTO.alto + 1);
+  ctx.font = F_ROT;
+  const t1 = T('islasEyecArma'), t2 = T('islasEyecArmaSub');
+  const w = Math.max(ctx.measureText(t1).width, ctx.measureText(t2).width) + 6, bx = x + PILOTO.lado + 2, by = y + 4;
+  ctx.fillStyle = 'rgba(20,4,2,0.88)'; ctx.fillRect(bx, by, w, 17);
+  ctx.fillStyle = on ? '#ff3a24' : '#c42a18'; ctx.fillRect(bx, by, 1, 17);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ff5a40'; ctx.fillText(t1, bx + 4, by + 6);
+  ctx.fillStyle = P.foam; ctx.fillText(t2, bx + 4, by + 12);
+  ctx.fillStyle = '#ff3a24'; ctx.fillRect(bx + 4, by + 14.5, (w - 8) * u, 1);
+  ctx.restore();
+}
 function drawPiloto(charlaVoz, delAvion) {
   // APARTE DEL TABLERO (11/9): arriba de la esquina izquierda, y no en la fila. La cara no es un
   // instrumento, y a su derecha tiene que quedar lugar para lo que dice (drawVozPropia, en screens).
@@ -2226,6 +2248,7 @@ function drawPiloto(charlaVoz, delAvion) {
   // se escarcha con el hielo de las alas y lleva el copo en la esquina
   pilotoHelado(x + 2, y + 2, PILOTO.cara, run.hielo || 0);
   barritaMomentum(x + 2, y + 2 + PILOTO.cara + 1, PILOTO.cara);
+  eyeccionPreparada(x, y);
   // CUANDO HABLA, el marco se prende: la linea sale de aca y el ojo tiene que saber de donde
   // …POR CUALQUIERA DE LAS DOS VOCES: la radio y la charla. Antes miraba solo la radio, asi que en
   // mis lineas de charla la cara quedaba apagada mientras mi propia caja hablaba al lado (11/9).

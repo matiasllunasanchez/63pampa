@@ -18,13 +18,13 @@ import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafi
 import { stepSalitre } from './systems/salitre.js';
 import { drawSalitre, drawLavado } from './render/salitre.js';
 import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T, FALLAS_K } from './data/fallas.js';
-import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
+import { ofertaSuelta, precioDe, TIENDA_N, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
 import { leeDe } from './data/cartas_lee.js';
 import { ALBUM, ALBUM_KEY, ALBUM_CATS, ALBUM_AVION_S } from './data/album.js';
 import { descPlano } from './data/desc_iconos.js';
 import { perfilDe, puedeManiobra } from './data/perfiles.js';
 import * as frio from './systems/frio.js';
-import { ALTO, VERT_MODOS, SALITRE, FALLA_ALERTA } from './data/tuning.js';
+import { ALTO, VERT_MODOS, SALITRE, FALLA_ALERTA, PENA_MUERTE } from './data/tuning.js';
 import { BUSQ } from './data/busqueda.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
@@ -114,7 +114,7 @@ import { BL as BL_BLANCO, FASE_ESCAPE, SENAS, CIELO_VUELTA, CAP } from './data/b
 import { EYEC_KM_CASA, EYEC_KM_ISLA, PARTS_FONDO_A, CAIDA, OLA_GIGANTE } from './data/tuning.js';
 import { conBombaCentral, bombasDe, cargaDe, CARGAS_ELEGIBLES, CARGA_ELEGIBLE_DESDE, CARGA_BASE, cargaParaAvion, EXOCET_ALCANCE_KM, capasDe, capasAvion } from './data/cargas.js';
 import { AUDIO_BLOQUEADO } from './data/sonido.js';
-import { bingoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque, proximoPilon } from './core/nafta.js';
+import { bingoKm, gastoKm, capacidadKm, colgadoDe, velRelativa, estadoTanque, proximoPilon } from './core/nafta.js';
 import { trayectoria } from './core/balistica.js';
 import { blanco, balaTope, cajaSistema, sistemasATiro } from './core/blanco.js';
 import { drawTrayectoria, drawLineaExocet } from './render/trayectoria.js';
@@ -194,7 +194,7 @@ import { glifosDe } from './render/glifos.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
 import { BOMBA_CARGA_T, BOMBA_CARGA_VZ, CH_VAIVEN, CH_AJUSTE } from './data/tuning.js';
-import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA, CH_ETA, CHAPITAS, BORDE_DESTELLO } from './data/tuning.js';
+import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA, CH_ROJO, CH_ROJO_EN, RADAR_TRAS_CHANCHA, CH_ALT, CH_ETA, CHAPITAS, BORDE_DESTELLO } from './data/tuning.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
          LAND_COSTO_CHAPA, LAND_PTS, FUGA_Y } from './data/tuning.js';
@@ -227,6 +227,7 @@ import { SENALES, SENAL_GLOBO_T, SENAL_ARMADA_T, SENAS_COMP } from './data/senal
 import { cartel, cartelSostenido, tickCarteles, limpiarCarteles, carteles } from './core/cartel.js';
 import { CARA_DE_RADIO, decirLinea, setVozLibro } from './core/voz.js';
 import { derrota, esChoque, tipoDerribo } from './data/derrotas.js';
+import { SOBREVUELO } from './data/islas_teatro.js';
 import { DEV, FULL } from './core/dev.js';
 import { defensaDe } from './data/defensas.js';
 import { calibreDe } from './data/sistemas_buque.js';
@@ -551,9 +552,46 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       bancoLeer = Math.max(0, Math.min(bancoLeerMax, bancoLeer + dir * 30));
       if (bancoLeer !== antes) beep(dir > 0 ? 300 : 360, 0.03, 'square', 0.02);
     }
+    // ---------- LA TIENDA DEL SOBREVUELO (23/11) ----------
+    // El autor: "para comprar mejoras tenes que estar en Puerto Argentino, aterrizar en la pista, y una vez aterrizado
+    // vamos a una pantalla con las cartas, y cada carta tendra precios de puntos (para reutilizar lo del roguelike)".
+    // ES EL BANCO SUELTO con `tienda`: TIENDA_N cartas con su precio (data/banco_suelto.js precioDe), se compran las que
+    // alcancen con los puntos (run.score) y se sale despegando. Aterrizar tambien carga la nafta y las bombas.
+    function abrirTienda() {
+      const o = ofertaSuelta(pichon, bancoCtx(), TIENDA_N);
+      run.fuel = 100; if (run.mslMax) run.msl = run.mslMax; run.chapitas = run.chapitasMax;
+      bancoOffer = { ...o, tienda: true }; bancoSel = 0; bancoT = 0; bancoVista = -1.2; bancoLeer = bancoLeerV = 0; bancoSacude = 0;
+      setState('banco'); engineOff();
+      beep(660, 0.1, 'square', 0.05, 220);
+    }
+    /** Salir de la tienda: de vuelta al aire, sobre la cabecera de la pista. */
+    function salirTienda() {
+      bancoOffer = null;
+      setState('play');
+      const p = SOBREVUELO.pista;
+      islas.irA({ lon: p.lon, lat: p.lat, alt: 45, rumbo: p.rumbo });
+      plane.vy = 0; fadeT = 1.4;
+      beep(880, 0.12, 'square', 0.06);
+    }
+    function bancoSalir() { if (bancoOffer && bancoOffer.tienda && bancoT > 0.4) salirTienda(); }
     function bancoConfirm() {
       if (!bancoOffer || bancoT < 0.4) return;   // gracia: la tecla que venia apretada no elige sola
       const c = bancoOffer.cartas[bancoSel];
+      // EN LA TIENDA se paga: si alcanza, se compra y se sigue comprando; si no, avisa cuanto falta
+      if (bancoOffer.tienda) {
+        if (!c) { bancoSacude = 0.35; beep(140, 0.12, 'square', 0.05); return; }
+        const precio = precioDe(c);
+        if (run.score < precio) { bancoSacude = 0.35; beep(140, 0.12, 'square', 0.05); cartel(T('tiendaFalta', { n: precio - Math.floor(run.score) }), P.warn); return; }
+        run.score -= precio;
+        if (!c.uso) pichon.push(c.id);
+        albumDescubrir(c.id); cartasRun.push(c.id); aplicarCarta(c);
+        bancoOffer.cartas.splice(bancoSel, 1);
+        bancoSel = Math.max(0, Math.min(bancoSel, bancoTotal() - 1));
+        beep(880, 0.12, 'square', 0.06);
+        cartel(c.name, P.accent, T('tiendaComprada', { n: precio }));
+        if (!bancoOffer.cartas.length) salirTienda();
+        return;
+      }
       if (!c) { bancoSacude = 0.35; beep(140, 0.12, 'square', 0.05); return; }   // la ROTA: no se elige
       if (!c.uso) pichon.push(c.id);
       const nuevaAlbum = albumDescubrir(c.id);   // (el ALBUM: la carta elegida queda destapada)
@@ -819,6 +857,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let modeSel = 1;                 // pantalla inicial (se corrige con modeInicial al salir de la portada)
     let quickSel = 0;                // cursor del submenu JUEGO RAPIDO
     let prbSel = 0;                  // cursor del catalogo de PRUEBAS
+    let sobrevuelo = false;          // EL SOBREVUELO DE LAS ISLAS (JUEGO RAPIDO): despega de Puerto Argentino (SOBREVUELO)
     let prbTrasAvion = null;         // PRUEBAS que piden avion (verbo `avion`): lo que arranca al elegirlo
     let cinSel = 0;                  // cursor del catalogo de CINEMATICAS
     let mvSel = 0, mvVarSel = 0, mvPick = null;   // MANIOBRAS: cursor de la lista, de las variantes, y la elegida
@@ -1642,6 +1681,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 
     // LA CHANCHA DE LA IDA ya te lleno (la que viene sola y espera, ver el bloque del radar en update)
     let chIdaLlena = false;
+    let chLlenaT = -1;    // cuando te lleno la de la ida (run.t): la Chancha al rojo suelta el radar unos segundos despues
+    let kRojo = 0;        // LA CHANCHA AL ROJO: cuanto cuesta cada km del transito (0 = sin calcular todavia)
     // el relevo en curso viene de un CHOQUE CON EL BUQUE en el cruce: al terminar, re-encare
     let reencareTrasChoque = false;
     /** El toque que suelta la sonda: un FLANCO de izquierda, derecha o abajo (ver chancha.tick). */
@@ -2080,6 +2121,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     }
     function quickConfirm() {
       const id = quickRows()[quickSel].id;
+      sobrevuelo = false;
       if (id === 'back') { modeSel = MODES.indexOf(subMenu); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
       // (21/11, el autor: "puse CORONADO DE GLORIA, despues FACIL, y quedo lockeado en 1 avion"): LAS ISLAS QUEDABAN
       // PRENDIDAS al volver de ellas (el sobrevuelo, la etapa 4 del tutorial, la busqueda del Belgrano a medias) y
@@ -2104,8 +2146,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         islas.activar(false); prbNeutro();
         S.test = true; testBack = 'quickmenu';
         beep(700, 0.08, 'square', 0.05);
+        // (23/11) DESDE PUERTO ARGENTINO: el selector solo con los aviones que estaban ahi, y con DESPEGUE (la
+        // carrera de siempre); al levantar, `llegarAPuerto` pone el avion sobre la pista de la BAM MALVINAS
+        sobrevuelo = true;
+        islas.modoLibre(true);   // (23/11: sin objetivo unico — puntos y la TIENDA de la BAM Malvinas)
+        selPlane = Math.max(0, PLANES.findIndex(p => p.key === SOBREVUELO.aviones[0]));
         const a = pruebasApi();
-        a.sonda('malvinas', true); a.sonda('malvinas', { radar: true }); a.avion(() => a.patria({ fuelOn: true }));
+        a.sonda('malvinas', true); a.sonda('malvinas', { radar: true }); a.avion(() => a.patria({ fuelOn: true, start: 'runway' }));
       }
       else goSurvival();
     }
@@ -2260,7 +2307,17 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 
     /** Sale de una corrida de herramienta y vuelve a SU catalogo (PRUEBAS o MISIONES). Apaga las
      *  sondas-interruptor que la corrida pudo dejar puestas: ver PRB_NEUTRO. */
+    /** EL SOBREVUELO (y la etapa 4 del tutorial, `desdePuerto`), AL LEVANTAR: el avion pasa al mapa sobre la pista de la
+     *  BAM MALVINAS (desde negro, como el relevo de las islas). En el resto no hace nada. */
+    function llegarAPuerto() {
+      const tut = libro && libro.tut && TUTORIAL_ETAPAS[libro.k] && TUTORIAL_ETAPAS[libro.k].desdePuerto;
+      if (!(sobrevuelo || tut) || !islas.activa()) return;
+      const p = SOBREVUELO.pista;
+      islas.irA({ lon: p.lon, lat: p.lat, alt: p.alt, rumbo: p.rumbo });
+      fadeT = 1.4;
+    }
     function salirTest() {
+      sobrevuelo = false; islas.modoLibre(false);
       S.test = false; prbTasks.length = 0; prbNeutro();
       if (capasPista) { capas.parar(); capasPista = null; }   // la musica en capas es de esa corrida
       // el modo DIALOGOS deja el MODO CAMARA puesto: apagarlo es parte de salir. Sin esto, la
@@ -2879,25 +2936,58 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // otro lado y la mision se pierde (systems/pulso.js `exocetErrado`).
     // (EL INVINCIBLE no entra aca: su lanzamiento esta guionado en un punto de la ida — `lanzamiento`.)
     let exocetAvisado = false, exocetLejos = false;
+    // ---------- LA ZONA DE LANZAMIENTO (EL INVINCIBLE, 23/11) ----------
+    // El autor: "la llegada a la zona del exocet debe ser anunciada… debo 'prepararme'"; "que el jugador deba activar el
+    // PULSO para lanzar el exocet como cuando se lanza una bomba solo que la mira es diferente". Ya no se entra solo en
+    // `lanzamiento`: PATRIA 2 avisa EXO_AVISO_S antes, en `lanzamiento` se abre la zona (la mira recta del Exocet y la
+    // tecla de soltar lo lanzan → el PULSO de la configuracion) y se cierra en EXO_CIERRE del tramo que queda hasta el
+    // buque (~7 s de vuelo; a la distancia, no al reloj: pasado el buque el relevo te mete en el climax); sin lanzar, se pierde.
+    const EXO_AVISO_S = 10, EXO_ABRE_S = 4, EXO_CIERRE = 0.85, EXO_APURA_S = 3.5;   // (la zona abre EXO_ABRE_S antes de `lanzamiento`: ~9 s en total)
+    const exoZona = { aviso: false, t0: -1, apura: false };
+    const zonaLanzamiento = () => libroEnTramo() === 'super' && !!(curMission() && curMission().lanzamiento);
+    const lanzaM = () => objectiveDist * ((curMission() && curMission().lanzamiento) || 0);
+    /** ¿Estamos ADENTRO de la zona de lanzamiento? (abierta y sin vencer) */
+    const cierreM = () => lanzaM() + (objectiveDist - lanzaM()) * EXO_CIERRE;
+    const enZonaLanza = () => zonaLanzamiento() && exoZona.t0 >= 0 && run.dist < cierreM();
+    /** Un cuadro de la zona: el aviso, la apertura, el apuro y la zona vencida (devuelve true si se perdio). */
+    function pasoZonaLanza() {
+      if (!zonaLanzamiento() || S.state !== 'play') return false;
+      const falta = lanzaM() - run.dist;
+      const amigo = (k, sub) => { beep(430, 0.06, 'square', 0.04); if (!decirLinea(T(k))) cartel(T(k).replace(/^PATRIA 2:\s*/, ''), '#5ab4ff', sub); };
+      if (!exoZona.aviso && falta > 0 && falta / Math.max(1, run.spd) <= EXO_AVISO_S) { exoZona.aviso = true; amigo('exo_aviso'); }
+      if (exoZona.t0 < 0 && falta / Math.max(1, run.spd) <= EXO_ABRE_S) {
+        exoZona.t0 = run.t; exoZona.aviso = true;
+        amigo('exo_enrango');
+        beep(880, 0.08, 'sine', 0.05, 300);
+        cartel(T('exo_zona'), '#5ab4ff', T('exo_zona_sub'));
+      }
+      if (exoZona.t0 < 0) return false;
+      const resta = (cierreM() - run.dist) / Math.max(1, run.spd);   // segundos de vuelo hasta que se cierra
+      if (!exoZona.apura && resta <= EXO_APURA_S) { exoZona.apura = true; amigo('exo_apura'); }
+      if (resta <= 0) { die('death_exocet_tarde'); return true; }
+      return false;
+    }
     // EN LAS ISLAS (21/11): el blanco del Exocet son los PORTAAVIONES (contra el borde del mapa, imposibles de alcanzar
     // de otra forma); uno por salida (`islasExo`: el que esta en vuelo; `run.exoGastado`: ya se tiro)
     let islasExo = false;
     const exocetLanzable = () => !!(cargaDe(cfg.carga) || {}).exocet && (islas.enPasillo()
       ? !run.exoGastado && islas.portaavionesKm() != null
-      : runClimax() === 'pulso' && !(curMission() && curMission().lanzamiento) && objectiveDist > 0);
+      : zonaLanzamiento() ? enZonaLanza()
+        : runClimax() === 'pulso' && !(curMission() && curMission().lanzamiento) && objectiveDist > 0);
     /** Los km que faltan al blanco (con ruta, los reales; sin ruta, los del pasillo; en las islas, al portaaviones). */
     const kmAlBlanco = () => islas.enPasillo() ? (islas.portaavionesKm() ?? 999) : rutaSys.hay() ? rutaSys.alBlanco() : Math.max(0, objectiveDist - run.dist) / 1000;
-    const exocetATiro = () => exocetLanzable() && kmAlBlanco() <= EXOCET_ALCANCE_KM;
+    const exocetATiro = () => exocetLanzable() && (zonaLanzamiento() || kmAlBlanco() <= EXOCET_ALCANCE_KM);
     /** La tecla con el Exocet colgado: adentro del alcance entra al PULSO; afuera, avisa. */
     function lanzarExocet() {
       if (!exocetATiro()) {
         beep(160, 0.09, 'square', 0.05); run.mslCd = 0.6;
-        cartel(T('exocet_lejos'), P.warn, T('exocet_lejos_sub', { km: Math.round(kmAlBlanco()) }));
+        cartel(T('exocet_lejos'), P.warn, zonaLanzamiento() ? T('exo_espera') : T('exocet_lejos_sub', { km: Math.round(kmAlBlanco()) }));
         return;
       }
       exocetLejos = kmAlBlanco() > 5;   // de lejos el buque se ve chico en el parabrisas (fxLejos)
       islasExo = islas.enPasillo();
-      if (islasExo) { run.exoGastado = true; pulso.setExocet(true); }
+      if (islasExo) run.exoGastado = true;
+      pulso.setExocet(true);   // lanzar ES la prueba del Exocet (EL INVINCIBLE la tenia apagada: entraba solo)
       pulso.enter(true); fadeT = 0.4;
     }
     /** LO QUE LA RECTA DEL EXOCET MARCA (16/10): el blanco mas cercano adelante y en el carril del avion —
@@ -2922,6 +3012,33 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // y en el Exocet errado el blanco tambien esta a 30 millas
       else if (!fx && k) return { lejos: k };
       return fx;
+    }
+    // ---------- LA CHANCHA AL ROJO (EL INVINCIBLE, 23/11) ----------
+    // El autor: "la Chancha debe aparecer MUCHO DESPUES… la gasolina debe llegar al rojo recien para que la Chancha
+    // aparezca, y unos 5 o 10 segundos despues de cargar la zona de radar" — "no tiene sentido recargar si casi no se
+    // gasto". La mision lo pide con `chanchaAlRojo` (data/libro_vuelo.js): el transito alto cuesta `kRojo` veces lo de
+    // siempre hasta que la de la ida te llena, la Chancha viene al bajar de CH_ROJO %, y la linea del radar (retenida
+    // en systems/ruta.js) llega RADAR_TRAS_CHANCHA s despues de llenar — o, si nunca te lleno, al terminar el descenso.
+    const alRojo = () => !!(curMission() && curMission().chanchaAlRojo && rutaSys.hay() && cfg.fuelOn);
+    /** Donde termina el tramo alto (el comienzo del descenso), en fraccion del objetivo. */
+    function finTransito(tipo = 'descenso') {
+      const f = (curMission() && curMission().fases) || [], i = f.findIndex(x => x.tipo === tipo);
+      return i > 0 ? f[i - 1].hasta : i === 0 ? 0 : 1;
+    }
+    function gastoAlRojo() {
+      if (!alRojo()) { run.gastoK = 1; return; }
+      if (!kRojo && naftaSys.activo() && run.naftaCap0 > 0) {
+        const km = rutaSys.kmEn(finTransito() * CH_ROJO_EN);
+        // (volando ALTO —la cita con la Chancha es arriba— y con lo que cuelga: el gasto de ese km sin `gastoK`)
+        const g = km > 0 ? gastoKm(km, CH_ALT + 5, colgadoDe(cfg.carga)) : 0;
+        kRojo = g > 0 ? Math.max(1, (1 - CH_ROJO / 100) * run.naftaCap0 / g) : 1;
+      }
+      // (solo hasta el rojo: ya pedida la Chancha se gasta lo de siempre, y mientras carga no se le pelea)
+      run.gastoK = !chIdaLlena && !chancha.snapshot() && run.fuel > CH_ROJO && run.dist < objectiveDist && kRojo ? kRojo : 1;
+      if (rutaSys.radarRetenido()) {
+        const yaLleno = chLlenaT >= 0 && run.t - chLlenaT >= RADAR_TRAS_CHANCHA;
+        if (yaLleno || run.dist >= objectiveDist * finTransito('rasante')) rutaSys.soltarRadar();
+      }
     }
     function libroEnTramo() {
       return (libro && libro.tramo) || null;
@@ -3359,6 +3476,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // a las fases porque se ancla a ellas; sin `ruta` (todas las de hoy) queda apagada.
       rutaSys.setRuta(objectiveDist > 0 && curMission() ? curMission().ruta : null,
         curMission() ? curMission().fases : null, objectiveDist);
+      if (alRojo()) rutaSys.retenerRadar();   // (la Chancha al rojo: el radar espera a que te llene)
       alcanceAntes = null;
       radarScanT = -1;   // corrida nueva: run.t vuelve a 0 y un reloj viejo se volveria a disparar
       // EL PULSO necesita saber CONTRA QUE buque es la prueba: de su clase sale como se muere en
@@ -3380,6 +3498,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       prepararCarga();
       pulso.setExocet(exocetLanzable());   // la prueba del Exocet: siempre pega o se va para otro lado
       exocetAvisado = false; exocetLejos = false;
+      exoZona.aviso = false; exoZona.t0 = -1; exoZona.apura = false;
       // EL AVION ELEGIDO VUELA DISTINTO (16/10, el Hercules bombardero, data/planes.js): su velocidad, su
       // cañon y su bodega. Se escribe en CADA corrida (resetRun no conoce estos campos): sin avion propio,
       // null y la de siempre. La bodega solo fuera de LA SUELTA, que arma sus bombas por pasada.
@@ -4319,6 +4438,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       tempo.resetTempo();
       chancha.resetChancha();   // el poder es de la CORRIDA: se pide una vez y sobrevive al relevo
       chIdaLlena = false;       // la de la ida (la que viene sola) todavia no te lleno
+      chLlenaT = -1; kRojo = 0;
       rasante.resetRasante();   // la barra del RASANTE es de la corrida: se gana volando bajo
       seawolfSys.reset();
       artilleria.reset();
@@ -4593,6 +4713,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       aLaBase: () => aLaBase(),
       aLaBaseTodos: () => aLaBaseTodos(),
       bancoConfirm: () => bancoConfirm(),
+      bancoSalir: () => bancoSalir(),
       cargaNav: dir => cargaNav(dir),
       cargaConfirm: () => cargaConfirm(),
       // OPCIONES: por ahora una sola fila (idioma), asi que izquierda/derecha rotan el idioma
@@ -4616,7 +4737,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       difNav: dir => { if (S.state === 'dificultad') difNav(dir); },
       // ARRIBA/ABAJO en la pantalla del avion: desplazan el texto de la FICHA (16/10)
       fichaNav: dir => { const n = Math.max(0, Math.min(menus.FICHA_INFO.max, fichaScroll + dir)); if (n !== fichaScroll) { fichaScroll = n; beep(500, 0.03, 'square', 0.03); } },
-      planeNav: dir => { fichaScroll = 0; selPlane = (selPlane + dir + PLANES.length) % PLANES.length; beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04); },
+      planeNav: dir => {
+        fichaScroll = 0;
+        if (sobrevuelo) {   // (el SOBREVUELO: solo los que estaban en Puerto Argentino)
+          const L = SOBREVUELO.aviones, i = L.indexOf(PLANES[selPlane] && PLANES[selPlane].key);
+          selPlane = Math.max(0, PLANES.findIndex(p => p.key === L[(Math.max(0, i) + dir + L.length) % L.length]));
+        } else selPlane = (selPlane + dir + PLANES.length) % PLANES.length;
+        beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04);
+      },
       roll: dir => startRoll(dir),
       // COMBO: la SECUENCIA llega cruda ('lll', 'drul'...) desde dirTap (core/input.js), que ya
       // probo de la mas larga a la mas corta. Aca se resuelve QUE maniobra es.
@@ -4828,6 +4956,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
        *  aprieta el jugador. Si llamara a `rasante.toggle()` por su cuenta se saltearia los gates
        *  que viven aca —el estado del juego y el modo— y probaria media mecanica. */
       rasanteToggle: () => lanzarRasante(),
+      // LA EYECCION DEL JOYSTICK: cruceta ◄ dos veces (solo en las islas, que es donde hay eyeccion a pedido)
+      eyeccionPad: () => {
+        if (S.state !== 'play' || !islas.enPasillo()) return;
+        if (eyecArmT > 0) { eyecArmT = 0; eyecPadYa = true; return; }
+        eyecArmT = EYEC_ARMA_S; beep(520, 0.08, 'square', 0.05);   // (el aviso sale del recuadro del piloto: hud.js)
+      },
       // EL PACK DE SEÑALES [6..0] (data/senales.js): el gesto arranca para el lado al que estas
       // doblando (A/D; derecho, a la derecha) y lo mueve el paso de update(), al lado del horizonte.
       // Una a la vez: la que esta en curso termina antes de que entre otra.
@@ -5124,6 +5258,19 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         rescate = fin > 0 && (run.dist / fin > 0.85 || run.dist / fin < 0.15);
       }
       beep(900, 0.08, 'square', 0.05, -300); boom(0.06, true);
+      run.eyecArma = 0;
+      // SI LA PARTIDA SIGUE, EYECTARSE NO LA CIERRA (23/11, el autor: "si te matan perdes X cantidad de puntos que duela,
+      // si te eyectas, los puntos se conservan… siempre que siga la partida"): el avion se pierde (cae apagado y el piloto
+      // salta: `derribar` 'seco'), entra el siguiente de la fila y el puntaje queda entero — es la otra cara de PENA_MUERTE
+      if (aPedido && canRelevo(run.lives)) {
+        const caido = derribar(plane, 'seco', avionPropio());
+        golpesPopa = 0;
+        squad.startRelevo(rescate ? 'death_eyecto_islas_tierra' : 'death_eyecto_islas_mar', undefined, true);
+        relevoSuelto(caido);
+        setState('relevo');
+        popup(W / 2, 50, T('eyecPuntosOk'), P.accent, true);
+        return;
+      }
       // EL PARACAIDAS: la misma pieza que usan los pilotos enemigos que alcanzan a salir (core/fx.js)
       obstacles.push({
         type: 'chunk', done: true, chunkT: 0, paraca: true,
@@ -5145,9 +5292,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     /** LAS ISLAS SIN NAFTA: el aviso y la eyeccion a pedido. Devuelve true si eyecto (la corrida termino). */
     let eyectaT = 0;
     const EYECCION_T = 0.6;
+    // la cruceta ◄: el primer toque ARMA la eyeccion por EYEC_ARMA_S; el segundo, adentro de ese rato, eyecta
+    const EYEC_ARMA_S = 3;
+    let eyecArmT = 0, eyecPadYa = false;
     function islasSeco() {
       cartelSostenido('islasSeco', true, T('islasSinNafta'), P.warn, { alerta: true }, T('islasEyectate'));
-      if (!((inp.rollL && inp.rollR) || flags.padEyect)) return false;
+      if (!((inp.rollL && inp.rollR) || flags.padEyect || eyecPadYa)) return false;
+      eyecPadYa = false;
       cartelSostenido('islasSeco', false);
       eyectar(islas.sobreTierra());
       return true;
@@ -5453,6 +5604,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (S.state === 'pasada') return;
       if (S.state !== 'play' || run.mslCd > 0) return;
       if (exocetLanzable()) { lanzarExocet(); return; }   // el Exocet no se suelta: se lanza con el PULSO
+      // (EL INVINCIBLE, fuera de la zona: el ultimo Exocet no se tira a la marchanta — avisa y espera)
+      if (zonaLanzamiento() && (cargaDe(cfg.carga) || {}).exocet) { lanzarExocet(); return; }
       // EL LANZADOR FALLADO (PLAN_FALLAS: "las bombas no se desprendian"): leve, una de cada cuatro no sale;
       // media, la mitad; TOTAL, ninguna. No se gasta: queda colgada, y el clac del pilon dice por que
       { const g = falla('bombas');
@@ -5639,7 +5792,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (extra) deathPorque = Object.assign({}, deathPorque, { extra });
       }
       // …la pantalla ya esta en negro (el de la pasada errada): sube directo, sin "show del destrozo"
-      if (erroSuelta(cause)) deathT = DEATH_REVEAL;
+      // (y el EXOCET perdido —desviado o sin lanzar—, 23/11, el autor: "directamente muestre pantalla de has perdido")
+      const exoPerdido = cause === 'death_exocet_errado' || cause === 'death_exocet_tarde';
+      if (erroSuelta(cause) || exoPerdido) deathT = DEATH_REVEAL;
       // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
       // morir es fracaso (no se cumplio el objetivo): sin estrellas.
       deadStars = gameMode === 'survival' ? starsFor(Math.floor(run.score), SURVIVAL_PAR) : 0;
@@ -5647,7 +5802,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       factIdx = (factIdx + 1) % L().facts.length;
       // campaña: el ultimo avion tampoco explota — la escuadrilla entera quedo averiada y la
       // mision se pierde (la pantalla de fin lo dice); en arcade, el derribo clasico
-      if (erroSuelta(cause)) { /* sano: nada que romper */ }
+      if (erroSuelta(cause) || exoPerdido) { /* sano: nada que romper */ }
       // (…salvo un CHOQUE, que en campaña tambien revienta — 8/10, ver onDeath)
       // EL ULTIMO AVION EXPLOTA (8/10, el autor: "si me queda un solo avion y me da un misil, debo explotar
       // antes de mostrar la pantalla de perder"): el averiado que vuelve a la base es para el que tiene
@@ -5782,6 +5937,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         const caido = perdido ? derribar(plane, tipoDerribo(cause), avionPropio()) : null;
         if (!perdido) { if (relevoRompe()) dmgFX(); else crashFX(tipoDerribo(cause)); }
         golpesPopa = 0;                // el que entra trae la chapa sana
+        // LA MUERTE CUESTA PUNTOS (23/11, el autor: "si te matan perdes X cantidad de puntos que duela… siempre que siga
+        // la partida"): una tajada del puntaje (PENA_MUERTE, data/tuning.js); eyectarse a tiempo la evita (`eyectar`)
+        const pena = Math.round(Math.max(0, run.score) * PENA_MUERTE.PARTE);
+        if (pena > 0) { run.score -= pena; popup(W / 2, 50, T('penaMuerte', { n: pena.toLocaleString('es-AR') }), P.warn, true); }
         squad.startRelevo(cause, undefined, perdido);   // la mision sigue: descuenta y prepara al companero
         relevoSuelto(caido);
         rebobinarSiCerca();
@@ -5920,6 +6079,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (enControl(carrera) && S.state === 'takeoff') {
         setState('play'); run.shake = Math.min(6, run.shake + 1);
         squad.beginExit();
+        llegarAPuerto();
       }
       parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
       prune(parts, p => p.life > 0); capParts();
@@ -6252,7 +6412,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (capasPista) intens = suavizar(intens, intensidadCruda(fotoIntensidad()), dt);
       fadeT = Math.max(0, fadeT - dt);   // fundido desde negro (se pinta al final de draw)
       cargaProgT = Math.max(0, cargaProgT - dt);   // la carga del programa (render/carga.js)
-      if (S.state === 'play' && !exocetAvisado && exocetATiro()) {   // EXOCET A TIRO: una vez, al entrar
+      if (S.state === 'play' && !exocetAvisado && !zonaLanzamiento() && exocetATiro()) {   // EXOCET A TIRO: una vez, al entrar (la zona del Invincible avisa sola)
         exocetAvisado = true; beep(880, 0.08, 'sine', 0.05, 300); cartel(T('exocet_atiro'), '#5ab4ff', T('exocet_atiro_sub'));
       }
       // el zumbido de la tarjeta de mision: suena mientras se ve, y se va solo al salir (audio.js)
@@ -6450,6 +6610,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           if (rotLibro) hudEntra = 0;   // (el del libro entra con un fundido)
           setState('play'); run.shake = Math.min(6, run.shake + 1);
           squad.beginExit();   // la formacion sale de plano detras de la camara (render/squad.js)
+          llegarAPuerto();
         }
         parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; p.life -= dt; });
         prune(parts, p => p.life > 0); capParts();
@@ -7050,9 +7211,11 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // cruzas la linea del radar, donde se despide (adentro no entra). Si se fue sin llenarte
         // (un relevo la despide), vuelve mientras sigas afuera. Llenarte es lo unico que la da por hecha.
         const rd = rutaSys.dato();
+        gastoAlRojo();
         if (cfg.fuelOn && run.dist < objectiveDist && rd.chanchaIda) {
           if (alc) { if (chancha.despedir()) chanchaRadio('adios'); }
-          else if (!chIdaLlena && !chancha.snapshot() && rutaSys.alBlanco() <= rd.chanchaIda[0]) {
+          // (LA CHANCHA AL ROJO, 23/11: en EL INVINCIBLE viene cuando la nafta entra al rojo, no por km)
+          else if (!chIdaLlena && !chancha.snapshot() && (alRojo() ? run.fuel <= CH_ROJO : rutaSys.alBlanco() <= rd.chanchaIda[0])) {
             const r = chancha.pedir({ fuelOn: true, enPasillo: !cfg.devcam, t: run.t, minT: 0,
               viva: chanchaViva(),
               auto: true, espera: true, eta: CH_ETA_RUTA });
@@ -7158,7 +7321,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       const lr = libroEnTramo();
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist,
         needsMomentum: lr === 'escolta' || lr === 'sigue' ? false : needsMomentum, climax: runClimax(),
-        climaxDist: lr === 'super' ? objectiveDist * curMission().lanzamiento : objectiveDist });
+        // (el Super Etendard ya no entra solo: lo lanza el jugador en la zona — pasoZonaLanza)
+        climaxDist: lr === 'super' ? Infinity : objectiveDist });
       squad.gastoLider(fuelAntes - run.fuel);
       // EL BUQUE DEL TUTORIAL ESPERA (21/11): hasta que el tutorial llega al paso de la bomba, el odometro no deja que el
       // buque salga de la bruma (queda mas alla de BL.VISIBLE_Z: no se ve, asi que frenarlo no se nota)
@@ -7223,7 +7387,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       }
       if (fs && fs.death) { onDeath(fs.death); return; }
       // LAS ISLAS: el rumbo y el suelo real, despues del vuelo de siempre (no hace nada fuera de ellas)
-      { const mi = islas.pasoPasillo(dt); if (mi) { onDeath(mi); return; } }
+      { const mi = islas.pasoPasillo(dt); if (mi === 'aterrizo') { abrirTienda(); return; } if (mi) { onDeath(mi); return; } }
       pasoBusqueda(dt);
       // LAS ISLAS: la base cayo y paso el festejo → la mision termina y se vuelve a PRUEBAS
       // (en el TUTORIAL no: la base rota es un paso, y la etapa la cierra su ultimo paso)
@@ -7232,6 +7396,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LAS ISLAS (19/11, el autor: "se quedo sin nafta y exploto… debe caer y estrellarse y quiza yo como jugador
       // puedo eyectarlo para salvarlo"): sin relevo ni estallido — el motor se apaga, el gas no sube y el avion
       // planea hasta el suelo (o el agua: islas.js lo cobra como choque). Mientras cae, Q+E / L1+R1 eyecta.
+      if (eyecArmT > 0) eyecArmT = Math.max(0, eyecArmT - dt);
+      run.eyecArma = eyecArmT / EYEC_ARMA_S;   // (lo lee el recuadro del piloto: EYECCION PREPARADA)
+      if (!islas.enPasillo()) { eyecArmT = 0; eyecPadYa = false; run.eyecArma = 0; }
       if (cfg.fuelOn && run.fuel <= 0 && islas.enPasillo()) { if (islasSeco()) return; }
       else if (cfg.fuelOn && run.fuel <= 0) { sinCombustible(); return; }
       else cartelSostenido('islasSeco', false);
@@ -7239,6 +7406,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // tambien —un avion roto, un Harrier encima—, Q+E juntas (L1+R1) SOSTENIDAS EYECCION_T s. Sostenido y no al
       // toque: Q y E son el rolido, y apretarlas juntas un instante no tiene que tirarte del avion.
       if (islas.enPasillo() && !(cfg.fuelOn && run.fuel <= 0)) {
+        if (eyecPadYa) { eyecPadYa = false; eyectaT = 0; cartelSostenido('islasEyecta', false); eyectar(islas.sobreTierra(), true); return; }
         const pide = (inp.rollL && inp.rollR) || flags.padEyect;
         eyectaT = pide ? eyectaT + dt : 0;
         cartelSostenido('islasEyecta', pide, T('islasEyectando'), P.warn, { alerta: true }, T('islasEyectate'));
@@ -7494,6 +7662,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LA ESCOLTA DEL EXOCET (libro r5): amenazas al misil, compañeros que caen, y el misil derribado
       if (libroEnTramo() === 'escolta' && pasoEscolta(dt)) return;
       if (libroEnTramo() === 'sigue') pasoSigue();
+      if (pasoZonaLanza()) return;
       // EL GUION SE LLEVO AL LIDER (LA REGLA DEL AMIGO, systems/persec.js). No es tu muerte: es la
       // de el, y el pasillo sigue. Se anuncia y nada mas — si el guion quiere que ademas te cueste
       // algo, es el guion el que lo escribe.
@@ -8438,7 +8607,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // mar, el horizonte y el buque son los del pasillo (no hay escena nueva que dibujar).
       // EL DIRECTOR entra por parametro (convencion 4): el premio del PULSO es una timeline de
       // data/cines.js y su reloj vive alla, no adentro del modo.
-      if (S.state === 'pulso' && pulso.active()) pulsoRender.drawPulso({ Q: pulso.state(), cine: cine.state(), toks: pulso.cinta(), t: run.t });
+      if (S.state === 'pulso' && pulso.active()) pulsoRender.drawPulso({ Q: pulso.state(), cine: cine.state(), toks: pulso.cinta(), exo: pulso.exoItems(), t: run.t });
       ctx.restore();
       // ...y el telon ABRIENDOSE del otro lado: entraste al climax cruzando el banco
       if (veilOut > 0 && (S.state === 'arena' || S.state === 'momentum')) world.drawVeil(veilOut / VEIL_OUT);
@@ -8490,7 +8659,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           // …y el PULSO tiene su propio titular: no te derribaron, erraste la mano. La mision se
           // reinicia entera con cualquier tecla, que es lo que ya hacia esta pantalla.
           // …y ERRAR LA SUELTA tambien: perdiste la mision, a nadie lo bajaron
-          perdido: deathCause === 'death_pulso' || deathCause === 'death_exocet_errado' || erroSuelta(deathCause), sel: retrySel });
+          perdido: deathCause === 'death_pulso' || deathCause === 'death_exocet_errado' || deathCause === 'death_exocet_tarde' || erroSuelta(deathCause), sel: retrySel });
       // REINTENTAR al ganar: el recuento completo de fondo (o el panel, si no lo hubo) y el pie con SI / NO
       if (S.state === 'reintentar') {
         if (reintento && reintento.fondo && lastRun) screens.drawResults({ lastRun, resRow: lastRun.rows.length, resT: 99, t: run.t, bg: winBg });
@@ -8527,7 +8696,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // indice 7) las mejoras salen de su libreta y la pantalla cambia de nombre.
       if (S.state === 'upgrade') menus.drawUpgrade({ offer: upgOffer, sel: upgSel, t: upgT, libreta: curLevel >= 7 });
       if (S.state === 'banco' && bancoOffer) {
-        const r = menus.drawBanco({ offer: bancoOffer.cartas, rota: bancoOffer.rota, sel: bancoSel, vista: bancoVista,
+        const cSel = bancoOffer.cartas[Math.min(bancoSel, bancoOffer.cartas.length - 1)];
+        const r = menus.drawBanco({ tienda: bancoOffer.tienda ? { puntos: Math.floor(run.score), precio: cSel && bancoSel < bancoOffer.cartas.length ? precioDe(cSel) : null } : null,
+          offer: bancoOffer.cartas, rota: bancoOffer.rota, sel: bancoSel, vista: bancoVista,
           leer: bancoLeerV, sacude: bancoSacude, lee: leeDe, t: bancoT, libreta: pichon.length, joy: padActivo(), padTxt: padActivo() ? padTexto : null });
         bancoLeerMax = r ? r.leerMax : 0;
       }
@@ -9966,7 +10137,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (ch.rum) beep(58, 0.3, 'sawtooth', 0.028);                    // los motores del Hercules
       if (ch.bomba) beep(190, 0.05, 'square', 0.03, 40);               // la bomba de transferencia
       if (ch.sig) chanchaRadio(ch.sig);
-      if (ch.sig === 'lleno' && run.dist < objectiveDist) chIdaLlena = true;   // la de la ida ya cumplio
+      if (ch.sig === 'lleno' && run.dist < objectiveDist) { chIdaLlena = true; if (chLlenaT < 0) chLlenaT = run.t; }   // la de la ida ya cumplio
       update(dt);
       // TRABADO A LA CANASTA: despues del vuelo, el avion vuelve a donde esta el embudo. Se puede soltar
       // el control — va colgado, cargando — hasta que un toque de direccion lo suelta (chancha.js).
