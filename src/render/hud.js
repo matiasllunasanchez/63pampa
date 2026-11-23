@@ -20,6 +20,7 @@ import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
 import { cargaDe } from '../data/cargas.js';
 import { run } from '../core/run.js';
+import { APELLIDOS } from '../data/apellidos.js';
 import { estadoAvion, BASE_T } from '../data/fallas.js';
 import { shown as dmgShown } from '../systems/damage.js';
 import { proj } from '../core/fx.js';
@@ -2206,7 +2207,21 @@ function eyeccionPreparada(x, y) {
   ctx.fillStyle = '#ff3a24'; ctx.fillRect(bx + 4, by + 14.5, (w - 8) * u, 1);
   ctx.restore();
 }
-function drawPiloto(charlaVoz, delAvion) {
+// EL APELLIDO DEL NUMERAL (23/11, el autor: "ponerle arriba del piloto un apellido random argentino"): los genericos
+// (PATRIA 1, PILOTO) sortean uno de data/apellidos.js por corrida, distinto para cada numeral; los que tienen nombre
+// propio (TERO, ESTEBAN…) llevan el suyo
+const apellidos = new Map();
+const generico = n => /^PATRIA \d+$/.test(n) || n === 'PILOTO';
+function apellidoDe(nombre) {
+  if (!generico(nombre)) return nombre;
+  if (!apellidos.has(nombre)) {
+    const usados = new Set(apellidos.values());
+    let a; do a = APELLIDOS[(Math.random() * APELLIDOS.length) | 0]; while (usados.has(a) && usados.size < APELLIDOS.length);
+    apellidos.set(nombre, a);
+  }
+  return apellidos.get(nombre);
+}
+function drawPiloto(charlaVoz, delAvion, avionNombre) {
   // APARTE DEL TABLERO (11/9): arriba de la esquina izquierda, y no en la fila. La cara no es un
   // instrumento, y a su derecha tiene que quedar lugar para lo que dice (drawVozPropia, en screens).
   const x = PIL_X(), y = PIL_Y();
@@ -2217,7 +2232,7 @@ function drawPiloto(charlaVoz, delAvion) {
   // vuelve para atras) arranca la cara de cero en vez de heredar la sonrisa de la anterior
   const nueva = ultT < 0 || run.t < ultT;
   const dt = nueva ? 0 : Math.min(0.1, run.t - ultT);
-  if (nueva) { gesto = 'neutro'; gestoT = 0; sonrisaT = 0; ultPts = run.score; golpeT = 0; ultInteg = run.integ; ultEscudo = run.escudo; }
+  if (nueva) { gesto = 'neutro'; gestoT = 0; sonrisaT = 0; ultPts = run.score; golpeT = 0; ultInteg = run.integ; ultEscudo = run.escudo; apellidos.clear(); }
   // un golpe es la chapa que BAJA; que suba (avion nuevo del relevo, o una sonda) no es golpe
   // …o cuando el ESCUDO pega un salto: una bala que para entera no toca la chapa, pero es un golpe.
   // El roce lo gasta de a poco (a fondo y con turbo, ~0,17 por cuadro) y no cuenta como golpe.
@@ -2254,10 +2269,15 @@ function drawPiloto(charlaVoz, delAvion) {
   // mis lineas de charla la cara quedaba apagada mientras mi propia caja hablaba al lado (11/9).
   const habla = (radioVisible() && radio.personaje && sinTilde(radio.personaje) === sinTilde(nombre))
     || (charlaVoz && sinTilde(charlaVoz) === sinTilde(nombre));
-  // EL NOMBRE DEL PILOTO, bajo la cara y adentro de la caja: es una persona, y la placa de arriba
-  // ahora nombra al avion. Si el nombre no entra en el ancho, se aprieta (no se corta).
-  ctx.font = F_ROT; ctx.textAlign = 'center'; ctx.fillStyle = P.foam;
-  ctx.fillText(nombre, x + PILOTO.lado / 2, y + PILOTO.alto - 2, PILOTO.lado - 2);
+  // EL APELLIDO ARRIBA DE LA CARA (23/11): en su placa chica, encima de la caja; y ABAJO, donde iba el indicativo
+  // (PATRIA 1), chico, EL AVION que esta volando. Si no entran en el ancho, se aprietan (no se cortan)
+  const ape = apellidoDe(nombre);
+  ctx.font = F_ROT; ctx.textAlign = 'center';
+  { const wA = Math.min(PILOTO.lado + 14, ctx.measureText(ape).width + 4);
+    plate(Math.round(x + PILOTO.lado / 2 - wA / 2), y - 8, Math.round(wA), 7);
+    ctx.fillStyle = P.foam; ctx.fillText(ape, x + PILOTO.lado / 2, y - 2.5, PILOTO.lado + 12); }
+  ctx.font = '3.6px monospace'; ctx.fillStyle = P.dim;
+  ctx.fillText(avionNombre || nombre, x + PILOTO.lado / 2, y + PILOTO.alto - 2, PILOTO.lado - 2);
   ctx.textAlign = 'left';
   if (habla) { ctx.strokeStyle = P.accent; ctx.strokeRect(x + 0.5, y + 0.5, PILOTO.lado - 1, PILOTO.alto - 1); }
   // `cara` es la que se esta viendo AHORA (con su gesto): si mi linea tiene que ir arriba porque
@@ -3338,7 +3358,7 @@ export function drawHUD(h) {
   // LOS CARTELES QUE SALEN DE ATRAS DE CADA CAJA (antes de la fila: quedan detras y asoman por arriba)
   drawAvisosCaja();
   // LA CARA DEL PILOTO, en la esquina de la fila (ver drawPiloto).
-  drawPiloto(h.charlaVoz, h.pilotoAvion);
+  drawPiloto(h.charlaVoz, h.pilotoAvion, h.avionNombre);
 
   // ---- LA NAFTA (izquierda, al lado de SALUD) y LA CHANCHA (derecha, con lo que se carga) ------
   // La chancha solo con COMBUSTIBLE: SI — un reloj que nunca se va a poder usar es ruido ocupando
