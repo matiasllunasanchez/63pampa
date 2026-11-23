@@ -90,6 +90,10 @@ const MARCA = { on: false, x: 0, z: 0, g: 0, n: '', t: -99 };   // `t`: cuando s
 export const activa = () => I.on;
 /** Lleva el avion a un lugar del mapa en el proximo cuadro: `{ lon, lat, alt, rumbo }` (el SOBREVUELO al despegar). */
 export function irA(q) { I.ir = q; }
+/** CORRIDA NUEVA: el suelo del mapa se suelta hasta el proximo cuadro de vuelo en las islas. Sin esto el campo del mapa
+ *  (las matas de render/world.js `drawCampoIslas`) quedaba prendido de la corrida anterior y se pintaba ENCIMA de la
+ *  pista en el despegue siguiente (23/11, el autor: "¿la pista tiene pasto?"). `pasoPasillo` lo vuelve a prender. */
+export function soltarSuelo() { geoExterna.on = false; geoExterna.campo = null; }
 /** EL SOBREVUELO COMO JUEGO (23/11, data/islas_teatro.js PUNTOS / PISTA): sin la base costera como objetivo unico; los
  *  puntos salen de lo que destruis, y aterrizando en la pista de la BAM Malvinas se compra en la TIENDA (game.js). */
 export function modoLibre(on) { I.libre = !!on; }
@@ -248,8 +252,8 @@ export function pasoPasillo(dt) {
     // abierto; la brujula la señala sola mientras no marques otra cosa (`blanco`). En el tutorial sin el cartel: lo
     // presenta el Turco en el paso del mapa.
     // (en el SOBREVUELO no hay un objetivo: se juntan puntos — modoLibre)
-    if (I.libre) armarPista();
-    else if (!I.mar && objetivo.colocar(P3.x, P3.z) && !I.tut) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
+    armarPista();   // (siempre: el campo de matas la deja limpia en todos los modos; dibujarla y aterrizar, solo en el libre)
+    if (!I.libre && !I.mar && objetivo.colocar(P3.x, P3.z) && !I.tut) cartel(T('islasObjetivo'), P.accent, T('islasObjetivoSub'));
     P3.sostiene = I.mar ? 0 : SOSTIENE_T; plane.y = I.mar ? (I.mar.alt || 60) : AIR_START_Y; P3.muerto = false; P3.altFija = null;
   }
   if (P3.sostiene > 0) {
@@ -271,7 +275,8 @@ export function pasoPasillo(dt) {
   geoExterna.on = true; geoExterna.sinRoce = true;
   carteles.queda = enCabina() ? null : 3;   // (los carteles de las islas: 3 s, render/hud.js `corre`)
   // EL CAMPO DEL PASILLO sobre el mapa (render/world.js `drawCampoIslas`): donde esta el carril en el mapa y el suelo
-  { const c = geoExterna.campo || (geoExterna.campo = { h: mundo.sueloH });
+  // (…y `pista`: la de la BAM Malvinas queda sin matas encima — 23/11, el autor: "no debe haber nada encima")
+  { const c = geoExterna.campo || (geoExterna.campo = { h: mundo.sueloH, pista: (x, z) => !!enPista(x, z) });
     c.x = P3.x; c.z = P3.z; c.yaw = P3.yaw; c.g = P3.g; c.pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA; }
   // EL VIRAJE: lo de costado se vuelve rumbo, con peso
   let pide = Math.max(-1, Math.min(1, plane.vx / VX_FONDO)) * GIRO_MAX;
@@ -914,13 +919,13 @@ export function redRadar(t) {
 /** Adentro de la zona de un radar britanico (el alcance del radar del pasillo, flight.js / game.js). */
 export const radarZonaGb = () => enPasillo() && I.puesto && !!teatro.zona().gb;
 /** Adentro de la zona de NUESTRO radar (y fuera de la de ellos): la placa del radar del tablero, en azul. */
+/** La zona en la que estas para la EYECCION: 'gb' (radar britanico), 'arg' (el nuestro) o 'neutral'. */
+export const zonaBando = () => { const z = teatro.zona(); return z.gb ? 'gb' : z.arg ? 'arg' : 'neutral'; };
 export const radarZonaArg = () => enPasillo() && I.puesto && !!teatro.zona().arg && !teatro.zona().gb;
 
 /** El avion esta sobre tierra (la eyeccion: caes entre los tuyos o al agua). */
 export const sobreTierra = () => enPasillo() && P3.g > 0.3;
 
-/** La zona en la que estas para la EYECCION: 'gb' (radar britanico), 'arg' (el nuestro) o 'neutral'. */
-export const zonaBando = () => { const z = teatro.zona(); return z.gb ? 'gb' : z.arg ? 'arg' : 'neutral'; };
 /** La altura trabada desde arriba (el candado del altimetro, render/hud.js). */
 export const altFija = () => enPasillo() && P3.altFija !== null;
 

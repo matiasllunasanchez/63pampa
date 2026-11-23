@@ -166,6 +166,21 @@ export function piqueAgua(x, y, z) {
   }
 }
 
+/** LA ESPUMA DE LA ROMPIENTE CUANDO REVIENTA (23/11, el autor: "se escucha y salen chispas como si las cosas chocaran
+ *  algo invisible"): era `explodeAt` sin bola — chispas NARANJAS de impacto con su golpe. Esto es agua: un abanico ancho
+ *  de gotas blancas y verde espuma que sube a lo largo de la cresta y cae pesado, sin un solo color de fuego. */
+export function espumaRompe(x, y, z) {
+  const s = proj(x, y, z), e = Math.min(1.4, s.k / 3 + 0.4);
+  for (let i = 0; i < 26; i++) {
+    parts.push({
+      x: s.x + (Math.random() - 0.5) * 40 * e, y: s.y + Math.random() * 3 * e,
+      vx: (Math.random() - 0.5) * 22 * e, vy: -(18 + Math.random() * 36) * e,
+      life: 0.45 + Math.random() * 0.45, c: Math.random() < 0.55 ? '#eef5f2' : Math.random() < 0.6 ? '#bcd3cf' : '#8fb0ad',
+      r: Math.max(1, s.k * (0.25 + Math.random() * 0.2)),
+    });
+  }
+}
+
 /** EL PIQUE DE UNA MUNICION QUE CAE (2/10: "volando rasante cerca de los Sea Wolf o Sea Cat, que las
  *  municiones —misiles, disparos de la barcaza o de los aviones, incluso mis balas— caigan en el agua
  *  y salpiquen"). No es una lluvia de gotas —la primera version "parecen burbujas"—: es la raya de

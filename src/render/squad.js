@@ -20,6 +20,7 @@ import { drawSquadPips, anchoSquad } from './hud.js';
 import { formationSlots, detras, RELEVO_WRECK, RELEVO_DUR, puestoFormacion } from '../core/squad.js';
 import { pilotName, planeName, rosterActive, fallenPos } from '../systems/squad.js';
 import { skinOf } from '../data/skins.js';
+import { apellidoDe } from '../data/apellidos.js';
 import { mezclaHd, encimaHd } from './hojaHd.js';
 import { iconoEn } from './iconos.js';
 import { SENAS } from '../data/blanco.js';
@@ -40,6 +41,23 @@ function hojaDe(pl, idx) {
   const v = !sk && idx > 0 && pl.variantes ? pl.variantes[(idx - 1) % pl.variantes.length] : null;
   if (v && v.complete && v.naturalWidth) return v;
   return pl.sheetOk ? pl.sheetImg : null;
+}
+
+/** UN AVION ESTACIONADO al costado de la pista del despegue (23/11, el autor: "aviones estacionados alrededor nomas…
+ *  en pasillo solo de relleno"): el avion `key` en (x, y, z) del mundo (z desde la camara), quieto, nivelado y con el
+ *  tren abajo — el mismo sprite, tren y sombra que la formacion, sin tobera ni luces (esta apagado). */
+export function drawEstacionado(key, x, y, z) {
+  const pl = PLANES.find(p => p.key === key);
+  if (!pl || z < 3.8) return;
+  const s = proj(x, y, z), f = s.k / proj(0, 0, PZ).k;
+  const smooth = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  drawShadow(x, y, z, f);
+  const hoja = pl.sheetOk ? pl.sheetImg : null, col = (SHEET_NF - 1) / 2, row = 1;
+  const w = SHEET_FW * PLANE_SCALE * f * (pl.escala || 1), h = SHEET_FH * PLANE_SCALE * f * (pl.escala || 1);
+  if (!drawTren(pl, 1, col, row, s.x - w / 2, s.y - h / 2, w, h)) { ctx.save(); ctx.translate(s.x, s.y); drawGear(1, U * f); ctx.restore(); }
+  if (hoja) ctx.drawImage(hoja, col * SHEET_FW * (pl.px || 1), row * SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1), s.x - w / 2, s.y - h / 2, w, h);
+  ctx.imageSmoothingEnabled = smooth;
 }
 
 export function drawFormation({ selPlane, exit }) {
@@ -209,11 +227,11 @@ export function drawRelevo(rv) {
   // pantalla en letras de fuego, igual que RASANTE (lo dibuja game.js en coordenadas de mundo).
   // Sin comillas (autor: "sacale los piquitos"). Fuera de campaña no hay chapa con nombre y
   // queda el indicativo de siempre, abajo, como antes.
-  const nom = i => planeName(i) || pilotName(i);
+  const nom = i => planeName(i) || apellidoDe(pilotName(i));
   // EL AVERIADO YA NO VA ARRIBA EN ROJO (autor, 4/10): con chapa, su NOMBRE cruza la pantalla como el
   // rotulo del que entra, con "AVERIADO, vuelve a base" en blanco abajo (game.js, `relevoAveriado`)
   if (relevoAveriado(rv)) { /* lo dibuja el rotulo */ }
-  else if (rv.solo) ctx.fillText(T('pasada_turn', { c: pilotName(rv.next) }), DW / 2, 10);
+  else if (rv.solo) ctx.fillText(T('pasada_turn', { c: apellidoDe(pilotName(rv.next)) }), DW / 2, 10);
   else {
     // (el SECO que se ve caer —fuera de la campaña— no vuelve a la base: se quedo sin nafta, 16/10)
     const txt = T(rv.cambio ? 'sq_atras' : rv.spent === 'seco' ? (rv.perdido ? 'sq_seco_cae' : 'sq_seco') : rv.spent ? 'sq_spent' : rosterActive() && !rv.perdido ? 'sq_dmg' : 'sq_down', { c: nom(rv.fallen) });
@@ -228,7 +246,7 @@ export function drawRelevo(rv) {
   // jugador acaba de VER como se cayo. La pantalla de derribado sigue nombrandola (drawDead).
   if (rv.t > RELEVO_WRECK && !rv.solo) {
     ctx.font = '7px monospace'; ctx.fillStyle = P.accent;
-    if (!planeName(rv.next)) ctx.fillText(T('sq_take', { c: pilotName(rv.next) }), DW / 2, DH - 10);
+    if (!planeName(rv.next)) ctx.fillText(T('sq_take', { c: apellidoDe(pilotName(rv.next)) }), DW / 2, DH - 10);
     // cuenta hasta devolver el control: la barra se VACIA — mismo lenguaje que el conteo del
     // despegue (algo termina), no que una carga (algo se acumula)
     const rem = Math.max(0, 1 - (rv.t - RELEVO_WRECK) / (RELEVO_DUR - RELEVO_WRECK));

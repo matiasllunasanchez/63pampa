@@ -22,7 +22,7 @@ import { ofertaSuelta, precioDe, TIENDA_N, CARTAS as CARTAS_SUELTAS, BANCO_KM, m
 import { leeDe } from './data/cartas_lee.js';
 import { ALBUM, ALBUM_KEY, ALBUM_CATS, ALBUM_AVION_S } from './data/album.js';
 import { descPlano } from './data/desc_iconos.js';
-import { perfilDe, puedeManiobra, frenaAlRas } from './data/perfiles.js';
+import { perfilDe, puedeManiobra, capacidadesDe, frenaAlRas } from './data/perfiles.js';
 import * as frio from './systems/frio.js';
 import { ALTO, VERT_MODOS, SALITRE, FALLA_ALERTA, PENA_MUERTE } from './data/tuning.js';
 import { BUSQ } from './data/busqueda.js';
@@ -1159,6 +1159,11 @@ import { apodoAvion } from './data/apodos_aviones.js';
      *  demas se ven en el carrusel —en gris, con candado— y ENTER no arranca. En DEV se eligen todos. */
     // (el TRAILER los muestra libres: tools/trailer_preload.js pone `__trailerAviones`; en el juego nadie lo toca)
     const avionBloqueado = i => !DEV && !FULL && !(typeof window !== 'undefined' && window.__trailerAviones) && i !== CAMPAIGN_PLANE;
+    // EL SOBREVUELO DE LAS ISLAS (23/11, el autor: "poner los aviones que despegaban desde el aeropuerto de la isla, el resto
+    // ponerlos bloqueados NO DISPONIBLE"): se recorren todos, pero solo los de Puerto Argentino (SOBREVUELO.aviones) se eligen
+    const noEnPuerto = i => sobrevuelo && !SOBREVUELO.aviones.includes(PLANES[i] && PLANES[i].key);
+    /** El candado del selector: false, o el rotulo que lleva (NO DISPONIBLE en el sobrevuelo, PROXIMAMENTE en prod). */
+    const candadoAvion = i => (noEnPuerto(i) ? T('avionNoDisponible') : avionBloqueado(i) ? T('avionBloqueado') : false);
 
     // ---------- TIPOS DE OBJETIVO ----------
     // Un objetivo es ENCHUFABLE: agregar un tipo nuevo (base, convoy, escolta...) es agregar
@@ -2312,6 +2317,14 @@ import { apodoAvion } from './data/apodos_aviones.js';
      *  sondas-interruptor que la corrida pudo dejar puestas: ver PRB_NEUTRO. */
     /** EL SOBREVUELO (y la etapa 4 del tutorial, `desdePuerto`), AL LEVANTAR: el avion pasa al mapa sobre la pista de la
      *  BAM MALVINAS (desde negro, como el relevo de las islas). En el resto no hace nada. */
+    /** LA BRUJULA DE POR LA PATRIA (23/11, relleno: "que el usuario se acostumbre a todos los controles"): el pasillo
+     *  no tiene rumbo de verdad, asi que va al ESTE —hacia las islas— con lo que el avion se corre de costado y una
+     *  deriva lenta con la distancia. Sin objetivo. Solo en POR LA PATRIA y fuera de las islas. */
+    function brujulaPasillo() {
+      if (gameMode !== 'survival' || islas.enPasillo()) return null;
+      if (S.state !== 'play' && S.state !== 'relevo' && S.state !== 'dead' && S.state !== 'takeoff') return null;
+      return { rumbo: Math.PI / 2 + Math.max(-0.6, Math.min(0.6, (plane.vx || 0) * 0.012)) + 0.22 * Math.sin(run.dist / 1400), obj: null, dist: null, titila: false };
+    }
     function llegarAPuerto() {
       const tut = libro && libro.tut && TUTORIAL_ETAPAS[libro.k] && TUTORIAL_ETAPAS[libro.k].desdePuerto;
       if (!(sobrevuelo || tut) || !islas.activa()) return;
@@ -2872,13 +2885,27 @@ import { apodoAvion } from './data/apodos_aviones.js';
      *  avion + carga distinto; si todos son el mismo avion con la misma carga, despega derecho con el
      *  primero (las chapas siguen yendo al escuadron, ver libroRoster). */
     function libroElegir() {
-      libroAvSel = 0;
+      libroAvSel = 0; libroCap = { sel: -1, abre: false };
       const m = libroDef();
       // (…o la misma salida a OTRA HORA: EL RESCATE DEL BELGRANO, dos Neptune iguales en dos salidas — 21/11)
       const distintos = new Set(m.aviones.map(a => a.plane + '|' + a.carga + '|' + (a.hora || ''))).size;
       if (distintos > 1) setState('libroavion'); else libroDespegar();
     }
+    // LOS ICONOS DEL AVION CON EL TECLADO (23/11, el autor: "si presiono derecha o izquierda voy pasando por encima de los
+    // items uno a uno: primero aparece el selector amarillo en un item y al presionar nuevamente se abre el detalle"):
+    // ← → recorren la tira de capacidades; el primer toque marca, desde el segundo se ve el detalle del marcado. ↑ ↓
+    // vuelven a la lista de aviones (y sueltan el selector). ENTER despega, como siempre.
+    let libroCap = { sel: -1, abre: false };
+    function libroCapNav(dir) {
+      const a = libroDef().aviones[libroAvSel], pl = a && PLANES.find(p => p.key === a.plane);
+      const n = pl ? capacidadesDe(pl, getLang()).length : 0;
+      if (!n) return;
+      if (libroCap.sel < 0) libroCap = { sel: dir > 0 ? 0 : n - 1, abre: false };
+      else libroCap = { sel: (libroCap.sel + dir + n) % n, abre: true };
+      beep(560, 0.04, 'square', 0.035);
+    }
     function libroAvNav(dir) {
+      libroCap = { sel: -1, abre: false };
       const n = libroDef().aviones.length;
       libroAvSel = (libroAvSel + dir + n) % n;
       beep(520, 0.05, 'square', 0.04);
@@ -4437,6 +4464,10 @@ import { apodoAvion } from './data/apodos_aviones.js';
       lecFoco = null; lecIdx = 0;   // las lecciones de la mision vuelven a empezar con la corrida
       tutTermina = false;
       resetRun();       // toda la corrida (velocidad, nafta, rachas, armas, spawn…) a su estado inicial
+      islas.soltarSuelo();   // (el campo del mapa no puede quedar pintado sobre la pista del despegue que sigue)
+      // LOS ESTACIONADOS DEL DESPEGUE (render/world.js): en Puerto Argentino, los que estaban ahi; si no, los del avion que sale
+      const tutPuerto = libro && libro.tut && TUTORIAL_ETAPAS[libro.k] && TUTORIAL_ETAPAS[libro.k].desdePuerto;
+      world.setEstacionados(sobrevuelo || tutPuerto ? SOBREVUELO.aviones.concat(['herc']) : [PLANES[selPlane] && PLANES[selPlane].key]);
       // LA METRALLA Y SU CINTA (data/upgrades.js): en campaña, las cartas que se ganaron en el banco
       // del Pichon; de fabrica —y en los demas modos, decision del autor (9/10: "fuera de campaña
       // metralleta normal")—, la COMUN con la cinta corta.
@@ -4684,6 +4715,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       retryNo: () => retryElegir(1),
       retryPuntero: (x, y, clic) => retryPuntero(x / U, y / U, clic),
       libroAvNav: dir => libroAvNav(dir),
+      libroCapNav: dir => libroCapNav(dir),
       libroAvConfirm: () => libroDespegar(),
       // PAUSA (la logica vive arriba; el input solo enruta). isPaused es el predicado que
       // core/input.js usa para desviar el teclado/el mando al menu en vez de al vuelo.
@@ -4753,10 +4785,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
       fichaNav: dir => { const n = Math.max(0, Math.min(menus.FICHA_INFO.max, fichaScroll + dir)); if (n !== fichaScroll) { fichaScroll = n; beep(500, 0.03, 'square', 0.03); } },
       planeNav: dir => {
         fichaScroll = 0;
-        if (sobrevuelo) {   // (el SOBREVUELO: solo los que estaban en Puerto Argentino)
-          const L = SOBREVUELO.aviones, i = L.indexOf(PLANES[selPlane] && PLANES[selPlane].key);
-          selPlane = Math.max(0, PLANES.findIndex(p => p.key === L[(Math.max(0, i) + dir + L.length) % L.length]));
-        } else selPlane = (selPlane + dir + PLANES.length) % PLANES.length;
+        // (en el SOBREVUELO se recorren todos: los que no estaban en Puerto Argentino salen con candado, `candadoAvion`)
+        selPlane = (selPlane + dir + PLANES.length) % PLANES.length;
         beep(dir < 0 ? 520 : 600, 0.05, 'square', 0.04);
       },
       roll: dir => startRoll(dir),
@@ -6847,7 +6877,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
           if (briefT > 0.6 && flags.anyPress) trasBrief(1.0);
         } else if (S.state === 'menu') {
           // el menú lo comparten SUPERVIVENCIA y CICLO DE MUERTE
-          if (flags.startReq && avionBloqueado(selPlane)) beep(180, 0.12, 'square', 0.05);   // el candado ya lo dice
+          if (flags.startReq && candadoAvion(selPlane)) beep(180, 0.12, 'square', 0.05);   // el candado ya lo dice
           else if (flags.startReq) {
             // UNA PRUEBA QUE PIDIO AVION (verbo `avion` de PRUEBAS): sigue con el elegido
             if (S.test && prbTrasAvion) { const f = prbTrasAvion; prbTrasAvion = null; f(); }
@@ -8545,7 +8575,9 @@ import { apodoAvion } from './data/apodos_aviones.js';
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
         ctx.save(); ctx.scale(U, U); ctx.globalAlpha = hudEntra; if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), avionNombre: apodoAvion(PLANES[selPlane]), sinCinta: enCabina() || (!!libro && !!libro.tut && !(dlgPausa && lecFoco && lecFoco.foco.includes('ruta')) && !blancoSys.asomado()), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
-        radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(), temp: islas.temperatura() || frio.estado() || (islas.enPasillo() ? null : { c: frio.tempPasillo(cfg, plane.y), hielo: 0, canon: 0 }),   // (21/11: en la pista tambien, "debe estar siempre")
+        // (y cuanto barrio el ESCANEO desde que entro el radar, 0..1: el altimetro levanta su franja verde con la barra)
+        radarScan: radarScanT >= 0 ? Math.min(1, (run.t - radarScanT) / world.ESC_BARRE) : 1,
+        radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(), brujulaPasillo: brujulaPasillo(), temp: islas.temperatura() || frio.estado() || (islas.enPasillo() ? null : { c: frio.tempPasillo(cfg, plane.y), hielo: 0, canon: 0 }),   // (21/11: en la pista tambien, "debe estar siempre")
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,
         // …el MOMENTO de soltar (titila en verde: la cinta, su avion, el altimetro y el estante) y
@@ -8697,7 +8729,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         ctx.fillRect(0, 0, cv.width, cv.height); ctx.restore();
       } else if (S.state === 'relevo' && squad.relevo()) squadRender.drawRelevo(squad.relevo());
       if (S.state === 'menu') {
-        menus.drawMenu({ selPlane, bloqueado: avionBloqueado(selPlane), gameMode, t: run.t, scroll: fichaScroll, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
+        menus.drawMenu({ selPlane, bloqueado: candadoAvion(selPlane), gameMode, t: run.t, scroll: fichaScroll, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
         // ahora se hace aca, antes de dibujar
       }
       // EL DERRIBO SE FUNDE A NEGRO mientras el mundo sigue (8/10, el autor: "meter fade negro"): de
@@ -8743,7 +8775,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       if (S.state === 'album') menus.drawAlbum({ entradas: albumLista(), cat: albumCatI, cats: ALBUM_CATS, todas: ALBUM, vistos: albumVistos, nuevos: albumNuevos, sel: albumSel, t: run.t, lee: leeDe, planes: PLANES, joy: padActivo(), padTxt: padActivo() ? padTexto : null });
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t, vista: campVista, dT: deathT, rT: retryT });
-      if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: libroDef(), sel: libroAvSel, t: run.t, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
+      if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: libroDef(), sel: libroAvSel, cap: libroCap, t: run.t, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
       if (S.state === 'dificultad') menus.drawDificultad({ sel: difSel, difs: DIFICULTADES, t: run.t });
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), dev: subMenu === 'dev', t: run.t });
       if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
@@ -10059,7 +10091,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       pausarAudio(paused || dlgPausa, paused);   // la pausa calla todo; el dialogo calla los efectos pero deja la musica (systems/audio.js)
       if (paused) {
         pauseT += raw;
-        draw(); updateMusic(S.state); musicaCapas();
+        draw(); updateMusic(S.state, !!libro && !libro.tut); musicaCapas();
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
         barraEnJuego();
         requestAnimationFrame(frame);
@@ -10087,7 +10119,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         // salida de emergencia: sin foco, sin teclado, sin nada — MENOS EN EL TUTORIAL (21/11, el autor: "en el tutorial los
         // dialogos de pausa no se pasan solos"): ahi la linea espera la tecla, que dice PRESIONA CUALQUIER TECLA
         if (dlgT > DLG_TOPE && !(libro && libro.tut)) dlgAceptar();
-        draw(); updateMusic(S.state); musicaCapas();
+        draw(); updateMusic(S.state, !!libro && !libro.tut); musicaCapas();
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
         barraEnJuego();
         requestAnimationFrame(frame);
@@ -10113,7 +10145,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         engineOff();            // igual que la pausa: el motor no ruge con el mundo quieto
         tickRadio(raw, true);   // ver la nota de arriba: el unico tickRadio del vuelo vive en update()
         pasoCharla(raw);
-        draw(); updateMusic(S.state); musicaCapas();
+        draw(); updateMusic(S.state, !!libro && !libro.tut); musicaCapas();
         if (playerEl) playerEl.classList.toggle('on', canPickMusic());
         barraEnJuego();
         requestAnimationFrame(frame);
@@ -10235,7 +10267,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // verdadera y `run.spd` vuelve sola) — medido: pedia 240 y el HUD marcaba 118.
       if (machHold) { run.spd = machHold.spd; plane.bank = machHold.bank; run.boost = machHold.boost; }
       if (altHold !== null) { plane.y = altHold; plane.vy = 0; }
-      draw(); updateMusic(S.state); musicaCapas();
+      draw(); updateMusic(S.state, !!libro && !libro.tut); musicaCapas();
       if (playerEl) playerEl.classList.toggle('on', canPickMusic());   // reproductor: solo donde hay pista cambiable
       barraEnJuego();
       requestAnimationFrame(frame);

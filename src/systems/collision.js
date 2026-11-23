@@ -20,7 +20,7 @@ import * as blancoSys from './blanco.js';
 import { balaTope } from '../core/blanco.js';
 import { BOMBA_G, BOMBA_PLANEO, BOMBA_REL_MAX, SPAWN_Z, TQ_ONDA_X, TQ_ONDA_Z } from '../data/tuning.js';
 import { golpeTanque } from '../core/nafta.js';
-import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion, estallido, piqueMunicion } from '../core/fx.js';
+import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion, estallido, piqueMunicion, espumaRompe } from '../core/fx.js';
 import { ESTALLIDO } from '../data/tuning.js';
 import { bombaInfo } from '../data/bombas.js';
 import { CHUNK_LIFE, ONDA_T } from '../data/despiece.js';
@@ -197,14 +197,17 @@ export function collisionSystem(dt) {
     }
     if (o.type === 'ola' && o.kind === 'rompiente' && !o.breakT && o.z < OLA_ROMP_Z) {
       o.breakT = run.t;
-      explodeAt(o.x, o.h * 0.8, o.z, false, true);   // sin bola de fuego: es agua, no un impacto
-      boom(0.16);                                    // el golpe seco de la pared cayendo
+      // ES AGUA, NO UN IMPACTO (23/11, el autor: "se escucha y salen chispas como si las cosas chocaran algo invisible"):
+      // espuma blanca y el mar rompiendo, no las chispas naranjas de `explodeAt` ni el golpe seco de `boom`
+      espumaRompe(o.x, o.h * 0.8, o.z);
+      sfxOne('olaGigante', 0.3);
     }
     // RUGIDO sostenido mientras rompe: cadencia baja y ganancia por distancia (§F4.3 — no un
     // loop nuevo, el `boom()` procedural que ya existe).
     if (o.breakT && o.z > 4 && o.z < OLA_ROMP_Z) {
       o.roarT = (o.roarT || 0) - dt;
-      if (o.roarT <= 0) { o.roarT = 0.42; boom(0.05 + 0.09 * (1 - o.z / OLA_ROMP_Z)); }
+      // (sin `boom`: los golpes cada 0,42 s se oian como choques. Lo que sigue rompiendo es espuma que salta en la cresta)
+      if (o.roarT <= 0) { o.roarT = 0.42; if (o.z > 30) espumaRompe(o.x, o.h * 0.9, o.z); }
     }
     if (o.type === 'boom' || o.type === 'airboom') o.boomT += dt;   // el hongo / la bola crecen y se disipan
     // LA BANDADA VUELA EN LOS TRES EJES. Antes solo derivaba de costado, asi que todas las aves del

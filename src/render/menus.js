@@ -73,7 +73,7 @@ export function drawMenu(w) {
     ctx.drawImage(ilus, cx - PW / 2, ya, PW, PH);
     if (w.bloqueado) ctx.restore();
     ctx.imageSmoothingEnabled = smooth;
-    if (w.bloqueado) candado(cx, ya + PH / 2 - 4, T('avionBloqueado'));
+    if (w.bloqueado) candado(cx, ya + PH / 2 - 4, typeof w.bloqueado === 'string' ? w.bloqueado : T('avionBloqueado'));
   }
   // flechas de seleccion (parpadean), a los costados del avion
   ctx.textAlign = 'center';
@@ -175,7 +175,9 @@ function rotulo2(txt, cx, y, ancho) {
 const FICHA_PIE = 24;
 /** La tira de capacidades del avion `pl` (data/perfiles.js capacidadesDe) en el rectangulo `R` (el pie de la
  *  ficha), con el texto de la historia corriendo por detras. `m` = el mouse en la grilla de diseño ({x, y, on}). */
-function panelCapacidades(pl, R, m) {
+/** `kb` (opcional, ELEGI TU AVION del libro): { sel, abre } — el item marcado con el TECLADO (o el mando) y si su
+ *  detalle esta abierto; manda igual que el mouse. */
+function panelCapacidades(pl, R, m, kb) {
   const caps = capacidadesDe(pl, getLang());
   if (!caps.length) return;
   // el fondo del pie, casi opaco: lo que corre por detras se adivina, no se lee encima de los iconos
@@ -189,6 +191,8 @@ function panelCapacidades(pl, R, m) {
   let sobre = -1;
   if (m && m.on && m.x >= R.x && m.x <= R.x + R.w && m.y >= R.y && m.y <= R.y + R.h)
     sobre = Math.max(0, Math.min(caps.length - 1, Math.floor((m.x - R.x - 2) / paso)));
+  const kSel = kb && kb.sel >= 0 ? kb.sel % caps.length : -1;
+  if (kSel >= 0 && kb.abre) sobre = kSel;
   const icono = (c, x, y, tam) => {
     if (!(CARTAS_IMG.complete && CARTAS_IMG.naturalWidth)) return;
     const n = Math.max(0, ICONOS.indexOf(c.icono)), sx = (n % ICONO_COLS) * ICONO_FW, sy = Math.floor(n / ICONO_COLS) * ICONO_FW;
@@ -210,6 +214,8 @@ function panelCapacidades(pl, R, m) {
     lineas.forEach((l, k) => ctx.fillText(l, R.x + ancho + 4, y0 + k * LH));
     return;
   }
+  // el SELECTOR del teclado: el recuadro amarillo sobre el item marcado (antes de abrir su detalle)
+  if (kSel >= 0) { ctx.strokeStyle = P.accent; ctx.lineWidth = 0.7; ctx.strokeRect(R.x + 2 + paso * kSel + 0.4, R.y + 0.8, paso - 0.8, R.h - 1.4); }
   caps.forEach((c, i) => {
     const cx = R.x + 2 + paso * (i + 0.5);
     icono(c, Math.round(cx - S / 2), yI, S);
@@ -896,7 +902,7 @@ function drawRowMenu(w, titleKey, textOfBase, geo) {
 
   const { y0, rh, headH } = geo || CAMP_ROWS, x = 40, PAD_X = 9;
   ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
-  ctx.fillText(T(titleKey), x, y0 - 22);
+  if (!(geo && geo.sinTitulo)) ctx.fillText(T(titleKey), x, y0 - 22);   // (sinTitulo: la pantalla arma su propio encabezado)
   ctx.strokeStyle = '#3a464c'; ctx.globalAlpha = 0.5;
   ctx.beginPath(); ctx.moveTo(x, y0 - 17.5); ctx.lineTo(NW - 30, y0 - 17.5); ctx.stroke();
   ctx.globalAlpha = 1;
@@ -1042,31 +1048,73 @@ function libroAvText(m) {
         + (n > 1 ? T('libroCant', { n }) : T('libroCant1')) };
   };
 }
-export const LIBRO_AV_ROWS = { y0: 108, rh: 34, headH: 18 };
+export const LIBRO_AV_ROWS = { y0: 134, rh: 34, headH: 18, sinTitulo: true };
+// LA PANTALLA VERDE (23/11, el autor: "la seccion del avion, de fondo el coso verde como tiene la pantalla anterior, ese
+// cuadrado donde pasa la linea, onda television vieja, y fondo verde"): el monitor de fosforo de la TARJETA DE MISION
+// (render/screens.js pantallaVieja / drawLamina) en chico: fondo verde oscuro, la grilla de ploteo, las lineas de barrido,
+// la banda clara que baja y las escuadras de las esquinas.
+const FOSFORO = '94, 245, 138';
+function pantallaVerde(x, y, w, h, t) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(6, 24, 12, 0.86)'; ctx.fillRect(x, y, w, h);
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.fillStyle = `rgba(${FOSFORO}, 0.05)`;
+  for (let gx = x + 12; gx < x + w; gx += 16) ctx.fillRect(gx, y, 0.6, h);
+  for (let gy = y + 12; gy < y + h; gy += 16) ctx.fillRect(x, gy, w, 0.6);
+  ctx.fillStyle = `rgba(${FOSFORO}, 0.07)`;
+  const by = y + ((t * 22) % (h + 30)) - 15;
+  ctx.fillRect(x, by, w, 9);
+  ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = `rgba(${FOSFORO}, 0.22)`; ctx.lineWidth = 0.8; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.strokeStyle = `rgba(${FOSFORO}, 0.55)`; ctx.lineWidth = 1;
+  const E = 8, m = 4;
+  for (const [cx, cy, sx, sy] of [[x + m, y + m, 1, 1], [x + w - m, y + m, -1, 1], [x + m, y + h - m, 1, -1], [x + w - m, y + h - m, -1, -1]]) {
+    ctx.beginPath(); ctx.moveTo(cx + sx * E, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + sy * E); ctx.stroke();
+  }
+  ctx.restore();
+}
+/** Las lineas de barrido del monitor, ENCIMA de lo que muestra (el avion y sus iconos). */
+function barridoVerde(x, y, w, h) {
+  ctx.save(); ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+  for (let yy = y; yy < y + h; yy += 2) ctx.fillRect(x, yy, w, 0.7);
+  ctx.restore();
+}
+// LA DISTRIBUCION (23/11, el autor: "el titulo ELEGI TU AVION es mas grande que el nombre de la mision, la fecha esta en
+// el mismo titulo, el texto de abajo esta super lejos, hay muchos cambios de fuente"): arriba el NOMBRE de la salida,
+// grande; debajo la fecha y la hora, chicas, y la escuadrilla con cuantos volaron (en la misma letra de rotulo, sin la
+// manuscrita); despues «ELEGI TU AVION» como rotulo de la lista. A la derecha, el avion en la pantalla verde.
+const LAV = { mon: { x: NW - 206, y: 102, w: 192, h: 152 } };
 export function drawLibroAvion(w) {
-  const m = w.m, rows = m.aviones.map((a, i) => ({ i }));
-  drawRowMenu({ sel: w.sel, rows, t: w.t }, 'libroElegir', libroAvText(m), LIBRO_AV_ROWS);
-  // LA SALIDA, arriba de la lista: nombre, dia y hora, y la escuadrilla
-  ctx.textAlign = 'left'; ctx.font = menuFont(11); ctx.fillStyle = P.foam;
-  ctx.fillText(m.name + '   ·   ' + m.fecha + '  ·  ' + m.hora, 40, LIBRO_AV_ROWS.y0 - 36);
-  // EL AVION, a la derecha: la misma ilustracion del selector de los modos sueltos
+  const m = w.m, rows = m.aviones.map((a, i) => ({ i })), G = LIBRO_AV_ROWS;
+  drawRowMenu({ sel: w.sel, rows, t: w.t }, 'libroElegir', libroAvText(m), G);
+  ctx.textAlign = 'left';
+  ctx.font = menuFont(17); ctx.fillStyle = P.foam;
+  ctx.fillText(m.name, 40, 54);
+  ctx.font = labelFont(8.5); ctx.fillStyle = P.dim;
+  ctx.fillText(m.fecha + '  ·  ' + m.hora, 40, 67);
+  // LA ESCUADRILLA, con la salida y antes de la lista (23/11, el autor: "el nombre de la escuadrilla y demas tiene que
+  // estar arriba, antes de ELEGI TU AVION"): de quien es la salida y cuantos volaron (el del avion marcado)
+  const a0 = m.aviones[w.sel], nA = (a0 && a0.squad) || m.cfg.squad || 1;
+  ctx.fillText(m.escuadrilla, 40, 81);
+  ctx.fillText(nA > 1 ? T('libroPie', { n: nA }) : T('libroPie1'), 40, 92);
+  ctx.fillStyle = P.accent;
+  ctx.fillText(T('libroElegir'), 40, G.y0 - 22);
+  // EL AVION, en la pantalla verde: la ilustracion del selector, y debajo sus iconos (panelCapacidades, que se dibuja en
+  // la grilla de DISEÑO — por eso el rectangulo nativo va dividido por U)
+  const M = LAV.mon;
+  pantallaVerde(M.x, M.y, M.w, M.h, w.t);
   const a = m.aviones[w.sel], pl = a && PLANES.find(p => p.key === a.plane);
   if (pl && pl.ready) {
-    const PW = 170, PH = Math.round(PW * pl.h / pl.w);
-    ctx.drawImage(pl.img, NW - PW - 24, Math.round(150 - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
+    const PW = 164, PH = Math.round(PW * pl.h / pl.w);
+    ctx.drawImage(pl.img, M.x + (M.w - PW) / 2, Math.round(M.y + 52 - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
   }
-  // …Y DEBAJO, LOS ICONOS DEL AVION (23/11, el autor: "quitar la descripcion blanca y usar los iconos debajo del
-  // avion seleccionado"): la misma tira de la CONFIGURACION que el selector de los modos sueltos (panelCapacidades),
-  // que se dibuja en la grilla de DISEÑO — por eso el rectangulo nativo se pasa dividido por U.
   if (pl) {
     ctx.save(); ctx.scale(U, U);
-    panelCapacidades(pl, { x: (NW - 194) / U, y: 200 / U, w: 178 / U, h: (FICHA_PIE - 1) }, w.mouse);
+    panelCapacidades(pl, { x: (M.x + 7) / U, y: (M.y + M.h - 42) / U, w: (M.w - 14) / U, h: (FICHA_PIE - 1) }, w.mouse, w.cap);
     ctx.restore();
   }
-  ctx.font = labelFont(8); ctx.fillStyle = P.dim;
-  ctx.fillText(m.escuadrilla, 40, NH - 26);
-  ctx.font = descFont(9);
-  ctx.fillText(T('libroPie', { n: (a && a.squad) || m.cfg.squad }), 40, NH - 14);   // la escuadrilla del avion marcado
+  barridoVerde(M.x + 1, M.y + 1, M.w - 2, M.h - 2);
 }
 
 // ---------- JUEGO RAPIDO (submenu de los modos sueltos) ----------
@@ -2025,7 +2073,7 @@ export function drawPause(w) {
 export const ALBUM_COLS = 7;
 /** Lo tocable del album tal como se dibujo (coordenadas de mundo): las figuritas `{ i, x, y, s }` y las pestañas `{ c, a, b }`. Lo lee el mouse (game.js). */
 export const ALBUM_HIT = { celdas: [], tabs: [] };
-const ALB = { x: 14, y: 52, celda: 25, filas: 8, px: 212, py: 40, pw: 256, ph: 208 };   // (py: debajo del boton de musica del lobby)
+const ALB = { x: 14, y: 52, celda: 27, filas: 7, px: 212, py: 40, pw: 256, ph: 208 };   // (py: debajo del boton de musica del lobby)
 /** `w` = { entradas, vistos (Set), sel, t, lee (id → { que, dato, historia }) } */
 export function drawAlbum(w) {
   panel();
@@ -2060,21 +2108,8 @@ export function drawAlbum(w) {
     const x = ALB.x + c * ALB.celda, y = ALB.y + f * ALB.celda, s = ALB.celda - 3, on = i === w.sel, visto = vistos.has(e.id);
     const col = GRUPO_COL[e.grupo] || P.dim;
     ALBUM_HIT.celdas.push({ i, x, y, s });
-    ctx.fillStyle = visto ? '#141c22' : '#0c1115'; ctx.fillRect(x, y, s, s);
-    if (visto) {
-      ctx.globalAlpha = 0.16; ctx.fillStyle = col; ctx.fillRect(x, y, s, s); ctx.globalAlpha = 1;
-      albumIcono(e, x + s / 2, y + s / 2, s - 2);
-      // NUEVA (todavia no mirada): la ESQUINA de arriba a la derecha en rojo, un triangulito (22/11, el autor: "sin el
-      // texto"; "circulito no, una esquina roja nomas")
-      if (w.nuevos && w.nuevos.has(e.id)) {
-        ctx.fillStyle = '#e8321e'; ctx.beginPath(); ctx.moveTo(x + s - 7, y); ctx.lineTo(x + s, y); ctx.lineTo(x + s, y + 7); ctx.closePath(); ctx.fill();
-      }
-    } else {
-      ctx.fillStyle = '#33414b'; ctx.font = menuFont(12); ctx.textAlign = 'center';
-      ctx.fillText('?', x + s / 2, y + s / 2 + 4); ctx.textAlign = 'left';
-    }
-    ctx.strokeStyle = on ? (visto ? col : P.accent) : '#26323a'; ctx.lineWidth = on ? 1.5 : 1;
-    ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+    if (visto) estampita(e, x, y, s, on, col, i, w.nuevos && w.nuevos.has(e.id), w.t);
+    else huecoAlbum(x, y, s, on, i);
   }
   // la barrita de scroll de la grilla
   if (filasTot > ALB.filas) {
@@ -2084,6 +2119,67 @@ export function drawAlbum(w) {
   }
   drawAlbumDetalle(w.entradas[w.sel], vistos.has((w.entradas[w.sel] || {}).id), w);
   albumPie(w);
+}
+// LAS FIGURITAS COMO ESTAMPITAS (23/11, el autor: "a los cuadrados del album, hacelos ESTAMPITAS, fisicamente"). La
+// descubierta es una estampita de papel PEGADA: borde blanco, el dibujo sobre el color de su grupo, un brillo de papel
+// satinado en diagonal, la sombra y un poco torcida (cada una distinto, fijo por su lugar). La marcada se LEVANTA:
+// derecha, mas grande y con mas sombra. La que falta es el HUECO IMPRESO del album: punteado, con su numero y el «?».
+const EST_PAPEL = '#f2efe6', EST_BORDE = 2.6;
+/** EL CONTORNO DENTADO de la estampita ("con borde recortado blanco", 23/11): un cuadrado de lado 2h centrado en 0 con
+ *  los mordiscos del troquel (medios circulos hacia adentro) a lo largo de los cuatro lados. */
+function trazoDentado(h) {
+  const n = Math.max(4, Math.round(h * 2 / 4.2)), d = h * 2 / n, r = d * 0.28;
+  ctx.beginPath(); ctx.moveTo(-h, -h);
+  for (let lado = 0; lado < 4; lado++) {
+    for (let k = 0; k < n; k++) {
+      const c = -h + d * (k + 0.5);
+      ctx.lineTo(c - r, -h); ctx.arc(c, -h, r, Math.PI, 0, true);
+    }
+    ctx.lineTo(h, -h);
+    ctx.rotate(Math.PI / 2);
+  }
+  ctx.closePath();
+}
+function estampita(e, x, y, s, on, col, i, nueva, t) {
+  const giro = on ? 0 : (((i * 7919) % 13) - 6) * 0.006, esc = on ? 1.08 : 1, cx = x + s / 2, cy = y + s / 2;
+  ctx.save();
+  ctx.translate(cx, cy); ctx.rotate(giro); ctx.scale(esc, esc);
+  const h = s / 2;
+  // la sombra sobre la hoja del album (mas larga levantada), con el mismo dentado
+  ctx.save(); ctx.translate(on ? 2.5 : 1.2, on ? 3 : 1.4); trazoDentado(h); ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill(); ctx.restore();
+  // el papel, troquelado
+  ctx.save(); trazoDentado(h); ctx.fillStyle = EST_PAPEL; ctx.fill(); ctx.restore();
+  // la ventana del dibujo: el oscuro de siempre con el color del grupo
+  const b = EST_BORDE, iw = s - b * 2;
+  ctx.fillStyle = '#141c22'; ctx.fillRect(-h + b, -h + b, iw, iw);
+  ctx.globalAlpha = 0.22; ctx.fillStyle = col; ctx.fillRect(-h + b, -h + b, iw, iw); ctx.globalAlpha = 1;
+  albumIcono(e, 0, 0, iw - 1);
+  // el brillo del papel satinado: una franja diagonal suave
+  ctx.save(); ctx.beginPath(); ctx.rect(-h + b, -h + b, iw, iw); ctx.clip();
+  const fase = on ? ((t * 0.5) % 2) - 0.5 : 0.15;
+  const g = ctx.createLinearGradient(-h + s * fase, -h, -h + s * (fase + 0.5), h);
+  g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.13)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(-h, -h, s, s);
+  ctx.restore();
+  // el filo de la ventana (una linea apenas mas oscura) y, marcada, el contorno dentado en el acento
+  ctx.strokeStyle = 'rgba(80,70,50,0.55)'; ctx.lineWidth = 0.6; ctx.strokeRect(-h + b, -h + b, iw, iw);
+  if (on) { ctx.save(); trazoDentado(h + 0.6); ctx.strokeStyle = P.accent; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore(); }
+  // NUEVA: la esquina roja, ahora como un triangulo sobre el papel
+  if (nueva) { ctx.fillStyle = '#e8321e'; ctx.beginPath(); ctx.moveTo(h - 8, -h); ctx.lineTo(h, -h); ctx.lineTo(h, -h + 8); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+}
+function huecoAlbum(x, y, s, on, i) {
+  ctx.fillStyle = '#0d1317'; ctx.fillRect(x, y, s, s);
+  ctx.save();
+  ctx.setLineDash([2, 2]); ctx.strokeStyle = on ? P.accent : '#2e3b44'; ctx.lineWidth = on ? 1.4 : 0.8;
+  ctx.strokeRect(x + 1.5, y + 1.5, s - 3, s - 3);
+  ctx.restore();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = on ? P.accent : '#33414b'; ctx.font = menuFont(12);
+  ctx.fillText('?', x + s / 2, y + s / 2 + 3);
+  ctx.fillStyle = '#3d4b55'; ctx.font = labelFont(5.5);
+  ctx.fillText(String(i + 1), x + s / 2, y + s - 4);   // (el numero impreso del hueco, como en un album de verdad)
+  ctx.textAlign = 'left';
 }
 /** COMO SE RECORRE (22/11, el autor: "debe aclarar como recorrer el album, con que botones o teclas"): las teclas o los
  *  botones DIBUJADOS (render/glifos.js, como en CONTROLES) con su accion al lado, segun el mando que se esta usando. */
@@ -2194,8 +2290,8 @@ function drawAlbumDetalle(e, visto, w) {
   ctx.textAlign = 'left';
   // el dibujo, y a su derecha lo que hace en una linea y la frase con la carita
   const ay = y + 24, A = 58;
-  ctx.globalAlpha = 0.1; ctx.fillStyle = col; ctx.fillRect(x + pad, ay, A, A); ctx.globalAlpha = 1;
-  albumIcono(e, x + pad + A / 2, ay + A / 2, A);
+  // (23/11, el autor: "la estampita debe estar en el detalle tambien"): la misma estampita de la grilla, en grande
+  estampita(e, x + pad, ay, A, false, col, w.sel, false, w.t);
   const tx = x + pad + A + 6, tw = pw - pad * 2 - A - 6;
   ctx.fillStyle = P.ink; ctx.font = cartaFont();
   let yy = ay + 10;

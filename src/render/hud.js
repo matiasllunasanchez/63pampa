@@ -20,7 +20,7 @@ import { cartelesAhora } from '../core/cartel.js';
 import { plane, cfg } from '../core/state.js';
 import { cargaDe } from '../data/cargas.js';
 import { run } from '../core/run.js';
-import { APELLIDOS } from '../data/apellidos.js';
+import { apellidoDe, resortearApellidos } from '../data/apellidos.js';
 import { estadoAvion, BASE_T } from '../data/fallas.js';
 import { shown as dmgShown } from '../systems/damage.js';
 import { proj } from '../core/fx.js';
@@ -780,9 +780,14 @@ const X_CHANCHA = X_CARGA, X_CANON = X_CARGA + (CUADRO + AIRE), X_RACK = X_CANON
 // (corrido 6 a la izquierda, 15/10, el autor: "corre un poco los elementos del medio a la izquierda" — para que
 // el radar propio entre en el hueco de la derecha, entre el vuelo y lo que se carga)
 // (19/11: centrado en el hueco, sin el corrimiento del radar propio — el radar subio arriba del grupo de la derecha)
+// (23/11, el autor: "la idea era que ese sector —pegado a la altura— sea el RADAR, no por encima de los indicadores"):
+// VELOCIDAD, horizonte, ALTITUD con el RADAR pegado a su costado (una barra angosta: un reloj entero no entra en
+// los 320 de la fila) y GAS
+// (la barra vertical del radar pegada a la ALTITUD se fue el 23/11 —el autor: "la barra vertical de radar no tiene
+// sentido"—: el radar se lee en el altimetro, en la escala verde del techo para arriba)
 const X_VUELO = Math.round((COL(2) + CUADRO + X_CARGA - (4 * CUADRO + 3 * AIRE)) / 2);
 const FIN_VUELO = X_VUELO + 4 * CUADRO + 3 * AIRE;
-const xVuelo = i => X_VUELO + i * (CUADRO + AIRE);              // VELOCIDAD, horizonte, ALTITUD, GAS
+const xVuelo = i => X_VUELO + i * (CUADRO + AIRE);   // VELOCIDAD, horizonte, ALTITUD, GAS
 
 /** LO MAS ALTO QUE PINTA EL TABLERO DE VUELO: el canto de los cuadrados. Fue el de la fila de placas
  *  de SALUD, cuatro pixeles mas arriba, hasta que SALUD paso a ser un cuadrado.
@@ -1643,6 +1648,41 @@ function relojFila(x, y, o) {
   // LA ESCALA: trece marcas radiales, largas cada cuarto. Las de la zona van en su color — el peligro
   // es parte del dial, no un aviso
   const zonas = o.zonas || (o.zona ? [[o.zona[0], o.zona[1], P.warn]] : []);
+  // LA ZONA DEL RADAR, EN LA MISMA ESCALA (23/11, el autor: "quiero meter eso verde… en el mismo espacio que la de
+  // abajo… algo asi" — con el arco de la nafta): era un arco punteado por fuera del dial; ahora es una BANDA verde
+  // continua sobre el aro de la escala, del techo del radar para arriba, como la de la nafta. Se levanta con el escaneo
+  // (`crece`) y, adentro del radar (`on`), titila. Va antes que las rayitas: la escala se sigue leyendo encima
+  const R0 = o.radar || null;
+  if (R0) {
+    const hasta = R0.desde + (1 - R0.desde) * Math.max(0, Math.min(1, R0.crece));
+    if (hasta > R0.desde) {
+      // RADIOACTIVA (23/11, el autor: "hacela mas radioactiva"): verde NEON que brilla —un halo ancho y suave por debajo
+      // que respira—, el nucleo con un parpadeo nervioso de tubo, y chispitas claras que corren por la banda hacia
+      // arriba. Adentro del radar todo late mas rapido y mas fuerte.
+      const a0 = ang(R0.desde), a1 = ang(hasta), t = run.t, on = R0.on;
+      const resp = 0.5 + 0.5 * Math.sin(t * (on ? 9 : 3.2));
+      const tubo = Math.sin(t * 37) * Math.sin(t * 23) > 0.82 ? 0.55 : 1;   // el titileo cortito, de vez en cuando
+      ctx.save(); ctx.lineCap = 'butt';
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = RADAR_NEON_HALO;
+      ctx.globalAlpha = (on ? 0.32 : 0.18) + resp * (on ? 0.3 : 0.14);
+      ctx.lineWidth = 4.2; ctx.beginPath(); ctx.arc(cx, cy, r - 0.1, a0, a1); ctx.stroke();
+      ctx.globalAlpha = (on ? 0.5 : 0.3) * tubo;
+      ctx.lineWidth = 2.8; ctx.beginPath(); ctx.arc(cx, cy, r - 0.1, a0, a1); ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = tubo;
+      ctx.strokeStyle = on && Math.sin(t * 14) > 0 ? RADAR_NEON_CLARO : RADAR_NEON;
+      ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(cx, cy, r - 0.1, a0, a1); ctx.stroke();
+      // las chispitas que corren hacia arriba por la banda
+      ctx.globalAlpha = 1; ctx.strokeStyle = RADAR_NEON_CLARO; ctx.lineWidth = 1.8;
+      const n = 3, v = on ? 0.9 : 0.35;
+      for (let k = 0; k < n; k++) {
+        const u = ((t * v + k / n) % 1 + 1) % 1, f = R0.desde + (hasta - R0.desde) * u, a = ang(f);
+        ctx.beginPath(); ctx.arc(cx, cy, r - 0.1, a, Math.min(a1, a + 0.07)); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
   for (let i = 0; i <= 12; i++) {
     const f = i / 12, larga = i % 3 === 0;
     const z = zonas.find(([d, h]) => f >= d && f <= h);
@@ -1652,6 +1692,7 @@ function relojFila(x, y, o) {
   // LAS MARCAS LARGAS: un punto de la escala que importa por si solo (Mach 1, el techo del radar).
   // Cruzan el aro para afuera y para adentro: se ven aunque caigan entre dos marcas comunes.
   for (const [f, col] of o.marcas || []) marcaFina(cx, cy, ang(f), r - 2.6, r + 1.2, 2, col);
+  // (la franja del radar ya no va por fuera: es el color de la escala, arriba)
   // LAS FRANJAS: un arco POR DENTRO de la escala, para zonas que no son peligro sino regimen (las
   // tres zonas de gasto del altimetro). Van adentro para no pisar las marcas de la escala, que en el
   // altimetro ya dicen agua y banda del x10.
@@ -1793,7 +1834,9 @@ function flechaBaja(x, y) {
   ctx.fillRect(cx - 0.5, cy - 3, 1.5, 3.5);
   ctx.beginPath(); ctx.moveTo(cx - 2.5, cy); ctx.lineTo(cx + 3, cy); ctx.lineTo(cx + 0.25, cy + 3); ctx.closePath(); ctx.fill();
 }
-const NAFTA_COL = '#5fc46a';
+// el verde de la banda del radar en el altimetro, el mismo de la nafta (23/11: "algo asi")
+const RADAR_NEON = '#6dff3c', RADAR_NEON_CLARO = '#e4ffb8', RADAR_NEON_HALO = '#39ff14';
+const NAFTA_COL = '#5fc46a', NAFTA_ALFA = 0.5;
 /** LA NAFTA EN ARCO (23/11): la franja de adentro es la nafta que queda (verde; con poca, roja titilando), la aguja la
  *  marca a la misma altura, la carga de la Chancha en el verde claro de la suelta y el BINGO como marca. */
 function naftaArco(x, y, o) {
@@ -1806,8 +1849,12 @@ function naftaArco(x, y, o) {
   ctx.lineWidth = 1.8; ctx.lineCap = 'butt';
   ctx.strokeStyle = '#1e2a31'; ctx.beginPath(); ctx.arc(cx, cy, R - 1.7, A0, A1); ctx.stroke();
   if (v > 0) {
-    ctx.strokeStyle = o.bajo && !o.cargando ? (Math.sin(run.t * 10) > 0 ? P.warn : '#7d2f1e') : NAFTA_COL;
+    // (23/11, el autor: "sacale opacidad a la gasolina"): el verde a media luz; el aviso de reserva, entero
+    const avisa = o.bajo && !o.cargando;
+    ctx.globalAlpha = avisa ? 1 : NAFTA_ALFA;
+    ctx.strokeStyle = avisa ? (Math.sin(run.t * 10) > 0 ? P.warn : '#7d2f1e') : NAFTA_COL;
     ctx.beginPath(); ctx.arc(cx, cy, R - 1.7, A0, ang(v)); ctx.stroke();
+    ctx.globalAlpha = 1;
   }
   // lo que entro de la Chancha, encima y mas claro
   if (o.carga && o.carga[1] > o.carga[0]) {
@@ -2237,17 +2284,6 @@ function eyeccionPreparada(x, y) {
 // EL APELLIDO DEL NUMERAL (23/11, el autor: "ponerle arriba del piloto un apellido random argentino"): los genericos
 // (PATRIA 1, PILOTO) sortean uno de data/apellidos.js por corrida, distinto para cada numeral; los que tienen nombre
 // propio (TERO, ESTEBAN…) llevan el suyo
-const apellidos = new Map();
-const generico = n => /^PATRIA \d+$/.test(n) || n === 'PILOTO';
-function apellidoDe(nombre) {
-  if (!generico(nombre)) return nombre;
-  if (!apellidos.has(nombre)) {
-    const usados = new Set(apellidos.values());
-    let a; do a = APELLIDOS[(Math.random() * APELLIDOS.length) | 0]; while (usados.has(a) && usados.size < APELLIDOS.length);
-    apellidos.set(nombre, a);
-  }
-  return apellidos.get(nombre);
-}
 function drawPiloto(charlaVoz, delAvion, avionNombre) {
   // APARTE DEL TABLERO (11/9): arriba de la esquina izquierda, y no en la fila. La cara no es un
   // instrumento, y a su derecha tiene que quedar lugar para lo que dice (drawVozPropia, en screens).
@@ -2259,7 +2295,7 @@ function drawPiloto(charlaVoz, delAvion, avionNombre) {
   // vuelve para atras) arranca la cara de cero en vez de heredar la sonrisa de la anterior
   const nueva = ultT < 0 || run.t < ultT;
   const dt = nueva ? 0 : Math.min(0.1, run.t - ultT);
-  if (nueva) { gesto = 'neutro'; gestoT = 0; sonrisaT = 0; ultPts = run.score; golpeT = 0; ultInteg = run.integ; ultEscudo = run.escudo; apellidos.clear(); }
+  if (nueva) { gesto = 'neutro'; gestoT = 0; sonrisaT = 0; ultPts = run.score; golpeT = 0; ultInteg = run.integ; ultEscudo = run.escudo; resortearApellidos(); }
   // un golpe es la chapa que BAJA; que suba (avion nuevo del relevo, o una sonda) no es golpe
   // …o cuando el ESCUDO pega un salto: una bala que para entera no toca la chapa, pero es un golpe.
   // El roce lo gasta de a poco (a fondo y con turbo, ~0,17 por cuadro) y no cuenta como golpe.
@@ -2372,7 +2408,7 @@ const avionesEnPlaca = () => (soloTero ? 1 : run.squad);
 /** LO QUE DICE LA PLACA DEL ESCUADRON (autor, 27/9): el NOMBRE PINTADO del avion que vuela
  *  (GAMBETA, ESPOLA…); el piloto va en su caja, bajo la cara. Fuera de campaña no hay chapa con
  *  nombre y queda el indicativo de siempre. */
-const nombrePlaca = i => planeName(i) || pilotName(i);
+const nombrePlaca = i => planeName(i) || apellidoDe(pilotName(i));
 
 export function anchoSquad() {
   const nombre = nombrePlaca(alMando(run));
@@ -2641,6 +2677,55 @@ function radarPropio(x, y) {
   px(x + 2, y + ALERTA_H - 2, Math.round(bw * radarP.carga), 1, radarP.carga < 0.15 ? P.warn : on ? '#6fb6ff' : '#46545e');
   // prendido, el borde titila con la pantalla (y en rojo si se esta quedando sin carga)
   if (on && late) bordePlaca(x, y, RADAR_W, ALERTA_H, radarP.carga < 0.25 ? P.warn : '#5ab4ff');
+}
+
+/** EL RADAR PROPIO COMO RELOJ DE LA FILA (23/11): la pantalla redonda del radar —tres anillos, la cruz, el barrido que
+ *  gira con su estela— en AZUL, con el avioncito de la placa del piloto en el medio; apagado, gris y quieto. El eco del
+ *  blanco titila arriba, la carga es la rayita de abajo, y prendido el borde late (rojo si se queda sin carga). */
+function radarReloj(x, y) {
+  alTablero(x, y, () => {
+    plate(x, y, CUADRO, CUADRO);
+    const on = radarP.on, late = Math.floor(performance.now() / 250) % 2 === 0;
+    const V = !on ? RADAR_GRIS : late ? RADAR_AZUL : RADAR_AZUL_BAJO;
+    const cx = x + CUADRO / 2, cy = y + 12, R = 9;
+    ctx.save();
+    ctx.fillStyle = on ? 'rgba(10, 26, 46, 0.9)' : 'rgba(14, 18, 22, 0.9)';
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = V.aro; ctx.lineWidth = 0.7;
+    for (const k of [1, 0.66, 0.33]) { ctx.globalAlpha = k === 1 ? 1 : 0.55; ctx.beginPath(); ctx.arc(cx, cy, R * k, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.globalAlpha = 0.45; ctx.beginPath(); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.stroke();
+    ctx.globalAlpha = 1;
+    if (on) {
+      const ang = performance.now() / 1000 * RADAR_GIRO * 1.6;
+      for (let i = 0; i < 10; i++) {
+        ctx.fillStyle = V.cerca; ctx.globalAlpha = 0.35 * (1 - i / 10);
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R - 0.5, ang - (i + 1) * 0.08, ang - i * 0.08); ctx.closePath(); ctx.fill();
+      }
+      ctx.globalAlpha = 1; ctx.strokeStyle = V.punta; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang) * (R - 0.5), cy + Math.sin(ang) * (R - 0.5)); ctx.stroke();
+    }
+    ctx.restore();
+    // el avioncito: el mismo icono que la placa del avion, arriba del piloto
+    iconoEn(cx, cy, 'avion', !on ? '#5d6a70' : late ? '#d8ecff' : '#9cc4ea');
+    // el eco del blanco, arriba, titilando mientras dure la marca
+    if (radarP.marcaT > 0 && Math.floor(performance.now() / 180) % 2 === 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(cx + 1.5, cy - R + 2.5, 1.5, 1.5); }
+    // LA CARGA, EN UN ANILLO VERDE QUE SE LLENA alrededor de la pantalla (23/11, el autor: "que se haga efecto de carga
+    // con verde, tipo el de la trayectoria de la bomba que lleva el circulo, lo mismo pero en verde"): el aro oscuro de
+    // fondo, los gajos llenos desde arriba en sentido horario y la punta mas clara; sin carga, en rojo
+    const SEG = 24, lleno = radarP.carga * SEG, Ra = R + 2.2;
+    ctx.save(); ctx.lineWidth = 1.6; ctx.lineCap = 'butt';
+    for (let k = 0; k < SEG; k++) {
+      const a0 = -Math.PI / 2 + k / SEG * Math.PI * 2 + 0.04, a1 = -Math.PI / 2 + (k + 1) / SEG * Math.PI * 2 - 0.04;
+      const f = Math.max(0, Math.min(1, lleno - k));
+      ctx.strokeStyle = '#1b2a22'; ctx.beginPath(); ctx.arc(cx, cy, Ra, a0, a1); ctx.stroke();
+      if (f <= 0) continue;
+      const punta = k === Math.floor(lleno - 0.001);
+      ctx.strokeStyle = radarP.carga < 0.15 ? P.warn : punta ? RADAR_VERDE.punta : RADAR_VERDE.cerca;
+      ctx.beginPath(); ctx.arc(cx, cy, Ra, a0, a0 + (a1 - a0) * f); ctx.stroke();
+    }
+    ctx.restore();
+    if (on && late) bordePlaca(x, y, CUADRO, CUADRO, radarP.carga < 0.25 ? P.warn : '#5ab4ff');
+  });
 }
 
 // LA MANCHA DE LAS CHAPITAS EN EL RADAR (el autor, 8/10: "en el radar se genera una onda grande
@@ -3191,8 +3276,8 @@ export function drawHUD(h) {
     drawAlerta(MARGEN, ty, anchoSquad(), h.estrellas | 0, h.escondite, !!h.fueraRadar, !!h.radarPropio, h.radarBandera || null);
     ty += ALERTA_H + AIRE;
   }
-  // …Y DEBAJO, LA CARGA DEL RADAR, que entra y sale sola (ver drawRadar).
-  // (SIN RADAR —el tutorial, hasta que lo explica— no hay barra de carga: `h.sinRadar`, 18/11)
+  // …Y DEBAJO, LA CARGA DEL RADAR con su arma (el Sea Dart), que entra y sale sola (ver drawRadar). (23/11, el autor:
+  // "el indicador de radar con el arma dejarlo como estaba antes… estaba perfecto": vuelve aca, en todas las vistas)
   ty = drawRadar(MARGEN, ty, anchoSquad(), !h.sinRadar && plane.y > (h.radarAlt === undefined ? RADAR_ALT : h.radarAlt));
   // …Y LA DEL SEA WOLF, cuando estas adentro de la zona del buque
   ty = drawSeaWolf(MARGEN, ty, anchoSquad(), h.seawolf);
@@ -3492,8 +3577,13 @@ export function drawHUD(h) {
   // (…y despues: "o ponelo entre medio de los elementos de abajo, en esos espacios": en el hueco entre el
   // grupo del vuelo y el de lo que se carga, centrado en la fila)
   // (19/11: arriba del grupo de la derecha — el hueco de la fila se lo llevo la cara del piloto)
-  if (radarP.tiene) radarPropio(X_CARGA, CUADROS_Y - AIRE - ALERTA_H);
-  donde.radar = [X_CARGA + Math.round(RADAR_W / 2), CUADROS_Y - AIRE - ALERTA_H];
+  // (23/11, el autor: "el poder de radar debe estar como item, esta demasiado colgado en el aire, y que tenga formita
+  // de radar"): EN LA FILA, en el hueco que dejo la Chancha (ahora icono arriba de la nafta), como un reloj mas —
+  // redondo, con su barrido y el avioncito de la placa del piloto—. Si ese hueco esta tomado (el termometro en la
+  // cabina o con la brujula), vuelve arriba del grupo de la derecha, como antes.
+  const radarEnFila = !enCabina() && !h.brujula && !h.brujulaPasillo;
+  if (radarP.tiene) { if (radarEnFila) radarReloj(X_CHANCHA, CUADROS_Y); else radarPropio(X_CARGA, CUADROS_Y - AIRE - ALERTA_H); }
+  donde.radar = radarEnFila ? [X_CHANCHA + CUADRO / 2, CUADROS_Y] : [X_CARGA + Math.round(RADAR_W / 2), CUADROS_Y - AIRE - ALERTA_H];
   donde.chancha = [X_CHANCHA + CUADRO / 2, CUADROS_Y];
   donde.chapitas = [X_RACK + RACK_W / 2, CUADROS_Y];
 
@@ -3560,7 +3650,8 @@ export function drawHUD(h) {
   // velocidad, en un extremo de arriba, que indique los mach mas a nivel general: 0 1 2 3 4"): afuera de la cabina
   // el machimetro grande se va y queda el chiquito, en la esquina de arriba a la derecha del velocimetro
   // (23/11, el autor: "la aguja extra en velocidad esta al pedo"): sin el mach chico en tercera persona
-  if (enCabina() && !h.brujula) reloj(X_MACH, CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
+  const bru = h.brujula || h.brujulaPasillo;   // (la de las islas, o la de relleno de POR LA PATRIA)
+  if (enCabina() && !bru) reloj(X_MACH, CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
     zonas: [[fM(M_CONO), 1, P.accent]], marcas: [[fM(1), P.foam]],
     txt: mach.toFixed(2), txtCol: mach >= M_CONO ? P.accent : P.dim });
   // ALTITUD, en metros y con la escala ESTIRADA ABAJO (raiz cuadrada): el juego entero pasa en los
@@ -3574,7 +3665,14 @@ export function drawHUD(h) {
     : 0.75 + 0.25 * Math.sqrt(Math.min(1, (a - FLY_TOP) / (ALTO.TECHO - FLY_TOP)));
   const techo = h.radarAlt === undefined ? RADAR_ALT : h.radarAlt;
   // (sin radar, arriba del techo no te ve nadie: la aguja no se pone roja por altura, solo por rozar)
-  const rozando = run.scrapeVib > 0.6, visto = (!h.sinRadar && plane.y > techo) || rozando;
+  const rozando = run.scrapeVib > 0.6;
+  // LA ZONA DEL RADAR (23/11, el autor: "que el indicador de altura tenga una barra por encima de los indicadores, que
+  // arranca en el valor de altura que representa al radar… verde radar, mas oscuro con lineas mas claras pasando por
+  // adentro; la aguja cuando pasa por esa zona se pone verde parpadeante, como el borde y toda la barra… una onda
+  // radioactiva"). Con radar: la franja del techo para arriba, que se levanta con la barra del escaneo; adentro (te
+  // ven), aguja, borde, numero y franja en verde titilando. Rozar sigue siendo rojo: es otro peligro.
+  const radarOn = !h.sinRadar && !h.fueraRadar, enRadar = radarOn && plane.y > techo && !rozando;
+  const latido = Math.sin(run.t * 14) > 0;
   // …Y EN LA SUELTA (data/blanco.js), LA ALTURA DE SOLTAR en verde: la franja del dial, la marca
   // larga donde la bomba empieza a armarse, y la aguja verde mientras estes adentro. Era una regla
   // aparte a la derecha de la pantalla y no se entendia (playtest 23/9): la altura ya tiene reloj.
@@ -3601,11 +3699,12 @@ export function drawHUD(h) {
   const gAl = falHud('altimetro');
   altLag += (plane.y - altLag) * Math.min(1, (gAl === 2 ? 2 : 60) / 60);
   const altVista = gAl === 2 ? altLag : plane.y;
-  reloj(xVuelo(2), CUADROS_Y, conFalla({ val: fA(altVista), ico: 'alt', critico: visto, franjas,
-    col: visto ? (Math.sin(run.t * (rozando ? 30 : 14)) > 0 ? P.warn : '#7d2f1e') : enSuelta ? SUELTA_COL : plane.y <= BANDA_ALT ? P.accent : P.foam,
+  reloj(xVuelo(2), CUADROS_Y, conFalla({ val: fA(altVista), ico: 'alt', critico: rozando, franjas,
+    radar: radarOn ? { desde: fA(techo), crece: h.radarScan == null ? 1 : h.radarScan, on: enRadar } : null,
+    col: rozando ? (Math.sin(run.t * 30) > 0 ? P.warn : '#7d2f1e') : enRadar ? (latido ? RADAR_VERDE.punta : RADAR_VERDE.onda) : enSuelta ? SUELTA_COL : plane.y <= BANDA_ALT ? P.accent : P.foam,
     zonas: [[0, fA(1.2), P.warn], [fA(1.2) + 0.01, fA(BANDA_ALT), P.accent]].concat(sa ? [[fA(sa[0]), fA(sa[1]), SUELTA_COL]] : []),
     // sin marca de techo FUERA DE RADAR: no hay techo (PLAN_NAFTA_ALCANCE N2)
-    marcas: divNafta.concat(h.fueraRadar || h.sinRadar ? [] : [[fA(techo), P.warn]]).concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
+    marcas: divNafta.concat(h.fueraRadar || h.sinRadar ? [] : [[fA(techo), RADAR_VERDE.eje]]).concat(sa ? [[fA(sa[0]), SUELTA_COL]] : [])
       // EL SALTO: la altura del buque debajo de tu linea, en amarillo, desde que soltas hasta el cruce
       .concat(h.saltoAlt != null ? [[fA(h.saltoAlt), SALTO_COL]] : []).concat([[fA(ALTO.NUBES), P.foam]])
       // EL TECHO DE PERFECTO (21/11, el autor: "marcar el limite final de perfecto"): con los poderes, la marca larga
@@ -3614,8 +3713,8 @@ export function drawHUD(h) {
     // …y EL BORDE DE LA PLACA en verde, FIJO mientras estes en altura de soltar (se lee de reojo sin
     // buscar la aguja, como el borde del turbo en el velocimetro) y TITILANDO cuando ademas es el
     // momento de soltar: el mismo latido que la cinta y el estante.
-    borde: h.sueltaYa ? (titilaSuelta() ? SUELTA_COL : null) : enSuelta ? SUELTA_COL : null,
-    txt: Math.round(altVista) + 'm', txtCol: visto ? P.warn : P.dim }, gAl));
+    borde: h.sueltaYa ? (titilaSuelta() ? SUELTA_COL : null) : enRadar ? (latido ? RADAR_VERDE.punta : RADAR_VERDE.lejos) : enSuelta ? SUELTA_COL : null,
+    txt: Math.round(altVista) + 'm', txtCol: rozando ? P.warn : enRadar ? RADAR_VERDE.punta : P.dim }, gAl));
   // LA ALTURA TRABADA (LAS ISLAS desde arriba, autor 19/11: "marcar locked o un candado en el marcador de
   // altura"): desde la vista cenital la altura queda clavada, y el reloj lo dice con un CANDADO en la punta
   // de arriba a la derecha y el borde fijo en el color del candado
@@ -3630,13 +3729,15 @@ export function drawHUD(h) {
   // vuelo y lo que se carga (no: en el del MACH, ver abajo). La rosa GIRA (arriba es hacia donde va el morro, la rayita fija), N en acento, y el
   // OBJETIVO es un triangulo naranja en el borde con su distancia abajo.
   // (VA EN EL LUGAR DEL MACH: el hueco de al lado del gas es el de la Chancha, que en las islas tambien va)
-  if (h.brujula) drawBrujula(X_MACH, CUADROS_Y, h.brujula);
+  // …Y EN POR LA PATRIA TAMBIEN (23/11, el autor: "aunque no sirva tanto, para rellenar y que el usuario se acostumbre a
+  // todos los controles, exactamente en el mismo lugar que isla"): `h.brujulaPasillo`, sin objetivo
+  if (bru) drawBrujula(X_MACH, CUADROS_Y, bru);
   // (21/11, el autor: "no pongas arriba el coso, metelo todo en horizontal"): en la fila, en el lugar que era el
   // reloj de la Chancha (que paso a ser el icono de arriba de la nafta)
   // (21/11, el autor: "el indicador de temperatura del lado izquierdo: nafta, temperatura, velocidad, nivel"): en
   // tercera persona va donde estaba el machimetro grande (el mach chico vive en el velocimetro); con la brujula de las
   // islas en ese lugar, y en la cabina, se queda donde estaba
-  tempX = !enCabina() && !h.brujula ? X_MACH : X_CHANCHA;
+  tempX = !enCabina() && !bru ? X_MACH : X_CHANCHA;
   if (h.temp) drawTemperatura(tempX, CUADROS_Y, h.temp);
   marcaFalla(xVuelo(2), CUADROS_Y, gAl);
   if ((cfg.vert === 'planeo' || cfg.vert === 'planeo_m') && (run.sosten ?? 1) <= 0 && plane.vy < -0.3) flechaBaja(xVuelo(2), CUADROS_Y);

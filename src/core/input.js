@@ -360,8 +360,11 @@ export function initInput(cv, a) {
       return;
     }
     if (S.state === 'libroavion') {                                      // LIBRO DE VUELO: elegir el avion
-      if (isUp(e.code) || isLeft(e.code)) { a.libroAvNav(-1); e.preventDefault(); return; }
-      if (isDown(e.code) || isRight(e.code)) { a.libroAvNav(1); e.preventDefault(); return; }
+      if (isUp(e.code)) { a.libroAvNav(-1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.libroAvNav(1); e.preventDefault(); return; }
+      // ← →: los iconos del avion marcado (23/11)
+      if (isLeft(e.code)) { a.libroCapNav(-1); e.preventDefault(); return; }
+      if (isRight(e.code)) { a.libroCapNav(1); e.preventDefault(); return; }
       if (isConfirm(e.code)) { a.libroAvConfirm(); e.preventDefault(); return; }
       if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
       return;
@@ -1023,8 +1026,10 @@ export function initInput(cv, a) {
         if (confirm) a.retryConfirm();
         if (hit(1)) a.retryNo();
       } else if (S.state === 'libroavion') {
-        if ((nu && !nav.u) || (nl && !nav.l)) a.libroAvNav(-1);
-        if ((nd && !nav.d) || (nr && !nav.r)) a.libroAvNav(1);
+        if (nu && !nav.u) a.libroAvNav(-1);
+        if (nd && !nav.d) a.libroAvNav(1);
+        if (nl && !nav.l) a.libroCapNav(-1);   // (◄ ►: los iconos del avion, 23/11)
+        if (nr && !nav.r) a.libroCapNav(1);
         if (confirm) a.libroAvConfirm();
         if (hit(1)) a.escToMenu();                             // B = volver al libro
       } else if (S.state === 'quickmenu') {

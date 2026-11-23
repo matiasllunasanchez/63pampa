@@ -858,7 +858,7 @@ function pantallaVieja(t, sinRadar = false) {
   ctx.restore();
 }
 
-const TARJ = { x: 18, cap: 30, titulo: 54, renglon: 20, wrap: 25, rojo: '#d63a2c', fosforo: '#5ef58a', brillo: 'rgba(94, 245, 138, 0.55)' };
+const TARJ = { x: 18, cap: 21, titulo: 30, tituloRot: 38, renglon: 20, wrap: 25, rojo: '#d63a2c', fosforo: '#5ef58a', brillo: 'rgba(94, 245, 138, 0.55)' };
 // LA LAMINA DE LA LINEA (23/11, data/libro_vuelo.js `tarjeta`): el dibujo de linea en fosforo verde de lo que dice el
 // renglon —el avion, el misil, el buque, el mapa—, a la derecha del texto. SE DIBUJA MIENTRAS SE TIPEA: una barrida de
 // izquierda a derecha con un borde mas brillante (el haz), titila apenas como la letra, lleva las lineas de barrido
@@ -907,6 +907,10 @@ function drawTarjeta(w, d, sc, ln) {
   ctx.textAlign = 'left';
   // la linea chica de arriba: CAPÍTULO N en las misiones, o el `rotulo` de la tarjeta (LO QUE PASÓ)
   const rot = sc.rotulo ? T(sc.rotulo) : sc.capitulo ? T('tarj_capitulo', { n: sc.capitulo }) : '';
+  // EL TITULO SOBRE LA LINEA DE LA GRILLA (23/11, el autor: "el titulo un poco mas arriba, a la altura de la linea del
+  // final de la primer cuadricula"): la base del titulo en la segunda linea de la grilla (y 30, pantallaVieja); con
+  // rotulo, el rotulo sube y el titulo baja lo justo para no pisarse
+  const yTit = rot ? TARJ.tituloRot : TARJ.titulo;
   if (rot) {
     ctx.font = 'bold 6px monospace'; ctx.fillStyle = '#7d8f97';
     ctx.fillText(rot, TARJ.x, TARJ.cap);
@@ -918,11 +922,11 @@ function drawTarjeta(w, d, sc, ln) {
     let x = TARJ.x;
     for (const pal of r.split(' ')) {
       if (quedan-- <= 0) return;
-      ctx.fillText(pal, x, TARJ.titulo + i * TARJ.renglon);
+      ctx.fillText(pal, x, yTit + i * TARJ.renglon);
       x += ctx.measureText(pal + ' ').width;
     }
   });
-  const yRaya = TARJ.titulo + (renglones.length - 1) * TARJ.renglon + 10;
+  const yRaya = yTit + (renglones.length - 1) * TARJ.renglon + 10;
   if (palabrasVisibles() > 0) px(TARJ.x, yRaya, W - TARJ.x * 2, 1, '#5a2a26');
   // LA LINEA, tipeada y EN FOSFORO VERDE (autor, 16/10: "letra verde? y mas computadora vieja?"):
   // la de un monitor monocromo de los 80 — verde, con el resplandor del fosforo alrededor de cada

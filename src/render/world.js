@@ -20,7 +20,7 @@ import { bendW, paredH } from '../core/zigzag.js';
 import { mez } from './paredes.js';
 import { recorteDetras, soltarRecorte } from './oclusion.js';
 import { drawColinas } from './colinas.js';   // las lomadas de afuera del carril (30/9)
-import { drawDerribado } from './squad.js';   // el avion propio que se pierde (16/10)
+import { drawDerribado, drawEstacionado } from './squad.js';   // el avion propio que se pierde (16/10)
 // EL MAR VIVE EN core/sea.js — puro, sin canvas ni stores — porque la colision de las olas tiene
 // que evaluar la MISMA superficie que se dibuja, y un sistema no puede importar del render.
 import { seaH as seaBase, olaBump, climaDe, resaca } from '../core/sea.js';
@@ -317,6 +317,27 @@ function drawBaseVeg(dv) {
     }
   }
   ctx.globalAlpha = 1;
+}
+
+// LOS ESTACIONADOS DEL DESPEGUE (23/11, relleno): a los dos costados de la pista, en fila, de atras hacia adelante. Los
+// tipos los pone game.js (`setEstacionados`: los del sobrevuelo en Puerto Argentino, o el avion que despega).
+let ESTACIONADOS = [];
+export function setEstacionados(keys) { ESTACIONADOS = (keys || []).filter(Boolean); }
+const EST_PASO = 22, EST_DESDE = 12, EST_SEP = 6;    // m entre aviones, el primero, y cuanto afuera del borde de la pista
+function drawEstacionados(dv) {
+  const R = RUNWAYS[cfg.runway] || RUNWAYS[0];
+  if (!ESTACIONADOS.length || R.ground === 'asphalt' || !R.hw) return;
+  const gy = cfg.cliff ? PORT_H : 0, fin = Math.min(cfg.coast - PORT_AMP - 20, dv + 160);
+  for (let wz = Math.floor(fin / EST_PASO) * EST_PASO; wz >= EST_DESDE; wz -= EST_PASO) {
+    if (wz - dv < 4) break;
+    const i = Math.round(wz / EST_PASO);
+    for (const lado of [-1, 1]) {
+      const h = hash2(i * 13 + (lado > 0 ? 7 : 0), 91);
+      if (h < 0.35) continue;                                   // huecos: no es un estacionamiento lleno
+      const key = ESTACIONADOS[Math.floor(hash2(i, lado * 5 + 3) * ESTACIONADOS.length) % ESTACIONADOS.length];
+      drawEstacionado(key, lado * (R.hw + EST_SEP + h * 6), gy + 1.2, wz - dv);
+    }
+  }
 }
 
 /** Pared del ACANTILADO: la roca entre el borde de la meseta y el agua. Solo se dibuja cuando la
@@ -679,7 +700,7 @@ export function drawSea(alHorizonte) {
     const f = fRow;   // ya viene clampeado en 1 (ver fRow)
     px(-70, y, W + 140, rowH, aguaCol(f));
   }
-  if (landVisible) drawBaseVeg(dv);
+  if (landVisible) { drawBaseVeg(dv); drawEstacionados(dv); }
   if (nMar || nCosta || nPlaya) profundidad(HOR + 1, yEnd, dv);
   geoFilas.mar = nMar; geoFilas.tierra = nTierra; geoFilas.costa = nCosta; geoFilas.playa = nPlaya;
   if (geoOn) {
@@ -1624,6 +1645,7 @@ export function sombraGigante() {
   return s;
 }
 const GIG_AGUA = 0.6;
+const GIG_TRANSICION = 14;   // m de altura de camara en que el filo de lejos pasa de levantarse a verse por arriba
 const hexRgb = c => [1, 3, 5].map(i => parseInt(String(c).slice(i, i + 2), 16) || 0);
 function olasGigantes(dv) {
   gigVis.length = 0;
@@ -1642,7 +1664,11 @@ function olasGigantes(dv) {
     const G = OLA_GIGANTE, crece = Math.max(0, Math.min(1, (G.Z_NACE - z) / (G.Z_NACE - G.Z_LLENA)));
     // (si estas por ENCIMA de la cresta se la ve por arriba: el filo baja del horizonte, como de verdad)
     // (…salvo que vueles por debajo de su altura final: de lejos SIEMPRE se levanta, como el horizonte que crece)
-    const sobre = Math.max(cam.y < o.hMax + 4 ? 0.35 : -0.4, Math.min(1, (o.h - cam.y) / 12));
+    // (23/11, el autor: "cuando voy subiendo de repente la altura cambia como si desapareciera, y si bajo vuelve"): el
+    // piso saltaba de 0,35 a -0,4 en un cuadro al cruzar hMax + 4 — el filo de lejos se caia de golpe. Ahora pasa de
+    // uno al otro en GIG_TRANSICION m de altura de camara, suave
+    const pasa = Math.max(0, Math.min(1, (cam.y - o.hMax) / GIG_TRANSICION)), piso = 0.35 - 0.75 * pasa * pasa * (3 - 2 * pasa);
+    const sobre = Math.max(piso, Math.min(1, (o.h - cam.y) / 12));
     const pxLejos = (6 + 64 * crece * crece * (3 - 2 * crece)) * sobre;
     const cerca = Math.max(0, Math.min(1, (z - 40) / 110));      // 0 a 40 m (real) … 1 desde 150 m (la de lejos)
     const tops = [], bots = [];
@@ -3980,6 +4006,7 @@ export function drawCampoIslas() {
     const jx = X + (h2 - 0.5) * S * 1.7, jz = Z + (h3 - 0.5) * S * 1.7;
     const [x, cz] = aCarril(jx, jz);
     if (cz < 2.5 || cz > CAMPO.LEJOS) continue;
+    if (C.pista && C.pista(jx, jz)) continue;                             // la pista de la BAM Malvinas, limpia (23/11)
     const g = C.h(jx, jz);
     if (g < 0.5) continue;                                                 // agua o la orilla misma
     const y = g - C.g, s = proj(x, y, cz);

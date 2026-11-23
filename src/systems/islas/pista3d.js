@@ -1,6 +1,7 @@
 // LA PISTA DE LA BAM MALVINAS EN 3D (el sobrevuelo, 23/11): donde se aterriza para comprar en la TIENDA (islas.js
 // `pistaEscena`, data/islas_teatro.js PISTA). Asfalto gris, la linea del eje cortada, las barras de las cabeceras y sus
 // numeros como bloques. Un poco arriba del suelo (el relieve fino del DEM la atravesaria) y sin escribir profundidad.
+import * as mundo from './mundo.js';
 const THREE = window.THREE || null;
 const R = { g: null };
 
@@ -20,18 +21,34 @@ function textura() {
   return t;
 }
 
+/** LA PISTA SOBRE EL RELIEVE (23/11, el autor: "a veces la pista desaparece por la altura del terreno"): un plano a
+ *  la altura del centro se hundia donde el suelo sube. Ahora es una tira de PASOS tramos a lo largo, y cada fila de
+ *  vertices toma la altura del suelo ahi (la mas alta de sus dos bordes) + ALTO_PISTA. Se arma en coordenadas del mapa
+ *  y se rehace si la pista se mueve (el origen del mapa cambia al cargar). */
+const PASOS = 50, ALTO_PISTA = 0.9;
+function armarGeo(p) {
+  const geo = new THREE.PlaneGeometry(1, 1, 1, PASOS);
+  const pos = geo.attributes.position, sy = Math.sin(p.rot), cy = Math.cos(p.rot);
+  for (let i = 0; i < pos.count; i++) {
+    const u = pos.getX(i) * p.ancho, v = pos.getY(i) * p.largo;   // u de costado, v a lo largo
+    const x = p.x + sy * v + cy * u, z = p.z - cy * v + sy * u;
+    const bx = cy * p.ancho / 2, bz = sy * p.ancho / 2;
+    const h = Math.max(0, mundo.sueloH(x, z), mundo.sueloH(p.x + sy * v + bx, p.z - cy * v + bz), mundo.sueloH(p.x + sy * v - bx, p.z - cy * v - bz));
+    pos.setXYZ(i, x, h + ALTO_PISTA, z);
+  }
+  pos.needsUpdate = true; geo.computeBoundingSphere();
+  return geo;
+}
+
 /** Un cuadro: `p` = islas.pistaEscena() o null. */
 export function frame(escena, p) {
   if (!THREE) return;
   if (!R.g && p) {
-    const geo = new THREE.PlaneGeometry(1, 1); geo.rotateX(-Math.PI / 2);
-    R.g = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: textura(), depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }));
-    R.g.renderOrder = 1; escena.add(R.g);
+    R.g = new THREE.Mesh(armarGeo(p), new THREE.MeshBasicMaterial({ map: textura(), side: THREE.DoubleSide, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }));
+    R.g.renderOrder = 1; escena.add(R.g); R.en = p.x + ',' + p.z;
   }
   if (!R.g) return;
   R.g.visible = !!p;
   if (!p) return;
-  R.g.position.set(p.x, p.h + 0.8, p.z);
-  R.g.scale.set(p.ancho, 1, p.largo);
-  R.g.rotation.y = -p.rot;
+  if (R.en !== p.x + ',' + p.z) { R.g.geometry.dispose(); R.g.geometry = armarGeo(p); R.en = p.x + ',' + p.z; }
 }

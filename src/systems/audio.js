@@ -462,16 +462,25 @@ function inLobby(state) {
     || state === 'campmenu' || state === 'quickmenu' || state === 'pruebas' || state === 'misiones'
     || state === 'mejoras' || state === 'saves' || state === 'libroavion' || state === 'dificultad' || state === 'album';
 }
-export function updateMusic(state) {
-  lastState = state;
+// EL LIBRO DE VUELO CON STORY.mp3 (23/11, el autor: "reproducir cada vez que arranca una mision de libro de vuelo el mp3
+// STORY a la mitad de volumen, y que se mantenga en la parte de elegi tu avion"): con `libro` (lo pasa game.js), el
+// contexto ('story') y ELEGI TU AVION ('libroavion') suenan con el himno a VOL_LIBRO de su volumen, sin cortarse entre
+// las dos pantallas (es la misma pista: no se reinicia). Al despegar entra la musica del vuelo, como siempre.
+const VOL_LIBRO = 0.5;
+let lastLibro = false;
+export function updateMusic(state, libro = lastLibro) {
+  lastState = state; lastLibro = libro;
   if (muted) { if (eng) eng.g.gain.value = 0; return; }
   // pistas: HISTORIA (himno epico) / lobby / juego (la pista del reproductor o la del nivel)
   const gm = gameTrack();
   // EL ARRANQUE DEL FICHIN retiene la musica hasta que entra la ficha (ver `retenerMusica`)
   // ...y EN PAUSA tampoco suena nada (autor, 16/10: ver pausarAudio)
   // ...y LA TARJETA DE MISION va sin musica (autor, 16/10): solo el zumbido y las teclas (ver zumbido)
-  if (musicaRetenida || enTarjeta || musPausa) { for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (!m.paused) m.pause(); return; }
-  const want = state === 'story' ? musStory : inLobby(state) ? musLobby : gm;
+  // (…salvo la tarjeta del LIBRO DE VUELO: ahi arranca STORY.mp3, ver VOL_LIBRO)
+  const tarjetaMuda = enTarjeta && !(libro && state === 'story');
+  if (musicaRetenida || tarjetaMuda || musPausa) { for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (!m.paused) m.pause(); return; }
+  const conLibro = libro && (state === 'story' || state === 'libroavion');
+  const want = state === 'story' || conLibro ? musStory : inLobby(state) ? musLobby : gm;
   for (const m of [musLobby, musStory, ...PLAYLIST, musMision]) if (m !== want && !m.paused) m.pause();
   if (musicStarted && want.paused && (want !== musStory || MUSIC_STORY)) {
     // entrar al lobby, arrancar un mapa o pasar a una cinematica REINICIA la pista: se vuelve a
@@ -482,7 +491,7 @@ export function updateMusic(state) {
   curTrack = want;
   // el lobby y la historia no tienen mezcla dinamica: su base por el grupo de la musica
   if (want === musLobby) musLobby.volume = Math.min(1, VOL_LOBBY * busGain('musica'));
-  else if (want === musStory) musStory.volume = Math.min(1, VOL_STORY * busGain('musica'));
+  else if (want === musStory) musStory.volume = Math.min(1, VOL_STORY * (conLibro ? VOL_LIBRO : 1) * busGain('musica'));
   // mezcla dinamica: en MOMENTUM la musica se AHOGA (camara lenta, como bajo el agua) y
   // las explosiones grandes la agachan un instante (ducking). Lerp por frame → suave.
   //

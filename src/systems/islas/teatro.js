@@ -17,7 +17,7 @@
 // ven, y la PAC mas cercana VIENE (estado 'vector') hasta tenerte a ojo; si el radar te pierde PAC_OLVIDA s, vuelve
 // a su circulo. Adentro de la nuestra los Harriers no entran: los que te perseguian se van (harriers.js `retirar`).
 import * as mundo from './mundo.js';
-import { BASES, BUQUES, PAC, ARMAS, PAC_VE, PAC_VUELVE, RADARES, RADAR_BAJO, PAC_VECTOR, PAC_VEL_VECTOR, PAC_OLVIDA, DEFENSA, DANADO_MIN, BOMBA, FUSILES } from '../../data/islas_teatro.js';
+import { BASES, BUQUES, PAC, ARMAS, PAC_VE, PAC_VUELVE, RADARES, RADAR_BAJO, PAC_VECTOR, PAC_VEL_VECTOR, PAC_OLVIDA, DEFENSA, DANADO_MIN, BOMBA, FUSILES, SOBREVUELO, PISTA } from '../../data/islas_teatro.js';
 import { missiles, pmissiles, bullets } from '../../core/world.js';
 import * as harriers from './harriers.js';
 import { posBomba } from './objetivo.js';
@@ -28,7 +28,7 @@ import * as soldados from './soldados.js';
 const HUELLA = {
   carpa: { r: 7, h: 4, hp: 2 }, deposito: { r: 11, h: 7, hp: 4 }, puesto: { r: 6, h: 6, hp: 3 }, radar: { r: 7, h: 8, hp: 2 },
   rapier: { r: 8, h: 4, hp: 2 }, manpad: { r: 4, h: 2, hp: 1 }, canon: { r: 6, h: 4, hp: 2 }, camion: { r: 6, h: 4, hp: 2 },
-  pucara: { r: 9, h: 5, hp: 2 }, herc: { r: 18, h: 11, hp: 4 }, blindado: { r: 6, h: 4, hp: 3 },
+  pucara: { r: 9, h: 5, hp: 2 }, herc: { r: 18, h: 11, hp: 4 }, blindado: { r: 6, h: 4, hp: 3 }, mb339: { r: 7, h: 4, hp: 2 },
 };
 // la MALLA de cada pieza (assets/mallas)
 const MALLA = { carpa: 'carpa', deposito: 'deposito', puesto: 'puesto', radar: 'radar', rapier: 'nido_rapier', manpad: 'manpad',
@@ -65,13 +65,22 @@ const plano = (x, z, rad) => {
   return d < Math.max(3, rad * 0.35) ? h : -1;
 };
 /** Suelo plano cerca de (x, z): busca en anillos hasta `max` metros. */
+// LA PISTA DE LA BAM MALVINAS, LIMPIA (23/11): nada del teatro se pone encima (piezas, soldados, trincheras, banderas).
+// `pistaT` es la pista en coordenadas locales; se arma con el mundo (armar). Mismo eje que islas.js `enPista`.
+let pistaT = null;
+function sobrePista(x, z, rad = 0) {
+  const q = pistaT;
+  if (!q) return false;
+  const dx = x - q.x, dz = z - q.z, sy = Math.sin(q.rot), cy = Math.cos(q.rot);
+  return Math.abs(sy * dx - cy * dz) < PISTA.largo / 2 + rad + 30 && Math.abs(cy * dx + sy * dz) < PISTA.ancho / 2 + PISTA.margen + rad + 8;
+}
 function tierraCerca(x, z, rad, max = 900) {
   for (let r = 0; r <= max; r += 40) {
     const n = r ? Math.max(8, Math.round(r / 25)) : 1;
     const a0 = rnd() * 6.283;
     for (let k = 0; k < n; k++) {
       const a = a0 + k / n * 6.283, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r, h = plano(px, pz, rad);
-      if (h >= 0) return [px, pz, h];
+      if (h >= 0 && !sobrePista(px, pz, rad)) return [px, pz, h];
     }
   }
   return null;
@@ -95,6 +104,7 @@ function aguaCerca(x, z, largo, rot, bahia, max = 2500) {
 export function armar() {
   if (T.armado || !mundo.listo()) return;
   T.armado = true; semilla = 1982;
+  { const p = SOBREVUELO.pista, [x, z] = mundo.lonLatLocal(p.lon, p.lat); pistaT = { x, z, rot: p.rumbo * Math.PI / 180 }; }
   for (const b of BASES) {
     const [cx, cz] = mundo.lonLatLocal(b.lon, b.lat);
     const base = { n: b.n, bando: b.bando, x: cx, z: cz, visto: b.bando === 'arg' };
@@ -108,6 +118,21 @@ export function armar() {
         if (!p) continue;
         T.piezas.push({ tipo, malla: mallaDe(tipo), x: p[0], z: p[1], g: p[2], rot: rnd() * 6.283, bando: b.bando, base,
           r: H.r, h: H.h, hp: H.hp, vivo: true, cd: 2 + rnd() * ARMA_CD(tipo) });
+      }
+    }
+    // LOS ESTACIONADOS (23/11): en fila a los dos costados de la pista, con la trompa hacia ella
+    if (b.estacionados && pistaT) {
+      const sy = Math.sin(pistaT.rot), cy = Math.cos(pistaT.rot);
+      let k = 0;
+      for (const [tipo, n] of Object.entries(b.estacionados)) for (let i = 0; i < n; i++, k++) {
+        const H = HUELLA[tipo] || { r: 8, h: 5, hp: 2 }, lado = k % 2 ? 1 : -1;
+        const largo = (((k >> 1) % 5) - 2) * 120 + (rnd() - 0.5) * 30, sep = PISTA.ancho / 2 + PISTA.margen + 16 + H.r + rnd() * 10;
+        // (del eje de la pista: `largo` a lo largo, `sep` de costado — el inverso de `sobrePista`)
+        const x = pistaT.x + sy * largo + cy * sep * lado, z = pistaT.z - cy * largo + sy * sep * lado;
+        const p = tierraCerca(x, z, H.r, 120);
+        if (!p) continue;
+        T.piezas.push({ tipo, malla: mallaDe(tipo), x: p[0], z: p[1], g: p[2], rot: pistaT.rot + (lado > 0 ? -Math.PI / 2 : Math.PI / 2) + (rnd() - 0.5) * 0.3,
+          bando: b.bando, base, r: H.r, h: H.h, hp: H.hp, vivo: true, cd: 99 });
       }
     }
     // LOS SOLDADOS (systems/islas/soldados.js): cada grupo con su tarea —ronda, trota, carga, guardia—
@@ -434,7 +459,7 @@ function enCasco(b, x, z) {
   return Math.abs(lado) < b.manga * 0.6 && Math.abs(largo) < b.largo * 0.5;
 }
 // COMO REVIENTA CADA COSA (systems/islas/estallido3d.js IMPACTOS.casa / fierro / nafta); lo que no esta, 'fierro'
-const CLASE_DERRIBO = { carpa: 'casa', puesto: 'casa', deposito: 'nafta', herc: 'nafta', pucara: 'nafta' };
+const CLASE_DERRIBO = { carpa: 'casa', puesto: 'casa', deposito: 'nafta', herc: 'nafta', pucara: 'nafta', mb339: 'nafta' };
 function golpe(e, n, boom, y) {
   // (FUEGO AMIGO: le pegaste a algo nuestro — el cartel lo dice despues, nunca antes; una vez cada tanto por base)
   if (e.bando === 'arg' && e.base && T.t - (e.base.amigoT ?? -99) > 8) { e.base.amigoT = T.t; T.eventos.push({ k: 'fuego_amigo', n: e.base.n }); }

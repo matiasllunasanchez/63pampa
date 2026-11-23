@@ -15,7 +15,7 @@ import { ahora as climaAhora } from './clima.js';
 const THREE = window.THREE || null;
 
 const MEDIDA = { harrier: 14.5, t21: 117, t42: 125, log: 126, nido_rapier: 12, manpad: 6, camion_aa: 9, radar: 9, carpa: 8,
-  deposito: 14, puesto: 8, pucara: 14.25, herc: 29.8 };
+  deposito: 14, puesto: 8, pucara: 14.25, herc: 29.8, mb339: 10.97 };
 const ALTO = { soldado_corre: 3.4 };   // (×1,9: exagerado para que se lea)
 // LO DE TIERRA, EXAGERADO (como el pasillo): a la medida real una carpa desde la vista de arriba era un punto
 const EXAGERA = { nido_rapier: 2, manpad: 2.2, camion_aa: 2, radar: 2, carpa: 2, deposito: 1.8, puesto: 2, harrier: 1.3 };

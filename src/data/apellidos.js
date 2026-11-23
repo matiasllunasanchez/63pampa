@@ -17,3 +17,23 @@ export const APELLIDOS = [
   'CHÁVEZ', 'SORIA', 'ARIAS', 'MAIDANA', 'GAUNA', 'CORONEL', 'MIRANDA', 'TOLEDO', 'ESCOBAR', 'ALBORNOZ',
   'ETCHEVERRY', 'IRIGOYEN', 'GOÑI', 'ECHEVERRÍA', 'SCHMIDT', 'MÜLLER', 'HABIB', 'SAADE', 'NAHUEL', 'CATRIEL',
 ];
+
+// EL APELLIDO DE UN PILOTO EN PANTALLA (23/11): los genericos (PATRIA 1, PILOTO) y —desde el 23/11, el autor: "el piloto
+// que no sea Esteban de nombre, que sean apellidos aleatorios argentinos de la epoca"— ESTEBAN y los apodos del libro
+// (data/pilotos_generales.js) sortean uno de la lista por corrida, distinto para cada nombre; los personajes con
+// nombre propio (TERO, PUMA, el GITANO…) llevan el suyo. La cara sigue saliendo del nombre de adentro.
+import { PILOTOS_GENERALES } from './pilotos_generales.js';
+const SORTEADOS = new Map();
+const GENERALES = new Set(PILOTOS_GENERALES.map(p => p.nombre).concat(['ESTEBAN']));
+const generico = n => /^PATRIA \d+$/.test(n) || n === 'PILOTO' || GENERALES.has(n);
+export function apellidoDe(nombre) {
+  if (!nombre || !generico(nombre)) return nombre;
+  if (!SORTEADOS.has(nombre)) {
+    const usados = new Set(SORTEADOS.values());
+    let a; do a = APELLIDOS[(Math.random() * APELLIDOS.length) | 0]; while (usados.has(a) && usados.size < APELLIDOS.length);
+    SORTEADOS.set(nombre, a);
+  }
+  return SORTEADOS.get(nombre);
+}
+/** Corrida nueva: los apellidos se vuelven a sortear. */
+export function resortearApellidos() { SORTEADOS.clear(); }

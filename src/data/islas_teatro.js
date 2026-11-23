@@ -37,8 +37,12 @@ export const BASES = [
   // ---------------- LO NUESTRO ----------------
   { n: 'PUERTO ARGENTINO', bando: 'arg', lon: -57.860, lat: -51.692, r: 420,
     piezas: { deposito: 4, carpa: 4, puesto: 2, canon: 2, camion: 3, soldados: 4 } },
+  // (23/11, el autor: "la pista no debe tener nada encima… quiza aviones estacionados alrededor nomas"): la pista de la
+  // base queda LIMPIA (teatro.js no pone nada sobre SOBREVUELO.pista) y los aviones van ESTACIONADOS a sus costados
+  // (`estacionados`: los MB-339A de la Armada, los Pucara y un Hercules), el resto de la base alrededor
   { n: 'BAM MALVINAS', bando: 'arg', lon: -57.777, lat: -51.686, r: 380,
-    piezas: { deposito: 2, radar: 1, canon: 3, rapier: 1, camion: 2, pucara: 2, herc: 1, soldados: 3 } },
+    piezas: { deposito: 2, radar: 1, canon: 3, rapier: 1, camion: 2, soldados: 3 },
+    estacionados: { mb339: 3, pucara: 4, herc: 1 } },
   { n: 'PRADERA DEL GANSO', bando: 'arg', lon: -58.973, lat: -51.826, r: 320,
     piezas: { deposito: 2, carpa: 3, canon: 2, pucara: 3, camion: 1, soldados: 3 } },
   { n: 'DARWIN', bando: 'arg', lon: -58.958, lat: -51.808, r: 200,
