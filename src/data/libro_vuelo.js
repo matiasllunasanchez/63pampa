@@ -503,11 +503,25 @@ export const LIBRO_SCENES = {
   R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', r3.name, ['21 de mayo de 1982. Los tres A-4Q le pegaron a la HMS Ardent; la segunda sección, ocho minutos después, también. La fragata se hundió.', 'A la salida, dos Sea Harrier derribaron a los tres: dos pilotos se eyectaron y sobrevivieron; el tercero no volvió.'], 'rot_lqp'),
   R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4), 'El Dagger era la versión israelí del Mirage 5, de la Fuerza Aérea: más rápido que el Skyhawk, pero sin sonda para cargar nafta en vuelo.', 'Por eso volaba con tres tanques y dos bombas de 250 kg: el alcance justo para ir, atacar y volver.', '8 de junio. Dos escuadrillas de Dagger, PERRO y GATO, salen de Río Grande. Uno vuelve porque un pájaro le rompe el parabrisas: quedan cinco.', 'El Dagger no carga nafta en vuelo: lo que llevás es lo que hay.']),
   R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', r4.name, ['8 de junio de 1982. Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.', 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.'], 'rot_lqp'),
+  // UNA HOJA POR TIPO DE AVION (23/11, el autor: "en la explicacion de la mision del Invincible, explicar los roles de cada
+  // tipo de avion y como funciona; una hoja para cada tipo de avion"): el que lanza, el que escolta y la cisterna, cada uno
+  // con su lamina y lo que se hace con el en el juego
   R5_CONTEXTO: tarjeta('R5_CONTEXTO', r5.name, [
     [dato(r5), 'mapa_invincible', 'RÍO GRANDE → EL GRUPO DE PORTAAVIONES'],
     ['Era el último Exocet: de los cinco que llegaron de Francia quedaba uno. Esta vez salía acompañado por cuatro A-4C de la Fuerza Aérea.', 'exocet', 'EXOCET AM39 · EL ÚLTIMO'],
-    ['El Super Étendard lanza de lejos y se vuelve. El A-4C no lleva misiles: su trabajo es que el Exocet llegue.', 'supere_exocet', 'SUPER ÉTENDARD · EXOCET AM39'],
-    ['30 de mayo. Salen de Río Grande y cargan de dos KC-130 en la ida. Entran al ras por el sur del grupo de portaaviones.', 'kc130', 'KC-130 HÉRCULES · REABASTECIMIENTO'],
+    // EL SUPER ETENDARD, EN CUATRO HOJAS (23/11, el autor: "llevaba el Exocet, tenia la responsabilidad de encontrar con
+    // su radar la ubicacion del Invincible evitando que el radar enemigo los encuentre; una vez encontrado debe configurar
+    // el lanzamiento de manera correcta y una vez lanzado, huir… con capturas de UI"): las ui_* son capturas del juego
+    // pasadas al fosforo (tools/blender/laminas_ui.py)
+    ['SUPER ÉTENDARD. Lleva el Exocet y tiene que encontrar al Invincible con su radar. En la zona azul de la barra de arriba lo prendés: si subís lo encontrás antes, pero su radar te encuentra a vos.', 'ui_busca', 'S. ÉTENDARD 1 · BUSCAR CON RADAR'],
+    ['Cuando aparece BLANCO UBICADO, la flecha roja marca dónde está y a cuántos km. Si te pintó el Sea Dart, abajo al ras: que no te encuentren antes de lanzar.', 'ui_ubicado', 'S. ÉTENDARD 2 · BLANCO UBICADO'],
+    ['En la zona de lanzamiento, mira de bomba y soltar: se abre el PULSO. Cargás distancia, rumbo y potencia. Bien cargado, el misil va solo; mal cargado, se pierde en el mar.', 'ui_pulso', 'S. ÉTENDARD 3 · CARGAR EL EXOCET'],
+    ['Lanzado el Exocet, a huir: das la vuelta al ras y volvés. Del misil se encargan los A-4C.', 'supere_exocet', 'S. ÉTENDARD 4 · HUIR'],
+    // EL A-4C, EN DOS (23/11, el autor: "escoltas, debian proteger a toda costa a los Super Etendard y luego al Exocet…
+    // seguir al misil lado a lado la mayor distancia posible… eliminando todo lo que podria colisionar con el")
+    ['A-4C SKYHAWK. La escolta, sin misiles. Hasta el lanzamiento vas detrás de los Super Étendard y los cuidás a toda costa.', 'a4c', 'A-4C 1 · CUIDAR AL QUE LANZA'],
+    ['Cuando sale el Exocet, te pegás al costado del misil y lo acompañás lo más lejos que puedas. Todo lo que se le cruce lo bajás con el cañón: si algo lo toca, cae.', 'ui_escolta', 'A-4C 2 · AL LADO DEL EXOCET'],
+    ['KC-130 HÉRCULES. La cisterna: cuando la nafta llega al rojo, lo llamás y cargás detrás de la canasta. Después, al ras por el sur del grupo de portaaviones.', 'kc130', 'KC-130 HÉRCULES · LA CISTERNA'],
   ]),
   R6_CONTEXTO: tarjeta('R6_CONTEXTO', r6.name, [dato(r6), PENDIENTE]),
   R6_LO_QUE_PASO: tarjeta('R6_LO_QUE_PASO', r6.name, [PENDIENTE], 'rot_lqp'),
