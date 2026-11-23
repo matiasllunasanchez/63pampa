@@ -7,6 +7,10 @@ const fs = require('fs');
 // EL MODO DEV (8/10): `yarn start` -> dev (sin el arranque del fichin, audio en mute, con el MODO DEV
 // en el menu); `yarn start --prod` -> el juego de verdad. Empaquetado es siempre el de verdad.
 const DEV = !app.isPackaged && !process.argv.includes('--prod');
+// LA VERSION FULL (sin PROXIMAMENTE): `--full` al correrlo, o FIJA en el empaquetado con `rasanteFull` en el package.json
+// que mete electron-builder (`npm run dist:amigos`: los builds de acceso anticipado para amigos, 23/11)
+let FULL = process.argv.includes('--full');
+try { if (require('../package.json').rasanteFull) FULL = true; } catch (e) { }
 
 // EL ICONO DEL JUEGO (12/10, el autor: "quitar el icono de Electron"). El empaquetado lo toma de build/
 // (electron-builder: icon.icns / icon.ico / icon.png); esto es el de EJECUCION — la ventana en Windows y
@@ -55,7 +59,7 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       // lo lee el preload (window.RASANTE_DEV / RASANTE_FULL: `--full`, la version sin PROXIMAMENTE)
-      additionalArguments: [...(DEV ? ['--rasante-dev'] : []), ...(process.argv.includes('--full') ? ['--rasante-full'] : [])],
+      additionalArguments: [...(DEV ? ['--rasante-dev'] : []), ...(FULL ? ['--rasante-full'] : [])],
       contextIsolation: true,     // seguridad estándar
       nodeIntegration: false,     // el renderer NO tiene acceso a Node
       // El juego arranca la música al cargar, sin esperar un gesto. Electron YA permite autoplay

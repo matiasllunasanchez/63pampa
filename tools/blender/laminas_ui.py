@@ -14,16 +14,26 @@ from armar_laminas import fosforo, reducir, ESC, W, H, SALIDA, AQUI
 
 CAPTURAS = os.path.join(AQUI, 'out', 'laminas_ui')
 K = 1.28   # las cajas se midieron en la captura vista a 2000 px de ancho; la captura es de 2560
+# (23/11, el autor: "no es claro, mostrar la barra de objetivo nomas con la zona"): las tres del Super Etendard son UN
+# SOLO ELEMENTO del HUD, agrandado y centrado en negro (`solo`), no la pantalla entera
 LAMINAS = {
-    'ui_busca':   ('su_busca',   [250, 0, 1250, 562]),     # la zona azul de la cinta, el radar prendido, "el horizonte lo tapa"
-    'ui_ubicado': ('su_ubicado', [250, 0, 1250, 562]),     # BLANCO UBICADO: la flecha roja con los km, y el Sea Dart que te pinta
-    'ui_pulso':   ('su_pulso',   [600, 0, 1720, 630]),     # el PULSO del Exocet: distancia, rumbo, potencia
+    'ui_busca':   ('su_busca',   [612, 6, 1190, 62], True),     # la BARRA DEL OBJETIVO con la zona azul (el radar)
+    'ui_ubicado': ('su_ubicado', [855, 182, 1135, 282], True),  # BLANCO UBICADO: el nombre, los km y la flecha roja
+    'ui_pulso':   ('su_pulso',   [612, 8, 1720, 410], True),    # el PULSO: el panel distancia/rumbo/potencia y las flechas
     'ui_escolta': ('a4_escolta', [500, 60, 1400, 566]),   # los A-4C a los costados del Exocet, rumbo al portaaviones
 }
 
-def armar(nombre, cap, caja):
+MARGEN = 0.88   # (solo) lo que ocupa el elemento de la lamina, como mucho, en cada eje
+
+def armar(nombre, cap, caja, solo=False):
     x0, y0, x1, y1 = [round(v * K) for v in caja]
-    c = Image.open(os.path.join(CAPTURAS, cap + '.png')).convert('RGB').crop((x0, y0, x1, y1)).resize((W * ESC, H * ESC), Image.LANCZOS)
+    c = Image.open(os.path.join(CAPTURAS, cap + '.png')).convert('RGB').crop((x0, y0, x1, y1))
+    if solo:
+        k = min(W * ESC * MARGEN / c.width, H * ESC * MARGEN / c.height)
+        cw, ch = round(c.width * k), round(c.height * k)
+        c = c.resize((cw, ch), Image.LANCZOS)
+    else:
+        c = c.resize((W * ESC, H * ESC), Image.LANCZOS)
     g = c.convert('L')
     rgb = np.asarray(c, np.float32) / 255
     # LO AZUL DEL HUD (la zona de busqueda en la cinta, el radar): en gris se perdia; sale lleno
@@ -37,6 +47,14 @@ def armar(nombre, cap, caja):
     linea = np.clip((borde - 0.035) * 9, 0, 1)
     # el RELLENO: la luz de la captura (el texto claro del HUD sale lleno, el cielo apenas)
     relleno = np.maximum(np.clip((a - 0.25) * 1.6, 0, 1), azul)
+    if solo:
+        relleno = np.maximum(np.clip((a - 0.55) * 2.2, 0, 1), azul)   # solo lo que brilla (el HUD), no las nubes de fondo
+        # al centro de la lamina, en negro (el canto del recorte no dibuja linea: se procesa antes de pegarlo)
+        L = np.zeros((H * ESC, W * ESC), np.float32); R = np.zeros_like(L)
+        ox, oy = (W * ESC - c.width) // 2, (H * ESC - c.height) // 2
+        linea[:2, :] = linea[-2:, :] = 0; linea[:, :2] = linea[:, -2:] = 0
+        L[oy:oy + c.height, ox:ox + c.width] = linea; R[oy:oy + c.height, ox:ox + c.width] = relleno
+        linea, relleno = L, R
     fosforo(reducir(linea), reducir(relleno), k_relleno=0.45, k_brillo=0.4, radio=2.5).save(os.path.join(SALIDA, nombre + '.png'))
     print('ok', nombre)
 

@@ -523,9 +523,9 @@ export const LIBRO_SCENES = {
     // su radar la ubicacion del Invincible evitando que el radar enemigo los encuentre; una vez encontrado debe configurar
     // el lanzamiento de manera correcta y una vez lanzado, huir… con capturas de UI"): las ui_* son capturas del juego
     // pasadas al fosforo (tools/blender/laminas_ui.py)
-    ['SUPER ÉTENDARD. Lleva el Exocet y tiene que encontrar al Invincible con su radar. En la zona azul de la barra de arriba lo prendés: si subís lo encontrás antes, pero su radar te encuentra a vos.', 'ui_busca', 'S. ÉTENDARD 1 · BUSCAR CON RADAR'],
-    ['Cuando aparece BLANCO UBICADO, la flecha roja marca dónde está y a cuántos km. Si te pintó el Sea Dart, abajo al ras: que no te encuentren antes de lanzar.', 'ui_ubicado', 'S. ÉTENDARD 2 · BLANCO UBICADO'],
-    ['En la zona de lanzamiento, mira de bomba y soltar: se abre el PULSO. Cargás distancia, rumbo y potencia. Bien cargado, el misil va solo; mal cargado, se pierde en el mar.', 'ui_pulso', 'S. ÉTENDARD 3 · CARGAR EL EXOCET'],
+    ['SUPER ÉTENDARD. Llevás el Exocet y tenés que encontrar al Invincible. En la barra de arriba, la zona azul es donde está: al final de la zona ya lo ves. Con el radar lo encontrás ANTES, y cuanto más avanzás, más fácil. Si subís, es mucho más fácil, pero te ven a vos.', 'ui_busca', 'S. ÉTENDARD 1 · BUSCAR CON RADAR'],
+    ['Cuando el radar lo encuentra, aparece sobre el buque su nombre, a cuántos km está y una flecha roja: volá hacia ahí. Si el Sea Dart te detecta, bajá al ras y lanzá cuanto antes.', 'ui_ubicado', 'S. ÉTENDARD 2 · BLANCO UBICADO'],
+    ['Ya cerca del buque, apuntá y soltá como una bomba: se abre el lanzamiento. Apretá las flechas en el orden en que aparecen; así cargás distancia, rumbo y potencia. Bien cargado, el Exocet va solo al buque; si le errás, se pierde en el mar.', 'ui_pulso', 'S. ÉTENDARD 3 · CARGAR EL EXOCET'],
     ['Lanzado el Exocet, a huir: das la vuelta al ras y volvés. Del misil se encargan los A-4C.', 'supere_exocet', 'S. ÉTENDARD 4 · HUIR'],
     // EL A-4C, EN DOS (23/11, el autor: "escoltas, debian proteger a toda costa a los Super Etendard y luego al Exocet…
     // seguir al misil lado a lado la mayor distancia posible… eliminando todo lo que podria colisionar con el")

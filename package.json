@@ -38,6 +38,7 @@
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
     "pack": "electron-builder --dir",
+    "dist:amigos": "npm run build:game && electron-builder --win portable --x64 -c.extraMetadata.rasanteFull=true -c.directories.output=dist/amigos && electron-builder --mac dmg --universal -c.extraMetadata.rasanteFull=true -c.directories.output=dist/amigos",
     "prebuild:web": "npm run build:game",
     "predist": "npm run build:game",
     "prepack": "npm run build:game",

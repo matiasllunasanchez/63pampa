@@ -3023,26 +3023,34 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // (23/11, el autor: "si sube por encima del radar enemigo la probabilidad aumenta muchisimo, pero tiene que jugar contra
     // el tiempo que tarda el radar enemigo en encontrarlo"): arriba del techo (`run.radarVisto`, que es tambien lo que carga
     // la barra de deteccion) el dado sale ARRIBA veces mas facil, con un piso de ARRIBA_MIN — y mientras tanto te pintan.
-    const BUSCA = { ANTES: 0.07, P0: 0.06, P1: 0.55, ARRIBA: 4, ARRIBA_MIN: 0.45 };
-    const buscaZona = () => (zonaLanzamiento() && objectiveDist > 0 ? [lanzaM() - BUSCA.ANTES * objectiveDist, cierreM()] : null);
+    // (23/11, el autor: "no lo encontre nunca"): el radar dura 4 s y recarga en 25, asi que en la zona son 4 tiradas; con
+    // P0 0.06 casi nunca salia al entrar. Ahora P0 0.2 → P1 0.65
+    // (…y despues, 23/11, el autor: "la idea del radar es encontrarlo ANTES… si llego al limite de la zona azul ya lo encuentro
+    // porque literalmente LO VEO"): la chance sube a lo largo de la zona (P0 → 1) y en su FIN queda ubicado solo, con o sin
+    // radar. Por eso la zona ya no termina en el cierre del lanzamiento sino a FIN de la ventana: al verlo, todavia se lanza.
+    const BUSCA = { ANTES: 0.07, P0: 0.12, ARRIBA: 4, ARRIBA_MIN: 0.45, FIN: 0.5 };
+    const buscaZona = () => (zonaLanzamiento() && objectiveDist > 0 ? [lanzaM() - BUSCA.ANTES * objectiveDist, lanzaM() + (cierreM() - lanzaM()) * BUSCA.FIN] : null);
     let buscaAcc = 0;
     function pasoBuscaExo(dt) {
       const z = buscaZona();
+      // AL FINAL DE LA ZONA YA SE VE: ubicado solo, con el radar apagado o sin radar
+      if (z && run.soloExocet && !run.exoUbicado && S.state === 'play' && run.dist >= z[1]) { ubicarExo(); return; }
       if (!z || !run.soloExocet || run.exoUbicado || S.state !== 'play' || !radarP.on || run.dist < z[0] || run.dist > z[1]) { buscaAcc = 0; return; }
       buscaAcc += dt;
       while (buscaAcc >= 1) {
         buscaAcc -= 1;
         const u = (run.dist - z[0]) / Math.max(1, z[1] - z[0]);
-        let p = BUSCA.P0 + (BUSCA.P1 - BUSCA.P0) * u;
+        let p = BUSCA.P0 + (1 - BUSCA.P0) * u * u;   // sube despacio y al final es seguro
         if (run.radarVisto) p = Math.min(0.95, Math.max(BUSCA.ARRIBA_MIN, p * BUSCA.ARRIBA));
-        if (Math.random() < p) {
-          run.exoUbicado = true; buscaAcc = 0;
-          radarP.marcaT = Math.max(radarP.marcaT, 6); radarP.ecoT = 0;
-          beep(1250, 0.08, 'sine', 0.05, 300); setTimeout(() => beep(1500, 0.1, 'sine', 0.05, 300), 110);
-          cartel(T('exo_ubicado'), '#ff4a3a', T('exo_ubicado_sub', { n: nombreObjetivo() }));
-          return;
-        }
+        if (Math.random() < p) { ubicarExo(); return; }
       }
+    }
+    /** BLANCO UBICADO: la flecha roja, el punto del radar, la brujula — y el Exocet ya se puede lanzar */
+    function ubicarExo() {
+      run.exoUbicado = true; buscaAcc = 0;
+      radarP.marcaT = Math.max(radarP.marcaT, 6); radarP.ecoT = 0;
+      beep(1250, 0.08, 'sine', 0.05, 300); setTimeout(() => beep(1500, 0.1, 'sine', 0.05, 300), 110);
+      cartel(T('exo_ubicado'), '#ff4a3a', T('exo_ubicado_sub', { n: nombreObjetivo() }));
     }
     /** Lo que la cinta de arriba necesita de la busqueda: [desde, hasta] en fraccion del objetivo y si se esta buscando. */
     const buscaCinta = () => { const z = buscaZona(); return z && run.soloExocet && !run.exoUbicado ? { f0: z[0] / objectiveDist, f1: z[1] / objectiveDist, on: radarP.on && run.dist >= z[0] && run.dist <= z[1] } : null; };
@@ -10353,8 +10361,11 @@ import { apodoAvion } from './data/apodos_aviones.js';
         // LA DETECCION (16/10): detecting suena desde que empieza hasta que quedan marcadas las flechitas
         if (rp.det === 'empieza') sfxOne('radarDetecta');
         else if (rp.det === 'termina') sfxStop('radarDetecta', 0.25);
-        if (rp.sig === 'eco' && run.soloExocet && !buscaZona()) run.exoUbicado = true;   // (23/11) ya se puede lanzar el Exocet (con zona de busqueda, lo decide pasoBuscaExo)
-        if (rp.sig === 'eco') { beep(1250, 0.08, 'sine', 0.05, 300); cartel(T('radar_eco'), '#5ab4ff', null, { alerta: true }); }
+        // (23/11, el autor: "si ya aparece el nombre es porque lo encontre"): el ECO del radar —el que marca el nombre del
+        // buque— UBICA el blanco del Exocet siempre, tambien en la zona de busqueda (antes ahi solo valia el dado)
+        if (rp.sig === 'eco' && run.soloExocet && !run.exoUbicado && buscaZona()) ubicarExo();   // (con su cartel de BLANCO UBICADO)
+        else if (rp.sig === 'eco') {
+          if (run.soloExocet) run.exoUbicado = true; beep(1250, 0.08, 'sine', 0.05, 300); cartel(T('radar_eco'), '#5ab4ff', null, { alerta: true }); }
         else if (rp.sig === 'ecoAereo') { beep(1100, 0.08, 'sine', 0.05, 250); cartel(T('radar_eco_aereo'), '#5ab4ff', null, { alerta: true }); }
         else if (rp.sig === 'sinCarga') { beep(220, 0.1, 'square', 0.04, -60); cartel(T('radar_sin'), P.dim); }
         else if (rp.sig === 'bajo') cartel(T('radar_bajo'), '#5ab4ff', T('radar_bajo_sub')); }
