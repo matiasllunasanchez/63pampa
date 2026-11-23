@@ -9,9 +9,11 @@
 import { ctx } from './ctx.js';
 import { SHEET_FW } from '../data/planes.js';
 
-const CON_HD = /a4-skyhawk\/(sheet|skin_[a-z]+|tren)\.png(\?.*)?$/;
+// (la base y la FINA —sheet5, skin_<x>5, tren5, 23/11—: nivelado, en la pista, el lider se dibuja con la fina)
+const CON_HD = /a4-skyhawk\/(sheet5?|skin_[a-z]+5?|tren5?|variante[1-4])\.png(\?.*)?$/;   // (+ las variantes de los numerales)
 const HD = new Map();
-export const HD_DESDE = 1.4, HD_HASTA = 2.0;   // pixeles de pantalla por pixel de la hoja base
+// (23/11: en la pista, a 1280 de ventana, un A-4 da ~1,7 — con 1,4..2,0 quedaba a medio fundir; ahora entra entero)
+export const HD_DESDE = 1.05, HD_HASTA = 1.45;   // pixeles de pantalla por pixel de la hoja base
 
 export function hojaHd(img) {
   if (!img || !img.src || globalThis.__sinHd) return null;   // (__sinHd: para comparar antes/despues en una captura)

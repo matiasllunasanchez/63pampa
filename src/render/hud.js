@@ -338,8 +338,10 @@ export function drawRotuloDespegue(rot, sale = 0) {
   ctx.globalAlpha = 1 - sale;
   ctx.textAlign = 'left';
   // (23/11, el autor: "con sombra negra y mucho mas chico, 3 veces mas chico"): todo a un tercio desde la esquina
-  const ROT_K = 1 / 3;
-  ctx.translate(10, 8); ctx.scale(ROT_K, ROT_K);
+  // (23/11, despues: "letra un poco mas grande, y sin sombra, que haga contraste con el fondo… fondo negro con
+  // opacidad al 80%"): un poco mas grande, sin sombra y con su placa negra al 80% por renglon
+  const ROT_K = 0.44;
+  ctx.translate(10, 8 + (globalThis.__rotDy || 0)); ctx.scale(ROT_K, ROT_K);   // (__rotDy: solo las capturas de prueba, cuya ventana corta arriba)
   let t = rot.t, y = 10;
   const x = 0, a0 = ctx.globalAlpha;
   // LA LETRA DE LAS DESCRIPCIONES DEL MENU PRINCIPAL (23/11, el autor: "la parte que explica donde estoy, con hora y
@@ -352,15 +354,15 @@ export function drawRotuloDespegue(rot, sale = 0) {
     t -= txt.length / ROTULO_CPS + ROTULO_PAUSA;
     if (n <= 0) break;
     const vis = txt.slice(0, n), w = ctx.measureText(vis).width;
-    // el amarillo de siempre, con sombra negra (23/11) para que se lea chico sobre el cielo
-    ctx.globalAlpha = a0; ctx.fillStyle = '#000';
-    ctx.fillText(vis, x + 2, y + 2);
+    // el amarillo de RASANTE sobre su placa negra al 80% (sin sombra: la placa da el contraste)
+    ctx.globalAlpha = a0; ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(x - 4, y - 10, w + (n < txt.length ? 10 : 8), 13);
     ctx.fillStyle = '#f2cf4a';
     ctx.fillText(vis, x, y);
     // el cursor: en el renglon que se esta escribiendo, y titilando en el ultimo cuando ya termino
     const escribiendo = n < txt.length, ultimo = i === rot.lineas.length - 1;
     if (escribiendo ? Math.sin(performance.now() / 70) > -0.3 : ultimo && Math.sin(rot.t * 8) > 0) { ctx.globalAlpha = a0 * 0.8; px(x + w + 1, y - 7, 4, 8, P.accent); }
-    y += 12;
+    y += 14;
     if (escribiendo) break;
   }
   ctx.letterSpacing = '0px';

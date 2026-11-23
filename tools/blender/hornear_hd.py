@@ -6,6 +6,10 @@
 #
 #   python3 tools/blender/hornear_hd.py            hornea (Blender) y arma (PIL) — sheet_hd.png, skin_<x>_hd.png, tren_hd.png
 #   python3 tools/blender/hornear_hd.py --armar    solo arma lo ya horneado
+#
+# …Y LA FINA (23/11, el autor: "no veo que los A-4 se vean mejor antes de despegar, de cerca"): volando nivelado —la
+# pista, el despegue— el lider se dibuja con la hoja FINA (13 alabeos x 5 cabeceos, sheet5), no con la base; sin su
+# version al doble la de cerca nunca entraba. Va igual: sheet5_hd.png, skin_<x>5_hd.png, tren5_hd.png.
 import os, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -17,17 +21,24 @@ CLAVES = ('sky', 'skin_tero', 'skin_puma', 'skin_gitano', 'skin_pichon', 'skin_v
 OUT = os.path.join('out', 'aviones_hd')
 DEST = os.path.join(RAIZ, 'assets', 'planes', 'a4-skyhawk')
 NOMBRE = {'sky': 'sheet_hd', **{k: k + '_hd' for k in CLAVES if k.startswith('skin_')}}
+# LAS VARIANTES DEL ESCUADRON (los numerales de una mision sin los Fieles: variante1..4.png), solo la base: los
+# numerales vuelan nivelados (render/squad.js)
+VARIANTES = tuple('var_sky_%d' % n for n in range(1, 5))
+NOMBRE.update({k: 'variante%s_hd' % k[-1] for k in VARIANTES})
 
+VISTAS = ('base', 'fino')
 def trabajos():
-    for k in CLAVES:
-        yield (k, None)
-        yield (k, 'sinsonda')          # la sonda va de un lado (ver hornear_todo.py SONDA_LATERAL)
-    yield ('sky', 'tren')
+    for v in VISTAS:
+        for k in CLAVES:
+            yield (k, None, v)
+            yield (k, 'sinsonda', v)          # la sonda va de un lado (ver hornear_todo.py SONDA_LATERAL)
+        yield ('sky', 'tren', v)
+    for k in VARIANTES: yield (k, None, 'base')
 
 def hornear(t):
-    k, c = t
-    out = os.path.join(OUT, k, 'base' if not c else 'base_sinsonda' if c == 'sinsonda' else 'capas/%s_base' % c)
-    args = [BLENDER, '--background', '--factory-startup', '--python', 'hornear.py', '--', '--modelo', k, '--vista', 'base',
+    k, c, v = t
+    out = os.path.join(OUT, k, v if not c else v + '_sinsonda' if c == 'sinsonda' else 'capas/%s_%s' % (c, v))
+    args = [BLENDER, '--background', '--factory-startup', '--python', 'hornear.py', '--', '--modelo', k, '--vista', v,
             '--out', out, '--px', str(PX)]
     if c == 'sinsonda': args += ['--sin-sonda']
     elif c: args += ['--capa', c]
@@ -37,13 +48,22 @@ def hornear(t):
 def armar():
     sys.path.insert(0, AQUI)
     import armar_juego as J
-    for k in CLAVES:
-        h = J.hoja(os.path.join(AQUI, OUT, k, 'base'), 3, PX, True)
-        J.con_contorno(h, 3, PX).save(os.path.join(DEST, NOMBRE[k] + '.png'))
-        print('->', NOMBRE[k] + '.png')
-    t = J.hoja(os.path.join(AQUI, OUT, 'sky', 'capas', 'tren_base'), 3, PX, True)
-    J.con_contorno(t, 3, PX).save(os.path.join(DEST, 'tren_hd.png'))
-    print('-> tren_hd.png')
+    # (la base: 3 cabeceos x 9 alabeos; la fina: 5 x 13, con el sufijo 5 como sheet5 / skin_<x>5 / tren5)
+    for v, filas, cols, suf in (('base', 3, 9, ''), ('fino', 5, 13, '5')):
+        if not os.path.isdir(os.path.join(AQUI, OUT, 'sky', v)): continue
+        for k in CLAVES:
+            h = J.hoja(os.path.join(AQUI, OUT, k, v), filas, PX, True, cols)
+            nombre = NOMBRE[k].replace('_hd', suf + '_hd')
+            J.con_contorno(h, filas, PX).save(os.path.join(DEST, nombre + '.png'))
+            print('->', nombre + '.png')
+        if v == 'base':
+            for k in VARIANTES:
+                if not os.path.isdir(os.path.join(AQUI, OUT, k, 'base')): continue
+                J.con_contorno(J.hoja(os.path.join(AQUI, OUT, k, 'base'), 3, PX, True), 3, PX).save(os.path.join(DEST, NOMBRE[k] + '.png'))
+                print('->', NOMBRE[k] + '.png')
+        t = J.hoja(os.path.join(AQUI, OUT, 'sky', 'capas', 'tren_' + v), filas, PX, True, cols)
+        J.con_contorno(t, filas, PX).save(os.path.join(DEST, 'tren' + suf + '_hd.png'))
+        print('-> tren' + suf + '_hd.png')
 
 if __name__ == '__main__':
     if '--armar' not in sys.argv:

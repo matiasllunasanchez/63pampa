@@ -722,7 +722,7 @@ export function drawTren(pl, g, col, row, x, y, w, h, fino) {
   ctx.globalAlpha = a0 * Math.min(1, g * 5);
   const k = pl.px || 1;
   ctx.drawImage(im, col * SHEET_FW * k, row * SHEET_FH * k, SHEET_FW * k, SHEET_FH * k, x, y - (1 - g) * TREN_SUBE * h, w, h);
-  if (!fino) encimaHd(im, col * SHEET_FW * k, row * SHEET_FH * k, SHEET_FW * k, SHEET_FH * k, x, y - (1 - g) * TREN_SUBE * h, w, h, mezclaHd(w, k));
+  encimaHd(im, col * SHEET_FW * k, row * SHEET_FH * k, SHEET_FW * k, SHEET_FH * k, x, y - (1 - g) * TREN_SUBE * h, w, h, mezclaHd(w, k));
   ctx.globalAlpha = a0;
   return true;
 }
@@ -1239,7 +1239,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     if (!(conBase && drawTren(pl, run.gear, col, row, -dW / 2, -dH / 2, dW, dH, fino))) drawGear(run.gear, 1);
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
     // LA HOJA DE CERCA (render/hojaHd.js): grande en pantalla —el despegue— se funde encima la horneada al doble
-    const aHd = conBase && !fino ? mezclaHd(dW, PX) : 0;
+    // (tambien con la FINA, que es la de volar nivelado — la pista —: tiene su `sheet5_hd`)
+    const aHd = conBase ? mezclaHd(dW, PX) : 0;
     if (aHd) encimaHd(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH, aHd);
     // LAS PALAS DE LOS HELICOPTEROS, girando (18/11): la hoja trae el rotor sin palas y el horno midio, pose
     // por pose, el cubo y la elipse por donde giran (`AN.rot`, tools/blender/hornear.py)
