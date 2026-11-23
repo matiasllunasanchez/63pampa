@@ -1248,6 +1248,9 @@ function drawCartel() {
   // LA PILA (8/10): el primero va arriba, debajo de la cinta, y cada uno se apoya debajo del anterior.
   // La altura de cada lugar se SUAVIZA (c.y): cuando entra uno nuevo, los demas bajan, no saltan.
   let techo = islasHud ? MARGEN : MARGEN + CARTEL_Y;
+  // A LA ALTURA DE FUERA DE RADAR (22/11, el autor: "los mensajes del estilo ARRANCASTE CON FALLAS mas arriba, a esta
+  // misma altura de fuera de radar y con ese mismo ancho y alto"): el primero arranca donde esta esa placa
+  if (enPlacaRadar()) techo = cajaZona.y;
   const lista = cartelesAhora(performance.now() / 1000);
   if (enCabina()) {
     let alto = 0;
@@ -1260,6 +1263,8 @@ function drawCartel() {
     techo += (h + 2) * a.k;
   }
 }
+/** Los carteles toman la medida de la placa del radar: en el pasillo, fuera de la cabina, con la placa ya dibujada. */
+const enPlacaRadar = () => !islasHud && !enCabina() && !!cajaZona;
 function drawUnCartel(a, techo) {
   // la letra de los avisos no tiene raya (—): quedaba un hueco en «EN RADAR — AL AGUA»
   // …y SIN SIGNOS (28/9, el autor): la caja ya dice que es un aviso — los "! … !" y "¡…!" y los
@@ -1288,14 +1293,21 @@ function drawUnCartel(a, techo) {
   const wIco = gl ? glifos.medir(gl, GLIFO_H) : c.okF != null ? 8 : 0;
   const wCuenta = fila && c.sub ? (ctx.font = GLIFO_CUENTA, ctx.measureText(c.sub).width + 4) : 0;
   const w3 = fila ? wIco + 5 + w1 + wCuenta : 0;
-  const w = Math.round(Math.max(fila ? 0 : w1, fila ? 0 : w2, w3) + (c.alerta ? 20 : 12)), h = fila ? FILA_H : c.sub ? 12 + SUB_PX + 2 : 12;
+  let w = Math.round(Math.max(fila ? 0 : w1, fila ? 0 : w2, w3) + (c.alerta ? 20 : 12)), h = fila ? FILA_H : c.sub ? 12 + SUB_PX + 2 : 12;
+  // (la medida de FUERA DE RADAR: al menos su ancho y su alto; el texto se centra adentro con `bajaTxt`)
+  let bajaTxt = 0;
+  if (enPlacaRadar()) { const h0 = h; w = Math.max(w, cajaZona.w); h = Math.max(h, cajaZona.h); bajaTxt = Math.round((h - h0) / 2); }
   // el lugar en la pila, suavizado (lo guarda el propio cartel del store: es estado de dibujo, nada mas)
   // (LAS ISLAS, fuera de la cabina — 21/11, el autor: "que aparezcan como aparece radar pero de derecha a izquierda,
   // que se puedan stackear… que queden 3 segs y se vayan hacia la derecha": entra CORRIENDO desde la derecha y se va
   // por la derecha; la pila los pone uno debajo del otro, sin pisarse)
   const corre = islasHud && !enCabina(), dx = corre ? Math.round((1 - k) * (W / 2 + w)) : 0;
-  const x = Math.round(W / 2 - w / 2) + dx, techo0 = techo;
-  if (!enCabina() && x < cajaIzq.der + 3 && techo < cajaIzq.abajo + 3) techo = cajaIzq.abajo + 3;
+  let x = Math.round(W / 2 - w / 2) + dx;
+  const techo0 = techo;
+  // al lado de la placa del radar, a su altura: si centrado la pisaria, se corre a su derecha
+  if (enPlacaRadar() && x < cajaIzq.der + 4) x = cajaIzq.der + 4;
+  else if (!enCabina() && x < cajaIzq.der + 3 && techo < cajaIzq.abajo + 3) techo = cajaIzq.abajo + 3;
+  const cx = x + w / 2;   // el centro del texto (antes, siempre la mitad de la pantalla)
   if (a.c.y == null) a.c.y = techo;
   a.c.y += (techo - a.c.y) * 0.25;
   // ENTRA Y SALE FUNDIDO, en su lugar (16/11): antes subia por detras de la placa de km y puntos y la pisaba
@@ -1321,13 +1333,13 @@ function drawUnCartel(a, techo) {
   bordePlaca(x, y, w, h, col);
   ctx.textAlign = 'center';
   ctx.font = avisoFont(8); ctx.fillStyle = col;
-  if (!fila) conApertura(c.txt, W / 2 + dx, y + 9, 8);
+  if (!fila) conApertura(c.txt, cx, y + 9 + bajaTxt, 8);
   if (c.sub && !fila) {
     ctx.font = fSub; ctx.fillStyle = c.subCol || P.foam;
-    conApertura(c.sub, W / 2 + dx, y + 11 + SUB_PX - (c.alerta ? 1 : 0), SUB_PX);
+    conApertura(c.sub, cx, y + 11 + bajaTxt + SUB_PX - (c.alerta ? 1 : 0), SUB_PX);
   }
   if (fila) {
-    const gx = Math.round(W / 2 + dx - w3 / 2), gy = y + Math.round((h - GLIFO_H) / 2);
+    const gx = Math.round(cx - w3 / 2), gy = y + Math.round((h - GLIFO_H) / 2);
     // CUMPLIDA, EN TRES TIEMPOS Y FUNDIDOS (`okF` 1→0): el mando se tiñe de verde, despues se achica y se apaga
     // mientras el CHECK crece en su lugar. Sin cortes: cada tramo arranca donde termino el anterior
     const ok = c.okF, ss = v => { v = Math.max(0, Math.min(1, v)); return v * v * (3 - 2 * v); };
@@ -2469,6 +2481,7 @@ export function drawAlerta(x, y, w, n, prog, fuera, propio, bandera) {
   const wTot = RADAR_W - 1 + wz;
   cajaIzq.der = x + wTot; cajaIzq.abajo = y + ALERTA_H;   // (los carteles no la pisan: drawCartel)
   cajaZona = { x, y, w: wTot, h: ALERTA_H };   // (la zona del foco 'radar' del tutorial, 21/11)
+  filaAlerta = { y, der: x + (alertaK > 0 ? ANCHO_ALARMAS : wTot) };   // (lo que queda libre a la derecha: drawRadar)
   if (alertaK < 1) {
     plate(x + RADAR_W - 1, y, wz, ALERTA_H);
     // TRES COSAS QUE PUEDE DECIR, y las tres son el mismo dato en tres momentos:
@@ -2509,7 +2522,7 @@ export function drawAlerta(x, y, w, n, prog, fuera, propio, bandera) {
     ctx.save(); ctx.beginPath(); ctx.rect(x + RADAR_W - 1, y - 3, W, ALERTA_H + 6); ctx.clip();
     // EL CUADRO DE LA OLEADA, DETRAS: sale de izquierda a derecha de atras de las alarmas cuando la tanda
     // crece (x2, x3…), titila un par de segundos y vuelve a entrar. Del mismo tamaño que el del radar.
-    olaCuadro(x + wa - 1 + dx, y);
+    olaCuadro(x + w - 1, y);   // (al FINAL del renglon, 22/11: al lado de las alarmas ahora va enganchada la barra del radar)
     balizasAlerta(x, y, wa, n, prog, dx, visto);
     ctx.restore();
   }
@@ -2614,6 +2627,11 @@ function balizasAlerta(x, y, w, n, prog, dx, visto) {
  *  la barra baja. Devuelve el `y` donde sigue la columna. */
 const RADAR_H = 12, RADAR_ENTRA = 0.22;
 let radarK = 0, radarT = -1;
+// EN EL RENGLON DE LAS ALARMAS (22/11, el autor: "el misil puede ocupar el espacio libre entre las alarmas y el lado
+// derecho del total de aviones; o al menos al mismo ancho de las alarmas"): drawAlerta anota donde termina lo suyo
+// (las balizas y el lugar del cuadro de oleada, o la placa FUERA DE RADAR / DETECTANDO) y la barra usa el resto.
+let filaAlerta = null;
+const RADAR_MIN_W = 56;   // menos que esto no se lee: va abajo, al ancho de las alarmas
 function drawRadar(x, y, w, visto) {
   // el reloj de la entrada sale de `run.t`, como el de la cara: el HUD no recibe dt
   const dt = radarT < 0 || run.t < radarT ? 0 : Math.min(0.1, run.t - radarT);
@@ -2621,8 +2639,19 @@ function drawRadar(x, y, w, visto) {
   radarK = run.detection > 0.001 ? Math.min(1, radarK + dt / RADAR_ENTRA) : Math.max(0, radarK - dt / RADAR_ENTRA);
   if (radarK <= 0) return y;
   const e = 1 - Math.pow(1 - radarK, 3);                  // entra rapido y frena al llegar
-  const x0 = Math.round(x - (x + w + 2) * (1 - e));
-  plate(x0, y, w, RADAR_H);
+  // ENGANCHADA a la caja de las alarmas (22/11, el autor: "enganchado en el mismo cosito, porque es parte del radar"):
+  // arranca en su borde derecho (el pixel del borde lo comparten) y tiene su mismo alto
+  const libre = filaAlerta ? x + w - filaAlerta.der + 1 : 0;
+  const alLado = libre >= RADAR_MIN_W;
+  const sigue = alLado ? y : y + RADAR_H + AIRE;          // al lado no ocupa renglon propio
+  let yP = y, hP = RADAR_H;
+  if (alLado) { x = filaAlerta.der - 1; w = libre; yP = filaAlerta.y; hP = ALERTA_H; y = yP + Math.round((ALERTA_H - RADAR_H) / 2); }
+  else w = Math.min(w, ANCHO_ALARMAS);
+  // entra desde la izquierda de SU lugar, recortada a el (al lado de las alarmas no les pasa por encima)
+  ctx.save(); ctx.beginPath(); ctx.rect(x, yP - 1, w + 2, hP + 2); ctx.clip();
+  const x0 = Math.round(x - (w + 2) * (1 - e));
+  const fin = () => { ctx.restore(); return sigue; };
+  plate(x0, yP, w, hP);
   ctx.font = avisoFont(9); ctx.textAlign = 'left';
   ctx.fillStyle = visto ? (Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e') : P.dim;
   // …Y CUANDO DISPARA, DICE QUE (28/9): el misil del radar es el SEA DART. Mientras el misil del
@@ -2654,7 +2683,7 @@ function drawRadar(x, y, w, visto) {
       px(bx + i, y + 3 + ((i * 3 + Math.floor(run.t * 18)) % 5), 1, 1, i % 4 ? '#c9d6dd' : '#ffffff');
     ctx.restore();
   }
-  return y + RADAR_H + AIRE;
+  return fin();
 }
 
 /** LA PLACA DEL SEA WOLF (28/9), debajo de la del radar y con su mismo lenguaje, pero celeste: entra
@@ -2828,6 +2857,7 @@ export function drawHUD(h) {
   focoIds = h.foco || [];
   soloTero = !!h.unaVida;
   cajaCinta = null;   // ver cintaCaja: una caja de otro cuadro no cuenta
+  filaAlerta = null;  // idem: la fila de las alarmas de ESTE cuadro
   placas.length = 0;  // ver placasHud: las de este cuadro
   cajaPiloto = null;  // idem: la cara de la que sale mi voz es la de ESTE cuadro
       const { gameMode, objectiveDist, objectiveShip } = h;

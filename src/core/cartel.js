@@ -19,7 +19,8 @@
 export const carteles = { vivos: [], queda: null };
 export const CARTEL_ENTRA = 0.22, CARTEL_QUEDA = 2.2, CARTEL_SALE = 0.28;
 const durDe = () => CARTEL_ENTRA + (carteles.queda ?? CARTEL_QUEDA) + CARTEL_SALE;
-const TOPE = 3;
+// (22/11, el autor: "son una banda de cards cuando aparecen 3 juntas, te tapan la mitad de la pantalla"): DOS a la vez
+const TOPE = 2;
 const SOLTAR_T = 1;   // lo que queda un sostenido despues de apagarse   // cuantos a la vez: el cuarto empuja afuera al mas viejo
 
 /** Apila un cartel arriba: `txt` el texto, `col` su color, `sub` una segunda linea (o nada). El mismo

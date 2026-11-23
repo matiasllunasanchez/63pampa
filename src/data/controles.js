@@ -8,6 +8,8 @@
 // `notas` son ids de la misma tabla que se leen como aclaracion al pie, no como fila.
 
 export const CTRL_CATEGORIAS = [
+  // DISPOSICION (22/11, el autor): la lamina del tutorial —el joystick o el teclado entero, con lo que se usa resaltado—
+  { id: 'disposicion', lamina: true, notas: [] },
   // (MOVILIDAD sin TREN: el aterrizaje esta apagado, 18/11)
   // (19/11, el autor: "el 3D lo sacamos": sin FRENO, MEDIA VUELTA ni REPARTO DE ENERGIA, y sin las notas del 3D;
   // SOLTAR TANQUES se junta en SOLTAR SECUNDARIA)

@@ -19,6 +19,11 @@ import { iconoDe, ICONO_FW, ICONO_COLS, ICONOS } from '../data/iconos_cartas.js'
 import { capacidadesDe } from '../data/perfiles.js';
 import { CTRL_CATEGORIAS } from '../data/controles.js';
 import { MOVES, COMBO, COMBO_PAD } from '../data/moves.js';
+import { caraDe } from '../data/voces_cartas.js';
+import { descTrozos, descPlano } from '../data/desc_iconos.js';
+import { iconoEn } from './iconos.js';
+import { retrato, silueta } from './retratos.js';
+import { drawMando } from './mando.js';
 
 // ELECCION DE AVION — la pantalla previa de CICLO DE MUERTE y POR LA PATRIA. Usa los MISMOS
 // roles tipograficos que el lobby (logotipo / rotulo / nombre / texto corrido), para que las dos
@@ -493,6 +498,7 @@ export function drawModeSelect(w) {
     { name: T('modeCampaign'), desc: T('modeCampaignDesc') },
     { name: T('modeQuick'), desc: T('modeQuickDesc') },
     ...(DEV ? [{ name: T('modeDev'), desc: T('modeDevDesc') }] : []),   // solo en dev (core/dev.js)
+    { name: T('modeAlbum'), desc: T('modeAlbumDesc'), badge: w.albumNuevos || 0 },   // EL ALBUM DE MALVINAS (22/11): las NUEVAS, en un circulo rojo
     { name: T('modeOptions'), desc: T('modeOptionsDesc') },
     { name: T('modeQuit'), desc: T('modeQuitDesc'), quit: true },
   ];
@@ -535,6 +541,17 @@ export function drawModeSelect(w) {
     ctx.textAlign = 'left';
     ctx.fillStyle = col; ctx.font = menuFont(12);   // OtflagSans (la misma con la que se midio)
     ctx.fillText(opts[i].name, x, y);
+    // LA NOTIFICACION (22/11, el autor: "solo ALBUM y una notificacion roja: circulo rojo arriba a la derecha y un numero
+    // blanco adentro con un poco de aire"): pegada a la esquina de arriba del nombre
+    if (opts[i].badge > 0) {
+      const mn = ctx.measureText(opts[i].name), num = String(Math.min(99, opts[i].badge));
+      ctx.font = menuFont(8); const tw = ctx.measureText(num).width;
+      const r = Math.max(5, tw / 2 + 2.5), bx = x + mn.width + r + 1, by = y - mn.actualBoundingBoxAscent + 1;
+      ctx.fillStyle = '#e8321e'; ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(num, bx, by + 0.5);
+      ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'; ctx.font = menuFont(12);
+    }
     if (on && abre > 0.6) {                    // la descripcion, a maquina
       ctx.fillStyle = P.ink; ctx.globalAlpha = 0.9;
       ponFila(i);
@@ -786,7 +803,7 @@ function drawMejCard(r) {
   ctx.fillStyle = P.dim; ctx.globalAlpha = 0.7; ctx.font = labelFont(7);
   ctx.fillText(T('mejWhat'), px0, yy); ctx.globalAlpha = 1;
   ctx.fillStyle = P.body; ctx.font = descFont(10);
-  yy = wrapText(r.card.desc, px0, yy + 12, maxW, 11) + 5;
+  yy = wrapText(descPlano(r.card.desc), px0, yy + 12, maxW, 11) + 5;
 
   ctx.fillStyle = P.dim; ctx.globalAlpha = 0.7; ctx.font = labelFont(7);
   ctx.fillText(T('mejHowto'), px0, yy); ctx.globalAlpha = 1;
@@ -1310,7 +1327,16 @@ export function drawControles(w) {
 
   const xa = 52, xv = NW - 52, xk = xv - 150;
   let yFin;
-  if (cat.piruetas) {
+  if (cat.lamina) {
+    // DISPOSICION: la lamina del tutorial (render/mando.js), del mando que elige el switch. Esta dibujada en la grilla de
+    // diseño (320x180): se escala para que entre debajo de las pestañas sin su titulo (el de la pantalla ya lo dice)
+    const k = (NH - 66 - 16) / (H - 36);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 66, NW, NH - 66 - 14); ctx.clip();
+    ctx.translate((NW - W * k) / 2, 66 - 34 * k); ctx.scale(k, k);
+    drawMando({ pad: !!w.joy, t: performance.now() / 1000, completo: true });
+    ctx.restore();
+    yFin = NH;
+  } else if (cat.piruetas) {
     // DOS COLUMNAS de piruetas: el nombre y, debajo, como se pide
     // COMO PODERES DE PELEA (19/11, el autor: "las piruetas inmediatamente al lado del texto, en negrita y mas
     // espaciado, casi como poderes de Mortal Kombat, con icono de teclado y de joystick, y si son iguales, juntos"):
@@ -1451,7 +1477,7 @@ export function drawUpgrade(w) {
     ctx.fillStyle = on ? P.accent : P.body; ctx.font = menuFont(12);
     ctx.fillText(u.name, x + 12, y + 18);
     ctx.fillStyle = P.body; ctx.font = descFont(10);
-    ctx.fillText(u.desc, x + 12, y + 33);
+    ctx.fillText(descPlano(u.desc), x + 12, y + 33);
     ctx.fillStyle = P.dim; ctx.font = descFont(10);
     // las CHAFITAS no son un combo: se sueltan con su tecla
     ctx.fillText(u.tecla ? T('upgTecla') + ' ' + u.tecla : T('upgCombo') + ' ' + u.seq, x + 12, y + 46);
@@ -1483,6 +1509,8 @@ const CW = 150, CH = 204, C_ARTE = 96, C_TOPE = 19, C_PIE = 12, C_PAD = 8;
 // menu (EmbolismSpark) es de pincel y a este tamaño se empasta. Josefin Sans viene empaquetada (styles.css).
 const cartaFont = () => uiFont('JosefinSans', 10, '');
 const cartaFontChica = () => uiFont('JosefinSans', 8, '');
+const cartaFontDialogo = () => uiFont('JosefinSans', 6.5, '');   // la frase del pie (22/11, el autor: "letras mas chicas")
+const DLG_FILA = 7.5;
 /** Las lineas de `txt` que entran en `maxW` con la fuente ACTUAL (como wrapText, pero sin dibujar). */
 function lineasDe(txt, maxW) {
   const out = []; let line = '';
@@ -1498,6 +1526,7 @@ function lineasDe(txt, maxW) {
 // la tabla de CONTROLES. `tecla` de la carta → la fila de CONTROLES; las piruetas, su combo (data/moves.js).
 const TECLA_CTRL = { 'X / ESPACIO': 'Gun', 'Z / L1': 'Msl', 'H / circulo': 'Chapitas', B: 'Tanques', J: 'Chancha', 4: 'Tempo', 5: 'Rasante', Y: 'Radar' };
 let mandoCarta = { pad: false, padTxt: t => t };
+const CARA_PX = 24;   // la carita de quien dice la frase (el cuadro del dialogo del juego)
 function comoGlifos(u) {
   const { pad, padTxt } = mandoCarta;
   if (u.seq && COMBO[u.id]) return glifos.comboGlifos(pad && COMBO_PAD[u.id] ? padTxt(COMBO_PAD[u.id]) : COMBO[u.id], pad).gl;
@@ -1513,18 +1542,45 @@ function cuerpoCarta(u, lee, rota) {
     for (const l of lineasDe(txt, ancho)) out.push({ t: l, font, color, h: lh, centro });
     if (extra) out.push({ h: extra });
   };
-  out.push({ arte: true, h: C_ARTE + 2 });
-  bloque(u.name, menuFont(11), rota ? '#8a949a' : P.ink, 12, 3, true);
+  const arte = { arte: true, h: C_ARTE + 2, ah: C_ARTE };
+  out.push(arte);
+  out.push({ h: 3 });   // (el NOMBRE subio a la cabecera, 22/11: ver drawCartaBanco)
   // LA CARTA, CORTA (22/11, el autor: "las cartas tienen demasiada explicacion o texto, deben tener una frase
-  // caracteristica y una breve explicacion abajo"): la FRASE manda, y debajo la linea de que hace. El QUE HACE y
-  // EN 1982 de data/cartas_lee.js ya no se muestran (los datos quedan, por si vuelven a otro lado).
-  // …Y EN ESTE ORDEN (22/11, el autor: "TITULO, QUE HACE, y abajo mas chiquito la descripcion o frase"): lo que hace
-  // manda, en la letra grande; la frase del Turco va debajo, chica y apagada
-  bloque(u.desc, cartaFont(), rota ? '#8a949a' : P.ink, 11, 4, true);
-  if (u.quote) bloque('"' + u.quote + '"', cartaFontChica(), P.dim, 9, 3, true);
-  if (rota && u.motivo) bloque(u.motivo, cartaFont(), P.warn, 11, 3, true);
+  // caracteristica y una breve explicacion abajo"). El QUE HACE y EN 1982 de data/cartas_lee.js ya no se muestran.
+  // EL ORDEN (22/11, el autor: "TITULO, QUE HACE…"; "teclas mas chicas y arriba, abajo de todo el dialogo adicional que
+  // le da gracia"; "ABAJO LEER no va mas, que entre ahi"): titulo, que hace, las teclas chicas, y al pie la frase SIN
+  // COMILLAS con la carita de quien la dice (data/voces_cartas.js). Nada se desliza: si no entra, se achica el dibujo.
+  // (22/11, el autor: "en vez de +1 bomba, el mismo icono de la bomba de la UI, y asi con casi todo"): `{bomba}` en el
+  // desc es el icono del tablero (data/desc_iconos.js); la fila va en una linea y se achica si no entra
+  // EN DOS (22/11, el autor: "+1 y chafitas, y debajo la descripcion con texto mas chico, y debajo las teclas"): lo que
+  // va antes del primer punto es el TITULAR, grande y con los iconos; lo que sigue, la descripcion en letra chica
+  const dd = String(u.desc || ''), pto = dd.indexOf('. ');
+  const cab = pto > 0 ? dd.slice(0, pto) : dd, resto = pto > 0 ? dd.slice(pto + 2) : '';
+  const tinta = rota ? '#8a949a' : P.ink;
+  // (22/11, el autor: "el tamaño de letra el mismo que en GUERRA ELECTRONICA": la del efecto, no una mas grande)
+  if (/\{\w+\}/.test(cab)) { out.push({ mix: descTrozos(cab), font: cartaFont(), color: tinta, h: 13 }); out.push({ h: 2 }); }
+  else bloque(cab, cartaFont(), tinta, 11, 2, true);
+  if (resto) bloque(resto, cartaFontChica(), P.dim, 9, 2, true);
   const gl = comoGlifos(u);
-  if (gl && gl.length) out.push({ gl, h: 18 });
+  if (gl && gl.length) out.push({ gl, h: 13 });
+  if (rota && u.motivo) bloque(u.motivo, cartaFont(), P.warn, 11, 2, true);
+  // EL PIE, COMO LA CAJA DE DIALOGO DEL JUEGO (22/11, el autor: "la misma estructura de los dialogos in game: cuadricula
+  // a la izquierda, texto que rellene el lado derecho"): caja oscura con borde, el retrato en su cuadro con filete
+  // dorado, y a la derecha el nombre en dorado y la frase (screens.js dibujarOtroCabina)
+  let pie = null;
+  if (u.quote) {
+    const cara = caraDe(u.id), nombre = null;   // (22/11, el autor: "el nombre del personaje no hace falta": la cara alcanza)
+    ctx.font = cartaFontDialogo();
+    const anchoTxt = CW - 2 * C_PAD - (cara ? CARA_PX + 4 : 0) - 8;
+    const lin = lineasDe(u.quote, anchoTxt);
+    pie = { caja: true, cara, nombre, lin, font: cartaFontDialogo(), h: Math.max(CARA_PX + 6, (nombre ? 8 : 0) + lin.length * DLG_FILA + 6) + 2 };
+  }
+  // que entre: la frase va AL PIE (un relleno antes), y si falta lugar el dibujo de arriba cede lo que haga falta
+  const vista = CH - C_TOPE - 4;
+  const usado = out.reduce((s, r) => s + r.h, 0) + (pie ? pie.h : 0);
+  if (usado > vista) { const quita = Math.min(C_ARTE - 52, usado - vista); arte.ah -= quita; arte.h -= quita; }
+  else if (pie) out.push({ h: vista - usado });
+  if (pie) out.push(pie);
   const cara = out.reduce((s, r) => s + r.h, 0);
   return { out, cara, alto: out.reduce((s, r) => s + r.h, 0) };
 }
@@ -1573,7 +1629,7 @@ function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
   if (usada) rota = null;
   const col = rota ? '#6b7680' : (GRUPO_COL[u.grupo] || P.dim);
   const { out, cara, alto } = cuerpoCarta(u, on ? lee : null, rota);
-  const vista = CH - C_TOPE - C_PIE;
+  const vista = CH - C_TOPE - 4;   // (sin pie de LEER: la carta usa hasta el borde, igual que cuerpoCarta)
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y)); ctx.scale(k, k);
   // EL MARCO, CON FORMA DE CARTA (22/11, el autor: "la forma de la carta MAS FORMA DE CARTA"): esquinas redondas, el
@@ -1590,31 +1646,35 @@ function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
   // LA CABECERA: el icono del grupo y su nombre en la letra principal (22/11: "el texto DEFENSA con tipografia, mas
   // principal"; DEFENSA un ESCUDO, ARMAS una BALA, ALCANCE tipo SUPPORT)
   iconoGrupo(u.grupo || 'armas', C_PAD + 5, 11, col);
-  ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = menuFont(10);
-  ctx.fillText(T('banco_g_' + (u.grupo || 'armas')), C_PAD + 13, 14.5);
+  // EL NOMBRE EN LA CABECERA (22/11, el autor: "el nombre del objeto en el titulo donde dice DEFENSA o ARMAS, si total
+  // el color y el icono ya lo identifican"): el icono del grupo, y al lado el nombre de la carta en su color
   ctx.textAlign = 'right'; ctx.font = labelFont(7);
+  const sello = rota || (usada ? T('cartas_usada') : u.uso ? T('banco_uso') : '');
+  const selloW = sello ? ctx.measureText(sello).width + 4 : 0;
   if (rota) { ctx.fillStyle = selloCol; ctx.fillText(rota, CW - C_PAD, 14); }
-  else if (usada) { ctx.fillStyle = P.accent; ctx.fillText(T('cartas_usada'), CW - C_PAD, 14); }
-  else if (u.uso) { ctx.fillStyle = P.accent; ctx.fillText(T('banco_uso'), CW - C_PAD, 14); }
+  else if (sello) { ctx.fillStyle = P.accent; ctx.fillText(sello, CW - C_PAD, 14); }
+  ctx.textAlign = 'left'; ctx.fillStyle = rota ? '#8a949a' : col; ctx.font = menuFont(10);
+  ctx.fillText(u.name, C_PAD + 13, 14.5, CW - C_PAD * 2 - 13 - selloW);
   // lo que se desliza: recortado entre la franja de arriba y el pie
   ctx.save();
   ctx.beginPath(); ctx.rect(3, C_TOPE, CW - 6, vista); ctx.clip();
-  let yy = C_TOPE - leer;
+  let yy = C_TOPE;
   for (const r of out) {
     if (yy > CH || yy + r.h < C_TOPE - 120) { yy += r.h; continue; }
     if (r.arte) {
       // el fondo del dibujo: el color del grupo, apenas, con un horizonte
-      ctx.globalAlpha = 0.10; ctx.fillStyle = col; ctx.fillRect(4, yy, CW - 8, C_ARTE); ctx.globalAlpha = 0.18;
-      ctx.fillRect(4, yy + C_ARTE * 0.66, CW - 8, 1); ctx.globalAlpha = 1;
+      const ah = r.ah || C_ARTE, ip = Math.min(ICONO_FW, ah);   // (si la carta no entra, el dibujo cede alto)
+      ctx.globalAlpha = 0.10; ctx.fillStyle = col; ctx.fillRect(4, yy, CW - 8, ah); ctx.globalAlpha = 0.18;
+      ctx.fillRect(4, yy + ah * 0.66, CW - 8, 1); ctx.globalAlpha = 1;
       if (CARTAS_IMG.complete && CARTAS_IMG.naturalWidth) {
         const n = iconoDe(u), sx = (n % ICONO_COLS) * ICONO_FW, sy = Math.floor(n / ICONO_COLS) * ICONO_FW;
         const bob = on && !rota ? Math.round(Math.sin(t * 2.2) * 1.5) : 0;
         if (rota) { ctx.filter = 'grayscale(1) brightness(1.15)'; ctx.globalAlpha *= 0.75; }
-        ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, Math.round(CW / 2 - ICONO_FW / 2), Math.round(yy) + bob, ICONO_FW, ICONO_FW);
+        ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, Math.round(CW / 2 - ip / 2), Math.round(yy + (ah - ip) / 2) + bob, ip, ip);
         ctx.filter = 'none'; if (rota) ctx.globalAlpha /= 0.75;
       }
       if (rota) {                                                         // el sello: NO SE PUEDE, cruzado
-        ctx.save(); ctx.translate(CW / 2, yy + C_ARTE / 2); ctx.rotate(-0.28);
+        ctx.save(); ctx.translate(CW / 2, yy + ah / 2); ctx.rotate(-0.28);
         ctx.font = menuFont(12); ctx.textAlign = 'center';
         const tw = ctx.measureText(rota).width;
         ctx.strokeStyle = selloCol; ctx.lineWidth = 2; ctx.strokeRect(-tw / 2 - 6, -11, tw + 12, 18);
@@ -1626,9 +1686,47 @@ function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
       ctx.fillText(r.t, C_PAD, yy + 8);
       const tw = ctx.measureText(r.t).width;
       ctx.globalAlpha = 0.35; ctx.fillRect(C_PAD + tw + 4, yy + 5, CW - C_PAD * 2 - tw - 4, 1); ctx.globalAlpha = 1;
+    } else if (r.mix) {
+      // el texto con iconos del tablero adentro: se mide, se centra y, si no entra, se achica entero
+      ctx.font = r.font;
+      const IW = 12, AIRE = 4;
+      const w = r.mix.reduce((a, p) => a + (p.ico ? IW + AIRE : ctx.measureText(p.t).width), 0);
+      const k2 = Math.min(1, (CW - 2 * C_PAD) / w);
+      ctx.save(); ctx.translate(CW / 2, yy + r.h / 2); ctx.scale(k2, k2);
+      let x0 = -w / 2;
+      ctx.textAlign = 'left'; ctx.fillStyle = r.color;
+      for (const p of r.mix) {
+        if (p.ico) {
+          x0 += AIRE / 2;
+          ctx.save(); ctx.translate(x0 + IW / 2, 0); ctx.scale(1.6, 1.6);
+          if (rota) ctx.filter = 'grayscale(1)';
+          iconoEn(0, 0, p.ico, '#e8eef0'); ctx.restore();
+          x0 += IW + AIRE / 2;
+        } else { ctx.fillText(p.t, x0, 3.5); x0 += ctx.measureText(p.t).width; }
+      }
+      ctx.restore();
+    } else if (r.caja) {
+      const bx = C_PAD - 3, bw = CW - 2 * (C_PAD - 3), bh = r.h - 2, by = Math.round(yy);
+      ctx.fillStyle = '#070b0f'; ctx.globalAlpha = 0.92; ctx.fillRect(bx, by, bw, bh); ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#3a4c58'; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+      let tx = bx + 4;
+      if (r.cara) {
+        const cx = bx + 3, cy = by + Math.round((bh - CARA_PX) / 2), img = retrato(r.cara);
+        ctx.fillStyle = '#0d1319'; ctx.fillRect(cx, cy, CARA_PX, CARA_PX);
+        if (img) { if (rota) ctx.filter = 'grayscale(1)'; ctx.drawImage(img, cx, cy, CARA_PX, CARA_PX); ctx.filter = 'none'; }
+        else silueta(cx, cy, CARA_PX);
+        ctx.globalAlpha = 0.7; ctx.strokeStyle = rota ? '#6b7680' : P.accent; ctx.strokeRect(cx + 0.5, cy + 0.5, CARA_PX - 1, CARA_PX - 1); ctx.globalAlpha = 1;
+        tx = cx + CARA_PX + 4;
+      }
+      const altoTxt = (r.nombre ? 8 : 0) + r.lin.length * DLG_FILA;
+      let ty = by + Math.round((bh - altoTxt) / 2);
+      ctx.textAlign = 'left';
+      if (r.nombre) { ctx.font = labelFont(5.5); ctx.fillStyle = rota ? '#6b7680' : P.accent; ctx.fillText(r.nombre, tx, ty + 6); ty += 8; }
+      ctx.font = r.font; ctx.fillStyle = rota ? '#8a949a' : P.ink;
+      r.lin.forEach((l, i) => ctx.fillText(l, tx, ty + (i + 1) * DLG_FILA - 1.5));
     } else if (r.gl) {
-      const gw = glifos.medir(r.gl, 13);
-      glifos.dibujar(r.gl, Math.round(CW / 2 - gw / 2), yy + 3, 13, t, rota ? '#8a949a' : P.body, true);
+      const gw = glifos.medir(r.gl, 10);
+      glifos.dibujar(r.gl, Math.round(CW / 2 - gw / 2), yy + 1, 10, t, rota ? '#8a949a' : P.body, true);
     } else if (r.t) {
       ctx.fillStyle = r.color; ctx.font = r.font;
       ctx.textAlign = r.centro ? 'center' : 'left';
@@ -1638,7 +1736,8 @@ function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
   }
   ctx.restore();
   // el pie: LEER (si hay mas abajo) y la barra de cuanto se bajo
-  const leerMax = Math.max(0, alto - vista + 4);
+  // (22/11: unos pocos px de mas no son "algo para leer": sin barra ni ABAJO: LEER, que se pisaban con las teclas)
+  const leerMax = 0;   // (22/11, el autor: "ABAJO LEER no va mas": la carta entra entera — cuerpoCarta achica el dibujo)
   if (on && leerMax > 0) {
     const f = Math.min(1, leer / leerMax), bh = Math.max(12, vista * vista / alto);
     ctx.globalAlpha = 0.25; ctx.fillStyle = col; ctx.fillRect(CW - 8, C_TOPE, 1.5, vista);
@@ -1683,6 +1782,15 @@ export function drawBanco(w) {
   const todas = w.rota ? [...w.offer, w.rota] : w.offer;
   const sel = Math.min(w.sel, todas.length - 1);
   const leerMax = carrusel(todas, sel, w, i => (i >= w.offer.length ? T('banco_rota') : null));
+  // LOS TIPOS DE LA OFERTA (22/11, el autor: "arriba a la derecha, fuera del selector, los 3 iconos con los tipos"):
+  // el icono del grupo de cada carta ofrecida, en su color; la que esta elegida, mas grande y con su raya
+  w.offer.forEach((u, i) => {
+    const n = w.offer.length, cx = NW - 22 - (n - 1 - i) * 22, cy = 20, on = i === sel;
+    const c = GRUPO_COL[u.grupo] || P.dim;
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(on ? 1.9 : 1.4, on ? 1.9 : 1.4); ctx.globalAlpha = on ? 1 : 0.55;
+    iconoGrupo(u.grupo || 'armas', 0, 0, c); ctx.restore();
+    if (on) { ctx.fillStyle = c; ctx.fillRect(cx - 7, cy + 12, 14, 2); }
+  });
   ctx.fillStyle = P.dim; ctx.font = descFont(9); ctx.textAlign = 'center';
   ctx.fillText(T(sel >= w.offer.length ? 'banco_hint_rota' : 'banco_hint'), NW / 2, NH - 8);
   ctx.textAlign = 'left';
@@ -1866,4 +1974,215 @@ export function drawPause(w) {
   }
   ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(7);
   ctx.fillText(T('pauseHint'), NW / 2, NH - 12);
+}
+
+// ---------- EL ALBUM DE MALVINAS (22/11/2026, data/album.js) ----------
+// A la izquierda la grilla de figuritas (las tapadas, un signo de pregunta); a la derecha el panel DEDICADO de la
+// marcada: su dibujo, que hace, el dato y la historia. Flechas recorren la grilla; ESC vuelve.
+export const ALBUM_COLS = 7;
+/** Lo tocable del album tal como se dibujo (coordenadas de mundo): las figuritas `{ i, x, y, s }` y las pestañas `{ c, a, b }`. Lo lee el mouse (game.js). */
+export const ALBUM_HIT = { celdas: [], tabs: [] };
+const ALB = { x: 14, y: 52, celda: 25, filas: 8, px: 212, py: 40, pw: 256, ph: 208 };   // (py: debajo del boton de musica del lobby)
+/** `w` = { entradas, vistos (Set), sel, t, lee (id → { que, dato, historia }) } */
+export function drawAlbum(w) {
+  panel();
+  albumPlanes = w.planes || [];
+  const n = w.entradas.length, vistos = w.vistos, todas = w.todas || w.entradas;
+  const nVistos = todas.filter(e => vistos.has(e.id)).length;
+  ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.font = titleFont(15);
+  ctx.fillText(T('albumTitulo'), ALB.x, 24);
+  ctx.fillStyle = P.dim; ctx.font = labelFont(7);
+  const deCat = todas.filter(e => e.cat === (w.cats || [])[w.cat]);
+  ctx.fillText(T('albumCuenta', { n: nVistos, de: todas.length }) + '   ·   ' + T('albumCat_' + (w.cats || [])[w.cat]) + ' ' + deCat.filter(e => vistos.has(e.id)).length + '/' + deCat.length, ALB.x, 34);
+  // LAS SECCIONES (22/11): una pestaña por clase de figurita, con lo destapado de cada una; Q / E (L1 / R1) cambian
+  ALBUM_HIT.celdas.length = 0; ALBUM_HIT.tabs.length = 0;
+  let tx = ALB.x;
+  (w.cats || []).forEach((c, i) => {
+    const deEsta = todas.filter(e => e.cat === c), v = deEsta.filter(e => vistos.has(e.id)).length;
+    const nueva = w.nuevos && deEsta.some(e => w.nuevos.has(e.id));
+    const txt = T('albumCat_' + c);   // (el conteo, arriba: con el numero las pestañas pasaban por debajo del boton de musica)
+    ctx.font = menuFont(8.5); const tw = ctx.measureText(txt).width;   // (en negrita: la letra de los titulos)
+    const on = i === w.cat;
+    if (on) { ctx.fillStyle = P.accent; ctx.globalAlpha = 0.18; ctx.fillRect(tx - 2, 37, tw + 4, 9); ctx.globalAlpha = 1; ctx.fillRect(tx - 2, 45, tw + 4, 1); }
+    ctx.fillStyle = on ? P.accent : P.dim; ctx.fillText(txt, tx, 44);
+    if (nueva) { ctx.fillStyle = '#e8321e'; ctx.beginPath(); ctx.arc(tx + tw + 2.5, 38.5, 1.8, 0, Math.PI * 2); ctx.fill(); }
+    ALBUM_HIT.tabs.push({ c: i, a: tx - 3, b: tx + tw + 5 });
+    tx += tw + 8;
+  });
+  // LA GRILLA, con scroll por filas para que la marcada siempre se vea
+  const filaSel = Math.floor(w.sel / ALBUM_COLS), filasTot = Math.ceil(n / ALBUM_COLS);
+  const desde = Math.max(0, Math.min(filasTot - ALB.filas, filaSel - Math.floor(ALB.filas / 2)));
+  for (let i = desde * ALBUM_COLS; i < Math.min(n, (desde + ALB.filas) * ALBUM_COLS); i++) {
+    const e = w.entradas[i], f = Math.floor(i / ALBUM_COLS) - desde, c = i % ALBUM_COLS;
+    const x = ALB.x + c * ALB.celda, y = ALB.y + f * ALB.celda, s = ALB.celda - 3, on = i === w.sel, visto = vistos.has(e.id);
+    const col = GRUPO_COL[e.grupo] || P.dim;
+    ALBUM_HIT.celdas.push({ i, x, y, s });
+    ctx.fillStyle = visto ? '#141c22' : '#0c1115'; ctx.fillRect(x, y, s, s);
+    if (visto) {
+      ctx.globalAlpha = 0.16; ctx.fillStyle = col; ctx.fillRect(x, y, s, s); ctx.globalAlpha = 1;
+      albumIcono(e, x + s / 2, y + s / 2, s - 2);
+      // NUEVA (todavia no mirada): la ESQUINA de arriba a la derecha en rojo, un triangulito (22/11, el autor: "sin el
+      // texto"; "circulito no, una esquina roja nomas")
+      if (w.nuevos && w.nuevos.has(e.id)) {
+        ctx.fillStyle = '#e8321e'; ctx.beginPath(); ctx.moveTo(x + s - 7, y); ctx.lineTo(x + s, y); ctx.lineTo(x + s, y + 7); ctx.closePath(); ctx.fill();
+      }
+    } else {
+      ctx.fillStyle = '#33414b'; ctx.font = menuFont(12); ctx.textAlign = 'center';
+      ctx.fillText('?', x + s / 2, y + s / 2 + 4); ctx.textAlign = 'left';
+    }
+    ctx.strokeStyle = on ? (visto ? col : P.accent) : '#26323a'; ctx.lineWidth = on ? 1.5 : 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+  }
+  // la barrita de scroll de la grilla
+  if (filasTot > ALB.filas) {
+    const hT = ALB.filas * ALB.celda - 3, bh = hT * ALB.filas / filasTot, by = ALB.y + (hT - bh) * desde / (filasTot - ALB.filas);
+    ctx.fillStyle = '#26323a'; ctx.fillRect(ALB.x + ALBUM_COLS * ALB.celda + 1, ALB.y, 2, hT);
+    ctx.fillStyle = P.dim; ctx.fillRect(ALB.x + ALBUM_COLS * ALB.celda + 1, by, 2, bh);
+  }
+  drawAlbumDetalle(w.entradas[w.sel], vistos.has((w.entradas[w.sel] || {}).id), w);
+  albumPie(w);
+}
+/** COMO SE RECORRE (22/11, el autor: "debe aclarar como recorrer el album, con que botones o teclas"): las teclas o los
+ *  botones DIBUJADOS (render/glifos.js, como en CONTROLES) con su accion al lado, segun el mando que se esta usando. */
+function albumPie(w) {
+  const pad = !!w.joy, pt = w.padTxt || (t => t);
+  const partes = [
+    [glifos.glifosDe(pad ? pt('cruceta ◄ · stick izq ←') : '↑ ↓ ← →', pad), T('albumPieRecorrer')],
+    [glifos.glifosDe(pad ? pt('L1 R1') : 'Q E', pad), T('albumPieSeccion')],
+    [glifos.glifosDe(pad ? pt('◯') : 'ESC', pad), T('albumPieVolver')],
+  ];
+  const H_ = 10, AIRE = 4, ENTRE = 14;
+  ctx.font = menuFont(8.5);
+  const ancho = partes.reduce((a, [g, t]) => a + glifos.medir(g, H_) + AIRE + ctx.measureText(t).width, 0) + ENTRE * (partes.length - 1);
+  let x = Math.round(NW / 2 - ancho / 2);
+  const y = NH - 15;
+  for (const [g, t] of partes) {
+    x += glifos.dibujar(g, x, y, H_, w.t, P.body) + AIRE;
+    ctx.fillStyle = P.dim; ctx.font = menuFont(8.5); ctx.textAlign = 'left';
+    ctx.fillText(t, x, y + H_ - 2);
+    x += ctx.measureText(t).width + ENTRE;
+  }
+}
+/** El dibujo de una figurita centrado en (cx, cy) en un cuadrado de `lado`: la carta, su arte; el tema, el icono del tablero. */
+let albumPlanes = [];
+// EL BARCO HORNEADO (22/11, el autor: "poner el barco que ya tenemos horneado", "que gracia tiene un icono asi gigante"):
+// la hoja de costado de cada clase (assets/world/enemies/buque_<clase>.png, tres cuadros de 240x72): el primero
+const BUQUE_IMG = {};
+// RECORTADO A LO QUE SE VE (las hojas traen mucho aire transparente: el Harrier de frente quedaba un punto). Se calcula
+// una vez por cuadro y se guarda; mientras la imagen no cargo, null.
+const RECORTES = new Map();
+function recorte(im, sx, sy, sw, sh) {
+  const k = im.src + '|' + sx + '|' + sy;
+  let c = RECORTES.get(k);
+  if (c) return c;
+  const cv = document.createElement('canvas'); cv.width = sw; cv.height = sh;
+  const g = cv.getContext('2d'); g.drawImage(im, sx, sy, sw, sh, 0, 0, sw, sh);
+  const d = g.getImageData(0, 0, sw, sh).data;
+  let x0 = sw, y0 = sh, x1 = -1, y1 = -1;
+  for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) if (d[(y * sw + x) * 4 + 3] > 10) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) { x0 = 0; y0 = 0; x1 = sw - 1; y1 = sh - 1; }
+  c = { cv, x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  RECORTES.set(k, c);
+  return c;
+}
+/** Dibuja el cuadro (sx, sy, sw, sh) de `im` recortado a lo visible, entero adentro de `lado` x `lado` centrado en (cx, cy). */
+function dibujarRecortado(im, sx, sy, sw, sh, cx, cy, lado) {
+  const r = recorte(im, sx, sy, sw, sh), k = Math.min((lado - 2) / r.w, (lado - 2) / r.h), w = r.w * k, h = r.h * k;
+  const suave = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;   // (pixel art: sin borronear al agrandar)
+  ctx.drawImage(r.cv, r.x, r.y, r.w, r.h, Math.round(cx - w / 2), Math.round(cy - h / 2), w, h);
+  ctx.imageSmoothingEnabled = suave;
+}
+const buqueImg = (c, hoja) => { const n = hoja || 'buque_' + c; let im = BUQUE_IMG[n]; if (!im) { im = BUQUE_IMG[n] = new Image(); im.src = '../assets/world/enemies/' + n + '.png'; } return im.complete && im.naturalWidth ? im : null; };
+function albumIcono(e, cx, cy, lado) {
+  // LOS DIBUJOS DE VERDAD, nunca el icono del tablero agrandado: el buque horneado, la ilustracion del avion (tambien
+  // la de la mision: el avion con que se volo) o el arte de una carta (los temas lo toman prestado con `arte`)
+  if (e.sprite) {
+    const im = buqueImg(null, e.sprite.src); if (!im) return;
+    const fw = im.naturalWidth / e.sprite.n;
+    dibujarRecortado(im, fw * e.sprite.fr, 0, fw, im.naturalHeight, cx, cy, lado);
+    return;
+  }
+  if (e.buque) {
+    const im = buqueImg(e.buque); if (!im) return;
+    dibujarRecortado(im, 0, 0, im.naturalWidth / 3, im.naturalHeight, cx, cy, lado);   // (de costado: entra a lo ancho)
+    return;
+  }
+  if (e.arte) {
+    if (!(CARTAS_IMG.complete && CARTAS_IMG.naturalWidth)) return;
+    const k = Math.max(0, ICONOS.indexOf(e.arte)), sx = (k % ICONO_COLS) * ICONO_FW, sy = Math.floor(k / ICONO_COLS) * ICONO_FW;
+    ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, Math.round(cx - lado / 2), Math.round(cy - lado / 2), lado, lado);
+    return;
+  }
+  if (e.plane) {
+    // el avion: su ilustracion del selector, entera y centrada (mas ancha que alta)
+    const pl = albumPlanes.find(p => p.key === e.plane);
+    if (!pl || !pl.ready || !pl.img) return;
+    if (!pl.img.naturalWidth) return;
+    dibujarRecortado(pl.img, 0, 0, pl.img.naturalWidth, pl.img.naturalHeight, cx, cy, lado);
+    return;
+  }
+  if (e.tipo === 'carta') {
+    if (!(CARTAS_IMG.complete && CARTAS_IMG.naturalWidth)) return;
+    const k = iconoDe(e), sx = (k % ICONO_COLS) * ICONO_FW, sy = Math.floor(k / ICONO_COLS) * ICONO_FW;
+    ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, Math.round(cx - lado / 2), Math.round(cy - lado / 2), lado, lado);
+  } else {
+    ctx.save(); ctx.translate(cx, cy); const k = lado / 10; ctx.scale(k, k);
+    iconoEn(0, 0, e.icono, '#e8eef0'); ctx.restore();
+  }
+}
+function drawAlbumDetalle(e, visto, w) {
+  if (!e) return;
+  const { px: x, py: y, pw, ph } = ALB, col = GRUPO_COL[e.grupo] || P.dim;
+  ctx.fillStyle = '#0d1317'; ctx.fillRect(x, y, pw, ph);
+  ctx.strokeStyle = visto ? col : '#2a343b'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, pw - 1, ph - 1);
+  ctx.globalAlpha = 0.16; ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, pw - 2, 18); ctx.globalAlpha = 1;
+  const pad = 8, ancho = pw - pad * 2;
+  if (!visto) {
+    ctx.fillStyle = '#5a6a74'; ctx.font = menuFont(12); ctx.textAlign = 'center';
+    ctx.fillText('? ? ?', x + pw / 2, y + 70);
+    ctx.font = cartaFont(); ctx.fillStyle = P.dim;
+    lineasDe(T({ tema: 'albumBloqTema', avion: 'albumBloqAvion', buque: 'albumBloqBuque', mision: 'albumBloqMision' }[e.tipo] || 'albumBloqCarta'), ancho - 20).forEach((l, i) => ctx.fillText(l, x + pw / 2, y + 96 + i * 12));
+    ctx.textAlign = 'left';
+    return;
+  }
+  // la cabecera: el icono del grupo y el nombre
+  // (alineado a la DERECHA: arriba al centro de la pantalla flota el boton de musica del lobby y tapaba el nombre)
+  iconoGrupo(e.grupo || 'armas', x + pw - pad - 4, y + 10, col);
+  ctx.textAlign = 'right'; ctx.fillStyle = col; ctx.font = menuFont(11);
+  ctx.fillText(e.name, x + pw - pad - 12, y + 14, pw - pad * 2 - 60);
+  ctx.textAlign = 'left';
+  // el dibujo, y a su derecha lo que hace en una linea y la frase con la carita
+  const ay = y + 24, A = 58;
+  ctx.globalAlpha = 0.1; ctx.fillStyle = col; ctx.fillRect(x + pad, ay, A, A); ctx.globalAlpha = 1;
+  albumIcono(e, x + pad + A / 2, ay + A / 2, A);
+  const tx = x + pad + A + 6, tw = pw - pad * 2 - A - 6;
+  ctx.fillStyle = P.ink; ctx.font = cartaFont();
+  let yy = ay + 10;
+  for (const l of lineasDe(descPlano(e.desc), tw)) { ctx.fillText(l, tx, yy); yy += 11; }
+  if (e.quote) {
+    const cara = caraDe(e.id); yy += 2;
+    if (cara) {
+      const img = retrato(cara), C = 18;
+      ctx.fillStyle = '#0d1319'; ctx.fillRect(tx, yy, C, C);
+      if (img) ctx.drawImage(img, tx, yy, C, C);
+      ctx.globalAlpha = 0.7; ctx.strokeStyle = P.accent; ctx.strokeRect(tx + 0.5, yy + 0.5, C - 1, C - 1); ctx.globalAlpha = 1;
+      ctx.font = cartaFontDialogo(); ctx.fillStyle = P.dim;
+      lineasDe(e.quote, tw - C - 4).slice(0, 3).forEach((l, i) => ctx.fillText(l, tx + C + 4, yy + 6 + i * DLG_FILA));
+    }
+  }
+  // LO QUE SE APRENDE: que hace, el dato y la historia (data/cartas_lee.js para las cartas; data/album.js los temas)
+  const L = e.tipo === 'carta' ? (w.lee && w.lee(e.id)) : e;
+  // los rotulos de cada seccion: la carta y el tema dicen QUE HACE / EN 1982; el avion, el buque y la salida, lo suyo
+  const ROT = { avion: ['albumRotGuerra', 'albumRotFicha'], buque: ['albumRotBuque', 'albumRotPaso'], mision: ['albumRotSalida', 'albumRotContexto'] }[e.tipo];
+  yy = ay + A + 12;
+  if (!L) return;
+  const titulo = t => { ctx.fillStyle = P.dim; ctx.font = labelFont(6.5); ctx.fillText(t, x + pad, yy); const tw2 = ctx.measureText(t).width;
+    ctx.globalAlpha = 0.35; ctx.fillRect(x + pad + tw2 + 4, yy - 3, ancho - tw2 - 4, 1); ctx.globalAlpha = 1; yy += 9; };
+  titulo(T(ROT ? ROT[0] : 'banco_que'));
+  ctx.fillStyle = P.body; ctx.font = cartaFontChica();
+  for (const l of lineasDe(L.que, ancho)) { ctx.fillText(l, x + pad, yy); yy += 9; }
+  if (L.dato) { yy += 4; ctx.fillStyle = P.accent; ctx.font = menuFont(9); ctx.textAlign = 'center'; ctx.fillText(L.dato, x + pw / 2, yy, ancho); ctx.textAlign = 'left'; yy += 10; }
+  titulo(T(ROT ? ROT[1] : e.grupo === 'piruetas' ? 'banco_aire' : 'banco_1982'));
+  ctx.fillStyle = '#b9a77e'; ctx.font = cartaFontChica();
+  for (const l of lineasDe(L.historia, ancho)) { if (yy > y + ph - 4) break; ctx.fillText(l, x + pad, yy); yy += 9; }
 }

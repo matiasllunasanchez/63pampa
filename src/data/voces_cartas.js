@@ -1,0 +1,72 @@
+// QUIEN DICE LA FRASE DE CADA CARTA (22/11/2026, el autor: "las mejoras estilo inventos innovadores son Pichon, o Turco
+// si son mecanicas de taller; las piruetas del Cordobes o de Puma; las armas de Vasco o Puma"). La frase vive en la
+// carta (`quote`); aca, de quien es la voz — la carta la firma abajo (render/menus.js). Voces: docs/historia/GUION_3.md
+// §9 (y VOZ_TURCO.md): el Pichon se entusiasma y se frena; el Turco, tucumano; el Vasco, seco; Puma, castrense y
+// corto; el Gitano (el cordobes), con "culiao" de cariño y un chiste al final. Datos puros.
+export const VOCES = { pichon: 'PICHON', turco: 'EL TURCO', vasco: 'EL VASCO', puma: 'PUMA', gitano: 'EL GITANO' };
+export const VOZ_CARTA = {
+ 'metralla2': 'pichon',
+ 'metralla3': 'pichon',
+ 'cinta2': 'pichon',
+ 'cinta3': 'pichon',
+ 'potencia2': 'pichon',
+ 'potencia3': 'pichon',
+ 'espoletas1': 'pichon',
+ 'espoletas2': 'pichon',
+ 'brp': 'pichon',
+ 'chafitas1': 'pichon',
+ 'chafitas2': 'pichon',
+ 'chafitas3': 'pichon',
+ 'chafitas4': 'pichon',
+ 'chafRecarga': 'pichon',
+ 'chafPotencia': 'pichon',
+ 'siliconado': 'pichon',
+ 'momentum1': 'pichon',
+ 'momentum2': 'pichon',
+ 'momentum3': 'pichon',
+ 'rasante1': 'pichon',
+ 'radar1': 'pichon',
+ 'canon': 'turco',
+ 'soporte1': 'turco',
+ 'soporte2': 'turco',
+ 'escudo1': 'turco',
+ 'escudo2': 'turco',
+ 'reparacion': 'turco',
+ 'tallerLiv': 'turco',
+ 'tallerPes': 'turco',
+ 'vuelta': 'turco',
+ 'municion': 'turco',
+ 'tanques': 'turco',
+ 'chancha1': 'turco',
+ 'snakeye': 'vasco',
+ 'exocet': 'vasco',
+ 'radarMalvinas': 'puma',
+ 'neptune': 'puma',
+ 'tracker': 'puma',
+ 'guerraElec': 'puma',
+ 'mirage': 'puma',
+ 'fenix': 'puma',
+ 'coordinado': 'puma',
+ 'terreno': 'puma',
+ 'itb': 'puma',
+ 'kc130': 'puma',
+ 'veterano': 'puma',
+ 'amigo': 'puma',
+ 'rescate': 'puma',
+ 'mask': 'gitano',
+ 'splits': 'gitano',
+ 'breakt': 'gitano',
+ 'loyo': 'gitano',
+ 'sturn': 'gitano',
+ 'popup': 'gitano',
+ 'hiyo': 'gitano',
+ 'jink': 'gitano',
+ 'spin': 'gitano',
+ 'climb': 'gitano',
+ 'climbmax': 'gitano',
+ 'barrel': 'gitano'
+};
+export const vozDe = id => VOCES[VOZ_CARTA[id]] || null;
+// LA CARITA (22/11, el autor: "en vez del texto, la carita de cada uno mas chico"): el retrato de assets/portraits
+export const CARAS = { pichon: 'pichon_explicando', turco: 'turco_sobrador', vasco: 'vasco_neutro', puma: 'puma_neutro', gitano: 'gitano_sonrisa' };
+export const caraDe = id => CARAS[VOZ_CARTA[id]] || null;

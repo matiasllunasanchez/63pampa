@@ -61,8 +61,9 @@ function redondo(x, y, w, h, r) {
   ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
 }
 
-/** La lamina entera. `pad` = joystick (si no, teclado); `t` = reloj (s) para el latido; `a` = alfa de entrada (0..1). */
-export function drawMando({ pad, t = 0, a = 1 }) {
+/** La lamina entera. `pad` = joystick (si no, teclado); `t` = reloj (s) para el latido; `a` = alfa de entrada (0..1).
+ *  `completo`: el TECLADO ENTERO, con las teclas que se usan resaltadas y el resto en gris (CONTROLES › DISPOSICION). */
+export function drawMando({ pad, t = 0, a = 1, completo = false }) {
   ctx.save();
   ctx.globalAlpha = a;
   ctx.textBaseline = 'middle';
@@ -71,8 +72,56 @@ export function drawMando({ pad, t = 0, a = 1 }) {
   ctx.fillText(T(pad ? 'mandoTituloPad' : 'mandoTituloKb'), W / 2, 24);
   ctx.font = '4px monospace'; ctx.fillStyle = P.dim;
   ctx.fillText(T('mandoNota'), W / 2, 31);
-  if (pad) dibujarPad(t); else dibujarTeclado(t);
+  if (pad) dibujarPad(t); else if (completo) dibujarTecladoCompleto(); else dibujarTeclado(t);
   ctx.restore();
+}
+
+// EL TECLADO ENTERO (22/11, el autor: "en CONTROLES, una pestaña DISPOSICION con el joystick del tutorial; y muestra
+// TECLADO y JOYSTICK, resaltando en el teclado las teclas que participan, el resto solo grises"). La distribucion es
+// la de un teclado de verdad (bloque principal, flechas y numpad); que tecla hace que sale de TECLAS, la misma lista de
+// la lamina del tutorial, asi no hay dos versiones de los controles.
+const COMPLETO = (() => {
+  const k = [], fila = (f, c0, ts, w = 1) => ts.forEach((t, i) => k.push({ id: t, t, c: c0 + i * w, f, w }));
+  k.push({ id: 'ESC', t: 'ESC', c: 0, f: 0 }); fila(0, 1.5, ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
+  k.push({ id: 'TAB', t: 'TAB', c: 0, f: 1, w: 1.5 }); fila(1, 1.5, ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']);
+  k.push({ id: 'ENTER', t: 'ENTER', c: 11.5, f: 1, w: 1.6 });
+  k.push({ id: 'CAPS', t: 'CAPS', c: 0, f: 2, w: 1.8 }); fila(2, 1.8, ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'Ñ']);
+  k.push({ id: 'LSHIFT', t: 'SHIFT', c: 0, f: 3, w: 2.3 }); fila(3, 2.3, ['Z', 'X', 'C', 'V', 'B', 'N', 'M']);
+  k.push({ id: 'RSHIFT', t: 'SHIFT', c: 9.3, f: 3, w: 3.8 });
+  k.push({ id: 'LCTRL', t: 'CTRL', c: 0, f: 4, w: 1.5 }, { id: 'LALT', t: 'ALT', c: 1.5, f: 4, w: 1.3 },
+    { id: 'SPACE', t: 'ESPACIO', c: 2.8, f: 4, w: 6.4 }, { id: 'RALT', t: 'ALT', c: 9.2, f: 4, w: 1.3 }, { id: 'RCTRL', t: 'CTRL', c: 10.5, f: 4, w: 1.6 });
+  k.push({ id: 'UP', t: '↑', c: 14.6, f: 3 }, { id: 'LEFT', t: '←', c: 13.6, f: 4 }, { id: 'DOWN', t: '↓', c: 14.6, f: 4 }, { id: 'RIGHT', t: '→', c: 15.6, f: 4 });
+  [['7', '8', '9'], ['4', '5', '6'], ['1', '2', '3']].forEach((r, i) => r.forEach((t, j) => k.push({ id: 'N' + t, t, c: 17.4 + j, f: 1 + i })));
+  k.push({ id: 'N0', t: '0', c: 17.4, f: 4, w: 2 });
+  return k;
+})();
+const FLECHA_ID = { '↑': 'UP', '←': 'LEFT', '↓': 'DOWN', '→': 'RIGHT' };
+/** La tecla de TECLAS → su id en el teclado entero (SHIFT y CTRL por lado, los numeros del numpad aparte). */
+const idDe = k => k.t === 'SHIFT' ? (k.c < 5 ? 'LSHIFT' : 'RSHIFT') : k.t === 'CTRL' ? (k.c < 5 ? 'LCTRL' : 'RCTRL')
+  : k.t === 'ESPACIO' ? 'SPACE' : FLECHA_ID[k.t] || (/^\d$/.test(k.t) && k.c >= 13 ? 'N' + k.t : k.t);
+function dibujarTecladoCompleto() {
+  const K = 8.4, ancho = 20.4 * K, x0 = Math.round((W - ancho) / 2), y0 = 40;
+  const usa = new Map();
+  for (const k of TECLAS) if (!usa.has(idDe(k))) usa.set(idDe(k), k.ac);
+  ctx.fillStyle = '#151b1f'; ctx.strokeStyle = BORDE; ctx.lineWidth = 0.6;
+  redondo(x0 - 3, y0 - 3, ancho + 6, K * 5 + 5, 3); ctx.fill(); ctx.stroke();
+  for (const k of COMPLETO) {
+    const ac = usa.get(k.id), x = x0 + k.c * K, y = y0 + k.f * K, w = (k.w || 1) * K - 1.6;
+    ctx.fillStyle = ac ? '#5b666c' : '#1d2428'; redondo(x, y + 1, w, K - 2.6, 1.4); ctx.fill();
+    ctx.fillStyle = ac ? '#d9dfe2' : '#2b3439'; redondo(x, y, w, K - 3.4, 1.4); ctx.fill();
+    if (ac) { ctx.fillStyle = colorDe(ac); ctx.fillRect(x + 1, y + K - 5.4, w - 2, 1.1); }
+    ctx.textAlign = 'center'; ctx.font = `bold ${k.t.length > 2 ? 2.9 : 4}px monospace`; ctx.fillStyle = ac ? TINTA : '#56636a';
+    ctx.fillText(k.t, x + w / 2, y + (K - 3.4) / 2);
+  }
+  // LA LEYENDA, abajo: cada accion con su color y sus teclas (la tabla de CONTROLES)
+  const vistos = [...new Set(TECLAS.map(k => k.ac))], cols = 4, cw = ancho / cols, yl = y0 + K * 5 + 9;
+  ctx.textAlign = 'left';
+  vistos.forEach((ac, i) => {
+    const x = x0 + (i % cols) * cw, y = yl + Math.floor(i / cols) * 10;
+    ctx.fillStyle = colorDe(ac); ctx.fillRect(x, y - 1.5, 3, 3);
+    ctx.font = 'bold 4px monospace'; ctx.fillText(T('ctrl' + ac), x + 5, y, cw - 7);
+    ctx.font = '3.4px monospace'; ctx.fillStyle = P.dim; ctx.fillText(T('ctrl' + ac + 'K'), x + 5, y + 4.2, cw - 7);
+  });
 }
 
 function flechita(x, y, d, col) {

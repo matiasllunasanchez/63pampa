@@ -20,9 +20,11 @@ import { drawSalitre, drawLavado } from './render/salitre.js';
 import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T } from './data/fallas.js';
 import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
 import { leeDe } from './data/cartas_lee.js';
+import { ALBUM, ALBUM_KEY, ALBUM_CATS, ALBUM_AVION_S } from './data/album.js';
+import { descPlano } from './data/desc_iconos.js';
 import { perfilDe, puedeManiobra } from './data/perfiles.js';
 import * as frio from './systems/frio.js';
-import { ALTO, VERT_MODOS } from './data/tuning.js';
+import { ALTO, VERT_MODOS, SALITRE } from './data/tuning.js';
 import { BUSQ } from './data/busqueda.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
@@ -527,12 +529,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       const c = bancoOffer.cartas[bancoSel];
       if (!c) { bancoSacude = 0.35; beep(140, 0.12, 'square', 0.05); return; }   // la ROTA: no se elige
       if (!c.uso) pichon.push(c.id);
+      const nuevaAlbum = albumDescubrir(c.id);   // (el ALBUM: la carta elegida queda destapada)
       cartasRun.push(c.id);   // (las de uso no quedan en la libreta: VER CARTAS las lleva igual)
       aplicarCarta(c);
       bancoOffer = null; bancoPend = Math.max(0, bancoPend - 1);
       setState('play');
       beep(880, 0.12, 'square', 0.06);
-      cartel(c.name, P.accent, c.desc);
+      cartel(c.name, P.accent, nuevaAlbum ? T('albumNuevo') : descPlano(c.desc));
     }
     /** LO QUE LA CARTA HACE EN EL ACTO. Las que leen la libreta (piruetas, MOMENTUM, BRP…) no necesitan nada:
      *  ya miran `pichon`. Las demas tocan la corrida. */
@@ -820,7 +823,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // (el MODO DEV solo aparece en dev — `yarn start`; con `--prod` no: core/dev.js)
     // TUTORIAL ARRIBA DE TODO (17/11, el autor: "un modo mas arriba de historia que sea solo una mision de
     // tutorial"). docs/sistemas/PLAN_TUTORIAL.md
-    const MODES = ['tutorial', 'campaign', 'quick', 'dev', 'options', 'quit'].filter(m => m !== 'dev' || DEV);
+    const MODES = ['tutorial', 'campaign', 'quick', 'dev', 'album', 'options', 'quit'].filter(m => m !== 'dev' || DEV);
     /** DONDE ARRANCA EL CURSOR del menu de modos: en TUTORIAL mientras no se haya terminado (en prod), y
      *  despues en HISTORIA. En DEV siempre en HISTORIA: los fixtures navegan desde ahi con flechas. */
     const modeInicial = () => MODES.indexOf(!DEV && !tutorialHecho(TUTORIAL_ETAPAS.length) ? 'tutorial' : 'campaign');
@@ -1889,9 +1892,72 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // el que queda puesto si alguien algun dia hace que una prueba pase por el banco.
       if (sinRastro()) { salirTest(); return; }
       pichon.push(u.id);
+      albumDescubrir(u.id);
       beep(880, 0.12, 'square', 0.06);
       irAlEpilogo();        // la carta de Mateo va DESPUES del banco (G-09)
     }
+    // ---------- EL ALBUM DE MALVINAS (22/11, data/album.js) ----------
+    // Lo descubierto vive en localStorage (`ALBUM_KEY`): las cartas al elegirlas, los temas la primera vez que pasan.
+    // En las herramientas (sinRastro) no se escribe nada.
+    let albumSel = 0, albumCatI = 0;   // la figurita marcada DENTRO de la seccion, y la seccion
+    const albumLista = () => ALBUM.filter(e => e.cat === ALBUM_CATS[albumCatI]);
+    const albumLeer = k => { try { return new Set(JSON.parse(localStorage.getItem(k)) || []); } catch (e) { return new Set(); } };
+    const albumVistos = albumLeer(ALBUM_KEY);
+    // LAS NUEVAS (22/11, el autor: "cuando agregamos una entrada nueva habria que avisarle"): lo destapado que todavia no
+    // se miro en el album. El menu principal las cuenta en la fila ALBUM y cada figurita lleva su marca hasta que el
+    // cursor pasa por ella. En vuelo, un tema nuevo sale con cartel; una carta, en el cartel de la eleccion.
+    const albumNuevos = albumLeer(ALBUM_KEY + '_nuevos');
+    const albumGuardar = () => { try { localStorage.setItem(ALBUM_KEY, JSON.stringify([...albumVistos])); localStorage.setItem(ALBUM_KEY + '_nuevos', JSON.stringify([...albumNuevos])); } catch (e) { } };
+    /** Destapa `id`. Devuelve true si era nueva. */
+    function albumDescubrir(id) {
+      if (!id || albumVistos.has(id) || sinRastro() || !ALBUM.some(e => e.id === id)) return false;
+      albumVistos.add(id); albumNuevos.add(id); albumGuardar();
+      const e = ALBUM.find(x => x.id === id);
+      if (e && e.tipo === 'tema' && (S.state === 'play' || S.state === 'takeoff')) cartel(T('albumNuevo'), P.accent, e.name);
+      return true;
+    }
+    /** La figurita marcada ya se miro: deja de ser nueva. */
+    function albumMirada() { const e = albumLista()[albumSel]; if (e && albumNuevos.delete(e.id)) albumGuardar(); }
+    function albumCat(dir) {
+      albumCatI = (albumCatI + dir + ALBUM_CATS.length) % ALBUM_CATS.length; albumSel = 0;
+      const k = albumLista().findIndex(e => albumNuevos.has(e.id)); if (k > 0) albumSel = k;
+      albumMirada(); beep(560, 0.05, 'square', 0.04);
+    }
+    // LOS MINUTOS DE VUELO por avion (22/11, el autor: "o juega una cantidad de minutos aceptable"): al juntar
+    // ALBUM_AVION_S segundos volando un avion, su figurita se destapa aunque no haya completado una mision
+    const albumSeg = (() => { try { return JSON.parse(localStorage.getItem(ALBUM_KEY + '_seg')) || {}; } catch (e) { return {}; } })();
+    let albumSegGuardo = 0;
+    function albumVolando(dt) {
+      const pl = PLANES[selPlane]; if (!pl || sinRastro() || albumVistos.has('avion:' + pl.key)) return;
+      albumSeg[pl.key] = (albumSeg[pl.key] || 0) + dt;
+      if (albumSeg[pl.key] >= ALBUM_AVION_S) albumDescubrir('avion:' + pl.key);
+      if ((albumSegGuardo += dt) > 10) { albumSegGuardo = 0; try { localStorage.setItem(ALBUM_KEY + '_seg', JSON.stringify(albumSeg)); } catch (e) { } }
+    }
+    /** MISION COMPLETADA: el avion con que se volo, y en el libro de vuelo la salida y su buque. */
+    function albumMisionCumplida() {
+      const pl = PLANES[selPlane]; if (pl) albumDescubrir('avion:' + pl.key);
+      const m = libro && !libro.tut ? libroDef() : null;
+      if (m) { albumDescubrir('mision:' + m.id); if (m.goal && m.goal.ship) albumDescubrir('buque:' + m.goal.ship); }
+    }
+    function albumNav(dx, dy) {
+      const n = albumLista().length, c = menus.ALBUM_COLS;
+      let i = albumSel + dx + dy * c;
+      if (dy && (i < 0 || i >= n)) return;
+      albumSel = (i + n) % n;
+      albumMirada();
+      beep(520, 0.05, 'square', 0.04);
+    }
+    /** EL MOUSE EN EL ALBUM (22/11, el autor: "cuando pasas por encima o lo seleccionas se va"): pasar por encima de una
+     *  figurita la marca (y la nueva deja de serlo); el clic en una pestaña cambia de seccion. */
+    function albumToque(x, y, clic) {
+      const c = menus.ALBUM_HIT.celdas.find(h => x >= h.x && x < h.x + h.s && y >= h.y && y < h.y + h.s);
+      if (c && c.i !== albumSel) { albumSel = c.i; albumMirada(); if (clic) beep(520, 0.05, 'square', 0.04); return; }
+      if (clic && y >= 36 && y < 47) {
+        const t = menus.ALBUM_HIT.tabs.find(h => x >= h.a && x < h.b);
+        if (t && t.c !== albumCatI) albumCat(t.c - albumCatI);
+      }
+    }
+    function albumBack() { modeSel = MODES.indexOf('album'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); }
     function confirmMode() {
       const m = MODES[modeSel];
       // HISTORIA ya no arranca directo: pasa por su submenu (CONTINUAR / campañas)
@@ -1899,6 +1965,12 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       else if (m === 'campaign') { campIr('raiz'); setState('campmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'quick' || m === 'dev') { subMenu = m; quickSel = 0; setState('quickmenu'); beep(600, 0.08, 'square', 0.05); }
       else if (m === 'options') { optCtrl = false; setState('options'); beep(600, 0.06, 'square', 0.05); }
+      else if (m === 'album') {
+        // abre en la primera NUEVA, si hay (asi el aviso lleva directo a lo que se gano)
+        const k = ALBUM.findIndex(e => albumNuevos.has(e.id));
+        albumCatI = k >= 0 ? ALBUM_CATS.indexOf(ALBUM[k].cat) : 0;
+        albumSel = k >= 0 ? albumLista().indexOf(ALBUM[k]) : 0; albumMirada(); setState('album'); beep(600, 0.06, 'square', 0.05);
+      }
       else if (m === 'quit') quitGame();
     }
     // ---------- LA MUSICA EN CAPAS (docs/produccion/MUSICA_CAPAS.md) ----------
@@ -3741,7 +3813,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     const inLobby = () => S.state === 'title' || S.state === 'modeselect' || S.state === 'menu' || S.state === 'options'
       || S.state === 'mejoras' || S.state === 'campmenu' || S.state === 'quickmenu' || S.state === 'pruebas' || S.state === 'cines'
       || S.state === 'maniobras' || S.state === 'mvvars' || S.state === 'libroavion'
-      || S.state === 'misiones' || S.state === 'saves' || S.state === 'dificultad';   // (la dificultad: el mismo fondo que el avion, 16/10)
+      || S.state === 'misiones' || S.state === 'saves' || S.state === 'dificultad' || S.state === 'album';   // (la dificultad: el mismo fondo que el avion, 16/10)
 
     // ESTRELLAS 1..4 (la 4ª = Malvinas, rango S). Compartido por el recuento de nivel y el
     // derribado de survival: exige el DOBLE del par para las Malvinas, que se sientan merecidas.
@@ -4206,7 +4278,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     const canPickMusic = () => gameMode !== 'campaign' && gameMode !== 'arena' && gameMode !== 'pasadas'
       && S.state !== 'title' && S.state !== 'modeselect' && S.state !== 'menu' && S.state !== 'options'
       && S.state !== 'mejoras' && S.state !== 'campmenu' && S.state !== 'quickmenu' && S.state !== 'pruebas' && S.state !== 'cines' && S.state !== 'misiones' && S.state !== 'saves' && S.state !== 'story'
-      && S.state !== 'epilogue' && S.state !== 'dificultad';
+      && S.state !== 'epilogue' && S.state !== 'dificultad' && S.state !== 'album';
 
     // ---------- input ----------
     // CAMARAS (tecla V, cicla): 4 niveles de zoom anclados al sprite del avion.
@@ -4298,6 +4370,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     initInput(cv, {
       bloqueado: arranqueActivo,   // el arranque del fichin se queda con el mando (render/arranque.js)
       modeNav: dir => { modeSel = (modeSel + dir + MODES.length) % MODES.length; beep(520, 0.05, 'square', 0.04); },
+      albumNav, albumBack, albumCat, albumToque,
       confirm: () => confirmMode(),
       // el tap y el menu estan los dos en coordenadas de MUNDO (480x270), asi que no hay
       // conversion. La geometria sale de menus.MODE_ROWS, la misma que usa el dibujo.
@@ -4789,6 +4862,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (S.state === 'landing' && tutSys.activo()) { tutAterrizo = true; return; }
         freezeRun(); engineOff(); irAlEpilogo(); return;
       }
+      albumMisionCumplida();   // (el ALBUM, 22/11: el avion, la salida y su buque)
       freezeRun();
       setState('results'); levelT = 0; resT = 0; resRow = 0;
       beep(700, 0.15, 'square', 0.06, 1000);
@@ -4899,6 +4973,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  agua del Atlantico Sur a 2-5 °C. Sin ruta se mide contra la fraccion del camino a casa. */
     const sinMuerteAhora = () => (gameMode === 'campaign' || gameMode === 'cycle') && !!curMission() && !!curMission().sinMuerte;
     function eyectar(enTierra, aPedido) {
+      albumDescubrir('eyeccion');   // (el ALBUM, 22/11)
       let rescate;
       if (islas.enPasillo()) rescate = !!enTierra;   // (LAS ISLAS: sobre tierra caes entre los tuyos; en el agua, no)
       else if (rutaSys.hay()) {
@@ -6349,6 +6424,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           return;
         }
         if (S.state === 'pulso') {
+          if (cfg.carga === 'exocet') albumDescubrir('misil_exocet');   // (el ALBUM, 22/11: cargarle las coordenadas)
           // EL PULSO (el climax como prueba de destreza): misma disciplina que los otros climax —
           // el sistema devuelve 'objective' o { death } y el embudo decide. El fallo NO llega
           // hasta aca salvo el tercero: los dos primeros los resuelve el propio re-encare.
@@ -6944,6 +7020,23 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // EL ROTULO QUE PASA VOLANDO (render/rotulo.js): en el cuadro en que el poder RASANTE se
       // prende —y con el, cambia la camara—, la palabra cruza la pantalla. Reloj de pared.
       { const ra = rasante.active(); if (ra && !rasPrev) rotuloT0 = performance.now(); rasPrev = ra; }
+      // EL ALBUM (22/11): los TEMAS se destapan la primera vez que se viven volando
+      if (rasante.active()) albumDescubrir('rasante');
+      if ((run.sal || 0) >= SALITRE.AVISO) albumDescubrir('salitre');
+      if ((run.hielo || 0) > 0.15) albumDescubrir('frio');
+      if (chancha.conectado()) albumDescubrir('chancha');
+      if (run.radarSeen) albumDescubrir('radar');
+      for (const m of missiles) {
+        if (m.done) continue;
+        if (m.tipo === 'aim9') albumDescubrir('sidewinder');
+        else if (m.tipo === 'wolf') albumDescubrir(m.def === 'cat' ? 'seacat' : 'seawolf');
+      }
+      if (obstacles.some(o => o.type === 'manpad' && !o.done && o.z > PZ && o.z < 300)) albumDescubrir('antiaereo');
+      if (radarP.on) albumDescubrir('radar_sue');
+      if (S.state === 'play') albumVolando(dt);
+      { const bl = blancoSys.estado(); if (bl.hundido && bl.nombre) albumDescubrir('buque:' + bl.nombre); }
+      if (missiles.some(m => m.tipo === 'dart' && !m.done)) albumDescubrir('seadart');
+      { const res = blancoSys.estado().res; if (res === 'falla' || res === 'fallacaida' || res === 'dormida') albumDescubrir('espoletas'); }
       if (fs === 'momentum' || fs === 'arena' || fs === 'pasada') {
         // FUNDIDO CORTO AL CRUZAR AL CLIMAX (playtest 16/8). RF-01 pedia CERO corte, y la fase se
         // construyo y se midio asi — pero jugandolo, el autor pidio lo contrario y tiene razon: la
@@ -8231,7 +8324,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // PORTADA y MODOS van en coordenadas NATIVAS (fuera del scale): mas pixeles por letra.
       // El fondo (drawPpalBg) si va escalado — es la grilla de diseño y cubre toda la pantalla.
       if (S.state === 'title') menus.drawTitle({ t: run.t });
-      if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t });
+      if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t, albumNuevos: albumNuevos.size });
+      if (S.state === 'album') menus.drawAlbum({ entradas: albumLista(), cat: albumCatI, cats: ALBUM_CATS, todas: ALBUM, vistos: albumVistos, nuevos: albumNuevos, sel: albumSel, t: run.t, lee: leeDe, planes: PLANES, joy: padActivo(), padTxt: padActivo() ? padTexto : null });
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t, vista: campVista });
       if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: libroDef(), sel: libroAvSel, t: run.t });
@@ -9099,6 +9193,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (bancoOffer && rotaId) { const c = CARTAS_SUELTAS.find(x => x.id === rotaId); bancoOffer.rota = c && { ...c, motivo: c.rota || 'Tu avion no puede llevarla' }; }
         return window.__banco();
       };
+      // EL ALBUM (22/11): abrirlo ya, en la figurita `i` (para mirarlo)
+      window.__album = (i, cat) => { if (cat != null) albumCatI = cat | 0; albumSel = Math.max(0, Math.min(albumLista().length - 1, i | 0)); setState('album'); return albumSel; };
+      window.__albumDar = id => albumDescubrir(id);
       window.__bancoElegir = i => { bancoSel = i | 0; bancoT = 1; bancoConfirm(); return window.__banco(); };
       // dar una carta por id (como si se la hubiera elegido), para medir su efecto
       window.__bancoDar = id => { const c = CARTAS_SUELTAS.find(x => x.id === id); if (!c) return null; if (!c.uso) pichon.push(id); cartasRun.push(id); aplicarCarta(c);

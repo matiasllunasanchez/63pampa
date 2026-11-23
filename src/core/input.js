@@ -279,6 +279,17 @@ export function initInput(cv, a) {
       if (isBack(e.code)) { a.mejBack(); e.preventDefault(); return; }
       return;
     }
+    // EL ALBUM (22/11): las flechas recorren la grilla; ESC vuelve al menu de modos
+    if (S.state === 'album') {
+      if (isUp(e.code)) { a.albumNav(0, -1); e.preventDefault(); return; }
+      if (isDown(e.code)) { a.albumNav(0, 1); e.preventDefault(); return; }
+      if (isLeft(e.code)) { a.albumNav(-1, 0); e.preventDefault(); return; }
+      if (isRight(e.code)) { a.albumNav(1, 0); e.preventDefault(); return; }
+      // las SECCIONES (temas, cartas, aviones, buques, misiones): Q / E, como saltar de punto en el mapa
+      if (e.code === 'KeyQ' || e.code === 'KeyE') { if (!e.repeat) a.albumCat(e.code === 'KeyQ' ? -1 : 1); e.preventDefault(); return; }
+      if (isBack(e.code)) { a.albumBack(); e.preventDefault(); return; }
+      return;
+    }
     if (S.state === 'modeselect') {                                       // CAMPAÑA / CICLO / SUPERVIVENCIA
       if (isUp(e.code) || isLeft(e.code)) { a.modeNav(-1); e.preventDefault(); return; }
       if (isDown(e.code) || isRight(e.code)) { a.modeNav(1); e.preventDefault(); return; }
@@ -543,6 +554,7 @@ export function initInput(cv, a) {
     if (a.mapaAbierto && a.mapaAbierto()) { a.mapaClick(p.x, p.y, e.button); return; }
     // se pasa la Y CRUDA: la fila la resuelve game.js con la geometria real del menu
     if (S.state === 'modeselect') { a.modeSelect(p.y); return; }
+    if (S.state === 'album') { a.albumToque(p.x, p.y, true); return; }   // (el ALBUM: la figurita o la pestaña)
     if (S.state === 'menu') {
       if (p.x < W * 0.28) a.planeNav(-1);
       else if (p.x > W * 0.72) a.planeNav(1);
@@ -575,6 +587,7 @@ export function initInput(cv, a) {
       const p = canvasPos(e);
       puntero.x = p.x; puntero.y = p.y; puntero.t = performance.now();
       if (a.mapaAbierto && a.mapaAbierto()) a.mapaHover(p.x, p.y);
+      if (S.state === 'album') a.albumToque(p.x, p.y, false);   // (el ALBUM: pasar por encima la marca y la da por vista)
       if (mouse.on || Math.hypot(p.x - mouse.x, p.y - mouse.y) >= MIRA_SUELTA) {
         // (21/11, el autor: "la mira del mouse no vuelve al centro despues de no tocarlo X segundos"): con la mira
         // suelta, CUALQUIER pointermove reiniciaba el reloj — y el temblor del panel tactil o de un mouse apoyado
@@ -1044,6 +1057,14 @@ export function initInput(cv, a) {
         if (nr && !nav.r) a.optChange(1);
         if (confirm) a.optConfirm();                           // puede ABRIR una sub-pantalla
         if (hit(1) && !(a.optBack && a.optBack())) a.escToMenu();   // B = volver (o cerrar CONTROLES)
+      } else if (S.state === 'album') {
+        if (nu && !nav.u) a.albumNav(0, -1);
+        if (nd && !nav.d) a.albumNav(0, 1);
+        if (nl && !nav.l) a.albumNav(-1, 0);
+        if (nr && !nav.r) a.albumNav(1, 0);
+        if (hit(4)) a.albumCat(-1);                            // L1 / R1: la seccion
+        if (hit(5)) a.albumCat(1);
+        if (hit(1)) a.albumBack();                             // B = volver
       } else if (S.state === 'mejoras') {
         if (nu && !nav.u) a.mejNav(-1);
         if (nd && !nav.d) a.mejNav(1);
