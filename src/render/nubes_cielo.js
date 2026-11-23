@@ -138,6 +138,15 @@ function hornear(c, tipo, tonos) {
   gr.putImageData(ir, 0, 0);
 }
 
+/** UNA NUBE SUELTA con esta misma receta, para otros dibujos (23/11: la pared y el techo del FRENTE DE TORMENTA,
+ *  render/frente.js — el autor: "las nubes se ven re bien, por que no usamos ESAS nubes para la tormenta"). `tonos`:
+ *  cinco [r, g, b] de la sombra a la cresta. Devuelve el canvas. */
+export function nubeSuelta(w, h, sem, tonos, tipo = 'cumulo') {
+  const c = { w, h, sem, cv: null, rim: null };
+  hornear(c, tipo, tonos);
+  return c.cv;
+}
+
 let horneadoDe = '';
 function hornearSiCambio() {
   const sk = theme.sky, clave = sk.horizon + sk.skyMid + sk.skyTop + sk.sun;

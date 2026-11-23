@@ -80,6 +80,7 @@ export function stepFrente(blanco = 0) {
     niebla: niebla * F.NIEBLA_A,
     oscuro: x0 < 0 && !arriba ? F.OSCURO * suave(1 + x0 / 1800) : 0,   // (la sombra de la pared llega antes que la pared)
     tapaSol: arriba ? 0 : x0 < 0 ? suave(1 + x0 / 1600) : adentro ? 1 : 0,   // (la aureola se apaga con la pared encima; arriba de las nubes, sol)
+    adentro: adentro && !arriba,   // debajo de la tormenta: el techo cubre todo el cielo (render/frente.js drawTechoTormenta)
   };
   return cambio;
 }
@@ -90,4 +91,4 @@ if (typeof window !== 'undefined') window.__frente = (m = 2500, dura = null) => 
   return JSON.stringify(def);
 };
 if (typeof window !== 'undefined') window.__frenteDbg = () => (def ? { falta: Math.round(def.d0 - run.dist), sky: cfg.sky, rain: cfg.rain,
-  wind: cfg.wind, fr: run.frente && { muro: run.frente.muro && Math.round(run.frente.muro), niebla: +run.frente.niebla.toFixed(2), oscuro: +run.frente.oscuro.toFixed(2) } } : null);
+  wind: cfg.wind, fr: run.frente && { muro: run.frente.muro && Math.round(run.frente.muro), niebla: +run.frente.niebla.toFixed(2), oscuro: +run.frente.oscuro.toFixed(2), adentro: run.frente.adentro } } : null);

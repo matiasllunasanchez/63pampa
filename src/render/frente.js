@@ -12,6 +12,7 @@ import { cam } from '../core/state.js';
 import { run } from '../core/run.js';
 import { FRENTE } from '../data/tuning.js';
 import { ruido } from '../core/tierra.js';
+import { nubeSuelta } from './nubes_cielo.js';
 
 const suave = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
 const X0 = -80, X1 = W + 80, PASO = 4;
@@ -29,56 +30,33 @@ const hexRgb = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
 const TONOS = ['#14181c', '#1c2227', '#283036', '#363f46', '#4b545b', '#6c757c'].map(hexRgb);
 const TONOS_ATRAS = ['#171c21', '#1e252b', '#262e35', '#2f383f', '#3b444b', '#4d565d'].map(hexRgb);
 const TONOS_LUZ = ['#3b4756', '#5e6f82', '#93a7bb', '#c8d8e8', '#eaf3fc', '#ffffff'].map(hexRgb);
-const REF = 90;            // alto (px horneados) de la pared de referencia: las nubes se escalan a lo que mide de verdad
+const ESC_MAX = 1.4;       // lo mas que se agranda una nube (mas, y el relieve pixelado se lee como roca)
+const HALO = 8;            // px horneados de desenfoque alrededor de cada nube (el halo)
+const REF = 30;            // alto (px horneados) de la pared de referencia: las nubes se escalan a lo que mide de verdad
 const NUBES = [];          // { cv, luz, w, h, T, fila, u, dy }
-function hornearNube(w, h, sem, tonos) {
-  // (copos ANCHOS y redondos, varios superpuestos: con los finos y altos la pared se leia como una sierra)
-  const domos = [], n = 5 + (ruido(sem, 0.5, 11) * 3 | 0);
-  for (let i = 0; i < n; i++) {
-    const cU = 0.12 + 0.76 * ((i + 0.5) / n + (ruido(sem + i * 3.1, 7.7, 13) - 0.5) * 0.18);
-    domos.push(cU, 0.2 + 0.14 * ruido(sem, i * 2.3, 17), (0.62 + 0.3 * ruido(i * 5.7, sem, 19)) * (1 - Math.abs(cU - 0.5) * 0.6));
-  }
-  const T = new Float32Array(w);
-  for (let x = 0; x < w; x++) {
-    const u = (x + 0.5) / w;
-    let top = Math.pow(Math.sin(Math.PI * u), 0.6) * 0.5;
-    for (let i = 0; i < domos.length; i += 3) {
-      const d = (u - domos[i]) / domos[i + 1];
-      if (d > -1 && d < 1) top = Math.max(top, Math.sqrt(1 - d * d) * domos[i + 2]);
-    }
-    T[x] = h * top * (0.95 + 0.08 * ruido(x / 9, 1.3, sem));
-  }
-  const H = h + 2;
-  const dentro = (x, y) => {
-    if (x < 0 || x >= w || y < 0 || y >= H) return false;
-    const yy = H - 1 - y, u = (x + 0.5) / w;
-    if (yy < Math.max(0, 2 - Math.min(u, 1 - u) * 20)) return false;              // la base chata
-    return T[x] - yy + (ruido(x / 3, y / 3, sem + 5) - 0.5) * 1.4 + bay(x, y) * 0.9 > 0;
-  };
-  const mk = () => { const c = document.createElement('canvas'); c.width = w; c.height = H; return c; };
-  const cv = mk(), luz = mk();
-  const im = cv.getContext('2d').createImageData(w, H), il = luz.getContext('2d').createImageData(w, H);
-  for (let y = 0; y < H; y++) for (let x = 0; x < w; x++) {
-    if (!dentro(x, y)) continue;
-    const i = (y * w + x) * 4, yy = H - 1 - y, v = yy / Math.max(1, T[x]);
-    // la luz de arriba a la izquierda sobre cada copo (el ruido grande contra el de un poco mas alla), la panza oscura
-    const n1 = ruido(x / 11, y / 8, sem + 21), n2 = ruido((x + 3) / 11, (y + 3) / 8, sem + 21);
-    let lum = 0.08 + 0.72 * Math.pow(Math.min(1, v), 0.8) + (n1 - n2) * 2.2;
-    if (yy < 3) lum -= 0.3;                                                        // la panza
-    if (!dentro(x, y - 1)) lum += 0.22;                                            // el filo de arriba
-    const kk = Math.max(0, Math.min(5, Math.floor((lum + bay(x, y) * 0.2) * 5.2)));
-    const a = tonos[kk], b = TONOS_LUZ[Math.min(5, kk + 1)];
-    im.data[i] = a[0]; im.data[i + 1] = a[1]; im.data[i + 2] = a[2]; im.data[i + 3] = 255;
-    il.data[i] = b[0]; il.data[i + 1] = b[1]; il.data[i + 2] = b[2]; il.data[i + 3] = 255;
-  }
-  cv.getContext('2d').putImageData(im, 0, 0); luz.getContext('2d').putImageData(il, 0, 0);
-  return { cv, luz, w, h: H, T };
+// LAS NUBES DE LA PARED SON LAS DEL CIELO (23/11, el autor: "las nubes se ven re bien, por que no usamos ESAS nubes para
+// la tormenta en vez de las que creaste?"): la receta de render/nubes_cielo.js (`nubeSuelta`), en cinco tonos de
+// tormenta, y su version prendida (el relampago) en los tonos de luz. Cada una con su HALO desenfocado debajo.
+const T5 = t => [t[0], t[1], t[2], t[3], t[5]];
+function nubeTormenta(w, h, sem, tonos) {
+  const cv = nubeSuelta(w, h, sem, T5(tonos)), luz = nubeSuelta(w, h, sem, T5(TONOS_LUZ));
+  const halo = document.createElement('canvas'); halo.width = cv.width + HALO * 2; halo.height = cv.height + HALO * 2;
+  { const g = halo.getContext('2d'); g.filter = 'blur(' + (HALO * 0.55) + 'px)'; g.globalAlpha = 0.9; g.drawImage(cv, HALO, HALO); }
+  // LA SUAVE: la misma nube apenas desenfocada, para cuando se dibuja GRANDE (la pared encima, el techo de adentro): a
+  // mas de ~1,3x el relieve pixelado de la receta se leia como roca; suavizada se lee como nube y el borde se difumina
+  const suave = document.createElement('canvas'); suave.width = cv.width + 4; suave.height = cv.height + 4;
+  { const g = suave.getContext('2d'); g.filter = 'blur(1.3px)'; g.drawImage(cv, 2, 2); }
+  // el PERFIL de arriba (alto de la nube por columna, desde la base): lo usa `solTapado` para saber si tapa el sol
+  const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, T = new Float32Array(cv.width);
+  for (let x = 0; x < cv.width; x++) { let y = 0; while (y < cv.height && d[(y * cv.width + x) * 4 + 3] === 0) y++; T[x] = cv.height - y; }
+  return { cv, luz, halo, suave, w: cv.width, h: cv.height, T };
 }
 function hornearMuro() {
   let sem = 4417;
-  // ATRAS: torres altas y anchas, oscuras (el yunque del cumulonimbo); ADELANTE: mas bajas y mas seguidas
-  for (let i = 0; i < 6; i++) NUBES.push({ ...hornearNube(190 + (i * 37) % 70, 80 + (i * 23) % 20, sem += 97, TONOS_ATRAS), fila: 0, u: i / 6 + 0.04, dy: 0 });
-  for (let i = 0; i < 8; i++) NUBES.push({ ...hornearNube(140 + (i * 29) % 60, 48 + (i * 17) % 18, sem += 97, TONOS), fila: 1, u: i / 8, dy: 0 });
+  // DEL TAMAÑO DE LAS DEL CIELO (23/11: grandes —190 x 100— la receta se leia como roca): ATRAS, las mas anchas y
+  // oscuras; ADELANTE, mas chicas. Muchas: la pared y el techo se arman repitiendolas en filas
+  for (let i = 0; i < 9; i++) NUBES.push({ ...nubeTormenta(110 + (i * 37) % 60, 24 + (i * 7) % 12, sem += 97, TONOS_ATRAS), fila: 0, u: i / 9 + 0.03, dy: 0 });
+  for (let i = 0; i < 12; i++) NUBES.push({ ...nubeTormenta(70 + (i * 29) % 50, 16 + (i * 5) % 10, sem += 97, TONOS), fila: 1, u: i / 12, dy: 0 });
 }
 
 // LOS RELAMPAGOS ADENTRO: con la pared a la vista, cada tanto (mas seguido cuanto mas cerca) una nube se prende
@@ -90,8 +68,49 @@ function relampagos(a, ahora) {
   for (let i = destellos.length - 1; i >= 0; i--) if (ahora - destellos[i].t0 > 0.55) destellos.splice(i, 1);
 }
 
+/** Una nube de la tormenta: chica, la de siempre (pixel nitido); grande, la SUAVE con suavizado. */
+function dibujarNube(n, x, y, w, h, esc) {
+  if (esc < 1.3) { ctx.imageSmoothingEnabled = false; ctx.drawImage(n.cv, x, y, w, h); return; }
+  const p = 2 * w / n.w;
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(n.suave, x - p, y - p, w + p * 2, h + p * 2);
+}
+// ADENTRO DE LA TORMENTA (23/11, el autor: "dentro de la tormenta… se ve el cielo, eso no debe pasar"): un TECHO gris
+// que tapa el cielo entero hasta el horizonte, con filas de las mismas nubes de tormenta corriendo despacio encima
+let techoA = 0, techoT = -1;
+function drawTechoTormenta(adentro) {
+  const ahora = performance.now() / 1000, dt = techoT < 0 ? 0 : Math.min(0.1, ahora - techoT); techoT = ahora;
+  techoA += ((adentro ? 1 : 0) - techoA) * Math.min(1, dt * 1.5);
+  if (techoA < 0.01) return;
+  if (!NUBES.length) hornearMuro();
+  ctx.save();
+  ctx.globalAlpha = techoA;
+  const g = ctx.createLinearGradient(0, -40, 0, HOR + 2);
+  g.addColorStop(0, '#1a2025'); g.addColorStop(0.55, '#262e35'); g.addColorStop(1, '#3a434a');
+  ctx.fillStyle = g; ctx.fillRect(X0, -40, X1 - X0, HOR + 42);
+  const prevSm = ctx.imageSmoothingEnabled;
+  // tres filas: arriba grandes y oscuras, abajo mas chicas hacia el horizonte (corren con la camara y el viento)
+  // (como la pared: el techo es gris liso; nubes solo en la franja del horizonte, chicas, que dan la distancia)
+  for (let fila = 0; fila < 4; fila++) {
+    const esc = [1.4, 1.2, 1, 0.75][fila], yB = [HOR * 0.3, HOR * 0.55, HOR * 0.78, HOR + 2][fila], periodo = (X1 - X0) * 1.15;
+    const off = ((cam.x * (0.2 + fila * 0.15) + run.t * (4 + fila * 2)) % periodo + periodo) % periodo;
+    for (let ni = 0; ni < NUBES.length; ni++) {
+      const n = NUBES[ni], w = n.w * esc, h = n.h * esc, hp = HALO * esc;
+      const x = X0 + (((ni / NUBES.length + fila * 0.37) % 1) * periodo - off + periodo) % periodo - w / 2;
+      for (const rep of [0, -periodo]) {
+        const xx = x + rep;
+        if (xx + w < X0 || xx > X1) continue;
+        ctx.imageSmoothingEnabled = true; ctx.drawImage(n.halo, xx - hp, yB - h - hp, w + hp * 2, h + hp * 2);
+        dibujarNube(n, xx, yB - h, w, h, esc);
+      }
+    }
+  }
+  ctx.imageSmoothingEnabled = prevSm;
+  ctx.restore();
+}
+
 export function drawFrenteMuro() {
   const fr = run.frente;
+  drawTechoTormenta(!!(fr && fr.adentro));
   if (!fr || fr.muro == null) { ultimo = null; return; }
   const d = Math.max(30, fr.muro), k = F / d;
   const a = suave((FRENTE.VISTA - d) / 800);          // asoma de a poco en el horizonte
@@ -110,27 +129,45 @@ export function drawFrenteMuro() {
   }
   // LAS NUBES: escala PAREJA (la pared de referencia mide REF), apoyadas en la base, repartidas a lo ancho y repetidas
   // de costado; corren apenas con la camara
-  const esc = alto / REF, periodo = (X1 - X0) * Math.max(1, esc * 0.9);
+  // LA ESCALA TOPEADA (23/11): agrandar una nube mas de ESC_MAX la volvia roca (su relieve pixelado a lo grande). De
+  // lejos la pared es una fila de nubes a su escala; de cerca, cuando mide mas, se APILAN filas (cada una a ESC_MAX
+  // como mucho) desde la base hasta el techo, sobre el gris de fondo
+  const escPared = alto / REF, esc = Math.min(ESC_MAX, escPared), filas = Math.max(1, Math.ceil(escPared / ESC_MAX * 0.8));
+  const periodo = (X1 - X0) * Math.max(1, esc * 0.9);
   const off = ((cam.x * k * 0.6) % periodo + periodo) % periodo;
   const prevSm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
   const ahora = performance.now() / 1000;
   relampagos(a, ahora);
   const posiciones = [];
+  // EL GRIS DE FONDO (23/11, el autor: "rellenar el fondo con el gris que ya tenia"): una masa continua detras de las
+  // nubes, desde un poco arriba del techo hasta la base, que arriba se funde con el cielo — asi no se ve cielo limpio
+  // entre nube y nube
+  { const yF = yBase - alto * 1.25, g = ctx.createLinearGradient(0, yF, 0, yBase);
+    g.addColorStop(0, 'rgba(38,46,53,0)'); g.addColorStop(0.3, 'rgba(38,46,53,0.75)'); g.addColorStop(0.6, '#262e35'); g.addColorStop(1, '#1c2227');
+    ctx.fillStyle = g; ctx.fillRect(X0, yF, X1 - X0, yBase - yF); }
   // LA BASE, maciza: una franja oscura que une los pies de las nubes (la pared no tiene huecos abajo)
   ctx.fillStyle = '#171c20'; ctx.fillRect(X0, yBase - alto * 0.28, X1 - X0, alto * 0.28 + 1);
-  for (let ni = 0; ni < NUBES.length; ni++) {
-    const n = NUBES[ni];
-    const w = n.w * esc, h = n.h * esc, subir = n.fila === 0 ? alto * 0.18 : 0;
-    for (let rep = -1; rep <= 1; rep++) {
-      const x = X0 + ((n.u * periodo - off) % periodo + periodo) % periodo - w / 2 + rep * periodo;
-      if (x + w < X0 || x > X1) continue;
-      const y = yBase - h - subir;
-      ctx.drawImage(n.cv, x, y, w, h);
-      posiciones.push({ n, x, y, w, h });
-      const des = destellos.find(r => r.n === ni);
-      if (des) {
-        const t = ahora - des.t0, golpe = t < 0.08 ? 1 : t < 0.16 ? 0.25 : t < 0.24 ? 0.85 : Math.max(0, 1 - (t - 0.24) / 0.3);
-        ctx.globalAlpha = a * golpe * 0.9; ctx.drawImage(n.luz, x, y, w, h); ctx.globalAlpha = a;
+  // SOLO LOS BORDES LLEVAN NUBES (23/11: apiladas en todo el alto se volvian una textura de roca): la fila de la BASE y,
+  // si la pared ya es mas alta que una fila, la del FILO de arriba (la silueta contra el cielo); el medio es el gris liso
+  const filasDib = filas > 1 ? [filas - 1, 0] : [0];
+  for (const fi of filasDib) {
+    const yFila = fi ? yTop + REF * esc * 0.75 : yBase, corre = fi ? 0.37 : 0;
+    for (let ni = 0; ni < NUBES.length; ni++) {
+      const n = NUBES[ni];
+      const w = n.w * esc, h = n.h * esc, subir = n.fila === 0 ? REF * esc * 0.18 : 0;
+      for (let rep = -1; rep <= 1; rep++) {
+        const x = X0 + (((n.u + corre) % 1 * periodo - off) % periodo + periodo) % periodo - w / 2 + rep * periodo;
+        if (x + w < X0 || x > X1) continue;
+        const y = yFila - h - subir, hp = HALO * esc;
+        // el halo desenfocado debajo (con suavizado: es lo que difumina), la nube encima
+        ctx.imageSmoothingEnabled = true; ctx.drawImage(n.halo, x - hp, y - hp, w + hp * 2, h + hp * 2);
+        dibujarNube(n, x, y, w, h, esc);
+        posiciones.push({ n, x, y, w, h });
+        const des = destellos.find(r => r.n === ni);
+        if (des) {
+          const t = ahora - des.t0, golpe = t < 0.08 ? 1 : t < 0.16 ? 0.25 : t < 0.24 ? 0.85 : Math.max(0, 1 - (t - 0.24) / 0.3);
+          ctx.globalAlpha = a * golpe * 0.9; ctx.drawImage(n.luz, x, y, w, h); ctx.globalAlpha = a;
+        }
       }
     }
   }
