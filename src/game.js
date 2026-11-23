@@ -1720,12 +1720,14 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (sig === 'adios') { beep(260, 0.14, 'square', 0.04, -80); chanchaDice('ch_bye'); }
     }
     // transiciones desde la pantalla inicial de modo
-    function goSurvival() { gameMode = 'survival'; setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    // EL SELECTOR ARRANCA SIEMPRE EN EL SKYHAWK (23/11, el autor: "arranca con el SKYHAWK excepto en el sobrevuelo de las
+    // islas, y siempre se reinicia — no queda el ultimo avion puesto"): cada modo suelto entra con CAMPAIGN_PLANE
+    function goSurvival() { gameMode = 'survival'; selPlane = CAMPAIGN_PLANE; setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // PERSECUCION (PLAN_HARRIERS_PERSECUCION §4, N2): pasillo INFINITO como POR LA PATRIA, pero
     // volando de numeral. El lider lo arma reset(), que es donde ya se decide todo lo de la corrida.
-    function goPersec() { gameMode = 'persec'; setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    function goPersec() { gameMode = 'persec'; selPlane = CAMPAIGN_PLANE; setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // CICLO DE MUERTE: las mismas misiones de la campaña, una al azar, sin el guion largo
-    function goCycle() { gameMode = 'cycle'; randomMission(); setState('menu'); beep(600, 0.08, 'square', 0.05); }
+    function goCycle() { gameMode = 'cycle'; selPlane = CAMPAIGN_PLANE; randomMission(); setState('menu'); beep(600, 0.08, 'square', 0.05); }
     // el ARENA y el CICLO solo juegan misiones CON buque: las de distancia no tienen climax.
     // `arenaShip` persiste de sesiones viejas, asi que se sanea al entrar.
     function shipMissionAt(i) { return SHIP_MISSIONS.includes(i) ? i : SHIP_MISSIONS[0]; }

@@ -2269,15 +2269,19 @@ function drawPiloto(charlaVoz, delAvion, avionNombre) {
   // mis lineas de charla la cara quedaba apagada mientras mi propia caja hablaba al lado (11/9).
   const habla = (radioVisible() && radio.personaje && sinTilde(radio.personaje) === sinTilde(nombre))
     || (charlaVoz && sinTilde(charlaVoz) === sinTilde(nombre));
-  // EL APELLIDO ARRIBA DE LA CARA (23/11): en su placa chica, encima de la caja; y ABAJO, donde iba el indicativo
-  // (PATRIA 1), chico, EL AVION que esta volando. Si no entran en el ancho, se aprietan (no se cortan)
-  const ape = apellidoDe(nombre);
-  ctx.font = F_ROT; ctx.textAlign = 'center';
-  { const wA = Math.min(PILOTO.lado + 14, ctx.measureText(ape).width + 4);
-    plate(Math.round(x + PILOTO.lado / 2 - wA / 2), y - 8, Math.round(wA), 7);
-    ctx.fillStyle = P.foam; ctx.fillText(ape, x + PILOTO.lado / 2, y - 2.5, PILOTO.lado + 12); }
-  ctx.font = '3.6px monospace'; ctx.fillStyle = P.dim;
-  ctx.fillText(avionNombre || nombre, x + PILOTO.lado / 2, y + PILOTO.alto - 2, PILOTO.lado - 2);
+  // ARRIBA, EL AVION (23/11, el autor: "inverti: pone el nombre donde esta el avion y donde esta hoy el nombre el avion,
+  // y un iconito de avion a la izquierda"): en su placa chica, con el avioncito del tablero del escuadron; ABAJO, en la
+  // caja, el APELLIDO del que vuela. Si no entran en el ancho, se aprietan (no se cortan)
+  const ape = apellidoDe(nombre), avion = avionNombre || '';
+  ctx.font = '3.6px monospace'; ctx.textAlign = 'left';
+  if (avion) {
+    const wT = Math.min(PILOTO.lado + 8, ctx.measureText(avion).width), wA = wT + 13, xA = Math.round(x + PILOTO.lado / 2 - wA / 2);
+    plate(xA, y - 8, Math.round(wA), 7);
+    iconoEn(xA + 4.5, y - 4.5, 'avion', P.accent);
+    ctx.fillStyle = P.dim; ctx.fillText(avion, xA + 10.5, y - 3, PILOTO.lado + 8);
+  }
+  ctx.font = F_ROT; ctx.textAlign = 'center'; ctx.fillStyle = P.foam;
+  ctx.fillText(ape, x + PILOTO.lado / 2, y + PILOTO.alto - 2, PILOTO.lado - 2);
   ctx.textAlign = 'left';
   if (habla) { ctx.strokeStyle = P.accent; ctx.strokeRect(x + 0.5, y + 0.5, PILOTO.lado - 1, PILOTO.alto - 1); }
   // `cara` es la que se esta viendo AHORA (con su gesto): si mi linea tiene que ir arriba porque
