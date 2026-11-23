@@ -49,6 +49,11 @@ let x = 0, citaT = 0;
 // gira con el—, asi que la canasta de la derecha se pone en x = 0 y sin deriva. Lo que se vuela es la ALTURA y
 // quedarse en la caja. La pone el orquestador cada cuadro (`centrar`).
 let centrada = false;
+// LAS DOS MANGUERAS (23/11, el autor: "la chancha se debe poder usar o recargar de cualquiera de las dos mangueras"):
+// `lado` es la que cuenta para la cita — +1 estribor, -1 babor. Mientras no estas enganchado es la MAS CERCANA a tu
+// avion (te metes en la que te quede a mano); enganchado o trabado queda fija hasta que te soltas. Centrada (las
+// islas, el tutorial) la eleccion no existe: el Hercules se corre para dejar la de estribor en el eje.
+let lado = 1;
 export function centrar(on) { centrada = !!on; }
 // LA ALTURA EN LAS ISLAS (20/11, el autor: "la Chancha no aparecio; debe aparecer sobrevolando mi avion desde
 // arriba y bajar a una altura coherente"): CH_ALT es la del pasillo (48 m), y sobre el mapa real volas a cientos
@@ -59,18 +64,27 @@ let base = 0;
 const CANASTA_SOBRE = 9;    // m de la canasta por encima del avion al llegar (la caja es de 6: hay que trepar un poco a buscarla)
 const CANASTA_PISO = 15;    // la canasta nunca a menos de esto sobre el suelo
 export function corrimiento(dy) { if (centrada && fase !== 'idle') base = Math.max(base + dy, CANASTA_PISO - (CH_ALT - CH_HOSE_Y)); }
-function ponerBase(planeY) { base = centrada ? Math.max(CANASTA_PISO, planeY + CANASTA_SOBRE) - (CH_ALT - CH_HOSE_Y) : 0; }
+function ponerBase(planeY) { base = centrada || rasa ? Math.max(rasa ? RASA_PISO : CANASTA_PISO, planeY + (rasa ? RASA_SOBRE : CANASTA_SOBRE)) - (CH_ALT - CH_HOSE_Y) : 0; }
+// LA CHANCHA AL RAS (23/11, el autor: "si estoy en radar debe venir desde el costado en rasante… bajo el radar tambien"):
+// pedida adentro de la zona del radar o volando por debajo de su techo, no baja de arriba a 48 m —que es lo que el
+// radar ve— sino que ENTRA DE COSTADO, a la altura del avion (la canasta CANASTA_SOBRE arriba), y se va de costado
+let rasa = false, rasaLado = 1;
+const RASA_PISO = 4;          // la canasta nunca a menos de esto sobre el agua
+const RASA_SOBRE = 2;         // la canasta apenas arriba del avion (con 9 el Hercules quedaba fuera de cuadro, arriba)
+const RASA_ENTRA_T = 2.6;     // s que tarda en entrar de costado, frenando
+const RASA_ENTRA_X = 70;      // m de costado desde donde entra (fuera de cuadro)
 let rumT = 0, bombaT = 0;   // cadencias de audio (motores / bomba de transferencia)
 
 /** ¿Donde esta la CANASTA ahora? Es el punto que hay que ir a buscar, y lo comparten la
  *  conexion y el dibujo — si fueran dos cuentas, la caja estaria donde no se ve la canasta. */
-function canasta() {
-  return { x: x + CH_HOSE_X, y: alturaHoy() - CH_HOSE_Y, z: CH_Z - CH_HOSE_Z };
+function canasta(l = lado) {
+  return { x: x + l * CH_HOSE_X, y: alturaHoy() - CH_HOSE_Y, z: CH_Z - CH_HOSE_Z };
 }
 
 /** La altura del Hercules AHORA. LLEGA DE ARRIBA (baja a su altura en los primeros CH_BAJADA_T
  *  segundos de la cita, frenando) y en la salida se va por arriba. */
 function alturaHoy() {
+  if (rasa) return base + CH_ALT;   // al ras: ni baja de arriba ni se va trepando
   if (fase === 'cita' && citaT < CH_BAJADA_T) { const u = 1 - citaT / CH_BAJADA_T; return base + CH_ALT + CH_BAJADA_H * u * u; }
   return base + CH_ALT + (fase === 'yendo' ? (CH_SALIDA - salT) * 14 : 0);
 }
@@ -105,6 +119,7 @@ export function pedir(g) {
   if (!g.auto) { if (g.mitad) usos[g.mitad]++; else usada = true; }
   if (!g.auto && !g.sinBarra) meter = 0;
   fase = 'eta'; etaT = g.eta || CH_ETA; pedidoT = 0; espera = !!g.espera;
+  rasa = !!g.rasante && !g.espera; rasaLado = Math.random() < 0.5 ? -1 : 1;
   return 'ok';
 }
 
@@ -123,7 +138,7 @@ export function tick(dt, e) {
     // Salir del pasillo —muerte, relevo, climax, devcam— la DESPIDE. El poder queda gastado: se
     // pidio, vino, y el que no estaba fue el avion. La barra vuelve a cargar desde el score del
     // momento en que se vuelve, como en tempo.js.
-    if (fase !== 'idle') { fase = 'idle'; conn = false; trabado = false; espera = false; }
+    if (fase !== 'idle') { fase = 'idle'; conn = false; trabado = false; espera = false; rasa = false; }
     lastScore = -1;
     return out;
   }
@@ -156,7 +171,8 @@ export function tick(dt, e) {
   }
   if (fase === 'yendo') {
     salT -= dt;
-    if (salT <= 0) fase = 'idle';
+    if (rasa) x += rasaLado * 30 * dt * (1 + (CH_SALIDA - salT));   // al ras se va de costado, no trepando
+    if (salT <= 0) { fase = 'idle'; rasa = false; }
     return out;
   }
   if (fase !== 'cita') return out;
@@ -166,7 +182,11 @@ export function tick(dt, e) {
   // uno lo vio aparecer, y recien despues hay que acompañarlo.
   citaT += dt;
   x = centrada ? -CH_HOSE_X : Math.sin(citaT * CH_DERIVA_V) * CH_DERIVA;
+  // AL RAS entra de costado y frena (no hay bajada de arriba): mientras entra no se engancha nada
+  if (rasa && citaT < RASA_ENTRA_T) { const u = 1 - citaT / RASA_ENTRA_T; x += rasaLado * RASA_ENTRA_X * u * u; }
   winT -= dt;
+  // LA MANGUERA QUE TE QUEDA A MANO: la mas cercana, salvo que ya estes en una (conn / trabado)
+  lado = centrada ? 1 : (conn || trabado) ? lado : (e.planeX >= x ? 1 : -1);
 
   // LA CAJA. Es una caja en (x, y) porque la profundidad la fija ella: sostiene formacion, o sea
   // que estar "detras de la canasta" no es algo que el jugador pueda equivocar — lo que tiene
@@ -218,6 +238,7 @@ function irse() { fase = 'yendo'; salT = CH_SALIDA; conn = false; trabado = fals
  *  entra). Devuelve true si estaba (viniendo o en la cita) y se fue. */
 export function despedir() {
   if (fase !== 'eta' && fase !== 'cita') return false;
+  if (rasa) return false;   // la que vino AL RAS se pidio adentro del radar: no se va por cruzarlo
   irse();
   return true;
 }
@@ -247,7 +268,9 @@ export function snapshot() {
   return {
     fase, x, y: alturaHoy(), z: CH_Z,
     bx: c.x, by: c.y, bz: c.z,
-    conn, eta: etaT, win: winT, t: citaT, espera,
+    // la OTRA manguera (la que no es la de la cita ahora) y de que lado esta la de la cita
+    ox: canasta(-lado).x, lado,
+    conn, eta: etaT, win: winT, t: citaT, espera, rasa,
     // enganchado y ya pasando nafta (verde) o todavia sosteniendose (naranja), y lo que le queda a ella
     cargando: conn && connT >= CH_ENGANCHE, enganche: conn ? Math.min(1, connT / CH_ENGANCHE) : 0, reserva, trabado,
   };
@@ -262,8 +285,8 @@ export function cargar(p) { meter = Math.min(1, meter + (p === undefined ? CH_CH
  *  igual que resetTempo — por eso el "una vez por corrida" sobrevive al relevo. */
 export function resetChancha() {
   fase = 'idle'; meter = 0; usada = false; usos.ida = 0; usos.vuelta = 0; reserva = 1; lastScore = -1; espera = false;
-  etaT = 0; winT = 0; salT = 0; pedidoT = 0; conn = false; connT = 0; trabado = false; x = 0; citaT = 0;
-  rumT = 0; bombaT = 0; base = 0;
+  etaT = 0; winT = 0; salT = 0; pedidoT = 0; conn = false; connT = 0; trabado = false; x = 0; citaT = 0; lado = 1;
+  rumT = 0; bombaT = 0; base = 0; rasa = false;
 }
 
 // ---------- SONDAS (QUITAR al cerrar el plan) ----------
@@ -271,6 +294,6 @@ if (typeof window !== 'undefined') {
   window.__chadbg = () => JSON.stringify({
     fase, meter: +meter.toFixed(3), usada, usos: { ...usos }, conn, trabado, reserva: +reserva.toFixed(3),
     eta: +etaT.toFixed(1), win: +winT.toFixed(1), connT: +connT.toFixed(1),
-    x: +x.toFixed(1), bx: +canasta().x.toFixed(1), by: +canasta().y.toFixed(1), caja: CH_BOX,
+    x: +x.toFixed(1), bx: +canasta().x.toFixed(1), by: +canasta().y.toFixed(1), caja: CH_BOX, rasa,
   });
 }

@@ -72,7 +72,8 @@ const VUELTA_TRANQUILA = [{ hasta: 1.5, obstacles: 0.7, caza: 0 }, { hasta: 2.0,
 // de mar descarta casi todo lo que no es ola ni bandada y deja huecos: la densidad se sube a mano en el
 // transito y el descenso, y un poco en la primera mitad del rasante. (1 = la de siempre.)
 const IDA_DENSA = 2.2, RASANTE_DENSO = 1.5;
-function fases({ lejos = MAR, cerca = DEFENSA, blanco = {}, vuelta = VUELTA_TRANQUILA, grito = {}, casa = true, transito = 0.25 } = {}) {
+// `ida`: claves que van a TODOS los tramos de la ida (23/11: `aves`, `olas`, `rafagas` — data/fases y systems/spawn.js)
+function fases({ lejos = MAR, cerca = DEFENSA, blanco = {}, vuelta = VUELTA_TRANQUILA, grito = {}, casa = true, transito = 0.25, ida: todaIda = {} } = {}) {
   // EL TRANSITO ALTO ES UN CUARTO DE LA IDA (en t17 era 16%): es donde ocurre la cita con el Hercules,
   // y tiene que alcanzar para que llegue, te enganche y te llene ANTES de la linea del radar (que se
   // ancla al comienzo del descenso). Con 16% pasaba de largo (autor, 12/10).
@@ -95,6 +96,7 @@ function fases({ lejos = MAR, cerca = DEFENSA, blanco = {}, vuelta = VUELTA_TRAN
   ];
   // SIN VUELTA (`casa: false`): el climax cierra la mision. Es el caso del PULSO — despues de la
   // cinematica no hay pasillo de regreso que funcione (se volaba con el mar en negro, 12/10).
+  for (const f of ida) Object.assign(f, todaIda);
   if (!casa) return ida;
   return ida.concat(vuelta.map((v, i) => ({ tipo: 'vuelta', bombs: 0, bidones: true, ...v, ...(i === 0 ? grito : {}) })));
 }
@@ -373,7 +375,7 @@ const r5 = {
   lanzamiento: +(INV_TRANSITO + 0.30 * (1 - INV_TRANSITO) / 0.75).toFixed(4),   // (el 0.55 de antes, corrido por el transito largo)
   pulsoLejos: 0.45,           // el buque, de lejos: el encuadre del Pulso multiplicado por esto
   pulsoBombas: 1, pulsoT01: 1,   // el ultimo Exocet; el Pulso de fines de mayo
-  cfg: cfgReal({ sky: 'cloudy', squad: 2 }),
+  cfg: cfgReal({ sky: 'cloudy', rain: 1, squad: 2 }),
   chanchaMinT: 40,
   chanchaVeces: { ida: 1, vuelta: 0 },
   // LA CHANCHA AL ROJO: la de la ida no viene por km — viene cuando la nafta entra al rojo (el ultimo cuarto), y el
@@ -383,16 +385,24 @@ const r5 = {
   // KM APROXIMADOS (a confirmar): el grupo de portaaviones estaba al este de las islas, mas lejos que
   // el Sheffield.
   ruta: { blancoKm: 850, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [620, 400] },
-  fases: fases({ cerca: FLOTA, casa: false, transito: INV_TRANSITO }),
+  // (23/11, el autor: "la cantidad de pajaros es UN MONTON, reduzcamos; agreguemos olas, viento que nos mueva y nos
+  // complique el control, o factores climaticos, pero no tanto pajaro"): un cuarto de las bandadas, mas olas, y
+  // rafagas de costado a cualquier altura; con llovizna (el mar se pone grueso)
+  fases: fases({ cerca: FLOTA, casa: false, transito: INV_TRANSITO, ida: { aves: 0.25, olas: 1.8, rafagas: 1 } }),
   par: Math.round(PAR * 1.2),
   escuadrilla: '2ª ESCUADRILLA AERONAVAL Y GRUPO 4 DE CAZA',
   // `squad` y `chapas` por avion: cada eleccion es su propia escuadrilla — dos Super Etendard, o cuatro
   // A-4C con el indicativo de ASN («Zonda», a confirmar) en la placa.
   aviones: [
-    { chapa: 'SUPER ÉTENDARD', plane: 'supere', carga: 'exocet', cargaTxt: 'EL ÚLTIMO EXOCET + 1 TANQUE',
-      rol: 'lanza', squad: 2 },
+    // (23/11, el autor: "arriba el nombre o la unidad con codigo"): las matriculas de los dos Super Etendard en la placa
+    // del escuadron —antes decia SUPER ÉTENDARD, repetido con el modelo de abajo—. ⚠ A CONFIRMAR (PREGUNTAS_HISTORICAS)
+    { chapa: '3-A-202', plane: 'supere', carga: 'exocet', cargaTxt: 'EL ÚLTIMO EXOCET + 1 TANQUE',
+      rol: 'lanza', squad: 2, chapas: ['3-A-202', '3-A-205'],
+      // (23/11: los que despegan con el, en las filas de atras — render/squad.js `extras`)
+      despeganCon: [{ plane: 'sky', n: 4 }] },
     { chapa: 'ZONDA 1', plane: 'sky', carga: 'tanques', cargaTxt: '2 TANQUES',
-      rol: 'escolta', squad: 4, chapas: ['ZONDA 1', 'ZONDA 2', 'ZONDA 3', 'ZONDA 4'] },
+      rol: 'escolta', squad: 4, chapas: ['ZONDA 1', 'ZONDA 2', 'ZONDA 3', 'ZONDA 4'],
+      despeganCon: [{ plane: 'supere', n: 2 }] },
   ],
   contexto: 'R5_CONTEXTO', epi: 'R5_LO_QUE_PASO',
 };

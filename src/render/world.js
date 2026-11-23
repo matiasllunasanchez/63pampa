@@ -323,20 +323,19 @@ function drawBaseVeg(dv) {
 // tipos los pone game.js (`setEstacionados`: los del sobrevuelo en Puerto Argentino, o el avion que despega).
 let ESTACIONADOS = [];
 export function setEstacionados(keys) { ESTACIONADOS = (keys || []).filter(Boolean); }
-const EST_PASO = 22, EST_DESDE = 12, EST_SEP = 6;    // m entre aviones, el primero, y cuanto afuera del borde de la pista
+// (23/11, el autor: "hay DEMASIADOS aviones aterrizados en las pistas, son pocos, 1 o 2 y ahi nomas"): ya no es una
+// fila cada EST_PASO m sino dos lugares fijos; el segundo sale o no segun la pista (hash), asi que son 1 o 2
+const EST_LUGARES = [{ wz: 30, lado: -1 }, { wz: 74, lado: 1 }], EST_SEP = 6;   // m de pista, costado, y cuanto afuera del borde
 function drawEstacionados(dv) {
   const R = RUNWAYS[cfg.runway] || RUNWAYS[0];
   if (!ESTACIONADOS.length || R.ground === 'asphalt' || !R.hw) return;
-  const gy = cfg.cliff ? PORT_H : 0, fin = Math.min(cfg.coast - PORT_AMP - 20, dv + 160);
-  for (let wz = Math.floor(fin / EST_PASO) * EST_PASO; wz >= EST_DESDE; wz -= EST_PASO) {
-    if (wz - dv < 4) break;
-    const i = Math.round(wz / EST_PASO);
-    for (const lado of [-1, 1]) {
-      const h = hash2(i * 13 + (lado > 0 ? 7 : 0), 91);
-      if (h < 0.35) continue;                                   // huecos: no es un estacionamiento lleno
-      const key = ESTACIONADOS[Math.floor(hash2(i, lado * 5 + 3) * ESTACIONADOS.length) % ESTACIONADOS.length];
-      drawEstacionado(key, lado * (R.hw + EST_SEP + h * 6), gy + 1.2, wz - dv);
-    }
+  const gy = cfg.cliff ? PORT_H : 0, fin = cfg.coast - PORT_AMP - 20;
+  for (let j = EST_LUGARES.length - 1; j >= 0; j--) {        // de atras hacia adelante
+    const { wz, lado } = EST_LUGARES[j], h = hash2(j * 13 + (cfg.runway || 0), 91);
+    if (j > 0 && h < 0.45) continue;                         // el segundo, a veces
+    if (wz > fin || wz - dv < 4 || wz - dv > 160) continue;
+    const key = ESTACIONADOS[j % ESTACIONADOS.length];
+    drawEstacionado(key, lado * (R.hw + EST_SEP + h * 6), gy + 1.2, wz - dv);
   }
 }
 
@@ -2750,9 +2749,14 @@ function dibujarObstaculo(o) {
     for (let i = 0; i < 6; i++) {
       const back = i > 2;                                       // fila de atras: mas lejos
       const sc = (back ? 0.72 : 1) * (0.85 + ((i * 37) % 5) * 0.06);
-      const bx2 = s.x + (((i % 3) - 1) * 2.2 + (back ? 1.1 : 0)) * k;
-      const by2 = s.y + ((back ? 1.4 : 0) - (i % 3 === 1 ? 0.9 : 0) + Math.sin(run.t * 1.7 + i * 2.1) * 0.3) * k;
-      const w = Math.sin(run.t * 11 + o.ph + i * 1.3);          // fase del aleteo de ESTA ave
+      // LA BANDADA BALEADA (systems/collision.js `disp`, 23/11): la que cae, cae dando vueltas; las otras salen cada una
+      // para su lado, aleteando el doble
+      const d = o.disp ? o.disp.aves[i] : null, e = o.disp ? run.t - o.disp.t0 : 0;
+      const ox = d ? (d.muere ? d.dx * 1.5 * e : d.dx * 9 * e) : 0;
+      const oy = d ? (d.muere ? 6 * e * e : -d.dy * 6 * e) : 0;
+      const bx2 = s.x + (((i % 3) - 1) * 2.2 + (back ? 1.1 : 0) + ox) * k;
+      const by2 = s.y + ((back ? 1.4 : 0) - (i % 3 === 1 ? 0.9 : 0) + Math.sin(run.t * 1.7 + i * 2.1) * 0.3 + oy) * k;
+      const w = d && d.muere ? Math.sin(e * d.gira) : Math.sin(run.t * (d ? 22 : 11) + o.ph + i * 1.3);   // fase del aleteo de ESTA ave
       const pose = w > 0.4 ? 1 : w < -0.4 ? -1 : 0;             // 1 = alas arriba · 0 = planeo · -1 = abajo
       const wl = 0.75 * k * sc, hh2 = Math.max(1, 0.22 * k * sc);
       const lift = pose * 0.38 * k * sc;
@@ -3531,13 +3535,17 @@ export function drawObjectiveMarker(objectiveDist, info) {
   // apareceria unicamente cuando yo tiro el radar"): sin marca no hay cuña; con marca, azul, latiendo
   // mas fuerte el instante del eco y apagandose el ultimo par de segundos.
   const conRadar = radarP.tiene;
-  if (conRadar && radarP.marcaT <= 0) return;
+  // EL BLANCO DEL EXOCET, UBICADO (23/11, el autor: "una vez encontrado el objetivo debe marcarse en el horizonte la
+  // flecha roja con el nombre del INVINCIBLE o del objetivo, y ahi recien te deja entrar al Pulso"): la marca del radar
+  // pasa a ROJA y se QUEDA — ya no depende de que el radar este prendido
+  const exo = !!(info && info.exo);
+  if (conRadar && !exo && radarP.marcaT <= 0) return;
   const p = run.dist / objectiveDist;
   // se desvanece apenas la barcaza empieza a ser clara (~0.55): a partir de ahi el propio barco
   // es la referencia y el marcador solo taparia el puente.
   // (con radar la marca NO se apaga al acercarse: es la que te dice donde esta el blanco en la bruma —
   // se va recien encima del buque, donde ya no hace falta)
-  const fade = conRadar ? Math.min(1, radarP.marcaT / 2) * (p < 0.97 ? 1 : 0)
+  const fade = exo ? (p < 0.97 ? 1 : 0) : conRadar ? Math.min(1, radarP.marcaT / 2) * (p < 0.97 ? 1 : 0)
     : p < 0.55 ? 1 : Math.max(0, 1 - (p - 0.55) / 0.12);
   if (fade <= 0) return;
   const tx = bargeCol(approachF(p));                    // misma columna que la barcaza objetivo
@@ -3555,7 +3563,7 @@ export function drawObjectiveMarker(objectiveDist, info) {
   }
   // CON RADAR, EL CONTACTO SE ROTULA (15/10, el autor: "el radar debe marcarme a distancia donde esta el
   // enemigo con flechitas azules y nombres arriba, en este caso el del objetivo final")
-  if (conRadar) { ctx.restore(); marcaRadar(mx, off, info && info.nombre, info && info.km != null ? info.km + ' KM' : null, fade); return; }
+  if (conRadar) { ctx.restore(); marcaRadar(mx, off, info && info.nombre, info && info.km != null ? info.km + ' KM' : null, fade, exo ? EXO_COL : RADAR_COL); return; }
   if (off === 0) {
     const bob = Math.sin(run.t * 2) * 1.2, ty = HOR - 14 + bob;
     ctx.beginPath();                                    // cuña apuntando hacia abajo, al horizonte
@@ -3574,8 +3582,11 @@ export function drawObjectiveMarker(objectiveDist, info) {
 
 /** UN CONTACTO DEL RADAR PROPIO: la flechita azul que apunta al horizonte (o al borde, si quedo afuera)
  *  y arriba el NOMBRE, con la distancia debajo. Sirve para cualquier contacto — hoy el blanco final. */
-const RADAR_AZ = '#5ab4ff', RADAR_AZ_CLARO = '#d6ecff', RADAR_AZ_BORDE = '#08162b';
-function marcaRadar(mx, off, nombre, sub, a) {
+// (los colores van en un juego: azul el contacto del radar, ROJO el blanco del Exocet ya ubicado)
+const RADAR_COL = { base: '#5ab4ff', late: '#3f8fe0', claro: '#d6ecff', borde: '#08162b' };
+const EXO_COL = { base: '#ff4a3a', late: '#d02a1e', claro: '#ffd9d3', borde: '#2b0806' };
+function marcaRadar(mx, off, nombre, sub, a, col = RADAR_COL) {
+  const RADAR_AZ = col.base, RADAR_AZ_CLARO = col.claro, RADAR_AZ_BORDE = col.borde;
   const late = Math.floor(performance.now() / 300) % 2 === 0;
   ctx.save();
   ctx.globalAlpha = a;
@@ -3587,7 +3598,7 @@ function marcaRadar(mx, off, nombre, sub, a) {
     ctx.beginPath(); ctx.moveTo(mx, ty + 9); ctx.lineTo(mx - 5, ty + 2); ctx.lineTo(mx - 2, ty + 2); ctx.lineTo(mx - 2, ty - 2);
     ctx.lineTo(mx + 2, ty - 2); ctx.lineTo(mx + 2, ty + 2); ctx.lineTo(mx + 5, ty + 2); ctx.closePath();
     ctx.strokeStyle = RADAR_AZ_BORDE; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = late ? RADAR_AZ : '#3f8fe0'; ctx.fill();
+    ctx.fillStyle = late ? RADAR_AZ : col.late; ctx.fill();
     ly = ty - 5;
   } else {                                              // pegada al borde, apuntando hacia el blanco
     const ay = HOR - 9 + bob, dir = off;

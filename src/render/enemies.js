@@ -16,6 +16,7 @@
 import { drawBorde } from './borde.js';
 import { CAJAS as CAJAS_HORNO } from '../data/cajas.js';
 import { CAJAS_THREE } from '../data/cajas_three.js';
+import { ANCLAS_CUADROS } from '../data/anclas_cuadros.js';   // (23/11) las anclas medidas en cada pose
 import { HORNO_VIEJO } from '../data/horno.js';
 
 // EL HORNO DE BLENDER (fase 2, 3/10/2026): las hojas de los aviones enemigos (helicopteros, caza,
@@ -241,8 +242,11 @@ const tintCtx = tint.getContext('2d');
  *  helices quedaban al lado de su gondola sin que nada lo dijera.
  *
  *  Devuelve tambien `esc` (pixeles de pantalla por pixel de hoja) para dimensionar lo que se pinte. */
-export function anclaje(k, i, cx, { bottomY, centerY }, k2) {
-  const s = SHEETS[k], b = s.box, p = s.puntos && s.puntos[i];
+export function anclaje(k, i, cx, { bottomY, centerY }, k2, cuadro) {
+  const s = SHEETS[k], b = s.box;
+  // con `cuadro`, la del cuadro que se esta dibujando (la Chancha alabea: la boca del pod se mueve con el ala)
+  const pc = cuadro != null && !HORNO_VIEJO && ANCLAS_CUADROS[k] && ANCLAS_CUADROS[k][cuadro];
+  const p = pc ? pc[i] : s.puntos && s.puntos[i];
   if (!p) return null;
   const cw = b.x1 - b.x0 + 1, ch = b.y1 - b.y0 + 1;
   const esc = s.wu * k2 / cw;

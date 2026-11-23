@@ -36,8 +36,12 @@ export function drawChancha() {
   // baja el ala derecha, y al llegar al extremo pasa por nivel. No hay un seno nuevo ni un estado
   // nuevo — es el mismo dato leido una vez mas, que es la regla de este repo.
   const deriva = Math.cos(c.t * CH_DERIVA_V);          // > 0: se va hacia +x (la derecha)
-  const bank = deriva > 0.25 ? 0 : deriva < -0.25 ? 2 : 1;
   const hoja = enemyArt.ready('chancha');
+  // (23/11, el autor: "debe moverse mas fluido, seguro hay mas posiciones") la hoja trae NUEVE alabeos: el cuadro sale
+  // de la deriva de a uno, sin los tres saltos de antes. El 0 es el ala derecha abajo; el del medio, nivelado. Con la
+  // hoja vieja de three (`?horno=three`, tres cuadros) la misma cuenta da 0/1/2.
+  const nb = hoja ? enemyArt.SHEETS.chancha.cols : 3;
+  const bank = Math.round((1 - Math.max(-1, Math.min(1, deriva / 0.6))) / 2 * (nb - 1));
   // LAS HELICES VAN SIEMPRE POR CODIGO, con hoja o sin ella: un disco horneado se ve MUERTO, y lo
   // que dice que este avion esta volando —y no pegado en el cielo— es que las cuatro giren.
   // VAN DETRAS DEL AVION (14/10, el autor: "ponelas DETRAS del avion"): estan al frente de cada gondola,
@@ -53,7 +57,7 @@ export function drawChancha() {
   // girando a una velocidad que el ojo sigue, con el barrido apenas insinuado y el cubo al centro.
   const HEL_D = 2.64;                                  // diametro del disco, en unidades de mundo
   for (let i = 0; i < 4; i++) {
-    const a = hoja ? enemyArt.anclaje('chancha', i, s.x, { centerY: s.y }, k) : null;
+    const a = hoja ? enemyArt.anclaje('chancha', i, s.x, { centerY: s.y }, k, bank) : null;
     const f = [-0.34, -0.19, 0.19, 0.34][i];
     const hx = a ? a.x : s.x + w * f;
     const hy = a ? a.y : bodyY - h * 0.62;
@@ -94,24 +98,25 @@ export function drawChancha() {
   }
   // LAS DOS MANGUERAS (8/10, el autor: "la manguera la veo pero tiene que ser mas visible, quiza
   // naranja"). Salen de la BOCA DE CADA POD —afuera del motor externo, como en el KC-130 de verdad—,
-  // cuelgan y terminan en su canasta. La de estribor es la de la cita (la canasta de systems/chancha.js);
-  // la de babor no carga a nadie: esta porque el avion real larga las dos, y una sola manguera
-  // colgando de un ala se lee como algo que se solto. Va ESPEJADA EN PANTALLA respecto del Hercules,
-  // no en el mundo: la camara anda pegada a la canasta de estribor, y la de babor en su lugar de
-  // verdad queda 19 m a la izquierda y a la profundidad de juego — una raya naranja que cruza medio
-  // mar hasta salirse del cuadro. Espejada, el par se lee como lo que es.
+  // cuelgan y terminan en su canasta. Desde el 23/11 cargan las dos (systems/chancha.js, `lado`).
   //
   // De donde sale cada una lo dice el horno (`anclaje` 4 y 5, la boca del pod proyectada con la
   // camara con la que se horneo). La hoja de three (`?horno=three`) solo trae la 4: la 5 es su espejo.
-  const pd = hoja ? enemyArt.anclaje('chancha', 4, s.x, { centerY: s.y }, k) : null;
-  const pi = hoja ? enemyArt.anclaje('chancha', 5, s.x, { centerY: s.y }, k) : null;
+  const pd = hoja ? enemyArt.anclaje('chancha', 4, s.x, { centerY: s.y }, k, bank) : null;
+  const pi = hoja ? enemyArt.anclaje('chancha', 5, s.x, { centerY: s.y }, k, bank) : null;
   const oD = pd || { x: s.x + w * 0.37, y: bodyY + h * 0.2 };
   const oI = pi || { x: 2 * s.x - oD.x, y: oD.y };
-  const b = proj(c.bx, c.by, c.bz);
-  const bI = { x: 2 * s.x - b.x, y: b.y, k: b.k };
-  manguera(oI, bI, k);
-  manguera(oD, b, k);
-  canasta(bI, false, 0.7);
+  // (23/11) LAS DOS CARGAN: cada canasta va donde esta en el MUNDO (la de babor ya no es un espejo en pantalla),
+  // porque la caja de cualquiera de las dos tiene que estar exactamente donde se la ve. `c.lado` dice cual es la
+  // de la cita ahora (la mas cercana); la otra se ve igual, solo un poco mas tenue.
+  const b = proj(c.bx, c.by, c.bz), bO = proj(c.ox, c.by, c.bz);
+  const [bD, bI] = c.lado > 0 ? [b, bO] : [bO, b];
+  // (23/11, el autor: "el globito que viene de la manguera desde el avion hacia el mio") la nafta se VE pasar: solo por
+  // la manguera de la cita y solo mientras carga (verde), no mientras te sostenes en naranja
+  const flujo = c.cargando ? c.t : null;
+  manguera(oI, bI, k, c.lado < 0 ? flujo : null);
+  manguera(oD, bD, k, c.lado > 0 ? flujo : null);
+  canasta(bO, false, 0.85);
   canasta(b, c.conn, 1);
 
   // LA CAJA — donde hay que meterse y SOSTENERSE (pedido del autor 24/9). Tres estados, y el color es

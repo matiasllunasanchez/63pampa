@@ -387,7 +387,9 @@ export function updateSfx(dt, w) {
         }
       } else if (tirabaPrev) {                                            // SOLTASTE (o se recalento)
         sfxOne('descarga');
-        if (gd.corta) { const g = sfxLoop(gk); if (g) { g.volume = 0; g.pause(); } }   // la de ORO no se apaga: se corta
+        // (23/11, el autor: "se traban los tiros pero sigue el sonido"): la rafaga se CORTA en seco, las tres — el fundido
+        // de los loops (~1,3 s) la dejaba sonando con el cañon ya trabado; la cola la pone la descarga
+        { const g = sfxLoop(gk); if (g) { g.volume = 0; g.pause(); } }
       }
       tirabaPrev = tirando;
       // AMBIENTE POR CONTEXTO DEL MAPA — y con el poder puesto, NADA. La tormenta, la batalla y el

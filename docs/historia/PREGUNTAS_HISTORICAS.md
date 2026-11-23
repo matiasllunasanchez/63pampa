@@ -1766,3 +1766,4 @@ Del autor, puestos en `src/data/perfiles.js`, `src/data/radar_propio.js` y `src/
 - **Dagger y Mirage con radar** (decidido con el autor: CORTO, 15 km / 700 m de pasillo). Lo registrado: el Dagger llevaba el telemétrico Elta EL/M-2001B (mide distancia, no busca); ¿y el Mirage 5P?
 - **Mirage 5P sin sonda** de reabastecimiento (el Dagger ya no la tenía). ¿Los 5P que llegaron de Perú tenían sonda?
 - **El ala delta al ras** (Dagger y Mirage): por debajo de 25 m no salen las piruetas de giro cerrado ni los frenos ("su ala en delta perdía energía rápidamente al girar cerrado"). El número es de juego.
+- **Los Super Étendard del 30 de mayo:** en EL INVINCIBLE la placa del escuadrón dice 3-A-202 y 3-A-205 (`data/libro_vuelo.js` r5). ¿Qué matrículas volaron ese día?

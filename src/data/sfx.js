@@ -169,6 +169,8 @@ export const SFX_DEF = {
   herCanon: { f: ['explosions/small_explosion1.wav'], v: 0.7 },
   // EL EXOCET QUE SALE (autor, 16/10): el motor del misil al lanzarlo, en las dos cinematicas (pega y errado)
   exocetSale: { f: ['ammo/exocet_sound.mp3'], v: 0.75, offset: 0.14, fo: 0.4 },
+  // (23/11, el autor) la tecla del Exocet sin blanco ubicado o fuera de zona. NO empieza con 'ex': esas cuentan como explosiones
+  errorExocet: { f: ['ammo/exocet_error.mp3'], v: 0.8 },
   lanzaMisil: { f: ['ammo/lauching_missil.mp3', 'ammo/lauching_missil_2.mp3'], v: 0.3, offset: 0.14 },
   radarVerdeInicio: { f: ['radars/green_radar_start.mp3'], v: 0.7, offset: 0.18 },
 };

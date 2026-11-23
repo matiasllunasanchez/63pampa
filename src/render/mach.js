@@ -38,41 +38,33 @@ export function drawCono(spW, spH, spd, t) {
   const k = conoAmt(spd);
   if (k <= 0.01) return;
   const r = respira(t);
-  // el radio crece con el regimen Y respira. Arranca apenas mas ancho que el ala para que se lea
-  // "envuelve al avion" y no "hay una burbuja al lado"
-  // MAS CHICO Y MAS CHATO que el primer intento (0.52+0.30 / 0.34+0.22): asi salia una burbuja
-  // gris del ancho de media pantalla, que se leia como un halo y no como aire condensado pegado al
-  // avion. La nube de verdad abraza el fuselaje.
+  // (23/11, el autor: "parece brillo de mala calidad"): era un degradé radial liso — un resplandor. Ahora es VAPOR: una
+  // cascara de pixeles que hierve, densa en la pared de la campana y abierta en el centro (ahi esta el avion)
   const rx = spW * (0.34 + k * 0.18) * r;
-  const ry = rx * 0.52;
+  nube(rx, rx * 0.52, 0.9, 0.07, 0.32 * k * r, t, 6, 0.5);
+}
+
+/** VAPOR EN PIXELES: una cascara eliptica de radios (rx, ry) hecha de puntitos. `pared` (0..1 del radio) es donde la
+ *  condensacion es mas densa y `ancho` cuanto se reparte; `a` la opacidad tope; hierve a `hz` cuadros por segundo con
+ *  un hash determinista por celda (nada de Math.random por cuadro: seria nieve). */
+function nube(rx, ry, pared, ancho, a, t, hz, paso = 0.75) {
+  if (a <= 0.01 || rx < 1) return;
+  const fr = Math.floor(t * hz);
   ctx.save();
-  // LA CASCARA: gradiente radial con el centro VACIO. El 0.62 es donde empieza la pared — mas
-  // adentro y la nube tapa el fuselaje, mas afuera y se despega en un aro suelto.
-  // LA PARED ES FINA. La primera version repartia la densidad entre el 62% y el 100% del radio y
-  // el resultado era niebla: mucha superficie con poco brillo. Concentrada entre el 72% y el 96%
-  // se lee como una CASCARA — que es lo que es.
-  const g = ctx.createRadialGradient(0, 0, Math.max(1, rx * 0.62), 0, 0, rx);
-  g.addColorStop(0, 'rgba(207,227,223,0)');
-  g.addColorStop(0.72, `rgba(207,227,223,${0.10 * k})`);
-  g.addColorStop(0.88, `rgba(240,250,248,${0.72 * k * r})`);
-  g.addColorStop(0.96, `rgba(233,244,241,${0.34 * k})`);
-  g.addColorStop(1, 'rgba(207,227,223,0)');
-  ctx.fillStyle = g;
-  ctx.save();
-  ctx.scale(1, ry / rx);                      // elipse: el cono es mas ancho que alto visto de atras
-  ctx.beginPath(); ctx.arc(0, 0, rx, 0, 6.2832); ctx.fill();
-  ctx.restore();
-  // EL LABIO: el borde neto de la campana, que es lo que la hace leer como una superficie y no como
-  // una mancha. Se apaga cuando la respiracion la afloja — la nube "revienta" y vuelve.
-  const labio = Math.max(0, r - 0.82) * 5;
-  if (labio > 0.02) {
-    ctx.globalAlpha = Math.min(0.75, labio * k * 0.8);
-    ctx.strokeStyle = '#f4fbf9';
-    ctx.lineWidth = 0.5;
-    ctx.beginPath(); ctx.ellipse(0, 0, rx * 0.97, ry * 0.97, 0, 0, 6.2832); ctx.stroke();
+  for (let y = -ry * 1.1; y <= ry * 1.1; y += paso) {
+    for (let x = -rx * 1.1; x <= rx * 1.1; x += paso) {
+      const d = Math.hypot(x / rx, y / ry);
+      const den = Math.exp(-((d - pared) * (d - pared)) / (2 * ancho * ancho));
+      if (den < 0.08) continue;
+      const i = Math.round(x / paso), j = Math.round(y / paso);
+      const h = hashP(i * 31.7 + j * 57.3 + fr * 0.913);
+      if (h > den) continue;
+      ctx.globalAlpha = a * (0.45 + 0.55 * den) * (0.6 + 0.4 * hashP(i * 3.1 + j * 7.7));
+      ctx.fillStyle = h < den * 0.35 ? '#ffffff' : '#dcebe8';
+      ctx.fillRect(x, y, paso, paso);
+    }
   }
   ctx.restore();
-  ctx.globalAlpha = 1; ctx.lineWidth = 1;
 }
 
 /** EL PARPADEO DE MACH 1 (autor, 5/10 — el video del F-14 cruzando la barrera). Pasando Mach 0,98 el
@@ -94,16 +86,8 @@ export function drawParpadeo(spW, spH, spd, t) {
   ctx.save();
   if (h >= PARPADEO_APAGA) {
     const fuerza = k * (0.45 + 0.75 * (h - PARPADEO_APAGA) / (1 - PARPADEO_APAGA));
-    const rx = spW * (0.62 + 0.14 * hashP(salto + 101)), ry = rx * 0.6;
-    const g = ctx.createRadialGradient(0, 0, rx * 0.12, 0, 0, rx);
-    g.addColorStop(0, `rgba(236,246,244,${0.30 * fuerza})`);
-    g.addColorStop(0.55, `rgba(226,240,238,${0.42 * fuerza})`);
-    g.addColorStop(0.85, `rgba(214,232,230,${0.16 * fuerza})`);
-    g.addColorStop(1, 'rgba(207,227,223,0)');
-    ctx.fillStyle = g;
-    ctx.save(); ctx.scale(1, ry / rx);
-    ctx.beginPath(); ctx.arc(0, 0, rx, 0, 6.2832); ctx.fill();
-    ctx.restore();
+    const rx = spW * (0.62 + 0.14 * hashP(salto + 101));
+    nube(rx, rx * 0.6, 0.86, 0.1, 0.3 * fuerza, t, PARPADEO_HZ, 0.5);   // (23/11: vapor en pixeles, no un resplandor)
   }
   // LOS JIRONES: vapor suelto sobre las alas y detras de la cabina, cada uno con su salto propio
   const N = 7;
@@ -172,39 +156,70 @@ export function drawVaporAla(spW, spH, spd, g, t) {
 let cruceT = -1;
 export function cruce() { cruceT = 0; }
 export function resetCruce() { cruceT = -1; }
-const CRUCE_T = 0.5;
+const CRUCE_T = 1.1;
 
-/** Las LINEAS DE VELOCIDAD del cruce, en coordenadas de MUNDO (480x270) y centradas en el avion.
- *  Se dibujan sin la rotacion del alabeo: rayan la pantalla, no el avion.
+/** EL CRUCE DE LA BARRERA (23/11, el autor: "no se entiende, parece brillo de mala calidad; que realmente parezca que
+ *  rompe la barrera del sonido"). Tres cosas, en coordenadas de MUNDO y sin el alabeo:
+ *   · LA ONDA DE CHOQUE: un anillo que sale disparado y DEFORMA lo que hay detras — la imagen ya dibujada se copia
+ *     ampliada adentro de una banda eliptica, como el aire comprimido que dobla la luz —, con el frente claro y la
+ *     sombra atras. Un segundo anillo pegado (el doble estampido de la onda N).
+ *   · EL ESTALLIDO DE VAPOR: la campana de condensacion aparece de golpe, densa, y se abre y se deshace en jirones.
+ *   · LAS RAYAS, cortas y pocas: la velocidad, no fuegos artificiales.
  *  @param dt segundos reales del cuadro (el reloj es propio, no el del mundo dilatado) */
 export function drawCruce(cx, cy, dt) {
   if (cruceT < 0) return;
   cruceT += dt;
   if (cruceT > CRUCE_T) { cruceT = -1; return; }
-  const f = cruceT / CRUCE_T;
-  const fade = (1 - f) * (1 - f);
+  onda(cx, cy, cruceT, 1);
+  if (cruceT > 0.09) onda(cx, cy, cruceT - 0.09, 0.55);
+  // EL ESTALLIDO: la campana revienta en los primeros 0,45 s — se abre, se afina y se va
+  const v = cruceT / 0.45;
+  if (v < 1) {
+    ctx.save(); ctx.translate(cx, cy);
+    const rx = 16 + v * 34;
+    nube(rx, rx * 0.55, 0.82 + v * 0.1, 0.16 - v * 0.08, (1 - v) * (1 - v) * 0.95, cruceT, 18, 1);
+    ctx.restore();
+  }
+  // LAS RAYAS
+  const f = cruceT / CRUCE_T, fade = (1 - f) * (1 - f);
   ctx.save();
-  // EL ANILLO que sale disparado hacia atras — el frente de presion pasandote
-  // (a la mitad, 8/10: "que no tapen tanto, cargan mucho la pantalla")
-  ctx.globalAlpha = fade * 0.4;
-  ctx.strokeStyle = '#f4fbf9';
-  ctx.lineWidth = Math.max(1, (1 - f) * 3);
-  ctx.beginPath(); ctx.ellipse(cx, cy, 22 + f * 150, (22 + f * 150) * 0.5, 0, 0, 6.2832); ctx.stroke();
-  // LAS RAYAS: nacen fuera del avion y se estiran hacia el borde. Los angulos son fijos (reparto
-  // por primos) — sorteados por cuadro serian ruido blanco, la trampa §1.3 del repo.
-  const N = 16;
-  for (let i = 0; i < N; i++) {
-    const a = i * 2.399;
-    const r0 = 26 + f * 120, r1 = r0 + 16 + f * 46;
-    const ca = Math.cos(a), sa = Math.sin(a) * 0.55;   // achatadas: el mundo es ancho
-    ctx.globalAlpha = fade * (i % 4 ? 0.18 + (i % 3) * 0.06 : 0.4);   // a la mitad, y la de cada cuatro mas marcada
-    ctx.strokeStyle = i % 4 ? '#eaf6f3' : P.crest;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(cx + ca * r0, cy + sa * r0);
-    ctx.lineTo(cx + ca * r1, cy + sa * r1);
-    ctx.stroke();
+  for (let i = 0; i < 10; i++) {
+    const a = i * 2.399, r0 = 30 + f * 150, r1 = r0 + 10 + f * 30;
+    const ca = Math.cos(a), sa = Math.sin(a) * 0.55;
+    ctx.globalAlpha = fade * (i % 3 ? 0.18 : 0.32); ctx.strokeStyle = '#eaf6f3'; ctx.lineWidth = 0.75;
+    ctx.beginPath(); ctx.moveTo(cx + ca * r0, cy + sa * r0); ctx.lineTo(cx + ca * r1, cy + sa * r1); ctx.stroke();
   }
   ctx.restore();
   ctx.globalAlpha = 1; ctx.lineWidth = 1;
+}
+
+/** UNA ONDA DE CHOQUE a `tt` segundos de nacer, con fuerza `k`: la banda que refracta y sus dos filos. */
+function onda(cx, cy, tt, k) {
+  const u = Math.min(1, tt / 0.85);
+  if (u >= 1) return;
+  const R = 18 + 260 * (1 - (1 - u) * (1 - u));          // sale rapido y frena
+  const banda = 5 + 7 * (1 - u), fuerza = (1 - u) * k;   // (lineal: que se vea toda la carrera, no solo el arranque)
+  const ry = 0.5;
+  ctx.save();
+  // LA REFRACCION: lo de adentro de la banda, copiado del lienzo y ampliado desde el centro
+  const cv = ctx.canvas, m = ctx.getTransform();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, R + banda, (R + banda) * ry, 0, 0, 6.2832);
+  ctx.ellipse(cx, cy, Math.max(1, R - banda), Math.max(1, R - banda) * ry, 0, 0, 6.2832);
+  ctx.clip('evenodd');
+  const zoom = 1 + 0.16 * fuerza;
+  const x0 = cx - (R + banda), y0 = cy - (R + banda) * ry, w = 2 * (R + banda), h = 2 * (R + banda) * ry;
+  const sx = m.a * x0 + m.e, sy = m.d * y0 + m.f, sw = m.a * w, sh = m.d * h;
+  if (sw > 2 && sh > 2) {
+    ctx.globalAlpha = Math.min(1, 0.4 + fuerza);
+    ctx.drawImage(cv, sx, sy, sw, sh, cx - (cx - x0) * zoom, cy - (cy - y0) * zoom, w * zoom, h * zoom);
+  }
+  ctx.restore();
+  // LOS FILOS: el frente comprimido (claro, fino) y la rarefaccion de atras (oscura)
+  ctx.save();
+  ctx.lineWidth = 1.6; ctx.globalAlpha = Math.min(0.9, 0.95 * fuerza + 0.1); ctx.strokeStyle = '#f6fcfb';
+  ctx.beginPath(); ctx.ellipse(cx, cy, R + banda * 0.6, (R + banda * 0.6) * ry, 0, 0, 6.2832); ctx.stroke();
+  ctx.lineWidth = 2.2; ctx.globalAlpha = 0.35 * fuerza; ctx.strokeStyle = '#0d1a1f';
+  ctx.beginPath(); ctx.ellipse(cx, cy, Math.max(1, R - banda * 0.7), Math.max(1, R - banda * 0.7) * ry, 0, 0, 6.2832); ctx.stroke();
+  ctx.restore();
 }

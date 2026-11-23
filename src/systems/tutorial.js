@@ -84,7 +84,7 @@ function cumple(c, s, dt) {
   if (c.altBajo != null) return s.alt < c.altBajo;
   if (c.bajoTecho != null) {
     if (s.roza) acum = 0;
-    else if (s.alt <= s.techo) acum += dt;
+    else if (s.alt <= (c.techo ?? s.techo)) acum += dt;   // (`techo` propio del paso: el rasante del tutorial, 5 m)
     return acum >= c.bajoTecho;
   }
   if (c.usa) {

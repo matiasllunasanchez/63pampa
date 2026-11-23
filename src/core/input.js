@@ -569,6 +569,9 @@ export function initInput(cv, a) {
     if (e.code === 'KeyB') inp.tanq = false;
     if (e.code === 'KeyF') inp.apunta = false;
     if (e.code === 'KeyG' || e.code === 'Numpad4') inp.brake = 0;
+    // EL RADAR SE SOSTIENE (23/11, el autor: "que el radar sea activable mientras se presiona la tecla, si se suelta se
+    // desactiva"): soltar F / Y lo apaga
+    if ((e.code === 'KeyF' || e.code === 'KeyY') && a.radarSoltar) a.radarSoltar();
     if (e.code === 'ArrowDown') inp.apunta = false;
     if (e.code === 'ShiftLeft') inp.mant = 0;
     if (e.code === 'KeyQ') secundarioArriba();
@@ -909,6 +912,9 @@ export function initInput(cv, a) {
       // que dejo libre a □ (X) — ahora SOLTAR SECUNDARIA, como L1 (ver `l1` mas abajo)
       if (hit(5) && S.state === 'play' && !down(4)) a.tempoToggle();   // (con L1 apretado, R1 es la eyeccion)
       if (hit(3) && S.state === 'play' && a.radarToggle) a.radarToggle();
+      // (y se SOSTIENE: soltar △ / Y lo apaga — 23/11)
+      if (!down(3) && padHeld.radar && a.radarSoltar) a.radarSoltar();
+      padHeld.radar = down(3);
       // (◯ ya no es la media vuelta del arena: el 3D vuela con los controles del pasillo, y la media
       // vuelta sale con el combo del SPLIT-S, ↑↓↓ — con los sticks, igual que en el teclado)
       // CRUCETA ARRIBA = EL PODER DEL RECURSO DEL MODO: reparto de energia en el arena, LA CHANCHA

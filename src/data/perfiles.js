@@ -62,14 +62,18 @@ export const ESQUIVE = {
 const RAS_DELTA = { alto: 25, sin: ['breakt', 'sturn', 'splits', 'loyo', 'cobra', 'derrape', 'mortal', 'cobrainv'] };
 export const PERFILES = {
   // los SKYHAWK: el caballo de tiro. Todo, la base de todo; el banco le tira bombas y taller, y se rompe mas
-  sky: { esquive: 0.1, fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 } },
-  a4q: { esquive: 0.1, fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 }, frio: { arranque: 1.1 } },
+  // (23/11, el autor: "en el tutorial no estoy viendo la brujula, pongamos la brujula en el Skyhawk tambien"): `brujula: true`
+  // — la brujula en todos los modos, como el Super Etendard, pero CON el termometro (que se corre al hueco de al lado)
+  sky: { esquive: 0.1, fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 }, frio: { brujula: true } },
+  a4q: { esquive: 0.1, fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 }, frio: { arranque: 1.1, brujula: true } },
   // el DAGGER: rapido y nervioso, de ala delta. Rola un poco menos y no hace las de giro largo; el banco, cañon
   dagger: { esquive: 0.12, maniobras: 'rigido', rolido: 0.9, grupos: { armas: 1.6 }, frio: { canon: 0.5, turbulencia: 0.9 }, ras: RAS_DELTA },
   // el SUPER ETENDARD: el del Exocet. Menos cartas (cada 8 km) pero inteligencia; casi no falla
   // (23/11, el autor: "el Super Etendard no se le congelan las alas; el salitre y el agua no le afectan tanto, tardan mucho
   // mas: tenian un sistema de soplado caliente") — sin hielo, y la sal se pega mucho mas despacio. A VERIFICAR
-  supere: { esquive: 0.09, rolido: 0.9, bancoKm: 8, grupos: { inteligencia: 2 }, fallasK: 0.5, frio: { canon: 0.5, arranque: 0.7, hielo: 0, sal: 0.35 } },
+  // (23/11, el autor: "el Super Etendard no tenia problema de temperatura: quitemos el termometro y pongamos la brujula"):
+  // `termometro: false` — sin reloj de temperatura en el tablero; en su lugar, la brujula (pasillo e islas)
+  supere: { esquive: 0.09, rolido: 0.9, bancoKm: 8, grupos: { inteligencia: 2 }, fallasK: 0.5, frio: { canon: 0.5, arranque: 0.7, hielo: 0, sal: 0.35, termometro: false } },
   // el MIRAGE 5P: el mas rapido y el mas duro de rolar; armas y defensa
   mirage: { esquive: 0.12, maniobras: 'rigido', rolido: 0.85, grupos: { armas: 1.4, defensa: 1.3 }, frio: { canon: 0.5, turbulencia: 0.9 }, ras: RAS_DELTA },
   // los LIVIANOS: rolan rapido, hacen todo, y el banco abre mas seguido (baratos, faciles de atender)

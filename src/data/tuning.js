@@ -2703,7 +2703,9 @@ export const VERT_STICK = { ACEL0: 10, ACEL1: 70, RAMPA: 0.5, TOPE: 0.75, POSE_D
 // hasta que la aguja llegue casi al 80, y de ahi si mantengo suma; no quiero que apretar como un loco recargue"):
 // AGUJA_SUBE s de 0 a 100 manteniendo LT (pareja), AGUJA_BAJA s de 100 a 0 al soltar. La barra solo crece donde la
 // aguja la alcanza (ALCANZA de tolerancia) y la sigue para arriba
-export const VERT_SOSTEN = { LLENA_S: 0.45, DURA_S: 6, CAIDA: 2.5, DEMORA: 0.8, AGUJA_SUBE: 1.0, AGUJA_BAJA: 0.35, ALCANZA: 0.03 };
+// (23/11, el autor: "el avion debe descender un poquito mas rapido cuando el gas esta en cero, y aunque apriete para arriba
+// debe subir poco o nada: literal esta PLANEANDO"): CAIDA 2.5 → 3.4, y sin sosten el stick arriba sube a lo sumo SUBE_SIN m/s
+export const VERT_SOSTEN = { LLENA_S: 0.45, DURA_S: 6, CAIDA: 3.4, SUBE_SIN: 0.6, DEMORA: 0.8, AGUJA_SUBE: 1.0, AGUJA_BAJA: 0.35, ALCANZA: 0.03 };
 export const VERT_FIJA = { SUBE: 16, BAJA: 20, RESP: 6 };          // m/s al apretar, y que tan rapido llega / se clava
 export const VERT_PLANEO = { G: 3, TH: 12, CAIDA: 1.2, SUBE: 7, AMORT: 4, DEMORA: 1, DIVE: 30 };
 

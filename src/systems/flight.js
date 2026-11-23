@@ -41,7 +41,7 @@ import { MSL_MAX, MSL_REGEN_HERC, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
 // comporta exactamente igual que ayer, y lo custodia `npm run feel`).
-import { val as fsVal, techoRadar } from './fases.js';
+import { val as fsVal, techoRadar, sinRadarArriba } from './fases.js';
 import { val as trVal } from './tramos.js';
 import * as naftaSys from './nafta.js';
 import { kmPorM } from './ruta.js';
@@ -165,7 +165,9 @@ function vertLibre(dt, G, TH, DIVE) {
     }
     if (!dir) { run.vertHold = 0; run.vertDir = 0; }
     // LA MITAD DEL TOPE de siempre (VERT_STICK.TOPE): solo frena lo que el stick empuja, no una caida que ya venia
-    const tS = topeSube(plane.y) * VERT_STICK.TOPE, tB = topeBaja(plane.y) * VERT_STICK.TOPE;
+    // SIN SOSTEN ESTA PLANEANDO (23/11): el stick arriba casi no lo levanta (solo en SUAVE: en ESTABLE sosten es siempre 1)
+    const tS = sosten <= 0 ? Math.min(S0.SUBE_SIN, topeSube(plane.y) * VERT_STICK.TOPE) : topeSube(plane.y) * VERT_STICK.TOPE;
+    const tB = topeBaja(plane.y) * VERT_STICK.TOPE;
     if (dir > 0 && plane.vy > tS) plane.vy = tS;
     if (dir < 0 && plane.vy < tB) plane.vy = tB;
     plane.vy = Math.max(-30, Math.min(30, plane.vy));
@@ -206,6 +208,7 @@ function vertRasante(dt, inp, G, TH, DIVE) {
 const GUN_X = 0.9;
 let gunSide = 1;   // de que cañon sale el proximo tiro; se turnan
 
+let rafT = 0;   // el reloj de las rafagas de costado (`rafagas`)
 let reac = 1;   // la reaccion de los controles: 1 sin turbo, TURBO.REACCION con (ver abajo)
 export function flightSystem(dt, deps) {
   // PIRUETA activa: systems/moves.js toma el control del avion este frame (escribe vx/vy/bank/
@@ -294,6 +297,17 @@ export function flightSystem(dt, deps) {
     run.shake = Math.max(run.shake, (1 - run.windF) * 3.5);
     if (Math.random() < 0.02) boom(0.03, true);
   }
+  // LAS RAFAGAS DE COSTADO (`rafagas` de la fase, 23/11 — EL INVINCIBLE: "viento que nos mueva y nos complique el control
+  // del avion"): a cualquier altura, un empuje lateral que va y viene (dos senos que se cruzan) y un poco de sube y baja;
+  // en los picos, el sacudon
+  { const raf = fsVal('rafagas', 0);
+    if (raf > 0) {
+      rafT += dt;
+      const g = Math.sin(rafT * 0.9) * Math.sin(rafT * 2.3 + 1.3) + 0.35 * Math.sin(rafT * 5.1);
+      if (cfg.control !== CTRL_BANK) plane.vx += g * raf * 70 * dt;
+      plane.vy += Math.sin(rafT * 1.7 + 0.5) * raf * 22 * dt;
+      if (Math.abs(g) > 0.7) run.shake = Math.max(run.shake, raf * 2);
+    } }
   // ráfagas visibles cruzando el cielo
   if (run.windT > 0.8 && Math.random() < (run.windT / 6) * 0.9)
     gusts.push({ x: W + 10, y: 4 + Math.random() * (HOR + 26), v: 260 + Math.random() * 170, len: 10 + Math.random() * 18, life: 2 });
@@ -723,7 +737,7 @@ export function flightSystem(dt, deps) {
   // Lo unico que hace es ANOTAR si el avion esta donde lo verian; quien habla es el orquestador,
   // que es el que sabe de personajes (los sistemas no llaman hacia arriba).
   // (LAS ISLAS: solo adentro de la zona de un radar britanico — data/islas_teatro.js RADARES; afuera no te ve nadie)
-  run.radarVisto = alt > techoRadar(RADAR_ALT) && !islasSinRadar() && (!islasEnPasillo() || islasZonaGb());   // (las islas sin radar: nadie te avisa)
+  run.radarVisto = alt > techoRadar(RADAR_ALT) && !sinRadarArriba(RADAR_ALT) && !islasSinRadar() && (!islasEnPasillo() || islasZonaGb());   // (las islas sin radar: nadie te avisa)
   // (LAS ISLAS con el radar apagado: lo mismo que el radar por voz, no carga nada — systems/islas)
   // (y SIN RADAR, `cfg.radar === 'off'`: el tablero ya lo escondia, pero la barra cargaba igual — EL RESCATE DEL BELGRANO)
   if (cfg.radar === 'voz' || cfg.radar === 'off' || islasSinRadar()) run.detection = 0;
@@ -819,6 +833,9 @@ export function flightSystem(dt, deps) {
   // primer tiro — lo mismo que tarda su sonido en empezar a disparar. Soltar o recalentar los para, y
   // el sonido vuelve a arrancar del giro (systems/audio.js).
   run.giro = gatillo && !run.overheat ? run.giro + dt : 0;
+  // EL SONIDO DE LA METRALLA LEE ESTO (23/11, el autor: "se traban los tiros pero sigue el sonido o viceversa"): la MISMA
+  // condicion que deja tirar abajo (sin la cadencia ni el giro de la de ORO, que suenan), no una copia aparte en game.js
+  run.gunVivo = gatillo && !run.overheat && mvAllowsFire();
   // EL CAÑON DEL AVION (data/planes.js `canon`, el Hercules): uno solo, desde el centro, lento y potente
   const cn = run.canon;
   // UN SOLO CAÑON (la falla MEDIA): la mitad de los tiros, todos del mismo lado

@@ -146,7 +146,7 @@ def posar(raiz, fr):
     raiz.matrix_basis = (Matrix.Rotation(fr.get('yaw', 0), 4, 'Y') @ Matrix.Rotation(fr.get('roll', 0), 4, 'Z')
                          @ Matrix.Rotation(base, 4, 'Y'))
 
-def puntos(cam_T):
+def puntos(cam_T, fr=None):
     """LAS ANCLAS (la Chancha: los cuatro conos de helice y la boca del pod): el punto del modelo
     proyectado con la camara del horno, en pixeles de la hoja — como __SHEETS_META de three. Se
     proyectan sobre el modelo VOLTEADO y sin pose, igual que alla."""
@@ -155,8 +155,11 @@ def puntos(cam_T):
     sc = bpy.context.scene
     base = S.get('baseYaw', math.pi) + S.get('quarter', 0)
     out = []
+    # (23/11) CON `fr`, LAS ANCLAS DE ESE CUADRO: la misma pose que `posar` (yaw por fuera, alabeo, volteo) — la
+    # Chancha alabea ±0,12 y una ancla medida nivelada deja la manguera colgando del aire
+    pose = (Matrix.Rotation(fr.get('yaw', 0), 4, 'Y') @ Matrix.Rotation(fr.get('roll', 0), 4, 'Z')) if fr and 'rots' not in fr else Matrix.Identity(4)
     for p in S.get('puntos', []):
-        v = Matrix.Rotation(base, 4, 'Y') @ Vector(p)
+        v = pose @ Matrix.Rotation(base, 4, 'Y') @ Vector(p)
         c = world_to_camera_view(sc, sc.camera, cam_T.matrix_world @ v)
         out.append([round(c.x * S['fw'], 2), round((1 - c.y) * S['fh'], 2)])
     return out
@@ -190,5 +193,6 @@ if __name__ == '__main__':
             bpy.context.view_layer.update()
             sc.render.filepath = os.path.join(OUT, 'f_%d.png' % i)
             bpy.ops.render.render(write_still=True)
-        json.dump({'puntos': puntos(T)}, open(os.path.join(OUT, 'puntos.json'), 'w'))
+        json.dump({'puntos': puntos(T), 'cuadros': [puntos(T, fr) for fr in S['frames']] if S.get('puntos') else []},
+                  open(os.path.join(OUT, 'puntos.json'), 'w'))
         print('HORNEADO', OUT)

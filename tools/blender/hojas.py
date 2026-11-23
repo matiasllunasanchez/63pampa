@@ -47,8 +47,11 @@ HOJAS = {
     'helo': dict(fw=64, fh=48, dist=15, lookY=0.15, cols=8, frames=_helo('bl:seaKingVerde:%d')),
     **{'helo_' + m.lower(): dict(fw=128, fh=96, dist=19, lookY=0.3, cols=8, frames=_helo('bl:' + m + ':%d'))
        for m in ('seaKing', 'wessex', 'seaLynx', 'gazelle', 'scout')},
-    'chancha': dict(fw=160, fh=112, dist=40, elev=12, lookY=2.8, baseYaw=0, cols=3, nivelado=1,
-                    frames=[dict(modelo='bl:hercules', roll=a) for a in (-0.10, 0, 0.10)],
+    # (23/11, el autor: "rehorneala") AL DOBLE: de cerca, en la cita, ocupa media pantalla y los 160 px se estiraban
+    # y NUEVE alabeos en vez de tres (el autor: "debe moverse mas fluido"): render/chancha.js elige el cuadro por la
+    # velocidad de la deriva, sin saltos. El del medio (4) es el nivelado.
+    'chancha': dict(fw=320, fh=224, dist=40, elev=12, lookY=2.8, baseYaw=0, cols=9, nivelado=4,
+                    frames=[dict(modelo='bl:hercules', roll=-0.12 + 0.03 * i) for i in range(9)],
                     puntos=[(x, 1.10, -4.35) for x in _conos] + [(sg * CH_POD[0], CH_POD[1], CH_POD[2]) for sg in (1, -1)]),
     'jet': dict(fw=128, fh=96, dist=16, lookY=0.2, cols=5, nivelado=2,
                 frames=[dict(modelo='bl:caza', roll=a * R) for a in (-30, -15, 0, 15, 30)]),

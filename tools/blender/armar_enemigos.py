@@ -90,6 +90,19 @@ def escribir_cajas(cajas):
     cuerpo = '\n'.join(linea_js(k, limpio[k]) for k in sorted(limpio))
     open(CAJAS_JS, 'w').write(cabecera + 'export const CAJAS = {\n' + cuerpo + '\n};\n')
 
+# LAS ANCLAS POR CUADRO (23/11): las de `puntos` medidas en CADA pose de la hoja (render/enemies.js `anclaje` con
+# `cuadro`). Viven aparte de las cajas para no tocar su formato; se juntan con las que ya habia.
+ANCLAS_JSON = os.path.join(ENEM, 'anclas.json')
+ANCLAS_JS = os.path.join(RAIZ, 'src', 'data', 'anclas_cuadros.js')
+def escribir_anclas(nuevas):
+    if not nuevas: return
+    todas = json.load(open(ANCLAS_JSON)) if os.path.exists(ANCLAS_JSON) else {}
+    todas.update({k: [[[num(a), num(b)] for a, b in f] for f in v] for k, v in nuevas.items()})
+    open(ANCLAS_JSON, 'w').write(json.dumps(todas, ensure_ascii=False) + '\n')
+    open(ANCLAS_JS, 'w').write('// GENERADO por tools/blender/armar_enemigos.py: las anclas de `puntos` (data/cajas.js) medidas en CADA cuadro\n'
+                               '// de la hoja, en pixeles de la hoja. No editar a mano.\n'
+                               'export const ANCLAS_CUADROS = ' + json.dumps(todas, ensure_ascii=False) + ';\n')
+
 def destino(k):
     """Donde vive la hoja en el juego, y donde queda la de three.js. Las de enemigos van en
     assets/world/enemies/; las que declaran `destino` (las partes, la municion), ahi."""
@@ -141,7 +154,7 @@ def leer_three():
 
 if __name__ == '__main__':
     claves = [a for a in sys.argv[1:] if a in HOJAS] or list(HOJAS)
-    cajas = json.load(open(CAJAS_JSON))
+    cajas = json.load(open(CAJAS_JSON)); anclas = {}
     archivar(claves, cajas)
     paneles = []
     for k in claves:
@@ -156,12 +169,15 @@ if __name__ == '__main__':
             print('OK %s -> %s' % (k, os.path.relpath(nueva, RAIZ)))
             continue
         c = medir(h, S['fw'], S['fh'])
-        p = json.load(open(os.path.join(OUT, k, 'puntos.json')))['puntos']
+        pj = json.load(open(os.path.join(OUT, k, 'puntos.json')))
+        p = pj['puntos']
         if p: c['puntos'] = p
+        if pj.get('cuadros'): anclas[k] = pj['cuadros']
         cajas[k] = c
         aviso = '  ⚠ MARGEN %d px (el plan pide 2)' % c['margen'] if c['margen'] < 2 else ''
         print('OK %s: box %s · margen %d%s' % (k, c['box'], c['margen'], aviso))
     escribir_cajas(cajas)
+    escribir_anclas(anclas)
     if arg('--lamina'):
         A.lamina(paneles, os.path.join(AQUI, arg('--lamina')), esc=int(arg('--esc', '2')))
         print('LAMINA', arg('--lamina'))

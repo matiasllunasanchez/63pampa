@@ -75,6 +75,7 @@ export function setCfg(c) {
 }
 
 /** ¿La prueba es la del EXOCET? Entra aparte porque la carga se resuelve despues de setCfg (setRunObjective). */
+const EXOCET_PERDON = 3;   // las teclas que se pueden errar cargando las coordenadas del Exocet
 export function setExocet(v) { if (carry) carry.exocet = !!v; }
 
 /** EL BUQUE de esta corrida. Entra aparte de setCfg() y no dentro porque el orden de armado del
@@ -128,7 +129,9 @@ export function enter(desdePasillo, conf) {
     bi: 0,                                // compas en curso
     ti: 0,                                // token en curso DENTRO del compas
     errs: 0,                              // errores cometidos en esta secuencia
-    perdon: errFor(carry.t01) + (run.itb ? 1 : 0),   // errores perdonados (escala por nivel; LA ITB, en CICLO, perdona uno mas)
+    // errores perdonados (escala por nivel; LA ITB, en CICLO, perdona uno mas). CON EL EXOCET, TRES (23/11, el autor: "se
+    // permite fallar 3 teclas de una secuencia; si falla la secuencia se reinicia la mision"): la cuarta errada lo desvia
+    perdon: carry.exocet ? EXOCET_PERDON : errFor(carry.t01) + (run.itb ? 1 : 0),
     motivo: null,                         // por que se fallo (lo canta el render, no un popup)
     tries: carry.tries,                   // fallos gastados (plan §3: 3 y se pierde la mision)
     flak: carry.flak,                     // grados que se acerco el flak (cada fallo lo acerca)
@@ -482,7 +485,7 @@ export function reencarar() {
   Q.flak = Math.min(PULSO.FLAK_T.length - 1, Q.tries);
   if (carry) carry.flak = Q.flak;
   Q.beatMax = beatFor(Q.t01, Q.flak);
-  Q.perdon = errFor(Q.t01);
+  Q.perdon = Q.exocet ? EXOCET_PERDON : errFor(Q.t01);
   armarSecuencia();
   beep(700, 0.1, 'square', 0.05, 180);
 }

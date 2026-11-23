@@ -28,7 +28,7 @@ import { TEMPO_SCALE, TEMPO_SUAVE, tempoNivel } from '../data/tuning.js';
 // a lo lento de siempre (TEMPO_SCALE) con lo que queda de barra; el tercero lo corta. Duracion y recarga, en la tabla
 let on = false;        // ¿el tiempo esta partido AHORA?
 let fase = 0;          // 1 = suave, 2 = lento (el de siempre); 0 apagado
-let meter = 0;         // 0..1, la barra del especial (arranca VACIA: el primero tambien se espera)
+let meter = 0;
 let dur = tempoNivel(0).dur;   // lo que dura el lanzado EN CURSO (se fija al lanzar, ver toggle)
 
 /**

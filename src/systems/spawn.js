@@ -33,6 +33,7 @@ import { nivel as nivelEst } from './estrellas.js';
  *  NO ES UN `if` DE FASE: nadie pregunta "¿esto es un filo?". Se pide un VALOR y se contesta con
  *  el que corresponda, que es la misma forma que ya tenia `trVal`. */
 const val = (clave, base) => trVal(clave, fsVal(clave, base));
+const AVES_ADORNO_P = 0.3;   // por siembra: cuantas veces sale una bandada de adorno afuera del carril
 
 /** …Y ENCIMA DE TODO, LAS ESTRELLAS (PLAN_ESTRELLAS_BUSQUEDA §5). No pisan lo resuelto: le ponen
  *  un PISO. Que sea `Math.max` y no reemplazo es la mitad del diseño — una mision que ya bombardea
@@ -56,6 +57,7 @@ import { olaBump, climaDe } from '../core/sea.js';
 import { proj, popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
+import { FLY_X } from '../data/tuning.js';
 import { SPAWN_X, SPAWN_DENS, SPAWN_Z, SHORE_X, shoreAt, SAND_W, AA_CD, MANPAD_P, ENEMY_HP, spawnY, rumboAve, SHIP_H,
          CLIFF_H0, CLIFF_H1, CLIFF_HW0, CLIFF_HW1, CLIFF_COAST_BAND, VEIL_STOP } from '../data/tuning.js';
 // EL RELIEVE (T3): donde queda plantado cada cosa que se siembra. La misma funcion que dibuja
@@ -453,7 +455,8 @@ function spawn() {
   const clima = climaDe(cfg);
   const lejos = rnd() < OLA_MAS.LEJOS_P;
   const zNace = lejos ? OLA_MAS.LEJOS_Z[0] + rnd() * (OLA_MAS.LEJOS_Z[1] - OLA_MAS.LEJOS_Z[0]) : SPAWN_Z;
-  const tasa = (clima === 'calm' ? OLA_MAS.CALMA : OLA_RATE[clima] * OLA_MAS.RATE_K) * (variado() ? OLA_VARIADO.rate : 1);
+  // (`olas`: la fase multiplica la tasa — EL INVINCIBLE, 23/11)
+  const tasa = (clima === 'calm' ? OLA_MAS.CALMA : OLA_RATE[clima] * OLA_MAS.RATE_K) * (variado() ? OLA_VARIADO.rate : 1) * val('olas', 1);
   if (olaOk(zNace) && rnd() < tasa) {
     sondaOlas++;
     // QUE CLASE DE OLA. La marejada es la normal —el gesto vertical, la tesis del item— y cada
@@ -721,7 +724,7 @@ export function spawnSystem(dt, objectiveDist) {
     // desplomaria (cada sorteo fallido seria un hueco), y con reintentos infinitos una lista mal
     // escrita colgaria el frame. Seis alcanza para que la densidad se parezca a la pedida.
     // (y de la lista blanca de la fase tambien: si no, el re-sorteo de `solo` lo volveria a aceptar)
-    let solo = listaCon(val('solo', null), nivelEst());
+    let solo = run.soloMar ? ['ola', 'birds'] : listaCon(val('solo', null), nivelEst());   // (el tramo del Exocet: game.js tramoMar)
     if (solo && cfg.globos === false) solo = solo.filter(t => t !== 'balloon');
     if (solo) {
       for (let i = 0; i < 6 && obstacles.length > n0; i++) {
@@ -737,6 +740,17 @@ export function spawnSystem(dt, objectiveDist) {
         const tipo = obstacles[n0].type;
         if (tipo !== 'fuel' && tipo !== 'ola' && solo.indexOf(tipo) < 0) { obstacles.length = n0; soldiers.length = s0; }
       }
+    }
+    // MENOS AVES (`aves`, 0..1, 23/11): de las bandadas que nacen en el carril se queda esa fraccion; el resto, hueco
+    const aves = val('aves', 1);
+    if (aves < 1 && obstacles.length > n0 && obstacles[n0].type === 'birds' && rnd() > aves) { obstacles.length = n0; soldiers.length = s0; }
+    // LAS AVES DE ADORNO (23/11, el autor: "que haya pajaros tambien por fuera del pasillo, de adorno, para que no se vea
+    // tan claro que estan solo en la zona donde nos movemos"): bandadas afuera del carril —mas alla de FLY_X, donde el
+    // avion no llega— que no chocan (systems/collision.js `adorno`). Sobre el mar y la tierra, en cualquier fase
+    if (rnd() < AVES_ADORNO_P) {
+      const lado = rnd() < 0.5 ? -1 : 1;
+      obstacles.push({ type: 'birds', adorno: true, x: lado * (FLY_X + 12 + rnd() * 45), y: spawnY('birds') + rnd() * 18,
+        z: SPAWN_Z * (0.75 + rnd() * 0.25), ...rumboAve(), white: rnd() < 0.5, done: false, ph: rnd() * 6.28 });
     }
     plantar(n0);
     // CENSO DE SIEMBRA (sonda de los TRAMOS, QUITAR). Cuenta lo que ENTRA al mundo, por tipo:
@@ -912,3 +926,6 @@ if (typeof window !== 'undefined') window.__olacosta = () => {
   const o = rompienteCostera();
   return JSON.stringify({ x: +o.x.toFixed(1), orilla: +spawnShore().toFixed(1), hw: o.hw, kind: o.kind });
 };
+
+// SONDA (23/11): cuantas bandadas hay en el mundo, en el carril y de adorno
+if (typeof window !== 'undefined') window.__aves = () => JSON.stringify(obstacles.filter(o => o.type === 'birds').reduce((a, o) => { a[o.adorno ? 'adorno' : 'carril']++; return a; }, { carril: 0, adorno: 0 }));

@@ -27,7 +27,7 @@ export const CAJAS = {
   buque_log: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 25, y0: 8, x1: 215, y1: 69 }, margen: 2 },
   buque_t21: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 49, y0: 18, x1: 192, y1: 69 }, margen: 2 },
   buque_t42: { fw: 240, fh: 72, cols: 3, rows: 1, box: { x0: 25, y0: 10, x1: 215, y1: 69 }, margen: 2 },
-  chancha: { fw: 160, fh: 112, cols: 3, rows: 1, box: { x0: 7, y0: 24, x1: 152, y1: 86 }, margen: 7, puntos: [[44.7, 71.84], [62.65, 71.84], [97.35, 71.84], [115.3, 71.84], [134.59, 67.5], [25.41, 67.5]] },
+  chancha: { fw: 320, fh: 224, cols: 9, rows: 1, box: { x0: 13, y0: 46, x1: 306, y1: 173 }, margen: 13, puntos: [[89.4, 143.67], [125.3, 143.67], [194.7, 143.67], [230.6, 143.67], [269.18, 135], [50.82, 135]] },
   costero: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 6, y0: 15, x1: 56, y1: 33 }, margen: 6 },
   depot: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 10, y0: 16, x1: 55, y1: 34 }, margen: 8 },
   eyectado: { fw: 48, fh: 76, cols: 7, rows: 3, box: { x0: 2, y0: 6, x1: 45, y1: 71 }, margen: 2, puntos: [[24, 50.16]] },

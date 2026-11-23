@@ -188,8 +188,10 @@ async function volar(k) {
       await sostener('fuego', Math.abs(dx) < 2.5 && Math.abs(dy) < 2 && b.z < 260 ? 'X' : null);
     } else {
       await sostener('lado', null);
-      // EL RASANTE A MANO: gas a toques entre 9 y 14 m (el techo del radar es 20)
-      if (s.alt < 9) await sostener('alt', 'W'); else if (s.alt > 14) await sostener('alt', null);
+      // EL RASANTE A MANO: gas a toques entre 9 y 14 m (el techo del radar es 20); en el paso del VUELO RASANTE
+      // (23/11: a menos de 5 m del agua) entre 2,5 y 4,2
+      if (clave === 'tutC_rasante') { await sostener('alt', null); if (s.alt < 3.8) await tap('W', 40); }   // (toques cortos: sostenido se pasa)
+      else if (s.alt < 9) await sostener('alt', 'W'); else if (s.alt > 14) await sostener('alt', null);
       if (clave === 'tutC_calienta') await sostener('fuego', s.over ? null : 'X');
       else await sostener('fuego', null);
       if (clave === 'tutC_esquivar') { await tap('A', 250); await tap('D', 250); }

@@ -215,8 +215,10 @@ export function collisionSystem(dt) {
     // data/tuning.js) y aca solo se APLICA — mismo reparto que el movimiento propio de los
     // enemigos. Las que sortearon quietas tienen los tres en cero y no entran en ninguna cuenta.
     if (o.type === 'birds') {
+      // (la DESPARRAMADA se va del mundo a los 3 s: ya volo cada uno para su lado)
+      if (o.disp && run.t - o.disp.t0 > 3) { o.z = -99; o.done = true; continue; }
       o.x += o.bvx * dt;
-      o.x = topeCarril(o.x, run.dist + o.z, ZZ_PARED_TALUD);
+      if (!o.adorno) o.x = topeCarril(o.x, run.dist + o.z, ZZ_PARED_TALUD);   // (las de ADORNO viven afuera del carril)
       if (o.bvy) {
         o.y += o.bvy * dt;
         // REBOTAN contra el piso y el techo en vez de clavarse ahi: una bandada que llega al borde
@@ -329,6 +331,7 @@ export function collisionSystem(dt) {
       }
       if (o.type === 'trench') continue;                              // decorado puro
       if (o.type === 'birds') {                                       // la bandada DAÑA, no derriba
+        if (o.adorno || o.disp) continue;                             // (la de ADORNO no se choca; la DESPARRAMADA, tampoco)
         if (Math.abs(plane.x - o.x) < 4.5 && Math.abs(plane.y - o.y) < 2.6) softHit('hitBirds');
         continue;
       }
@@ -750,6 +753,20 @@ export function collisionSystem(dt) {
       }
       if (b.hunde && b.z > b.hunde) { b.z = 999; continue; }
     } else if (b.ty !== undefined) b.y += (b.ty - b.y) * Math.min(1, dt * 14);
+    // LA BANDADA BALEADA (23/11, el autor: "si les disparo a los pajaros, algunos se deberian morir y el resto dispersar y
+    // volar para cualquier lado"): uno o dos caen, los demas salen cada uno para su lado (render/world.js los dibuja)
+    for (const o of obstacles) {
+      if (o.type !== 'birds' || o.adorno || o.disp || o.done || o.z < z0 - 2 || o.z > b.z + 2) continue;
+      if (Math.abs(b.x - o.x) < 4.5 && Math.abs(b.y - o.y) < 2.6) {
+        const muertos = 1 + (Math.random() < 0.45 ? 1 : 0);
+        o.disp = { t0: run.t, aves: Array.from({ length: 6 }, () => ({ muere: false, dx: (Math.random() - 0.5) * 2, dy: Math.random() * 1.6 - 0.4, gira: (Math.random() - 0.5) * 9 })) };
+        for (let k = 0; k < muertos; k++) o.disp.aves[(Math.random() * 6) | 0].muere = true;
+        b.z = 999; stats.hits++;
+        beep(900, 0.04, 'square', 0.03);
+        break;
+      }
+    }
+    if (b.z >= 999) continue;
     for (const o of obstacles) {
       if (o.hp === undefined) continue;
       if (o.z < z0 - 2 || o.z > b.z + 2) continue;

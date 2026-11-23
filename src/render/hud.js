@@ -156,6 +156,18 @@ function cinta(o) {
     // DONDE EMPIEZA EL RADAR (4/10, el autor): una marca verde sobre la ruta. Solo existe con `ruta`
     // y `radarKm` — sin eso el radar esta desde el despegue y no hay linea que marcar.
     if (rFr !== null) px(xr, y - 2, 1, 5, SUELTA_COL);
+    // LA ZONA DE BUSQUEDA DEL EXOCET (23/11): una franja AZUL sobre la via, donde hay que ir prendiendo el radar; late
+    // mientras se esta buscando, y se va cuando el blanco queda ubicado
+    if (o.busca) {
+      const bx0 = Math.round(x0 + linea * Math.max(0, o.busca.f0)), bx1 = Math.round(x0 + linea * Math.min(1, o.busca.f1));
+      ctx.save();
+      ctx.globalAlpha = o.busca.on ? 0.35 + 0.25 * Math.sin(performance.now() / 140) : 0.32;
+      ctx.fillStyle = '#5ab4ff'; ctx.fillRect(bx0, y - 3, Math.max(1, bx1 - bx0), 6);
+      ctx.globalAlpha = 0.9; ctx.fillRect(bx0, y - 3, 1, 6); ctx.fillRect(bx1 - 1, y - 3, 1, 6);
+      ctx.restore();
+    }
+    // DONDE APARECE LA CHANCHA (23/11): la gotita verde de nafta, sobre la via (se va cuando ya vino)
+    if (o.chancha != null && o.chancha > 0 && o.chancha < 1) gotaEn(x0 + linea * o.chancha, y - 0.5, '#7fe08d', 1);
     // LAS PUNTAS. Con buque: el muelle y la silueta de SU clase. Por distancia: el muelle y una
     // BANDERA — antes terminaba en un destructor aunque no hubiera barco. En POR LA PATRIA: el cero
     // y la bandera de la marca a batir (ver drawCorridaBar).
@@ -218,7 +230,7 @@ function giroVuelta(vuelve) {
 // sin decimales: a esa escala el decimal es ruido. Sin ruta, los metros del pasillo de siempre.
 const kmTxt = km => (km >= 100 ? Math.round(km).toString() : km.toFixed(1));
 
-export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, solta, ruta) {
+export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, solta, ruta, chanchaFr, busca) {
   const flip = giroVuelta(!!vuelta);
   // LA VUELTA CUENTA LO SUYO: cuanto llevas hecho del regreso contra cuanto mide. Pasada la meta, el
   // odometro de la ida ya no es una ruta — «2.8 / 2.2 km» es un numero que se paso, no un lugar.
@@ -248,7 +260,7 @@ export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, sol
     // 'km' en MINUSCULA y del color del total: mas chica sin bajar de cuerpo, y es ademas el simbolo
     // correcto del kilometro (el SI no lo escribe en mayuscula)
     uni: 'km', uniCol: P.warn,
-    boost: run.boost, solta, radar: radarFr(ruta),
+    boost: run.boost, solta, radar: radarFr(ruta), chancha: chanchaFr, busca,
   });
 }
 /** La linea del radar en fraccion de la cinta: `radarKm` antes del blanco. En la vuelta la cinta
@@ -1633,6 +1645,7 @@ function marcaFalla(x, y, g) {
     } else bordePlaca(x, y, CUADRO, CUADRO, Math.sin(run.t * 6) > 0 ? '#d08a2e' : '#7a5120');
   });
 }
+const RADAR_BANDA_A = 0.72;   // la banda verde del radar, un poco transparente (23/11)
 function relojFila(x, y, o) {
   if (o.roto) plateRota(x, y, CUADRO, CUADRO); else plate(x, y, CUADRO, CUADRO);
   const cx = x + 13, cy = y + 16, r = 10;
@@ -1652,9 +1665,13 @@ function relojFila(x, y, o) {
   // abajo… algo asi" — con el arco de la nafta): era un arco punteado por fuera del dial; ahora es una BANDA verde
   // continua sobre el aro de la escala, del techo del radar para arriba, como la de la nafta. Se levanta con el escaneo
   // (`crece`) y, adentro del radar (`on`), titila. Va antes que las rayitas: la escala se sigue leyendo encima
-  const R0 = o.radar || null;
+  // (23/11, despues: "meté la barra verde donde estaría la barra azul abajo, y un poquito transparente"): la banda va
+  // por DENTRO, en el carril de las franjas de gasto (que ahi se corren), y a media transparencia (RADAR_BANDA_A)
+  const R0 = o.radar || null, rb = r - 3.6;
+  let radarHasta = -1;
   if (R0) {
     const hasta = R0.desde + (1 - R0.desde) * Math.max(0, Math.min(1, R0.crece));
+    radarHasta = hasta;
     if (hasta > R0.desde) {
       // RADIOACTIVA (23/11, el autor: "hacela mas radioactiva"): verde NEON que brilla —un halo ancho y suave por debajo
       // que respira—, el nucleo con un parpadeo nervioso de tubo, y chispitas claras que corren por la banda hacia
@@ -1665,20 +1682,20 @@ function relojFila(x, y, o) {
       ctx.save(); ctx.lineCap = 'butt';
       ctx.globalCompositeOperation = 'lighter';
       ctx.strokeStyle = RADAR_NEON_HALO;
-      ctx.globalAlpha = (on ? 0.32 : 0.18) + resp * (on ? 0.3 : 0.14);
-      ctx.lineWidth = 4.2; ctx.beginPath(); ctx.arc(cx, cy, r - 0.1, a0, a1); ctx.stroke();
-      ctx.globalAlpha = (on ? 0.5 : 0.3) * tubo;
-      ctx.lineWidth = 2.8; ctx.beginPath(); ctx.arc(cx, cy, r - 0.1, a0, a1); ctx.stroke();
+      ctx.globalAlpha = RADAR_BANDA_A * ((on ? 0.32 : 0.18) + resp * (on ? 0.3 : 0.14));
+      ctx.lineWidth = 3.2; ctx.beginPath(); ctx.arc(cx, cy, rb, a0, a1); ctx.stroke();
+      ctx.globalAlpha = RADAR_BANDA_A * (on ? 0.5 : 0.3) * tubo;
+      ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(cx, cy, rb, a0, a1); ctx.stroke();
       ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = tubo;
+      ctx.globalAlpha = RADAR_BANDA_A * tubo;
       ctx.strokeStyle = on && Math.sin(t * 14) > 0 ? RADAR_NEON_CLARO : RADAR_NEON;
-      ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(cx, cy, r - 0.1, a0, a1); ctx.stroke();
+      ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, rb, a0, a1); ctx.stroke();
       // las chispitas que corren hacia arriba por la banda
-      ctx.globalAlpha = 1; ctx.strokeStyle = RADAR_NEON_CLARO; ctx.lineWidth = 1.8;
+      ctx.globalAlpha = RADAR_BANDA_A; ctx.strokeStyle = RADAR_NEON_CLARO; ctx.lineWidth = 1.4;
       const n = 3, v = on ? 0.9 : 0.35;
       for (let k = 0; k < n; k++) {
         const u = ((t * v + k / n) % 1 + 1) % 1, f = R0.desde + (hasta - R0.desde) * u, a = ang(f);
-        ctx.beginPath(); ctx.arc(cx, cy, r - 0.1, a, Math.min(a1, a + 0.07)); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, rb, a, Math.min(a1, a + 0.07)); ctx.stroke();
       }
       ctx.restore();
     }
@@ -1702,7 +1719,7 @@ function relojFila(x, y, o) {
   // de reojo es DONDE ESTOY, no el mapa entero.
   for (let k = 0; k <= 96; k++) {
     const f = k / 96, z = (o.franjas || []).find(([d, h]) => f >= d && f <= h);
-    if (!z) continue;
+    if (!z || (R0 && f >= R0.desde && f <= radarHasta)) continue;   // (donde esta la banda del radar, va ella)
     ctx.globalAlpha = z[3] === false ? 0.35 : typeof z[3] === 'number' ? z[3] : 1;   // (un numero: su alfa)
     marcaFina(cx, cy, ang(f), r - 4.3, r - 2.9, 2, z[2]);
   }
@@ -2005,13 +2022,14 @@ function drawBrujula(x, y, b) {
     px(cx, y + 1, 1, 3, P.foam);
     if (b.obj !== null) {
       const t = angDe(b.obj), tx = cx + Math.cos(t) * (r + 0.5), ty = cy + Math.sin(t) * (r + 0.5);
-      ctx.fillStyle = P.accent; ctx.beginPath();
+      const oc = b.rojo ? '#ff3b2a' : P.accent;   // (23/11: el blanco del Exocet ubicado, en ROJO)
+      ctx.fillStyle = oc; ctx.beginPath();
       ctx.moveTo(tx, ty);
       ctx.lineTo(tx - Math.cos(t - 0.5) * 4, ty - Math.sin(t - 0.5) * 4);
       ctx.lineTo(tx - Math.cos(t + 0.5) * 4, ty - Math.sin(t + 0.5) * 4);
       ctx.closePath(); ctx.fill();
-      ctx.font = uiFont(NUMEROS.fam, 4.5, ''); ctx.fillStyle = P.accent;
-      ctx.fillText((b.dist / 1000).toFixed(1) + 'km', cx, y + CUADRO - 3);
+      ctx.font = uiFont(NUMEROS.fam, 4.5, ''); ctx.fillStyle = oc;
+      if (b.dist != null) ctx.fillText((b.dist / 1000).toFixed(1) + 'km', cx, y + CUADRO - 3);
     }
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     if (b.titila && Math.sin(performance.now() / 90) > 0) bordePlaca(x, y, CUADRO, CUADRO, P.accent);
@@ -2109,11 +2127,12 @@ function carasDe(nombre, delAvion) {
 // ONDA EXPANSIVA me daño, los pajaros"). Una lengueta con el texto que SUBE desde atras del canto de la caja, se
 // queda y vuelve a bajar. Los sostenidos (calor, altura) viven mientras dure la causa; los de un golpe, AVISO_T.
 const AVISO_T = 1.8, AVISO_SUBE = 0.18;
+export const CH_AVISO_VERDE = '#5fd35f';
 const avisos = {};          // id de caja → { txt, col, t (s de vida), hasta (s; Infinity = sostenido), on }
 const avisoReloj = () => performance.now() / 1000;
 /** Un cartel de un golpe sobre la caja `id` (zonaHud). Pisa al anterior de esa caja. */
-export function avisoCaja(id, txt, col = P.warn, dur = AVISO_T) {
-  avisos[id] = { txt, col, t0: avisoReloj(), hasta: dur, sost: false };
+export function avisoCaja(id, txt, col = P.warn, dur = AVISO_T, base) {
+  avisos[id] = { txt, col, t0: avisoReloj(), hasta: dur, sost: false, ...(base ? { base, nivel: 1 } : {}) };
 }
 // LA PILA DE SALUD (19/11, el autor: "que salgan de ultima 2, una arriba de la otra"): un golpe nuevo con el
 // anterior todavia arriba lo EMPUJA un piso (queda en `id~1`, encima) y el nuevo sale de atras de la caja.
@@ -2124,9 +2143,9 @@ function avisoApilado(id, txt, col = P.warn, dur = AVISO_T) {
   avisoCaja(id, txt, col, dur);
 }
 /** Un cartel SOSTENIDO: aparece mientras `on`, y baja al apagarse. Se llama cada cuadro. */
-function avisoSostenido(id, on, txt, col = P.warn) {
+function avisoSostenido(id, on, txt, col = P.warn, base) {
   const a = avisos[id];
-  if (on) { if (!a || !a.sost || a.txt !== txt) avisos[id] = { txt, col, t0: avisoReloj(), hasta: Infinity, sost: true }; }
+  if (on) { if (!a || !a.sost || a.txt !== txt) avisos[id] = { txt, col, t0: avisoReloj(), hasta: Infinity, sost: true, ...(base ? { base, nivel: 1 } : {}) }; }
   else if (a && a.sost) { a.sost = false; a.hasta = avisoReloj() - a.t0; }
 }
 /** ¿Esta caja tiene un cartel ARRIBA ahora? (para titilar su borde) */
@@ -2202,8 +2221,26 @@ function barritaMomentum(x, y, w) {
   const v = Math.max(0, Math.min(1, tempoMeter())), on = tempoActive(), llena = v >= 1 && !on;
   px(x, y, w, 2, '#2e3c45');
   const fw = Math.round(w * v);
-  const col = on ? (Math.sin(run.t * 14) > 0 ? MOM_CLARO : MOM_COL) : llena ? (Math.sin(run.t * 5) > 0 ? MOM_CLARO : MOM_COL) : MOM_COL;
-  if (fw > 0) px(x, y, fw, 2, col);
+  // LA ELECTRICIDAD (23/11, el autor: "darle efecto como la radioactiva del radar, pero esta seria como electricidad"):
+  // la carga es una CORRIENTE — el amarillo con pulsos claros que corren hacia la punta, granos que chisporrotean y, de
+  // a ratos, un ARCO quebrado que salta por encima de lo cargado. Llena, los arcos saltan seguido; gastandose, mas
+  for (let i = 0; i < fw; i++) {
+    const fase = ((i / 6 - run.t * (on ? 5 : 2.4)) % 1 + 1) % 1, pulso = fase < 0.25;
+    const ruido = Math.sin(i * 12.9898 + Math.floor(run.t * 24) * 78.233) * 43758.5453 % 1;
+    const col = pulso || Math.abs(ruido) > (llena || on ? 0.82 : 0.93) ? MOM_CLARO : (Math.abs(ruido) < 0.12 ? MOM_OSCURO : MOM_COL);
+    px(x + i, y, 1, 2, col);
+  }
+  if (fw > 2) {
+    const cada = on ? 0.09 : llena ? 0.16 : 0.45, tick = Math.floor(run.t / cada);
+    if ((tick * 7) % 3 !== 0) {   // (no siempre: chisporrotea)
+      const azar = k => Math.abs(Math.sin(tick * 91.7 + k * 13.1) * 9341.3) % 1;
+      const a = Math.floor(azar(1) * (fw - 2)), largo = Math.min(fw - a, 3 + Math.floor(azar(2) * 8));
+      ctx.save(); ctx.globalAlpha = 0.9; ctx.strokeStyle = azar(3) > 0.5 ? '#ffffff' : '#bfe8ff'; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(x + a, y + 1);
+      for (let k = 1; k <= largo; k++) ctx.lineTo(x + a + k, y + 1 + (azar(10 + k) - 0.5) * 3.2);
+      ctx.stroke(); ctx.restore();
+    }
+  }
   if (on && fw > 0) chispas(x + fw, y, 2, '#ffffff', MOM_COL);
   donde.momentum = [x + w / 2, y];
 }
@@ -2339,9 +2376,11 @@ function drawPiloto(charlaVoz, delAvion, avionNombre) {
   ctx.font = '3.6px monospace'; ctx.textAlign = 'left';
   if (avion) {
     // (23/11, despues: "quitemos el icono ese de avion"): solo el nombre del avion
-    const wT = Math.min(PILOTO.lado + 8, ctx.measureText(avion).width), wA = wT + 4, xA = Math.round(x + PILOTO.lado / 2 - wA / 2);
-    plate(xA, y - 8, Math.round(wA), 7);
-    ctx.fillStyle = P.dim; ctx.fillText(avion, xA + 2, y - 3, PILOTO.lado + 8);
+    // (23/11, el autor: "que ocupe el ancho de la cuadricula del personaje"): la placa del MISMO ancho que la cara, el
+    // modelo centrado (apretado si no entra)
+    plate(x, y - 8, PILOTO.lado, 7);
+    ctx.textAlign = 'center'; ctx.fillStyle = P.dim; ctx.fillText(avion, x + PILOTO.lado / 2, y - 3, PILOTO.lado - 3);
+    ctx.textAlign = 'left';
   }
   ctx.font = F_ROT; ctx.textAlign = 'center'; ctx.fillStyle = P.foam;
   ctx.fillText(ape, x + PILOTO.lado / 2, y + PILOTO.alto - 2, PILOTO.lado - 2);
@@ -2425,6 +2464,17 @@ export function anchoSquad() {
 // FUERA DE LA CABINA, UNA GOTITA ADENTRO DE LA NAFTA (21/11, el autor: "achicarlo mas… ponerlo dentro del contador
 // de combustible arriba a la derecha como un circulo con gotita gris que pasa a verde cuando se puede pedir")
 const CH_NAFTA = { x: X_NAFTA + CUADRO - 5, y: CUADROS_Y + 5, r: 3.5 };
+/** La gotita de nafta (punta arriba, panza abajo) centrada en (cx, cy), a escala `e`. */
+function gotaEn(cx, cy, col, e = 1) {
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(e, e);
+  ctx.fillStyle = '#0a0e11'; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(0, 0.2, 2.9, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1; ctx.fillStyle = col; ctx.beginPath();
+  ctx.moveTo(0, -2.2);
+  ctx.quadraticCurveTo(1.6, -0.1, 1.3, 0.8);
+  ctx.arc(0, 0.6, 1.3, 0.15, Math.PI - 0.15);
+  ctx.quadraticCurveTo(-1.6, -0.1, 0, -2.2);
+  ctx.fill(); ctx.restore();
+}
 function chanchaGota(f, col, lista) {
   const { x: cx, y: cy, r: R } = CH_NAFTA;
   ctx.save();
@@ -2687,7 +2737,9 @@ function radarReloj(x, y) {
     plate(x, y, CUADRO, CUADRO);
     const on = radarP.on, late = Math.floor(performance.now() / 250) % 2 === 0;
     const V = !on ? RADAR_GRIS : late ? RADAR_AZUL : RADAR_AZUL_BAJO;
-    const cx = x + CUADRO / 2, cy = y + 12, R = 9;
+    // (23/11, el autor: "descentrado el avion y el circulo, y sobra espacio"): el centro es el del CUADRO en los dos ejes
+    // y la pantalla llena la placa (el anillo de la carga queda a ~1 px del borde). Antes R 7 y el centro medio px arriba.
+    const cx = x + CUADRO / 2, cy = y + CUADRO / 2, R = 9.4;
     ctx.save();
     ctx.fillStyle = on ? 'rgba(10, 26, 46, 0.9)' : 'rgba(14, 18, 22, 0.9)';
     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
@@ -2706,21 +2758,29 @@ function radarReloj(x, y) {
     }
     ctx.restore();
     // el avioncito: el mismo icono que la placa del avion, arriba del piloto
-    iconoEn(cx, cy, 'avion', !on ? '#5d6a70' : late ? '#d8ecff' : '#9cc4ea');
-    // el eco del blanco, arriba, titilando mientras dure la marca
-    if (radarP.marcaT > 0 && Math.floor(performance.now() / 180) % 2 === 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(cx + 1.5, cy - R + 2.5, 1.5, 1.5); }
-    // LA CARGA, EN UN ANILLO VERDE QUE SE LLENA alrededor de la pantalla (23/11, el autor: "que se haga efecto de carga
+    // (iconoEn redondea la esquina a pixel entero: con 7×5 su centro cae medio pixel corrido — se lo devuelve al centro)
+    { const ox = cx - (Math.round(cx - 3) + 3.5), oy = cy - (Math.round(cy - 2) + 2.5);
+      ctx.save(); ctx.translate(ox, oy); iconoEn(cx, cy, 'avion', !on ? '#5d6a70' : late ? '#d8ecff' : '#9cc4ea'); ctx.restore(); }
+    // el eco del blanco, arriba, titilando mientras dure la marca. EL BLANCO DEL EXOCET YA UBICADO (23/11, el autor: "debe
+    // marcar ahi el objetivo en rojo"): un punto ROJO que late y se queda, prendido o apagado el radar
+    if (run.soloExocet && run.exoUbicado) {
+      const lat = 0.6 + 0.4 * Math.sin(performance.now() / 160);
+      ctx.save(); ctx.globalAlpha = lat; ctx.fillStyle = '#ff3b2a'; ctx.beginPath(); ctx.arc(cx, cy - R + 2.6, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = lat * 0.5; ctx.strokeStyle = '#ff3b2a'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.arc(cx, cy - R + 2.6, 2.6, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    } else if (radarP.marcaT > 0 && Math.floor(performance.now() / 180) % 2 === 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(cx - 0.6, cy - R + 1.5, 1.2, 1.2); }
+    // LA CARGA, EN UN ANILLO QUE SE LLENA (azul desde el 23/11) alrededor de la pantalla (23/11, el autor: "que se haga efecto de carga
     // con verde, tipo el de la trayectoria de la bomba que lleva el circulo, lo mismo pero en verde"): el aro oscuro de
     // fondo, los gajos llenos desde arriba en sentido horario y la punta mas clara; sin carga, en rojo
-    const SEG = 24, lleno = radarP.carga * SEG, Ra = R + 2.2;
-    ctx.save(); ctx.lineWidth = 1.6; ctx.lineCap = 'butt';
+    // (23/11: "poner radar azul" — el anillo de la carga en el azul del radar propio, no en verde)
+    const SEG = 20, lleno = radarP.carga * SEG, Ra = R + 1.8;
+    ctx.save(); ctx.lineWidth = 1.1; ctx.lineCap = 'butt';
     for (let k = 0; k < SEG; k++) {
       const a0 = -Math.PI / 2 + k / SEG * Math.PI * 2 + 0.04, a1 = -Math.PI / 2 + (k + 1) / SEG * Math.PI * 2 - 0.04;
       const f = Math.max(0, Math.min(1, lleno - k));
-      ctx.strokeStyle = '#1b2a22'; ctx.beginPath(); ctx.arc(cx, cy, Ra, a0, a1); ctx.stroke();
+      ctx.strokeStyle = '#16222e'; ctx.beginPath(); ctx.arc(cx, cy, Ra, a0, a1); ctx.stroke();
       if (f <= 0) continue;
       const punta = k === Math.floor(lleno - 0.001);
-      ctx.strokeStyle = radarP.carga < 0.15 ? P.warn : punta ? RADAR_VERDE.punta : RADAR_VERDE.cerca;
+      ctx.strokeStyle = radarP.carga < 0.15 ? P.warn : !on ? RADAR_AZUL_BAJO.cerca : punta ? RADAR_AZUL.punta : RADAR_AZUL.cerca;
       ctx.beginPath(); ctx.arc(cx, cy, Ra, a0, a0 + (a1 - a0) * f); ctx.stroke();
     }
     ctx.restore();
@@ -3169,7 +3229,7 @@ function drawEstante(h) {
   const r = h.rack, verde = !!(r && h.sueltaYa && titilaSuelta());
   const c = cargaDe(cfg.carga);
   const hayAla = !!(r ? r.ala : c.ala);
-  if (!r && !hayAla && !(run.chapitasMax > 0) && (run.sinBombas || !pide(run.msl < (run.mslMax || MSL_MAX)))) return;   // (sin armas, sin estante: 17/10)
+  if (!r && !hayAla && !(run.chapitasMax > 0) && (run.sinBombas || run.soloExocet || !pide(run.msl < (run.mslMax || MSL_MAX)))) return;   // (sin armas, sin estante: 17/10)
   plate(X_RACK, CUADROS_Y, RACK_W, CUADRO);
   const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1;
   const VACIO = '#2e3c45';
@@ -3222,7 +3282,7 @@ function drawEstante(h) {
   } else {
     // las bombas de la tecla de bomba (MSL_MAX, se recargan): cargada blanca con la punta amarilla,
     // sin ninguna la misma silueta en el gris de la placa
-    if (!run.sinBombas) fila(yc, 'bomba', run.msl, run.msl > 0 ? null : VACIO, !(run.msl > 0));
+    if (!run.sinBombas && !run.soloExocet) fila(yc, 'bomba', run.msl, run.msl > 0 ? null : VACIO, !(run.msl > 0));
   }
   // ABAJO: las chapitas (vacio si el avion no trae)
   // …SEPARADAS: son el ELEMENTO DE APOYO, no un secundario (18/11). Una raya punteada las aparta del estante y van
@@ -3306,7 +3366,7 @@ export function drawHUD(h) {
   // (21/11, el autor: "dentro de la cabina la barra de arriba molesta; en el tutorial, una vez que la explica, que
   // desaparezca"): `sinCinta` la saca (game.js: en cabina, y en el tutorial fuera de su explicacion)
   if (islasHud || h.sinCinta) { /* sin cinta */ }
-  else if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa, h.ruta);
+  else if (objectiveDist > 0) drawObjectiveBar(objectiveDist, objectiveShip, h.goalKind, h.vuelta, h.sueltaYa, h.ruta, h.chanchaFr, h.busca);
   else if (gameMode === 'survival') drawCorridaBar();
   // LA AMENAZA de los modos sueltos (cuanto aprieta el mundo ahora, data/modos_sueltos.js OLEADA): chica,
   // arriba a la derecha — en el CICLO, debajo del filo derecho de la cinta, que ahi llega hasta el borde
@@ -3525,6 +3585,10 @@ export function drawHUD(h) {
   // NAFTA BAJA (19/11, el autor): la caja de la nafta larga su cartel mientras estes bajo el critico (25%, o el
   // BINGO con ruta) y la Chancha no este cargando. Se dibuja con los demas en drawAvisosCaja (al cuadro siguiente).
   avisoSostenido('nafta', bajo && !cargando, T('bar_fuelLow'));
+  // CHANCHA EN CAMINO (23/11, el autor: "el feedback de la chancha no queda claro, debe ser el mismo espacio de NAFTA BAJA
+  // pero encima, en verde"): mientras viene, sostenido arriba de la caja de la nafta (y arriba de NAFTA BAJA si esta).
+  // Los NO (CHANCHA YA USADA, NO LISTA…) salen en rojo en el mismo lugar (game.js `avisoCh`)
+  { const c = chSnap(); avisoSostenido('nafta~ch', !!c && c.fase === 'eta', T('chAv_viene'), CH_AVISO_VERDE, 'nafta'); }
   // LAS ISLAS (19/11, el autor: "donde esta mi indicador de chancha para poder llamarla?"): ahi no hay barra
   // que llenar —se pide cada tanto, gratis—, asi que el reloj mide la ESPERA: `h.chIslas` (0..1, 1 = se puede)
   const ch = chSnap(), cv = h.chIslas != null ? h.chIslas : chMeter(), gastada = h.chIslas != null ? false : chGastada();
@@ -3581,7 +3645,8 @@ export function drawHUD(h) {
   // de radar"): EN LA FILA, en el hueco que dejo la Chancha (ahora icono arriba de la nafta), como un reloj mas —
   // redondo, con su barrido y el avioncito de la placa del piloto—. Si ese hueco esta tomado (el termometro en la
   // cabina o con la brujula), vuelve arriba del grupo de la derecha, como antes.
-  const radarEnFila = !enCabina() && !h.brujula && !h.brujulaPasillo;
+  // (el hueco se ocupa cuando el termometro va ahi: en la cabina o con brujula; sin termometro —Super Etendard— queda libre)
+  const radarEnFila = !enCabina() && !(h.temp && (h.brujula || h.brujulaPasillo));
   if (radarP.tiene) { if (radarEnFila) radarReloj(X_CHANCHA, CUADROS_Y); else radarPropio(X_CARGA, CUADROS_Y - AIRE - ALERTA_H); }
   donde.radar = radarEnFila ? [X_CHANCHA + CUADRO / 2, CUADROS_Y] : [X_CARGA + Math.round(RADAR_W / 2), CUADROS_Y - AIRE - ALERTA_H];
   donde.chancha = [X_CHANCHA + CUADRO / 2, CUADROS_Y];

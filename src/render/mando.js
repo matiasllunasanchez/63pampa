@@ -239,9 +239,11 @@ const PUNTAS = [
   { px: 122, py: 72, al: 'izq', ac: ['Mant'] },                       // LT: mantener la altura (22/11)
   { px: 53, py: 163, al: 'izq', ac: ['Msl'] },                        // LB
   // (23/11, el autor: "reduzcamos el ESQUIVAR y todo el resto solo por DIRECCION DE VUELO"): un renglon
-  { px: 68, py: 374, al: 'izq', ac: ['Direccion'], l3: true, dy: 0 },   // stick izquierdo
-  { px: 25, py: 446, al: 'izq', ac: ['Secund'] },                     // cruceta ▲
-  { px: 25, py: 485, al: 'izq', ac: ['Eyecta'], dy: 0.6 },            // cruceta ◄ (23/11: dos toques = eyeccion)
+  // (23/11, el autor: "el texto de los botones se esta superponiendo, el de las direcciones y cortar rasante"): el bloque
+  // de dos renglones del stick sube y los de la cruceta bajan, para que las placas no se pisen
+  { px: 68, py: 374, al: 'izq', ac: ['Direccion'], l3: true, dy: -2.6 },   // stick izquierdo
+  { px: 25, py: 446, al: 'izq', ac: ['Secund'], dy: 0.8 },            // cruceta ▲
+  { px: 25, py: 485, al: 'izq', ac: ['Eyecta'], dy: 1.9 },            // cruceta ◄ (23/11: dos toques = eyeccion)
   { px: 527, py: 45, al: 'arr', ac: ['Cam'], dx: -8 },                // BACK / SELECT (23/11: la camara)
   { px: 733, py: 45, al: 'arr', ac: ['Pause'] },                      // START
   { px: 1138, py: 76, al: 'der', ac: ['Boost'] },                     // RT

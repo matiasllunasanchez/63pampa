@@ -60,7 +60,7 @@ export function drawEstacionado(key, x, y, z) {
   ctx.imageSmoothingEnabled = smooth;
 }
 
-export function drawFormation({ selPlane, exit }) {
+export function drawFormation({ selPlane, exit, extras }) {
   const pl = PLANES[selPlane];
   const slots = formationSlots(run.squad);
   // los puestos son los que SIGUEN EN LA FILA (core/squad.js): con cambio de piloto no tienen por
@@ -132,6 +132,37 @@ export function drawFormation({ selPlane, exit }) {
     } else if (pl.ready) {
       const w = 76 * PLANE_SCALE * f, h = w * pl.h / pl.w;
       ctx.drawImage(pl.img, s.x - w / 2, s.y - h / 2, w, h);
+    }
+  }
+  // LOS QUE DESPEGAN CON VOS (`extras`, 23/11): las filas de ATRAS de la formacion, con su propio avion (la hoja base,
+  // sin pinturas), al ritmo del resto: el mismo puesto, el mismo tren y la misma salida de plano
+  if (extras && extras.length) {
+    const lista = [];
+    for (const e of extras) { const p2 = PLANES.find(p => p.key === e.plane); if (p2) for (let k = 0; k < e.n; k++) lista.push(p2); }
+    const todos = formationSlots(Math.max(1, run.squad) + lista.length), base = Math.max(0, run.squad - 1);
+    const pz0 = (slots.length ? Math.min(...slots.map(q => q.dz)) : 0);
+    for (let j = 0; j < lista.length; j++) {
+      const p2 = lista[j], i = base + j;
+      // (una fila mas atras que la ultima de los tuyos, y no encima del lente)
+      const sl = { ...todos[i], dz: Math.max(-8.5, pz0 - 1.8 - 1.7 * Math.floor(j / 2)) };
+      const pu = puestoFormacion([sl], 0, plane.x, plane.y - 0.4 * (1 + Math.floor(j / 2)), run.t + j);
+      let z = PZ + pu.dz, x = pu.x, y = pu.y;
+      if (exit !== null && exit !== undefined) {
+        z -= exit * exit * 11; y += exit * 2.4; x += Math.sign(sl.dx || 1) * exit * 5;
+        if (z < 3.8) continue;
+      }
+      const s = proj(x, y, z), f = s.k / kRef;
+      drawShadow(x, y, z, f);
+      const hoja = p2.sheetOk ? p2.sheetImg : null, col = (SHEET_NF - 1) / 2, row = plane.pitch > 0.33 ? 0 : 1;
+      const w = SHEET_FW * PLANE_SCALE * f * (p2.escala || 1), h = SHEET_FH * PLANE_SCALE * f * (p2.escala || 1);
+      if (!drawTren(p2, run.gear, col, row, s.x - w / 2, s.y - h / 2, w, h)) { ctx.save(); ctx.translate(s.x, s.y); drawGear(run.gear, U * f); ctx.restore(); }
+      if (!hoja) continue;
+      const k2 = p2.px || 1;
+      ctx.drawImage(hoja, col * SHEET_FW * k2, row * SHEET_FH * k2, SHEET_FW * k2, SHEET_FH * k2, s.x - w / 2, s.y - h / 2, w, h);
+      encimaHd(hoja, col * SHEET_FW * k2, row * SHEET_FH * k2, SHEET_FW * k2, SHEET_FH * k2, s.x - w / 2, s.y - h / 2, w, h, mezclaHd(w, k2));
+      drawBorde(ctx, hoja, col * SHEET_FW * k2, row * SHEET_FH * k2, SHEET_FW * k2, SHEET_FH * k2, s.x - w / 2, s.y - h / 2, w, h);
+      const tb = ANCLAS.base.tob[row] && ANCLAS.base.tob[row][col];
+      if (tb && !p2.sinTobera) { ctx.save(); ctx.translate(s.x, s.y); tobera(tb[0] * w, tb[1] * h, llama(), w / 84 * 2.4); ctx.restore(); }
     }
   }
   ctx.imageSmoothingEnabled = smooth;

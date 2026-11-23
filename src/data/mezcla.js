@@ -45,7 +45,8 @@ export const BUS_DE = {
   exXheavy: 'enemigo', exHeavy: 'enemigo', exHeavyDist: 'enemigo', exMedium: 'enemigo', exSmall: 'enemigo', exXsmall: 'enemigo',
   lanzaMisil: 'enemigo', balasCerca: 'enemigo', agua0: 'enemigo', agua1: 'enemigo', aguaColumna: 'enemigo', chapa0: 'enemigo', chapa1: 'enemigo', chapa2: 'enemigo', chapa3: 'enemigo',
   radarAzul: 'atencion', radarDetecta: 'atencion', radarVerde: 'atencion', radarVerdeInicio: 'atencion',
-  radarDetectando: 'atencion', exocetSale: 'atencion', alarm: 'atencion', planeFail: 'atencion',
+  radarDetectando: 'atencion', exocetSale: 'atencion', errorExocet: 'voz',   // (23/11, el autor: "mas alto": va con la radio, a pleno)
+  alarm: 'atencion', planeFail: 'atencion',
   pilot: 'voz',
   insertCoin: 'pantalla', bootPc: 'pantalla', tituloBeep: 'pantalla', tecla: 'pantalla',
 };

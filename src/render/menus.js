@@ -2168,6 +2168,34 @@ function estampita(e, x, y, s, on, col, i, nueva, t) {
   if (nueva) { ctx.fillStyle = '#e8321e'; ctx.beginPath(); ctx.moveTo(h - 8, -h); ctx.lineTo(h, -h); ctx.lineTo(h, -h + 8); ctx.closePath(); ctx.fill(); }
   ctx.restore();
 }
+// EL AVISO DE ESTAMPITA (23/11, el autor: "las estampitas que aparezcan abajo a la derecha como los logros de Steam, y
+// chiquito, y que sea el dibujo de estampita y al lado el nombre"): una placa chica que SUBE desde el borde de abajo a la
+// derecha, la estampita de la grilla a la izquierda y el nombre al lado, y se va. Reloj propio (`ahora`, en segundos de
+// performance.now): el juego puede estar pausado o en un menu y el aviso sigue su curso. Devuelve false cuando termino.
+const AVISO_EST = { dur: 4.2, entra: 0.3, w: 82, h: 17, margen: 4 };
+export function drawEstampitaAviso(a, ahora, planes) {
+  const t = ahora - a.t0, A = AVISO_EST;
+  if (t < 0) return true;
+  if (t > A.dur) return false;
+  if (planes && planes.length) albumPlanes = planes;
+  const k = Math.max(0, Math.min(1, t / A.entra, (A.dur - t) / A.entra)), e = 1 - (1 - k) * (1 - k);
+  const x = W - A.w - A.margen, s = A.h - 6;   // (la estampita, del alto de la placa)
+  const yy = Math.round(H - (A.h + A.margen) * e);
+  ctx.save(); ctx.scale(U, U);   // (los menus dibujan en nativas, 480x270; el aviso esta medido en la grilla de diseño)
+  ctx.globalAlpha = Math.min(1, e * 1.4);
+  ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(x + 1.5, yy + 1.5, A.w, A.h);
+  ctx.fillStyle = '#0d1419'; ctx.fillRect(x, yy, A.w, A.h);
+  const col = GRUPO_COL[a.e.grupo] || P.accent;
+  ctx.fillStyle = col; ctx.fillRect(x, yy, 1.5, A.h);   // el filo del color del grupo
+  ctx.strokeStyle = '#2b3944'; ctx.lineWidth = 0.6; ctx.strokeRect(x + 0.3, yy + 0.3, A.w - 0.6, A.h - 0.6);
+  estampita(a.e, x + 4, yy + 2.5, s + 1, false, col, 3, false, ahora);
+  const tx = x + 4 + s + 5, tw = A.w - (tx - x) - 4;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = P.dim; ctx.font = labelFont(4); ctx.fillText(T('albumNuevo'), tx, yy + 6.5);
+  ctx.fillStyle = P.ink; ctx.font = menuFont(5.5); ctx.fillText(a.e.name, tx, yy + 13.5, tw);
+  ctx.restore();
+  return true;
+}
 function huecoAlbum(x, y, s, on, i) {
   ctx.fillStyle = '#0d1317'; ctx.fillRect(x, y, s, s);
   ctx.save();

@@ -15,7 +15,7 @@
 // la mision no te deje el techo de radar del ultimo filo pegado al modo siguiente.
 import { faseAt, validarFases } from '../core/fases.js';
 import { run } from '../core/run.js';
-import { FILO_RAMPA_M } from '../data/tuning.js';
+import { FILO_RAMPA_M, FLY_TOP } from '../data/tuning.js';
 import * as ruta from './ruta.js';
 
 let lista = null;        // las fases de la mision en curso (null = mision sin fases: todas las de hoy)
@@ -59,6 +59,13 @@ export const vigente = () => tapa || faseAt(run.dist, objetivo, lista);
 /** ¿LA MISION DECLARA ZONAS DE ESPERA DE LA CHANCHA? Si ninguna fase las declara, el poder se
  *  comporta como siempre (se pide donde sea). Lo pregunta el orquestador antes de gatear. */
 export const hayZonaChancha = () => hayFases() && lista.some(f => f.chancha === true);
+/** Donde EMPIEZA la primera zona de la Chancha, en fraccion del objetivo (null sin zona). La marca la gotita de la
+ *  cinta de arriba (render/hud.js). */
+export function zonaChanchaDesde() {
+  if (!hayFases()) return null;
+  const i = lista.findIndex(f => f.chancha === true);
+  return i < 0 ? null : i === 0 ? 0 : lista[i - 1].hasta;
+}
 
 /** ¿ESTA MISION SIGUE DESPUES DEL BUQUE? Es la pregunta que decide si el climax cierra la mision
  *  o si todavia falta volver, y por eso vive aca y no en game.js: la contesta la DATA.
@@ -96,6 +103,11 @@ export const tipo = () => { const f = vigente(); return f ? f.tipo : null; };
  *
  *  Sin fases devuelve `base` y no hay rampa que valga — la campaña entra y sale por el mismo
  *  camino de siempre. */
+/** ¿HAY RADAR ENEMIGO ACA? (23/11, el autor: "si subo mucho en una zona donde NO ALCANZA el radar enemigo, de
+ *  repente me disparan"). Fuera del alcance —o en la zona libre— el techo es FLY_TOP, el techo del CARRIL; pero desde
+ *  LO ALTO (14/11) se puede volar por encima, y pasar los 68 m contaba como entrar al radar. Con el techo en FLY_TOP no
+ *  hay radar que te vea, a ninguna altura. */
+export const sinRadarArriba = base => techoRadar(base) >= FLY_TOP;
 export function techoRadar(base) {
   // …Y ENCIMA, EL ALCANCE (PLAN_NAFTA_ALCANCE N2): con `ruta`, fuera del horizonte de radar no hay
   // techo que valga. Se aplica sobre el techo de la fase para que esta siga siendo la puerta UNICA

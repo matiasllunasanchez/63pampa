@@ -89,8 +89,11 @@ const ETAPA1 = [
     sigue: [{ usa: ['mant'], consigna: 'tutC_sosten' }], remate: 'TUT1_SOSTEN_OK' },
   // (SIN RADAR en la etapa 1, 18/11: el autor, "el tutorial no tiene que mostrar todo el potencial del juego". El
   // paso es volar bajito sin tocar el agua; el techo del radar se aprende en la campaña)
+  // (23/11, el autor: "el tutorial debe explicar que es rasante: 'vola a 5 metros del agua por 8 segundos' y luego que
+  // aclaren ESO SE LLAMA VUELO RASANTE"): la consigna dice la altura concreta (`techo`: 5 m, no el del radar) y el
+  // remate le pone el nombre
   { dice: 'TUT1_RASANTE', foco: ['alt'], teclas: ['Gas'],
-    sigue: [{ bajoTecho: 8, consigna: 'tutC_rasante' }], remate: 'TUT1_RASANTE_OK' },
+    sigue: [{ bajoTecho: 8, techo: 5, consigna: 'tutC_rasante' }], remate: 'TUT1_RASANTE_OK' },
   { dice: 'TUT1_TABLERO', foco: ['vel', 'horizonte', 'alt', 'gas'] },
   // (21/11, el autor: "mas globos para esquivar, varios esquives"): primero el deslizamiento a cada lado, despues
   // GLOBOS en tu linea, a tu altura, uno detras del otro
@@ -113,7 +116,10 @@ const ETAPA1 = [
     sigue: [{ salBajo: 0.05, consigna: 'tutC_sal' }], remate: 'TUT1_SAL_OK' },
   // EL HIELO (20/11, el autor: "meter las nuevas mecanicas de clima y frio"; data/frio.js): lavando el vidrio en la nube,
   // con el frio del amanecer, se junta hielo en las alas. Se muestra el termometro y se derrite bajando al ras del mar
-  { dice: 'TUT1_HIELO', foco: ['temp', 'alt'], teclas: ['Gas', 'Dive'],
+  // (23/11, el autor: "baja la temperatura muy arriba, no es en la nube, es muy por encima… sobrepasá las nubes hasta que
+  // la temperatura baje a -1 grado"): `hieloArriba` — en este paso el aire de arriba de las nubes tambien junta hielo
+  // (afuera del tutorial, arriba de las nubes es seco: systems/frio.js)
+  { dice: 'TUT1_HIELO', foco: ['temp', 'alt'], teclas: ['Gas', 'Dive'], hieloArriba: true,
     sigue: [{ hieloSobre: 0.15, consigna: 'tutC_hielo' }, { hieloBajo: 0.05, consigna: 'tutC_deshiela' }], remate: 'TUT1_HIELO_OK' },
   { dice: 'TUT1_TURBO', foco: ['vel'], teclas: ['Boost'],
     sigue: [{ usa: ['turbo'], consigna: 'tutC_turbo' }], remate: 'TUT1_TURBO_OK' },
@@ -246,8 +252,8 @@ export const TUTORIAL_ETAPAS = [
     fases: [{ tipo: 'rasante', hasta: 1, solo: ['ola'], bombs: 0, bidones: false }],
     cfg: P({ sky: 'dawn', terrain: 'sea' }), pasos: ETAPA1,
     // los consejos de la pantalla del final (screens.drawResults)
-    consejos: { es: ['Al ras, de a poco: arriba y abajo, sin tocar el agua.', 'En PAUSA → CONTROLES están todos los botones.', 'Lo que sigue: ETAPA 2 · PELEAR.'],
-      en: ['Fly low, a little at a time: up and down, never touching the sea.', 'PAUSE → CONTROLS lists every button.', 'Next up: STAGE 2 · FIGHT.'] } },
+    consejos: { es: ['Rasante: a menos de 5 metros del agua, sin tocarla.', 'En PAUSA → CONTROLES están todos los botones.', 'Lo que sigue: ETAPA 2 · PELEAR.'],
+      en: ['Rasante: under 5 meters above the sea, without touching it.', 'PAUSE → CONTROLS lists every button.', 'Next up: STAGE 2 · FIGHT.'] } },
   // (las etapas 2 y 3 todavia son el tramo vacio de la fase 1: sus pasos llegan en las fases 4 y 5)
   { ...base, id: 'tut2', etapa: 2, name: 'PELEAR', musica: 'original:tangalfa',   // (21/11, el autor: "tangalfa para la etapa 2")
     desc: { es: 'El cañón, el calor, los Harriers y el tonel.', en: 'The cannon, the heat, the Harriers and the barrel roll.' },
@@ -321,26 +327,30 @@ const LISTA = [
   escena('TUT1_PICADA',
     T(PICHON, 'pichon_radio_explicando', 'Ahora bajá. Mirá la aguja de la altura: el agua no se toca.')),
   escena('TUT1_PICADA_OK', T(PICHON, 'pichon_radio_sonrisa', 'El mar está más cerca de lo que parece.')),
-  // (23/11: el GAS MODO SUAVE — solo si se juega con ese modo, `vert`)
+  // (23/11: el GAS MODO SUAVE — solo si se juega con ese modo, `vert`; el dialogo NO nombra el modo, explica como
+  // vuela: el autor, "no hablemos de SUAVE… expliquemos tal cual")
   escena('TUT1_SOSTEN',
-    T(PICHON, 'pichon_radio_explicando', 'En SUAVE el avión se asienta solo. Llevá el gas a cien: se carga la barra de abajo del reloj.'),
-    T(TURCO, 'turco_radio_aprueba', 'Mientras la barra dure, no bajás. Cuando se vacía, gas a fondo otra vez.')),
+    T(PICHON, 'pichon_radio_explicando', 'Cada vez que llevás el gas a 100, el avión toma potencia vertical y se mantiene en su altura lo que dure la barra de gas.'),
+    T(PICHON, 'pichon_radio_explicando', 'Cuando la barra de gas llega a cero, el avión sigue planeando pero comienza a descender.')),
   escena('TUT1_SOSTEN_OK', T(TURCO, 'turco_radio_aprueba', 'Eso. Así se vuela sin andar subiendo y bajando.')),
   escena('TUT1_RASANTE',
-    T(PICHON, 'pichon_radio_explicando', 'Así se vuela acá: al ras, pegado al agua.'),
+    T(PICHON, 'pichon_radio_explicando', 'Ahora bajá hasta casi tocar el agua: a menos de 5 metros.'),
     B(TURCO, 'turco_radio_desconfiado', 'Si la tocás a esa velocidá, te hace pingo.')),
-  escena('TUT1_RASANTE_OK', T(TURCO, 'turco_radio_risa', 'E ura, así se vuela.')),
+  escena('TUT1_RASANTE_OK',
+    T(PICHON, 'pichon_radio_risa', '¡Eso se llama VUELO RASANTE! Pegado al agua, abajo de todo, donde nadie te espera.'),
+    T(TURCO, 'turco_radio_aprueba', 'Rasante, ura. Ha sido así como volamos todos acá.')),
   escena('TUT1_SAL_JUNTA',
-    T(TURCO, 'turco_radio_escucha', 'Quedate pegao al agua un rato. Mirá el vidrio.')),
+    T(TURCO, 'turco_radio_escucha', 'Volá rasante un rato, ura. Mirá el vidrio.')),
+  // (23/11, el autor, textual: "en los bordes de la pantalla vas a ver salitre…")
   escena('TUT1_SAL',
-    T(PICHON, 'pichon_radio_explicando', 'Eso es sal. Subir no la saca: metete en una nube, que el agua la lava.'),
+    T(PICHON, 'pichon_radio_explicando', 'En los bordes de la pantalla vas a ver salitre. Es del mar. Tenés que subir y traspasar las nubes: el agua en ellas te ayuda a quitarlo.'),
     B(TURCO, 'turco_radio_desconfiado', 'Allá ashiba te ve el radar. Te lavás y bajás ligero.')),
-  escena('TUT1_SAL_OK', T(PICHON, 'pichon_radio_sonrisa', 'Ahora sí se ve. Bajá, que te ven.')),
+  escena('TUT1_SAL_OK', T(PICHON, 'pichon_radio_sonrisa', 'Ahora sí se ve. Volvé a rasante, que te ven.')),
   escena('TUT1_HIELO',
     T(TURCO, 'turco_radio_preocupado', '¿Pesa el avión? Es hielo: con frío y nube se pega en las alas.'),
-    T(PICHON, 'pichon_radio_explicando', 'Bajá al ras: abajo es más templado y se derrite.'),
+    T(PICHON, 'pichon_radio_explicando', 'Volá rasante: abajo es más templado y se derrite.'),
     B(PICHON, 'pichon_radio_pensativo', 'El clima cambia todo el tiempo. Mirá el cielo antes de salir.')),
-  escena('TUT1_HIELO_OK', T(PICHON, 'pichon_radio_sonrisa', 'Se derritió. Por eso volamos abajo.')),
+  escena('TUT1_HIELO_OK', T(PICHON, 'pichon_radio_sonrisa', 'Se derritió. Por eso volamos rasante.')),
   escena('TUT1_TABLERO',
     T(TURCO, 'turco_radio_aprueba', 'El tablero: velocidá, horizonte y altura. Lo demás, de reojo.'),
     B(TURCO, 'turco_radio_sonrisa', 'Los relojes los he calibrao yo.')),
@@ -415,7 +425,7 @@ const LISTA = [
     T(PICHON, 'pichon_radio_neutro', 'Con el rasante puesto no aprietes nada: va solo. Pa salir, picá.')),
   escena('TUT2_RASANTE_OK', T(PICHON, 'pichon_radio_risa', '¡Eso es RASANTE! Dura lo que juntaste.')),
   escena('TUT2_RAS_ESQUIVA',
-    T(TURCO, 'turco_radio_escucha', 'No te hace inmortal: esquivá los globos al ras.')),
+    T(TURCO, 'turco_radio_escucha', 'No te hace inmortal: esquivá los globos en rasante.')),
   escena('TUT2_RAS_ESQUIVA_OK', T(TURCO, 'turco_radio_aprueba', 'Más aciertos, más rasante. Ese es el negocio.')),
   escena('TUT2_MOMENTUM',
     T(PICHON, 'pichon_radio_orgullo', 'El momentum: un toque y el tiempo se pone lento; otro, más lento; otro, lo cortás.'),
@@ -452,7 +462,7 @@ const LISTA = [
     T(TURCO, 'turco_radio_sonrisa', 'Mantené el recorrido pa ver ande cae. Con la verde, la largás.'),
     B(PICHON, 'pichon_radio_preocupado', 'Si errás, otra pasada. El casco no se va.')),
   escena('TUT3_ESCAPE',
-    T(TURCO, 'turco_radio_grito', '¡Le diste! Ahora escapá pegao al agua, que te tiran.')),
+    T(TURCO, 'turco_radio_grito', '¡Le diste! Ahora escapá rasante, que te tiran.')),
   escena('TUT3_BLANCO_OK', T(PICHON, 'pichon_radio_risa', 'A casa.')),
   escena('TUT3_PIRUETAS',
     T(PICHON, 'pichon_radio_sonrisa', 'Hay más piruetas: están en CONTROLES, en la pausa.'),
@@ -473,7 +483,7 @@ const LISTA = [
   escena('TUT4_RUMBO_OK', T(TURCO, 'turco_radio_risa', 'Ya sabés pa dónde va la nariz.')),
   escena('TUT4_RELIEVE',
     T(TURCO, 'turco_radio_desconfiado', 'Acá la altura es desde el suelo: un cerro te la come.'),
-    T(PICHON, 'pichon_radio_explicando', 'Volá pegado al relieve, abajo de la raya.')),
+    T(PICHON, 'pichon_radio_explicando', 'Volá rasante, pegado al relieve, abajo de la raya.')),
   escena('TUT4_RELIEVE_OK', T(PICHON, 'pichon_radio_sonrisa', 'El cerro también te tapa del radar.')),
   escena('TUT4_RADAR',
     T(PICHON, 'pichon_radio_alerta', 'El cartel de arriba: ZONA RADAR inglesa o nuestra, o FUERA DE RADAR.'),
