@@ -43,6 +43,9 @@ import { PORT_H, AIR_START_Y } from '../data/runways.js';
 
 export const CTRL_DIRECT = 0, CTRL_BANK = 1, CTRL_N = 2;
 
+// el default del GAS MODO: en la app, ESTABLE (el playtest: "el gas es demasiado molesto"); en las pruebas (sin preload de Electron) y en Node, la
+// vertical vieja ('gas'), que es la que los pilotos automaticos de los fixtures saben volar
+const VERT_DEF = typeof window !== 'undefined' && window.RASANTE_APP ? 'fija' : 'gas';
 export const cfg = {
   // AGUA EN AUTO (SPEC_AGUA_OLAS F5): el estilo del mar lo elige el CIELO (WATER_AUTO en
   // data/palette.js). Es el default porque en campaña la mision ya decide el cielo, y con el agua
@@ -53,6 +56,11 @@ export const cfg = {
   // abierto pasada la costa. Es una PRUEBA con perilla, no una decision tomada: ver
   // docs/sistemas/PLAN_MEJORAS_3D.md §5b.
   agua3d: '2d',
+  // EL GAS MODO (22/11): 'gas' NORMAL | 'fija' ESTABLE | 'planeo' SUAVE — ver VERT_MODOS en data/tuning.js; la fila de
+  // OPCIONES lo cambia y lo guarda en 'rasante_vert'. Default: VERT_DEF.
+  // EL DIRECTOR DE LA DIFICULTAD (22/11, systems/director.js): prendido salvo que OPCIONES lo apague
+  director: true,
+  vert: (() => { try { const v = JSON.parse(localStorage.getItem('rasante_vert')); return ['gas', 'fija', 'planeo'].includes(v) ? v : VERT_DEF; } catch (e) { return VERT_DEF; } })(),
   // LAS TRES CAPAS DEL CLIMAX 3D, TAMBIEN EN EL PASILLO (PLAN_MEJORAS_3D P3/P6/P2). Nacieron
   // para la escena del climax y valen igual aca, porque el pasillo tiene su propia escena 3D (el
   // buque del final y, con AGUA 3D puesta, el mar). Son PRESENTACION PURA: ninguna toca una

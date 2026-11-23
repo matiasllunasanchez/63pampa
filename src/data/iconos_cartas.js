@@ -15,7 +15,7 @@ const DE = {
   potencia2: 'bala', potencia3: 'bala', brp: 'brp', snakeye: 'snakeye', espoletas1: 'espoleta', espoletas2: 'espoleta',
   soporte1: 'ter', soporte2: 'ter', exocet: 'exocet',
   chafitas1: 'fideos', chafitas2: 'chafitas', chafitas3: 'chafitas', chafitas4: 'chafitas', chafRecarga: 'chafitas', chafPotencia: 'chafitas',
-  escudo1: 'chapa', escudo2: 'chapa', veterano: 'casco', reparacion: 'llave', amigo: 'a4', rescate: 'paracaidas',
+  escudo1: 'chapa', escudo2: 'chapa', veterano: 'reloj',   /* (22/11, el autor: "visualmente no se que es esto": el casco no se leia; el relevo en la mitad de tiempo = el reloj) */ reparacion: 'llave', amigo: 'a4', rescate: 'paracaidas',
   tallerLiv: 'caja_herr', tallerPes: 'motor', vuelta: 'reloj', municion: 'cajon',
   tanques: 'tanques', chancha1: 'hercules', kc130: 'hercules',
   momentum1: 'arena', momentum2: 'arena', momentum3: 'arena', rasante1: 'rasante', radar1: 'radar',

@@ -11,7 +11,7 @@ export const CTRL_CATEGORIAS = [
   // (MOVILIDAD sin TREN: el aterrizaje esta apagado, 18/11)
   // (19/11, el autor: "el 3D lo sacamos": sin FRENO, MEDIA VUELTA ni REPARTO DE ENERGIA, y sin las notas del 3D;
   // SOLTAR TANQUES se junta en SOLTAR SECUNDARIA)
-  { id: 'movilidad', filas: ['Fly', 'Gas', 'Dive', 'Roll', 'Pan', 'Boost'], notas: ['ctrlHands'] },
+  { id: 'movilidad', filas: ['Fly', 'Gas', 'Dive', 'Mant', 'Roll', 'Pan', 'Boost'], notas: ['ctrlHands'] },
   { id: 'armas', filas: ['Gun', 'Secund', 'Msl', 'MiraB', 'TiraB', 'Chapitas', 'Aim'], notas: ['ctrlWasd'] },
   { id: 'piruetas', piruetas: true, notas: ['ctrlPirNota'] },
   { id: 'escuadrilla', filas: ['Chancha', 'Rasante', 'Tempo', 'Radar', 'Cambio', 'Cam'], notas: ['ctrlCabinaProx'] },

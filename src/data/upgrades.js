@@ -24,18 +24,18 @@
 import { DESDE_BRP } from './bombas.js';
 
 export const UPGRADES = [
-  { id: 'mask', name: 'TERRAIN MASKING', seq: 'abajo abajo-abajo', desc: 'Clava el avion a ras: congela el roce y descarga el radar', quote: 'Si abajo no nos ven... por que subimos?' },
-  { id: 'splits', name: 'SPLIT-S', seq: 'arriba abajo abajo (alto)', desc: 'Medio tonel y picada: la salida vertical hacia abajo', quote: 'Necesitaba una forma de irse para abajo YA.' },
-  { id: 'breakt', name: 'BREAK TURN', seq: 'abajo izq izq / abajo der der', desc: 'Viraje quebrado: tiron lateral violento', quote: 'La escolta casi nos engancha de costado.' },
-  { id: 'loyo', name: 'LOW YO-YO', seq: 'abajo arriba abajo', desc: 'Pica y remonta: altura convertida en velocidad', quote: 'Salir vivo es cuestion de nudos.' },
-  { id: 'sturn', name: 'S-TURN', seq: 'izq der izq', desc: 'Barrido en S: esquiva sin perder el carril', quote: 'Abrirse y volver, como al costado del arco.' },
-  { id: 'popup', name: 'POP-UP', seq: 'abajo arriba arriba (bajo)', desc: 'Trepada brusca de ataque desde rasante', quote: 'Nunca mas sin poder mirar hacia arriba.' },
-  { id: 'hiyo', name: 'HIGH YO-YO', seq: 'arriba abajo arriba', desc: 'Sube, cuelga y recae: esquive vertical', quote: 'Colgarse arriba y dejar que pase de largo.' },
-  { id: 'jink', name: 'JINK', seq: 'arriba izq der', desc: 'Zigzag de esquive: 4 quiebres impredecibles', quote: 'Copie como vuela usted cuando esta desesperado, Tero.' },
-  { id: 'spin', name: 'TIRABUZON', seq: 'picar + rolar (der) izq izq', desc: 'Rola sobre su eje picando', quote: 'La dejo a medio explicar. El Turco la termino esa noche.' },
-  { id: 'climb', name: 'ASCENSO', seq: 'mirar arriba + arriba arriba', desc: 'Trepa hasta el techo del radar y lo sostiene', quote: 'Pagina 14 de la libreta.' },
-  { id: 'climbmax', name: 'SOBRE EL RADAR', seq: 'igual, ya contra el radar', desc: 'Cruza el techo: expuesto, pero llegas', quote: 'Peligroso, pero si hay que llegar a algun lado...' },
-  { id: 'barrel', name: 'TONEL BARRIL', seq: 'rolar: abajo der arriba izq', desc: 'La O grande: vuelve al punto exacto', quote: 'Para cuando haya que volver a buscar a alguien.' },
+  { id: 'mask', name: 'TERRAIN MASKING', seq: 'abajo abajo-abajo', desc: 'Clava el avion a ras: congela el roce y descarga el radar', quote: 'Pegadito al agua, que ahi abajo no te ve ni tu vieja.' },
+  { id: 'splits', name: 'SPLIT-S', seq: 'arriba abajo abajo (alto)', desc: 'Medio tonel y picada: la salida vertical hacia abajo', quote: 'Media vuelta y para abajo, de una.' },
+  { id: 'breakt', name: 'BREAK TURN', seq: 'abajo izq izq / abajo der der', desc: 'Viraje quebrado: tiron lateral violento', quote: 'Un volantazo de costado. Agarrate fuerte.' },
+  { id: 'loyo', name: 'LOW YO-YO', seq: 'abajo arriba abajo', desc: 'Pica y remonta: altura convertida en velocidad', quote: 'Bajas, agarras envion y salis picando.' },
+  { id: 'sturn', name: 'S-TURN', seq: 'izq der izq', desc: 'Barrido en S: esquiva sin perder el carril', quote: 'Ida y vuelta, como un wing gambeteando.' },
+  { id: 'popup', name: 'POP-UP', seq: 'abajo arriba arriba (bajo)', desc: 'Trepada brusca de ataque desde rasante', quote: 'Un saltito para asomar la nariz, y de vuelta abajo.' },
+  { id: 'hiyo', name: 'HIGH YO-YO', seq: 'arriba abajo arriba', desc: 'Sube, cuelga y recae: esquive vertical', quote: 'Te colgas arriba y que pase de largo el gil.' },
+  { id: 'jink', name: 'JINK', seq: 'arriba izq der', desc: 'Zigzag de esquive: 4 quiebres impredecibles', quote: 'Zigzag de loco. Ni vos sabes para donde vas.' },
+  { id: 'spin', name: 'TIRABUZON', seq: 'picar + rolar (der) izq izq', desc: 'Rola sobre su eje picando', quote: 'Giras como trompo y te vas para abajo.' },
+  { id: 'climb', name: 'ASCENSO', seq: 'mirar arriba + arriba arriba', desc: 'Trepa hasta el techo del radar y lo sostiene', quote: 'Subis hasta el techo y te quedas ahi, quietito.' },
+  { id: 'climbmax', name: 'SOBRE EL RADAR', seq: 'igual, ya contra el radar', desc: 'Cruza el techo: expuesto, pero llegas', quote: 'Te ven todos, pero llegas. A lo guapo.' },
+  { id: 'barrel', name: 'TONEL BARRIL', seq: 'rolar: abajo der arriba izq', desc: 'La O grande: vuelve al punto exacto', quote: 'Una vuelta enterita y volves al mismo lugar.' },
 ];
 
 /** LAS CHAFITAS (8/10/2026) — las primeras mejoras del banco que NO son piruetas, y por eso viven
@@ -53,11 +53,11 @@ export const UPGRADES = [
 const chafita = (k, name, desc, quote, requiere) => ({ id: 'chafitas' + k, chafitas: k, name, tecla: 'H / circulo', desc, quote, requiere });
 export const CHAFITAS = [
   chafita(1, 'CHAFITAS',
-    'Una carga: el aluminio desvia los misiles de radar; la bengala, los de calor',
+    '1 carga: engaña misiles de radar y de calor',
     'Chaff le dicen los yanquis. Yo les digo chafitas: son chapitas, pero mas finitas.'),
-  chafita(2, 'MAS CHAFITAS', 'Otro cartucho de chafitas: dos cargas por avion', 'La maquina de tallarines no para.', 'chafitas1'),
-  chafita(3, 'MAS CHAFITAS', 'Otro cartucho: tres cargas por avion', 'Le dimos a la manivela toda la noche.', 'chafitas2'),
-  chafita(4, 'MAS CHAFITAS', 'El ultimo cartucho: cuatro cargas por avion, el maximo', 'Cuatro. Mas no entran.', 'chafitas3'),
+  chafita(2, 'MAS CHAFITAS', '2 cargas de chafitas por avion', 'La maquina de tallarines a full.', 'chafitas1'),
+  chafita(3, 'MAS CHAFITAS', '3 cargas por avion', 'Le dimos a la manivela toda la noche.', 'chafitas2'),
+  chafita(4, 'MAS CHAFITAS', '4 cargas por avion, el maximo', 'Cuatro. Mas no entran ni a palos.', 'chafitas3'),
 ];
 
 /** LA METRALLA Y SU CINTA (9/10/2026) — dos escaleras de mejoras del cañon, con el mismo molde que las
@@ -72,13 +72,13 @@ export const CHAFITAS = [
  *  con la cinta corta (decision del autor, ver game.js). */
 const arma = (id, nivel, campo, name, desc, quote, requiere) => ({ id, [campo]: nivel, name, tecla: 'X / ESPACIO', desc, quote, requiere });
 export const METRALLA = [
-  arma('metralla2', 2, 'metralla', 'METRALLA DE PLATA', 'El doble de tiros por segundo', 'Le cambie los resortes del cerrojo. Ahora escupe.'),
-  arma('metralla3', 3, 'metralla', 'METRALLA DE ORO', 'Tres veces y media mas rapida, pero tarda un segundo en girar',
-    'Seis caños que giran. Dale un segundo, que despues no para.', 'metralla2'),
+  arma('metralla2', 2, 'metralla', 'METRALLA DE PLATA', 'Doble de tiros por segundo', 'Le toque los resortes. Ahora escupe que da miedo.'),
+  arma('metralla3', 3, 'metralla', 'METRALLA DE ORO', '×3,5 tiros por segundo. Tarda 1 s en arrancar',
+    'Seis caños girando. Dale un segundo y no para mas.', 'metralla2'),
 ];
 export const CINTA = [
-  arma('cinta2', 2, 'cinta', 'CINTA LARGA', 'La rafaga aguanta una vez y media antes de recalentar', 'Le alargue la cinta. Apretala mas tiempo.'),
-  arma('cinta3', 3, 'cinta', 'CINTA ENTERA', 'El doble de rafaga antes de recalentar', 'Toda la cinta que entra en el ala.', 'cinta2'),
+  arma('cinta2', 2, 'cinta', 'CINTA LARGA', 'Rafaga 50 % mas larga antes de recalentar', 'Mas cinta, mas joda.'),
+  arma('cinta3', 3, 'cinta', 'CINTA ENTERA', 'Rafaga el doble de larga', 'Toda la cinta que entra en el ala. Hasta el moño.', 'cinta2'),
 ];
 /** LA BRP-250 (10/10/2026, el autor: "deberia ser otra mejora del Pichon") — la bomba española con la
  *  espoleta rehecha (data/bombas.js; es «Doce segundos», §3 de docs/historia/MEJORAS_PICHON.md), que en
@@ -90,14 +90,14 @@ export const CINTA = [
  *  rompe la mitad y la explosion abarca menos (`dano`, `radio`, `boquete` en data/bombas.js).
  *  Fuera de campaña manda `bombaDe` (data/bombas.js). */
 export const BOMBA_BRP = { id: 'brp', bomba: 'brp', name: 'BRP-250', tecla: 'Z / L1', desde: DESDE_BRP - 1,
-  desc: 'Explota casi siempre. Pero pesa la mitad: en el extremo rompe menos',
-  quote: 'Le rehicieron la espoleta. La que pega, ahora revienta.' };
+  desc: 'Explota casi siempre. Rompe menos',
+  quote: 'Le arreglaron la espoleta. Si pega, revienta. Posta.' };
 /** EL SILICONADO M-60 (17/11/2026, el autor): el aerosol del parabrisas. Volando rasante el rocio del mar deja
  *  en el vidrio una costra de sal que va tapando la vista de los bordes al centro (systems/salitre.js); con esta
  *  carta el vidrio esta siliconado y la sal no se pega. Una sola carta, y queda. */
 export const SILICONADO = { id: 'siliconado', name: 'SILICONADO M-60',
-  desc: 'El parabrisas siliconado: la sal del mar no se pega. Volas rasante sin perder la vista',
-  quote: 'Un aerosol de ferreteria. El vidrio queda como nuevo.' };
+  desc: 'La sal no se pega al parabrisas',
+  quote: 'Un aerosol de ferreteria y el vidrio queda joya.' };
 const tiene = (owned, id) => !!owned && (owned.includes ? owned.includes(id) : owned.has(id));
 /** ¿La libreta `owned` tiene el SILICONADO? (sin el, la sal se pega: systems/salitre.js) */
 export const siliconadoDe = owned => tiene(owned, SILICONADO.id);

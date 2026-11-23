@@ -4,6 +4,7 @@ import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
+import * as director from './systems/director.js';
 import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, DETECCION, nivelCorrida, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA, ARRANQUE, oleadaDe } from './data/modos_sueltos.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_PROXIMAS, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
@@ -21,7 +22,7 @@ import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe
 import { leeDe } from './data/cartas_lee.js';
 import { perfilDe, puedeManiobra } from './data/perfiles.js';
 import * as frio from './systems/frio.js';
-import { ALTO } from './data/tuning.js';
+import { ALTO, VERT_MODOS } from './data/tuning.js';
 import { BUSQ } from './data/busqueda.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
@@ -431,7 +432,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let navF = 1, navT = 0;   // las luces de navegacion propias: 1 prendidas, 0 apagadas (zona de radar)
     let gigNivel = false;     // este nivel (la corrida de POR LA PATRIA, el blanco del CICLO) arranca con la OLA GIGANTE
     /** LA PRESION, cuadro a cuadro: dificultad × rampa de km × alarma, sobre la base de cada perilla. */
-    function aplicarPresion() {
+    function aplicarPresion(dt) {
       const km = kmPrevios + Math.max(0, run.dist) / 1000, est = run.estrellas | 0;
       // EL CLIMA CAMBIA mientras se vuela (16/10): lluvia y viento, re-sorteados cada tantos km. El cielo no.
       if (km >= climaKm && !frenteManda()) {   // (con un frente encima, el clima lo maneja el frente)
@@ -460,7 +461,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       const uO = Math.max(0, Math.min(1, run.dist / Math.max(1, objectiveDist)));
       // (EL NEPTUNE: el blanco ya esta ubicado — la primera parte de la aproximacion es mas tranquila)
       const ola = gameMode === 'cycle' && objectiveDist > 0 ? (run.neptune ? 0.5 + 0.75 * uO * uO : 0.65 + 0.6 * uO) : 1;
-      const p = DIFICULTADES[dificultad].k * (1 + (RAMPA.max - 1) * niv) * alarma * ola;
+      // EL DIRECTOR (22/11, systems/director.js): corre la presion segun como te va — aprieta si venis sobrado, da un
+      // respiro si te estan matando. Solo volando (en el despegue no mira); OPCIONES lo apaga (`cfg.director`)
+      const dirK = cfg.director && S.state === 'play' && !islas.enPasillo() ? director.paso(dt || 0, { integ: run.integ, roza: run.scrapeVib > 0.6 }) : 1;
+      const p = DIFICULTADES[dificultad].k * (1 + (RAMPA.max - 1) * niv) * alarma * ola * dirK;
       for (const k in PERILLAS) cfg[k] = Math.min(PERILLAS[k].techo, PERILLAS[k].base * p);
     }
     // ---------- EL BANCO DE LOS MODOS SUELTOS (data/banco_suelto.js) ----------
@@ -2364,6 +2368,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       try { localStorage.setItem('rasante_vol_musica', JSON.stringify(volSel.musica)); } catch (e) { }
       beep(musicaOn() ? 620 : 300, 0.06, 'square', 0.05);
     }
+    // EL GAS MODO (22/11, playtest): tambien en OPCIONES de la pausa, para probarlo volando (◄ ► o ENTER)
+    function gasPaso(dir) {
+      const n = VERT_MODOS.length;
+      cfg.vert = VERT_MODOS[(VERT_MODOS.indexOf(cfg.vert) + dir + n) % n];
+      try { localStorage.setItem('rasante_vert', JSON.stringify(cfg.vert)); } catch (e) { }
+      beep(520, 0.05, 'square', 0.04);
+    }
     const pauseRows = () => [
       { id: 'resume', label: T('pauseResume') },
       ...(suelto() ? [{ id: 'cartas', label: T('pauseCartas') }] : []),   // VER CARTAS: solo PATRIA y CICLO
@@ -2385,6 +2396,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     let opcSel = 0;
     const opcRows = () => [
       { id: 'musica', label: T('pauseMusica') + ':  ' + (musicaOn() ? T('optYes') : T('optNo')) },
+      { id: 'gas', label: T('optGas') + ':  ◄ ' + T('optGas_' + cfg.vert) + ' ►' },
       ...(canPickMusic() && musicaOn() ? [{ id: 'pista', label: T('pausePista') + ':  ◄ ' + currentTrackName() + ' ►' }] : []),
       { id: 'volver', label: T('menuBack') },
     ];
@@ -2475,7 +2487,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (pauseView === 'mapa') { mapaMover(dir * MAPA_PASO * 0.6, 0); return; }
       if (pauseView === 'controls') { ctrlTabMover(dir); return; }
       if (pauseView === 'menu') { const r = pauseRows()[pauseSel]; if (r && r.id === 'clima') { islas.climaPaso(dir); beep(520, 0.05, 'square', 0.04); return; } }
-      if (pauseView === 'opciones') { const r = opcRows()[opcSel]; if (r && r.id === 'musica') { musicaToggle(); return; } if (r && r.id === 'pista') { (dir < 0 ? prevTrack : nextTrack)(); beep(520, 0.05, 'square', 0.04); return; } }
+      if (pauseView === 'opciones') { const r = opcRows()[opcSel]; if (r && r.id === 'musica') { musicaToggle(); return; } if (r && r.id === 'gas') { gasPaso(dir); return; } if (r && r.id === 'pista') { (dir < 0 ? prevTrack : nextTrack)(); beep(520, 0.05, 'square', 0.04); return; } }
       if (pauseView !== 'cartas' || cartasN < 2) return;
       const s2 = Math.max(0, Math.min(cartasN - 1, cartasSel + dir));
       if (s2 === cartasSel) return;
@@ -2486,6 +2498,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (pauseView === 'opciones') {
         const r0 = opcRows()[Math.min(opcSel, opcRows().length - 1)];
         if (r0 && r0.id === 'musica') musicaToggle();
+        else if (r0 && r0.id === 'gas') gasPaso(1);
         else if (r0 && r0.id === 'pista') { nextTrack(); beep(520, 0.05, 'square', 0.04); }
         else { pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); }
         return;
@@ -3249,8 +3262,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       { label: () => T('optZoom'), opts: ZOOMS, names: () => ZOOMS.map(String),
         get: () => cfg.fichinZoom, set: v => { cfg.fichinZoom = v; setZoomFichin(v); }, save: 'rasante_fichin_zoom4' },   // la clave cambia con cada default nuevo (3/10 el 2; 4/10 el 3, despues segun el monitor): asi todos arrancan en el nuevo
       // EL EFECTO CRT (22/11): una clase en el body; la capa es CSS (#crt en styles.css)
+      // SIN `save` (22/11, el autor: "el efecto CRT debe estar activado siempre desde el inicio"): cada arranque abre
+      // con el CRT prendido —la clase ya viene en el HTML— y apagarlo dura hasta cerrar el juego
       { label: () => T('optCrt'), opts: ['si', 'no'], names: yesNo,
-        get: () => cfg.crt, set: v => { cfg.crt = v; document.body.classList.toggle('crt-si', v === 'si'); }, save: 'rasante_crt' },
+        get: () => cfg.crt, set: v => { cfg.crt = v; document.body.classList.toggle('crt-si', v === 'si'); } },
       // PANTALLA COMPLETA o VENTANA (autor, 4/10). El juego abre a pantalla completa (electron/main.js);
       // si lo guardado es VENTANA, loadOpts() lo pide al cargar. En la web no hay a quien pedirselo.
       { label: () => T('optPantalla'), opts: ['completa', 'ventana'], names: () => [T('optPantalla_completa'), T('optPantalla_ventana')],
@@ -3527,6 +3542,15 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // rompe tambien la partida siguiente, cuando ya no te acordas de haberlo tocado. Arrancar
       // siempre en el default cuesta volver a ponerlo a quien de verdad lo quiere invertido, y le
       // ahorra una corrida arruinada a quien lo rozo sin querer.
+      // EL GAS MODO (22/11, playtest: "la mecanica del gas es demasiado molesta"): NORMAL (la de siempre), ESTABLE
+      // (altura fija) y SUAVE (planea, sin subibaja). Ver VERT_MODOS en data/tuning.js.
+      { label: () => T('optGas'), opts: VERT_MODOS, names: () => VERT_MODOS.map(m => T('optGas_' + m)),
+        get: () => cfg.vert, set: v => cfg.vert = v, save: 'rasante_vert',
+        card: () => prefCard('Gas', () => T('optGas')) },
+      // EL DIRECTOR (22/11): la dificultad que se acomoda a como te va, en POR LA PATRIA y CICLO
+      { label: () => T('optDirector'), opts: [true, false], names: onOff, sw: true,
+        get: () => cfg.director, set: v => cfg.director = v, save: 'rasante_director',
+        card: () => prefCard('Director', () => T('optDirector')) },
       { label: () => T('optInvY'), opts: [0, 1], names: () => [T('optInvYNo'), T('optInvYYes')],
         get: () => cfg.invY, set: v => cfg.invY = v,
         card: () => prefCard('InvY', () => T('optInvY')) },
@@ -4045,7 +4069,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (gameMode !== 'campaign' && gameMode !== 'cycle') soltarMision();
       // CORRIDA NUEVA DE UN MODO SUELTO: la libreta vacia (las cartas duran la corrida; y sin esto se heredaba
       // la de la ultima campaña, MOMENTUM incluido). El salto de un blanco al otro del ciclo no cuenta.
-      if (suelto() && !encadena) { oleadaVista = 0; pichon = []; cartasRun = []; bancoProx = bancoKm(); bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
+      if (suelto() && !encadena) { director.reiniciar(); oleadaVista = 0; pichon = []; cartasRun = []; bancoProx = bancoKm(); bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
       // LAS FALLAS Y LA BASE son de la corrida (resetRun no los conoce: sin esto pasaban a la campaña)
       if (!encadena) { run.fallasFlota = null; run.enBase = null; run.esquirlas = 0; run.esquirlaT = undefined; }
       // LA SAL DEL PARABRISAS es de la salida (systems/salitre.js): el blanco encadenado del CICLO la conserva
@@ -5757,6 +5781,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (a.paso.poderes) cfg.poderes = true;
         // el vidrio ya salado para enseñar a limpiarlo (sin el cartel de la primera vez: lo explican ellos)
         if (a.paso.sal != null) { run.sal = Math.max(run.sal || 0, a.paso.sal); run.salAviso = true; }
+        run.salTutK = a.paso.salRapido || 1;   // la sal que se junta al ras, apurada en el paso que la enseña
         if (a.paso.nafta != null && cfg.fuelOn) run.fuel = Math.min(run.fuel, a.paso.nafta);
         if (a.paso.chafitas) chapitasSys.ponerCargas(Math.max(run.chapitas | 0, a.paso.chafitas));   // las chafitas para practicar
         // LA PAUSA GUIADA (`abre`): el juego abre la pausa sola, en CONTROLES y en la pestaña que se explica
@@ -5802,9 +5827,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         sembrarPractica(bl.tipo, x, y, BOMBA_Z_TOPE + k * (bl.paso || 45), !!bl.mueve, { real: bl.real, armado: bl.armado });
       }
     }
-    /** LAS MARCAS DEL TUTORIAL: un anillo que late y una flecha arriba de cada blanco de practica. Van sobre
+    /** LAS MARCAS DEL TUTORIAL: una flecha roja que late arriba de cada blanco de practica. Van sobre
      *  el mundo; en la pausa de una linea, encima del velo (lo que se explica no se tapa). */
-    const MARCA_TUT = '#6fe3ff';
+    const MARCA_TUT = '#ff3b30';
     function marcasTutorial(tReloj) {
       if (!libro || !libro.tut) return;
       for (const o of obstacles) {
@@ -5813,10 +5838,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (!(s.k > 0)) continue;
         // (21/11, el autor: "la mira de los globos u objetivos son demasiado gordos y se pierden con la mira, deben tener
         // otro color"): celeste y fina — la mira es naranja/acento, y el anillo del blanco no puede parecerse
-        const r = Math.max(4, (o.type === 'jet' ? 4.5 : 2.8) * s.k) + 0.8 * Math.sin(tReloj * 6);
+        // (22/11, el autor: "los circulitos de los objetivos quitalos, dejale solo las flechitas rojas"): sin anillo
+        const r = Math.max(4, (o.type === 'jet' ? 4.5 : 2.8) * s.k);
         ctx.save();
-        ctx.strokeStyle = MARCA_TUT; ctx.fillStyle = MARCA_TUT; ctx.lineWidth = 0.7; ctx.globalAlpha = 0.9;
-        ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = MARCA_TUT; ctx.globalAlpha = 0.95;
         const ya = s.y - r - 2 - 1.5 * Math.abs(Math.sin(tReloj * 4));
         ctx.beginPath(); ctx.moveTo(s.x, ya); ctx.lineTo(s.x - 2.5, ya - 4); ctx.lineTo(s.x + 2.5, ya - 4); ctx.closePath(); ctx.fill();
         ctx.restore();
@@ -5994,7 +6019,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // `cerca`: 0 a RV_RANGO por debajo del techo, 1 en el techo y por encima (la pantalla en verde)
       // LOS MODOS SUELTOS: la presion del mundo cuadro a cuadro, y el RADAR SIEMPRE (16/10): sin ruta no
       // hay "entrar en alcance", asi que el barrido verde y su sonido salen al empezar a volar
-      if (suelto() && (S.state === 'play' || S.state === 'takeoff')) aplicarPresion();
+      if (suelto() && (S.state === 'play' || S.state === 'takeoff')) aplicarPresion(dt);
       if (S.state === 'play' && !islas.enPasillo()) { stepBanco(dt); stepFallas(dt); }
       // LAS ISLAS: EL ARRANQUE EN FRIO (data/frio.js ARRANQUE) — con la base helada se sale con fallas mas seguido
       if (islas.enPasillo() && islas.listo() && !fallasFrioHechas && islas.climaAhora()) {
@@ -6914,7 +6939,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           humedo: nub || cfg.rain > 0 || (!!cfg.fog && y < 40), sacude: cfg.sky === 'storm' ? 1 : cfg.rain >= 2 ? 0.5 : 0 });
       }
       // (LA SAL, con el aire frio: data/frio.js SAL_T)
-      if (stepSalitre(dt * (frio.perfilAvion().sal ?? 1), run.sobreAgua && frio.salOk(), siliconadoDe(pichon)) === 'aviso') cartel(T('salitre'), '#d8d2bf', T('salitre_sub'));
+      if (stepSalitre(dt * (frio.perfilAvion().sal ?? 1) * (libro && libro.tut ? run.salTutK || 1 : 1), run.sobreAgua && frio.salOk(), siliconadoDe(pichon)) === 'aviso') cartel(T('salitre'), '#d8d2bf', T('salitre_sub'));
       damage.humoAveria(dt);   // el avion roto larga humo (por debajo de AVERIA_HUMO de integridad)
       // EL ROTULO QUE PASA VOLANDO (render/rotulo.js): en el cuadro en que el poder RASANTE se
       // prende —y con el, cambia la camara—, la palabra cruza la pantalla. Reloj de pared.
@@ -8223,7 +8248,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (S.state === 'upgrade') menus.drawUpgrade({ offer: upgOffer, sel: upgSel, t: upgT, libreta: curLevel >= 7 });
       if (S.state === 'banco' && bancoOffer) {
         const r = menus.drawBanco({ offer: bancoOffer.cartas, rota: bancoOffer.rota, sel: bancoSel, vista: bancoVista,
-          leer: bancoLeerV, sacude: bancoSacude, lee: leeDe, t: bancoT, libreta: pichon.length });
+          leer: bancoLeerV, sacude: bancoSacude, lee: leeDe, t: bancoT, libreta: pichon.length, joy: padActivo(), padTxt: padActivo() ? padTexto : null });
         bancoLeerMax = r ? r.leerMax : 0;
       }
       if (S.state === 'carga') menus.drawCarga({ rows: filasCarga(), sel: cargaSel, t: cargaT, bomba: fichaBomba() });

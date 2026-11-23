@@ -57,6 +57,16 @@ export const ALARMA = { golpe: [1.15, 1.7], porEstrella: 0.3 };
 export const DETECCION = { cargaS: [5, 1.6] };
 /** El nivel de la corrida (0..1) a `km` volados. */
 export const nivelCorrida = km => Math.min(1, Math.pow(Math.max(0, km) / RAMPA.kmPleno, RAMPA.curva));
+/** EL DIRECTOR (22/11/2026, systems/director.js): corre la presion segun como te va, dentro de [ALIVIO, MAX].
+ *    POR_GOLPE  tension por cada punto de chapa perdido (100 = avion entero); POR_ROCE, por segundo rozando
+ *    CHAPA_BAJA con menos chapa que esto, la tension no baja de PISO_CHAPA
+ *    BAJA       cuanto se calma por segundo (BAJA_RESPIRO durante el respiro)
+ *    PICO       la tension que dispara el RESPIRO: RESPIRO_S segundos con la presion en ALIVIO; despues, ENFRIA_S
+ *               segundos en la rampa sola (x1) antes de que pueda venir otro respiro: es un ciclo, no un colchon
+ *    CALMA_S    segundos sin daño para empezar a apretar; APRIETA, cuanto sube la meta por segundo, hasta MAX
+ *    SUAVE      que tan rapido el multiplicador sigue a su meta (1/s) */
+export const DIRECTOR = { POR_GOLPE: 0.022, POR_ROCE: 0.25, CHAPA_BAJA: 35, PISO_CHAPA: 0.55, BAJA: 0.035, BAJA_RESPIRO: 0.09,
+  PICO: 0.7, RESPIRO_S: 12, ENFRIA_S: 25, ALIVIO: 0.45, CALMA_S: 10, APRIETA: 0.006, MAX: 1.35, SUAVE: 0.8 };
 export const PERILLAS = {
   obstacles: { base: 0.8, techo: 2.4 },   // densidad del pasillo (data/tuning SPAWN_DENS / obst)
   bombs: { base: 0.4, techo: 2.5 },       // Sea Slug

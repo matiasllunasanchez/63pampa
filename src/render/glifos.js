@@ -68,9 +68,23 @@ export function glifosDe(texto, pad) {
       return;
     }
     // teclado: una tecla por palabra corta o conocida; las frases quedan escritas
-    const esTecla = p => p === '+' || FLECHA[p] || p.length <= 2 || PALABRAS_TECLA.has(p.toUpperCase());
-    if (!pal.every(esTecla)) { out.push({ k: 'txt', t: g }); return; }
-    for (const p of pal) out.push(p === '+' ? { k: 'txt', t: '+' } : { k: 'tecla', t: p });
+    // (22/11, el teclado-joystick: «SHIFT izq», «CTRL der», «NUM 8» son UNA tecla; y «mantenida/sostener/held/hold»
+    // al final es una nota escrita al lado de las teclas, no una frase entera)
+    const LADO = { izq: 'IZQ', der: 'DER', l: 'L', r: 'R' };
+    const pal2 = [];
+    for (let i = 0; i < pal.length; i++) {
+      const p = pal[i], sig = pal[i + 1];
+      if (/^(SHIFT|CTRL|ALT)$/i.test(p) && sig && LADO[sig.toLowerCase()]) { pal2.push(p.toUpperCase() + ' ' + LADO[sig.toLowerCase()]); i++; }
+      else if (/^(L|R)$/.test(p) && sig && /^(SHIFT|CTRL)$/i.test(sig)) { pal2.push(sig.toUpperCase() + ' ' + p); i++; }
+      else if (/^NUM$/i.test(p) && sig) { pal2.push('NUM ' + sig); i++; }
+      else pal2.push(p);
+    }
+    const nota = /^\(?(mantenida|mantener|sostener|held|hold)\)?$/i;
+    const notaFin = pal2.length > 1 && nota.test(pal2[pal2.length - 1]) ? pal2.pop().replace(/[()]/g, '') : null;
+    const esTecla = p => p === '+' || FLECHA[p] || p.length <= 2 || PALABRAS_TECLA.has(p.toUpperCase()) || / /.test(p);
+    if (!pal2.every(esTecla)) { out.push({ k: 'txt', t: g }); return; }
+    for (const p of pal2) out.push(p === '+' ? { k: 'txt', t: '+' } : { k: 'tecla', t: p });
+    if (notaFin) out.push({ k: 'txt', t: notaFin });
   });
   return out;
 }

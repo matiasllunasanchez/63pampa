@@ -27,6 +27,7 @@ const mezcla = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 
 // LA CORDILLERA LEJANA: anchas, bajas, palidas; se corren poco con la camara
 const LEJOS = { n: 4, par: 1.6, bruma: 0.62 };
+const ISLA_PAR = 2.2, ISLA_GIRO = 0.7;   // las islas de adelante: cuanto se corren con la camara y con el rumbo
 const lejanas = Array.from({ length: LEJOS.n }, (_, i) => ({
   x: (i + Math.random() * 0.6) / LEJOS.n, w: 110 + Math.random() * 90, h: 7 + Math.random() * 7,
   seed: (Math.random() * 9973) | 0,
@@ -48,7 +49,8 @@ function tonosDe(bruma) {
 /** La cresta: alto de la sierra en la columna x. Un macizo (seno ancho) con picos encima, en dos escalas. */
 function cresta(x, w, h, sem) {
   const u = (x + 0.5) / w;
-  const macizo = Math.pow(Math.sin(Math.PI * u), 0.8);
+  // (el seno se topea en 0: en las columnas de borde, x = -1 y x = w, daba negativo y la potencia NaN → la ladera sin color)
+  const macizo = Math.pow(Math.max(0, Math.sin(Math.PI * u)), 0.8);
   const picos = 0.55 * ruido(x / 11, 0.7, sem) + 0.3 * ruido(x / 4.2, 2.1, sem + 3) + 0.15 * ruido(x / 1.8, 4.4, sem + 7);
   return Math.max(0, h * macizo * (0.35 + 0.9 * picos));
 }
@@ -136,8 +138,9 @@ export function drawSierras(isles, zfx, sol) {
     una(s, cx, sol);
   }
   for (const s of isles) {
-    // (la cuenta vieja de game.js, tal cual: mismo lugar y mismo parallax)
-    const ix = ((s.x - cam.x * 3.5 - zfx) % (W + 160) + W + 160) % (W + 160) - 80;
+    // (la cuenta vieja de game.js; EL PARALLAX MAS SUAVE — 22/11, el autor: "la isla que esta mas cerca, menos violenta
+    // al moverse": era cam.x * 3.5 y el giro entero; sigue por encima de la cordillera (1,6) para que se lea mas cerca)
+    const ix = ((s.x - cam.x * ISLA_PAR - zfx * ISLA_GIRO) % (W + 160) + W + 160) % (W + 160) - 80;
     una(s, ix, sol);
   }
   ctx.imageSmoothingEnabled = prevSm;

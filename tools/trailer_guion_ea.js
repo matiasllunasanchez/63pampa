@@ -9,7 +9,7 @@
 //
 // Se filma con tools/trailer.js (`--guion tools/trailer_guion_ea.js`), cuadro por cuadro: no tiene tirones.
 // Mismas tres puertas que el guion de siempre (tools/trailer_guion.js): teclas, el catalogo `__prb` y las sondas.
-const FUEGO = 'KeyX', TURBO = 'ShiftLeft';
+const FUEGO = 'KeyX', TURBO = 'KeyC';
 const OK = 'Enter', ARR = 'ArrowUp', ABJ = 'ArrowDown', MIZQ = 'ArrowLeft', MDER = 'ArrowRight';
 const A4B = 0, DAGGER = 1, SUPERE = 2;
 

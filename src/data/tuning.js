@@ -2663,3 +2663,15 @@ export const SALITRE = { LLENO_S: 170, ALT: [BANDA_ALT, 9], NUBE_S: 6, LIMPIA_S:
 //             cruza (m desde el arranque); DESPEJA_P la chance de que despeje y DURA_M cuanto dura entonces
 export const FRENTE = { VISTA: 4200, BASE: 190, TOPE: 700, NIEBLA_M: 420, NIEBLA_A: 0.9, OSCURO: 0.5,
   LLUVIA: [-250, 150, 500], VIENTO: -700, SUELTO_P: 0.25, SUELTO_M: [1800, 4500], DESPEJA_P: 0.4, DURA_M: [3000, 6000] };
+
+// ---------- EL MODO DEL GAS (22/11/2026, feedback de playtest: "la mecanica del gas es demasiado molesta") ----------
+// La fila GAS MODO de OPCIONES (PUESTO DE PILOTO y la pausa) elige la vertical del pasillo, y se recuerda:
+//   'gas'    — NORMAL: la de siempre; ↑ empuja, soltar es caer (G 22 / TH 55).
+//   'fija'   — ESTABLE: sin gas; ↑ sube, ↓ baja, soltar clava la altura (como las islas).
+//   'planeo' — SUAVE: la de siempre, mansa. Al soltar se sostiene `DEMORA` s antes de que la gravedad pese entera, cae
+//              a lo sumo `CAIDA` m/s, y el empuje es chico con la subida topeada (`SUBE`) y frenada al soltar (`AMORT`):
+//              un toque cada 3–4 s lo mantiene, sin subibaja. Medido en Node desde 6 m: sin gas al agua en 3,1 s
+//              (NORMAL: 0,6 s); un toque de 0,3 s lo levanta 1,3 m; gas sostenido sube a 7 m/s.
+export const VERT_MODOS = ['gas', 'fija', 'planeo'];
+export const VERT_FIJA = { SUBE: 16, BAJA: 20, RESP: 6 };          // m/s al apretar, y que tan rapido llega / se clava
+export const VERT_PLANEO = { G: 3, TH: 12, CAIDA: 1.2, SUBE: 7, AMORT: 4, DEMORA: 1, DIVE: 30 };

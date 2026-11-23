@@ -126,6 +126,7 @@ function cumple(c, s, dt) {
     return acum >= c.aciertos;
   }
   if (c.rasante) return !!s.rasante;
+  if (c.salSobre != null) return (s.sal || 0) >= c.salSobre;     // LA SAL: juntarla volando al ras…
   if (c.salBajo != null) return (s.sal || 0) <= c.salBajo;
   if (c.hieloSobre != null) return (s.hielo || 0) >= c.hieloSobre;   // EL HIELO (systems/frio.js): juntarlo en la nube…
   if (c.hieloBajo != null) return (s.hielo || 0) <= c.hieloBajo;     // …y sacarselo al ras del mar

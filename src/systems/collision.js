@@ -496,7 +496,7 @@ export function collisionSystem(dt) {
       }
     }
   }
-  prune(obstacles, o => o.z > 2 && !((o.type === 'boom' || o.type === 'airboom') && o.boomT > 6)
+  prune(obstacles, o => (o.z > 2 || (o.kind === 'gigante' && o.z > 0.3)) && !((o.type === 'boom' || o.type === 'airboom') && o.boomT > 6)
     && !(o.type === 'chunk' && (o.chunkT > (o.vida || CHUNK_LIFE) || o.z > 235))
     && !(o.type === 'humo' && o.humoT > o.humoMax)
     && !(o.type === 'onda' && o.ondaT > ONDA_T));

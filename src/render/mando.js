@@ -10,39 +10,46 @@ import { ctx, DW as W, DH as H } from './ctx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
 
-const CUERPO = '#2b3337', BORDE = '#7f9099', BOTON = '#c9d1d5', TINTA = '#1c2226', RAYA = '#8aa0ab';
+const BORDE = '#7f9099', TINTA = '#1c2226';
 
-// LOS BOTONES DEL JOYSTICK (posicion en la lamina) → las acciones que cuelgan de el. `lado`: de que margen sale el rotulo
+// EL JOYSTICK DE XBOX (22/11, el autor, con una lamina de referencia: "quiero que la imagen del joystick sea similar a
+// esta, usemos uno de xbox"): el mando claro en el medio, chico, y alrededor CADA BOTON DIBUJADO EN GRANDE con su
+// rotulo al lado — gatillos y bombers arriba, los cuatro botones de colores a la derecha, los sticks con sus flechas,
+// la cruceta abajo. Sin rayas: el dibujo del boton ya dice cual es. Las acciones son las de siempre (tabla `ctrl*`).
+//   k: 'gat' gatillo · 'bum' bomper · 'cara' boton de color · 'stick' · 'cruz' cruceta · 'menu' START
 const PAD = [
-  { id: 'L2', x: 110, y: 54, t: 'L2', ac: ['Gas'], lado: -1 },
-  { id: 'L1', x: 110, y: 63, t: 'L1', ac: ['Msl'], lado: -1 },
-  { id: 'R2', x: 210, y: 54, t: 'R2', ac: ['Boost'], lado: 1 },
-  { id: 'R1', x: 210, y: 63, t: 'R1', ac: ['Gun'], lado: 1 },
-  { id: 'LS', x: 128, y: 92, stick: 'L', ac: ['Fly', 'Gas', 'Dive'], lado: -1 },
-  { id: 'DP', x: 128, y: 74, cruceta: true, ac: ['Secund', 'Chancha', 'Cam'], lado: -1 },
-  { id: 'RS', x: 180, y: 106, stick: 'R', ac: ['Roll', 'MiraB', 'TiraB'], lado: 1 },
-  { id: 'TRI', x: 198, y: 70, t: '△', ac: ['Tempo'], lado: 1 },
-  { id: 'CIR', x: 207, y: 78, t: '◯', ac: ['Chapitas'], lado: 1 },
-  { id: 'CRU', x: 198, y: 86, t: '✕', ac: ['Gun'], lado: 1, sinRotulo: true },
-  { id: 'CUA', x: 189, y: 78, t: '□', ac: ['Radar'], lado: 1 },
-  { id: 'ST', x: 172, y: 72, t: 'START', ac: ['Pause'], lado: 1, chico: true },
+  { k: 'gat', t: 'LT', x: 30, y: 40, ac: ['Mant'] },
+  { k: 'bum', t: 'LB', x: 30, y: 51, ac: ['Msl'] },
+  { k: 'stick', t: 'L', x: 30, y: 66, dirs: 'udlr', ac: ['Fly', 'Gas', 'Dive'] },
+  { k: 'cruz', x: 30, y: 92, ac: ['Secund', 'Chancha', 'Cam'] },
+  { k: 'menu', t: 'START', x: 160, y: 40, ac: ['Pause'], centro: true },
+  { k: 'gat', t: 'RT', x: 232, y: 40, ac: ['Boost'] },
+  { k: 'bum', t: 'RB', x: 232, y: 51, ac: ['Gun'] },
+  { k: 'cara', t: 'Y', c: '#f2c230', x: 232, y: 62, ac: ['Tempo'] },
+  { k: 'cara', t: 'B', c: '#e8463a', x: 232, y: 71, ac: ['Chapitas'] },
+  { k: 'cara', t: 'X', c: '#3a8ee8', x: 232, y: 80, ac: ['Radar'] },
+  { k: 'cara', t: 'A', c: '#4cc35a', x: 232, y: 89, ac: ['Gun'] },
+  { k: 'stick', t: 'R', x: 232, y: 103, dirs: 'udlr', ac: ['Roll', 'MiraB'], r3: true },
 ];
-// LOS RENGLONES DE CADA LADO (y de cada rotulo), en orden de arriba abajo: se reparten parejos para que no se pisen
-const FILAS_IZQ = ['L2', 'L1', 'DP', 'LS'], FILAS_DER = ['R2', 'R1', 'TRI', 'CIR', 'CUA', 'ST', 'RS'];
+const CLARO = '#dfe4e6', SOMBRA = '#a9b2b6', LINEA = '#1c2226';
 
 // EL TECLADO: las teclas que importan, en su lugar aproximado de un teclado comun (columna, fila), y su accion
 const TECLAS = [
-  { t: 'ESC', c: 0, f: 0, ac: 'Pause' }, { t: '1', c: 1, f: 1, ac: 'Secund' }, { t: '4', c: 4, f: 1, ac: 'Tempo' },
-  { t: 'Q', c: 1, f: 2, ac: 'Roll' }, { t: 'W', c: 2, f: 2, ac: 'Gas' }, { t: 'E', c: 3, f: 2, ac: 'Roll' },
-  { t: 'R', c: 4, f: 2, ac: 'Pan' }, { t: 'Y', c: 6, f: 2, ac: 'Radar' },
-  { t: 'A', c: 1.3, f: 3, ac: 'Fly' }, { t: 'S', c: 2.3, f: 3, ac: 'Dive' }, { t: 'D', c: 3.3, f: 3, ac: 'Fly' },
-  { t: 'F', c: 4.3, f: 3, ac: 'MiraB' }, { t: 'H', c: 6.3, f: 3, ac: 'Chapitas' }, { t: 'J', c: 7.3, f: 3, ac: 'Chancha' },
-  { t: 'SHIFT', c: 0, f: 4, w: 1.8, ac: 'Boost' }, { t: 'Z', c: 1.8, f: 4, ac: 'Msl' }, { t: 'X', c: 2.8, f: 4, ac: 'Gun' },
-  { t: 'C', c: 3.8, f: 4, ac: 'Boost' }, { t: 'V', c: 4.8, f: 4, ac: 'Cam' },
-  { t: 'ESPACIO', c: 3, f: 5, w: 5, ac: 'TiraB' },
+  // (22/11, el autor: "la mano izquierda sobre WASD y la derecha sobre las flechitas, para generar lo mismo que los
+  // sticks; todo el resto alrededor"): el teclado es un joystick — ver KEYMAP_LIBRE en core/input.js
+  { t: 'ESC', c: 0, f: 0, ac: 'Pause' }, { t: '1', c: 1, f: 0, ac: 'Secund' }, { t: '3', c: 3, f: 0, ac: 'Chancha' },
+  { t: 'Q', c: 1, f: 1, ac: 'Msl' }, { t: 'W', c: 2, f: 1, ac: 'Gas' }, { t: 'E', c: 3, f: 1, ac: 'Tempo' }, { t: 'R', c: 4, f: 1, ac: 'Chapitas' },
+  { t: 'A', c: 1.3, f: 2, ac: 'Fly' }, { t: 'S', c: 2.3, f: 2, ac: 'Dive' }, { t: 'D', c: 3.3, f: 2, ac: 'Fly' }, { t: 'F', c: 4.3, f: 2, ac: 'Radar' },
+  { t: 'SHIFT', c: 0, f: 3, w: 1.8, ac: 'Mant' }, { t: 'ESPACIO', c: 2.6, f: 4, w: 4.2, ac: 'Gun' },
+  // la mano derecha: las flechas son el stick derecho, y alrededor los botones de la derecha
+  { t: 'ENTER', c: 8.6, f: 1.5, w: 1.8, ac: 'Boost' }, { t: 'SHIFT', c: 8, f: 3, w: 2, ac: 'TiraB' },
+  { t: 'CTRL', c: 8.4, f: 4, w: 1.6, ac: 'Gun' },
+  { t: '↑', c: 11, f: 3, ac: 'Pan' }, { t: '←', c: 10, f: 4, ac: 'Roll' }, { t: '↓', c: 11, f: 4, ac: 'MiraB' }, { t: '→', c: 12, f: 4, ac: 'Roll' },
+  // la cruceta, en el numpad
+  { t: '8', c: 14, f: 1, ac: 'Secund' }, { t: '4', c: 13, f: 2, ac: 'Brake' }, { t: '6', c: 15, f: 2, ac: 'Chancha' }, { t: '2', c: 14, f: 3, ac: 'Cam' },
 ];
 // el color de cada familia de accion (vuelo, armas, el resto), igual en el teclado y en su leyenda
-const FAMILIA = { Fly: 0, Gas: 0, Dive: 0, Roll: 0, Pan: 0, Boost: 0, Gun: 1, Msl: 1, MiraB: 1, TiraB: 1, Secund: 1, Chapitas: 1 };
+const FAMILIA = { Fly: 0, Gas: 0, Dive: 0, Mant: 0, Brake: 0, Roll: 0, Pan: 0, Boost: 0, Gun: 1, Msl: 1, MiraB: 1, TiraB: 1, Secund: 1, Chapitas: 1 };
 const COLORES = ['#e8a33d', '#ff6a5a', '#6fe3ff'];
 const colorDe = ac => COLORES[FAMILIA[ac] ?? 2];
 
@@ -68,56 +75,168 @@ export function drawMando({ pad, t = 0, a = 1 }) {
   ctx.restore();
 }
 
-function dibujarPad(t) {
-  // EL CUERPO: un joystick de dos manijas
-  ctx.fillStyle = CUERPO; ctx.strokeStyle = BORDE; ctx.lineWidth = 0.8;
-  redondo(112, 60, 96, 40, 12); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(120, 98, 14, 20, 0.35, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.ellipse(200, 98, 14, 20, -0.35, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  redondo(113, 61, 94, 38, 11); ctx.fill();
-  // los hombros
-  for (const b of PAD) {
-    if (/^[LR][12]$/.test(b.id)) {
-      ctx.fillStyle = CUERPO; redondo(b.x - 8, b.y - 3, 16, 6, 2.5); ctx.fill(); ctx.stroke();
-      etiqueta(b.t, b.x, b.y, 4);
-    }
-  }
-  for (const b of PAD) {
-    if (b.stick) {
-      ctx.fillStyle = '#1c2226'; ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      const k = Math.sin(t * 2.2 + (b.stick === 'R' ? 1.5 : 0)) * 2;
-      ctx.fillStyle = BOTON; ctx.beginPath(); ctx.arc(b.x + k, b.y, 4.2, 0, Math.PI * 2); ctx.fill();
-      etiqueta(b.stick, b.x + k, b.y, 4);
-    } else if (b.cruceta) {
-      ctx.fillStyle = '#1c2226'; ctx.fillRect(b.x - 2, b.y - 6, 4, 12); ctx.fillRect(b.x - 6, b.y - 2, 12, 4);
-      ctx.fillStyle = P.accent; ctx.fillRect(b.x - 2, b.y - 6, 4, 4);
-    } else if (!/^[LR][12]$/.test(b.id)) {
-      if (b.chico) { ctx.fillStyle = '#1c2226'; redondo(b.x - 6, b.y - 2, 12, 4, 2); ctx.fill(); etiqueta(b.t, b.x, b.y, 2.6, '#e8eef0'); }
-      else { ctx.fillStyle = '#1c2226'; ctx.beginPath(); ctx.arc(b.x, b.y, 3.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); etiqueta(b.t, b.x, b.y + 0.2, 4, '#e8eef0'); }
-    }
-  }
-  // LOS ROTULOS: cada lado, en renglones parejos; una raya del boton al renglon
-  rotulos(FILAS_IZQ, -1, t);
-  rotulos(FILAS_DER, 1, t);
+function flechita(x, y, d, col) {
+  const [ux, uy] = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] }[d], sx = -uy, sy = ux;
+  ctx.fillStyle = col; ctx.beginPath();
+  ctx.moveTo(x + ux * 1.8, y + uy * 1.8); ctx.lineTo(x + sx * 1.4, y + sy * 1.4); ctx.lineTo(x - sx * 1.4, y - sy * 1.4);
+  ctx.closePath(); ctx.fill();
 }
 
-function rotulos(ids, lado, t) {
-  const y0 = 40, paso = lado < 0 ? 20 : 11, xr = lado < 0 ? 84 : 236;
-  ids.forEach((id, i) => {
-    const b = PAD.find(p => p.id === id);
-    if (!b || b.sinRotulo) return;
-    const y = y0 + i * paso;
-    ctx.strokeStyle = RAYA; ctx.lineWidth = 0.4; ctx.globalAlpha *= 1;
-    ctx.beginPath(); ctx.moveTo(b.x + (lado < 0 ? -4 : 4), b.y); ctx.lineTo(xr + (lado < 0 ? 2 : -2), y); ctx.stroke();
-    ctx.textAlign = lado < 0 ? 'right' : 'left';
+/** EL MANDO del medio: cuerpo claro con las dos manijas, y sus botones en chiquito (los de color, en color). */
+function cuerpoXbox(cx, cy) {
+  ctx.lineWidth = 0.8; ctx.strokeStyle = LINEA;
+  // los gatillos y bompers, asomando por arriba
+  ctx.fillStyle = SOMBRA;
+  for (const s of [-1, 1]) { redondo(cx + s * 24 - 7, cy - 21, 14, 6, 2.5); ctx.fill(); ctx.stroke(); }
+  ctx.fillStyle = '#8c969b';
+  for (const s of [-1, 1]) { redondo(cx + s * 22 - 8, cy - 17, 16, 4, 1.8); ctx.fill(); ctx.stroke(); }
+  // el cuerpo: la panza y las dos manijas
+  ctx.fillStyle = CLARO;
+  ctx.beginPath(); ctx.ellipse(cx - 22, cy + 10, 11, 17, 0.4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(cx + 22, cy + 10, 11, 17, -0.4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  redondo(cx - 33, cy - 15, 66, 24, 10); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(cx - 22, cy + 10, 10.2, 16.2, 0.4, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 22, cy + 10, 10.2, 16.2, -0.4, 0, Math.PI * 2); ctx.fill();
+  redondo(cx - 32.2, cy - 14.2, 64.4, 22.4, 9.4); ctx.fill();
+  // la luz del boton del medio y BACK / START
+  ctx.fillStyle = '#f4f7f8'; ctx.beginPath(); ctx.arc(cx, cy - 8, 3.4, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = SOMBRA; ctx.lineWidth = 0.5; ctx.stroke();
+  ctx.fillStyle = SOMBRA;
+  for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(cx + s * 7, cy - 2, 1.5, 0, Math.PI * 2); ctx.fill(); }
+  // los sticks (izquierdo arriba, derecho abajo, como el de Xbox) y la cruceta
+  const stick = (x, y) => {
+    ctx.fillStyle = '#3a4246'; ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#20272a'; ctx.beginPath(); ctx.arc(x, y, 3.4, 0, Math.PI * 2); ctx.fill();
+  };
+  stick(cx - 20, cy - 5); stick(cx + 9, cy + 6);
+  ctx.fillStyle = '#3a4246'; ctx.fillRect(cx - 11, cy + 1, 3, 9); ctx.fillRect(cx - 14, cy + 4, 9, 3);
+  // los cuatro de color
+  for (const [dx, dy, c] of [[0, -4, '#f2c230'], [4, 0, '#e8463a'], [-4, 0, '#3a8ee8'], [0, 4, '#4cc35a']]) {
+    ctx.fillStyle = c; ctx.beginPath(); ctx.arc(cx + 21 + dx, cy - 5 + dy, 1.9, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+/** UN BOTON EN GRANDE (el de la columna, con su rotulo al lado). Devuelve donde arranca el texto. */
+function botonGrande(b, t) {
+  const { x, y } = b;
+  ctx.lineWidth = 0.7; ctx.strokeStyle = LINEA;
+  if (b.k === 'gat') {
+    // el gatillo: una pala de costado, clara, con su nombre abajo
+    ctx.fillStyle = CLARO; ctx.beginPath();
+    ctx.moveTo(x - 4, y + 4); ctx.lineTo(x - 4, y + 1); ctx.quadraticCurveTo(x - 2, y - 4, x + 1, y - 5);
+    ctx.lineTo(x + 3, y - 5); ctx.lineTo(x + 4, y + 4); ctx.closePath(); ctx.fill(); ctx.stroke();
+    etiqueta(b.t, x + 0.5, y + 1.8, 2.8, '#5b666c');
+    return x + 8;
+  }
+  if (b.k === 'bum') {
+    ctx.fillStyle = CLARO; redondo(x - 6, y - 2.5, 12, 5, 2); ctx.fill(); ctx.stroke();
+    etiqueta(b.t, x + 1.5, y + 0.2, 2.8, '#5b666c');
+    return x + 9;
+  }
+  if (b.k === 'cara') {
+    ctx.fillStyle = b.c; ctx.beginPath(); ctx.arc(x, y, 3.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    etiqueta(b.t, x, y + 0.3, 4.2, '#ffffff');
+    return x + 7;
+  }
+  if (b.k === 'menu') {
+    ctx.fillStyle = CLARO; redondo(x - 4, y - 2.5, 8, 5, 2.5); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = LINEA; for (let i = -1; i <= 1; i++) ctx.fillRect(x - 1.6, y - 0.25 + i * 1.2, 3.2, 0.5);
+    return x + 7;
+  }
+  if (b.k === 'stick') {
+    // la perilla con sus cuatro flechas rojas, y el hongo que va y viene
+    ctx.fillStyle = '#3a4246'; ctx.beginPath(); ctx.arc(x, y, 5.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    for (const d of b.dirs) {
+      const [ux, uy] = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] }[d];
+      flechita(x + ux * 6.6, y + uy * 6.6, d, '#e8463a');
+    }
+    const fase = Math.floor(t * 1.1) % 4, dd = 'urdl'[fase], k = Math.min(1, (t * 1.1 % 1) * 3) * 1.4;
+    const [ox, oy] = { u: [0, -k], d: [0, k], l: [-k, 0], r: [k, 0] }[dd];
+    ctx.fillStyle = '#5b666c'; ctx.beginPath(); ctx.arc(x + ox, y + oy, 3.4, 0, Math.PI * 2); ctx.fill();
+    etiqueta(b.t, x + ox, y + oy + 0.2, 3.6, '#c9d1d5');
+    return x + 10;
+  }
+  // la cruceta: cuatro brazos, el de arriba encendido
+  ctx.fillStyle = '#3a4246';
+  ctx.fillRect(x - 1.6, y - 5, 3.2, 10); ctx.fillRect(x - 5, y - 1.6, 10, 3.2);
+  ctx.strokeRect(x - 1.6, y - 5, 3.2, 10); ctx.strokeRect(x - 5, y - 1.6, 10, 3.2);
+  ctx.fillStyle = '#3a4246'; ctx.fillRect(x - 1.2, y - 1.2, 2.4, 2.4);
+  ctx.fillStyle = '#f4f7f8';
+  const brazo = 'urdl'[Math.floor(t * 1.1) % 4];
+  const [bx, by] = { u: [0, -3.3], d: [0, 3.3], l: [-3.3, 0], r: [3.3, 0] }[brazo];
+  ctx.fillRect(x + bx - 1.1, y + by - 1.1, 2.2, 2.2);
+  return x + 8;
+}
+
+// EL MANDO DEL AUTOR (22/11): su PNG del joystick de Xbox (assets/ui/mando_xbox.png, 1280x720, sin texto) con una
+// RAYA por boton que sale hasta un borde; el texto va FLOTANDO en la punta de cada raya. Las puntas se midieron en la
+// imagen (pixeles del PNG). `dx`/`dy` corren el texto. `al`: hacia donde crece el texto desde la punta — 'izq' (termina en la punta), 'der'
+// (arranca en la punta), 'arr' (centrado, arriba), 'aba' (centrado, abajo); `dy` corre el bloque. Sin la imagen
+// cargada, queda el dibujo de arriba.
+const IMG_MANDO = new Image();
+let imgMandoOk = false;
+IMG_MANDO.onload = () => { imgMandoOk = true; };
+IMG_MANDO.src = '../assets/ui/mando_xbox.png';
+const MI = { s: 0.095, y: 37 };   // escala del PNG en la lamina (320x180) y su borde de arriba; se centra a lo ancho
+const PUNTAS = [
+  { px: 122, py: 72, al: 'izq', ac: ['Mant'] },                       // LT: mantener la altura (22/11)
+  { px: 53, py: 163, al: 'izq', ac: ['Msl'] },                        // LB
+  { px: 68, py: 374, al: 'izq', ac: ['Fly', 'Gas', 'Dive'], dy: -8.8 },   // stick izquierdo
+  { px: 25, py: 446, al: 'izq', ac: ['Secund'] },                     // cruceta ▲
+  { px: 25, py: 485, al: 'izq', ac: [], dy: 0.6 },                    // cruceta ◄ (sin uso)
+  { px: 527, py: 45, al: 'arr', ac: [] },                             // BACK (sin uso)
+  { px: 733, py: 45, al: 'arr', ac: ['Pause'] },                      // START
+  { px: 1138, py: 76, al: 'der', ac: ['Boost'] },                     // RT
+  { px: 1186, py: 158, al: 'der', ac: ['Gun'] },                      // RB
+  { px: 1176, py: 237, al: 'der', ac: ['Tempo'] },                    // Y
+  { px: 1250, py: 295, al: 'der', ac: ['Chapitas'] },                 // B
+  { px: 1253, py: 355, al: 'der', ac: ['Radar'] },                    // X
+  { px: 1186, py: 415, al: 'der', ac: ['Gun'] },                      // A
+  { px: 492, py: 668, al: 'izq', ac: ['Cam'] },                       // cruceta ▼
+  { px: 545, py: 625, al: 'der', ac: ['Chancha'], dx: -1.8, dy: 4.6 },          // cruceta ►
+  { px: 776, py: 680, al: 'der', ac: ['Roll', 'MiraB'], r3: true, dy: -14 },   // stick derecho
+];
+const FUENTE_P = 3.8, RENGLON = 4.4;
+
+function placa(txt, x, y, al) {
+  const w = ctx.measureText(txt).width, x0 = al === 'right' ? x - w : al === 'center' ? x - w / 2 : x;
+  ctx.save(); ctx.fillStyle = 'rgba(8,12,15,0.82)'; redondo(x0 - 1.2, y - 2.4, w + 2.4, 4.8, 1.4); ctx.fill(); ctx.restore();
+}
+
+function dibujarPadPng() {
+  const s = MI.s, w = 1280 * s, ox = (W - w) / 2, oy = MI.y;
+  ctx.drawImage(IMG_MANDO, ox, oy, w, 720 * s);
+  for (const p of PUNTAS) {
+    const x = ox + p.px * s, y = oy + p.py * s;
+    const lineas = p.ac.map(ac => [T('ctrl' + ac), colorDe(ac)]);
+    if (p.r3) lineas.push([T('mandoR3'), colorDe('TiraB')]);
+    if (!lineas.length) lineas.push([T('mandoSinUso'), P.dim]);
+    const al = p.al === 'izq' ? 'right' : p.al === 'der' ? 'left' : 'center';
+    const tx = (p.al === 'izq' ? x - 1.8 : p.al === 'der' ? x + 1.8 : x) + (p.dx || 0);
+    const y0 = (p.al === 'arr' ? y - 3 - (lineas.length - 1) * RENGLON : p.al === 'aba' ? y + 3 : y) + (p.dy || 0);
+    ctx.textAlign = al;
+    lineas.forEach(([txt, col], k) => {
+      ctx.font = (k ? '' : 'bold ') + FUENTE_P + 'px monospace';
+      placa(txt, tx, y0 + k * RENGLON, al);
+      ctx.fillStyle = col; ctx.fillText(txt, tx, y0 + k * RENGLON);
+    });
+  }
+}
+
+function dibujarPad(t) {
+  if (imgMandoOk) { dibujarPadPng(); return; }
+  cuerpoXbox(160, 82);
+  for (const b of PAD) {
+    const xt = botonGrande(b, t);
     const lineas = b.ac.map(ac => T('ctrl' + ac));
-    if (b.id === 'RS') lineas.push(T('mandoR3'));
+    if (b.r3) lineas.push(T('mandoR3'));
+    ctx.textAlign = b.centro ? 'left' : 'left';
     lineas.forEach((txt, k) => {
       ctx.font = (k ? '' : 'bold ') + '4.5px monospace';
       ctx.fillStyle = colorDe(b.ac[Math.min(k, b.ac.length - 1)]);
-      ctx.fillText(txt, xr, y + k * 5.5);
+      ctx.fillText(txt, xt, b.y + (lineas.length > 1 ? (k - 0.5) * 5.2 - (lineas.length - 2) * 1.5 : 0));
     });
-  });
+  }
 }
 
 function etiqueta(txt, x, y, px, col = TINTA) {
@@ -125,26 +244,27 @@ function etiqueta(txt, x, y, px, col = TINTA) {
 }
 
 function dibujarTeclado(t) {
-  const K = 12, x0 = 22, y0 = 42;
-  // el fondo del teclado
+  const K = 9, x0 = 10, y0 = 42;
+  // el fondo: las dos manos, cada una en su tabla
   ctx.fillStyle = '#151b1f'; ctx.strokeStyle = BORDE; ctx.lineWidth = 0.6;
-  redondo(x0 - 4, y0 - 4, K * 9 + 8, K * 6 + 8, 3); ctx.fill(); ctx.stroke();
+  redondo(x0 - 3, y0 - 3, K * 7 + 6, K * 5 + 6, 3); ctx.fill(); ctx.stroke();
+  redondo(x0 + K * 7.8, y0 + K * 0.7, K * 8.4, K * 4.3 + 3, 3); ctx.fill(); ctx.stroke();
   const vistos = new Set();
   for (const k of TECLAS) {
     const x = x0 + k.c * K, y = y0 + k.f * K, w = (k.w || 1) * K - 2, col = colorDe(k.ac);
     ctx.fillStyle = '#5b666c'; redondo(x, y + 1, w, K - 3, 1.6); ctx.fill();
     ctx.fillStyle = '#d9dfe2'; redondo(x, y, w, K - 4, 1.6); ctx.fill();
     ctx.fillStyle = col; ctx.fillRect(x + 1, y + K - 6, w - 2, 1.2);   // la raya de su familia
-    ctx.textAlign = 'center'; ctx.font = `bold ${k.t.length > 2 ? 3.6 : 5}px monospace`; ctx.fillStyle = TINTA;
+    ctx.textAlign = 'center'; ctx.font = `bold ${k.t.length > 2 ? 3.2 : 4.5}px monospace`; ctx.fillStyle = TINTA;
     ctx.fillText(k.t, x + w / 2, y + (K - 4) / 2);
     vistos.add(k.ac);
   }
   // LA LEYENDA, a la derecha: cada accion con sus teclas (la misma tabla de CONTROLES)
-  const xl = x0 + K * 9 + 8;
+  const xl = x0 + K * 16.4 + 4;
   ctx.textAlign = 'left';
   // (en dos columnas: en una sola, la lista bajaba hasta la caja del dialogo)
   [...vistos].forEach((ac, i) => {
-    const x = xl + (i >= 9 ? 66 : 0), y = y0 - 4 + (i % 9) * 9;
+    const x = xl + Math.floor(i / 7) * 52, y = y0 - 4 + (i % 7) * 9;   // (tres columnas de siete: 22/11)
     ctx.fillStyle = colorDe(ac); ctx.fillRect(x, y - 1.5, 3, 3);
     ctx.font = 'bold 4px monospace'; ctx.fillText(T('ctrl' + ac), x + 5, y);
     ctx.font = '3.6px monospace'; ctx.fillStyle = P.dim; ctx.fillText(T('ctrl' + ac + 'K'), x + 5, y + 4);

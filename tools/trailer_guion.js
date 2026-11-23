@@ -29,7 +29,7 @@
 
 // LAS TECLAS (src/core/input.js). W/A/S/D es la mano que vuela SIEMPRE; las flechas cambian de
 // trabajo segun la mira, asi que en vuelo no se usan — solo en los menus.
-const FUEGO = 'KeyX', TURBO = 'ShiftLeft', BOMBA = 'KeyZ';
+const FUEGO = 'KeyX', TURBO = 'KeyC', BOMBA = 'KeyZ';
 const OK = 'Enter', ARR = 'ArrowUp', ABJ = 'ArrowDown', MIZQ = 'ArrowLeft', MDER = 'ArrowRight';
 
 // EL ROSTER (data/planes.js, por orden): el indice que entiende `__avion`.

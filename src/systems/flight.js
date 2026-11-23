@@ -36,7 +36,7 @@ const topeSube = y => 18 + (ALTO.VY_SUBE - 18) * kAlto(y);
 const topeBaja = y => -(20 + (ALTO.VY_BAJA - 20) * kAlto(y));
 import { MSL_MAX, MSL_REGEN_HERC, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE, GEO_ISLA_IMPACTO,
          METRALLAS, calorTiro, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
-         FUEL_RATE, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
+         FUEL_RATE, VERT_FIJA, VERT_PLANEO, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
@@ -118,6 +118,34 @@ function waveNow() { return 1.1 + Math.sin(run.t * 1.1) * 0.5 + Math.sin(run.t *
  *  arriba se SIENTE como quedarse sin aire y no como chocar un vidrio. El clamp final es la
  *  garantia dura de que no se cruza; la rampa es la que hace que no se note.
  */
+/** LA VERTICAL SIN PODER, segun `cfg.vert` — el GAS MODO de OPCIONES (22/11, VERT_MODOS en data/tuning.js).
+ *  'gas' (NORMAL) es la de siempre. 'fija' (ESTABLE) clava la altura al soltar (primer orden, como el resorte del
+ *  poder). 'planeo' (SUAVE): soltar el gas se sostiene un rato antes de caer, y el empuje sube manso. */
+let sinGasT = 0;
+function vertLibre(dt, G, TH, DIVE) {
+  const gas = inp.u && run.fuel > 0;
+  sinGasT = gas ? 0 : sinGasT + dt;
+  // MANTENER (LT/L2, 22/11): sin ↑ ni ↓, la altura se queda donde esta — como ESTABLE mientras se aprieta
+  const mant = inp.mant && !gas && !inp.d;
+  if (cfg.vert === 'fija' || mant) {
+    const tgt = (gas ? VERT_FIJA.SUBE : 0) - (inp.d ? VERT_FIJA.BAJA : 0);
+    plane.vy += (tgt * reac - plane.vy) * Math.min(1, dt * VERT_FIJA.RESP);
+    if (mant) sinGasT = 0;   // al soltarlo, SUAVE arranca su planeo de nuevo (no cae de golpe)
+  } else if (cfg.vert === 'planeo' && gas) {
+    // SUAVE: ↑ SUBE YA (22/11, el autor: "si mueve para arriba se mueve inmediatamente") — la subida de ESTABLE
+    plane.vy += (VERT_FIJA.SUBE * reac - plane.vy) * Math.min(1, dt * VERT_FIJA.RESP);
+  } else if (cfg.vert === 'planeo') {
+    const P = VERT_PLANEO, peso = Math.min(1, sinGasT / P.DEMORA);
+    plane.vy += ((gas ? P.TH * reac : 0) - P.G * peso - (inp.d ? P.DIVE * reac : 0)) * dt;
+    if (!gas && plane.vy > 0) plane.vy *= Math.exp(-P.AMORT * dt);               // soltar frena la subida: sin subibaja
+    if (!inp.d && plane.vy < -P.CAIDA) plane.vy += (-P.CAIDA - plane.vy) * Math.min(1, dt * 4);
+    plane.vy = Math.min(P.SUBE, plane.vy);
+  } else {
+    plane.vy += ((gas ? TH * reac : 0) - G - (inp.d ? DIVE * reac : 0)) * dt;
+  }
+  plane.vy = Math.max(topeBaja(plane.y), Math.min(topeSube(plane.y), plane.vy));   // (LO ALTO: mas rapido arriba del carril)
+}
+
 function vertRasante(dt, inp, G, TH, DIVE) {
   // LA ALTURA DEL PODER ES SOBRE EL SUELO QUE TENES DEBAJO (8/10, el autor: "estoy sobre la tierra y no
   // puedo levantar vuelo"): el asiento (2,4) y el techo (17) eran sobre el NIVEL DEL MAR, y sobre una
@@ -322,8 +350,7 @@ export function flightSystem(dt, deps) {
     if (rasante.active()) vertRasante(dt, inp, G, TH, DIVE);
     else if (agu.activo()) agu.vertClavado(dt);
     else {
-      plane.vy += (((inp.u && run.fuel > 0) ? TH * reac : 0) - G - (inp.d ? DIVE * reac : 0)) * dt;
-      plane.vy = Math.max(topeBaja(plane.y), Math.min(topeSube(plane.y), plane.vy));   // (LO ALTO: mas rapido arriba del carril)
+      vertLibre(dt, G, TH, DIVE);
     }
   } else {
     plane.vx += (inp.r - inp.l) * 115 * reac * dt;
@@ -337,8 +364,7 @@ export function flightSystem(dt, deps) {
     if (rasante.active()) vertRasante(dt, inp, G, TH, DIVE);
     else if (agu.activo()) agu.vertClavado(dt);
     else {
-      plane.vy += (((inp.u && run.fuel > 0) ? TH * reac : 0) - G - (inp.d ? DIVE * reac : 0)) * dt;
-      plane.vy = Math.max(topeBaja(plane.y), Math.min(topeSube(plane.y), plane.vy));   // (LO ALTO: mas rapido arriba del carril)
+      vertLibre(dt, G, TH, DIVE);
     }
   }
   // LA RAFAGA DEL TONEL, devuelta despues del control (ver `rollVx` arriba). La curva y las

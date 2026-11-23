@@ -10,7 +10,7 @@
 import { blanco } from '../core/blanco.js';
 import { BL as BL_BLANCO } from '../data/blanco.js';
 import { ctx, px, PZ, U, W, H, HOR, F } from './ctx.js';
-import { reflejoLuz } from './luces_enemigos.js';
+import { reflejoLuz, nucleoLuz } from './luces_enemigos.js';
 import { plane, cfg, S } from '../core/state.js';
 import { run } from '../core/run.js';
 import { geoActiva, geoPorPunto, esTierraEn, sueloEn } from '../core/geografia.js';   // G1: agua o tierra, por punto
@@ -303,10 +303,10 @@ function navMias(lx, ly, rx, ry, cx, cy, k) {
  *  La usan el lider y la formacion del despegue (render/squad.js, 13/11). */
 export function navLuces(lx, ly, rx, ry, cx, cy, k, wx, wz, f = 1, ph = 0) {
   const ySup = proj(wx, 0, wz).y, sobreAgua = !esTierraEn(wx, run.dist + wz);
-  const t = Math.max(1, 2 * f), R = Math.max(4, 9 * f);
+  const t = Math.max(1, 2 * f), R = Math.max(2.5, 4 * f);   // (22/11: halo chico — "mucha luz, no se entiende nada")
   const una = (x, y, hex, rgb, a) => {
-    ctx.globalAlpha = Math.min(1, a * 1.6); px(x - t / 2, y - t / 2, t, t, hex); ctx.globalAlpha = 1;
-    luz(ctx, x, y, R, rgb, Math.min(1, a));
+    nucleoLuz(x, y, t * 0.42, rgb, Math.min(1, a * 1.6));   // (22/11: redonda, no el cuadrado de antes)
+    luz(ctx, x, y, R, rgb, Math.min(1, a * 0.5));
     if (sobreAgua) reflejoLuz(x, y, ySup, F / wz, hex, rgb, a * 0.8);
   };
   una(lx, ly, '#ff4a3a', [255, 70, 50], 0.6 * k);

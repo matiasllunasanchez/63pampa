@@ -1478,12 +1478,11 @@ export function drawUpgrade(w) {
 const GRUPO_COL = { armas: '#e8a34a', defensa: '#7fc8a0', alcance: '#6fb3e0', poderes: '#c79be8', piruetas: '#e0d070', taller: '#d08a6a', inteligencia: '#9fc0d8' };
 const CARTAS_IMG = new Image();
 CARTAS_IMG.src = '../assets/hud/cartas.png';
-const CW = 150, CH = 204, C_ARTE = 96, C_TOPE = 13, C_PIE = 12, C_PAD = 8;
+const CW = 150, CH = 204, C_ARTE = 96, C_TOPE = 19, C_PIE = 12, C_PAD = 8;
 // EL TEXTO DE LAS CARTAS en una letra de LECTURA (18/10, el autor: "una fuente mas clara de leer"): la del
 // menu (EmbolismSpark) es de pincel y a este tamaño se empasta. Josefin Sans viene empaquetada (styles.css).
 const cartaFont = () => uiFont('JosefinSans', 10, '');
 const cartaFontChica = () => uiFont('JosefinSans', 8, '');
-const HISTORIA_COL = '#b9a77e';   // la historia, en sepia: se distingue de lo que hace la carta
 /** Las lineas de `txt` que entran en `maxW` con la fuente ACTUAL (como wrapText, pero sin dibujar). */
 function lineasDe(txt, maxW) {
   const out = []; let line = '';
@@ -1494,6 +1493,18 @@ function lineasDe(txt, maxW) {
   if (line) out.push(line);
   return out;
 }
+// EL COMO SE USA DE LA CARTA, DIBUJADO (22/11, el autor: "el TECLA tambien quitamos y ponemos lo que hoy estamos usando
+// con CONTROLES", "mas iconos menos texto"): las teclas o los botones del joystick (render/glifos.js), del mismo texto de
+// la tabla de CONTROLES. `tecla` de la carta → la fila de CONTROLES; las piruetas, su combo (data/moves.js).
+const TECLA_CTRL = { 'X / ESPACIO': 'Gun', 'Z / L1': 'Msl', 'H / circulo': 'Chapitas', B: 'Tanques', J: 'Chancha', 4: 'Tempo', 5: 'Rasante', Y: 'Radar' };
+let mandoCarta = { pad: false, padTxt: t => t };
+function comoGlifos(u) {
+  const { pad, padTxt } = mandoCarta;
+  if (u.seq && COMBO[u.id]) return glifos.comboGlifos(pad && COMBO_PAD[u.id] ? padTxt(COMBO_PAD[u.id]) : COMBO[u.id], pad).gl;
+  const id = TECLA_CTRL[u.tecla];
+  if (!id) return null;
+  return glifos.glifosDe(pad ? padTxt(T('ctrl' + id + 'P')) : T('ctrl' + id + 'K'), pad);
+}
 /** El contenido de una carta, en renglones con su fuente, color y alto: la cara y lo que se lee abajo. */
 function cuerpoCarta(u, lee, rota) {
   const ancho = CW - C_PAD * 2, out = [];
@@ -1502,26 +1513,56 @@ function cuerpoCarta(u, lee, rota) {
     for (const l of lineasDe(txt, ancho)) out.push({ t: l, font, color, h: lh, centro });
     if (extra) out.push({ h: extra });
   };
-  const titulo = txt => { out.push({ h: 4 }); out.push({ raya: true, t: txt, font: labelFont(7), color: P.dim, h: 11 }); };
   out.push({ arte: true, h: C_ARTE + 2 });
-  bloque(u.name, menuFont(11), rota ? '#8a949a' : P.ink, 12, 2, true);
-  bloque(u.desc, cartaFont(), P.body, 11, 3, true);
+  bloque(u.name, menuFont(11), rota ? '#8a949a' : P.ink, 12, 3, true);
+  // LA CARTA, CORTA (22/11, el autor: "las cartas tienen demasiada explicacion o texto, deben tener una frase
+  // caracteristica y una breve explicacion abajo"): la FRASE manda, y debajo la linea de que hace. El QUE HACE y
+  // EN 1982 de data/cartas_lee.js ya no se muestran (los datos quedan, por si vuelven a otro lado).
+  // …Y EN ESTE ORDEN (22/11, el autor: "TITULO, QUE HACE, y abajo mas chiquito la descripcion o frase"): lo que hace
+  // manda, en la letra grande; la frase del Turco va debajo, chica y apagada
+  bloque(u.desc, cartaFont(), rota ? '#8a949a' : P.ink, 11, 4, true);
+  if (u.quote) bloque('"' + u.quote + '"', cartaFontChica(), P.dim, 9, 3, true);
   if (rota && u.motivo) bloque(u.motivo, cartaFont(), P.warn, 11, 3, true);
-  const como = u.seq ? T('upgCombo') + ' ' + u.seq : u.tecla ? T('upgTecla') + ' ' + u.tecla : '';
-  if (como) bloque(como, labelFont(7), P.dim, 9, 0, true);
+  const gl = comoGlifos(u);
+  if (gl && gl.length) out.push({ gl, h: 18 });
   const cara = out.reduce((s, r) => s + r.h, 0);
-  // abajo, primero QUE HACE —lo que sirve para decidir ahora—, y despues la historia, mas chica y en otro color:
-  // es para el que quiere seguir leyendo (18/10, el autor: "que predomine que es y que hace; el usuario no va a
-  // leer todo en ese momento"). El `dato` no se muestra: lo repetia la historia.
-  if (lee) {
-    out.push({ h: 6 });
-    titulo(T('banco_que'));
-    bloque(lee.que, cartaFont(), P.ink, 11, 4);
-    titulo(T(u.grupo === 'piruetas' ? 'banco_aire' : 'banco_1982'));
-    bloque(lee.historia, cartaFontChica(), HISTORIA_COL, 9, 2);
-  }
-  if (u.quote) { out.push({ h: 6 }); bloque('"' + u.quote + '"', cartaFont(), P.dim, 11, 0, true); }
   return { out, cara, alto: out.reduce((s, r) => s + r.h, 0) };
+}
+function cartaForma(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+}
+/** EL ICONO DEL GRUPO de la carta, centrado en (cx, cy), ~9 px (22/11): ARMAS una bala, DEFENSA un escudo, ALCANCE
+ *  la cruz del SOPORTE, PODERES un rayo, PIRUETAS la vuelta, TALLER la llave, INTELIGENCIA un ojo. */
+function iconoGrupo(g, cx, cy, col) {
+  ctx.save(); ctx.translate(cx, cy); ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (g === 'armas') {            // la bala: punta ojival, el cuerpo y el culote
+    ctx.moveTo(-1.8, 4); ctx.lineTo(-1.8, -1); ctx.quadraticCurveTo(-1.8, -4.5, 0, -5); ctx.quadraticCurveTo(1.8, -4.5, 1.8, -1);
+    ctx.lineTo(1.8, 4); ctx.closePath(); ctx.fill(); ctx.fillRect(-2.4, 3.2, 4.8, 1.6);
+  } else if (g === 'defensa') {   // el escudo
+    ctx.moveTo(0, -4.8); ctx.lineTo(4, -3.2); ctx.lineTo(3.6, 1); ctx.quadraticCurveTo(2.6, 3.6, 0, 5);
+    ctx.quadraticCurveTo(-2.6, 3.6, -3.6, 1); ctx.lineTo(-4, -3.2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#10161a'; ctx.fillRect(-0.5, -3, 1, 6); ctx.fillRect(-2.4, -1, 4.8, 1);
+  } else if (g === 'alcance') {   // SOPORTE: la cruz dentro del circulo
+    ctx.arc(0, 0, 4.6, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillRect(-0.9, -2.8, 1.8, 5.6); ctx.fillRect(-2.8, -0.9, 5.6, 1.8);
+  } else if (g === 'poderes') {   // el rayo
+    ctx.moveTo(1.2, -5); ctx.lineTo(-2.6, 0.6); ctx.lineTo(0, 0.6); ctx.lineTo(-1.2, 5); ctx.lineTo(2.6, -0.8); ctx.lineTo(0, -0.8); ctx.closePath(); ctx.fill();
+  } else if (g === 'piruetas') {  // la vuelta
+    ctx.arc(0, 0, 3.6, -0.3, Math.PI * 1.55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(3.8, -2.6); ctx.lineTo(3.4, 0.6); ctx.lineTo(0.8, -0.8); ctx.closePath(); ctx.fill();
+  } else if (g === 'taller') {    // la llave
+    ctx.moveTo(-3.6, 3.6); ctx.lineTo(1, -1); ctx.stroke();
+    ctx.beginPath(); ctx.arc(2, -2, 2.4, 0, Math.PI * 2); ctx.stroke();
+  } else {                        // INTELIGENCIA: el ojo
+    ctx.moveTo(-4.8, 0); ctx.quadraticCurveTo(0, -4.4, 4.8, 0); ctx.quadraticCurveTo(0, 4.4, -4.8, 0); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 1.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
 }
 /** Una carta en (x, y) = su esquina, a escala `k`. `on` = la elegida; `leer` = cuanto se bajo. */
 function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
@@ -1535,21 +1576,29 @@ function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
   const vista = CH - C_TOPE - C_PIE;
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y)); ctx.scale(k, k);
-  // el marco: fondo oscuro, la franja del grupo arriba y el borde (en la elegida, en su color)
-  ctx.fillStyle = '#10161a'; ctx.fillRect(0, 0, CW, CH);
-  ctx.globalAlpha = 0.9; ctx.fillStyle = col; ctx.fillRect(0, 0, CW, 3); ctx.globalAlpha = 1;
-  ctx.strokeStyle = on ? col : '#33404a'; ctx.lineWidth = 1;
+  // EL MARCO, CON FORMA DE CARTA (22/11, el autor: "la forma de la carta MAS FORMA DE CARTA"): esquinas redondas, el
+  // borde grueso en el color del grupo y un filete fino adentro, como el canto de una carta de verdad
+  const R = 9;
+  cartaForma(0, 0, CW, CH, R); ctx.fillStyle = '#10161a'; ctx.fill();
+  ctx.save(); cartaForma(0, 0, CW, CH, R); ctx.clip();
+  ctx.globalAlpha = 0.16; ctx.fillStyle = col; ctx.fillRect(0, 0, CW, C_TOPE); ctx.globalAlpha = 1;   // la cabecera, teñida
+  ctx.restore();
   if (rota) ctx.setLineDash([3, 3]);
-  ctx.strokeRect(0.5, 0.5, CW - 1, CH - 1); ctx.setLineDash([]);
-  ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = labelFont(7);
-  ctx.fillText(T('banco_g_' + (u.grupo || 'armas')), C_PAD, 11);
-  ctx.textAlign = 'right';
-  if (rota) { ctx.fillStyle = selloCol; ctx.fillText(rota, CW - C_PAD, 11); }
-  else if (usada) { ctx.fillStyle = P.accent; ctx.fillText(T('cartas_usada'), CW - C_PAD, 11); }
-  else if (u.uso) { ctx.fillStyle = P.accent; ctx.fillText(T('banco_uso'), CW - C_PAD, 11); }
+  cartaForma(1, 1, CW - 2, CH - 2, R - 1); ctx.strokeStyle = on ? col : '#3a4750'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.setLineDash([]);
+  cartaForma(4.5, 4.5, CW - 9, CH - 9, R - 4); ctx.strokeStyle = on ? col : '#2a343b'; ctx.globalAlpha = 0.35; ctx.lineWidth = 0.7; ctx.stroke(); ctx.globalAlpha = 1;
+  // LA CABECERA: el icono del grupo y su nombre en la letra principal (22/11: "el texto DEFENSA con tipografia, mas
+  // principal"; DEFENSA un ESCUDO, ARMAS una BALA, ALCANCE tipo SUPPORT)
+  iconoGrupo(u.grupo || 'armas', C_PAD + 5, 11, col);
+  ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = menuFont(10);
+  ctx.fillText(T('banco_g_' + (u.grupo || 'armas')), C_PAD + 13, 14.5);
+  ctx.textAlign = 'right'; ctx.font = labelFont(7);
+  if (rota) { ctx.fillStyle = selloCol; ctx.fillText(rota, CW - C_PAD, 14); }
+  else if (usada) { ctx.fillStyle = P.accent; ctx.fillText(T('cartas_usada'), CW - C_PAD, 14); }
+  else if (u.uso) { ctx.fillStyle = P.accent; ctx.fillText(T('banco_uso'), CW - C_PAD, 14); }
   // lo que se desliza: recortado entre la franja de arriba y el pie
   ctx.save();
-  ctx.beginPath(); ctx.rect(1, C_TOPE, CW - 2, vista); ctx.clip();
+  ctx.beginPath(); ctx.rect(3, C_TOPE, CW - 6, vista); ctx.clip();
   let yy = C_TOPE - leer;
   for (const r of out) {
     if (yy > CH || yy + r.h < C_TOPE - 120) { yy += r.h; continue; }
@@ -1577,6 +1626,9 @@ function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
       ctx.fillText(r.t, C_PAD, yy + 8);
       const tw = ctx.measureText(r.t).width;
       ctx.globalAlpha = 0.35; ctx.fillRect(C_PAD + tw + 4, yy + 5, CW - C_PAD * 2 - tw - 4, 1); ctx.globalAlpha = 1;
+    } else if (r.gl) {
+      const gw = glifos.medir(r.gl, 13);
+      glifos.dibujar(r.gl, Math.round(CW / 2 - gw / 2), yy + 3, 13, t, rota ? '#8a949a' : P.body, true);
     } else if (r.t) {
       ctx.fillStyle = r.color; ctx.font = r.font;
       ctx.textAlign = r.centro ? 'center' : 'left';
@@ -1589,11 +1641,11 @@ function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
   const leerMax = Math.max(0, alto - vista + 4);
   if (on && leerMax > 0) {
     const f = Math.min(1, leer / leerMax), bh = Math.max(12, vista * vista / alto);
-    ctx.globalAlpha = 0.25; ctx.fillStyle = col; ctx.fillRect(CW - 3, C_TOPE, 2, vista);
-    ctx.globalAlpha = 0.9; ctx.fillRect(CW - 3, C_TOPE + (vista - bh) * f, 2, bh); ctx.globalAlpha = 1;
+    ctx.globalAlpha = 0.25; ctx.fillStyle = col; ctx.fillRect(CW - 8, C_TOPE, 1.5, vista);
+    ctx.globalAlpha = 0.9; ctx.fillRect(CW - 8, C_TOPE + (vista - bh) * f, 1.5, bh); ctx.globalAlpha = 1;
     if (leer < cara - vista + 30 && Math.sin(t * 5) > -0.4) {
       ctx.textAlign = 'center'; ctx.fillStyle = col; ctx.font = labelFont(7);
-      ctx.fillText(T('banco_leer'), CW / 2, CH - 3);
+      ctx.fillText(T('banco_leer'), CW / 2, CH - 7);   // (adentro del marco de la carta)
     }
   }
   ctx.restore();
@@ -1621,6 +1673,7 @@ function carrusel(todas, sel, w, sello) {
   return leerMax;
 }
 export function drawBanco(w) {
+  mandoCarta = { pad: !!w.joy, padTxt: w.padTxt || (t => t) };
   panel();
   ctx.textAlign = 'center';
   ctx.fillStyle = P.accent; ctx.font = titleFont(18);
@@ -1676,6 +1729,7 @@ export function drawCarga(w) {
 }
 
 export function drawPause(w) {
+  mandoCarta = { pad: !!w.joy, padTxt: w.padTxt || (t => t) };
   ctx.fillStyle = '#070a0dd2';           // velo: mas cerrado que panel() — el juego es contexto, no fondo
   ctx.fillRect(0, 0, NW, NH);
   // VER CARTAS (modos sueltos, 18/10, el autor: "dos sectores, uno con ACTIVAS y otro con USADAS debajo, y las

@@ -13,7 +13,8 @@ import {
 } from '../src/core/physics.js';
 
 import { PRUEBAS, momentos } from '../src/data/pruebas.js';
-import { oleadaDe, RAMPA, OLEADA } from '../src/data/modos_sueltos.js';
+import { oleadaDe, RAMPA, OLEADA, DIRECTOR } from '../src/data/modos_sueltos.js';
+import * as director from '../src/systems/director.js';
 import { perfilDe, puedeManiobra, ESQUIVE } from '../src/data/perfiles.js';
 import { chanceEsquive, esDisparo } from '../src/core/esquive.js';
 import { tirarFallas as tirarFallasP } from '../src/data/fallas.js';
@@ -4454,4 +4455,24 @@ test('esquive: base por avion, la pirueta suma, hay tope y solo se esquivan disp
   for (const k of Object.keys(ESQUIVE.PIRUETA)) assert.ok(ch('pampa', k) <= ESQUIVE.TOPE, 'tope ' + k);
   assert.ok(esDisparo('death_aa') && esDisparo('death_sidewinder'));
   for (const c of ['death_sea', 'death_bomb', 'death_onda', 'death_palos', 'death_mast']) assert.equal(esDisparo(c), false, c);
+});
+
+test('el director: aprieta al que viene sobrado, da respiro al que sufre, y el respiro es un ciclo', () => {
+  const dt = 1 / 30, corre = (seg, golpeCada) => {
+    director.reiniciar(); let integ = 100, m = 1, respiros = 0, antes = 'sube', min = 9;
+    for (let i = 0; i < seg / dt; i++) {
+      const t = i * dt;
+      if (golpeCada && Math.floor(t) % golpeCada === 0 && Math.floor(t) !== Math.floor(t - dt)) integ = Math.max(10, integ - 10);
+      else integ = Math.min(100, integ + 0.05);   // (la chapa se repara de a poco: si no, a 10 deja de haber golpes)
+      m = director.paso(dt, { integ, roza: false });
+      const f = director.estado().fase; if (f === 'respiro' && antes !== 'respiro') respiros++; antes = f; min = Math.min(min, m);
+    }
+    return { m, respiros, min };
+  };
+  const sobrado = corre(120, 0);
+  assert.ok(sobrado.m > 1.3 && sobrado.m <= DIRECTOR.MAX + 1e-9, 'sin daño aprieta hasta el tope: ' + sobrado.m);
+  const sufre = corre(240, 6);
+  assert.ok(sufre.respiros >= 2, 'el que sufre tiene respiros: ' + sufre.respiros);
+  assert.ok(sufre.respiros <= 240 / (DIRECTOR.RESPIRO_S + DIRECTOR.ENFRIA_S) + 1, 'pero no vive en respiro');
+  assert.ok(sufre.min < 0.5, 'el respiro baja la presion');
 });

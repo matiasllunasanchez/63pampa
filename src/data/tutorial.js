@@ -101,7 +101,12 @@ const ETAPA1 = [
   // LA SAL EN EL PARABRISAS (19/11, el autor: "explicar la mecanica del vidrio empañado con sal, y que para mejorarlo
   // tiene que subir un poco"; despues, "que la limpie la nube"): el paso arranca con el vidrio salado (`sal`) y se lava
   // adentro de la nube (systems/salitre.js)
-  { dice: 'TUT1_SAL', foco: ['alt'], teclas: ['Gas'], sal: 0.45,
+  // (22/11, el autor: "el salitre no debe aparecer magicamente, el tutorial te debe obligar a bajar primero, mantenerte
+  // abajo, y luego llenarte de sal, tal cual el juego"): primero se JUNTA volando al ras (la misma cuenta de
+  // systems/salitre.js, solo que `salRapido` la apura para no esperar minutos), y recien despues se lava en la nube
+  { dice: 'TUT1_SAL_JUNTA', foco: ['alt'], teclas: ['Dive'], salRapido: 8,
+    sigue: [{ salSobre: 0.4, consigna: 'tutC_salJunta' }] },
+  { dice: 'TUT1_SAL', foco: ['alt'], teclas: ['Gas'],
     sigue: [{ salBajo: 0.05, consigna: 'tutC_sal' }], remate: 'TUT1_SAL_OK' },
   // EL HIELO (20/11, el autor: "meter las nuevas mecanicas de clima y frio"; data/frio.js): lavando el vidrio en la nube,
   // con el frio del amanecer, se junta hielo en las alas. Se muestra el termometro y se derrite bajando al ras del mar
@@ -303,8 +308,10 @@ const LISTA = [
     T(PICHON, 'pichon_radio_explicando', 'Ahora bajito, pegado al agua. Así se vuela acá: al ras.'),
     T(TURCO, 'turco_radio_desconfiado', 'Sin tocar el agua, que si chocás a esa velocidad contra el agua, te hace pingo. Mandale gas de a poco.')),
   escena('TUT1_RASANTE_OK', T(TURCO, 'turco_radio_risa', 'E ura, así se vuela.')),
+  escena('TUT1_SAL_JUNTA',
+    T(TURCO, 'turco_radio_escucha', 'Bajá, pegate al agua y quedate ahí un rato. Mirá el vidrio, mirá.')),
   escena('TUT1_SAL',
-    T(TURCO, 'turco_radio_escucha', 'El vidrio... Mientras vas volando pegao al agua, se te llena el vidrio de sal. Tratá de atravesar algunas nubes con agua para limpiarlo.'),
+    T(TURCO, 'turco_radio_escucha', '¿Viste? Eso es sal, del agua que levantás volando pegao. Tratá de atravesar alguna nube con agua para limpiarlo.'),
     T(PICHON, 'pichon_radio_explicando', 'Subir solo no la saca: la costra queda pegada. Metete en la nube, que el agua te lava el vidrio.'),
     T(TURCO, 'turco_radio_desconfiado', 'En una misión de verdá, allá ashiba te ve el radar. Subís, te lavás y te volvés a bajar antes de que te llegue a detectar.'),
     B(PICHON, 'pichon_radio_pensativo', 'Mmmmm... Se me ocurre algo para probar. Bueno, buscá alguna nube mientras.')),

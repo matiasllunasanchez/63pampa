@@ -190,7 +190,7 @@ export const COMBO = {
   barrel: '↓→↑← · ↓←↑→', tonel: '→→ · ←←',
   // LOS FRENOS (4/10): la tecla de freno ([G] / L2), sola o con la mano derecha, y su combo
   cobra: '[G] · ⟳↑↓↑', mortal: '[G] → ↑↓ · ⟳↑↑↓', cobrainv: '[G]+S · ⟳↓↓↑',
-  derrape: '[Q]+[D] y [E]+[A] · [E]+[A] y [Q]+[D]',
+  derrape: '←+D y →+A · →+A y ←+D',   // (22/11: rolar es ← → en el teclado-joystick)
 };
 /** EL MISMO COMBO EN EL JOYSTICK, solo donde no es igual al teclado (19/11): las flechas son la mano derecha
  *  en los dos —las flechas del teclado y el stick derecho—, asi que casi todas se piden igual. Las que usan

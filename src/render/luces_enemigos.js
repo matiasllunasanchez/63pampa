@@ -19,6 +19,7 @@ import { esTierraEn } from '../core/geografia.js';
 
 const ROJO = ['#ff4a3a', [255, 70, 50]], VERDE = ['#4aff7a', [70, 255, 120]], BLANCO = ['#f4f8ff', [230, 240, 255]];
 const AMBAR = ['#ffd890', [255, 200, 120]];
+const CALIDA = ['#fff0d0', [255, 236, 200]];
 const LEJOS = 900;   // mas alla, ni se dibujan
 
 /** EL REBOTE EN EL AGUA (22/10, el autor: "y alumbran / iluminan el ambiente, que reboten bien"). Una luz
@@ -40,7 +41,30 @@ export function reflejoLuz(sx, sy, ySup, k, hex, rgb, a) {
   }
   ctx.restore();
   ctx.globalAlpha = 1;
-  luz(ctx, sx, ySup + 1, Math.max(4, k * 2.2), rgb, Math.min(1, a * 0.45));    // el charco que alumbra
+  luz(ctx, sx, ySup + 1, Math.max(3, k * 1.4), rgb, Math.min(1, a * 0.2));     // el charco que alumbra (22/11: chico)
+}
+/** EL PUNTO DE LUZ, REDONDO (22/11, el autor: "las luces de los aviones en la noche son super cuadradas, mejorar").
+ *  Antes era un `px` cuadrado de color pleno; ahora es un disco con el centro casi blanco (lo que quema la vista) y
+ *  un resplandor corto alrededor, sumado ('lighter') como la luz de verdad. El halo ancho sigue saliendo de `luz()`.
+ *  En PANTALLA: `x, y` el centro, `r` el radio del disco, `rgb` el color, `a` la fuerza. */
+export function nucleoLuz(x, y, r, rgb, a) {
+  if (!(a > 0.01)) return;
+  const [R, G, B] = rgb, k = Math.min(1, a);
+  const blanco = `rgba(${Math.round(R + (255 - R) * 0.75)},${Math.round(G + (255 - G) * 0.75)},${Math.round(B + (255 - B) * 0.75)},${k})`;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  // (22/11, "solo luces mas chicas"): el resplandor propio, corto
+  const rh = r * 2.2, g = ctx.createRadialGradient(x, y, 0, x, y, rh);
+  g.addColorStop(0, `rgba(${R},${G},${B},${k * 0.45})`);
+  g.addColorStop(0.3, `rgba(${R},${G},${B},${k * 0.15})`);
+  g.addColorStop(1, `rgba(${R},${G},${B},0)`);
+  ctx.fillStyle = g; ctx.fillRect(x - rh, y - rh, rh * 2, rh * 2);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = `rgba(${R},${G},${B},${k})`;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = blanco;
+  ctx.beginPath(); ctx.arc(x, y, r * 0.55, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
 }
 /** ¿Hay mar debajo de (x, z)? (sobre tierra no hay reflejo: G1) */
 const sobreAgua = (x, z) => !esTierraEn(x, run.dist + z);
@@ -48,16 +72,14 @@ const sobreAgua = (x, z) => !esTierraEn(x, run.dist + z);
 /** Un punto de luz en el mundo (x, y, z) con su color; `r` del resplandor en metros, `a` su fuerza. */
 function punto(x, y, z, [hex, rgb], r, a) {
   const p = proj(x, y, z), k = F / z;
-  const t = Math.max(1.5, k * 0.5);
-  ctx.globalAlpha = Math.min(1, a * 2);
-  px(p.x - t / 2, p.y - t / 2, t, t, hex);
-  ctx.globalAlpha = 1;
-  luz(ctx, p.x, p.y, Math.max(5, r * k * 1.5), rgb, Math.min(1, a * 1.4));
+  nucleoLuz(p.x, p.y, Math.max(0.7, k * 0.22), rgb, Math.min(1, a * 2));
+  luz(ctx, p.x, p.y, Math.max(2.5, r * k * 0.55), rgb, Math.min(1, a * 0.45));   // (22/11: el halo, chico)
   if (y > 0.3 && sobreAgua(x, z)) reflejoLuz(p.x, p.y, proj(x, 0, z).y, k, hex, rgb, a);
 }
 /** EL AURA: un resplandor ancho y bajo alrededor del cuerpo, como si lo alumbraran sus propias luces —
  *  abre la oscuridad lo justo para que se lea la silueta (`m` = el medio tamaño del bicho, en metros). */
 function aura(x, y, z, m, a) {
+  return;   // (22/11, el autor: "todo tiene mucha luz… dejar solo luces mas chicas"): sin el aura del cuerpo
   const p = proj(x, y, z), k = F / z;
   luz(ctx, p.x, p.y, Math.max(8, m * k * 1.6), [200, 215, 230], 0.3 * a);
 }
@@ -69,7 +91,8 @@ export function lucesEnemigo(o, fuerza) {
   const a = fuerza * Math.min(1, (LEJOS - o.z) / 300), z = o.z, ph = (o.x || 0) * 1.7 + (o.seed || 0);
   const gy = o.gy || 0, h = o.h || 3;
   switch (o.type) {
-    case 'helo': case 'jet': {
+    case 'jet': break;   // (22/11, el autor: "los Harrier entiendo que no llevan nada"): sin luces
+    case 'helo': {
       // las puntas de ala, dentro del dibujo: el sprite del caza y del Harrier mide 4,2 de ancho (render/enemies.js
       // ARTE), asi que la punta queda a ~1,9 del centro (19/10, el autor: "los harriers tienen las luces demasiado
       // lejos de las alas")
@@ -83,11 +106,21 @@ export function lucesEnemigo(o, fuerza) {
     }
     case 'mast': case 'lcu': {
       const L = o.type === 'mast' ? 9 : 6, alto = o.type === 'mast' ? Math.max(h, 7) : Math.max(h * 0.6, 2.5);
-      aura(o.x, gy + alto * 0.4, z, L * 0.6, a);
-      punto(o.x, gy + alto, z, BLANCO, 3, 0.8 * a);                                         // la de tope
-      punto(o.x - L * 0.45, gy + 1.4, z, ROJO, 2, 0.5 * a);
-      punto(o.x + L * 0.45, gy + 1.4, z, VERDE, 2, 0.5 * a);
-      for (let i = 0; i < 3; i++) punto(o.x + (i - 1) * L * 0.25, gy + 2.2, z, AMBAR, 1.4, 0.35 * a);
+      // (22/11, el autor: "pocas, mas tenues, no siempre rojas y verdes, combinalas; una roja arriba, variaban"):
+      // la de tope ROJA (fija o latiendo, segun el barco), el par de los costados sorteado por barco, y de las tres
+      // ventanas solo algunas prendidas — todo mas tenue
+      const s = Math.abs(Math.floor(ph * 97)) >>> 0, b = a * 0.6;
+      aura(o.x, gy + alto * 0.4, z, L * 0.6, b);
+      // LA ANTENA (22/11, el autor: "a los barcos crearles una antena larga, alta, con luz roja chiquita"): un palo fino
+      // por encima del tope, y arriba de todo la roja, chiquita (fija o latiendo segun el barco)
+      { const ant = alto * 0.9 + 4, pb = proj(o.x, gy + alto, z), pt = proj(o.x, gy + alto + ant, z);
+        ctx.save(); ctx.strokeStyle = '#46525a'; ctx.globalAlpha = Math.min(1, 0.4 + fuerza * 0.6);
+        ctx.lineWidth = Math.max(0.5, F / z * 0.12); ctx.beginPath(); ctx.moveTo(pb.x, pb.y); ctx.lineTo(pt.x, pt.y); ctx.stroke(); ctx.restore();
+        if (s % 2 || Math.sin(run.t * 1.6 + ph) > -0.2) punto(o.x, gy + alto + ant, z, ROJO, 1.2, 0.6 * b); }
+      const par = [[ROJO, VERDE], [ROJO, CALIDA], [AMBAR, VERDE], [CALIDA, CALIDA], [ROJO, AMBAR]][s % 5];
+      punto(o.x - L * 0.45, gy + 1.4, z, par[0], 2, 0.5 * b);
+      punto(o.x + L * 0.45, gy + 1.4, z, par[1], 2, 0.5 * b);
+      for (let i = 0; i < 3; i++) if ((s >> i) % 3) punto(o.x + (i - 1) * L * 0.25, gy + 2.2, z, (s >> (i + 3)) % 3 ? AMBAR : CALIDA, 1.4, 0.35 * b);
       break;
     }
     case 'radar': case 'balloon': {

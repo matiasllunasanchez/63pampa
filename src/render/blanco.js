@@ -22,7 +22,7 @@ import * as enemyArt from './enemies.js';
 import { drawMira } from './miras.js';
 import * as fuego from './fuego.js';
 import { nocheDe, luzNoche } from './noche.js';
-import { reflejoLuz } from './luces_enemigos.js';
+import { reflejoLuz, nucleoLuz } from './luces_enemigos.js';
 import { detras } from './oclusion.js';
 // EL VERDE DE LA SUELTA, el mismo que titila en el tablero (SUELTA_COL de render/hud.js).
 const VERDE_SUELTA = '#7fe07a';
@@ -216,38 +216,65 @@ function drawSistemas(z, apE) {
 // buque, las de NAVEGACION en las puntas — roja y verde. En la base el tope es la BALIZA roja de la
 // antena, que titila. Cada una derrama su luz (`luzNoche`): abre la oscuridad a su alrededor.
 // Van montadas en el PERFIL (`altoEn`), el mismo que usa la bomba: estan donde esta la chapa.
+// (22/11, el autor: "las de los barcos tambien: pocas, mas tenues, y no siempre rojas y verdes, combinalas; los
+// barcos tienen una roja arriba, creo, variaban"): menos ventanas prendidas y mas tenues, en tonos mezclados
+// (ambar, blanco calido, alguna fria); arriba la de TOPE ROJA, fija o titilando lento segun el barco; y a los costados
+// no siempre roja y verde: cada barco trae su par. Todo sorteado por el NOMBRE del buque: fijo, no titila al azar.
+const PALETA_BUQUE = {
+  ambar: ['#ffd890', [255, 200, 120]], calida: ['#fff0d0', [255, 236, 200]], fria: ['#e4f0ff', [220, 234, 255]],
+  roja: ['#ff4a3a', [255, 70, 50]], verde: ['#4aff7a', [70, 255, 120]],
+};
+const PARES_BUQUE = [['roja', 'verde'], ['roja', 'calida'], ['ambar', 'verde'], ['calida', 'calida'], ['roja', 'ambar']];
+const semDe = t => { let h = 7; for (const c of String(t || '')) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
 function lucesNoche(z, k, ap, esBase) {
   let alto = 0, xAlto = BL.X;
   for (let i = 0; i < 24; i++) {
     const xw = BL.X + (i / 23 - 0.5) * BL.LEN * 0.96, h = altoEn(xw);
     if (h > alto) { alto = h; xAlto = xw; }
   }
-  const r = Math.max(1, k * 0.45), N = 9;
+  const r = Math.max(1, k * 0.45), N = 9, sem = semDe(blanco.nombre), dado = i => ((sem >> (i % 24)) ^ (i * 2654435761)) >>> 0;
+  const TENUE = 0.6;   // todo el buque, mas tenue que antes
   ctx.save();
   ctx.globalAlpha = ap;
   for (let i = 0; i < N; i++) {
-    if ((i * 7) % 5 === 0) continue;                               // las apagadas
+    if (dado(i) % 5 < 2 || (i * 7) % 5 === 0) continue;             // las apagadas (mas que antes: pocas prendidas)
     const xw = BL.X + ((i + 0.5) / N - 0.5) * BL.LEN * 0.86, h = altoEn(xw);
     if (h < 0) continue;
+    const [hex, rgb] = PALETA_BUQUE[['ambar', 'ambar', 'calida', 'fria'][dado(i + 11) % 4]];
     const p = proj(xw, blanco.base + Math.min(h, BL.LEN * 0.05) * 0.45, z);
-    px(p.x - r / 2, p.y - r / 2, r, r, '#ffd890');
-    luzNoche(ctx, p.x, p.y, 3 + k * 1.2, [255, 200, 120], 0.35 * ap);
+    nucleoLuz(p.x, p.y, r * 0.42, rgb, 0.6 * TENUE * ap);
+    luzNoche(ctx, p.x, p.y, 2 + k * 0.5, rgb, 0.12 * TENUE * ap);   // (22/11: halos chicos)
     // (y el buque las refleja en el agua — 22/10, "que reboten bien"; la base esta en tierra: no)
-    if (!esBase) reflejoLuz(p.x, p.y, proj(xw, blanco.base, z).y, k, '#ffd890', [255, 200, 120], 0.35 * ap);
+    if (!esBase) reflejoLuz(p.x, p.y, proj(xw, blanco.base, z).y, k, hex, rgb, 0.25 * TENUE * ap);
   }
-  if (!esBase || Math.sin(run.t * 4) > 0) {                         // la baliza de la base titila
-    const pt = proj(xAlto, blanco.base + alto + BL.LEN * 0.01, z);
-    px(pt.x - r / 2, pt.y - r, r, r, esBase ? '#ff5040' : '#f4f8ff');
-    luzNoche(ctx, pt.x, pt.y, 5 + k * 1.6, esBase ? [255, 70, 50] : [230, 240, 255], 0.6 * ap);
-    if (!esBase) reflejoLuz(pt.x, pt.y, proj(xAlto, blanco.base, z).y, k, '#f4f8ff', [230, 240, 255], 0.5 * ap);
+  // EL TOPE: roja arriba de todo. En la base titila rapido (la baliza de la antena); en el buque, segun el barco,
+  // fija o latiendo lento
+  const late = esBase ? Math.sin(run.t * 4) > 0 : dado(3) % 2 ? true : Math.sin(run.t * 1.6 + sem) > -0.2;
+  // LA ANTENA (22/11, el autor: "a los barcos crearles una antena larga, alta, con luz roja chiquita"): un palo fino
+  // que sale de lo mas alto del perfil, y la roja arriba de todo, chiquita
+  const ant = esBase ? 0 : Math.max(alto * 0.8, BL.LEN * 0.07);
+  if (ant > 0) {
+    const pb = proj(xAlto, blanco.base + alto, z), pa = proj(xAlto, blanco.base + alto + ant, z);
+    ctx.save(); ctx.strokeStyle = '#46525a'; ctx.lineWidth = Math.max(0.5, k * 0.1);
+    ctx.beginPath(); ctx.moveTo(pb.x, pb.y); ctx.lineTo(pa.x, pa.y); ctx.stroke(); ctx.restore();
   }
-  if (!esBase) for (const [f, c, rgb] of [[-0.46, '#ff4a3a', [255, 70, 50]], [0.46, '#4aff7a', [70, 255, 120]]]) {
-    const xw = BL.X + f * BL.LEN, h = altoEn(xw);
-    if (h < 0) continue;
-    const p = proj(xw, blanco.base + Math.min(h, BL.LEN * 0.06), z);
-    px(p.x - r / 2, p.y - r / 2, r, r, c);
-    luzNoche(ctx, p.x, p.y, 4 + k * 1.3, rgb, 0.5 * ap);
-    reflejoLuz(p.x, p.y, proj(xw, blanco.base, z).y, k, c, rgb, 0.5 * ap);
+  if (late) {
+    const pt = proj(xAlto, blanco.base + alto + (ant || BL.LEN * 0.01), z), rgb = PALETA_BUQUE.roja[1];
+    nucleoLuz(pt.x, pt.y - r / 2, r * (esBase ? 0.5 : 0.35), rgb, (esBase ? 1 : 0.8 * TENUE) * ap);
+    luzNoche(ctx, pt.x, pt.y, 2.5 + k * 0.6, rgb, (esBase ? 0.4 : 0.2 * TENUE) * ap);
+    if (!esBase) reflejoLuz(pt.x, pt.y, proj(xAlto, blanco.base, z).y, k, PALETA_BUQUE.roja[0], rgb, 0.35 * TENUE * ap);
+  }
+  if (!esBase) {
+    const par = PARES_BUQUE[sem % PARES_BUQUE.length];
+    [-0.46, 0.46].forEach((f, j) => {
+      const xw = BL.X + f * BL.LEN, h = altoEn(xw);
+      if (h < 0) return;
+      const [c, rgb] = PALETA_BUQUE[par[j]];
+      const p = proj(xw, blanco.base + Math.min(h, BL.LEN * 0.06), z);
+      nucleoLuz(p.x, p.y, r * 0.42, rgb, 0.7 * TENUE * ap);
+      luzNoche(ctx, p.x, p.y, 2 + k * 0.5, rgb, 0.15 * TENUE * ap);
+      reflejoLuz(p.x, p.y, proj(xw, blanco.base, z).y, k, c, rgb, 0.35 * TENUE * ap);
+    });
   }
   ctx.restore();
 }

@@ -1623,8 +1623,11 @@ export function sombraGigante() {
 function olasGigantes(dv) {
   gigVis.length = 0;
   for (const o of obstacles) {
-    if (o.type !== 'ola' || o.kind !== 'gigante' || !(o.z > 4)) continue;
-    const z = o.z, k = F / z, zf = Math.max(3.2, z - o.wz * 1.25);
+    // (22/11, el autor: "la ola gigante se corta cuando esta cerca: o te choca o la esquivas, pero no debe desaparecer"):
+    // se dibujaba hasta z 4 y en CABINA el choque se mide a PZ+1,5 = 3,1 m — se borraba justo antes del golpe. Ahora
+    // sigue hasta pegarse a la camara: pasada por arriba, su cresta se va sola por abajo de la pantalla
+    if (o.type !== 'ola' || o.kind !== 'gigante' || !(o.z > 0.35)) continue;
+    const z = o.z, k = F / z, zf = Math.max(Math.min(3.2, z * 0.6), z - o.wz * 1.25);
     const N = 56, fg = Math.min(1, run.fgzTormenta || 0);
     const xa = (-90 - W / 2) / k + cam.x - bendW(z), xb = (W + 90 - W / 2) / k + cam.x - bendW(z);
     // DE LEJOS SE VE GIGANTE (el autor: "que de lejos se vea formando, que es gigante"). Con la perspectiva
