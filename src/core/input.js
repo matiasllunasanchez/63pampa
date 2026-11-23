@@ -101,7 +101,11 @@ const KEYMAP = {
 //                   SHIFT der R3 (con la mira, tira la bomba) · CTRL der RB (cañon) · ENTER RT (poscombustion) ·
 //                   NUMPAD 8 4 6 2 la cruceta (▲ secundario · ► Chancha · ▼ camara/relevo · ◄ freno)
 // Con la MIRA MOVIL (la mano derecha en el mouse) Q/E vuelven a rolar y R/F a panear, como antes.
-const KEYMAP_LIBRE = { KeyR: 'rise', KeyF: 'sink', KeyQ: 'rollL', KeyE: 'rollR' };
+// LA CONFIGURACION CON MOUSE (23/11, el autor: "los de teclado deberian poder jugar con la mano derecha en el teclado o en
+// el mouse, y la mano izquierda siempre en la misma posicion"): con la mano en el mouse SOLO Q y E cambian —ROLAN—; el
+// secundario pasa al clic de la ruedita, el momentum a X y la poscombustion a CTRL izq. R (chafitas) y F (radar) quedan.
+// Se elige SOLO: mover el mouse o hacer clic en vuelo la prende, tocar las flechas vuelve a la del teclado (`autoMouse`).
+const KEYMAP_LIBRE = { KeyQ: 'rollL', KeyE: 'rollR' };
 
 // LAS FLECHAS TIENEN DOS VIDAS, y cual esta activa la decide la MIRA (cfg.aim):
 //
@@ -118,6 +122,8 @@ const ARROW_STICK = { ArrowLeft: 'rollL', ArrowRight: 'rollR', ArrowUp: 'camU', 
 // …y en vuelo ↓ no panea: es la MIRA DE LA BOMBA, como el stick der. abajo del mando (ver el keydown)
 const flechaMira = c => c === 'ArrowDown' && !cfg.aim && S.state === 'play';
 const libre = () => cfg.aim || cfg.devcam;   // la mano derecha en el mouse (o la camara libre): Q E R F, las de siempre
+const devcamLibre = () => !!cfg.devcam;   // la camara libre de DEV: R/F suben y bajan la camara (no chafitas ni radar)
+const KEYMAP_DEVCAM = { KeyR: 'rise', KeyF: 'sink', KeyQ: 'rollL', KeyE: 'rollR' };
 // EJE Y UNIFICADO (cfg.invY). Se da vuelta ACA, donde la tecla y el stick se traducen a `inp`, y
 // NO en cada modo. Es la diferencia entre "todos los modos usan el mismo eje" y "cada modo se
 // acuerda de invertirlo": el pasillo, el arena, la pasada y la barcaza leen todos `inp.u`, asi que
@@ -130,7 +136,7 @@ const libre = () => cfg.aim || cfg.devcam;   // la mano derecha en el mouse (o l
 // pantalla que te esta pidiendo esa tecla.
 const vyField = f => cfg.invY && S.state !== 'pulso' && (f === 'u' || f === 'd') ? (f === 'u' ? 'd' : 'u') : f;
 const keyField = c => flechaMira(c) ? undefined : vyField(KEYMAP[c] !== undefined ? KEYMAP[c]
-  : libre() && KEYMAP_LIBRE[c] !== undefined ? KEYMAP_LIBRE[c] : (cfg.aim ? ARROW_FLY : ARROW_STICK)[c]);
+  : libre() && (cfg.devcam ? KEYMAP_DEVCAM : KEYMAP_LIBRE)[c] !== undefined ? (cfg.devcam ? KEYMAP_DEVCAM : KEYMAP_LIBRE)[c] : (cfg.aim ? ARROW_FLY : ARROW_STICK)[c]);
 // ALT / OPTION + IZQUIERDA o DERECHA = ROLAR EN EL LUGAR (autor, 8/10: "manteniendo alguna tecla puedo
 // hacer el giro sobre el eje de ROLL sin moverme para los costados — ALT u OPTION en mac"). Con ALT
 // apretado, lo que iba a esquivar ('l'/'r', de las flechas o de A/D) pasa a ser el giro libre
@@ -145,9 +151,11 @@ const TAPTOK = { l: 'l', r: 'r', u: 'u', d: 'd', rollL: 'L', rollR: 'R', camU: '
   rise: 'D', sink: 'U' };
 const isConfirm = c => c === 'Enter' || c === 'Space' || c === 'KeyX' || c === 'KeyK';
 const isBack = c => c === 'Escape' || c === 'Backspace';
-const isFire = c => c === 'KeyX' || c === 'KeyK' || c === 'Space' || c === 'ControlRight';   // (CTRL der = RB)
-// (22/11: SHIFT izq paso a ser LT —mantener altura— y SHIFT der el R3; la poscombustion es ENTER, el RT, en vuelo)
-const isTurbo = c => c === 'KeyC' || ((c === 'Enter' || c === 'NumpadEnter') && S.state === 'play');
+const isFire = c => (c === 'KeyX' && !cfg.aim) || c === 'KeyK' || c === 'Space' || c === 'ControlRight';   // (CTRL der = RB; X con mouse es el momentum)
+// (22/11: SHIFT izq paso a ser LT —mantener altura—. 23/11, el autor: "en teclado la poscombustion tiene que ser SHIFT
+// derecho y lanzar la bomba ENTER": SHIFT der es el RT en vuelo, y ENTER el R3)
+const isTurbo = c => c === 'KeyC' || ((c === 'ShiftRight' || (c === 'ControlLeft' && cfg.aim)) && S.state === 'play');
+const esR3 = c => c === 'Enter' || c === 'NumpadEnter';
 const isLeft = c => c === 'ArrowLeft' || c === 'KeyA';
 const isRight = c => c === 'ArrowRight' || c === 'KeyD';
 const isUp = c => c === 'ArrowUp' || c === 'KeyW';
@@ -198,7 +206,25 @@ export function initInput(cv, a) {
     return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
   }
 
+  /** EL SECUNDARIO ELEGIDO (Q sin mouse, el clic de la ruedita con mouse): tanques mantenidos, chafitas al toque, la bomba. */
+  function secundarioAbajo(repeat) {
+    const sec = S.state === 'play' ? a.secundaria() : 'bomba';
+    if (sec === 'tanque') { inp.tanq = true; flags.qTanq = true; }
+    else if (sec === 'chafitas') { if (!repeat) a.chapitas(); }
+    else inp.msl = true;
+    if (!repeat) flags.anyPress = true;
+    if (!repeat && S.state === 'pulso') a.pulsoTap('Z');
+  }
+  function secundarioArriba() { inp.msl = false; if (flags.qTanq) { flags.qTanq = false; inp.tanq = false; } }
+  /** CON O SIN MOUSE, SOLO (23/11): `on` la prende (se movio el mouse o hubo clic en vuelo), `false` la apaga (flechas). */
+  function autoMouse(on) {
+    if (S.state !== 'play' && S.state !== 'arena' && S.state !== 'pasada' && S.state !== 'momentum') return;
+    if (!!cfg.aim === on) return;
+    cfg.aim = on; if (!on) mouse.on = false;
+    if (a.aimChanged) a.aimChanged(cfg.aim);
+  }
   addEventListener('keydown', e => {
+    if (/^Arrow/.test(e.code) && !e.repeat) autoMouse(false);   // (23/11: tocar las flechas vuelve a la configuracion de teclado)
     padInfo.uso = 'teclado';
     audio();
     readCaps(e);                                                          // CAPS LOCK gobierna la mira
@@ -469,22 +495,15 @@ export function initInput(cv, a) {
     // ---- EL TECLADO-JOYSTICK (22/11, ver KEYMAP_LIBRE arriba) ----
     if (!libre()) {
       // Q = LB: el secundario elegido, igual que [Z]
-      if (e.code === 'KeyQ') {
-        const sec = S.state === 'play' ? a.secundaria() : 'bomba';
-        if (sec === 'tanque') { inp.tanq = true; flags.qTanq = true; }
-        else if (sec === 'chafitas') { if (!e.repeat) a.chapitas(); }
-        else inp.msl = true;
-        if (!e.repeat) flags.anyPress = true; e.preventDefault();
-        if (!e.repeat && S.state === 'pulso') a.pulsoTap('Z');
-      }
+      if (e.code === 'KeyQ') { secundarioAbajo(e.repeat); e.preventDefault(); }
       if (!e.repeat && e.code === 'KeyE') a.tempoToggle();                              // Y: momentum
-      if (!e.repeat && e.code === 'KeyR' && S.state === 'play') a.chapitas();           // B: chafitas
-      if (!e.repeat && e.code === 'KeyF' && a.radarToggle) a.radarToggle();             // X: radar
-    }
+    } else if (!e.repeat && e.code === 'KeyX') a.tempoToggle();                         // CON MOUSE: X es el momentum
+    if (!devcamLibre() && !e.repeat && e.code === 'KeyR' && S.state === 'play') a.chapitas();   // B: chafitas (con o sin mouse)
+    if (!devcamLibre() && !e.repeat && e.code === 'KeyF' && a.radarToggle) a.radarToggle();     // X: radar (con o sin mouse)
     if (e.code === 'ShiftLeft') inp.mant = 1;                                          // LT: mantener la altura
     if (flechaMira(e.code)) { inp.apunta = true; e.preventDefault(); if (!e.repeat) dirTap('D'); }   // ↓ mantenida: la mira de la bomba (y su toque, para las piruetas)
-    // SHIFT der = R3: con la mira puesta tira la bomba (el gatillo); sin mira, el secundario como [Z]
-    if (e.code === 'ShiftRight' && S.state === 'play') {
+    // ENTER = R3: con la mira puesta tira la bomba (el gatillo); sin mira, el secundario como [Z]
+    if (esR3(e.code) && S.state === 'play' && !e.repeat) {   // (solo el primer toque: las repeticiones del ENTER que cerro un dialogo no tiran nada)
       if (inp.apunta) { inp.fire = true; flags.r3Fire = true; } else inp.msl = true;
       if (!e.repeat) flags.anyPress = true;
     }
@@ -512,7 +531,6 @@ export function initInput(cv, a) {
     // sigue siendo su poder del modo —el reparto de energia, que pasa por la misma accion—.
     if (!e.repeat && e.code === 'KeyJ') a.chanchaCall();
     if (!e.repeat && e.code === 'Digit3') a.chanchaCall();   // (22/11: el 3 es la cruceta ► de respaldo, tambien en vuelo)
-    if (e.code === 'KeyF' && libre()) inp.apunta = true;   // LA MIRA DE LA BOMBA con el mouse (sin mouse: ↓, y F es el radar)
     if (e.code === 'KeyB') inp.tanq = true;   // SOLTAR TANQUES: mantener apunta, soltar tira (game.js, 27/9)
     // LAS CHAPITAS [H] (8/10, systems/chapitas.js): el chaff. Al lado de la [G] —el freno, la cobra—
     // porque el chaff iba EN EL FRENO AERODINAMICO; tecla propia porque soltarlo no es frenar a fondo.
@@ -523,6 +541,7 @@ export function initInput(cv, a) {
   });
   addEventListener('keyup', e => {
     readCaps(e);
+    // (la ruedita no tiene keyup: su suelta va en el pointerup)
     if (KEYMAP[e.code] !== undefined) inp[vyField(KEYMAP[e.code])] = 0;
     // las FLECHAS se sueltan en SUS DOS VIDAS. Si la mira cambia con la tecla apretada, el keyup
     // llegaria con la otra vida activa y el campo viejo quedaria clavado en 1 — el avion doblando solo.
@@ -541,8 +560,10 @@ export function initInput(cv, a) {
     if (e.code === 'KeyG' || e.code === 'Numpad4') inp.brake = 0;
     if (e.code === 'ArrowDown') inp.apunta = false;
     if (e.code === 'ShiftLeft') inp.mant = 0;
-    if (e.code === 'KeyQ') { inp.msl = false; if (flags.qTanq) { flags.qTanq = false; inp.tanq = false; } }
-    if (e.code === 'ShiftRight') { inp.msl = false; if (flags.r3Fire) { flags.r3Fire = false; inp.fire = false; } }
+    if (e.code === 'KeyQ') secundarioArriba();
+    if (e.code === 'KeyQ') inp.rollL = 0; if (e.code === 'KeyE') inp.rollR = 0;   // (con mouse Q/E rolan: se sueltan)
+    if (e.code === 'KeyR') inp.rise = 0; if (e.code === 'KeyF') inp.sink = 0;      // (la camara libre de DEV)
+    if (esR3(e.code)) { inp.msl = false; if (flags.r3Fire) { flags.r3Fire = false; inp.fire = false; } }
   });
 
   // tactil: arrastre a la izquierda = volar; derecha arriba = fuego; derecha abajo = turbo
@@ -567,7 +588,9 @@ export function initInput(cv, a) {
       // ESPACIO mientras apuntas (27/9). Se anota como zona de puntero, asi el pointerup (ptrEnd) lo
       // levanta solo. (El click izquierdo con el derecho apretado no llega: el navegador no manda
       // pointerdown para el segundo boton de un mouse.)
+      autoMouse(true);
       if (e.button === 2) { if (S.state === 'play') { zonePtr.set(e.pointerId, 'apunta'); inp.apunta = true; } else a.launchMissile(); }
+      else if (e.button === 1) { secundarioAbajo(false); zonePtr.set(e.pointerId, 'secundario'); }   // el clic de la ruedita
       else { zonePtr.set(e.pointerId, 'fire'); inp.fire = true; }
       return;
     }
@@ -594,6 +617,7 @@ export function initInput(cv, a) {
         // larga eventos de medio pixel sin parar, asi que nunca volvia. Ahora el reloj se reinicia solo si se movio
         // de verdad (MIRA_SUELTA desde la ultima vez que conto)
         if (!mouse.on || Math.hypot(p.x - miraAncla.x, p.y - miraAncla.y) >= MIRA_SUELTA) { miraAncla.x = p.x; miraAncla.y = p.y; miraActiva(); }
+        autoMouse(true);   // (23/11: mover el mouse en vuelo pasa a la configuracion con mouse)
         mouse.x = p.x; mouse.y = p.y; mouse.on = true;
       }
     }
@@ -617,6 +641,7 @@ export function initInput(cv, a) {
   function ptrEnd(e) {
     if (e.pointerId === steerPtr) { steerPtr = null; pointer.steer = null; }
     const z = zonePtr.get(e.pointerId);
+    if (z === 'secundario') { zonePtr.delete(e.pointerId); secundarioArriba(); return; }
     if (z) { zonePtr.delete(e.pointerId); if (![...zonePtr.values()].includes(z)) inp[z] = false; }
   }
   cv.addEventListener('pointerup', ptrEnd);

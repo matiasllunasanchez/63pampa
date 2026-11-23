@@ -98,7 +98,10 @@ export function drawNoche(n, astro, giro) {
     if (giro) { gd.translate(giro.cx * sx, giro.cy * sy); gd.rotate(giro.a); gd.translate(-giro.cx * sx, -giro.cy * sy); }
     gd.beginPath();
     if (trazarGigantes(gd, sx, sy)) {
-      gd.fillStyle = banda(1); gd.fill();
+      // (23/11, el autor: "la ola negra desaparece en algunos momentos"): con la noche azul, el velo le ponia a la
+      // pared el MISMO azul que al cielo y se fundian. Sobre la mole el velo es casi negro: queda recortada
+      gd.globalCompositeOperation = 'destination-out'; gd.fillStyle = '#000'; gd.fill();
+      gd.globalCompositeOperation = 'source-over'; gd.fillStyle = `rgba(2,4,9,${a})`; gd.fill();
       const og = oscuroGigante();
       if (og > 0.01) { gd.fillStyle = banda(og); gd.fillRect(-D.width, hy, D.width * 3, D.height * 2); }
     }

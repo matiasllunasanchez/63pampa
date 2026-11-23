@@ -7,7 +7,7 @@ import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PIS
 import * as director from './systems/director.js';
 import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, DETECCION, nivelCorrida, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA, ARRANQUE, oleadaDe } from './data/modos_sueltos.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
-import { LIBRO_VUELO, LIBRO_PROXIMAS, LIBRO_SCENES, CAMPANA_BLOQUEADA } from './data/libro_vuelo.js';
+import { LIBRO_VUELO, LIBRO_PROXIMAS, LIBRO_SCENES, CAMPANA_BLOQUEADA, LIBRO_ABIERTAS } from './data/libro_vuelo.js';
 import { TUTORIAL_ETAPAS, TUT_SCENES } from './data/tutorial.js';
 import { CTRL_CATEGORIAS } from './data/controles.js';
 import * as tutSys from './systems/tutorial.js';
@@ -139,7 +139,7 @@ import * as hud from './render/hud.js';
 import * as world from './render/world.js';
 import { drawMarco } from './render/marco.js';
 import * as soldierArt from './render/soldiers.js';
-import { theme, applyTheme } from './render/theme.js';
+import { theme, applyTheme, pasoTema } from './render/theme.js';
 import { misilCerca, setNivel, currentTrackName, retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando, salpicon as salpiconSfx } from './systems/audio.js';
 import { drawCarga, CARGA, CARGA_T } from './render/carga.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
@@ -318,7 +318,22 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // Se puede apagar en el menú [M] (COMBUSTIBLE: NO) para pruebas / vuelo libre.
     // paleta de tierra (turba malvinense). Se vuela A RAS del suelo para atropellar soldados (no es letal).
 
-    function applyCfg() { applyTheme(cfg); }
+    function applyCfg(dur) { applyTheme(cfg, dur); if (!(dur > 0)) nocheSuave = 0; }
+    // EL CIELO PAULATINO (23/11, el autor: "a la tarde y se vuelve de noche de una… debe ser paulatino, con opacidad"):
+    // cuando lo cambia el FRENTE DE TORMENTA, la paleta se mezcla (render/theme.js) y la capa de la noche entra o sale
+    // con su opacidad en CIELO_FUNDIDO segundos, en vez de aparecer en el cuadro del cambio
+    const CIELO_FUNDIDO = 4;
+    let nocheSuave = 0, nocheK = 0, nocheUlt = null, nocheReloj = 0;
+    /** La noche de este cuadro, con su opacidad fundida si viene de un cambio suave. */
+    function nocheFundida(n) {
+      const ahora = performance.now() / 1000, dt = nocheReloj ? Math.min(0.1, ahora - nocheReloj) : 0;
+      nocheReloj = ahora;
+      if (n) nocheUlt = n;
+      if (nocheSuave > 0) { nocheSuave = Math.max(0, nocheSuave - dt); nocheK = Math.max(0, Math.min(1, nocheK + (n ? 1 : -1) * dt / CIELO_FUNDIDO)); }
+      else nocheK = n ? 1 : 0;
+      if (nocheK <= 0 || !nocheUlt) return null;
+      return nocheK >= 1 && n ? n : { ...nocheUlt, a: nocheUlt.a * nocheK };
+    }
 
     // fija el layout de zonas del MOMENTUM segun la clase del buque
     // (MOM_LAYOUTS/SHIP_CLASS se definen mas abajo; esto solo corre al armar un run)
@@ -955,6 +970,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // PRIMERO COMPLETA, DESPUES CONTINUA — como la historia (pressDialogue: "completar, nunca
       // saltear"). Completar no pide la gracia entera: solo que no sea la misma tecla que la abrio.
       if (dlgTyped < dlgTotal()) { if (dlgT > 0.12) { dlgTyped = Infinity; beep(500, 0.05, 'square', 0.04); } return; }
+      // (23/11: ENTER es tambien el R3 —la bomba o el secundario— en vuelo: el ENTER que cierra el dialogo no lo suelta)
+      inp.msl = false; if (flags.r3Fire) { flags.r3Fire = false; inp.fire = false; }
       if (dlgT < DLG_GRACIA) return;
       dlgPausa = false;
       // UNA LECCION SE CALLA AL SOLTARLA: ya se leyo con el mundo quieto, y si siguiera sonando en
@@ -2671,7 +2688,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       ...TUTORIAL_ETAPAS.map((m, k) => ({ id: 'tut', k, hecha: etapaHecha(k), disabled: !DEV && !FULL && k > 0 && !etapaHecha(k - 1) })),
       { id: 'back', back: true, tut: true },
     ] : campVista === 'libro' ? [
-      ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k })),
+      // (las que no estan en LIBRO_ABIERTAS, en gris y EN DESARROLLO — 23/11; el modo DEV las abre todas)
+      ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k, disabled: !DEV && !LIBRO_ABIERTAS.includes(m.id) })),
       // las que vienen, en gris debajo (17/10): se ven y se marcan, no se entran
       // (21/11, el autor: "las que no estan hechas marcar como PROXIMAMENTE"): tambien en la FULL
       ...LIBRO_PROXIMAS.map((m, k) => ({ id: 'proxima', k, disabled: true })),
@@ -6136,7 +6154,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         misilCerca(dm); }
       // LA TORMENTA: relampagos, rayos y truenos mientras se vuela (systems/tormenta.js)
       // EL FRENTE DE TORMENTA (systems/frente.js): cambia el cielo escondido en su niebla (o en el blanco de la capa)
-      if (!paused && (S.state === 'play' || S.state === 'relevo') && stepFrente(nubesAltas().blanco)) applyCfg();
+      if (!paused && (S.state === 'play' || S.state === 'relevo') && stepFrente(nubesAltas().blanco)) { applyCfg(CIELO_FUNDIDO); nocheSuave = CIELO_FUNDIDO + 0.5; }
+      pasoTema(Math.min(0.1, dtReal || dt));   // (la mezcla del cielo, si la hay)
       if (cfg.sky === 'storm' && !paused && (S.state === 'play' || S.state === 'takeoff' || S.state === 'relevo' || S.state === 'landing')) stepTormenta(dt, HOR, W);
       run.fgzTormenta = cfg.sky === 'storm' ? fogonazoTormenta() : 0;   // (lo lee la ola gigante: render/world.js)
       detectando(S.state === 'play' && radarAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && run.detection > 0.01);
@@ -8076,7 +8095,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // el destello propio del sol y se derramaria dos veces— y antes de los tintes y del HUD.
       // LA NOCHE (render/noche.js, 4/10): todo oscuro y la luz de cada fuente lo abre. Va ANTES del
       // resplandor, que de noche se pega mas fuerte: ahi la luz es todo lo que se ve.
-      const noche = islas.enPasillo() ? null : nocheDe(cfg.sky);   // (LAS ISLAS: el temporal es cielo plomo, no noche — la luz la pone su clima)
+      const noche = nocheFundida(islas.enPasillo() ? null : nocheDe(cfg.sky));   // (LAS ISLAS: el temporal es cielo plomo, no noche — la luz la pone su clima; fundida: ver nocheFundida)
       // LA VISION DEL RADAR (ver mas abajo), DE NOCHE VA ANTES DE LA OSCURIDAD (4/10, el autor:
       // "oscurece el tinte verde del radar de noche"): asi la misma noche lo apaga, y queda un verde
       // tenue en vez de una pantalla verde encendida en medio de lo negro.

@@ -427,6 +427,10 @@ const r6 = {
   contexto: 'R6_CONTEXTO', epi: 'R6_LO_QUE_PASO',
 };
 
+/** LAS QUE SE JUEGAN (23/11, el autor: "vamos solo con la del Invincible y el resto dejemoslas bloqueadas tambien
+ *  como EN DESARROLLO"): las demas se ven en su lugar del libro, en gris, y no se entran (el modo DEV las abre).
+ *  Se van sumando a medida que cada una tenga sus laminas y su repaso. */
+export const LIBRO_ABIERTAS = ['r5'];
 /** Las salidas, en orden de fecha: es el orden del LIBRO DE VUELO. */
 export const LIBRO_VUELO = [r6, r1, r2, r3, r5, r4];
 
@@ -460,9 +464,19 @@ export const LIBRO_PROXIMAS = [
 // otra TARJETA. Una linea por frase larga: la tarjeta pasa de a una.
 // `rotulo` (opcional): la linea CHICA de arriba del titulo, donde las misiones dicen CAPÍTULO N (autor,
 // 16/10: "LO QUE PASÓ tambien chico, arriba"). El titulo grande queda solo con el nombre.
+// LAS LAMINAS (23/11, el autor: "agregarles graficos e imagenes de elementos, bombas, barcos, aviones, y todo lo que
+// ayude al texto, no llenar pero si ayudar, con ese efecto verde… todo lineas o vectorizado"): una linea puede ser
+// `[texto, lamina, rotulo]` — la lamina es assets/libro/<lamina>.png (dibujo de linea en fosforo verde, horneado por
+// tools/blender/hornear_laminas.py) y se dibuja a la derecha de la tarjeta mientras se tipea (render/screens.js
+// drawTarjeta); el `rotulo` va chico debajo. Con lamina el texto se angosta a LAMINA_WRAP caracteres.
+const LAMINA_WRAP = 38;
 const tarjeta = (id, titulo, lineas, rotulo) => ({
   id, tipo: 'TARJETA', titulo, rotulo,
-  lineas: lineas.map((es, i) => ({ id: id + '_' + String((i + 1) * 10).padStart(3, '0'), personaje: null, cara: null, hold: 0, es, en: '' })),
+  lineas: lineas.map((l, i) => {
+    const [es, lamina, laminaTxt] = Array.isArray(l) ? l : [l];
+    return { id: id + '_' + String((i + 1) * 10).padStart(3, '0'), personaje: null, cara: null, hold: 0, es, en: '',
+      ...(lamina ? { lamina, laminaTxt: laminaTxt || '', wrap: LAMINA_WRAP } : {}) };
+  }),
 });
 const dato = m => m.fecha + ' · ' + m.hora + ' · ' + m.despegue.desde;
 
@@ -475,8 +489,16 @@ export const LIBRO_SCENES = {
   R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', r3.name, ['21 de mayo de 1982. Los tres A-4Q le pegaron a la HMS Ardent; la segunda sección, ocho minutos después, también. La fragata se hundió.', 'A la salida, dos Sea Harrier derribaron a los tres: dos pilotos se eyectaron y sobrevivieron; el tercero no volvió.'], 'rot_lqp'),
   R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4), 'El Dagger era la versión israelí del Mirage 5, de la Fuerza Aérea: más rápido que el Skyhawk, pero sin sonda para cargar nafta en vuelo.', 'Por eso volaba con tres tanques y dos bombas de 250 kg: el alcance justo para ir, atacar y volver.', '8 de junio. Dos escuadrillas de Dagger, PERRO y GATO, salen de Río Grande. Uno vuelve porque un pájaro le rompe el parabrisas: quedan cinco.', 'El Dagger no carga nafta en vuelo: lo que llevás es lo que hay.']),
   R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', r4.name, ['8 de junio de 1982. Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.', 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.'], 'rot_lqp'),
-  R5_CONTEXTO: tarjeta('R5_CONTEXTO', r5.name, [dato(r5), 'Era el último Exocet: de los cinco que llegaron de Francia quedaba uno. Esta vez salía acompañado por cuatro A-4C de la Fuerza Aérea.', 'El Super Étendard lanza de lejos y se vuelve. El A-4C no lleva misiles: su trabajo es que el Exocet llegue.', '30 de mayo. Salen de Río Grande y cargan de dos KC-130 en la ida. Entran al ras por el sur del grupo de portaaviones.']),
+  R5_CONTEXTO: tarjeta('R5_CONTEXTO', r5.name, [
+    [dato(r5), 'mapa_invincible', 'RÍO GRANDE → EL GRUPO DE PORTAAVIONES'],
+    ['Era el último Exocet: de los cinco que llegaron de Francia quedaba uno. Esta vez salía acompañado por cuatro A-4C de la Fuerza Aérea.', 'exocet', 'EXOCET AM39 · EL ÚLTIMO'],
+    ['El Super Étendard lanza de lejos y se vuelve. El A-4C no lleva misiles: su trabajo es que el Exocet llegue.', 'supere_exocet', 'SUPER ÉTENDARD · EXOCET AM39'],
+    ['30 de mayo. Salen de Río Grande y cargan de dos KC-130 en la ida. Entran al ras por el sur del grupo de portaaviones.', 'kc130', 'KC-130 HÉRCULES · REABASTECIMIENTO'],
+  ]),
   R6_CONTEXTO: tarjeta('R6_CONTEXTO', r6.name, [dato(r6), PENDIENTE]),
   R6_LO_QUE_PASO: tarjeta('R6_LO_QUE_PASO', r6.name, [PENDIENTE], 'rot_lqp'),
-  R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', r5.name, ['30 de mayo de 1982. Según la Argentina, el Exocet y las bombas alcanzaron al HMS Invincible. Según los británicos, el misil cayó al mar y los A-4C atacaron a la fragata Avenger sin acertar.', 'Dos de los cuatro A-4C fueron derribados; sus pilotos no volvieron.'], 'rot_lqp'),
+  R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', r5.name, [
+    ['30 de mayo de 1982. Según la Argentina, el Exocet y las bombas alcanzaron al HMS Invincible. Según los británicos, el misil cayó al mar y los A-4C atacaron a la fragata Avenger sin acertar.', 'invincible', 'HMS INVINCIBLE'],
+    ['Dos de los cuatro A-4C fueron derribados; sus pilotos no volvieron.', 'a4c', 'A-4C SKYHAWK'],
+  ], 'rot_lqp'),
 };

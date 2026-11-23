@@ -225,7 +225,7 @@ export const run = {
  *  casi en cero porque el avion esta detenido en la pista (el despegue lo acelera). */
 export function resetRun() {
   Object.assign(run, {
-    t: 0, dist: 0, spd: 6, fuelDist: 0,
+    t: 0, dist: 0, spd: 6, fuelDist: 0, sosten: 1,   // (sosten: la flechita de LT de SUAVE, 23/11 — arranca llena)
     integ: 100, escudo: 1, escudoT: 0, hurtT: 0,
     fuel: 100, tanque: null, naftaCap: 0, fuelSync: 100, naftaKm: false, naftaCap0: 0, chapitas: 0, chapitasMax: 0, chapitasOnda: 0, secundaria: 'bomba', heat: 0, overheat: false, detection: 0, radarVisto: false, radarWave: 0, radarSeen: false, estrellas: 0, climaxHecho: 0, boost: false, throttle: 0,
     score: 0, mult: 1, multShow: 1, streak: 0, rasLevel: 0, graceT: 0, rasAlto: -9,

@@ -1746,3 +1746,9 @@ De `src/data/islas_teatro.js` (BUQUES, DEFENSA, BOMBA, FUSILES). Los números so
 - **Lo nuestro en el agua el 24 de mayo:** se pusieron el ARA Bahía Buen Suceso en Bahía Fox (dañado el 16), el costero Monsunen cerca de Darwin y el guardacostas GC Islas Malvinas de Prefectura en Puerto Argentino. ¿Dónde estaba cada uno ese día? ¿Hubo otros?
 - **Las LCU** de San Carlos: nombres puestos como ejemplo (F1, F4, T2: las de Fearless e Intrepid).
 - **Los blindados** británicos (Scorpion / Scimitar) en la cabeza de playa: ¿cuántos y dónde?
+
+## Las láminas del libro de vuelo (23/11)
+
+De `tools/blender/armar_laminas.py` (`assets/libro/`), las del Invincible:
+- **El mapa** (`mapa_invincible`) es esquemático: la ida pasa al sur de las islas, la cruz del reabastecimiento con los KC-130 va en ~61,2°O 53,0°S y el blanco en ~56,0°O 52,45°S. ¿Dónde cargaron de verdad y dónde estaba el grupo de portaaviones el 30 de mayo?
+- **El Invincible** es un modelo simple hecho para la lámina (cajas): la rampa va a 9° (la real era de 7°) para que se lea.

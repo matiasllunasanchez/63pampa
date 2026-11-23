@@ -60,7 +60,7 @@ export const cfg = {
   // OPCIONES lo cambia y lo guarda en 'rasante_vert'. Default: VERT_DEF.
   // EL DIRECTOR DE LA DIFICULTAD (22/11, systems/director.js): prendido salvo que OPCIONES lo apague
   director: true,
-  vert: (() => { try { const v = JSON.parse(localStorage.getItem('rasante_vert')); return ['gas', 'fija', 'planeo'].includes(v) ? v : VERT_DEF; } catch (e) { return VERT_DEF; } })(),
+  vert: (() => { try { const v = JSON.parse(localStorage.getItem('rasante_vert')); return ['gas', 'fija', 'planeo', 'planeo_m'].includes(v) ? v : VERT_DEF; } catch (e) { return VERT_DEF; } })(),
   // LAS TRES CAPAS DEL CLIMAX 3D, TAMBIEN EN EL PASILLO (PLAN_MEJORAS_3D P3/P6/P2). Nacieron
   // para la escena del climax y valen igual aca, porque el pasillo tiene su propia escena 3D (el
   // buque del final y, con AGUA 3D puesta, el mar). Son PRESENTACION PURA: ninguna toca una

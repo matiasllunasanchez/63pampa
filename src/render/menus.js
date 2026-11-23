@@ -847,6 +847,8 @@ function campText(r) {
   // aca: son del detalle de la mision, al entrar.
   if (r.id === 'libro') {
     const m = LIBRO_VUELO[r.k], av = PLANES.find(p => p.key === m.aviones[0].plane);
+    // (la bloqueada, EN DESARROLLO como las que vienen: 23/11)
+    if (r.disabled) return { name: m.name, marca: T('libroProximamente'), desc: m.fecha + '  ·  ' + T('libroEnDesarrollo'), compacta: true };
     return { name: m.name, desc: m.fecha + '  ·  ' + m.hora + ' ' + T('libroHora_' + m.horaQue) + '  ·  ' + (av ? av.name : ''),
       compacta: true };
   }
@@ -1331,8 +1333,13 @@ export function drawControles(w) {
     // DISPOSICION: la lamina del tutorial (render/mando.js), del mando que elige el switch. Esta dibujada en la grilla de
     // diseño (320x180): se escala para que entre debajo de las pestañas sin su titulo (el de la pantalla ya lo dice)
     const k = (NH - 66 - 16) / (H - 36);
-    ctx.save(); ctx.beginPath(); ctx.rect(0, 66, NW, NH - 66 - 14); ctx.clip();
-    ctx.translate((NW - W * k) / 2, 66 - 34 * k); ctx.scale(k, k);
+    // CENTRADA en lo que queda (23/11, el autor: "centralo"): lo que ocupa cada lamina en la grilla de diseño —el joystick,
+    // el PNG y sus rotulos de y 37 a 118; el teclado entero con su leyenda y lo del mouse, de 36 a 156— va al medio del hueco (34 a 178).
+    // El recorte arranca justo arriba de eso: el titulo propio de la lamina (EL JOYSTICK…) aca no va
+    const [c0, c1] = w.joy ? [34, 118] : [36, 156], baja = (34 + 178) / 2 - (c0 + c1) / 2;
+    const oy = 66 - 34 * k + baja * k, techo = Math.max(66, oy + (c0 - 1) * k);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, techo, NW, NH - 14 - techo); ctx.clip();
+    ctx.translate((NW - W * k) / 2, oy); ctx.scale(k, k);
     drawMando({ pad: !!w.joy, t: performance.now() / 1000, completo: true });
     ctx.restore();
     yFin = NH;

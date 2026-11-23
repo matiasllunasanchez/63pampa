@@ -36,7 +36,7 @@ const topeSube = y => 18 + (ALTO.VY_SUBE - 18) * kAlto(y);
 const topeBaja = y => -(20 + (ALTO.VY_BAJA - 20) * kAlto(y));
 import { MSL_MAX, MSL_REGEN_HERC, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE, GEO_ISLA_IMPACTO,
          METRALLAS, calorTiro, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
-         FUEL_RATE, VERT_FIJA, VERT_PLANEO, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
+         FUEL_RATE, VERT_FIJA, VERT_PLANEO, VERT_LATERAL, VERT_SOSTEN, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
@@ -127,19 +127,29 @@ function vertLibre(dt, G, TH, DIVE) {
   sinGasT = gas ? 0 : sinGasT + dt;
   // MANTENER (LT/L2, 22/11): sin ↑ ni ↓, la altura se queda donde esta — como ESTABLE mientras se aprieta
   const mant = inp.mant && !gas && !inp.d;
-  if (cfg.vert === 'fija' || mant) {
+  // ESTABLE Y SUAVE (23/11): ↑ ↓ como ← → — acelera parejo, al soltar frena y se queda. En SUAVE, ademas, sin SOSTEN
+  // (la flechita que carga LT) el avion se va asentando hacia abajo
+  if (cfg.vert === 'fija' || cfg.vert === 'planeo' || cfg.vert === 'planeo_m') {
+    const L = VERT_LATERAL, S0 = VERT_SOSTEN, dir = (inp.u ? 1 : 0) - (inp.d ? 1 : 0);
+    let sosten = 1;
+    if (cfg.vert === 'planeo') {
+      run.sosten = Math.max(0, Math.min(1, (run.sosten ?? 1) + (inp.mant ? dt / S0.LLENA_S : -dt / S0.DURA_S)));
+      sosten = run.sosten;
+    } else if (cfg.vert === 'planeo_m') { run.sosten = inp.mant ? 1 : 0; sosten = run.sosten; }
+    if (dir) { plane.vy += dir * L.ACEL * reac * dt; sinGasT = 0; }
+    else {
+      plane.vy *= Math.max(0, 1 - L.FRENO * reac * dt);
+      if (sosten <= 0) {
+        // sin sosten: la caida llega de a poco (DEMORA) y se topea en CAIDA
+        const quiere = -S0.CAIDA * Math.min(1, sinGasT / S0.DEMORA);
+        if (plane.vy > quiere) plane.vy += (quiere - plane.vy) * Math.min(1, dt * 3);
+      } else sinGasT = 0;
+    }
+    plane.vy = Math.max(-30, Math.min(30, plane.vy));
+  } else if (mant) {
     const tgt = (gas ? VERT_FIJA.SUBE : 0) - (inp.d ? VERT_FIJA.BAJA : 0);
     plane.vy += (tgt * reac - plane.vy) * Math.min(1, dt * VERT_FIJA.RESP);
     if (mant) sinGasT = 0;   // al soltarlo, SUAVE arranca su planeo de nuevo (no cae de golpe)
-  } else if (cfg.vert === 'planeo' && gas) {
-    // SUAVE: ↑ SUBE YA (22/11, el autor: "si mueve para arriba se mueve inmediatamente") — la subida de ESTABLE
-    plane.vy += (VERT_FIJA.SUBE * reac - plane.vy) * Math.min(1, dt * VERT_FIJA.RESP);
-  } else if (cfg.vert === 'planeo') {
-    const P = VERT_PLANEO, peso = Math.min(1, sinGasT / P.DEMORA);
-    plane.vy += ((gas ? P.TH * reac : 0) - P.G * peso - (inp.d ? P.DIVE * reac : 0)) * dt;
-    if (!gas && plane.vy > 0) plane.vy *= Math.exp(-P.AMORT * dt);               // soltar frena la subida: sin subibaja
-    if (!inp.d && plane.vy < -P.CAIDA) plane.vy += (-P.CAIDA - plane.vy) * Math.min(1, dt * 4);
-    plane.vy = Math.min(P.SUBE, plane.vy);
   } else {
     plane.vy += ((gas ? TH * reac : 0) - G - (inp.d ? DIVE * reac : 0)) * dt;
   }

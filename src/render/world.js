@@ -1443,7 +1443,9 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
       }
       const h = hBase + hOla;
       const s = proj(wx, h, desdeAlto ? camZ + (hash2(Math.round(wx * 4), Math.round(wzFila * 4) + 7) - 0.5) * pasoZ : camZ);
-      if (s.x < -4 || s.x > W + 4 || s.y < HOR - 2) continue;
+      // (23/11, el autor: "las olas grandes a veces se ven cortadas por el horizonte"): el agua lisa no pasa del
+      // horizonte, pero la OLA que se levanta por encima de tus ojos si — antes se cortaba toda en HOR - 2
+      if (s.x < -4 || s.x > W + 4 || (s.y < HOR - 2 && hOla < 0.4) || s.y < -4) continue;
       let hn = (h + 1.4) / 4.8;                              // altura normalizada ~0..1
       hn = hn < 0 ? 0 : hn > 1 ? 1 : hn;
       // bandas de luz que viajan por la superficie (movimiento visible aun en la distancia)

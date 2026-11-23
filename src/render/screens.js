@@ -775,7 +775,7 @@ export function drawStory(w) {
 //   · y la viñeta: las esquinas mas oscuras, como el vidrio curvo de un tubo.
 // La barra que baja (la que gusto) es la de drawStory, comun a todas las escenas: no se toca.
 const VIEJA = { verde: '94, 245, 138', radar: { r: 24, dx: 50, dy: 48 } };
-function pantallaVieja(t) {
+function pantallaVieja(t, sinRadar = false) {
   const V = VIEJA.verde;
   ctx.save();
   // la grilla
@@ -788,7 +788,8 @@ function pantallaVieja(t) {
   for (const [x, y, sx, sy] of [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]) {
     ctx.beginPath(); ctx.moveTo(x + sx * E, y); ctx.lineTo(x, y); ctx.lineTo(x, y + sy * E); ctx.stroke();
   }
-  // EL RADAR
+  // EL RADAR (no, si la linea trae LAMINA: ocupa ese lugar)
+  if (!sinRadar) {
   const R = VIEJA.radar.r, cx = W - VIEJA.radar.dx, cy = H - VIEJA.radar.dy;
   const ang = (t * 1.6) % (Math.PI * 2);
   ctx.strokeStyle = `rgba(${V}, 0.22)`; ctx.lineWidth = 0.5;
@@ -814,6 +815,7 @@ function pantallaVieja(t) {
   ctx.font = 'bold 5px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = `rgba(${V}, 0.5)`;
   const grados = Math.round(((ang + Math.PI / 2) * 180 / Math.PI) % 360);
   ctx.fillText(`AZ ${String(grados).padStart(3, '0')}°`, cx - R - 4, cy + R - 1);
+  }
   // EN LINEA, titilando
   if ((t % 1.2) < 0.8) {
     ctx.fillStyle = `rgba(${V}, 0.6)`; ctx.fillRect(W - 50, 17, 3, 3);
@@ -834,8 +836,51 @@ function pantallaVieja(t) {
 }
 
 const TARJ = { x: 18, cap: 30, titulo: 54, renglon: 20, wrap: 25, rojo: '#d63a2c', fosforo: '#5ef58a', brillo: 'rgba(94, 245, 138, 0.55)' };
+// LA LAMINA DE LA LINEA (23/11, data/libro_vuelo.js `tarjeta`): el dibujo de linea en fosforo verde de lo que dice el
+// renglon —el avion, el misil, el buque, el mapa—, a la derecha del texto. SE DIBUJA MIENTRAS SE TIPEA: una barrida de
+// izquierda a derecha con un borde mas brillante (el haz), titila apenas como la letra, lleva las lineas de barrido
+// del monitor encima, cuatro escuadras chicas alrededor y el rotulo abajo.
+const LAM = { x: 186, y: 64, w: 120, h: 67.5, src: '../assets/libro/' };   // (la pantalla de la tarjeta es de 320 x 180)
+const LAM_IMG = {};
+function laminaImg(n) {
+  let im = LAM_IMG[n];
+  if (!im) { im = LAM_IMG[n] = new Image(); im.src = LAM.src + n + '.png'; }
+  return im.complete && im.naturalWidth ? im : null;
+}
+function drawLamina(ln, d) {
+  const im = laminaImg(ln.lamina);
+  const largo = Math.max(1, String(ln.es || '').length);
+  const k = Math.max(0, Math.min(1, d.typed / (largo * 0.55)));   // termina de dibujarse antes que el texto
+  const { x, y, w, h } = LAM, V = VIEJA.verde;
+  ctx.save();
+  // las escuadras de la lamina
+  ctx.strokeStyle = `rgba(${V}, ${0.25 + 0.3 * k})`; ctx.lineWidth = 0.6;
+  const E = 5;
+  for (const [cx, cy, sx, sy] of [[x - 3, y - 3, 1, 1], [x + w + 3, y - 3, -1, 1], [x - 3, y + h + 3, 1, -1], [x + w + 3, y + h + 3, -1, -1]]) {
+    ctx.beginPath(); ctx.moveTo(cx + sx * E, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + sy * E); ctx.stroke();
+  }
+  if (im && k > 0) {
+    // la barrida: lo dibujado hasta ahora, y el haz en el borde
+    const cw = w * k;
+    ctx.globalAlpha = 0.85 + Math.random() * 0.15;
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, cw, h); ctx.clip();
+    ctx.drawImage(im, x, y, w, h);
+    ctx.restore();
+    if (k < 1) { ctx.globalAlpha = 0.6; ctx.fillStyle = `rgba(${V}, 0.5)`; ctx.fillRect(x + cw - 0.6, y, 1.2, h); }
+    // el barrido del monitor encima
+    ctx.globalAlpha = 0.3; ctx.fillStyle = '#000';
+    for (let yy = y; yy < y + h; yy += 1) ctx.fillRect(x, yy, cw, 1 / 3);
+  }
+  // el rotulo, cuando ya esta dibujada
+  if (ln.laminaTxt && k >= 1) {
+    ctx.globalAlpha = 0.9; ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = TARJ.fosforo; ctx.shadowColor = TARJ.brillo; ctx.shadowBlur = 4;
+    ctx.fillText(ln.laminaTxt, x + w / 2, y + h + 11);
+  }
+  ctx.restore();
+}
 function drawTarjeta(w, d, sc, ln) {
-  pantallaVieja(w.t || 0);
+  pantallaVieja(w.t || 0, !!(ln && ln.lamina));
   ctx.textAlign = 'left';
   // la linea chica de arriba: CAPÍTULO N en las misiones, o el `rotulo` de la tarjeta (LO QUE PASÓ)
   const rot = sc.rotulo ? T(sc.rotulo) : sc.capitulo ? T('tarj_capitulo', { n: sc.capitulo }) : '';
@@ -886,6 +931,7 @@ function drawTarjeta(w, d, sc, ln) {
     for (let y = yText - 8; y < yFin + 3; y += 1) ctx.fillRect(TARJ.x - 2, y, W - TARJ.x * 2 + 4, 1 / 3);
     ctx.globalAlpha = 1;
   }
+  if (ln && ln.lamina) drawLamina(ln, d);
   const last = d.si + 1 >= d.seq.length && d.li + 1 >= ((sc.lineas || []).length);
   // LOS CONTROLES, VERDES Y ADENTRO DE LAS ESCUADRAS (autor, 16/10): la caja es el recuadro que
   // marcan las cuatro esquinas de pantallaVieja, y el verde es el del fosforo

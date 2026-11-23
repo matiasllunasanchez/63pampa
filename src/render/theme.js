@@ -18,8 +18,43 @@ export const theme = {
   cland: CLAND,
 };
 
+// EL CAMBIO PAULATINO (23/11, el autor: "en POR LA PATRIA estoy andando a la tarde y se vuelve de noche de una… debe ser
+// paulatino, con opacidad"): con `dur` (segundos), el tema no salta al cielo nuevo — mezcla color por color desde el
+// que estaba (`pasoTema`, cada cuadro). Sin `dur`, como siempre: de una (arranque, menu, el video del viraje).
+let trans = null;   // { de: {sky, water, land, cland}, a: {…}, t, dur }
+const hex2 = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+const esHex = c => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c);
+function mezcla(a, b, k) {
+  const o = {};
+  for (const key of new Set([...Object.keys(a || {}), ...Object.keys(b || {})])) {
+    const x = a && a[key], y = b && b[key];
+    if (esHex(x) && esHex(y)) {
+      const p = hex2(x), q = hex2(y);
+      o[key] = '#' + p.map((v, i) => Math.round(v + (q[i] - v) * k).toString(16).padStart(2, '0')).join('');
+    } else o[key] = k < 0.5 && x !== undefined ? x : y;
+  }
+  return o;
+}
+/** Un paso de la mezcla (segundos de pared). Devuelve true mientras siga mezclando. */
+export function pasoTema(dt) {
+  if (!trans) return false;
+  trans.t = Math.min(trans.dur, trans.t + dt);
+  // (en escalones de 1/24: las capas horneadas con la paleta —sierras, nubes— se rehacen pocas veces, no cada cuadro)
+  const u = Math.round((trans.t / trans.dur) * 24) / 24, k = u * u * (3 - 2 * u);
+  if (trans.u !== u) {
+    trans.u = u;
+    for (const c of ['sky', 'water', 'land', 'cland']) theme[c] = u >= 1 ? trans.a[c] : mezcla(trans.de[c], trans.a[c], k);
+  }
+  if (trans.t >= trans.dur) { trans = null; return false; }
+  return true;
+}
+/** ¿Esta mezclando? (0..1 de avance, o null). */
+export const temaMezcla = () => (trans ? trans.t / trans.dur : null);
+
 /** Resuelve el tema desde cfg. Lo llama applyCfg() cada vez que cambia el cielo o el agua. */
-export function applyTheme(cfg) {
+export function applyTheme(cfg, dur) {
+  const de = dur > 0 ? { sky: theme.sky, water: theme.water, land: theme.land, cland: theme.cland } : null;
+  trans = null;
   // AGUA EN AUTO (F5): el mar lo elige el CIELO. Es el default, y la razon es que la mision ya
   // decide el cielo en campaña: sin esto, un temporal se jugaba sobre el mismo mar celeste del
   // atardecer y el clima quedaba a medio contar. Elegir un estilo a mano sigue mandando — la
@@ -34,4 +69,8 @@ export function applyTheme(cfg) {
   const l = LAND_AUTO[cfg.sky];
   theme.land = (l && LAND_STYLES[l]) || LAND;
   theme.cland = (l && CLAND_STYLES[l]) || CLAND;
+  if (de) {
+    trans = { de, a: { sky: theme.sky, water: theme.water, land: theme.land, cland: theme.cland }, t: 0, dur, u: -1 };
+    for (const c of ['sky', 'water', 'land', 'cland']) theme[c] = de[c];   // arranca donde estaba
+  }
 }

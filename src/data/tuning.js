@@ -2672,6 +2672,16 @@ export const FRENTE = { VISTA: 4200, BASE: 190, TOPE: 700, NIEBLA_M: 420, NIEBLA
 //              a lo sumo `CAIDA` m/s, y el empuje es chico con la subida topeada (`SUBE`) y frenada al soltar (`AMORT`):
 //              un toque cada 3–4 s lo mantiene, sin subibaja. Medido en Node desde 6 m: sin gas al agua en 3,1 s
 //              (NORMAL: 0,6 s); un toque de 0,3 s lo levanta 1,3 m; gas sostenido sube a 7 m/s.
-export const VERT_MODOS = ['gas', 'fija', 'planeo'];
+// (23/11, el autor: "el estable es sin gas y el avion responde hacia abajo o arriba TAN RAPIDO COMO LOS COSTADOS, porque es
+// lo mismo"; "el suave deberia ser asi: el stick arriba o abajo es literal volar hacia arriba o abajo, rapido como los
+// laterales; el trigger trasero izquierdo CARGA una flechita que mantiene la altura, y se gasta sola; vacia, el avion
+// empieza a bajar"; "podriamos probar MANTENER tambien"): ESTABLE y las dos SUAVE manejan la vertical igual que el lateral
+// (VERT_LATERAL: los numeros de systems/flight.js para ← →). SUAVE · CARGA: LT llena el SOSTEN y se vacia solo;
+// SUAVE · MANTENER: sostiene solo mientras se aprieta LT. Sin sosten, cae despacio (VERT_SOSTEN.CAIDA).
+export const VERT_MODOS = ['gas', 'fija', 'planeo', 'planeo_m'];
+export const VERT_LATERAL = { ACEL: 115, FRENO: 4.5 };
+//   LLENA_S  segundos de LT para llenar la flechita · DURA_S  lo que dura llena hasta vaciarse sola
+//   CAIDA    m/s de caida sin sosten · DEMORA  s para llegar a esa caida (no se desploma: se va asentando)
+export const VERT_SOSTEN = { LLENA_S: 0.45, DURA_S: 6, CAIDA: 2.5, DEMORA: 0.8 };
 export const VERT_FIJA = { SUBE: 16, BAJA: 20, RESP: 6 };          // m/s al apretar, y que tan rapido llega / se clava
 export const VERT_PLANEO = { G: 3, TH: 12, CAIDA: 1.2, SUBE: 7, AMORT: 4, DEMORA: 1, DIVE: 30 };

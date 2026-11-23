@@ -42,7 +42,8 @@ const TECLAS = [
   { t: 'A', c: 1.3, f: 2, ac: 'Fly' }, { t: 'S', c: 2.3, f: 2, ac: 'Dive' }, { t: 'D', c: 3.3, f: 2, ac: 'Fly' }, { t: 'F', c: 4.3, f: 2, ac: 'Radar' },
   { t: 'SHIFT', c: 0, f: 3, w: 1.8, ac: 'Mant' }, { t: 'ESPACIO', c: 2.6, f: 4, w: 4.2, ac: 'Gun' },
   // la mano derecha: las flechas son el stick derecho, y alrededor los botones de la derecha
-  { t: 'ENTER', c: 8.6, f: 1.5, w: 1.8, ac: 'Boost' }, { t: 'SHIFT', c: 8, f: 3, w: 2, ac: 'TiraB' },
+  // (23/11, el autor: SHIFT der la poscombustion y ENTER la bomba)
+  { t: 'ENTER', c: 8.6, f: 1.5, w: 1.8, ac: 'TiraB' }, { t: 'SHIFT', c: 8, f: 3, w: 2, ac: 'Boost' },
   { t: 'CTRL', c: 8.4, f: 4, w: 1.6, ac: 'Gun' },
   { t: '↑', c: 11, f: 3, ac: 'Pan' }, { t: '←', c: 10, f: 4, ac: 'Roll' }, { t: '↓', c: 11, f: 4, ac: 'MiraB' }, { t: '→', c: 12, f: 4, ac: 'Roll' },
   // la cruceta, en el numpad
@@ -122,6 +123,13 @@ function dibujarTecladoCompleto() {
     ctx.font = 'bold 4px monospace'; ctx.fillText(T('ctrl' + ac), x + 5, y, cw - 7);
     ctx.font = '3.4px monospace'; ctx.fillStyle = P.dim; ctx.fillText(T('ctrl' + ac + 'K'), x + 5, y + 4.2, cw - 7);
   });
+  // CON LA MANO EN EL MOUSE (23/11): lo que cambia, debajo. Se prende solo al mover el mouse en vuelo (core/input.js)
+  const ym = yl + Math.ceil(vistos.length / cols) * 10 + 3;
+  ctx.fillStyle = BORDE; ctx.fillRect(x0, ym - 4, ancho, 0.4);
+  ctx.font = 'bold 4px monospace'; ctx.fillStyle = P.accent; ctx.fillText(T('mandoMouseTit'), x0, ym);
+  ctx.font = '3.6px monospace'; ctx.fillStyle = '#c9d2d6';
+  ctx.fillText(T('mandoMouse1'), x0, ym + 5.5, ancho);
+  ctx.fillText(T('mandoMouse2'), x0, ym + 10.5, ancho);
 }
 
 function flechita(x, y, d, col) {

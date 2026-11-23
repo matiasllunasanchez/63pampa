@@ -1736,6 +1736,29 @@ function machChico(x, y, mach) {
   ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * (r - 1.6), cy + Math.sin(a) * (r - 1.6)); ctx.lineTo(cx + Math.cos(a) * (r + 0.3), cy + Math.sin(a) * (r + 0.3)); ctx.stroke();
   ctx.restore();
 }
+// EL SOSTEN (23/11, el autor: "el casteo o tiempo que tarda la altura en empezar a descender, con un indicador similar al
+// del MACH: presiono el trigger trasero izquierdo y cargo esa flechita"): el mismo relojito, en la esquina de arriba a la
+// derecha del ALTIMETRO, solo en GAS MODO SUAVE. La aguja es la carga (run.sosten); se apaga a gris vacia y titila en rojo
+// cuando queda poco: es cuando hay que volver a apretar LT
+function sostenChico(x, y, k) {
+  const r = 3.2, cx = x + CUADRO - r - 0.8, cy = y + r + 0.8;
+  const ang = f => Math.PI * 0.75 + Math.PI * 1.5 * Math.max(0, Math.min(1, f));
+  const poco = k < 0.25, col = k <= 0 ? '#5d6a71' : poco ? (Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e') : P.accent;
+  ctx.save();
+  ctx.fillStyle = '#0d1418'; ctx.beginPath(); ctx.arc(cx, cy, r + 0.6, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#4e5a62'; ctx.lineWidth = 0.6; ctx.stroke();
+  // LOS NIVELES, como el mach (23/11, el autor: "ponele niveles al reloj, como el de mach"): cinco marcas, la de arriba
+  // mas larga, que se prenden en el color de la carga hasta donde llega
+  for (let m = 0; m <= 4; m++) {
+    const am = ang(m / 4), r0 = m === 4 ? r - 1.4 : r - 0.8;
+    ctx.strokeStyle = k > 0 && k >= m / 4 - 0.001 ? col : '#5d6a71'; ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(am) * r0, cy + Math.sin(am) * r0); ctx.lineTo(cx + Math.cos(am) * r, cy + Math.sin(am) * r); ctx.stroke();
+  }
+  const a = ang(k);
+  ctx.strokeStyle = col; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * (r - 1.6), cy + Math.sin(a) * (r - 1.6)); ctx.lineTo(cx + Math.cos(a) * (r + 0.3), cy + Math.sin(a) * (r + 0.3)); ctx.stroke();
+  ctx.restore();
+}
 // (21/11, el autor: "los valores no hacen falta tal como los pusiste: una escala logica de hielo, con el 0 en el
 // medio"): de -20 a +20, el 0 arriba de todo (marca larga y su numero, el unico), la franja del hielo en amarillo
 const TA_MIN = -20, TA_MAX = 20;
@@ -3319,6 +3342,7 @@ export function drawHUD(h) {
     // momento de soltar: el mismo latido que la cinta y el estante.
     borde: h.sueltaYa ? (titilaSuelta() ? SUELTA_COL : null) : enSuelta ? SUELTA_COL : null,
     txt: Math.round(altVista) + 'm', txtCol: visto ? P.warn : P.dim }, gAl));
+  if ((cfg.vert === 'planeo' || cfg.vert === 'planeo_m') && !h.altFija) sostenChico(xVuelo(2), CUADROS_Y, run.sosten ?? 1);
   // LA ALTURA TRABADA (LAS ISLAS desde arriba, autor 19/11: "marcar locked o un candado en el marcador de
   // altura"): desde la vista cenital la altura queda clavada, y el reloj lo dice con un CANDADO en la punta
   // de arriba a la derecha y el borde fijo en el color del candado
