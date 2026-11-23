@@ -899,7 +899,10 @@ export function initInput(cv, a) {
       // el rasante era de las ultimas acciones solo de teclado. El eje Y se invierte en OPCIONES.
       // (19/11, el autor: "el momentum NO PUEDE ser select" — y △ no hacia nada: RASANTE ya no se lanza a mano, lo
       // dispara la racha, y la tecla solo lo corta). △ = MOMENTUM; el corte de RASANTE pasa a SELECT.
-      if (hit(3) && S.state === 'play') a.tempoToggle();
+      // (23/11, el autor: "el cañon del trigger de arriba, momentum"): MOMENTUM paso a R1 (RB) y △ (Y) quedo para el RADAR,
+      // que dejo libre a □ (X) — ahora SOLTAR SECUNDARIA, como L1 (ver `l1` mas abajo)
+      if (hit(5) && S.state === 'play' && !down(4)) a.tempoToggle();   // (con L1 apretado, R1 es la eyeccion)
+      if (hit(3) && S.state === 'play' && a.radarToggle) a.radarToggle();
       // (◯ ya no es la media vuelta del arena: el 3D vuela con los controles del pasillo, y la media
       // vuelta sale con el combo del SPLIT-S, ↑↓↓ — con los sticks, igual que en el teclado)
       // CRUCETA ARRIBA = EL PODER DEL RECURSO DEL MODO: reparto de energia en el arena, LA CHANCHA
@@ -926,12 +929,12 @@ export function initInput(cv, a) {
       // con ▲ y se lanza con R3 (o L1), sea bomba, tanques o chafitas.
       // ◯ = LAS CHAPITAS en vuelo (8/10). Era el unico boton sin dueño en 'play' (en los menus y la
       // pausa sigue siendo volver: esas pantallas lo leen antes y no llegan aca).
-      // (21/11, el autor: "el freno de las piruetas, una combinación simple de turbo"): R2 + ◯ = EL FRENO en el pasillo.
-      // Con el turbo apretado ◯ frena (cobra, mortal) y no suelta chafitas; sin turbo, ◯ siguen siendo las chafitas
-      const frenoCombo = S.state === 'play' && down(7) && down(1);
-      if (hit(1) && S.state === 'play' && !down(7)) a.chapitas();
+      // EL FRENO DE LAS PIRUETAS (23/11, el autor: "hoy es poscombustion y B, deberia ser MANTENER ALTURA y el sentido
+      // libre del stick derecho, hacia arriba"): L2 (LT, mantener altura) + stick der. ▲ — ▲ solo paneaba la camara.
+      // (antes, 21/11: R2 + ◯; ◯ vuelve a ser solo las chafitas y R2 solo la poscombustion)
+      const frenoCombo = S.state === 'play' && down(6) && ax(3) < -0.5;
+      if (hit(1) && S.state === 'play') a.chapitas();
       // □ (X) EN EL PASILLO = EL RADAR PROPIO, como la [Y] (18/11: L2 paso a ser el gas; □ repetia el secundario de L1)
-      if (hit(2) && S.state === 'play' && a.radarToggle) a.radarToggle();
       // □ (X) = EL TREN en la aproximacion final, como la [T] (18/11): ahi no hay secundario que soltar, y ✕ es
       // el gas, que en el aterrizaje hace falta.
       if (hit(2) && S.state === 'landing') a.gearToggle();
@@ -950,14 +953,14 @@ export function initInput(cv, a) {
       // (21/11, el autor: "con el stick hacia ABAJO manteniendo, y R3 para lanzarla"): la mira es el stick der. ▼ sostenido
       const miraStick = S.state === 'play' && ax(3) > 0.5, r3 = down(11) && S.state === 'play';
       setPad('apunta', miraStick);
-      setPad('fire', down(5) || down(0) || (r3 && miraStick));  // R1 = metralleta (✕ tambien; R3 con la mira = la bomba)
-      setPad('turbo', down(7) && !frenoCombo);                 // turbo (gatillo) — con ◯ deja de empujar: frena
+      setPad('fire', down(0) || (r3 && miraStick));  // ✕ (A) = metralleta (R3 con la mira = la bomba); R1 es MOMENTUM desde el 23/11
+      setPad('turbo', down(7));                                // turbo (gatillo)
       // L1 (□ tambien) = EL SECUNDARIO ELEGIDO en el pasillo, como [Z]: la bomba, los TANQUES (mantener
       // apunta, soltar tira) o las CHAFITAS (al apretar). Lo elegido se TOMA al apretar y se sostiene
       // hasta soltar: cambiar con la cruceta a mitad de una mira no tira nada solo. Fuera del pasillo,
       // la bomba de siempre.
       // (□ ya no repite a L1: en el pasillo es el radar, en el aterrizaje el tren; en el Pulso sigue rematando)
-      const l1 = down(4);
+      const l1 = down(4) || (S.state === 'play' && down(2));   // (□ / X tambien, 23/11: "activar radar cambiarlo a SOLTAR SECUNDARIA")
       flags.padEyect = l1 && down(5);   // L1+R1 juntos = EYECCION (LAS ISLAS sin nafta: game.js `islasSeco`)
       if (l1 && !padHeld.l1) padSec = S.state === 'play' ? a.secundaria() : 'bomba';
       setPad('msl', (l1 && padSec === 'bomba') || (r3 && !miraStick));
@@ -984,7 +987,7 @@ export function initInput(cv, a) {
       // y panea mas rapido cuanto mas lo empujas — algo que el teclado no puede dar.
       const rx = ax(2), ry = ax(3);
       setPad('rollAx', rx);
-      setPad('camAx', miraStick ? 0 : ry);   // (abajo del todo es la mira de la bomba: no mueve la camara)
+      setPad('camAx', miraStick || frenoCombo ? 0 : ry);   // (abajo del todo es la mira de la bomba; con LT, arriba es el freno: no mueven la camara)
       // Y ADEMAS DAN TOQUES: cada cruce de la zona muerta es un tap en MAYUSCULA para el detector
       // de combos. Es lo que hace que las maniobras que ROLAN se pidan con la mano que rola.
       if (teclea) {

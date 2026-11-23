@@ -7071,7 +7071,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // En el FLANCO, no mientras se mantiene: es una maniobra, no un pedal. Las averias criticas la
       // apagan como a toda pirueta.
       // CON [W] es EL MORTAL, el freno con vuelta hacia atras; CON [S], la COBRA MORTAL INVERTIDA.
-      if (inp.brake && !frenoAntes && damage.fx().moves) {
+      // EL FRENO EN TECLADO (23/11): SHIFT izq (mantener altura, el LT) + ↑ (el stick der. ▲) — ademas de ◄ del numpad y [G]
+      const frena = inp.brake || (inp.mant && inp.camU > 0.3);
+      if (frena && !frenoAntes && damage.fx().moves) {
         // CON [S] sale la COBRA MORTAL INVERTIDA, que sigue siendo un acorde: la vuelta invertida no
         // tiene de donde encadenarse —arranca rolando panza arriba— asi que o se pide al entrar o no
         // se pide. EL MORTAL ya NO esta aca: se encadena a la cobra, mas abajo.
@@ -7149,7 +7151,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         swooshT = Math.max(0, swooshT - dt);
         if (v < -SWOOSH_V && swooshVel >= -SWOOSH_V && swooshT <= 0) { sfxOne('swoosh'); swooshT = 1.1; }
         swooshDz = dz; swooshVel = v; }
-      frenoAntes = !!inp.brake;
+      frenoAntes = !!frena;
       const fuelAntes = run.fuel;
       // EL INVINCIBLE (libro r5): el Super Etendard entra al Pulso en `lanzamiento` y no en el blanco, y
       // en la escolta del A-4C no hay climax — llegar al portaaviones con el misil ES el objetivo.

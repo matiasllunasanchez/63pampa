@@ -24,10 +24,10 @@ const PAD = [
   { k: 'cruz', x: 30, y: 92, ac: ['Secund', 'Chancha', 'Cam'] },
   { k: 'menu', t: 'START', x: 160, y: 40, ac: ['Pause'], centro: true },
   { k: 'gat', t: 'RT', x: 232, y: 40, ac: ['Boost'] },
-  { k: 'bum', t: 'RB', x: 232, y: 51, ac: ['Gun'] },
-  { k: 'cara', t: 'Y', c: '#f2c230', x: 232, y: 62, ac: ['Tempo'] },
+  { k: 'bum', t: 'RB', x: 232, y: 51, ac: ['Tempo'] },
+  { k: 'cara', t: 'Y', c: '#f2c230', x: 232, y: 62, ac: ['Radar'] },
   { k: 'cara', t: 'B', c: '#e8463a', x: 232, y: 71, ac: ['Chapitas'] },
-  { k: 'cara', t: 'X', c: '#3a8ee8', x: 232, y: 80, ac: ['Radar'] },
+  { k: 'cara', t: 'X', c: '#3a8ee8', x: 232, y: 80, ac: ['Msl'] },
   { k: 'cara', t: 'A', c: '#4cc35a', x: 232, y: 89, ac: ['Gun'] },
   { k: 'stick', t: 'R', x: 232, y: 103, dirs: 'udlr', ac: ['Roll', 'MiraB'], r3: true },
 ];
@@ -244,10 +244,10 @@ const PUNTAS = [
   { px: 527, py: 45, al: 'arr', ac: [] },                             // BACK (sin uso)
   { px: 733, py: 45, al: 'arr', ac: ['Pause'] },                      // START
   { px: 1138, py: 76, al: 'der', ac: ['Boost'] },                     // RT
-  { px: 1186, py: 158, al: 'der', ac: ['Gun'] },                      // RB
-  { px: 1176, py: 237, al: 'der', ac: ['Tempo'] },                    // Y
+  { px: 1186, py: 158, al: 'der', ac: ['Tempo'] },                    // RB (23/11: momentum)
+  { px: 1176, py: 237, al: 'der', ac: ['Radar'] },                    // Y (23/11: el radar)
   { px: 1250, py: 295, al: 'der', ac: ['Chapitas'] },                 // B
-  { px: 1253, py: 355, al: 'der', ac: ['Radar'] },                    // X
+  { px: 1253, py: 355, al: 'der', ac: ['Msl'] },                      // X (23/11: soltar secundaria)
   { px: 1186, py: 415, al: 'der', ac: ['Gun'] },                      // A
   { px: 492, py: 668, al: 'izq', ac: ['Cam'] },                       // cruceta ▼
   { px: 545, py: 625, al: 'der', ac: ['Chancha'], dx: -1.8, dy: 4.6 },          // cruceta ►
@@ -260,12 +260,15 @@ function placa(txt, x, y, al) {
   ctx.save(); ctx.fillStyle = 'rgba(8,12,15,0.82)'; redondo(x0 - 1.2, y - 2.4, w + 2.4, 4.8, 1.4); ctx.fill(); ctx.restore();
 }
 
+// LAS FLECHITAS DEL STICK DERECHO (23/11, el autor: "rolar tiene izquierda y derecha, trayecto de bomba flechita hacia
+// abajo"): en la lamina, la direccion del stick antes de la accion
+const FLECHA_PAD = { Roll: '◄ ► ', MiraB: '▼ ' };
 function dibujarPadPng() {
   const s = MI.s, w = 1280 * s, ox = (W - w) / 2, oy = MI.y;
   ctx.drawImage(IMG_MANDO, ox, oy, w, 720 * s);
   for (const p of PUNTAS) {
     const x = ox + p.px * s, y = oy + p.py * s;
-    const lineas = p.ac.map(ac => [T('ctrl' + ac), colorDe(ac)]);
+    const lineas = p.ac.map(ac => [(p.r3 ? FLECHA_PAD[ac] || '' : '') + T('ctrl' + ac), colorDe(ac)]);
     if (p.r3) lineas.push([T('mandoR3'), colorDe('TiraB')]);
     if (!lineas.length) lineas.push([T('mandoSinUso'), P.dim]);
     const al = p.al === 'izq' ? 'right' : p.al === 'der' ? 'left' : 'center';

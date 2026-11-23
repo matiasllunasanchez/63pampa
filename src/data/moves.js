@@ -189,7 +189,8 @@ export const COMBO = {
   climb: 'mirar ↑ ⟶ ↑↑', climbmax: 'mirar ↑ ⟶ ↑↑ (contra el radar)', spin: 'Q S E · E S Q',
   barrel: '↓→↑← · ↓←↑→', tonel: '→→ · ←←',
   // LOS FRENOS (4/10): la tecla de freno ([G] / L2), sola o con la mano derecha, y su combo
-  cobra: '[G] · ⟳↑↓↑', mortal: '[G] → ↑↓ · ⟳↑↑↓', cobrainv: '[G]+S · ⟳↓↓↑',
+  // (23/11: el freno es SHIFT izq —mantener altura— + ↑; [G] sigue andando)
+  cobra: '[SHIFT+↑] · ⟳↑↓↑', mortal: '[SHIFT+↑] → ↑↓ · ⟳↑↑↓', cobrainv: '[SHIFT+↑]+S · ⟳↓↓↑',
   derrape: '←+D y →+A · →+A y ←+D',   // (22/11: rolar es ← → en el teclado-joystick)
 };
 /** EL MISMO COMBO EN EL JOYSTICK, solo donde no es igual al teclado (19/11): las flechas son la mano derecha
@@ -197,7 +198,8 @@ export const COMBO = {
  *  letras (Q/E/S/A/D) o el freno [G] (en el joystick, la cruceta ◄) van aca. */
 export const COMBO_PAD = {
   spin: 'der← izq↓ der→ · der→ izq↓ der←',
-  cobra: '[R2+◯] · ⟳↑↓↑', mortal: '[R2+◯] → ↑↓ · ⟳↑↑↓', cobrainv: '[R2+◯]+izq↓ · ⟳↓↓↑',
+  // (23/11, el autor: el freno es MANTENER ALTURA + el stick derecho hacia arriba)
+  cobra: '[L2+der↑] · ⟳↑↓↑', mortal: '[L2+der↑] → ↑↓ · ⟳↑↑↓', cobrainv: '[L2+der↑]+izq↓ · ⟳↓↓↑',
   derrape: 'der←+izq→ y der→+izq← · der→+izq← y der←+izq→',
 };
 
