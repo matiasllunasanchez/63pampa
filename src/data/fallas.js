@@ -28,6 +28,11 @@ export const SISTEMAS = {
     en: ['ALTIMETER JITTERS', 'ALTIMETER LAGS', 'ALTIMETER DEAD'] },
 };
 export const SISTEMAS_ID = Object.keys(SISTEMAS);
+// CUANTOS SALEN CON FALLAS (23/11, el autor: "fallan demasiados aviones, fallaba 1 de cada 4, o cada 3"): el perfil del
+// avion (el A-4 ×1,3) y el FRIO de la base (hasta ×2,5) se multiplicaban, y en una base helada el A-4 salia roto 7 de cada
+// 10. Ahora la tirada va por ESCALA y el total se topea en TOPE_K. Medido (1 − Π(1 − base·k)): un avion comun 0,26 (1 de
+// cada 4), el A-4 0,32, con el peor frio 0,33 (1 de cada 3); el Super Etendard 0,14
+export const FALLAS_K = { ESCALA: 0.85, TOPE_K: 1.15 };
 /** Cuantas fallas puede tener un avion a la vez. */
 export const MAX_FALLAS = 2;
 

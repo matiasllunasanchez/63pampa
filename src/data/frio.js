@@ -17,21 +17,24 @@
 // ⚠ Los numeros son de juego. Lo que cambia por avion (antihielo, cañon, etc.) va en data/perfiles.js `frio`.
 
 export const GRADIENTE = 6.5;            // °C menos cada 1000 m
+// (23/11, el autor: "hay todo un tema con la temperatura que complica bastante seguir jugando, hacerlo menos
+// restrictivo"): hielo recien bajo cero, se junta a casi la mitad, se va el doble de rapido, pesa menos; el cañon
+// sufre recien con mas frio; y el SOL calienta (T_SOL)
 export const HIELO = {
-  T: 1,                                  // °C: con esto o menos, y humedad, se junta hielo
-  JUNTA: 0.055, JUNTA_NUBE: 0.09,        // por segundo (adentro de las nubes, mas rapido)
-  SALE: 0.035, SALE_CALIDO: 0.09,        // por segundo (arriba de 3 °C, o rasante sobre el mar, se va rapido)
-  RASANTE: 40,                           // m: abajo de esto sobre el agua, el aire del mar lo derrite
-  PESA: 15,                              // m/s² que tira para abajo con el hielo lleno (hay que darle gas)
-  CONTROL: 0.5,                          // cuanto del control se pierde con el hielo lleno (las islas: el viraje)
+  T: 0,                                  // °C: con esto o menos, y humedad, se junta hielo (era 1)
+  JUNTA: 0.03, JUNTA_NUBE: 0.05,         // por segundo (adentro de las nubes, mas rapido) (era 0,055 / 0,09)
+  SALE: 0.07, SALE_CALIDO: 0.16,         // por segundo (arriba de 3 °C, o rasante sobre el mar, se va rapido) (era 0,035 / 0,09)
+  RASANTE: 60,                           // m: abajo de esto sobre el agua, el aire del mar lo derrite (era 40)
+  PESA: 8,                               // m/s² que tira para abajo con el hielo lleno (hay que darle gas) (era 15)
+  CONTROL: 0.3,                          // cuanto del control se pierde con el hielo lleno (las islas: el viraje) (era 0,5)
 };
 // EL CAÑON con frio: por debajo de CANON_T °C se traba antes (el limite de calor baja hasta CANON_LIMITE) y tira mas
 // lento (hasta la mitad), y a veces se traba solo (CANON_TRABA por tiro), todo pleno a CANON_T - CANON_RANGO
-export const CANON_T = -2, CANON_RANGO = 8, CANON_LIMITE = 0.55, CANON_TRABA = 0.02;
+export const CANON_T = -5, CANON_RANGO = 10, CANON_LIMITE = 0.75, CANON_TRABA = 0.006;   // (23/11: era -2 / 8 / 0,55 / 0,02)
 // LA SAL del parabrisas: solo con el aire a SAL_T °C o menos
 export const SAL_T = 6;
 // EL ARRANQUE con frio: las fallas al salir son ARRANQUE.k veces mas probables segun la temperatura de la base
-export const ARRANQUE = [[0, 2.5], [3, 1.6]];   // [°C o menos, k]
+export const ARRANQUE = [[0, 1.5], [3, 1.2]];   // [°C o menos, k] (23/11: era 2,5 / 1,6)
 // LA TURBULENCIA del frente frio: con tormenta o lluvia fuerte y TURB_T °C o menos
 export const TURB_T = 2;
 
@@ -39,3 +42,6 @@ export const TURB_T = 2;
 // (al nivel del mar queda apenas arriba de cero aun en tormenta: volar rasante sobre el oceano derrite el hielo)
 export const T_CIELO = { clear: 7, sun: 8, cloudy: 4, dusk: 4, dawn: 3, night: 2, moon: 2, storm: 2.5 };
 export const T_LLUVIA = -1, T_NIEBLA = -0.5;
+// EL SOL CALIENTA (23/11, el autor: "si me esta dando el sol, si tiene reflejo, eso deberia subir la temperatura"): °C de
+// mas con el sol a la vista (los cielos con astro de dia); se apaga cuando el FRENTE de tormenta lo tapa (run.frente.tapaSol)
+export const T_SOL = { clear: 5, sun: 6, dawn: 3, dusk: 3 };

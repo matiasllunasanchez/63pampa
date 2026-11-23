@@ -6,7 +6,7 @@ import { run } from '../core/run.js';
 import { plane } from '../core/state.js';
 import { cartelSostenido } from '../core/cartel.js';
 import { T } from '../core/i18n.js';
-import { HIELO, CANON_T, CANON_RANGO, TURB_T, GRADIENTE, SAL_T, ARRANQUE, T_CIELO, T_LLUVIA, T_NIEBLA } from '../data/frio.js';
+import { HIELO, CANON_T, CANON_RANGO, TURB_T, GRADIENTE, SAL_T, ARRANQUE, T_CIELO, T_LLUVIA, T_NIEBLA, T_SOL } from '../data/frio.js';
 
 let turbT = 0;
 // EL AVION QUE VUELA (data/perfiles.js `frio`: { hielo, canon, sal, arranque, turbulencia }, 1 = como el A-4B): lo
@@ -56,6 +56,8 @@ export function arranqueK(temp) { for (const [t, k] of ARRANQUE) if (temp <= t) 
 
 /** EL PASILLO: la temperatura a la altura `y` con el cielo y el tiempo de la mision (data/frio.js T_CIELO). */
 export function tempPasillo(cfg, y) {
-  const base = (T_CIELO[cfg.sky] ?? 5) + (cfg.rain > 0 ? T_LLUVIA * Math.min(2, cfg.rain) : 0) + (cfg.fog ? T_NIEBLA : 0);
+  // (+ el SOL a la vista, si no lo tapa el frente ni la niebla)
+  const sol = (T_SOL[cfg.sky] || 0) * (1 - Math.max((run.frente && run.frente.tapaSol) || 0, run.solTapado || 0)) * (cfg.fog ? 0.3 : 1);
+  const base = (T_CIELO[cfg.sky] ?? 5) + sol + (cfg.rain > 0 ? T_LLUVIA * Math.min(2, cfg.rain) : 0) + (cfg.fog ? T_NIEBLA : 0);
   return base - GRADIENTE * Math.max(0, y) / 1000;
 }

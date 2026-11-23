@@ -122,12 +122,16 @@ app.whenReady().then(async () => {
     d = await hasta(x => x.state === 'epilogue');
     if (!d) { bad('al terminar no se conto lo que pasó'); continue; }
     ok('lo que pasó: ' + d.escena);
-    d = await hasta(x => x.state === 'campmenu', 'Return', 20);
-    if (d && d.fila.id === 'libro' && d.fila.k === k && d.libro === null) ok('vuelve al libro, sobre la misma salida');
+    // REINTENTAR SI / NO (23/11): al terminar lo que pasó se pregunta; NO (ESC) vuelve al libro
+    d = await hasta(x => x.state === 'reintentar', 'Return', 20);
+    if (d) ok('pregunta REINTENTAR'); else bad('no pregunto REINTENTAR');
+    await sleep(500); await tap('Escape');
+    d = await hasta(x => x.state === 'campmenu', null, 10);
+    if (d && d.fila.id === 'libro' && d.fila.k === k && d.libro === null) ok('NO: vuelve al libro, sobre la misma salida');
     else bad('no volvio al libro: ' + JSON.stringify(d && { st: d.state, fila: d.fila, libro: d.libro }));
   }
 
-  // UN DERRIBO NO SE REINTENTA NI CUENTA LO QUE PASÓ: vuelve al libro
+  // UN DERRIBO NO CUENTA LO QUE PASÓ: pregunta REINTENTAR (23/11) y NO vuelve al libro
   console.log('\n7. derribado:');
   paso = 'derribado';
   d = await hasta(x => x.state === 'campmenu' && x.fila.id === 'libro' && x.fila.k === 4, 'Up');
@@ -144,9 +148,11 @@ app.whenReady().then(async () => {
   }
   // (16/10, el autor: LO QUE PASÓ es solo si ganaste; perdida, la pantalla de derribo —con la explicacion
   // y la nota historica— y la tecla vuelve al libro, sobre la misma salida)
-  d = await hasta(x => x.state === 'dead' || x.state === 'campmenu', null, 25);
-  d = await hasta(x => x.state === 'campmenu', 'Return', 20);
-  if (d && d.fila.id === 'libro' && d.fila.k === 4) ok('derribado → vuelve al libro, sin lo que pasó');
+  d = await hasta(x => x.state === 'dead', null, 25);
+  await sleep(3000);   // (el pie con SI / NO sube despues del destrozo)
+  await tap('Escape');
+  d = await hasta(x => x.state === 'campmenu', null, 20);
+  if (d && d.fila.id === 'libro' && d.fila.k === 4) ok('derribado → NO → vuelve al libro, sin lo que pasó');
   else bad('el derribo no volvio al libro: ' + (await L()).state);
 
   fin();

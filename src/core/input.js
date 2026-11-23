@@ -322,8 +322,13 @@ export function initInput(cv, a) {
       if (isConfirm(e.code)) { a.confirm(); e.preventDefault(); return; }
       return;
     }
-    if (S.state === 'dead') {                                             // DERRIBADO: Esc vuelve al menu
-      if (isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+    // REINTENTAR SI / NO (23/11): el pie del DERRIBADO y la pantalla tras ganar. Las flechas cambian, ENTER elige,
+    // ESC es NO (vuelve de donde se vino). Cualquier otra tecla ya no reintenta sola.
+    if (S.state === 'dead' || S.state === 'reintentar') {
+      if (isLeft(e.code) || isRight(e.code) || isUp(e.code) || isDown(e.code)) { if (!e.repeat) a.retryNav(); e.preventDefault(); return; }
+      if (isConfirm(e.code)) { if (!e.repeat) a.retryConfirm(); e.preventDefault(); return; }
+      if (isBack(e.code)) { if (!e.repeat) a.retryNo(); e.preventDefault(); return; }
+      return;
     }
     // seleccion de avion. El menu de mapa [M] ya no existe: toda la configuracion vive en
     // OPCIONES, que se alcanza desde el menu de modos y por lo tanto tambien desde la campaña.
@@ -575,6 +580,7 @@ export function initInput(cv, a) {
     if (a.mapaAbierto && a.mapaAbierto()) { a.mapaClick(p.x, p.y, e.button); return; }
     // se pasa la Y CRUDA: la fila la resuelve game.js con la geometria real del menu
     if (S.state === 'modeselect') { a.modeSelect(p.y); return; }
+    if (S.state === 'dead' || S.state === 'reintentar') { a.retryPuntero(p.x, p.y, true); return; }   // (REINTENTAR SI / NO)
     if (S.state === 'album') { a.albumToque(p.x, p.y, true); return; }   // (el ALBUM: la figurita o la pestaña)
     if (S.state === 'menu') {
       if (p.x < W * 0.28) a.planeNav(-1);
@@ -611,6 +617,7 @@ export function initInput(cv, a) {
       puntero.x = p.x; puntero.y = p.y; puntero.t = performance.now();
       if (a.mapaAbierto && a.mapaAbierto()) a.mapaHover(p.x, p.y);
       if (S.state === 'album') a.albumToque(p.x, p.y, false);   // (el ALBUM: pasar por encima la marca y la da por vista)
+      if (S.state === 'dead' || S.state === 'reintentar') a.retryPuntero(p.x, p.y, false);   // (REINTENTAR: pasar por encima marca)
       if (mouse.on || Math.hypot(p.x - mouse.x, p.y - mouse.y) >= MIRA_SUELTA) {
         // (21/11, el autor: "la mira del mouse no vuelve al centro despues de no tocarlo X segundos"): con la mira
         // suelta, CUALQUIER pointermove reiniciaba el reloj — y el temblor del panel tactil o de un mouse apoyado
@@ -1003,6 +1010,10 @@ export function initInput(cv, a) {
         if (nd && !nav.d) a.campNav(1);
         if (confirm) a.campConfirm();
         if (hit(1)) a.escToMenu();                             // B = volver al selector de modos
+      } else if (S.state === 'dead' || S.state === 'reintentar') {   // REINTENTAR SI / NO (23/11): ✕ elige, ◯ es NO
+        if ((nu && !nav.u) || (nd && !nav.d) || (nl && !nav.l) || (nr && !nav.r)) a.retryNav();
+        if (confirm) a.retryConfirm();
+        if (hit(1)) a.retryNo();
       } else if (S.state === 'libroavion') {
         if ((nu && !nav.u) || (nl && !nav.l)) a.libroAvNav(-1);
         if ((nd && !nav.d) || (nr && !nav.r)) a.libroAvNav(1);

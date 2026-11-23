@@ -39,6 +39,7 @@ import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
          ROCIADA_VERTICE, ROCIADA_FILAS, ROCIADA_REVUELTO, ROCIADA_REVUELTO_V,
          ROCIADA_RAS_CORTE, AVERIA_TAMBALEO, PIQUE, DERRAPE, METRALLAS } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
+import { mezclaHd, encimaHd } from './hojaHd.js';
 import { alMando } from '../core/squad.js';
 import { pilotName, rosterActive } from '../systems/squad.js';
 import { nivel } from '../core/desgaste.js';   // el avion remendado — GUION_3 §9d, ley 4
@@ -721,6 +722,7 @@ export function drawTren(pl, g, col, row, x, y, w, h, fino) {
   ctx.globalAlpha = a0 * Math.min(1, g * 5);
   const k = pl.px || 1;
   ctx.drawImage(im, col * SHEET_FW * k, row * SHEET_FH * k, SHEET_FW * k, SHEET_FH * k, x, y - (1 - g) * TREN_SUBE * h, w, h);
+  if (!fino) encimaHd(im, col * SHEET_FW * k, row * SHEET_FH * k, SHEET_FW * k, SHEET_FH * k, x, y - (1 - g) * TREN_SUBE * h, w, h, mezclaHd(w, k));
   ctx.globalAlpha = a0;
   return true;
 }
@@ -1236,6 +1238,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     const conBase = !F3 && !hoja4 && img !== hoja2;
     if (!(conBase && drawTren(pl, run.gear, col, row, -dW / 2, -dH / 2, dW, dH, fino))) drawGear(run.gear, 1);
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
+    // LA HOJA DE CERCA (render/hojaHd.js): grande en pantalla —el despegue— se funde encima la horneada al doble
+    const aHd = conBase && !fino ? mezclaHd(dW, PX) : 0;
+    if (aHd) encimaHd(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH, aHd);
     // LAS PALAS DE LOS HELICOPTEROS, girando (18/11): la hoja trae el rotor sin palas y el horno midio, pose
     // por pose, el cubo y la elipse por donde giran (`AN.rot`, tools/blender/hornear.py)
     if (AN.rot && !hoja4 && img !== hoja2) rotores(dW, dH, AN.rot[rowPose] && AN.rot[rowPose][colPose], AN.rotn);
@@ -1245,6 +1250,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
       const a0 = ctx.globalAlpha;
       ctx.globalAlpha = a0 * fundeFila;
       ctx.drawImage(img, sx4, filaFundida * FH4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
+      if (aHd) encimaHd(img, sx4, filaFundida * FH4, FW4, FH4, -dW / 2, -dH / 2, dW, dH, aHd);
       ctx.globalAlpha = a0;
     }
     drawBorde(ctx, img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);   // a contraluz (render/borde.js)

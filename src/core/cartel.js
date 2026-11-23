@@ -21,6 +21,17 @@ export const CARTEL_ENTRA = 0.22, CARTEL_QUEDA = 2.2, CARTEL_SALE = 0.28;
 const durDe = () => CARTEL_ENTRA + (carteles.queda ?? CARTEL_QUEDA) + CARTEL_SALE;
 // (22/11, el autor: "son una banda de cards cuando aparecen 3 juntas, te tapan la mitad de la pantalla"): DOS a la vez
 const TOPE = 2;
+// …Y CONTADOS POR RENGLONES (23/11, el autor: "maximo un cartel de 2 lineas o 2 de una linea en la parte de arriba, para
+// que no se apilen y sea legible"): uno con segunda linea vale dos. Lo que sobra sale el mas viejo que no este sostenido
+const RENGLONES = 2;
+const renglones = c => (c.sub && !(c.glifos && c.glifos.length) && c.okF == null ? 2 : 1);
+function recortar(v) {
+  while (v.length > TOPE || (v.length > 1 && v.reduce((n, c) => n + renglones(c), 0) > RENGLONES)) {
+    let i = v.length - 1;
+    while (i > 0 && v[i].sostenido) i--;
+    v.splice(i > 0 ? i : v.length - 1, 1);
+  }
+}
 const SOLTAR_T = 1;   // lo que queda un sostenido despues de apagarse   // cuantos a la vez: el cuarto empuja afuera al mas viejo
 
 /** Apila un cartel arriba: `txt` el texto, `col` su color, `sub` una segunda linea (o nada). El mismo
@@ -33,8 +44,9 @@ export function cartel(txt, col, sub, o) {
   const v = carteles.vivos;
   const ya = v.find(x => x.txt === txt && x.sub === (sub || null) && !x.id);
   if (ya) { ya.t0 = -1; return; }
-  v.unshift({ txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null, glifos: (o && o.glifos) || null, t0: -1, id: null, y: null });
-  while (v.length > TOPE) v.pop();
+  // (`o.ico`: un icono a la izquierda del texto — 'engranaje', 23/11 la escuadrilla con fallas)
+  v.unshift({ txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null, glifos: (o && o.glifos) || null, ico: (o && o.ico) || null, t0: -1, id: null, y: null });
+  recortar(v);
 }
 
 /** Un cartel SOSTENIDO, identificado por `id`: aparece cuando `on` se prende y se queda arriba de la
@@ -45,7 +57,7 @@ export function cartelSostenido(id, on, txt, col, o, sub) {
     // (sigue arriba, pero lo que dice puede cambiar mientras tanto: la consigna del tutorial cuenta)
     if (ya) { ya.sostenido = true; ya.txt = txt; ya.col = col || null; ya.sub = sub || null; ya.glifos = (o && o.glifos) || null; ya.okF = o && o.okF != null ? o.okF : null; return; }
     v.unshift({ txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null, glifos: (o && o.glifos) || null, okF: o && o.okF != null ? o.okF : null, t0: -1, id, sostenido: true, y: null });
-    while (v.length > TOPE) v.pop();
+    recortar(v);
   } else if (ya && ya.sostenido) { ya.sostenido = false; ya.soltar = true; }
 }
 

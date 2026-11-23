@@ -1359,7 +1359,8 @@ function drawSeaDots(landVisible, coastMode, geoOn) {
   // un reflejo de verdad: el punto de fuga del camino es el ojo que lo mira.
   // …salvo la LUNA (autor, 4/10: "el reflejo de la luna esta feo, este largo, quitalo"): de noche el
   // camino de luz se leia como una escalera de bloques blancos hasta el avion.
-  const astro = !!SKY_ASTRO[cfg.sky] && cfg.sky !== 'moon';
+  // (…y sin reflejo con el sol TAPADO por la pared del frente — run.solTapado, game.js; 23/11)
+  const astro = !!SKY_ASTRO[cfg.sky] && cfg.sky !== 'moon' && !((run.solTapado || 0) > 0.5);
   // DESDE ALTO, lo de abajo de la pantalla ya esta lejos: se arranca en la primera fila que asoma (con 10 m de
   // margen por si una ola levanta los puntos). A ras no cambia nada; arriba se ahorra recorrer filas invisibles
   // (21/11: con las filas mas juntas de `pasoFila`, a 300 m eran cientos)
@@ -1622,6 +1623,8 @@ export function sombraGigante() {
   }
   return s;
 }
+const GIG_AGUA = 0.6;
+const hexRgb = c => [1, 3, 5].map(i => parseInt(String(c).slice(i, i + 2), 16) || 0);
 function olasGigantes(dv) {
   gigVis.length = 0;
   for (const o of obstacles) {
@@ -1666,7 +1669,9 @@ function olasGigantes(dv) {
     gigVis.push({ z, tops, bots });
     const rv = o.revelada ? Math.min(1, (run.t - (o.reveladaT ?? run.t)) / 0.6) : 0;   // 0 negro … 1 descubierta
     const cara = rv * fg;
-    ctx.fillStyle = cara > 0.02 ? `rgb(${2 + 16 * cara | 0},${4 + 22 * cara | 0},${8 + 34 * cara | 0})` : '#020407';
+    // (23/11: no negro literal — EL AGUA MAS OSCURA: el tono hondo del mar, a GIG_AGUA de su luz)
+    const hondo = hexRgb(theme.water.base0 || '#151d1c').map(v => v * GIG_AGUA | 0);
+    ctx.fillStyle = cara > 0.02 ? `rgb(${hondo[0] + 16 * cara | 0},${hondo[1] + 22 * cara | 0},${hondo[2] + 34 * cara | 0})` : `rgb(${hondo[0]},${hondo[1]},${hondo[2]})`;
     ctx.fill();
     // LA ESPUMA DEL FILO, solo una vez descubierta: una linea FINA y cortada, y el rocio en puntos de un pixel
     // (14/11: "los puntos de espuma son demasiado grandes, tienen que ser mucho mas chicos")

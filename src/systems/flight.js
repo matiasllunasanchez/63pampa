@@ -137,11 +137,17 @@ function vertLibre(dt, G, TH, DIVE) {
     // (23/11, el autor: "cada presionada de mantener frena, retrasa o carga de a poco el casteo"; "no tiene que llegar al
     // 100 especificamente"): esperar la aguja a 95 costaba medio segundo por toque, y en ese rato la barra seguia
     // vaciandose. Ahora carga APENAS se aprieta LT, a ritmo pleno; la aguja del gas queda como el dibujo de eso
-    const carga = !!inp.mant && run.fuel > 0;
-    if (cfg.vert === 'planeo') {
-      run.sosten = Math.max(0, Math.min(1, (run.sosten ?? 1) + (carga ? dt / S0.LLENA_S : -dt / S0.DURA_S)));
+    // (…y despues, 23/11: "la aguja en concordancia con la barra": la AGUJA sube pareja mientras se mantiene LT y baja al
+    // soltar (flightSystem, mas abajo); la barra se sigue gastando mientras la aguja no la alcanza, y recien cuando la
+    // alcanza sube CON ella. Toques cortos no llegan: no hay recarga infinita apretando como loco)
+    // (en las dos SUAVE igual: lo que las distinguia —la carga en LLENA_S o de golpe— ya lo marca la aguja)
+    if (cfg.vert === 'planeo' || cfg.vert === 'planeo_m') {
+      const aguja = run.throttle || 0;
+      let sv = Math.max(0, (run.sosten ?? 1) - dt / S0.DURA_S);
+      if (inp.mant && run.fuel > 0 && aguja >= sv - S0.ALCANZA) sv = Math.max(sv, Math.min(1, aguja));
+      run.sosten = sv;
       sosten = run.sosten;
-    } else if (cfg.vert === 'planeo_m') { run.sosten = carga ? 1 : 0; sosten = run.sosten; }
+    }
     if (dir) {
       // EL ARRANQUE (VERT_STICK): empieza a acelerar de a poco y se suelta a medida que se mantiene el stick
       run.vertHold = (run.vertDir === dir ? run.vertHold || 0 : 0) + dt; run.vertDir = dir;
@@ -405,7 +411,8 @@ export function flightSystem(dt, deps) {
   // palanca la mueve LT (mantener), no ↑ — ↑ ↓ ya son subir y bajar como los costados
   const suave = cfg.vert === 'planeo' || cfg.vert === 'planeo_m';
   const gasOn = run.fuel > 0 && (suave ? !!inp.mant : (inp.u || (pointer.steer && plane.vy > 0.5)));
-  run.throttle += ((gasOn ? 1 : 0) - run.throttle) * Math.min(1, dt * 7);
+  if (suave) run.throttle = Math.max(0, Math.min(1, run.throttle + (gasOn ? dt / VERT_SOSTEN.AGUJA_SUBE : -dt / VERT_SOSTEN.AGUJA_BAJA)));   // (pareja: la aguja ES el tiempo que mantenes)
+  else run.throttle += ((gasOn ? 1 : 0) - run.throttle) * Math.min(1, dt * 7);
   // COMBUSTIBLE: NO (menú [M]) = tanque infinito, para pruebas.
   // EL MULTIPLICADOR ES DE LA FASE (§3 del plan): crucero x1, rasante y filo x2, descenso x1.3, y
   // la vuelta x0.85 — venis liviano, soltaste las bombas, y el regreso sale mas barato que la ida.

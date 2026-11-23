@@ -529,6 +529,11 @@ export const CH_RATE_TRABADO = 6;   // % de tanque por segundo trabado (lleno en
 // y de pose (alabeo y cabeceo, -1..1); tres senos desparejos por eje para que no se lea como un vaiven
 // de reloj, y un TIRON de la manguera cada tanto (TIRON_CADA s).
 export const CH_VAIVEN = { X: 0.28, Y: 0.16, BANK: 0.09, PITCH: 0.06, TIRON: 0.35, TIRON_CADA: 4.2 };
+// EL AJUSTE A LA CANASTA (23/11, el autor: "el centrado hacia la manguera se esta haciendo INMEDIATO… un movimiento
+// rapido pero secuencial y fluido donde el avion se ajusta al centro"): al trabarse, el avion VA desde donde estaba
+// hasta el embudo en T segundos (sale rapido, frena y se pasa apenas antes de asentarse) y mientras se corre se
+// inclina hacia ese lado (LEAN, alabeo) y levanta o baja la trompa (NOSE), como el piloto que corrige.
+export const CH_AJUSTE = { T: 0.5, PASA: 1.1, LEAN: 0.5, NOSE: 0.35 };
 export const CH_WINDOW = 30;     // s desde que aparece hasta que vira a casa
 export const CH_SPD_F = 0.75;    // factor del avance del mundo mientras estas conectado
 // GEOMETRIA DE LA CITA. No estan en el spec y hacen falta para dibujarla: el Hercules va
@@ -2685,9 +2690,21 @@ export const VERT_LATERAL = { ACEL: 115, FRENO: 4.5 };
 // entero desde el primer cuadro. La aceleracion va de ACEL0 a ACEL1 en RAMPA s de stick mantenido, y la velocidad se
 // topea en TOPE (fraccion del tope de siempre: 18 m/s subiendo, 20 bajando, mas arriba del carril). POSE_DEMORA y
 // POSE_RAMPA: la trompa del dibujo acompaña ese arranque (core/physics.js pitchTarget).
-export const VERT_STICK = { ACEL0: 6, ACEL1: 45, RAMPA: 0.8, TOPE: 0.5, POSE_DEMORA: 0.12, POSE_RAMPA: 0.85 };
+// (23/11, mas tarde: "el avion debe bajar o subir mas rapido con la animacion correspondiente"): tope 0,5 → 0,75, la
+// rampa mas corta y mas empuje; la trompa llega antes a su pose
+export const VERT_STICK = { ACEL0: 10, ACEL1: 70, RAMPA: 0.5, TOPE: 0.75, POSE_DEMORA: 0.08, POSE_RAMPA: 0.5 };
 //   LLENA_S  segundos de LT para llenar la flechita · DURA_S  lo que dura llena hasta vaciarse sola
 //   CAIDA    m/s de caida sin sosten · DEMORA  s para llegar a esa caida (no se desploma: se va asentando)
-export const VERT_SOSTEN = { LLENA_S: 0.45, DURA_S: 6, CAIDA: 2.5, DEMORA: 0.8 };
+// (23/11, el autor: "la aguja en concordancia con la barra que se desgasta: si la barra estaba en 80 %, tengo que mantener
+// hasta que la aguja llegue casi al 80, y de ahi si mantengo suma; no quiero que apretar como un loco recargue"):
+// AGUJA_SUBE s de 0 a 100 manteniendo LT (pareja), AGUJA_BAJA s de 100 a 0 al soltar. La barra solo crece donde la
+// aguja la alcanza (ALCANZA de tolerancia) y la sigue para arriba
+export const VERT_SOSTEN = { LLENA_S: 0.45, DURA_S: 6, CAIDA: 2.5, DEMORA: 0.8, AGUJA_SUBE: 1.0, AGUJA_BAJA: 0.35, ALCANZA: 0.03 };
 export const VERT_FIJA = { SUBE: 16, BAJA: 20, RESP: 6 };          // m/s al apretar, y que tan rapido llega / se clava
 export const VERT_PLANEO = { G: 3, TH: 12, CAIDA: 1.2, SUBE: 7, AMORT: 4, DEMORA: 1, DIVE: 30 };
+
+// LA ALERTA DE LA ESCUADRILLA CON FALLAS (23/11): al tomar el mando, cada avion que se fue al taller recibe en la placa de
+// arriba a la izquierda un GOLPE — rojo, sacudon, chispas y un anillo que se abre — de a uno: el primero ANTES s despues
+// del cartel, los demas cada PASO s; cada golpe dura DURA s y suena SFX (el del autor, 23/11)
+// (23/11: "primero el engine y luego marca los aviones": ANTES: el cartel primero, despues los golpes)
+export const FALLA_ALERTA = { ANTES: 0.6, PASO: 0.45, DURA: 0.9, SFX: 'planeFail' };   // (23/11: el motor que fallaba con el cartel se saco; solo suena cada avion)

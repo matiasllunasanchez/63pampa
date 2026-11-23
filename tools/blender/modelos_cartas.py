@@ -455,6 +455,35 @@ def carta_hercules(T, K):
     _adoptar(E.hercules(T, K), p)
     return _encuadrar(raiz, p, (0.55, 2.55, 0.15))
 
+def carta_bidon(T, K):
+    """LA CHANCHA, EL BIDON (23/11/2026, el autor: "acompañar la gota con un tanque de nafta, o literal un bidon de esos,
+    el rojo — usemos verde, pero el mismo pico"): el bidon de chapa de tres manijas con la X estampada, verde, el
+    pico flexible negro saliendo de la esquina y doblando para afuera, y la gota verde cayendo de la punta."""
+    raiz, p = _marco(T, 'bidon')
+    verde, verde2, verde3 = _mat(K, 'bd_v', '#3f9a4c'), _mat(K, 'bd_v2', '#2a6a33'), _mat(K, 'bd_v3', '#5fc46a')
+    negro, acero = _mat(K, 'bd_n', NEGRO), _mat(K, 'bd_s', ACERO2)
+    # el cuerpo: la chapa, con el borde de la costura alrededor (un poco mas ancho y oscuro)
+    caja('cuerpo', (0, 0, 0), (2.2, 2.9, 1.0), p, verde)
+    caja('costura', (0, 0, 0), (2.3, 3.0, 0.24), p, verde2)
+    # la X estampada en las dos caras, en relieve
+    for z in (0.52, -0.52):
+        _barra('x1', p, verde3, (-0.78, -1.1, z), (0.78, 1.05, z), 0.16)
+        _barra('x2', p, verde3, (0.78, -1.1, z), (-0.78, 1.05, z), 0.16)
+    # las tres manijas arriba: la barra y sus tres patas
+    _barra('manija', p, verde2, (-0.98, 1.95, 0), (0.32, 1.95, 0), 0.2)
+    for x in (-0.95, -0.32, 0.3):
+        _barra('pata', p, verde2, (x, 1.42, 0), (x, 1.95, 0), 0.18)
+    # la boca en la esquina de adelante, la tuerca, y el PICO: sube y se dobla para afuera
+    _cil('boca', p, acero, [(1.42, 0.3), (1.72, 0.3), (1.76, 0.24)], x=0.72, expo=2.0)
+    _barra('pico1', p, negro, (0.72, 1.7, 0), (1.25, 2.55, 0), 0.2)
+    _barra('pico2', p, negro, (1.25, 2.55, 0), (1.95, 2.62, 0), 0.18)
+    elipsoide('punta', (2.0, 2.62, 0), (0.13, 0.13, 0.13), p, acero, seg=10, anillos=6)
+    # LA GOTA, cayendo de la punta: la panza abajo y la punta arriba (un elipsoide estirado y un cono chico)
+    gota = _mat(K, 'bd_g', '#7fe08d')
+    elipsoide('gota', (2.05, 1.92, 0), (0.2, 0.22, 0.2), p, gota, seg=12, anillos=8)
+    _cil('gota_punta', p, gota, [(2.08, 0.17), (2.32, 0.02)], x=2.05, expo=2.0)
+    return _encuadrar(raiz, p, (0.22, -0.5, 0))
+
 # ============================ PODERES ============================
 def carta_arena(T, K):
     """EL MOMENTUM: el reloj de arena, con la arena cayendo."""

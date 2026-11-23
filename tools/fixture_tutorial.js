@@ -100,6 +100,8 @@ async function volar(k) {
     }
     if (s.finT >= 0) { terminada = true; await soltarTodo(); await sleep(300); continue; }
     // LA PANTALLA DE GANASTE (18/11): felicita, y ENTER sigue al menu del tutorial
+    // REINTENTAR SI / NO (23/11): al terminar la etapa se pregunta; ESC es NO y vuelve al menu del tutorial
+    if (s.st === 'reintentar') { await soltarTodo(); await sleep(500); await tap('Escape', 400); continue; }
     if (s.st === 'results') {
       terminada = true; felicito = true; await soltarTodo();
       if (OUT && !fotos.has('fin')) { fotos.add('fin'); await sleep(2500); await shot('e' + (k + 1) + '_fin'); }

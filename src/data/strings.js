@@ -130,6 +130,7 @@ export const STRINGS = {
     // EL SIDEWINDER DE LA COLA (30/9): el disparo, cuando una maniobra lo hizo seguir de largo y
     // cuando la poscombustion con quiebres lo sacudio (`aim9_sacudido`). El "¡QUEBRA!" del momento
     // de maniobrar es `caza_break`, que ahora lo grita el misil.
+    radarMalv_harrier: 'Una pareja de Harrier entrando. Ojo.',
     aim9_tira: '¡SIDEWINDER EN LA COLA, {c}!',
     aim9_perdido: '¡Se fue de largo! Lo perdiste.',
     aim9_sacudido: '¡Lo sacudiste! Perdio el blanco.',
@@ -292,6 +293,8 @@ export const STRINGS = {
     campBloqueada: 'PRÓXIMAMENTE',
     libroHora_lanzamiento: 'lanzamiento', libroHora_despegue: 'despegue', libroHora_ataque: 'ataque', libroHora_mancha: 'la mancha de aceite',
     libroElegir: 'ELEGÍ TU AVIÓN',
+    libroCant: '{n} AVIONES · MISMA CARGA',
+    libroCant1: 'AVIÓN SOLO',
     libroPie: 'Volaron {n} aviones. El escuadrón de la salida es la escuadrilla real.',
     // LAS CITAS REALES de las salidas: van palabra por palabra (PROMPT_DEMO_MISIONES_REALES.md). En
     // ingles tambien: son lo que se dijo, y se dijo en castellano.
@@ -344,7 +347,7 @@ export const STRINGS = {
     // Las filas venian del menu [M], que era solo-castellano porque era una herramienta interna.
     // Al mudarse a OPCIONES —que tiene el selector de IDIOMA adentro— quedar a medio traducir se
     // notaria de una, asi que pasan todas por T().
-    optSecSonido: 'SONIDO', optVol_musica: 'VOLUMEN DE MÚSICA', optVol_ambiente: 'VOLUMEN DE AMBIENTE', optVol_unidad: 'VOLUMEN DE UNIDAD',
+    optSecSonido: 'SONIDO', optSonidoTodo: 'TODO EL SONIDO', optMusicaOn: 'MÚSICA', optVol_musica: 'VOLUMEN DE MÚSICA', optVol_ambiente: 'VOLUMEN DE AMBIENTE', optVol_unidad: 'VOLUMEN DE UNIDAD',
     optSecJuego: 'JUEGO', optSecControl: 'CONTROL Y VISTA', optSecPartida: 'PARTIDA',
     optSecAmbiente: 'AMBIENTE',
     optNoteAmbiente: 'FONDO y AGUA los elige la campaña en cada misión', optNoteAmbienteK: '', optNoteAmbienteP: '',
@@ -495,7 +498,7 @@ export const STRINGS = {
     modeTutorial: 'TUTORIAL', modeTutorialDesc: 'Lo básico para volar',
     tutC_radarSube: 'SUBÍ POR ENCIMA DEL NIVEL DEL RADAR', tutC_radarBaja: 'VOLVÉ POR DEBAJO DEL NIVEL DEL RADAR',
     tutC_secTanque: 'ELEGÍ LOS TANQUES', tutC_secBomba: 'VOLVÉ A LA BOMBA', tutC_momentum: 'LANZÁ EL MOMENTUM', tutC_esquivaMom: 'ESQUIVÁ {n} GLOBOS CON EL TIEMPO LENTO', tutC_recarga: 'ESPERÁ QUE LA BARRA SE LLENE SOLA', tutC_perfecto: 'VOLÁ EN PERFECTO 4 SEGUNDOS', tutC_esquiva: 'ESQUIVÁ {n} GLOBOS', tutC_sosten: 'CARGÁ EL SOSTÉN', tutC_salJunta: 'VOLÁ AL RAS DEL AGUA HASTA QUE SE LLENE EL VIDRIO', tutC_sal: 'SUBÍ HASTA LA NUBE PARA LAVAR EL VIDRIO', tutC_hielo: 'METETE EN LA NUBE Y MIRÁ EL TERMÓMETRO', tutC_virar: 'VIRÁ A LOS DOS LADOS', tutC_relieve: 'VOLÁ PEGADO AL SUELO {n} SEGUNDOS, ABAJO DE LA RAYA', tutC_marca: 'MARCÁ UN PUNTO EN EL MAPA', tutC_marcaBase: 'MARCÁ LA BASE COSTERA EN EL MAPA', tutC_baseIslas: 'ROMPÉ LA BASE COSTERA', tutC_deshiela: 'BAJÁ AL RAS DEL MAR PARA DERRETIR EL HIELO', tutC_aciertos: 'GAS CUANDO LA AGUJA PASA POR EL AZUL', tutC_soltaRas: 'SOLTALO: PICÁ O MANTENÉ EL GAS', tutC_chancha: 'LLAMÁ A LA CHANCHA',
-    tutC_chafitas: 'LARGÁ LAS CHAFITAS',
+    tutC_chafitas: 'LARGÁ LAS CHAFITAS', tutC_misFrente: 'ESQUIVÁ {n} MISILES DE FRENTE', tutC_misCola: 'SACATE EL MISIL DE LA COLA', tut_rompe: '¡AHORA! ¡PIRUETA!',
     tutC_tonel: 'TONEL: 2 TOQUES BIEN RÁPIDOS PARA EL MISMO LADO', tutC_suelta: 'SOLTÁ LA BOMBA SOBRE EL BUQUE', tutC_sueltaBase: 'SOLTÁ LA BOMBA SOBRE LA BASE COSTERA', tutC_hunde: 'PEGALE AL BUQUE', tutC_escapa: 'ESCAPÁ DE LA ZONA PEGADO AL AGUA',
     demoRasPerf: 'bajo, abajo de la raya naranja del altímetro: 4 segundos y entra el RASANTE', demoRasAzul: 'el azul', demoRasAguja: 'la aguja', demoRasReloj: 'lo que te queda', demoRasAhora: '¡GAS!', demoRasEspera: 'esperá el azul…',
     semTitulo: 'RECORRIDO DE BOMBA', semLejos: 'LEJOS', semPrepara: 'PREPARATE', semSolta: '¡SOLTÁ!', semTarde: 'TARDE', semSubi: 'SUBÍ', semBaja: 'BAJÁ',
@@ -733,7 +736,7 @@ export const STRINGS = {
     falla_avion: 'AVION CON FALLAS', falla_esquirla: '¡ESQUIRLA!', falla_bomba: 'LA BOMBA NO SE DESPRENDE',
     falla_bomba_total: 'LAS BOMBAS NO SE DESPRENDEN', ch_sondaRota: 'TENES LA SONDA ROTA: NO PODES CARGAR.',
     base_ultimo: 'ES EL ULTIMO AVION: NO SE PUEDE MANDAR A LA BASE',
-    base_despegue: 'ARRANCASTE CON {n} CON FALLAS', base_despegue_sub: 'VOLVIERON A LA BASE A REPARARSE · {s} S',
+    base_despegue: 'ESCUADRILLA CON FALLAS',
     base_todos: '{n} CON FALLAS VUELVEN A LA BASE', base_nadie: 'NO HAY AVIONES CON FALLAS', hud_reparar: 'SHIFT+R  REPARAR LOS {n} CON FALLAS', hud_reparar1: 'SHIFT+R  REPARAR EL QUE TIENE FALLAS', hud_oleadaNv: 'NV.', base_va: '{n} VUELVE A LA BASE',
     base_va_sub: 'VUELVE REPARADO EN {s} S', base_vuelve: '{n} VOLVIO A LA ESCUADRILLA', base_vuelve_sub: 'REPARADO Y CON NAFTA',
     banco_titulo: 'MEJORAS', banco_sub: 'ELEGI UNA MEJORA PARA UTILIZAR HASTA EL FINAL DEL NIVEL',
@@ -1347,6 +1350,7 @@ export const STRINGS = {
     dead: 'D E R R I B A D O', dead_pulso: 'H A S   P E R D I D O', scoreLabel: 'PUNTAJE  {n}',
     newRecord: 'NUEVO RÉCORD', bestDead: 'MEJOR  {n}',
     retryPrompt: 'Apretá cualquier cosa para reintentarlo',
+    retryAsk: '¿REINTENTAR?', retrySi: 'SÍ', retryNo: 'NO',
     notaHist: 'NOTA HISTÓRICA',
     libroVolver: 'Apretá cualquier cosa para volver al libro',
     retryPulso: 'PRESIONA CUALQUIER TECLA PARA REINICIAR',
@@ -1456,6 +1460,7 @@ export const STRINGS = {
     death_caza: 'A Sea Harrier got on your tail',
     death_sidewinder: 'A Sidewinder got you',
     death_aden: 'The Harrier\'s burst got you',
+    radarMalv_harrier: 'A pair of Harriers coming in. Heads up.',
     aim9_tira: 'SIDEWINDER ON YOUR SIX, {c}!',
     aim9_perdido: 'It overshot! You lost it.',
     aim9_sacudido: 'You shook it! It lost lock.',
@@ -1572,6 +1577,8 @@ export const STRINGS = {
     campBloqueada: 'COMING SOON',
     libroHora_lanzamiento: 'launch', libroHora_despegue: 'take-off', libroHora_ataque: 'attack', libroHora_mancha: 'the oil slick',
     libroElegir: 'CHOOSE YOUR AIRCRAFT',
+    libroCant: '{n} AIRCRAFT · SAME LOAD',
+    libroCant1: 'SINGLE AIRCRAFT',
     libroPie: '{n} aircraft flew. The sortie squadron is the real flight.',
     libro_r3_harrier: 'PATRIA 2: ¡HARRIER! ¡HARRIER!',
     libro_r4_buque: 'PATRIA 2: ¡BUQUE ENEMIGO A LAS TRES!',
@@ -1608,7 +1615,7 @@ export const STRINGS = {
     optNet: 'RADAR MESH',
     optNetOff: 'OFF', optNetEnter: 'ON ENTERING', optNetAlways: 'ALWAYS',
     optKeys: '[↑] [↓] SELECT      [<] [>] CHANGE      [ESC] BACK',
-    optSecSonido: 'SOUND', optVol_musica: 'MUSIC VOLUME', optVol_ambiente: 'AMBIENT VOLUME', optVol_unidad: 'UNIT VOLUME',
+    optSecSonido: 'SOUND', optSonidoTodo: 'ALL SOUND', optMusicaOn: 'MUSIC', optVol_musica: 'MUSIC VOLUME', optVol_ambiente: 'AMBIENT VOLUME', optVol_unidad: 'UNIT VOLUME',
     optSecJuego: 'GAME', optSecControl: 'CONTROLS & VIEW', optSecPartida: 'RUN',
     optSecAmbiente: 'WEATHER',
     optNoteAmbiente: 'SKY and WATER are set by the campaign each mission', optNoteAmbienteK: '', optNoteAmbienteP: '',
@@ -1737,7 +1744,7 @@ export const STRINGS = {
     modeTutorial: 'TUTORIAL', modeTutorialDesc: 'The basics of flying',
     tutC_radarSube: 'CLIMB ABOVE THE RADAR LEVEL', tutC_radarBaja: 'DROP BACK BELOW THE RADAR LEVEL',
     tutC_secTanque: 'PICK THE TANKS', tutC_secBomba: 'BACK TO THE BOMB', tutC_momentum: 'TRIGGER MOMENTUM', tutC_esquivaMom: 'DODGE {n} BALLOONS IN SLOW TIME', tutC_recarga: 'WAIT FOR THE BAR TO REFILL', tutC_perfecto: 'FLY IN PERFECT FOR 4 SECONDS', tutC_esquiva: 'DODGE {n} BALLOONS', tutC_sosten: 'CHARGE THE HOLD', tutC_salJunta: 'FLY LOW OVER THE WATER UNTIL THE GLASS FILLS', tutC_sal: 'CLIMB INTO THE CLOUD TO WASH THE GLASS', tutC_hielo: 'FLY INTO THE CLOUD AND WATCH THE THERMOMETER', tutC_virar: 'TURN BOTH WAYS', tutC_relieve: 'HUG THE GROUND FOR {n} SECONDS, UNDER THE LINE', tutC_marca: 'MARK A POINT ON THE MAP', tutC_marcaBase: 'MARK THE COASTAL BASE ON THE MAP', tutC_baseIslas: 'DESTROY THE COASTAL BASE', tutC_deshiela: 'GET DOWN OVER THE SEA TO MELT THE ICE', tutC_aciertos: 'THROTTLE WHEN THE NEEDLE CROSSES THE BLUE', tutC_soltaRas: 'RELEASE IT: DIVE OR HOLD THE THROTTLE', tutC_chancha: 'CALL THE TANKER',
-    tutC_chafitas: 'DROP THE CHAFF',
+    tutC_chafitas: 'DROP THE CHAFF', tutC_misFrente: 'DODGE {n} HEAD-ON MISSILES', tutC_misCola: 'SHAKE THE MISSILE OFF YOUR TAIL', tut_rompe: 'NOW! ROLL!',
     tutC_tonel: 'BARREL ROLL: 2 QUICK TAPS TO THE SAME SIDE', tutC_suelta: 'DROP THE BOMB ON THE SHIP', tutC_sueltaBase: 'DROP THE BOMB ON THE COASTAL BASE', tutC_hunde: 'HIT THE SHIP', tutC_escapa: 'GET OUT OF THE AREA, LOW OVER THE SEA',
     demoRasPerf: 'low, under the orange mark on the altimeter: 4 seconds and RASANTE kicks in', demoRasAzul: 'the blue', demoRasAguja: 'the needle', demoRasReloj: 'time left', demoRasAhora: 'THROTTLE!', demoRasEspera: 'wait for the blue…',
     semTitulo: 'BOMB RUN', semLejos: 'TOO FAR', semPrepara: 'GET READY', semSolta: 'DROP!', semTarde: 'TOO LATE', semSubi: 'CLIMB', semBaja: 'GO LOWER',
@@ -1934,7 +1941,7 @@ export const STRINGS = {
     falla_avion: 'FAULTY AIRCRAFT', falla_esquirla: 'SHRAPNEL!', falla_bomba: 'THE BOMB WON\'T RELEASE',
     falla_bomba_total: 'THE BOMBS WON\'T RELEASE', ch_sondaRota: 'YOUR PROBE IS BROKEN: YOU CAN\'T REFUEL.',
     base_ultimo: 'LAST AIRCRAFT: IT CAN\'T GO BACK TO BASE',
-    base_despegue: 'YOU STARTED WITH {n} FAULTY', base_despegue_sub: 'BACK TO BASE FOR REPAIRS · {s} S',
+    base_despegue: 'SQUADRON WITH FAULTS',
     base_todos: '{n} FAULTY AIRCRAFT RETURN TO BASE', base_nadie: 'NO FAULTY AIRCRAFT', hud_reparar: 'SHIFT+R  REPAIR THE {n} FAULTY', hud_reparar1: 'SHIFT+R  REPAIR THE FAULTY ONE', hud_oleadaNv: 'LV.', base_va: '{n} RETURNS TO BASE',
     base_va_sub: 'BACK, REPAIRED, IN {s} S', base_vuelve: '{n} REJOINED THE FLIGHT', base_vuelve_sub: 'REPAIRED AND REFUELLED',
     banco_titulo: 'UPGRADES', banco_sub: 'CHOOSE AN UPGRADE TO USE UNTIL THE END OF THE LEVEL',
@@ -1971,6 +1978,7 @@ export const STRINGS = {
     dead: 'S H O T   D O W N', dead_pulso: 'Y O U   L O S T', scoreLabel: 'SCORE  {n}',
     newRecord: 'NEW RECORD', bestDead: 'BEST  {n}',
     retryPrompt: 'Press anything to try again',
+    retryAsk: 'TRY AGAIN?', retrySi: 'YES', retryNo: 'NO',
     notaHist: 'HISTORICAL NOTE',
     libroVolver: 'Press anything to go back to the logbook',
     retryPulso: 'PRESS ANY KEY TO RESTART',

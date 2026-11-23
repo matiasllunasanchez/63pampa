@@ -38,7 +38,8 @@ ICONOS_CARTAS = ['canon', 'cinta', 'bala', 'brp', 'snakeye', 'espoleta', 'ter', 
                  'cajon', 'tanques', 'hercules', 'arena', 'rasante', 'radar', 'neptune', 'auriculares',
                  'antena', 'mirage', 'learjet', 'pinza', 'terreno', 'itb', 'paracaidas', 'pirueta',
                  'fideos',   # (20/10: la maquina de fideos, la carta de las primeras chafitas)
-                 'aerosol']  # (17/11: el siliconado M-60 del parabrisas)
+                 'aerosol',  # (17/11: el siliconado M-60 del parabrisas)
+                 'bidon']    # (23/11: el bidon verde de la Chancha)
 
 HOJAS = {
     # LOS HELICOPTEROS, HECHOS EN BLENDER (4/10/2026, tools/blender/modelos_helos.py): el de siempre

@@ -478,19 +478,42 @@ export function drawDead(w) {
   // el pie
   ctx.fillStyle = 'rgba(6, 9, 12, 0.6)'; ctx.fillRect(0, PIE_Y, W, H - PIE_Y);
   ctx.fillStyle = 'rgba(214, 160, 70, 0.35)'; ctx.fillRect(14, PIE_Y, W - 28, 0.5);
-  if (w.deathT > 0.7 && Math.sin(w.t * 4) > -0.3) {
-    ctx.textAlign = 'center'; ctx.fillStyle = P.accent; ctx.font = finFont(8);
-    ctx.shadowColor = FIN_TXT.sombra; ctx.shadowBlur = 2; ctx.shadowOffsetY = 1;
-    // …y el pie lo dice literal: la mision se REINICIA entera, no se continua. Es la unica salida
-    // hasta que se pase — por eso no dice "reintentar", que suena a otra oportunidad dentro de lo
-    // mismo, sino REINICIAR.
-    ctx.fillText(T(w.libro ? 'libroVolver' : w.perdido ? 'retryPulso' : 'retryPrompt'), W / 2, H - 8);   // (libro: no se reintenta)
-    ctx.shadowColor = 'transparent';
-  }
-  if (w.deathT > 0.7) {
-    ctx.textAlign = 'right'; ctx.fillStyle = P.dim; ctx.font = labelFont(6);
-    ctx.fillText(T('menuPrompt'), W - 12, H - 8);
-  }
+  // REINTENTAR SI / NO (23/11, el autor: "cada vez que se termina un mapa o mision una pantalla que pregunte
+  // REINTENTAR SI NO"): el pie ya no dice "apreta cualquier cosa" — pregunta, y NO vuelve de donde se vino
+  if (w.deathT > 0.7) drawReintentar({ sel: w.sel, t: w.t });
+  ctx.restore();
+}
+
+/** EL PIE DE REINTENTAR: la pregunta y los dos botones, en la franja de abajo (la misma del derribado). La
+ *  geometria se exporta: el clic del mouse la resuelve game.js contra estas mismas cajas. */
+export const REINTENTAR_UI = { y: H - 21, by: H - 16.5, bh: 12, bw: 30, si: W / 2 + 4, no: W / 2 + 40, preg: W / 2 - 4 };
+/** Que boton hay en (x, y) de la grilla de diseño: 0 = SI, 1 = NO, -1 = ninguno. */
+export function reintentarEn(x, y) {
+  const R = REINTENTAR_UI;
+  if (y < R.by - 3 || y > R.by + R.bh + 3) return -1;
+  if (x >= R.si - 3 && x <= R.si + R.bw + 3) return 0;
+  if (x >= R.no - 3 && x <= R.no + R.bw + 3) return 1;
+  return -1;
+}
+/** El fondo de victoria solo (REINTENTAR sin recuento detras). */
+export function drawWinBg(idx) { drawEndBg(WIN_BG, idx || 0); }
+export function drawReintentar(w) {
+  const R = REINTENTAR_UI;
+  ctx.save();
+  ctx.fillStyle = 'rgba(6, 9, 12, 0.96)'; ctx.fillRect(0, R.y, W, H - R.y);   // (opaca: tapa el «continuar» del recuento)
+  ctx.fillStyle = 'rgba(214, 160, 70, 0.35)'; ctx.fillRect(14, R.y, W - 28, 0.5);
+  ctx.shadowColor = FIN_TXT.sombra; ctx.shadowBlur = 2; ctx.shadowOffsetY = 1;
+  ctx.textAlign = 'right'; ctx.fillStyle = P.ink; ctx.font = finFont(9);
+  ctx.fillText(T('retryAsk'), R.preg, R.by + 9);
+  ctx.shadowColor = 'transparent';
+  [['retrySi', R.si], ['retryNo', R.no]].forEach(([k, x], i) => {
+    const on = w.sel === i;
+    if (on) { ctx.fillStyle = P.accent; ctx.globalAlpha = 0.22 + 0.08 * Math.sin(w.t * 5); ctx.fillRect(x, R.by, R.bw, R.bh); ctx.globalAlpha = 1; }
+    ctx.strokeStyle = on ? P.accent : '#3a464c'; ctx.lineWidth = 0.7;
+    ctx.strokeRect(x + 0.5, R.by + 0.5, R.bw - 1, R.bh - 1); ctx.lineWidth = 1;
+    ctx.textAlign = 'center'; ctx.fillStyle = on ? P.accent : P.dim; ctx.font = finFont(8);
+    ctx.fillText(T(k), x + R.bw / 2, R.by + 8.6);
+  });
   ctx.restore();
 }
 

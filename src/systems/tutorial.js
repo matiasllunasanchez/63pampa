@@ -34,6 +34,8 @@ export const activo = () => !fin;
 
 /** Los blancos de practica del paso en curso mientras se practica (game.js los siembra), o null. */
 export const blancos = () => (!fin && fase === 'practica' && okT <= 0 && pasos[i] && (pasos[i].sigue || [])[sub] ? pasos[i].blancos || null : null);
+/** EL MISIL DE PRACTICA del paso en curso ('frente' | 'cola') mientras se practica (game.js lo tira), o null. */
+export const misilPractica = () => (!fin && fase === 'practica' && okT <= 0 && pasos[i] && (pasos[i].sigue || [])[sub] ? pasos[i].misil || null : null);
 
 /** Lo que el jugador tiene que hacer AHORA, o null: { clave, n, prog, hecho }. `n` es el numero de la
  *  condicion (la altura, los segundos, los obstaculos) y `prog` cuanto lleva, si es de las que se cuentan. */
@@ -41,12 +43,13 @@ export function consigna() {
   if (fin || fase !== 'practica') return null;
   const c = (pasos[i].sigue || [])[sub];
   if (!c) return null;
-  const n = c.altSobre ?? c.altBajo ?? c.bajoTecho ?? c.pasa ?? c.rompe ?? c.aciertos ?? c.esquiva ?? (c.usa ? c.usa.length : null);
+  const n = c.altSobre ?? c.altBajo ?? c.bajoTecho ?? c.pasa ?? c.rompe ?? c.aciertos ?? c.esquiva ?? (c.misil ? c.n || 1 : null) ?? (c.usa ? c.usa.length : null);
   const prog = c.bajoTecho != null ? Math.min(c.bajoTecho, acum)
     : c.pasa != null ? Math.min(c.pasa, acum)
     : c.rompe != null ? Math.min(c.rompe, acum)
     : c.aciertos != null ? Math.min(c.aciertos, acum)
     : c.esquiva != null ? Math.min(c.esquiva, acum)
+    : c.misil ? Math.min(c.n || 1, acum)
     : c.usa ? c.usa.filter(k => vistos[k]).length : null;
   return { clave: c.consigna, n, prog, hecho: okT > 0, ok: okT > 0 ? okT / OK_T : 0, tp, teclas: pasos[i].teclas || [], segs: c.bajoTecho != null };
 }
@@ -98,6 +101,9 @@ function cumple(c, s, dt) {
   if (c.pasa != null) { acum = s.pasados - base.pasados; return acum >= c.pasa; }
   if (c.rompe != null) { acum = s.rotos - base.rotos; return acum >= c.rompe; }
   if (c.esquiva != null) { acum = (s.esquivados || 0) - (base.esquivados || 0); return acum >= c.esquiva; }
+  // EL SIDEWINDER ESQUIVADO (23/11, el autor: "el tutorial debe explicarme como esquivar un misil de frente con piruetas, o
+  // desde atras; tiene que tener ambas cosas"): `misil: 'frente' | 'cola'`, `n` cuantos (1 si no dice)
+  if (c.misil) { acum = ((s.misEsq || {})[c.misil] || 0) - ((base.misEsq || {})[c.misil] || 0); return acum >= (c.n || 1); }
   // EL CALOR: hay que trabarlo (overheat) y esperar a que se destrabe
   if (c.calienta) { if (s.overheat) vistos.over = true; return !!vistos.over && !s.overheat; }
   // LA ETAPA 3: una pirueta hecha (run.mv), una bomba en el aire, el buque hundido, el tren abajo, las ruedas
@@ -179,7 +185,7 @@ export function tick(dt, s, escenas) {
       if (ln.ingame) return { tipo: 'radio', linea: ln };
       return { tipo: 'decir', linea: ln, foco: p.foco || [], teclas: p.teclas || [], mando: !!p.mando, demo: p.demo || null };
     }
-    fase = 'practica'; tp = 0; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: s.pasados, rotos: s.rotos, esquivados: s.esquivados || 0 };
+    fase = 'practica'; tp = 0; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: s.pasados, rotos: s.rotos, esquivados: s.esquivados || 0, misEsq: { ...(s.misEsq || {}) } };
     return { tipo: 'mundo', paso: p };
   }
   if (fase === 'practica') {
@@ -188,7 +194,7 @@ export function tick(dt, s, escenas) {
     if (c) {
       if (okT > 0) {
         okT -= dt;
-        if (okT <= 0) { sub++; acum = 0; vistos = {}; base = { pasados: s.pasados, rotos: s.rotos, esquivados: s.esquivados || 0 }; }
+        if (okT <= 0) { sub++; acum = 0; vistos = {}; base = { pasados: s.pasados, rotos: s.rotos, esquivados: s.esquivados || 0, misEsq: { ...(s.misEsq || {}) } }; }
         return null;
       }
       if (cumple(c, s, dt)) okT = OK_T;
@@ -209,4 +215,4 @@ export function tick(dt, s, escenas) {
 
 // SONDA (21/11): saltar al paso que dice `id` (p. ej. 'TUT1_ROLAR'), para mirarlo sin volar todo lo de antes
 if (typeof window !== 'undefined') window.__tutIr = (id, practica) => { const k = pasos.findIndex(p => p.dice === id); if (k < 0) return false; i = k; entrar();
-  if (practica) { fase = 'practica'; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: 0, rotos: 0, esquivados: 0 }; } return true; };
+  if (practica) { fase = 'practica'; sub = 0; acum = 0; vistos = {}; okT = 0; base = { pasados: 0, rotos: 0, esquivados: 0, misEsq: {} }; } return true; };

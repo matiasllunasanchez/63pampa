@@ -597,7 +597,7 @@ export function collisionSystem(dt) {
         spd: run.spd, pz: PZ, maniobra: !!run.mv, tight: mvTight(run.mv), boost: run.boost });
       // LA ZONA: ahora una pirueta lo pierde. El grito lo armo quien lo tiro (systems/caza.js), que
       // es el que sabe si el duelo es mudo — sin texto, no se dice nada y queda el misil latiendo.
-      if (ev === 'zona' && m.rompe) hablar('PUMA', m.rompe);
+      if (ev === 'zona' && m.rompe) hablar(m.voz || 'PUMA', m.rompe);
       // EL PERDIDO SE CAE (2/10): sin blanco, el motor no lo sostiene para siempre — se va hundiendo
       // en arco hasta clavarse en el mar adelante, con su columna de agua. (Solo el ya perdido: el que
       // te esta siguiendo no cambia.)
@@ -608,10 +608,19 @@ export function collisionSystem(dt) {
       }
       if (ev === 'pierde' || ev === 'cruza') {
         run.score += AIM9.PTS; stats.dodges++; boom(0.08, true);
+        // (la cuenta por geometria, para el tutorial: systems/tutorial.js `misil`)
+        run.misEsq = run.misEsq || {}; run.misEsq[m.modo] = (run.misEsq[m.modo] || 0) + 1;
         // el de frente que te cruzo BAJO termina en el agua, atras tuyo (2/10)
         if (ev === 'cruza' && m.y < PIQUE.BAJO) { piqueMunicion(m.x, piqueAdelante(), 'misil'); m.z = 0; continue; }
         // la radio lo festeja segun COMO lo perdiste: quebrando encima, o quemando y sacudiendolo
-        if (ev === 'pierde' && m.rompe) hablar('PUMA', T(m.porque === 'quemado' ? 'aim9_sacudido' : 'aim9_perdido'));
+        if (ev === 'pierde' && m.rompe) hablar(m.voz || 'PUMA', T(m.porque === 'quemado' ? 'aim9_sacudido' : 'aim9_perdido'));
+      }
+      if (ev === 'impacto' && m.practica) {
+        // EL DE PRACTICA DEL TUTORIAL no te mata (23/11): revienta cerca, sacude, y sale otro (game.js)
+        explodeAt(m.x, m.y, Math.max(m.z, PZ + 3), false, false, true);
+        run.shake = Math.min(7, run.shake + 3); m.z = 0;
+        run.misGolpe = (run.misGolpe || 0) + 1;
+        continue;
       }
       if (ev === 'impacto') {
         // TE ELIMINA (pedido del autor 30/9): `death_sidewinder` no esta en la tabla de daño de

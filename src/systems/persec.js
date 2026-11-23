@@ -101,6 +101,9 @@ export function startPersec(opts = {}) {
     // En CAMPAÑA (N3) esto va APAGADO — ahi el tramo tiene largo conocido y una intencion escrita,
     // y una dificultad que trepa sola convertiria un tutorial en una prueba de resistencia.
     infinito: !!opts.infinito,
+    // ACOMPAÑA (23/11, EL INVINCIBLE con el A-4C: "los que despegan van todos juntos, a los Super Etendard los maneja la
+    // maquina"): el lider vuela ADELANTE en su banda, te espera si te quedas y no te hace perder por distancia
+    acompana: !!opts.acompana,
     d: PURS_D0,                 // DISTANCIA a vos, en unidades de mundo. Es la metrica del modo.
     t: 0,
     // donde esta, en el mismo espacio que obstaculos y balas. Su z sale de `d`: vos volas en PZ.
@@ -238,7 +241,7 @@ export function persecSystem(dt) {
     const m = L.guion; L = null;
     return { guion: m };
   }
-  if (L.tipo !== 'exocet') stepTiron(dt);   // el misil no tironea: vuela parejo
+  if (L.tipo !== 'exocet' && !L.acompana) stepTiron(dt);   // el misil (y el que acompaña) no tironea: vuela parejo
   // LA DISTANCIA ES LA DIFERENCIA DE VELOCIDADES, y no hay mas modelo que ese. Si el lider va mas
   // rapido se aleja; si vos vas mas rapido, se acerca. Es lo que hace que el modo se juegue con el
   // acelerador y no con el timon — el §4 lo dice con todas las letras.
@@ -261,7 +264,7 @@ export function persecSystem(dt) {
   // …y AL FINAL SE VA SOLO (`alBlanco`): los ultimos metros hasta el portaaviones los hace el misil,
   // acelerando lejos de la escuadrilla, y estalla alla — no al lado tuyo.
   if (L.tipo === 'exocet' && L.alBlanco) L.d += EXOCET_FINAL * dt;
-  else if (L.tipo === 'exocet') L.d = Math.max(L.lo, Math.min(L.hi, L.d));
+  else if (L.tipo === 'exocet' || L.acompana) L.d = Math.max(L.lo, Math.min(L.hi, L.d));
   L.z = PZ + L.d;
   // EL EXOCET NO ESQUIVA: va derecho al blanco. Lo que se le cruce lo choca — para eso esta la escolta.
   if (L.tipo !== 'exocet') esquivar(dt);
@@ -333,7 +336,7 @@ function infinito() {
 function banda(dt) {
   // EL EXOCET no te derriba ni se pierde: va clavado en la banda (ver arriba). Lo que la escolta cobra
   // es otra cosa — que algo lo alcance (game.js). Aca solo suma el tiempo de escolta.
-  if (L.tipo === 'exocet') { L.banda += dt; return null; }
+  if (L.tipo === 'exocet' || L.acompana) { L.banda += dt; return null; }
   const dentro = L.d >= L.lo && L.d <= L.hi;
   if (dentro) {
     L.banda += dt;
@@ -410,6 +413,8 @@ export function carrilLibre(x) {
  *  guion ademas quiere que eso te cueste algo, es el guion el que lo escribe. */
 /** LA ESCOLTA DEL EXOCET (libro r5): cuantos A-4C vuelan alrededor del misil (los compañeros vivos;
  *  el jugador no cuenta — vuela solo). La pone game.js cada cuadro. */
+/** LA BANDA, en vuelo: el Super Etendard que se ADELANTA para lanzar (game.js, EL INVINCIBLE). */
+export function setBanda(lo, hi) { if (L) { L.lo = lo; L.hi = hi; } }
 export function setEscoltas(n) { if (L) L.escoltas = Math.max(0, n | 0); }
 /** Donde va cada compañero: LOS PUESTOS DEL DESPEGUE (autor, 15/10: "la formacion seria la misma que el
  *  despegue"), alrededor del misil y abiertos ESCOLTA_K para que se lean a esa distancia. Lo leen el

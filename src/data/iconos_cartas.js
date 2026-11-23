@@ -6,7 +6,8 @@ export const ICONOS = ['canon', 'cinta', 'bala', 'brp', 'snakeye', 'espoleta', '
   'cajon', 'tanques', 'hercules', 'arena', 'rasante', 'radar', 'neptune', 'auriculares',
   'antena', 'mirage', 'learjet', 'pinza', 'terreno', 'itb', 'paracaidas', 'pirueta',
   'fideos',    // (20/10: la maquina de fideos — la carta de las primeras chafitas)
-  'aerosol'];  // (17/11: el siliconado M-60 del parabrisas)
+  'aerosol',   // (17/11: el siliconado M-60 del parabrisas)
+  'bidon'];    // (23/11: el bidon verde de la Chancha, con su pico y la gota — tools/blender/modelos_cartas.py)
 export const ICONO_FW = 96, ICONO_COLS = 8;
 
 /** Carta → dibujo. Las familias comparten (las tres de MOMENTUM, las cuatro CHAFITAS…). */
@@ -17,7 +18,7 @@ const DE = {
   chafitas1: 'fideos', chafitas2: 'chafitas', chafitas3: 'chafitas', chafitas4: 'chafitas', chafRecarga: 'chafitas', chafPotencia: 'chafitas',
   escudo1: 'chapa', escudo2: 'chapa', veterano: 'reloj',   /* (22/11, el autor: "visualmente no se que es esto": el casco no se leia; el relevo en la mitad de tiempo = el reloj) */ reparacion: 'llave', amigo: 'a4', rescate: 'paracaidas',
   tallerLiv: 'caja_herr', tallerPes: 'motor', vuelta: 'reloj', municion: 'cajon',
-  tanques: 'tanques', chancha1: 'hercules', kc130: 'hercules',
+  tanques: 'tanques', chancha1: 'bidon', kc130: 'bidon',
   momentum1: 'arena', momentum2: 'arena', momentum3: 'arena', rasante1: 'rasante', radar1: 'radar',
   radarMalvinas: 'radar', neptune: 'neptune', tracker: 'auriculares', guerraElec: 'antena', mirage: 'mirage',
   fenix: 'learjet', coordinado: 'pinza', terreno: 'terreno', itb: 'itb', siliconado: 'aerosol',

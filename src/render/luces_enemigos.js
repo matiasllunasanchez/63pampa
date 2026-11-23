@@ -113,10 +113,14 @@ export function lucesEnemigo(o, fuerza) {
       aura(o.x, gy + alto * 0.4, z, L * 0.6, b);
       // LA ANTENA (22/11, el autor: "a los barcos crearles una antena larga, alta, con luz roja chiquita"): un palo fino
       // por encima del tope, y arriba de todo la roja, chiquita (fija o latiendo segun el barco)
-      { const ant = alto * 0.9 + 4, pb = proj(o.x, gy + alto, z), pt = proj(o.x, gy + alto + ant, z);
+      // (23/11, el autor: "las barras de los barcos empiezan muy por encima del barco en los chicos: barritas muy cortitas
+      // que arranquen desde el barco, no desde el aire"): nace del tope REAL del casco (`h`, no el `alto` minimo de las
+      // luces) y es corta
+      const tope = Math.max(0.8, h * 0.9);
+      { const ant = Math.max(0.8, tope * 0.3), pb = proj(o.x, gy + tope, z), pt = proj(o.x, gy + tope + ant, z);
         ctx.save(); ctx.strokeStyle = '#46525a'; ctx.globalAlpha = Math.min(1, 0.4 + fuerza * 0.6);
         ctx.lineWidth = Math.max(0.5, F / z * 0.12); ctx.beginPath(); ctx.moveTo(pb.x, pb.y); ctx.lineTo(pt.x, pt.y); ctx.stroke(); ctx.restore();
-        if (s % 2 || Math.sin(run.t * 1.6 + ph) > -0.2) punto(o.x, gy + alto + ant, z, ROJO, 1.2, 0.6 * b); }
+        if (s % 2 || Math.sin(run.t * 1.6 + ph) > -0.2) punto(o.x, gy + tope + ant, z, ROJO, 1.2, 0.6 * b); }
       const par = [[ROJO, VERDE], [ROJO, CALIDA], [AMBAR, VERDE], [CALIDA, CALIDA], [ROJO, AMBAR]][s % 5];
       punto(o.x - L * 0.45, gy + 1.4, z, par[0], 2, 0.5 * b);
       punto(o.x + L * 0.45, gy + 1.4, z, par[1], 2, 0.5 * b);

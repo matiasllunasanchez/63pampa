@@ -567,6 +567,9 @@
   }
   /* EN VUELO Y EN LA PAUSA, sin la barra (19/11): tapaba el HUD; la musica se maneja desde la pausa */
   body.en-juego .barra { display: none; }
+  /* (23/11, el autor: "el boton de musica flotante quitarlo; que la musica se maneje desde opciones"): la barra del
+     tema y el parlante ya no se muestran en ningun lado — OPCIONES › SONIDO y la pausa lo manejan */
+  .barra { display: none !important; }
   .barra::before { left: 6px; }
   .barra::after { right: 6px; }
   body.arranque-negro .barra,

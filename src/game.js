@@ -17,14 +17,14 @@ import { modoEnCuarentena } from './data/cuarentena.js';
 import { UPGRADES, nextUpgrades, moveAllowed, loadoutAt, ofertaTrasMision, chafitasDe, metrallaDe, cintaDe, bombaDeLibreta, APAGABLES, siliconadoDe } from './data/upgrades.js';
 import { stepSalitre } from './systems/salitre.js';
 import { drawSalitre, drawLavado } from './render/salitre.js';
-import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T } from './data/fallas.js';
+import { tirarFallas, esquirla as tirarEsquirla, estadoAvion, reparar as repararFallas, textoFallas, BASE_T, FALLAS_K } from './data/fallas.js';
 import { ofertaSuelta, CARTAS as CARTAS_SUELTAS, BANCO_KM, momentumDe, soporteDe, espoletasDe, potenciaDe, escudoDe, bombaSuelta } from './data/banco_suelto.js';
 import { leeDe } from './data/cartas_lee.js';
 import { ALBUM, ALBUM_KEY, ALBUM_CATS, ALBUM_AVION_S } from './data/album.js';
 import { descPlano } from './data/desc_iconos.js';
 import { perfilDe, puedeManiobra } from './data/perfiles.js';
 import * as frio from './systems/frio.js';
-import { ALTO, VERT_MODOS, SALITRE } from './data/tuning.js';
+import { ALTO, VERT_MODOS, SALITRE, FALLA_ALERTA } from './data/tuning.js';
 import { BUSQ } from './data/busqueda.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
@@ -171,7 +171,7 @@ import { drawNubesAltas, nubesAltas } from './render/nubes_altas.js';
 import { drawSierras } from './render/sierras.js';
 import { drawNubesCielo } from './render/nubes_cielo.js';   // las nubes y la vida del cielo de fondo (21/11)
 import { setFrente, sortearFrente, resetFrente, hayFrente, frenteManda, stepFrente } from './systems/frente.js';
-import { drawFrenteMuro, drawFrenteNiebla } from './render/frente.js';
+import { drawFrenteMuro, drawFrenteNiebla, solTapado } from './render/frente.js';
 import { drawRayos } from './render/rayos.js';
 import { stepTormenta, resetTormenta, fogonazoTormenta, rayosVivos } from './systems/tormenta.js';
 import { nocheDe, drawNoche, tableroNoche, luzNoche, drawReflejoLuna } from './render/noche.js';
@@ -184,7 +184,7 @@ import { stepRain, stepSpray, drawRain, RAIN_N, modoNieve, lluviaRapida } from '
 import { stepFog, resetFog, inBank, bankLeft, tookEntry, takeExit, fogFade } from './systems/fog.js';
 import { setNiebla, luzDelCielo } from './render/borde.js';
 import * as chafita from './render/chafita.js';
-import { lanzarCola } from './core/aim9.js';
+import { lanzarCola, lanzarFrente } from './core/aim9.js';
 import { humo as humoHorneado } from './render/fuego.js';
 import { MIRA_IDS } from './render/miras.js';
 import * as momRender from './legacy/momentum_render.js';
@@ -193,7 +193,7 @@ import { drawCabina } from './render/cabina.js';
 import { glifosDe } from './render/glifos.js';
 import { pitchTarget, applyEnergy, applyDrag, scrapeLimit, speedTarget, windFactor,
          PITCH_LERP, SCRAPE_RECOVER, SCRAPE_LIFT, AFTER_STEP, AFTER_MAX } from './core/physics.js';
-import { BOMBA_CARGA_T, BOMBA_CARGA_VZ, CH_VAIVEN } from './data/tuning.js';
+import { BOMBA_CARGA_T, BOMBA_CARGA_VZ, CH_VAIVEN, CH_AJUSTE } from './data/tuning.js';
 import { BOMBA_EYECTOR, BOMBA_ENVION, BOMBA_PANZA, BOMBA_DERIVA, SPAWN_Z as BOMBA_Z_TOPE, TQ_ALA_X, CH_ETA_RUTA, CH_ETA, CHAPITAS, BORDE_DESTELLO } from './data/tuning.js';
 import { LAND_APPROACH_M, LAND_ALT0, LAND_SPD_MIN, LAND_SPD_MAX, LAND_SPD_OK,
          LAND_VY_SUAVE, LAND_VY_DURO, LAND_PITCH_OK, LAND_GEAR_DRAG, LAND_GEAR_MIN_T,
@@ -629,7 +629,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     const rescates = [];
     function stepHistoria(dt) {
       const cz = caza.active();
-      if (cz && !cazaAntes && run.radarMalv) cartel('RADAR DE PUERTO ARGENTINO', P.warn, 'Una pareja de Harrier entrando');
+      // (23/11, el autor: "si Puerto Argentino me avisa de los Harriers tiene que ser como Condor, solo que en vez de Condor
+      // debe decir PUERTO ARGENTINO, y usar el icono de radio"): por la radio, no un cartel
+      if (cz && !cazaAntes && run.radarMalv) { beep(430, 0.06, 'square', 0.04); decirLinea('PUERTO ARGENTINO: ' + T('radarMalv_harrier')); }
       cazaAntes = cz;
       const ey = run.eyectados || 0;
       if (ey > eyectVistos) { if (run.rescate) for (let i = eyectVistos; i < ey; i++) rescates.push(40); eyectVistos = ey; }
@@ -668,7 +670,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // (…y EL FRIO EN LA BASE las hace mas probables — data/frio.js ARRANQUE: los fluidos y los retenes)
       const fk = perfilDe(PLANES[selPlane] && PLANES[selPlane].key).fallasK * frio.arranqueK(frio.tempPasillo(cfg, 0));   // el A-4 falla mas, el Super Etendard menos
       const antes = run.fallasFlota.map(f => ({ ...(f || {}) }));
-      for (let i = 0; i < run.squad; i++) run.fallasFlota[i] = tirarFallas(run.fallasFlota[i] || {}, Math.random, fk);
+      const kT = Math.min(FALLAS_K.TOPE_K, fk * FALLAS_K.ESCALA);   // (23/11: 1 de cada 4, a lo sumo 1 de cada 3 — data/fallas.js)
+      for (let i = 0; i < run.squad; i++) run.fallasFlota[i] = tirarFallas(run.fallasFlota[i] || {}, Math.random, kT);
       if (run.squad <= 3) acotarFlota(antes);
     }
     /** LAS FALLAS EN LAS ESCUADRILLAS CHICAS (21/11, el autor: "en 3 puede haber fallas en 1 o a veces 2, pero en 1 no,
@@ -741,6 +744,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  queda uno en el aire: si todos salieron fallados, despega el que tiene menos. Las fallas que aparezcan
      *  DESPUES (esquirlas, el blanco siguiente del CICLO) ya no se mandan solas: las avisa SHIFT+R en el HUD. */
     let tallerMsg = 0;   // cuantos se fueron al despegar: el cartel sale al tomar el mando (stepFallas)
+    let tallerVan = [];  // QUIENES se fueron: la placa de la escuadrilla los marca de a uno (run.fallasAlerta)
     function tallerAlDespegar() {
       const grav = n => Object.values(fallasDe(n)).reduce((a, g) => a + g, 0);
       const fila = (run.orden || []).slice();
@@ -751,6 +755,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       run.orden = queda !== null ? [queda] : sanos;
       for (const n of van) { run.lives--; (run.enBase = run.enBase || []).push({ n, t: BASE_T }); }
       tallerMsg = van.length;
+      tallerVan = van.slice();
       if (queda !== null) avisarFallas(queda);
     }
     let esquirlasVistas = 0;
@@ -758,7 +763,17 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     function stepFallas(dt) {
       if (!suelto()) { run.falCanon = 0; return; }
       run.falCanon = falla('canon');
-      if (tallerMsg) { cartel(T('base_despegue', { n: tallerMsg }), '#9fb3c0', T('base_despegue_sub', { s: BASE_T })); tallerMsg = 0; }
+      // (23/11, el autor: "dejar solo ESCUADRILLA CON FALLAS, y que visualmente te muestre arriba a la izquierda de a uno
+      // cuantos fallaron, con una forma visual de color de un solo momento, y un sonido de roto; que no sea texto ni toast"):
+      // el cartel queda corto, y cada avion que se fue recibe en la placa de la escuadrilla un GOLPE (render/hud.js
+      // drawSquadPips) escalonado FALLA_ALERTA.PASO s, cada uno con su chapa que cruje
+      if (tallerMsg) {
+        cartel(T('base_despegue'), '#e0a83a', null, { ico: 'engranaje' });
+        run.fallasAlerta = tallerVan.map((n, k) => ({ n, t: run.t + FALLA_ALERTA.ANTES + k * FALLA_ALERTA.PASO, son: false }));
+        tallerMsg = 0;
+      }
+      for (const a of (run.fallasAlerta || [])) if (!a.son && run.t >= a.t) { a.son = true; sfxOne(FALLA_ALERTA.SFX); }
+      if (run.fallasAlerta && run.fallasAlerta.every(a => run.t > a.t + FALLA_ALERTA.DURA)) run.fallasAlerta = null;
       for (const b of (run.enBase || []).slice()) {
         b.t -= dt;
         if (b.t > 0) continue;
@@ -1885,7 +1900,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     /** El epilogo de la mision que se acaba de volar. */
     function irAlEpilogo() {
       // EL TUTORIAL no cuenta nada al final: la etapa queda tildada y se vuelve a su menu
-      if (libro && libro.tut) { marcarEtapa(libro.k); volverAlLibro(); return; }
+      if (libro && libro.tut) { marcarEtapa(libro.k); pedirReintento(reintentarLibro, volverAlLibro); return; }   // (…con REINTENTAR, 23/11)
       // EL LIBRO DE VUELO cuenta lo que pasó SIEMPRE, y lo que pasó es de la salida en curso — no
       // depende de que la corrida haya llegado a armar su recuento.
       if (libro && curMission() && curMission().epi) { initStory(curMission().epi); setState('epilogue'); return; }
@@ -1896,6 +1911,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // del juego entero por haber volado una prueba. Volver al catalogo es lo mismo que hace el
       // epilogo cuando termina con `S.test` puesto.
       if (sinEpi && S.test) { salirTest(); return; }
+      if (sinEpi && (gameMode === 'arena' || gameMode === 'pasadas')) { finSueltoGanado(); return; }
       if (sinEpi) { advanceCampaign(); return; }
       initStory(lastRun.mission.epi); setState('epilogue');
     }
@@ -2761,14 +2777,19 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // suelta ('cycle': el embudo objetivo → recuento → epilogo ya existe) pero NO es herramienta:
     // `S.test` queda apagado — no hay sello de PRUEBA, y lo que se juega cuenta.
     function abrirLibro(k) {
+      if (!prepararLibro(k)) return;
+      initStory(LIBRO_VUELO[k].contexto); setState('story');
+    }
+    /** La salida `k` lista para volar, sin el contexto (lo usa REINTENTAR: la segunda vez no se cuenta de nuevo). */
+    function prepararLibro(k) {
       const m = LIBRO_VUELO[k];
-      if (!m) return;
+      if (!m) return false;
       libro = { k, av: null };
       gameMode = 'cycle'; S.test = false;
       islas.activar(false);   // (la busqueda del mar abierto las prende sola cuando llega a la zona)
       startCiclo = null;   // (lo mismo que el tutorial: el arranque guardado de CICLO no es de esta salida)
       loadLevel(nivelLibro(k));
-      initStory(m.contexto); setState('story');
+      return true;
     }
     /** UNA ETAPA DEL TUTORIAL: sin contexto ni eleccion — despega derecho, TERO solo en el A-4B. */
     function abrirTutorial(k) {
@@ -2909,12 +2930,20 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
      *  Hercules —o al cruzar la linea del radar, si no cargaste— los Super Etendard se ponen adelante y
      *  hay que seguirlos (la PERSECUCION de siempre, con su banda). En `lanzamiento` sueltan el Exocet:
      *  el lider pasa a ser el misil y empieza la escolta. */
+    // (23/11, el autor: "sea lo que elijas en la mision del Exocet, los que despegan van todos juntos, los Skyhawk y los
+    // Super Etendard; a los Super Etendard los maneja la maquina; al lanzar el misil se adelanta, va adelante y lanza, y
+    // los Skyhawk lo siguen y eliminan todo lo que pueda chocar al misil por X tiempo hasta impactar"): el Super Etendard
+    // vuela ADELANTE desde el despegue (`acompana`: te espera, no te hace perder), en ESCOLTA_ADELANTA_M antes del punto de
+    // lanzamiento se ADELANTA (la banda se abre), y ahi suelta el Exocet. La escolta dura ESCOLTA_DURA segundos
+    const ESCOLTA_ADELANTA_M = 900, SUPER_BANDA = [45, 80], SUPER_ADELANTA = [110, 150];
     function pasoSigue() {
-      if (!persec.active() && !chancha.snapshot() && (chIdaLlena || rutaSys.enAlcance())) {
+      if (!persec.active() && !chancha.snapshot() && S.state === 'play') {
         const su = libroDef().aviones.find(a => a.rol === 'lanza');
-        persec.startPersec({ nombre: su ? su.chapa : 'SUPER ÉTENDARD', plane: su ? su.plane : 'supere', mudo: true });
+        persec.startPersec({ nombre: su ? su.chapa : 'SUPER ÉTENDARD', plane: su ? su.plane : 'supere', mudo: true, acompana: true, banda: SUPER_BANDA });
       }
-      if (run.dist >= objectiveDist * (curMission().lanzamiento || 0)) {
+      const lanzaM = objectiveDist * (curMission().lanzamiento || 0);
+      if (persec.active() && run.dist >= lanzaM - ESCOLTA_ADELANTA_M) persec.setBanda(SUPER_ADELANTA[0], SUPER_ADELANTA[1]);
+      if (run.dist >= lanzaM) {
         // EL EXOCET SALE DE DONDE IBA EL SUPER ETENDARD (o de adelante tuyo, si nunca lo alcanzaste)
         const s = persec.snapshot();
         persec.resetPersec();
@@ -2930,7 +2959,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // CERCA, a 25-40: el misil va en el medio de la formacion y se tiene que ver la escuadrilla
       // alrededor. A la distancia de la persecucion de siempre (60-140) los compañeros eran puntos.
       persec.startPersec({ nombre: 'EXOCET', tipo: 'exocet', banda: [25, 40], desde });
-      escolta.amenazaT = ESCOLTA_GRACIA; escolta.cayeron = 0; escolta.final = 0;
+      escolta.amenazaT = ESCOLTA_GRACIA; escolta.cayeron = 0; escolta.final = 0; escolta.t = 0;
     }
     // ---------- LA ESCOLTA DEL EXOCET (PLAN_INVINCIBLE I4-I6) ----------
     // Cada ESCOLTA_AMENAZA segundos algo se le cruza al misil en su linea; si lo toca, el misil cae y la
@@ -2941,7 +2970,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     const ESCOLTA_CAIDAS = [0.3, 0.55, 0.8];
     const ESCOLTA_CHOQUE = { x: 4.5, y: 6, z: 7 };   // la caja del misil contra lo que se le cruza
     const ESCOLTA_VUELAN = ['helo', 'jet', 'balloon', 'birds'];
-    const escolta = { amenazaT: 0, cayeron: 0, final: 0 };
+    const escolta = { amenazaT: 0, cayeron: 0, final: 0, t: 0 };
+    const ESCOLTA_DURA = 45;   // s de escolta hasta que el Exocet impacta (23/11: "por X tiempo hasta impactar")
     const ESCOLTA_FINAL = 1.3;   // segundos que vuela solo el misil hasta estallar en el portaaviones
     let escoltaSinAmenazas = false;   // sonda (__escSin): para recorrer la escolta entera en una captura
     /** Un cuadro de la escolta. Devuelve true si el misil cayo (el cuadro se corta: ya se murio). */
@@ -2954,6 +2984,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (escolta.final <= 0) { impactoExocet(); finishObjective(); return true; }
         return false;
       }
+      // EL TIEMPO DE LA ESCOLTA: cumplido, el misil se va solo al portaaviones y estalla
+      escolta.t += dt;
+      if (escolta.t >= ESCOLTA_DURA) { escolta.final = ESCOLTA_FINAL; persec.alBlanco(); return false; }
       // los compañeros que quedan vuelan alrededor del misil (el jugador no cuenta: vuela solo)
       persec.setEscoltas(Math.min(3, run.lives - 1));
       // LAS AMENAZAS, en la linea del misil
@@ -2978,8 +3011,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         return true;
       }
       // LOS COMPAÑEROS QUE CAEN: el ultimo puesto de la formacion, con su estallido
-      const lz = curMission().lanzamiento || 0;
-      const fr = (run.dist / objectiveDist - lz) / Math.max(0.01, 1 - lz);
+      const fr = escolta.t / ESCOLTA_DURA;   // (las caidas de los compañeros, en fracciones del TIEMPO de escolta)
       if (escolta.cayeron < ESCOLTA_CAIDAS.length && fr >= ESCOLTA_CAIDAS[escolta.cayeron] && run.lives > 1) {
         const pts = persec.puestosEscolta(), p = pts[pts.length - 1];
         if (p) explodeAt(p.x, p.y, p.z, true);
@@ -3010,6 +3042,70 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       }
       campIr('libro', r => r.id === 'libro' && r.k === k);
       setState('campmenu');
+    }
+    // ---------- REINTENTAR SI / NO (23/11) ----------
+    // El autor: "cada vez que se termina un mapa o mision una pantalla que pregunte REINTENTAR SI NO y te lleve a la
+    // pantalla principal de la mision". AL PERDER, en todos los modos, es el pie del derribado (estado 'dead'). AL
+    // GANAR, solo donde no hay nada que encadenar —MINUTOS SAGRADOS, PASADAS, el libro y el tutorial—, es el estado
+    // 'reintentar' sobre el recuento. La campaña ganada sigue como estaba: banco y mision siguiente.
+    let retrySel = 0;        // 0 = SI, 1 = NO
+    let retryT = 0;          // reloj de 'reintentar' (la tecla que cerro el recuento no contesta sola)
+    let reintento = null;    // al ganar: { si, no, fondo }
+    function pedirReintento(si, no) {
+      reintento = { si, no, fondo: (S.state === 'results' || S.state === 'epilogue') && !!lastRun };
+      retrySel = 0; retryT = 0;
+      setState('reintentar');
+    }
+    /** La misma salida del libro (o la misma etapa del tutorial), con el mismo avion, sin volver a contar el contexto. */
+    function reintentarLibro() {
+      const k = libro.k, av = libro.av, tut = !!libro.tut;
+      paused = false; soltarMision();
+      if (tut) { abrirTutorial(k); return; }
+      if (!prepararLibro(k)) return;
+      libroAvSel = av || 0;
+      libroDespegar();
+    }
+    /** NO: de vuelta a la pantalla de donde se vino — el catalogo de la herramienta, el libro o el tutorial, el menu
+     *  de HISTORIA (campaña) o el selector de avion del modo suelto. */
+    function volverAlOrigen() {
+      reintento = null;
+      if (S.test) { salirTest(); return; }
+      if (libro) { volverAlLibro(); return; }
+      paused = false;
+      if (gameMode === 'campaign') { soltarMision(); campIr('campanas'); setState('campmenu'); return; }   // (HISTORIA › CAMPAÑAS)
+      setState('menu');
+    }
+    /** SI tras perder: lo que hacia el derribado con cualquier tecla (mismo modo, mismo nivel). */
+    function reintentarMuerte() {
+      // los dos modos de climax suelto reintentan LO MISMO (mismo buque): no hay despegue al que volver
+      if (gameMode === 'arena') startArenaBattle(false);
+      else if (gameMode === 'pasadas') startPasadaBattle(false);
+      // LIBRO DE VUELO y TUTORIAL: la misma salida (23/11 — antes se volvia al libro sin poder reintentar)
+      else if (libro) reintentarLibro();
+      else {
+        // CICLO: la corrida se termino con la muerte; la que sigue es otra, con otro blanco
+        if (gameMode === 'cycle' && suelto()) randomMission();
+        reset(); setRunObjective(true); conAuto = true; setState(afterBrief()); sfxOne('lv1');
+      }
+    }
+    const retryListo = () => S.state === 'dead' ? deathT > DEATH_REVEAL + 0.3 : S.state === 'reintentar' && retryT > 0.4;
+    function retryNav() { if (!retryListo()) return; retrySel = retrySel ? 0 : 1; beep(520, 0.05, 'square', 0.04); }
+    function retryElegir(i) {
+      if (!retryListo()) return;
+      retrySel = i;
+      if (S.state === 'dead') { if (i === 0) reintentarMuerte(); else volverAlOrigen(); }
+      else if (reintento) { const r = reintento; reintento = null; (i === 0 ? r.si : r.no)(); }
+      beep(i === 0 ? 600 : 400, 0.07, 'square', 0.05);
+    }
+    /** El mouse en la grilla de diseño: pasar por encima marca, el clic elige. */
+    function retryPuntero(x, y, clic) {
+      const i = screens.reintentarEn(x, y);
+      if (i < 0 || !retryListo()) return;
+      if (clic) retryElegir(i); else if (i !== retrySel) { retrySel = i; beep(520, 0.04, 'square', 0.03); }
+    }
+    /** Al ganar MINUTOS SAGRADOS o PASADAS: SI repite el mismo buque, NO vuelve al selector del modo. */
+    function finSueltoGanado() {
+      pedirReintento(() => gameMode === 'arena' ? startArenaBattle(false) : startPasadaBattle(false), volverAlOrigen);
     }
     /** Primera fila SELECCIONABLE del menu (la lista arranca con un encabezado). */
     function campFirstSel() { return campRows().findIndex(r => !r.head && !r.disabled); }
@@ -3376,6 +3472,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 
       // EL SONIDO (18/10): MUSICA, AMBIENTE (el mundo y los enemigos) y UNIDAD (tu avion), data/mezcla.js
       { head: 'optSecSonido' },
+      // (23/11, el autor: "que la musica se maneje desde opciones: poder bajar o quitar la musica, dejar los sonidos del
+      // juego, o quitar todo, y los volumenes"): el parlante flotante se fue (styles.css .barra); TODO EL SONIDO es el
+      // mute de siempre (se guarda en 'rasante_muted') y MUSICA apaga solo la musica (el volumen a 0, recuerda el de antes)
+      { label: () => T('optSonidoTodo'), opts: ['si', 'no'], names: yesNo,
+        get: () => (isMuted() ? 'no' : 'si'), set: v => setMuted(v === 'no') },
+      { label: () => T('optMusicaOn'), opts: ['si', 'no'], names: yesNo,
+        get: () => (musicaOn() ? 'si' : 'no'), set: v => { if ((v === 'si') !== musicaOn()) musicaToggle(); } },
       ...['musica', 'ambiente', 'unidad'].map(p => ({ label: () => T('optVol_' + p), opts: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         names: () => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => n * 10 + '%'),
         get: () => volSel[p], set: v => { volSel[p] = v; setNivel(p, v / 10); }, save: 'rasante_vol_' + p })),
@@ -4164,7 +4267,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // …y LA RADIO DEL LIBRO (core/voz.js): lo que diria el elenco lo dice el numeral, con su apodo y su cara
       // EL TUTORIAL arranca sus pasos (systems/tutorial.js) con cada corrida
       tutSys.empezar(libro && libro.tut ? libroDef().pasos : null); tutPasados = 0; tutRotos = 0; tutEsquivados = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false; tutGolpes = 0; tutRoceT = 0;
-      setVozLibro(libro && libro.av !== null && !libro.tut ? {
+      // (…y LOS MODOS SUELTOS igual — 23/11, el autor: "en POR LA PATRIA aparece Puma hablando, no deberia": ahi no
+      // vuela nadie de la campaña; lo que gritaba Puma lo dice el que vuela detras, PATRIA 2, 3…)
+      setVozLibro((libro && libro.av !== null && !libro.tut) || suelto() ? {
         numeral: () => (run.lives >= 2 ? squad.pilotName(detras(run)) : null),
         piloto: () => squad.pilotName(alMando(run)),
       } : null);
@@ -4173,7 +4278,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // la de la ultima campaña, MOMENTUM incluido). El salto de un blanco al otro del ciclo no cuenta.
       if (suelto() && !encadena) { director.reiniciar(); oleadaVista = 0; pichon = []; cartasRun = []; bancoProx = bancoKm(); bancoPend = 0; bancoOffer = null; run.chanchaGratis = 0; }
       // LAS FALLAS Y LA BASE son de la corrida (resetRun no los conoce: sin esto pasaban a la campaña)
-      if (!encadena) { run.fallasFlota = null; run.enBase = null; run.esquirlas = 0; run.esquirlaT = undefined; }
+      if (!encadena) { run.fallasFlota = null; run.enBase = null; run.fallasAlerta = null; run.esquirlas = 0; run.esquirlaT = undefined; }
       // LA SAL DEL PARABRISAS es de la salida (systems/salitre.js): el blanco encadenado del CICLO la conserva
       if (!encadena) { run.sal = 0; run.salAviso = false; run.lavaK = 0; }
       // LOS MODOS SUELTOS (16/10): mundo al azar en cada corrida, y la barra del radar SUMA ESTRELLAS
@@ -4440,6 +4545,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       misNav: dir => misNav(dir),
       misConfirm: () => misConfirm(),
       misToggleHist: () => misToggleHist(),
+      retryNav: () => retryNav(),
+      retryConfirm: () => retryElegir(retrySel),
+      retryNo: () => retryElegir(1),
+      retryPuntero: (x, y, clic) => retryPuntero(x / U, y / U, clic),
       libroAvNav: dir => libroAvNav(dir),
       libroAvConfirm: () => libroDespegar(),
       // PAUSA (la logica vive arriba; el input solo enruta). isPaused es el predicado que
@@ -4769,8 +4878,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // MIRA fija/movil: la alterna CAPS LOCK (teclado) y tambien la fila de OPCIONES. El aviso
       // en pantalla es el mismo por las dos vias — si no, tocar la tecla no daba ninguna señal.
       aimChanged: free => {
-        beep(free ? 440 : 660, 0.05, 'square', 0.05);
-        if (S.state === 'play' || S.state === 'momentum') cartel(free ? T('aimFree') : T('aimFixed'), P.accent);
+        // (23/11, el autor: "el aviso de mira libre es al pedo, quitar": ni cartel ni pitido — la mira misma ya lo muestra)
         try { localStorage.setItem('rasante_mira_modo', cfg.aim); } catch (e) { }
       },
       // △ del mando: DESACTIVADO (pedido del autor, 14/9/2026). Daba vuelta el eje Y de TODO el
@@ -5519,7 +5627,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     const erroSuelta = c => c === 'death_fallo_blanco' || c === 'death_suelta';
 
     function die(cause) {
-      setState('dead'); deathCause = cause; deathT = 0;
+      setState('dead'); deathCause = cause; deathT = 0; retrySel = 0;   // (REINTENTAR arranca siempre en SI)
       // …y POR QUE: la bomba errada se explica por su ultimo veredicto sobre el buque
       deathPorque = derrota(cause, blancoSys.estado().res, blancoSys.estado().bomba);
       // …Y SI SE ERRO PERO SE DEJO DAÑO (D3 del autor, 20/10): la mision se pierde igual, pero la
@@ -5851,11 +5959,20 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         tutSiembraT += dt;
         if (tutSiembraT > 1.2) { tutSiembraT = 0; sembrarBlancos(bl); }
       } else tutSiembraT = 0;
+      // EL SIDEWINDER DE PRACTICA (`misil` del paso: 'frente' | 'cola', 23/11): uno por vez; cuando se va (esquivado o
+      // reventado al lado, sin matar: collision.js `practica`) sale otro a los TUT_MISIL_S s
+      const mp = tutSys.misilPractica();
+      if (mp && S.state === 'play' && !missiles.some(m => m.practica && !m.done && m.z > 0)) {
+        tutMisilT += dt;
+        if (tutMisilT > TUT_MISIL_S) { tutMisilT = 0; tirarMisilPractica(mp); }
+      } else tutMisilT = 0;
+      if ((run.misGolpe || 0) < tutMisGolpe) tutMisGolpe = run.misGolpe || 0;   // (una corrida nueva)
+      if (run.misGolpe > tutMisGolpe) { tutMisGolpe = run.misGolpe; decirTut(mp === 'cola' ? 'TUT2_MISIL_COLA_TEDIO' : 'TUT2_MISIL_FRENTE_TEDIO'); }
       const a = tutSys.tick(dt, { alt: plane.y, techo: fases.techoRadar(RADAR_ALT), roza: run.scrapeVib > 0.6,
         // (el mando rola con el stick derecho, que escribe rollAx y no rollL/rollR: cuenta igual — 18/11, "no puedo
         // pasar de rolar")
         inp: Object.assign({}, inp, { rollL: inp.rollL || inp.rollAx < -0.3, rollR: inp.rollR || inp.rollAx > 0.3 }),
-        pasados: tutPasados, rotos: tutRotos, esquivados: tutEsquivados, overheat: !!run.overheat, enVuelo: S.state === 'play',
+        pasados: tutPasados, rotos: tutRotos, esquivados: tutEsquivados, misEsq: run.misEsq || {}, overheat: !!run.overheat, enVuelo: S.state === 'play',
         mv: run.mv || null, bombasVuelo: pmissiles.filter(p => !p.tanque).length, climaxHecho: !!run.climaxHecho, termina: tutTermina, pego: blancoSys.alarma() || !!run.climaxHecho,
         faltan: objectiveDist > 0 ? (objectiveDist - run.dist) / objectiveDist : 1, aterrizando: S.state === 'landing', tren: landDown, aterrizo: tutAterrizo,
         pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), momentumLleno: !tempo.active() && tempo.meterVal() >= 1, chancha: chancha.enCurso(),
@@ -5905,6 +6022,25 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         cartel(T('tutEtapaOk'), P.accent);
         tutFinT = 4;
       }
+    }
+    // EL SIDEWINDER DE PRACTICA del tutorial (pasos con `misil`, data/tutorial.js)
+    const TUT_MISIL_S = 1.6;
+    let tutMisilT = 0, tutMisGolpe = 0;
+    if (typeof window !== 'undefined') window.__misdbg = () => missiles.filter(m => m.practica).map(m => ({ modo: m.modo, fase: m.fase, z: Math.round(m.z - PZ) })).concat([{ esq: run.misEsq || {}, golpes: run.misGolpe || 0 }]);
+    function tirarMisilPractica(modo) {
+      const b = { x: plane.x, y: plane.y, vx: plane.vx, vy: plane.vy || 0, spd: run.spd, pz: PZ };
+      const m = modo === 'cola'
+        ? lanzarCola({ x: plane.x + (Math.random() < 0.5 ? -3 : 3), y: plane.y + 1.5, z: PZ - 6 }, b)
+        : lanzarFrente({ x: plane.x + (Math.random() * 4 - 2), y: Math.max(3, plane.y + 1), z: PZ + 260 }, b);
+      m.practica = true;
+      if (modo === 'cola') { m.rompe = T('tut_rompe'); m.voz = 'PICHÓN'; }
+      missiles.push(m);
+      sfxOne('lanzaMisil');
+    }
+    /** Una linea suelta de TUT_SCENES por radio (sin pausa). */
+    function decirTut(id) {
+      const sc = SCENES[id], ln = sc && sc.lineas[0];
+      if (ln && !radioVis()) decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
     }
     /** Siembra los blancos de un paso: `n` en fila hacia adelante, repartidos de costado y a la altura del
      *  rasante (el caza, en tu linea: viene de frente). */
@@ -6548,23 +6684,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
             popups.forEach(p => { p.y -= p.vy * dt; p.life -= dt; });
             prune(popups, p => p.life > 0);
           }
-          // solo se puede reintentar una vez que subio la pantalla (paso el show del destrozo)
-          // reintenta (mismo modo/nivel). La musica NO se reinicia: sigue desde donde venia.
-          if (deathT > DEATH_REVEAL && flags.anyPress) {
-            // los dos modos de climax suelto reintentan LO MISMO (mismo buque): no hay despegue al que volver
-            if (gameMode === 'arena') startArenaBattle(false);
-            else if (gameMode === 'pasadas') startPasadaBattle(false);
-            // LIBRO DE VUELO: no se reintenta — se cuenta lo que pasó de verdad, salga como salga la
-            // corrida (autor, 12/10). Volver a volarla es volver a elegirla en el libro.
-            // …y LO QUE PASÓ es solo para cuando ganaste (autor, 16/10): perdida, la salida termina en esta
-            // pantalla —la explicacion de la derrota y la nota historica— y la tecla vuelve al libro
-            else if (libro) { volverAlLibro(); beep(500, 0.05, 'square', 0.04); }
-            else {
-              // CICLO: la corrida se termino con la muerte; la que sigue es otra, con otro blanco
-              if (gameMode === 'cycle' && suelto()) randomMission();
-              reset(); setRunObjective(true); conAuto = true; setState(afterBrief()); sfxOne('lv1'); beep(600, 0.08, 'square', 0.05);
-            }
-          }
+          // REINTENTAR SI / NO (23/11): ya no reintenta con cualquier tecla — se elige en el pie (input.js →
+          // retryNav / retryElegir, ver `reintentarMuerte` y `volverAlOrigen`)
         } else if (S.state === 'relevo') {
           // RELEVO DEL ESCUADRON. Los restos del lider ya los movio el bloque comun de arriba
           // (inercia de chunks y bola de fuego, el mismo camino del derribado). El resto del
@@ -6723,7 +6844,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
             // esta la campaña.
             if (S.test) { salirTest(); beep(400, 0.06, 'square', 0.05); }
             // LIBRO DE VUELO: lo que pasó ya se conto; se vuelve al libro
-            else if (libro) { volverAlLibro(); beep(400, 0.06, 'square', 0.05); }
+            else if (libro) pedirReintento(reintentarLibro, volverAlLibro);   // (REINTENTAR, 23/11)
             else if (gameMode === 'campaign') {
               // EL BANCO YA PASO (va despues del recuento, ver `trasResultados`). Lo que queda es
               // el corte al dia siguiente. La ultima mision no lo lleva: de ahi se va a victoria y
@@ -6734,9 +6855,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
               // MINUTOS SAGRADOS: otra BATALLA al azar. Este modo no tiene camino — encadenarlo
               // al briefing lo mandaba a volar una mision entera de CICLO DE MUERTE, que es
               // OTRO modo.
-              startArenaBattle(true);
+              // (23/11: ya no sortea otro buque solo — pregunta REINTENTAR: SI el mismo, NO al selector)
+              finSueltoGanado();
             } else if (gameMode === 'pasadas') {
-              startPasadaBattle(true);        // otra pasada, otro buque — mismo criterio que el arena
+              finSueltoGanado();
             } else {
               // ciclo de muerte: otra mision al azar, desde cero
               randomMission(); reset(); setRunObjective(); briefT = 0; setState('brief');
@@ -6764,6 +6886,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         } else if (S.state === 'carga') {
           // EL HANGAR: mismo trato que el banco — se elige por input.js, no con cualquier tecla
           cargaT += dt;
+        } else if (S.state === 'reintentar') {
+          retryT += dt;   // (la eleccion entra por input.js, como en el banco)
         } else if (S.state === 'victory') {
           if (levelT > 0.8 && flags.anyPress) { setState('modeselect'); }
         }
@@ -7598,6 +7722,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // LOS RAYOS DE LA TORMENTA, al fondo: despues del cielo y las nubes, antes de las sierras (render/rayos.js)
       if (cfg.sky === 'storm') drawRayos(rayosVivos());
       drawFrenteMuro();   // la pared del FRENTE DE TORMENTA, con el fondo (render/frente.js)
+      // ¿LA PARED TAPA EL SOL? (23/11: "una vez que la nube tapa el sol el reflejo debe dejar de estar"): lo de la pared
+      // en pantalla, o la sombra del frente encima. Lo leen la aureola, el camino del sol en el agua y el frio
+      run.solTapado = Math.max((run.frente && run.frente.tapaSol) || 0, solTapado(solPant));
       // LAS SIERRAS en el horizonte: SIEMPRE (el parallax de estas montañas es la vida del fondo; la imagen de clima
       // queda detras como relleno). Horneadas en pixel art como las nubes, con laderas al sol, roca, nieve y una
       // cordillera lejana detras (22/11, render/sierras.js). El dibujo viejo era un poligono en dos tonos planos.
@@ -8140,7 +8267,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           if (radarScanT >= 0) world.drawRadarEscaneo(run.t - radarScanT);
         }
       };
-      if (noche) tinteRadar();
+      // (23/11, el autor: "me quitaste todo el velo verde cuando estoy por encima del radar, y confunde porque suena el
+      // sonido"): antes iba ANTES de la oscuridad, y desde que la noche es azul y mas cubridora la tapaba entera. Ahora va
+      // siempre despues, como de dia (ver `tinteRadar` mas abajo)
       // (con el GIRO del horizonte: la franja clara, las luces lejanas y el reflejo rolan con el mundo)
       // (LA TORMENTA: con cada relampago la noche se abre de golpe — systems/tormenta.js)
       const fgz = cfg.sky === 'storm' ? fogonazoTormenta() : 0;
@@ -8150,7 +8279,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         if (sg > 0.01) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.72 * sg * (1 - 0.75 * fgz); ctx.fillStyle = '#010204'; ctx.fillRect(0, 0, cv.width, cv.height); ctx.restore(); } }
       drawBrillo(noche ? NOCHE.BRILLO : undefined, !!noche);
       // (de noche la luna no es el sol: su aureola va apenas — NOCHE.AUREOLA)
-      drawAureola(solPant, (rasante.active() ? 1 : AURA_NORMAL) * (noche ? NOCHE.AUREOLA : 1) * (1 - ((run.frente && run.frente.tapaSol) || 0)));   // (la pared del FRENTE tapa el sol)
+      drawAureola(solPant, (rasante.active() ? 1 : AURA_NORMAL) * (noche ? NOCHE.AUREOLA : 1) * (1 - (run.solTapado || 0)));   // (la pared del FRENTE tapa el sol)
       // MOMENTUM: tinte frio + viñeta mientras el tiempo esta partido. Va sobre el MUNDO y bajo
       // el HUD: la cabina sigue nitida — es el aire el que cambia, no los instrumentos.
       if (S.state === 'play' && tempo.active()) {
@@ -8163,7 +8292,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // escalon que el tinte del momentum —sobre el mundo, bajo el HUD— y colgada de la misma opcion
       // que la red: quien apago RED DE RADAR no quiere que el radar le pinte la pantalla.
       // (de noche ya se dibujo, ANTES de la oscuridad — ver `tinteRadar` arriba)
-      if (!noche) tinteRadar();
+      tinteRadar();
       // HUD en GRILLA DE DISEÑO (320x180): se dibuja con ctx.scale(U). Ver la nota de DW/DH en
       // render/ctx.js — U x SC da 3 exacto, asi que no hay medio pixel ni borroneo.
       // LA CINTA DE FORMACION va ADENTRO del ctx.scale(U): es HUD, o sea grilla de DISEÑO (320x180),
@@ -8359,7 +8488,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           // …y el PULSO tiene su propio titular: no te derribaron, erraste la mano. La mision se
           // reinicia entera con cualquier tecla, que es lo que ya hacia esta pantalla.
           // …y ERRAR LA SUELTA tambien: perdiste la mision, a nadie lo bajaron
-          perdido: deathCause === 'death_pulso' || deathCause === 'death_exocet_errado' || erroSuelta(deathCause) });
+          perdido: deathCause === 'death_pulso' || deathCause === 'death_exocet_errado' || erroSuelta(deathCause), sel: retrySel });
+      // REINTENTAR al ganar: el recuento completo de fondo (o el panel, si no lo hubo) y el pie con SI / NO
+      if (S.state === 'reintentar') {
+        if (reintento && reintento.fondo && lastRun) screens.drawResults({ lastRun, resRow: lastRun.rows.length, resT: 99, t: run.t, bg: winBg });
+        else screens.drawWinBg(winBg);
+        screens.drawReintentar({ sel: retrySel, t: run.t });
+      }
       if (S.state === 'results') screens.drawResults({ lastRun, resRow, resT, t: run.t, bg: winBg });
       if (S.state === 'brief') screens.drawBrief({ mission: curMission(), goalLabel: goalOf(curMission()).label(curMission().goal), briefT, t: run.t });
       if (S.state === 'victory') screens.drawVictory({ score: run.score, levelT, t: run.t });
@@ -8376,8 +8511,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t, albumNuevos: albumNuevos.size });
       if (S.state === 'album') menus.drawAlbum({ entradas: albumLista(), cat: albumCatI, cats: ALBUM_CATS, todas: ALBUM, vistos: albumVistos, nuevos: albumNuevos, sel: albumSel, t: run.t, lee: leeDe, planes: PLANES, joy: padActivo(), padTxt: padActivo() ? padTexto : null });
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
-      if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t, vista: campVista });
-      if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: libroDef(), sel: libroAvSel, t: run.t });
+      if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t, vista: campVista, dT: deathT, rT: retryT });
+      if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: libroDef(), sel: libroAvSel, t: run.t, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
       if (S.state === 'dificultad') menus.drawDificultad({ sel: difSel, difs: DIFICULTADES, t: run.t });
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), dev: subMenu === 'dev', t: run.t });
       if (S.state === 'pruebas') menus.drawPruebasMenu({ sel: prbSel, rows: prbRows(), t: run.t });
@@ -8706,6 +8841,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // EL HIELO a mano (0..1), para mirar la escarcha de los relojes y las alas — y verla derretirse: __hielo(0.9)
       window.__hielo = n => { if (n != null) run.hielo = +n; return run.hielo; };
       // CONTROLES abiertos en la pestaña `tab`, para fotografiarlos: __controles(0)
+      window.__opciones = () => { setState('options'); optCtrl = false; return S.state; };   // OPCIONES, para capturas
       window.__controles = tab => { setState('options'); optCtrl = true; ctrlTab = tab | 0; return ctrlTab; };
       window.__pantalla = st => { if (st === 'campmenu') campIr('raiz'); setState(st); return S.state; };
       // LA LETRA DE LOS NUMEROS de los relojes, para comparar candidatas: __fuenteNum('Thernaly')
@@ -8882,6 +9018,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     }
     // __librodbg: EL LIBRO DE VUELO por dentro — que salida, que avion, con que escuadrilla y que
     // chapas, y que fila marca el menu. La usa tools/fixture_libro.js.
+    // SONDA: arrancar una salida del LIBRO (por id, p. ej. 'r5') con el avion `av` (indice en su `aviones`), sin leer el contexto
+    if (typeof window !== 'undefined') window.__libroVolar = (id, av = 0) => { const k = LIBRO_VUELO.findIndex(m => m.id === id); if (k < 0) return false;
+      abrirLibro(k); libroAvSel = av; libroDespegar(); return JSON.stringify({ st: S.state, tramo: libro && libro.tramo }); };
+    if (typeof window !== 'undefined') window.__escoltaDbg = () => JSON.stringify({ tramo: libro && libro.tramo, persec: persec.snapshot() && { d: Math.round(persec.snapshot().d) }, esc: { t: +escolta.t.toFixed(1), final: escolta.final }, dist: Math.round(run.dist), obj: Math.round(objectiveDist), st: S.state, lives: run.lives });
     if (typeof window !== 'undefined') window.__escSin = v => { escoltaSinAmenazas = v !== 0; return escoltaSinAmenazas; };
     // sonda: donde va el tutorial (el fixture la lee para saber que hacer)
     // SONDA (21/11): abrir una etapa del tutorial (0..), como desde el menu
@@ -9229,6 +9369,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // las fallas: fijar las del avion que vuela (o del numeral n) y leer la escuadrilla
       window.__fallas = (f, n) => { if (!run.fallasFlota) run.fallasFlota = []; run.fallasFlota[n === undefined ? alMando(run) : n] = f || {};
         return JSON.stringify({ flota: run.fallasFlota, base: run.enBase, lives: run.lives, orden: run.orden, manda: alMando(run), falCanon: run.falCanon }); };
+      // LA ALERTA DE LA ESCUADRILLA CON FALLAS a mano: el cartel y el golpe sobre los numerales `ns` (sin mandarlos al taller)
+      window.__golpeFalla = (ns = [1, 2], sq) => { if (sq) { run.squad = sq; run.lives = sq; run.orden = [...Array(sq).keys()]; }   // (sq: arma una escuadrilla de sq, para verlo donde no la hay)
+        cartel(T('base_despegue'), '#e0a83a', null, { ico: 'engranaje' });
+        run.fallasAlerta = ns.map((n, k) => ({ n, t: run.t + FALLA_ALERTA.ANTES + k * FALLA_ALERTA.PASO, son: false })); return ns.length; };
       window.__esquirla = () => { run.esquirlas = (run.esquirlas || 0) + 1; return run.esquirlas; };
       window.__banco = () => JSON.stringify({ state: S.state, pend: bancoPend, prox: bancoProx, pichon: pichon.slice(),
         offer: bancoOffer ? bancoOffer.cartas.map(c => c.id) : null, rota: bancoOffer && bancoOffer.rota ? bancoOffer.rota.id : null,
@@ -9824,7 +9968,10 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       update(dt);
       // TRABADO A LA CANASTA: despues del vuelo, el avion vuelve a donde esta el embudo. Se puede soltar
       // el control — va colgado, cargando — hasta que un toque de direccion lo suelta (chancha.js).
-      if (chancha.estaTrabado() && S.state === 'play') {
+      const trabadoAhora = chancha.estaTrabado() && S.state === 'play';
+      if (trabadoAhora && !trabaPrev) { trabaDe = { x: plane.x, y: plane.y, bank: plane.bank, pitch: plane.pitch }; trabaK = 0; }
+      trabaPrev = trabadoAhora;
+      if (trabadoAhora) {
         const cs = chancha.snapshot();
         if (cs) {
           // …Y COLGADO SE MUEVE (CH_VAIVEN, data/tuning.js): no queda clavado como una foto
@@ -9837,6 +9984,17 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
           plane.vx = 0; plane.vy = 0;
           plane.bank = (Math.sin(t * 1.9 + 0.7) * 0.6 + Math.sin(t * 4.3) * 0.4) * V.BANK + sx * V.BANK * 0.5;
           plane.pitch = (Math.sin(t * 2.3 + 1.5) * 0.7 + Math.sin(t * 5.2) * 0.3) * V.PITCH - tiron * V.PITCH;
+          // EL AJUSTE (CH_AJUSTE): no aparece en el embudo — va hasta ahi, rapido y frenando, inclinado hacia donde se corre
+          if (trabaK < 1 && trabaDe) {
+            const A = CH_AJUSTE;
+            trabaK = Math.min(1, trabaK + dt / A.T);
+            const u = trabaK - 1, e = 1 + (A.PASA + 1) * u * u * u + A.PASA * u * u;   // sale rapido, se pasa apenas y asienta
+            const dx = plane.x - trabaDe.x, dy = plane.y - trabaDe.y, arco = Math.sin(trabaK * Math.PI);
+            plane.x = trabaDe.x + dx * e; plane.y = trabaDe.y + dy * e;
+            const m = 1 - trabaK;   // lo que traia se apaga
+            plane.bank = trabaDe.bank * m + plane.bank * trabaK + Math.sign(dx) * Math.min(1, Math.abs(dx) / 2.5) * A.LEAN * arco;
+            plane.pitch = trabaDe.pitch * m + plane.pitch * trabaK + Math.sign(dy) * Math.min(1, Math.abs(dy) / 2) * A.NOSE * arco;
+          }
         }
       }
       // SONDA DE LO TRANSONICO (QUITAR): va ENTRE update y draw a proposito. Puesta antes, la
@@ -9856,6 +10014,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
     // `window.__errores` con su pila: la consola de Electron la escribe en el log, ver
     // electron/main.js) y el juego sigue. No es la causa: es para que no se cuelgue y se pueda
     // encontrar la causa.
+    let trabaPrev = false, trabaDe = null, trabaK = 1;   // el ajuste a la canasta (CH_AJUSTE)
     let erroresCuadro = 0;
     function frame(now) {
       try { frameCuerpo(now); }

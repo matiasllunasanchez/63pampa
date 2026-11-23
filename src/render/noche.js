@@ -52,6 +52,7 @@ function sortearLejanas() {
  *  la posicion en pantalla de la luna (o null); `giro` = { a, cx, cy } el giro del horizonte (o null):
  *  todo lo que esta EN el mundo —la franja clara del horizonte, las luces lejanas, el reflejo— rola
  *  con el (4/10, el autor: "si doblo, las luces se giran"). */
+const OLA_NOCHE = 0.55;   // cuanto de la luz del velo de la noche le queda a la cara de la ola gigante
 export function drawNoche(n, astro, giro) {
   if (!n) return;
   lienzo();
@@ -101,7 +102,9 @@ export function drawNoche(n, astro, giro) {
       // (23/11, el autor: "la ola negra desaparece en algunos momentos"): con la noche azul, el velo le ponia a la
       // pared el MISMO azul que al cielo y se fundian. Sobre la mole el velo es casi negro: queda recortada
       gd.globalCompositeOperation = 'destination-out'; gd.fillStyle = '#000'; gd.fill();
-      gd.globalCompositeOperation = 'source-over'; gd.fillStyle = `rgba(2,4,9,${a})`; gd.fill();
+      // (…y mas tarde el mismo 23/11: "quedo demasiado diferente del agua y del fondo; tiene que mezclarse y ocultar el
+      // horizonte, pero no negra literal: una mezcla del agua, mas negra"): el velo de la noche, a la mitad de su luz
+      gd.globalCompositeOperation = 'source-over'; gd.fillStyle = `rgba(${r * OLA_NOCHE | 0},${g * OLA_NOCHE | 0},${b * OLA_NOCHE | 0},${a})`; gd.fill();
       const og = oscuroGigante();
       if (og > 0.01) { gd.fillStyle = banda(og); gd.fillRect(-D.width, hy, D.width * 3, D.height * 2); }
     }

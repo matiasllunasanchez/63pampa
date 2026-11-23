@@ -252,7 +252,8 @@ function lucesNoche(z, k, ap, esBase) {
   const late = esBase ? Math.sin(run.t * 4) > 0 : dado(3) % 2 ? true : Math.sin(run.t * 1.6 + sem) > -0.2;
   // LA ANTENA (22/11, el autor: "a los barcos crearles una antena larga, alta, con luz roja chiquita"): un palo fino
   // que sale de lo mas alto del perfil, y la roja arriba de todo, chiquita
-  const ant = esBase ? 0 : Math.max(alto * 0.8, BL.LEN * 0.07);
+  // (23/11: cortita y desde el perfil — en los buques chicos el minimo de BL.LEN la dejaba flotando)
+  const ant = esBase ? 0 : Math.max(0.8, alto * 0.3);
   if (ant > 0) {
     const pb = proj(xAlto, blanco.base + alto, z), pa = proj(xAlto, blanco.base + alto + ant, z);
     ctx.save(); ctx.strokeStyle = '#46525a'; ctx.lineWidth = Math.max(0.5, k * 0.1);

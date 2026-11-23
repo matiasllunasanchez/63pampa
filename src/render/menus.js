@@ -1034,7 +1034,12 @@ function libroAvText(m) {
   return r => {
     const a = m.aviones[r.i], pl = PLANES.find(p => p.key === a.plane);
     // (con hora propia —dos salidas del mismo avion, el BELGRANO—: el dia y la hora antes de la carga)
-    return { name: a.chapa + '  ·  ' + (pl ? pl.name : a.plane), desc: (a.hora ? (a.fecha || m.fecha) + ' · ' + a.hora + ' · ' : '') + a.cargaTxt };
+    // (23/11, el autor: "el amarillo muestra el avion a seleccionar y el blanco te dice las cantidades"): abajo
+    // ya no va la carga sino cuantos vuelan y que llevan lo mismo; lo del avion lo dicen los iconos de la derecha
+    const n = a.squad || m.cfg.squad || 1;
+    return { name: a.chapa + '  ·  ' + (pl ? pl.name : a.plane),
+      desc: (a.hora ? (a.fecha || m.fecha).replace(/ DE \d{4}$/, '').replace(' DE ', ' ') + ' · ' + a.hora + ' · ' : '')   // (la fecha corta: entera no entraba)
+        + (n > 1 ? T('libroCant', { n }) : T('libroCant1')) };
   };
 }
 export const LIBRO_AV_ROWS = { y0: 108, rh: 34, headH: 18 };
@@ -1050,17 +1055,13 @@ export function drawLibroAvion(w) {
     const PW = 170, PH = Math.round(PW * pl.h / pl.w);
     ctx.drawImage(pl.img, NW - PW - 24, Math.round(150 - PH / 2 + Math.sin(w.t * 1.6) * 2), PW, PH);
   }
-  // …Y DEBAJO, QUE HACE ESE AVION EN LA SALIDA (autor, 13/11: "elegir entre los aviones que participaron,
-  // con sus pros, contras y roles"): el papel, lo que tiene a favor y lo que tiene en contra. Solo si la
-  // salida lo trae escrito (`papel`, `pro`, `contra` en data/libro_vuelo.js).
-  if (a && (a.papel || a.pro || a.contra)) {
-    const x = NW - 194, mw = 178;
-    let y = 196;
-    ctx.textAlign = 'left';
-    if (a.papel) { ctx.font = labelFont(8); ctx.fillStyle = P.accent; y = wrapText(a.papel, x, y, mw, 10) + 2; }
-    ctx.font = descFont(8);
-    if (a.pro) { ctx.fillStyle = P.ink; y = wrapText('+ ' + a.pro, x, y, mw, 10); }
-    if (a.contra) { ctx.fillStyle = P.warn; wrapText('- ' + a.contra, x, y, mw, 10); }
+  // …Y DEBAJO, LOS ICONOS DEL AVION (23/11, el autor: "quitar la descripcion blanca y usar los iconos debajo del
+  // avion seleccionado"): la misma tira de la CONFIGURACION que el selector de los modos sueltos (panelCapacidades),
+  // que se dibuja en la grilla de DISEÑO — por eso el rectangulo nativo se pasa dividido por U.
+  if (pl) {
+    ctx.save(); ctx.scale(U, U);
+    panelCapacidades(pl, { x: (NW - 194) / U, y: 200 / U, w: 178 / U, h: (FICHA_PIE - 1) }, w.mouse);
+    ctx.restore();
   }
   ctx.font = labelFont(8); ctx.fillStyle = P.dim;
   ctx.fillText(m.escuadrilla, 40, NH - 26);
@@ -1510,6 +1511,30 @@ export function drawUpgrade(w) {
 // Devuelve { leerMax }: cuanto se puede bajar en la carta elegida.
 const GRUPO_COL = { armas: '#e8a34a', defensa: '#7fc8a0', alcance: '#6fb3e0', poderes: '#c79be8', piruetas: '#e0d070', taller: '#d08a6a', inteligencia: '#9fc0d8' };
 const CARTAS_IMG = new Image();
+
+// LA CHANCHA EN LAS CARTAS ES LA GOTA DE NAFTA VERDE (23/11, el autor): la misma gotita del tablero (render/hud.js
+// chanchaGota), en vez del Hercules horneado de la hoja. `x, y, lado`: el cuadro donde iria el dibujo
+const VERDE_CHANCHA = '#7fe08d';
+function gotaChancha(x, y, lado) {
+  const cx = x + lado / 2, cy = y + lado / 2, k = lado / 7;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k);
+  ctx.fillStyle = VERDE_CHANCHA; ctx.beginPath();
+  ctx.moveTo(0, -2.2);
+  ctx.quadraticCurveTo(1.6, -0.1, 1.3, 0.8);
+  ctx.arc(0, 0.6, 1.3, 0.15, Math.PI - 0.15);
+  ctx.quadraticCurveTo(-1.6, -0.1, 0, -2.2);
+  ctx.fill();
+  // un brillo chico arriba a la izquierda, para que se lea liquido a este tamaño
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.arc(-0.55, 0.35, 0.32, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+/** El dibujo de la carta `c` en el cuadro (x, y, lado), de la hoja horneada (la Chancha: el BIDON verde, horneado en
+ *  Blender — tools/blender/modelos_cartas.py carta_bidon). */
+function dibujoCarta(c, x, y, lado) {
+  const n = iconoDe(c);
+  if (!(CARTAS_IMG.complete && CARTAS_IMG.naturalWidth)) return;
+  ctx.drawImage(CARTAS_IMG, (n % ICONO_COLS) * ICONO_FW, Math.floor(n / ICONO_COLS) * ICONO_FW, ICONO_FW, ICONO_FW, x, y, lado, lado);
+}
 CARTAS_IMG.src = '../assets/hud/cartas.png';
 const CW = 150, CH = 204, C_ARTE = 96, C_TOPE = 19, C_PIE = 12, C_PAD = 8;
 // EL TEXTO DE LAS CARTAS en una letra de LECTURA (18/10, el autor: "una fuente mas clara de leer"): la del
@@ -1674,10 +1699,9 @@ function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
       ctx.globalAlpha = 0.10; ctx.fillStyle = col; ctx.fillRect(4, yy, CW - 8, ah); ctx.globalAlpha = 0.18;
       ctx.fillRect(4, yy + ah * 0.66, CW - 8, 1); ctx.globalAlpha = 1;
       if (CARTAS_IMG.complete && CARTAS_IMG.naturalWidth) {
-        const n = iconoDe(u), sx = (n % ICONO_COLS) * ICONO_FW, sy = Math.floor(n / ICONO_COLS) * ICONO_FW;
         const bob = on && !rota ? Math.round(Math.sin(t * 2.2) * 1.5) : 0;
         if (rota) { ctx.filter = 'grayscale(1) brightness(1.15)'; ctx.globalAlpha *= 0.75; }
-        ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, Math.round(CW / 2 - ip / 2), Math.round(yy + (ah - ip) / 2) + bob, ip, ip);
+        dibujoCarta(u, Math.round(CW / 2 - ip / 2), Math.round(yy + (ah - ip) / 2) + bob, ip);
         ctx.filter = 'none'; if (rota) ctx.globalAlpha /= 0.75;
       }
       if (rota) {                                                         // el sello: NO SE PUEDE, cruzado
@@ -1707,7 +1731,9 @@ function drawCartaBanco(u, x, y, k, on, leer, t, lee, rota) {
           x0 += AIRE / 2;
           ctx.save(); ctx.translate(x0 + IW / 2, 0); ctx.scale(1.6, 1.6);
           if (rota) ctx.filter = 'grayscale(1)';
-          iconoEn(0, 0, p.ico, '#e8eef0'); ctx.restore();
+          if (p.ico === 'chancha') gotaChancha(-4, -4.5, 8);   // (la Chancha, la gota verde como en el tablero)
+          else iconoEn(0, 0, p.ico, '#e8eef0');
+          ctx.restore();
           x0 += IW + AIRE / 2;
         } else { ctx.fillText(p.t, x0, 3.5); x0 += ctx.measureText(p.t).width; }
       }
@@ -1892,8 +1918,7 @@ export function drawPause(w) {
         ctx.fillStyle = col; ctx.fillRect(x + 2, yy, mw - 4, 2);
         ctx.strokeStyle = on ? P.accent : '#33404a'; ctx.lineWidth = on ? 2 : 1; ctx.strokeRect(x + 2.5, yy + 0.5, mw - 5, mh - 1); ctx.lineWidth = 1;
         if (CARTAS_IMG.complete && CARTAS_IMG.naturalWidth) {
-          const n = iconoDe(c), sx = (n % ICONO_COLS) * ICONO_FW, sy = Math.floor(n / ICONO_COLS) * ICONO_FW;
-          ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, Math.round(x + mw / 2 - 20), yy + 3, 40, 40);
+          dibujoCarta(c, Math.round(x + mw / 2 - 20), yy + 3, 40);
         }
         ctx.textAlign = 'center'; ctx.fillStyle = P.ink; ctx.font = uiFont('JosefinSans', 7, '');
         const nl = lineasDe(c.name, mw - 8).slice(0, 2);
@@ -2129,9 +2154,7 @@ function albumIcono(e, cx, cy, lado) {
     return;
   }
   if (e.tipo === 'carta') {
-    if (!(CARTAS_IMG.complete && CARTAS_IMG.naturalWidth)) return;
-    const k = iconoDe(e), sx = (k % ICONO_COLS) * ICONO_FW, sy = Math.floor(k / ICONO_COLS) * ICONO_FW;
-    ctx.drawImage(CARTAS_IMG, sx, sy, ICONO_FW, ICONO_FW, Math.round(cx - lado / 2), Math.round(cy - lado / 2), lado, lado);
+    dibujoCarta(e, Math.round(cx - lado / 2), Math.round(cy - lado / 2), lado);
   } else {
     ctx.save(); ctx.translate(cx, cy); const k = lado / 10; ctx.scale(k, k);
     iconoEn(0, 0, e.icono, '#e8eef0'); ctx.restore();

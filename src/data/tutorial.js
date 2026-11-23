@@ -146,6 +146,14 @@ const ETAPA2 = [
   // Sidewinder cerca hace que se pase de largo (core/aim9.js)
   { dice: 'TUT2_TONEL', teclas: ['Tonel'], blancos: { tipo: 'jet', n: 2, real: true, armado: true, paso: 80 },
     sigue: [{ maniobra: 'tonel', consigna: 'tutC_tonel' }], remate: 'TUT2_TONEL_OK' },
+  // EL MISIL, DE LAS DOS FORMAS (23/11, el autor: "el tutorial debe explicarme como esquivar un misil de frente con
+  // piruetas, o desde atras; tiene que tener ambas cosas"): un Sidewinder de PRACTICA por vez (`misil`, game.js
+  // tirarMisilPractica) — si te pega no te mata, revienta al lado y sale otro. DE FRENTE se esquiva corriendose o con
+  // una pirueta cuando esta encima; DE ATRAS solo lo pierde una pirueta en la zona (el grito avisa cuando)
+  { dice: 'TUT2_MISIL_FRENTE', teclas: ['Fly', 'Tonel'], misil: 'frente',
+    sigue: [{ misil: 'frente', n: 2, consigna: 'tutC_misFrente' }], remate: 'TUT2_MISIL_FRENTE_OK' },
+  { dice: 'TUT2_MISIL_COLA', teclas: ['Tonel'], misil: 'cola',
+    sigue: [{ misil: 'cola', consigna: 'tutC_misCola' }], remate: 'TUT2_MISIL_COLA_OK' },
   // LAS CHAFITAS (21/11, el autor: "chafitas no se explican en el tutorial"): con los mismos Harriers armados, la otra
   // forma de sacarse un misil de encima. `chafitas` = las cargas que el paso deja puestas para practicar
   { dice: 'TUT2_CHAFITAS', teclas: ['Chapitas'], chafitas: 3, blancos: { tipo: 'jet', n: 2, real: true, armado: true, paso: 80 },
@@ -384,6 +392,17 @@ const LISTA = [
     T(PICHON, 'pichon_radio_explicando', 'Estos vienen armados. Si ves un misil, hacé una pirueta. Probá el tonel.'),
     T(PICHON, 'pichon_radio_explicando', 'El tonel: dos toques bien rápidos al mismo lado, como un doble clic.')),
   escena('TUT2_TONEL_OK', T(TURCO, 'turco_radio_risa', 'Bieeeen, uraaa.')),
+  // (23/11: el misil de frente y el de atras — BORRADOR, espera el OK del autor)
+  escena('TUT2_MISIL_FRENTE',
+    T(PICHON, 'pichon_radio_alerta', 'Misil de frente: viene derecho a donde estabas.'),
+    T(PICHON, 'pichon_radio_explicando', 'Correte al costado, o hacé una pirueta cuando lo tengas encima.')),
+  escena('TUT2_MISIL_FRENTE_OK', T(TURCO, 'turco_radio_aprueba', 'Eso. Pasó de largo, chango.')),
+  escena('TUT2_MISIL_FRENTE_TEDIO', B(PICHON, 'pichon_radio_sorpresa', 'Te dio. Correte antes. Ahí viene otro.')),
+  escena('TUT2_MISIL_COLA',
+    T(PICHON, 'pichon_radio_alerta', 'Misil en la cola: te sigue a donde vayas. Correrse no sirve.'),
+    T(PICHON, 'pichon_radio_explicando', 'Esperalo. Cuando grite ¡AHORA!, una pirueta y lo perdés.')),
+  escena('TUT2_MISIL_COLA_OK', T(TURCO, 'turco_radio_risa', '¡Se fue de largo! Ya está.')),
+  escena('TUT2_MISIL_COLA_TEDIO', B(PICHON, 'pichon_radio_sorpresa', 'Muy temprano o muy tarde. Esperá el grito. Ahí va otro.')),
   escena('TUT2_CHAFITAS',
     T(TURCO, 'turco_radio_escucha', 'Si no te da pa girar, largá chafitas: el misil las sigue a ellas. Con el misil cerca, no antes.')),
   escena('TUT2_CHAFITAS_OK', T(TURCO, 'turco_radio_aprueba', 'Eso, vago. Las he cortao yo.')),

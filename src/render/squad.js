@@ -20,6 +20,7 @@ import { drawSquadPips, anchoSquad } from './hud.js';
 import { formationSlots, detras, RELEVO_WRECK, RELEVO_DUR, puestoFormacion } from '../core/squad.js';
 import { pilotName, planeName, rosterActive, fallenPos } from '../systems/squad.js';
 import { skinOf } from '../data/skins.js';
+import { mezclaHd, encimaHd } from './hojaHd.js';
 import { iconoEn } from './iconos.js';
 import { SENAS } from '../data/blanco.js';
 import { SALIDA, GESTO_T } from '../data/senales.js';
@@ -94,6 +95,9 @@ export function drawFormation({ selPlane, exit }) {
     if (hoja) {
       ctx.drawImage(hoja, col * SHEET_FW * (pl.px || 1), row * SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1),
         s.x - w / 2, s.y - h / 2, w, h);
+      // la hoja de cerca fundida encima, como el lider (render/hojaHd.js)
+      encimaHd(hoja, col * SHEET_FW * (pl.px || 1), row * SHEET_FH * (pl.px || 1), SHEET_FW * (pl.px || 1), SHEET_FH * (pl.px || 1),
+        s.x - w / 2, s.y - h / 2, w, h, mezclaHd(w, pl.px));
       // LOS MISMOS BRILLOS QUE EL TUYO (autor, 3/10): la luz de borde del contraluz y la tobera al
       // rojo. Son las funciones del lider, no copias — con la escala de ESTE compañero y con la
       // intensidad de tu tobera, porque despegan a la par. Se van con la formacion al CONTROL LIBRE.

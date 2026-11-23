@@ -133,6 +133,9 @@ export const SFX_DEF = {
   // el arranque del fichin: suena al terminar la carga del BIOS, cuando aparece INSERTE FICHA
   // (antes de la moneda propia de audio.js, que es la tecla) — pedido del autor, 4/10
   insertCoin: { f: ['general/insert_coin.mp3'], v: 0.5 },
+  // LA ESCUADRILLA CON FALLAS (23/11, el autor lo dejo en assets/sfx/general/engine/): suena con cada avion que se marca en
+  // la placa (FALLA_ALERTA). Medido -15 dB de media; a la mitad de como sonaba
+  planeFail: { f: ['general/engine/plane_fail.mp3'], v: 0.5 },   // (sonaba a 1: la mitad)
   // LAS PANTALLAS (autor, 16/10). `booting` es el arranque de la PC antes de que prenda el tubo: el
   // archivo dura dos minutos: fuerte bajo el BIOS, bajito desde INSERTE FICHA y se va con la portada.
   // No pasa por sfxOne: lo maneja arranquePc (systems/audio.js), que le mueve el volumen. Aca solo

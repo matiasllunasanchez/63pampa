@@ -8,7 +8,7 @@
 // objectiveDist, objectiveShip, goalKind) vive en game.js y entra por parametro, igual que las
 // otras pantallas (render/screens.js, render/menus.js).
 
-import { ctx, px, DW as W, DH as H, PZ, U, SC, avisoFont, uiFont, labelFont } from './ctx.js';
+import { ctx, px, DW as W, DH as H, PZ, U, SC, avisoFont, uiFont, labelFont, filaFont } from './ctx.js';
 import { enCabina } from '../core/cabina.js';
 import { CABINA_ANCLAS } from '../data/cabina_anclas.js';
 import { drawManos } from './cabina.js';
@@ -29,7 +29,7 @@ import { T } from '../core/i18n.js';
 import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu,
   concentracion as concSeg } from '../core/aguante.js';
 import { P, RADAR_VERDE, RADAR_OPACO, RADAR_GRIS, colDefensa } from '../data/palette.js';
-import { ALTO } from '../data/tuning.js';
+import { ALTO, FALLA_ALERTA } from '../data/tuning.js';
 import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT, ZONAS_GASTO, METRALLAS } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
 import { alMando, filaOk, filaDeVidas } from '../core/squad.js';
@@ -337,24 +337,33 @@ export function drawRotuloDespegue(rot, sale = 0) {
   ctx.save();
   ctx.globalAlpha = 1 - sale;
   ctx.textAlign = 'left';
-  let t = rot.t, y = 20;
-  const x = 10;
+  // (23/11, el autor: "con sombra negra y mucho mas chico, 3 veces mas chico"): todo a un tercio desde la esquina
+  const ROT_K = 1 / 3;
+  ctx.translate(10, 8); ctx.scale(ROT_K, ROT_K);
+  let t = rot.t, y = 10;
+  const x = 0, a0 = ctx.globalAlpha;
+  // LA LETRA DE LAS DESCRIPCIONES DEL MENU PRINCIPAL (23/11, el autor: "la parte que explica donde estoy, con hora y
+  // demas, con la misma fuente y efecto que los textos debajo de cada opcion del menu"): FONTS.fila en cuerpo 10, un pixel
+  // de aire entre letras y el cursor en bloque del acento (render/menus.js drawModeSelect); en amarillo
+  ctx.font = filaFont(10); ctx.letterSpacing = '1px';
   for (let i = 0; i < rot.lineas.length; i++) {
     const txt = rot.lineas[i];
     const n = Math.max(0, Math.min(txt.length, Math.floor(t * ROTULO_CPS)));
     t -= txt.length / ROTULO_CPS + ROTULO_PAUSA;
     if (n <= 0) break;
-    // SIN FONDO, SIN SOMBRA Y EN AMARILLO (21/11)
-    ctx.font = 'bold 6px monospace';
     const vis = txt.slice(0, n), w = ctx.measureText(vis).width;
+    // el amarillo de siempre, con sombra negra (23/11) para que se lea chico sobre el cielo
+    ctx.globalAlpha = a0; ctx.fillStyle = '#000';
+    ctx.fillText(vis, x + 2, y + 2);
     ctx.fillStyle = '#f2cf4a';
     ctx.fillText(vis, x, y);
     // el cursor: en el renglon que se esta escribiendo, y titilando en el ultimo cuando ya termino
     const escribiendo = n < txt.length, ultimo = i === rot.lineas.length - 1;
-    if (escribiendo || (ultimo && Math.sin(rot.t * 8) > 0)) ctx.fillRect(x + w + 1, y - 5, 3, 6);
-    y += 9;
+    if (escribiendo ? Math.sin(performance.now() / 70) > -0.3 : ultimo && Math.sin(rot.t * 8) > 0) { ctx.globalAlpha = a0 * 0.8; px(x + w + 1, y - 7, 4, 8, P.accent); }
+    y += 12;
     if (escribiendo) break;
   }
+  ctx.letterSpacing = '0px';
   ctx.restore();
 }
 export function drawTakeoff(toT, dsp, auto = 0, suelto = false, sinCuenta, rot = null, saleCarrera = null) {
@@ -1244,6 +1253,17 @@ let islasHud = false;   // LAS ISLAS: sin cinta; los carteles arrancan arriba, b
 // EN CABINA, LA RADIO VA DEBAJO DE TODO (21/11): la caja de la voz del otro (render/screens.js) anota aca cuanto alto
 // ocupa abajo, y la pila de carteles se apoya ARRIBA de ella (un cuadro de atraso: la radio se dibuja despues)
 export const pisoCabina = { alto: 0 };
+/** UN ENGRANAJE chico (radio ~4), centrado en (cx, cy): seis dientes, la rueda y el agujero. Para los carteles de fallas. */
+function engranaje(cx, cy, col) {
+  ctx.save();
+  ctx.translate(cx + 0.5, cy + 0.5); ctx.rotate(performance.now() / 1400);
+  ctx.fillStyle = col;
+  for (let i = 0; i < 6; i++) { ctx.save(); ctx.rotate(i * Math.PI / 3); ctx.fillRect(-0.9, -4.3, 1.8, 2); ctx.restore(); }
+  ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath(); ctx.arc(0, 0, 1.2, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
 function drawCartel() {
   // LA PILA (8/10): el primero va arriba, debajo de la cinta, y cada uno se apoya debajo del anterior.
   // La altura de cada lugar se SUAVIZA (c.y): cuando entra uno nuevo, los demas bajan, no saltan.
@@ -1293,7 +1313,8 @@ function drawUnCartel(a, techo) {
   const wIco = gl ? glifos.medir(gl, GLIFO_H) : c.okF != null ? 8 : 0;
   const wCuenta = fila && c.sub ? (ctx.font = GLIFO_CUENTA, ctx.measureText(c.sub).width + 4) : 0;
   const w3 = fila ? wIco + 5 + w1 + wCuenta : 0;
-  let w = Math.round(Math.max(fila ? 0 : w1, fila ? 0 : w2, w3) + (c.alerta ? 20 : 12)), h = fila ? FILA_H : c.sub ? 12 + SUB_PX + 2 : 12;
+  const wIcoC = !fila && a.c.ico ? 11 : 0;   // el icono a la izquierda del titulo (`o.ico`)
+  let w = Math.round(Math.max(fila ? 0 : w1 + wIcoC, fila ? 0 : w2, w3) + (c.alerta ? 20 : 12)), h = fila ? FILA_H : c.sub ? 12 + SUB_PX + 2 : 12;
   // (la medida de FUERA DE RADAR: al menos su ancho y su alto; el texto se centra adentro con `bajaTxt`)
   let bajaTxt = 0;
   if (enPlacaRadar()) { const h0 = h; w = Math.max(w, cajaZona.w); h = Math.max(h, cajaZona.h); bajaTxt = Math.round((h - h0) / 2); }
@@ -1333,7 +1354,10 @@ function drawUnCartel(a, techo) {
   bordePlaca(x, y, w, h, col);
   ctx.textAlign = 'center';
   ctx.font = avisoFont(8); ctx.fillStyle = col;
-  if (!fila) conApertura(c.txt, cx, y + 9 + bajaTxt, 8);
+  if (!fila) {
+    conApertura(c.txt, cx + wIcoC / 2, y + 9 + bajaTxt, 8);
+    if (a.c.ico === 'engranaje') engranaje(Math.round(cx + wIcoC / 2 - w1 / 2 - 6.5), y + 6 + bajaTxt, '#ff4a32');   // (23/11: en rojo)
+  }
   if (c.sub && !fila) {
     ctx.font = fSub; ctx.fillStyle = c.subCol || P.foam;
     conApertura(c.sub, cx, y + 11 + bajaTxt + SUB_PX - (c.alerta ? 1 : 0), SUB_PX);
@@ -1687,9 +1711,12 @@ function escarcha(id, x, y, nivel) {
   }
   ctx.save();
   if (nivel > 0.02) {
-    // el vidrio empañado de frio
-    ctx.globalAlpha = Math.min(0.32, nivel * 0.4); ctx.fillStyle = '#cfeeff'; ctx.fillRect(x + 1, y + 1, W0 - 2, W0 - 2);
+    // el vidrio empañado de frio — (23/11, el autor: "los indicadores congelados hacerlos mucho mejor, no se entiende que
+    // estan congelados"): mas blanco, escarcha que crece desde las esquinas, borde de hielo doble y el COPO
+    // (…y "que me permita ver el valor": el velo apenas, y la escarcha solo en las esquinas — la aguja y el numero se leen)
+    ctx.globalAlpha = Math.min(0.18, nivel * 0.25); ctx.fillStyle = '#cfeeff'; ctx.fillRect(x + 1, y + 1, W0 - 2, W0 - 2);
     ctx.globalAlpha = 1;
+    esquinasHielo(x + 1, y + 1, W0 - 2, nivel * 0.55);
     for (const c of ESC_CRIS) {
       if (nivel < c.umbral) continue;
       const [cx, cy, dx, dy] = pos(c), crece = Math.min(1, (nivel - c.umbral) / 0.15), L = Math.max(1, Math.round(c.largo * crece + 0.4));
@@ -1700,7 +1727,11 @@ function escarcha(id, x, y, nivel) {
     }
     // el borde de la caja, escarchado
     ctx.globalAlpha = Math.min(1, nivel * 1.4); ctx.strokeStyle = '#bfe8ff'; ctx.lineWidth = 1;
-    ctx.strokeRect(x + 0.5, y + 0.5, W0 - 1, W0 - 1); ctx.globalAlpha = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, W0 - 1, W0 - 1);
+    ctx.globalAlpha = Math.min(1, nivel * 1.1); ctx.strokeStyle = '#ffffff'; ctx.strokeRect(x + 1.5, y + 1.5, W0 - 3, W0 - 3);
+    ctx.globalAlpha = 1;
+    // (el copo del medio se saco el mismo 23/11; va el ICONO, chico, arriba a la derecha)
+    if (nivel > 0.15) iconoHielo(x + W0 - 10, y + 1);
   }
   // LAS GOTAS: resbalan para abajo, se estiran, y al llegar al borde de abajo se van
   for (let i = gotas.length - 1; i >= 0; i--) {
@@ -1722,6 +1753,64 @@ const ARCO_CY = CUADRO - 8;
 // gris como el de temperatura, pone la barra ahi adentro"): el mismo arco ancho que la temperatura. La aguja es la palanca;
 // en GAS MODO SUAVE la franja de adentro del arco es el SOSTEN —se llena con el gas a fondo y se vacia sola—, en el acento
 // y titilando en rojo cuando queda poco. Sin SUAVE, la franja es solo el surco
+const SOSTEN_COL = '#f2d04a';
+/** SIN SOSTEN, BAJANDO (23/11, el autor: "si llega hasta el fin ahi empieza a bajar, se indica el indicador de altura"):
+ *  una flechita amarilla que titila arriba a la derecha del altimetro, mientras el avion se asienta solo. */
+function flechaBaja(x, y) {
+  if (Math.sin(run.t * 9) < -0.3) return;
+  const cx = x + CUADRO - 6, cy = y + 6;
+  ctx.fillStyle = SOSTEN_COL;
+  ctx.fillRect(cx - 0.5, cy - 3, 1.5, 3.5);
+  ctx.beginPath(); ctx.moveTo(cx - 2.5, cy); ctx.lineTo(cx + 3, cy); ctx.lineTo(cx + 0.25, cy + 3); ctx.closePath(); ctx.fill();
+}
+const NAFTA_COL = '#5fc46a';
+/** LA NAFTA EN ARCO (23/11): la franja de adentro es la nafta que queda (verde; con poca, roja titilando), la aguja la
+ *  marca a la misma altura, la carga de la Chancha en el verde claro de la suelta y el BINGO como marca. */
+function naftaArco(x, y, o) {
+  plate(x, y, CUADRO, CUADRO);
+  const cx = x + CUADRO / 2, cy = y + ARCO_CY, R = 10.8;
+  const A0 = Math.PI * 1.13, A1 = Math.PI * 1.87;
+  const ang = v => A0 + (A1 - A0) * Math.max(0, Math.min(1, v));
+  const v = Math.max(0, Math.min(1, o.val));
+  ctx.save();
+  ctx.lineWidth = 1.8; ctx.lineCap = 'butt';
+  ctx.strokeStyle = '#1e2a31'; ctx.beginPath(); ctx.arc(cx, cy, R - 1.7, A0, A1); ctx.stroke();
+  if (v > 0) {
+    ctx.strokeStyle = o.bajo && !o.cargando ? (Math.sin(run.t * 10) > 0 ? P.warn : '#7d2f1e') : NAFTA_COL;
+    ctx.beginPath(); ctx.arc(cx, cy, R - 1.7, A0, ang(v)); ctx.stroke();
+  }
+  // lo que entro de la Chancha, encima y mas claro
+  if (o.carga && o.carga[1] > o.carga[0]) {
+    ctx.globalAlpha = o.carga[2]; ctx.strokeStyle = SUELTA_COL;
+    ctx.beginPath(); ctx.arc(cx, cy, R - 1.7, ang(o.carga[0]), ang(o.carga[1])); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  // las marcas cada cuarto (el cuarto de abajo en rojo: la reserva), y el BINGO con ruta
+  for (let k = 0; k <= 4; k++) {
+    const a = ang(k / 4), r0 = k === 4 ? R - 3.2 : R - 1.2;
+    ctx.strokeStyle = k === 1 ? P.warn : k === 4 ? '#e8eef0' : '#6d7d85'; ctx.lineWidth = k === 4 ? 0.8 : 0.5;
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke();
+  }
+  if (o.bingo != null) {
+    const a = ang(o.bingo); ctx.strokeStyle = P.warn; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * (R - 3.6), cy + Math.sin(a) * (R - 3.6)); ctx.lineTo(cx + Math.cos(a) * (R + 0.5), cy + Math.sin(a) * (R + 0.5)); ctx.stroke();
+  }
+  ctx.restore();
+  icono(x + 2, y + CUADRO - 9, 7, 'nafta', P.dim);
+  // el numero, CHICO (23/11: "el 100 % mas chico para quitarle tanto ruido")
+  ctx.textAlign = 'right'; ctx.font = uiFont(NUMEROS.fam, 3.8, '');
+  ctx.fillStyle = o.bajo ? P.warn : P.dim;
+  ctx.fillText(o.txt, x + CUADRO - 3, y + CUADRO - 4);
+  ctx.textAlign = 'left';
+  // la aguja: LA NAFTA, a la altura de la franja
+  ctx.save();
+  const a = ang(v);
+  ctx.strokeStyle = o.colAguja; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (R - 0.8), cy + Math.sin(a) * (R - 0.8)); ctx.stroke();
+  ctx.fillStyle = '#5d6a71'; ctx.beginPath(); ctx.arc(cx, cy, 1.1, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  if (o.cargando) bordePlaca(x, y, CUADRO, CUADRO, SUELTA_COL);
+  else if (o.bajo) bordeCritico(x, y, CUADRO, CUADRO);
+}
 function gasArco(x, y, gas, sosten, suave, sinNafta) {
   plate(x, y, CUADRO, CUADRO);
   const cx = x + CUADRO / 2, cy = y + ARCO_CY, R = 10.8;
@@ -1733,7 +1822,8 @@ function gasArco(x, y, gas, sosten, suave, sinNafta) {
   ctx.strokeStyle = '#1e2a31'; ctx.beginPath(); ctx.arc(cx, cy, R - 1.7, A0, A1); ctx.stroke();
   if (suave && sosten > 0) {
     const poco = sosten < 0.25;
-    ctx.strokeStyle = poco ? (Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e') : P.accent;
+    // (23/11: en AMARILLO mientras se descarga; lo ultimo titila en rojo)
+    ctx.strokeStyle = poco ? (Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e') : SOSTEN_COL;
     ctx.beginPath(); ctx.arc(cx, cy, R - 1.7, A0, ang(sosten)); ctx.stroke();
   }
   // las marcas cada cuarto; el 100 largo
@@ -1888,7 +1978,7 @@ function relojCanonFila(x, y, metralla) {
 // otros; aca abajo, pegado a mis instrumentos, hablo yo.
 // `alto` (27/9, autor): la caja crece hacia abajo para llevar el NOMBRE DEL PILOTO bajo la cara —
 // arriba, en la placa del escuadron, va el nombre pintado del avion—. El ancho sigue siendo `lado`.
-const PILOTO = { lado: 26, cara: 22, alto: 32 };
+const PILOTO = { lado: 26, cara: 22, alto: 35 };   // (23/11: +3 para la barrita del MOMENTUM entre la cara y el nombre)
 /** El canto de arriba de la cara: apoyada en el piso de la fila, como los cuadrados (19/11). */
 const PIL_Y = () => CUADROS_Y + CUADRO - PILOTO.alto;
 // EN CABINA, LA CARA Y LOS PODERES VAN A LA DERECHA (21/11, el autor: "mover esto a la derecha y por encima de toda
@@ -2028,6 +2118,70 @@ function bordesAvisos() {
   }
 }
 
+/** LA BARRITA DEL MOMENTUM (23/11): 2 px de alto, sin texto, del ancho de la cara, entre la cara y el nombre. Vacia en
+ *  gris; cargando en amarillo; LLENA late en claro; GASTANDOSE titila y le saltan chispas a la punta. */
+function barritaMomentum(x, y, w) {
+  if (cfg.poderes === false) { donde.momentum = null; return; }
+  const v = Math.max(0, Math.min(1, tempoMeter())), on = tempoActive(), llena = v >= 1 && !on;
+  px(x, y, w, 2, '#2e3c45');
+  const fw = Math.round(w * v);
+  const col = on ? (Math.sin(run.t * 14) > 0 ? MOM_CLARO : MOM_COL) : llena ? (Math.sin(run.t * 5) > 0 ? MOM_CLARO : MOM_COL) : MOM_COL;
+  if (fw > 0) px(x, y, fw, 2, col);
+  if (on && fw > 0) chispas(x + fw, y, 2, '#ffffff', MOM_COL);
+  donde.momentum = [x + w / 2, y];
+}
+/** EL ICONO DEL HIELO (23/11, el autor: "en los 3 indicadores, pero BIEN HECHO el icono de hielo y arriba a la derecha"):
+ *  un copo de 7 x 7 en pixel art — el centro blanco, los seis brazos celestes con sus puntas, sobre una placa oscura
+ *  de 9 x 9. (x, y) es la esquina de arriba a la izquierda de la placa. */
+const COPO_PIX = ['x..x..x', '.x.x.x.', '..xxx..', 'xxxoxxx', '..xxx..', '.x.x.x.', 'x..x..x'];
+function iconoHielo(x, y) {
+  x = Math.round(x); y = Math.round(y);
+  ctx.save();
+  ctx.globalAlpha = 0.8; ctx.fillStyle = '#0b1620'; ctx.fillRect(x, y, 9, 9);
+  ctx.globalAlpha = 1; ctx.fillStyle = '#5fa8d8'; ctx.fillRect(x, y, 9, 1); ctx.fillRect(x, y + 8, 9, 1); ctx.fillRect(x, y, 1, 9); ctx.fillRect(x + 8, y, 1, 9);
+  for (let j = 0; j < 7; j++) for (let i = 0; i < 7; i++) {
+    const c = COPO_PIX[j][i];
+    if (c === '.') continue;
+    const punta = (i === 0 || i === 6 || j === 0 || j === 6);
+    ctx.fillStyle = c === 'o' ? '#ffffff' : punta ? '#8fd0ff' : '#d6f1ff';
+    ctx.fillRect(x + 1 + i, y + 1 + j, 1, 1);
+  }
+  ctx.restore();
+}
+/** EL COPO: tres rayas cruzadas con puntitas, radio `r`, centrado en (cx, cy). */
+function copo(cx, cy, r, col) {
+  ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) {
+    const a = i * Math.PI / 3, dx = Math.cos(a) * r, dy = Math.sin(a) * r;
+    ctx.beginPath(); ctx.moveTo(cx - dx, cy - dy); ctx.lineTo(cx + dx, cy + dy); ctx.stroke();
+  }
+  ctx.restore();
+}
+/** La cara del piloto con el hielo del avion: velo, escarcha en las esquinas, borde de hielo y el copo. */
+function pilotoHelado(x, y, lado, nivel) {
+  if (nivel <= 0.02) return;
+  ctx.save();
+  ctx.globalAlpha = Math.min(0.22, nivel * 0.3); ctx.fillStyle = '#cfeeff'; ctx.fillRect(x, y, lado, lado);
+  ctx.globalAlpha = 1;
+  esquinasHielo(x, y, lado, nivel * 0.6);
+  ctx.globalAlpha = Math.min(1, nivel * 1.6); ctx.strokeStyle = '#bfe8ff'; ctx.lineWidth = 1; ctx.strokeRect(x - 0.5, y - 0.5, lado + 1, lado + 1);
+  ctx.globalAlpha = 1;
+  // el copo BIEN chiquito, en la esquina (23/11: "el del piloto hacerlo bien chiquito a un costado")
+  if (nivel > 0.15) iconoHielo(x + lado - 9, y);
+  ctx.restore();
+}
+/** Manchas de escarcha que CRECEN desde las cuatro esquinas (triangulos tramados), del tamaño que dice `nivel`. */
+function esquinasHielo(x, y, lado, nivel) {
+  const L = Math.round(Math.min(lado * 0.45, 2 + nivel * lado * 0.5));
+  for (let i = 0; i < L; i++) for (let j = 0; j < L - i; j++) {
+    if (((i * 7 + j * 3) % 5) === 0 && i + j > L * 0.55) continue;   // el filo, deshilachado
+    ctx.fillStyle = (i + j) % 3 === 0 ? '#ffffff' : '#d6f1ff';
+    ctx.globalAlpha = Math.min(0.95, 0.35 + nivel) * (1 - (i + j) / (L + 1) * 0.6);
+    ctx.fillRect(x + i, y + j, 1, 1); ctx.fillRect(x + lado - 1 - i, y + j, 1, 1);
+    ctx.fillRect(x + i, y + lado - 1 - j, 1, 1); ctx.fillRect(x + lado - 1 - i, y + lado - 1 - j, 1, 1);
+  }
+  ctx.globalAlpha = 1;
+}
 function drawPiloto(charlaVoz, delAvion) {
   // APARTE DEL TABLERO (11/9): arriba de la esquina izquierda, y no en la fila. La cara no es un
   // instrumento, y a su derecha tiene que quedar lugar para lo que dice (drawVozPropia, en screens).
@@ -2066,6 +2220,10 @@ function drawPiloto(charlaVoz, delAvion) {
   else silueta(x + 2, y + 2, PILOTO.cara);
   // el impacto: el mismo fogonazo rojo que ya usa el HUD, sobre la cara
   if (golpeT > 0) { ctx.globalAlpha = Math.min(0.45, golpeT * 0.75); px(x + 2, y + 2, PILOTO.cara, PILOTO.cara, '#ff3a24'); ctx.globalAlpha = 1; }
+  // EL AVION CONGELADO SE VE EN EL PILOTO (23/11, el autor: "el estado del avion podemos marcarlo en el piloto"): la cara
+  // se escarcha con el hielo de las alas y lleva el copo en la esquina
+  pilotoHelado(x + 2, y + 2, PILOTO.cara, run.hielo || 0);
+  barritaMomentum(x + 2, y + 2 + PILOTO.cara + 1, PILOTO.cara);
   // CUANDO HABLA, el marco se prende: la linea sale de aca y el ojo tiene que saber de donde
   // …POR CUALQUIERA DE LAS DOS VOCES: la radio y la charla. Antes miraba solo la radio, asi que en
   // mis lineas de charla la cara quedaba apagada mientras mi propia caja hablaba al lado (11/9).
@@ -2217,6 +2375,37 @@ function relojTaller(cx, cy, f) {
   ctx.restore();
 }
 
+/** EL GOLPE DE LA FALLA sobre el avion `n` de la placa (centro cx, cy) — 23/11, la ESCUADRILLA CON FALLAS: game.js
+ *  arma `run.fallasAlerta` ({ n, t }) y suena la chapa; aca solo el dibujo, de un solo momento (FALLA_ALERTA.DURA): un
+ *  destello rojo que tapa el avion y se apaga, el avion sacudido, chispas que saltan y un anillo que se abre. */
+function golpeFalla(n, cx, cy) {
+  const a = (run.fallasAlerta || []).find(q => q.n === n);
+  if (!a) return;
+  const u = (run.t - a.t) / FALLA_ALERTA.DURA;
+  if (u < 0 || u > 1) return;
+  const ROJO = '#ff4a32';
+  ctx.save();
+  // el anillo que se abre
+  ctx.globalAlpha = (1 - u) * 0.9; ctx.strokeStyle = ROJO; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx + 0.5, cy + 0.5, 3 + u * 9, 0, Math.PI * 2); ctx.stroke();
+  // el avion en rojo, sacudido los primeros instantes
+  const sac = u < 0.35 ? Math.round(Math.sin(u * 90) * 1.5) : 0;
+  ctx.globalAlpha = 1;
+  iconoEn(cx + sac, cy, 'avion', u < 0.5 || Math.sin(u * 40) > 0 ? ROJO : '#7a2c22');
+  // el destello del golpe: blanco al principio, enseguida rojo
+  if (u < 0.25) {
+    ctx.globalAlpha = 1 - u / 0.25; ctx.fillStyle = u < 0.08 ? '#ffffff' : ROJO;
+    ctx.fillRect(cx - 3.5 + sac, cy - 3.5, 8, 8);
+  }
+  // las chispas: seis rayitas que saltan y caen
+  ctx.globalAlpha = Math.max(0, 1 - u * 1.4); ctx.fillStyle = u < 0.3 ? '#ffd27a' : ROJO;
+  for (let k = 0; k < 6; k++) {
+    const ang = k * 1.047 + n * 0.7, d = 2 + u * 10;
+    ctx.fillRect(Math.round(cx + 0.5 + Math.cos(ang) * d), Math.round(cy + 0.5 + Math.sin(ang) * d * 0.8 + u * u * 4), 1, 1);
+  }
+  ctx.restore();
+}
+
 export function drawSquadPips(x, y) {
   // QUIEN VUELA Y QUIEN CAYO SALEN DE LA FILA (core/squad.js), no de la cuenta de vidas: con el
   // CAMBIO DE PILOTO puede volar PATRIA 3 con PATRIA 2 vivo esperando atras. Caido es el que ya no
@@ -2246,6 +2435,7 @@ export function drawSquadPips(x, y) {
     // …Y EL RELOJ DEL TALLER ENCIMA (16/11, antes una llave inglesa y una rayita de progreso abajo): el gris
     // solo se confundia con un caido; el circulo dice "en el taller" y cuanto le falta
     if (base) relojTaller(ax + 3, y + 5, Math.max(0, Math.min(1, 1 - base.t / BASE_T)));
+    golpeFalla(i, ax + 3, y + 5);
   }
   // EL NOMBRE DEL QUE VUELA, EN ACENTO. Estaba en `dim` —el gris de los rotulos— y ahi el piloto
   // era una etiqueta mas. Es la unica persona que hay en el HUD: va del color del que manda.
@@ -3150,15 +3340,14 @@ export function drawHUD(h) {
   // escrito arriba del reloj ("GASTO MEDIO"): una palabra mas que leer en el tablero.
   if (pide(run.fuel < 60 || (nf && nf.km < nf.bingo * 1.3) || verdeC > 0, 'nafta')) {
     const colAguja = bajo ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : nf && h.zonaGasto ? GASTO_COL[h.zonaGasto] : P.foam;
-    reloj(xNafta, CUADROS_Y, {
-    val: run.fuel / 100, ico: 'nafta', zona: [0, 0.25], critico: bajo && !cargando,
-    // (y una marca larga verde donde estaba la aguja al engancharse: desde ahi se cuenta lo que entro)
-    marcas: [...(nf ? [[Math.min(1, nf.bingo / nf.cap), P.warn]] : []), ...(verdeC > 0 ? [[cargaDesde / 100, alfaCol(SUELTA_COL, verdeC)]] : [])],
-    franjas: verdeC > 0 && cargaHasta > cargaDesde ? [[cargaDesde / 100, cargaHasta / 100, SUELTA_COL, verdeC]] : undefined,
-    borde: verdeC > 0 ? alfaCol(SUELTA_COL, verdeC) : null,
-    col: verdeC > 0 ? mezclaCol(colAguja, SUELTA_COL, verdeC) : colAguja,
-    uni: nf ? 'km' : undefined,
-    txt: nf ? String(Math.round(nf.km)) : Math.round(run.fuel) + '%', txtCol: bajo ? P.warn : P.dim });
+    // (23/11, el autor: "la nafta: una barra verde que indique la nafta, tal como hicimos con el gas, y que la aguja
+    // represente eso literal; el 100 % mas chico para quitarle ruido"): el mismo arco ancho que el gas (naftaArco)
+    alTablero(xNafta, CUADROS_Y, () => naftaArco(xNafta, CUADROS_Y, {
+      val: run.fuel / 100, bajo, cargando,
+      bingo: nf ? Math.min(1, nf.bingo / nf.cap) : null,
+      carga: verdeC > 0 ? [cargaDesde / 100, Math.max(cargaDesde, cargaHasta) / 100, verdeC] : null,
+      colAguja: verdeC > 0 ? mezclaCol(colAguja, SUELTA_COL, verdeC) : colAguja,
+      txt: nf ? Math.round(nf.km) + 'km' : Math.round(run.fuel) + '%' }));
     if (nf && h.zonaGasto) flechasGasto(xNafta + CUADRO - 6, CUADROS_Y + 3, h.zonaGasto);
   }
   // NAFTA BAJA (19/11, el autor): la caja de la nafta larga su cartel mientras estes bajo el critico (25%, o el
@@ -3363,6 +3552,7 @@ export function drawHUD(h) {
   tempX = !enCabina() && !h.brujula ? X_MACH : X_CHANCHA;
   if (h.temp) drawTemperatura(tempX, CUADROS_Y, h.temp);
   marcaFalla(xVuelo(2), CUADROS_Y, gAl);
+  if ((cfg.vert === 'planeo' || cfg.vert === 'planeo_m') && (run.sosten ?? 1) <= 0 && plane.vy < -0.3) flechaBaja(xVuelo(2), CUADROS_Y);
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).
   // (SIN BORDE CRITICO, por pedido del autor: el gas se opera, no avisa. Sin nafta avisa la nafta.)
@@ -3384,9 +3574,10 @@ export function drawHUD(h) {
   const yPod = PIL_Y() - AIRE - altoPod;   // pegada a la cara, con el mismo aire
   // …y en una mision SIN PODERES no esta: una barra que no se puede usar es un boton que miente
   if (cfg.poderes !== false) {
-    barraPoder(PIL_X(), yPod, tv, MOM_COL, MOM_CLARO, MOM_OSCURO, tempoActive(), tv >= 1, T('bar_tempo'));
-    donde.momentum = [PIL_X() + CUADRO / 2, yPod];
-    tabListo(0, yPod, altoPod, tv >= 1, MOM_CLARO);
+    // (23/11, el autor: "la barra de momentum: quitarle el texto, hacerla mas chica y ponerla entre el nombre y la cara
+    // del piloto para ahorrar espacio"): la dibuja drawPiloto (barritaMomentum); aca queda solo la del RASANTE, que
+    // toma el lugar que era de la placa del MOMENTUM
+    void tv;
     // …Y ARRIBA, LA DEL RASANTE (volvio, 23/9). La MISMA forma que tenia antes del 13/9 —la placa,
     // el nombre adentro, el celeste de mar— y la FUNCION de ahora: aparece recien cuando la racha
     // empieza a juntar concentracion (4to acierto) y se llena; con el flow puesto se va GASTANDO; y
@@ -3396,7 +3587,7 @@ export function drawHUD(h) {
       const fr = ras.on
         ? (ras.dur > 0 ? ras.resta / ras.dur : 0)
         : Math.max(0, Math.min(1, (concSeg(run.aguN) - AGU.CONC_GATE) / (AGU.CONC_TOPE - AGU.CONC_GATE)));
-      barraPoder(PIL_X(), yPod - AIRE - altoPod, fr, RAS_COL, RAS_CLARO, RAS_OSCURO, ras.on, false, T('bar_rasante'));
+      barraPoder(PIL_X(), yPod, fr, RAS_COL, RAS_CLARO, RAS_OSCURO, ras.on, false, T('bar_rasante'));
     }
   }
 
