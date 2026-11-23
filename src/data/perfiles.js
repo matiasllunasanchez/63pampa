@@ -56,16 +56,22 @@ export const ESQUIVE = {
     'death_popa', 'death_45', 'death_seacat', 'death_seawolf', 'death_seadart'],
 };
 
+// EL ALA DELTA AL RAS (23/11, el autor: "Dagger/Mirage no pueden hacer todas las piruetas cerca del agua" — "poca
+// maniobrabilidad a baja altura: su ala en delta perdia energia rapidamente al girar cerrado"): por debajo de `alto` m no
+// salen las de giro cerrado y los frenos (`sin`); arriba, las de su clase como siempre
+const RAS_DELTA = { alto: 25, sin: ['breakt', 'sturn', 'splits', 'loyo', 'cobra', 'derrape', 'mortal', 'cobrainv'] };
 export const PERFILES = {
   // los SKYHAWK: el caballo de tiro. Todo, la base de todo; el banco le tira bombas y taller, y se rompe mas
   sky: { esquive: 0.1, fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 } },
   a4q: { esquive: 0.1, fallasK: 1.3, grupos: { armas: 1.3, taller: 1.5 }, frio: { arranque: 1.1 } },
   // el DAGGER: rapido y nervioso, de ala delta. Rola un poco menos y no hace las de giro largo; el banco, cañon
-  dagger: { esquive: 0.12, maniobras: 'rigido', rolido: 0.9, grupos: { armas: 1.6 }, frio: { canon: 0.5, turbulencia: 0.9 } },
+  dagger: { esquive: 0.12, maniobras: 'rigido', rolido: 0.9, grupos: { armas: 1.6 }, frio: { canon: 0.5, turbulencia: 0.9 }, ras: RAS_DELTA },
   // el SUPER ETENDARD: el del Exocet. Menos cartas (cada 8 km) pero inteligencia; casi no falla
-  supere: { esquive: 0.09, rolido: 0.9, bancoKm: 8, grupos: { inteligencia: 2 }, fallasK: 0.5, frio: { canon: 0.5, arranque: 0.7 } },
+  // (23/11, el autor: "el Super Etendard no se le congelan las alas; el salitre y el agua no le afectan tanto, tardan mucho
+  // mas: tenian un sistema de soplado caliente") — sin hielo, y la sal se pega mucho mas despacio. A VERIFICAR
+  supere: { esquive: 0.09, rolido: 0.9, bancoKm: 8, grupos: { inteligencia: 2 }, fallasK: 0.5, frio: { canon: 0.5, arranque: 0.7, hielo: 0, sal: 0.35 } },
   // el MIRAGE 5P: el mas rapido y el mas duro de rolar; armas y defensa
-  mirage: { esquive: 0.12, maniobras: 'rigido', rolido: 0.85, grupos: { armas: 1.4, defensa: 1.3 }, frio: { canon: 0.5, turbulencia: 0.9 } },
+  mirage: { esquive: 0.12, maniobras: 'rigido', rolido: 0.85, grupos: { armas: 1.4, defensa: 1.3 }, frio: { canon: 0.5, turbulencia: 0.9 }, ras: RAS_DELTA },
   // los LIVIANOS: rolan rapido, hacen todo, y el banco abre mas seguido (baratos, faciles de atender)
   pucara: { esquive: 0.15, rolido: 1.35, bancoKm: 5, frio: { canon: 0.8, sal: 0.5, arranque: 1.5, turbulencia: 1.3 } },
   mb339: { esquive: 0.16, rolido: 1.3, bancoKm: 5, frio: { canon: 0.5, arranque: 1.4, turbulencia: 1.3 } },
@@ -90,10 +96,17 @@ export const PERFILES = {
 /** El perfil del avion `key` (con los valores por defecto donde no dice). */
 export const perfilDe = key => ({ ...BASE, ...(PERFILES[key] || {}) });
 
-/** ¿El avion `key` puede hacer la maniobra `id` (data/moves.js / data/upgrades.js)? */
-export function puedeManiobra(key, id) {
-  const lista = MANIOBRAS[perfilDe(key).maniobras];
-  return !lista || lista.includes(id);
+/** ¿El avion `key` puede hacer la maniobra `id` (data/moves.js / data/upgrades.js)? `alto` (m sobre el agua o el suelo,
+ *  opcional): al ras, el ala delta no hace las de giro cerrado (`ras`). */
+export function puedeManiobra(key, id, alto) {
+  const pf = perfilDe(key), lista = MANIOBRAS[pf.maniobras];
+  if (lista && !lista.includes(id)) return false;
+  return !(alto != null && pf.ras && alto < pf.ras.alto && pf.ras.sin.includes(id));
+}
+/** ¿La maniobra `id` la frena SOLO la altura? (para avisar: "al ras no") */
+export function frenaAlRas(key, id, alto) {
+  const pf = perfilDe(key);
+  return !!(pf.ras && alto != null && alto < pf.ras.alto && pf.ras.sin.includes(id) && puedeManiobra(key, id));
 }
 
 /** LA CONFIGURACION DEL AVION, en piezas con su dibujo (13/11, el autor: "tener antes de empezar clara la
@@ -115,12 +128,16 @@ export function capacidadesDe(pl, lang = 'es') {
   pz('hercules', pl.sonda !== false, en ? 'TANKER' : 'CHANCHA',
     pl.sonda === false ? 'Sin sonda de reabastecimiento: no hay Chancha' : 'Reabastece en vuelo de la Chancha (el KC-130)',
     pl.sonda === false ? 'No refuelling probe: no tanker' : 'Refuels in flight from the tanker (the KC-130)');
-  const radar = RADAR_PROPIO.AVIONES.includes(pl.key);
-  pz('radar', radar, 'RADAR', radar ? 'Radar propio de busqueda' : 'Sin radar propio', radar ? 'Own search radar' : 'No search radar');
+  const radar = RADAR_PROPIO.AVIONES.includes(pl.key), corto = radar && (pl.key === 'dagger' || pl.key === 'mirage');
+  pz('radar', radar, corto ? (en ? 'SHORT RADAR' : 'RADAR CORTO') : 'RADAR',
+    corto ? 'Radar corto: marca lo que tenes adelante y cerca' : radar ? 'Radar propio de busqueda' : 'Sin radar propio',
+    corto ? 'Short radar: marks what is close ahead' : radar ? 'Own search radar' : 'No search radar');
   const man = pf.maniobras;
   pz('pirueta', man !== 'pesado', man === 'rigido' ? (en ? 'SOME MANOEUV.' : 'PIRUETAS LIMIT.') : (en ? 'MANOEUVRES' : 'PIRUETAS'),
-    man === 'pesado' ? 'Ninguna pirueta ni freno: solo pegarse al piso y trepar o picar' : man === 'rigido' ? 'Piruetas y frenos, sin TONEL BARRIL, TIRABUZON ni los mortales' : 'Todas las piruetas y los frenos',
-    man === 'pesado' ? 'No piruetas or brakes: only hugging the ground and climbing or diving' : man === 'rigido' ? 'Piruetas and brakes, without BARREL ROLL, CORKSCREW or back flips' : 'Every pirueta and brake');
+    (man === 'pesado' ? 'Ninguna pirueta ni freno: solo pegarse al piso y trepar o picar' : man === 'rigido' ? 'Piruetas y frenos, sin TONEL BARRIL, TIRABUZON ni los mortales' : 'Todas las piruetas y los frenos')
+      + (pf.ras ? '; al ras, ni las de giro cerrado ni los frenos (el ala delta pierde energia)' : ''),
+    (man === 'pesado' ? 'No piruetas or brakes: only hugging the ground and climbing or diving' : man === 'rigido' ? 'Piruetas and brakes, without BARREL ROLL, CORKSCREW or back flips' : 'Every pirueta and brake')
+      + (pf.ras ? '; down low, no tight turns or brakes (the delta wing bleeds energy)' : ''));
   // EL ESQUIVE (21/11): la base, y cuanto le rinde una pirueta (la clase)
   const esq = Math.round(pf.esquive * 100), cla = Math.round(ESQUIVE.CLASE[man] * 100);
   pz('casco', true, (en ? 'DODGE ' : 'ESQUIVE ') + esq + '%',

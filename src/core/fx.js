@@ -66,7 +66,12 @@ export function vidaCartel(txt) {
  *  para arriba y terminaba de leerse en otra parte de la pantalla —o encima de otro instrumento—
  *  que es justo lo que la duracion variable venia a arreglar. El de una palabra da 14 exacto, o
  *  sea el numero de siempre. */
+// LOS PUNTOS VAN ARRIBA (23/11, el autor: "los + de puntos sumarlos arriba directamente, asi no ensucian todo lo que viene
+// de frente"): donde el puntaje se ve (POR LA PATRIA, el CICLO, las islas) el "+N" no nace en el mundo — sube al marcador
+// (render/hud.js `ptsEn`). game.js prende `puntosArriba.on` cada cuadro.
+export const puntosArriba = { on: false };
 export function popup(x, y, txt, c, big) {
+  if (puntosArriba.on && /^\+\s*[\d.,]+$/.test(String(txt))) return;
   const life = vidaCartel(txt);
   popups.push({ x, y, txt, c: c || P.accent, life, vy: POP_SUBE / life, big: !!big });
 }

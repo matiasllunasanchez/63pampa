@@ -12,7 +12,8 @@
 export const RADAR_PROPIO = {
   // QUIEN LO LLEVA. El Agave del Super Etendard. El Mirage del juego es el 5P MARA, que no llevaba
   // radar de busqueda; los A-4 y el Dagger, tampoco.
-  AVIONES: ['supere', 'neptune'],
+  // (23/11, el autor: "Dagger y Mirage tienen radar tambien"): el suyo, CORTO — ver POR_AVION
+  AVIONES: ['supere', 'neptune', 'dagger', 'mirage'],
   // HAY QUE SUBIR: al ras el horizonte tapa el buque. Por encima del radar enemigo (RADAR_ALT = 20):
   // el pop-up real te ponia arriba de su horizonte — mirar es dejarse mirar.
   ALT_MIN: 22,
@@ -52,8 +53,15 @@ export const RADAR_PROPIO = {
 // barria cientos de km de mar (contra los ~50 millas del Agave). En el juego: ve MUCHO mas lejos, barre mas tiempo con
 // una carga y recarga antes, la onda es mas grande y lenta y lo marcado dura mas. El precio: es un emisor enorme y TE
 // DELATA mas. Lo que no se pisa aca sale de RADAR_PROPIO. (Los numeros, de juego: A VERIFICAR.)
+// EL DAGGER Y EL MIRAGE (23/11, el autor: "Dagger y Mirage tienen radar tambien"; decidido con el autor: corto). Lo que
+// se sabe: el Dagger llevaba un radar TELEMETRICO (Elta EL/M-2001B: mide la distancia para apuntar, no busca) y el Mirage
+// 5P, a verificar. En el juego, un radar de alcance CORTO: marca lo que tenes adelante y cerca, barre menos con una carga
+// y delata menos (emite poco). A VERIFICAR (docs/historia/PREGUNTAS_HISTORICAS.md).
+const CORTO = { ALCANCE_KM: 15, ALCANCE_M: 700, GASTA: 0.35, DELATA: 0.25, ONDA_R: 120 };
 export const POR_AVION = {
   supere: {},
+  dagger: CORTO,
+  mirage: CORTO,
   neptune: { ALCANCE_KM: 320, ALCANCE_M: 6500, GASTA: 0.09, RECARGA: 0.07, MIN_PRENDER: 0.1, DELATA: 0.7,
     ONDA_CADA: 1.3, ONDA_VIDA: 1.8, ONDA_R: 420, MARCA_T: 25, DETECTA_DESDE: 0.6, DETECTA_DUR: 0.8, COLOR: [110, 200, 255] },
 };

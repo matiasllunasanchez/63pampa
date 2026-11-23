@@ -1758,3 +1758,11 @@ De `tools/blender/armar_laminas.py` (`assets/libro/`), las del Invincible:
 De `src/data/islas_teatro.js` (`SOBREVUELO`): el sobrevuelo de JUEGO RÁPIDO despega de la BAM Malvinas con un MB-339A (el avión de Owen Crippa, 21 de mayo) o un Pucará.
 - **La pista:** se puso en ~57,777°O 51,686°S con rumbo ≈260° (pista ≈08/26). ¿Orientación y largo reales de la pista de Puerto Argentino en 1982?
 - **El avión de Owen Crippa:** ¿matrícula del MB-339A que voló el 21 de mayo contra el Argonaut? (en el juego no se muestra todavía).
+
+## Super Étendard, Dagger y Mirage: frío, sal, radar y el ras (23/11)
+
+Del autor, puestos en `src/data/perfiles.js`, `src/data/radar_propio.js` y `src/data/planes.js`:
+- **Super Étendard sin hielo en las alas** y la sal del parabrisas mucho más lenta (`frio.hielo: 0`, `frio.sal: 0.35`), por "un sistema de soplado caliente". ¿Qué antihielo tenía de verdad (alas, tomas, parabrisas)?
+- **Dagger y Mirage con radar** (decidido con el autor: CORTO, 15 km / 700 m de pasillo). Lo registrado: el Dagger llevaba el telemétrico Elta EL/M-2001B (mide distancia, no busca); ¿y el Mirage 5P?
+- **Mirage 5P sin sonda** de reabastecimiento (el Dagger ya no la tenía). ¿Los 5P que llegaron de Perú tenían sonda?
+- **El ala delta al ras** (Dagger y Mirage): por debajo de 25 m no salen las piruetas de giro cerrado ni los frenos ("su ala en delta perdía energía rápidamente al girar cerrado"). El número es de juego.

@@ -22,7 +22,7 @@ import { ofertaSuelta, precioDe, TIENDA_N, CARTAS as CARTAS_SUELTAS, BANCO_KM, m
 import { leeDe } from './data/cartas_lee.js';
 import { ALBUM, ALBUM_KEY, ALBUM_CATS, ALBUM_AVION_S } from './data/album.js';
 import { descPlano } from './data/desc_iconos.js';
-import { perfilDe, puedeManiobra } from './data/perfiles.js';
+import { perfilDe, puedeManiobra, frenaAlRas } from './data/perfiles.js';
 import * as frio from './systems/frio.js';
 import { ALTO, VERT_MODOS, SALITRE, FALLA_ALERTA, PENA_MUERTE } from './data/tuning.js';
 import { BUSQ } from './data/busqueda.js';
@@ -42,7 +42,7 @@ import { cabina, enCabina, CABINA } from './core/cabina.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, popups, streaks, wake, gusts, estallidos,
          prune, clearWorld } from './core/world.js';
 import { run, resetRun } from './core/run.js';
-import { piqueAgua } from './core/fx.js';
+import { piqueAgua, puntosArriba } from './core/fx.js';
 import { proj, popup, explodeAt, polvoSuelo, bloodBurst, despiece, morir, actaDe, stepDestruccion, capParts, MUERTES, derribar, onda } from './core/fx.js';
 import { ULTIMA_VARIANTE } from './core/fx.js';   // QUITAR con las sondas de v2
 import { CHUNK_LIFE, CHUNKS_MAX, ONDA_T, FLASH_T,
@@ -4231,7 +4231,16 @@ import { apodoAvion } from './data/apodos_aviones.js';
      *  vuelo— y las dos vias tienen que preguntar lo MISMO. Duplicarla era la forma segura de que
      *  un dia una maniobra saliera por un camino y no por el otro. */
     // …y que ESTE avion la pueda hacer (data/perfiles.js: el Hercules no rola, el Dagger no hace las de giro largo)
-    const avionPuede = id => puedeManiobra(PLANES[selPlane] && PLANES[selPlane].key, id);
+    // (y AL RAS, el ala delta no hace las de giro cerrado — data/perfiles.js `ras`, 23/11 —: avisa una vez cada tanto)
+    let rasAvisoT = -9;
+    const avionPuede = id => {
+      const key = PLANES[selPlane] && PLANES[selPlane].key;
+      if (frenaAlRas(key, id, plane.y)) {
+        if (run.t - rasAvisoT > 3) { rasAvisoT = run.t; cartel(T('rasDelta'), P.warn, T('rasDeltaSub')); }
+        return false;
+      }
+      return puedeManiobra(key, id, plane.y);
+    };
     const mvOk = id => moveAllowed(id, { campaign: conLibreta(), owned: pichon, off: cfg.movesOff }) && avionPuede(id);
     let uAntes = false, dAntes = false;
     let mortalArma = false;   // ya se toco ARRIBA dentro de la cobra: falta el ABAJO
@@ -7357,6 +7366,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // EL INVINCIBLE (libro r5): el Super Etendard entra al Pulso en `lanzamiento` y no en el blanco, y
       // en la escolta del A-4C no hay climax — llegar al portaaviones con el misil ES el objetivo.
       const lr = libroEnTramo();
+      puntosArriba.on = gameMode === 'survival' || (gameMode === 'cycle' && suelto()) || islas.enPasillo();   // (los +N van al marcador)
       // (el avion vacio: nadie lo maneja — sin gas, sin poscombustion, sin cañon; cae)
       if (eyectoPend) { inp.u = 0; inp.turbo = false; inp.fire = false; inp.mant = 0; }
       const fs = flightSystem(dt, { viewMouse, launchMissile: tryLaunchMissile, objectiveDist,
@@ -8090,20 +8100,29 @@ import { apodoAvion } from './data/apodos_aviones.js';
           // — un punto blanco caliente con corona naranja que late — y estela de humo que queda
           // atras abriendose. Antes era un cuadrado blanco con otro naranja abajo: dos pixeles
           // apilados, sin direccion ni amenaza.
+          // (23/11, el autor: "de frente los misiles son cuadrados, que tengan mas forma de misil de frente"): REDONDO —
+          // el cuerpo es un cilindro que te apunta: un circulo oscuro con su luz arriba a la izquierda y la cupula del
+          // buscador en la punta—, las CUATRO ALETAS en cruz que giran despacio, la llama asomando alrededor y el humo
+          // en bocanadas redondas
+          const disco = (x, y, r, col) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, Math.max(0.5, r), 0, Math.PI * 2); ctx.fill(); };
           for (let i = 3; i >= 1; i--) {
             const sm = proj(m.x + Math.sin(run.t * 7 + i * 2) * 0.25, m.y + 0.25 + i * 0.14, m.z + i * 2.8);
-            const r = Math.max(1, sm.k * (0.42 + i * 0.16));
-            ctx.globalAlpha = 0.32 - i * 0.08;
-            px(sm.x - r / 2, sm.y - r / 2, r, r, '#8d9490');
+            ctx.globalAlpha = 0.3 - i * 0.07;
+            disco(sm.x, sm.y, sm.k * (0.3 + i * 0.12), '#8d9490');
           }
-          ctx.globalAlpha = 1;
           const fl = 0.75 + Math.sin(run.t * 30 + m.z) * 0.25;          // la llama late
-          ctx.globalAlpha = 0.5;
-          px(s.x - 0.85 * k * fl, s.y - 0.85 * k * fl, 1.7 * k * fl, 1.7 * k * fl, '#f07c22');  // corona
+          ctx.globalAlpha = 0.35; disco(s.x, s.y, 1.05 * k * fl, '#f07c22');   // el resplandor del motor, detras
+          ctx.globalAlpha = 0.8; disco(s.x, s.y, 0.75 * k * fl, '#ffb347');
           ctx.globalAlpha = 1;
-          px(s.x - 0.6 * k, s.y - 0.6 * k, 1.2 * k, 1.2 * k, '#2e3336');                        // ojiva
-          px(s.x - 0.6 * k, s.y - 0.6 * k, Math.max(1, 0.45 * k), 1.2 * k, '#4a5257');          // canto
-          px(s.x - 0.3 * k, s.y - 0.3 * k, Math.max(1, 0.6 * k), Math.max(1, 0.6 * k), '#fff6d8');  // escape
+          // las aletas: una cruz que gira (cada misil con su fase)
+          const g = (m.giro ?? (m.giro = Math.random() * Math.PI)) + run.t * 1.5, L = 1.15 * k;
+          ctx.strokeStyle = '#3c4448'; ctx.lineWidth = Math.max(0.6, 0.16 * k); ctx.lineCap = 'round';
+          ctx.beginPath();
+          for (let q = 0; q < 4; q++) { const a = g + q * Math.PI / 2; ctx.moveTo(s.x, s.y); ctx.lineTo(s.x + Math.cos(a) * L, s.y + Math.sin(a) * L); }
+          ctx.stroke(); ctx.lineCap = 'butt';
+          disco(s.x, s.y, 0.48 * k, '#2e3336');                                          // el cuerpo
+          disco(s.x - 0.14 * k, s.y - 0.14 * k, 0.26 * k, '#5a6368');                     // su luz
+          disco(s.x, s.y, 0.17 * k, '#c9d2d6');                                           // la cupula del buscador
         }
       }
       // EL ENGANCHE DEL SEA WOLF: la linea del buque a tu avion mientras te fija (render/seawolf.js)

@@ -816,7 +816,6 @@ function avisosRadar(dt) {
     else if (e.k === 'destruido' && I.libre) {
       const n = e.bando === 'arg' ? FUEGO_AMIGO : PUNTOS[e.tipo] || 300;
       run.score = Math.max(0, run.score + n);
-      I.ptsAcc = (I.ptsT > 0 ? I.ptsAcc : 0) + n; I.ptsT = 2;
     }
     // (que la PAC salio a buscarte lo sabes solo si nuestro radar la ve)
     // LE DISTE A (21/11, el autor: "no sabemos que barco es, pero cuando impactamos que aparezca un toast arriba que
@@ -831,11 +830,7 @@ function avisosRadar(dt) {
     else if (e.k === 'fuego_amigo') cartel(T('islasFuegoAmigo'), P.warn, T('islasFuegoAmigoSub', { n: e.n }), { alerta: true });
     else if (e.k === 'vienen' && e.avisa) cartel(T('islasVienen'), P.warn, T('islasVienenSub', { d: (e.d / 1000).toFixed(0) }));
   }
-  // (los puntos juntados, un rato arriba)
-  if (I.ptsT > 0 || I.ptsVivo) {
-    I.ptsT = Math.max(0, (I.ptsT || 0) - dt); I.ptsVivo = I.ptsT > 0;
-    cartelSostenido('pts', I.ptsVivo, (I.ptsAcc >= 0 ? '+' : '') + I.ptsAcc + ' ' + T('islasPuntos'), I.ptsAcc >= 0 ? '#7fe07a' : P.warn);
-  }
+  // (los puntos ya no salen como cartel: suben al marcador de arriba — render/hud.js `ptsEn`, 23/11)
   // ZONA DE RADAR ARGENTINO (21/11, el autor): un cartel de 3 s al entrar, en el celeste del radar propio; despues
   // lo dice la placa del radar del tablero, en azul (hud.js `drawAlerta`)
   if (I.argCartel != null) {

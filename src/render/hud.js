@@ -186,6 +186,7 @@ function cinta(o) {
   }
   ctx.textAlign = 'left'; ctx.font = F_VAL;
   ctx.fillStyle = P.accent; ctx.fillText(o.a, kx, y + 2);
+  if (o.icono === 'avion') ptsEn(kx, y + 2, aW);   // (el puntaje de POR LA PATRIA: los que suman y restan, ahi)
   kx += aW + 3;
   if (o.b) { ctx.fillStyle = o.metaCol || P.warn; ctx.fillText(o.b, kx, y + 2); kx += bW + 2; }
   if (o.uni) { ctx.font = F_ROT; ctx.fillStyle = o.uniCol || P.dim; ctx.fillText(o.uni, kx, y + 2); }
@@ -573,12 +574,38 @@ function plate(x, y, w, h) {
 const ODO_DEC = '#a2762f';   // el ambar del acento, apagado: misma familia, otro plano
 
 /** EL PUNTAJE, en una placa como la del odometro (CICLO DE MUERTE: la cinta de arriba es del blanco). */
+// LOS PUNTOS QUE SUMAN Y RESTAN, AL LADO DEL NUMERO (23/11, el autor: "que aparezcan desde abajo y se sumen hacia arriba
+// en verde cuando suman, y se resten desde ahi partiendo desde el numero hacia abajo con el - y desaparezcan"). Cada salto
+// del puntaje de mas de PTS_MIN (lo que va sumando el vuelo solo es de a poco: no cuenta) sale como un numerito: el que
+// SUMA nace abajo y sube hasta el numero, verde, y se funde en el; el que RESTA sale del numero hacia abajo, rojo, y se
+// apaga. Lo dibuja quien dibuja el puntaje (`ptsEn`: la placa de puntos o la cinta de POR LA PATRIA).
+const PTS_MIN = 40, PTS_DUR = 1100, PTS_BAJA = 14;
+const ptsFlot = [];
+let ptsAntes = null;
+function ptsEn(x, y, w) {
+  const ahora = performance.now(), d = run.score - (ptsAntes ?? run.score);
+  ptsAntes = run.score;
+  if (Math.abs(d) >= PTS_MIN) ptsFlot.push({ n: Math.round(d), t0: ahora });
+  ctx.save(); ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace';
+  for (let i = ptsFlot.length - 1; i >= 0; i--) {
+    const f = ptsFlot[i], e = (ahora - f.t0) / PTS_DUR;
+    if (e >= 1) { ptsFlot.splice(i, 1); continue; }
+    const suma = f.n > 0, k = 1 - (1 - e) * (1 - e);   // (frena al llegar)
+    const yy = suma ? y + PTS_BAJA - k * PTS_BAJA : y + k * PTS_BAJA;
+    ctx.globalAlpha = suma ? (e < 0.75 ? 1 : (1 - e) / 0.25) : 1 - e;
+    const txt = (suma ? '+' : '-') + Math.abs(f.n).toLocaleString('es-AR');
+    ctx.fillStyle = '#0a0e11'; ctx.fillText(txt, x + w / 2 + 1, yy + 1);
+    ctx.fillStyle = suma ? '#7fe07a' : P.warn; ctx.fillText(txt, x + w / 2, yy);
+  }
+  ctx.restore();
+}
 function drawPuntos(x, y) {
   const pts = String(Math.floor(run.score));
   ctx.font = 'bold 9px monospace';
   const w = Math.max(46, ctx.measureText(pts).width + 24);
   plate(x, y, w, 12);
   ctx.textAlign = 'left'; ctx.fillStyle = P.accent; ctx.fillText(pts, x + 4, y + 9);
+  ptsEn(x + 4, y + 9, ctx.measureText(pts).width);
   ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.textAlign = 'right';
   ctx.fillText(T('hud_pts'), x + w - 3, y + 9);
 }
@@ -2464,6 +2491,16 @@ export function drawSquadPips(x, y) {
   const vivos = filaOk(run) ? run.orden : filaDeVidas(run.squad, run.lives);
   ctx.textAlign = 'left';
   plate(x, y, anchoSquad(), SQUAD_H);
+  // LA ESCUADRILLA CON FALLAS TAMBIEN LATE (23/11, el autor: "cuando se muestran los aviones rotos, que la seccion de
+  // aviones tambien titile y parpadee igual, el borde"): mientras dura el aviso (run.fallasAlerta), la placa late en rojo
+  // y su borde doble titila al mismo ritmo que el cartel de alerta (drawUnCartel `late`)
+  if ((run.fallasAlerta || []).some(a => run.t >= a.t - FALLA_ALERTA.ANTES && run.t <= a.t + FALLA_ALERTA.DURA)) {
+    const late = 0.5 + 0.5 * Math.sin(performance.now() / 70), w = anchoSquad();
+    ctx.save();
+    ctx.globalAlpha = 0.14 + 0.16 * late; ctx.fillStyle = P.warn; ctx.fillRect(x + 1, y + 1, w - 2, SQUAD_H - 2);
+    ctx.restore();
+    if (late > 0.35) bordePlaca(x - 1, y - 1, w + 2, SQUAD_H + 2, P.warn);
+  }
   for (let i = 0; i < avionesEnPlaca(); i++) {
     const ax = x + 3 + i * SQ_PASO, down = !vivos.includes(i);
     // el que vuela, en acento; los que esperan, claros; los caidos, SOLO en gris oscuro. El tachado
@@ -3164,7 +3201,8 @@ export function drawHUD(h) {
   if (objectiveDist <= 0 && gameMode !== 'survival') { drawOdo(MARGEN, ty); ty += 12 + AIRE; }
   // EL PUNTAJE EN EL CICLO (16/10: "los puntos en ambos modos siempre se muestran"). En POR LA PATRIA
   // ya esta en la cinta de arriba; en el ciclo la cinta es del blanco, asi que va su placa aca.
-  if (gameMode === 'cycle' && h.suelto) { drawPuntos(MARGEN, ty); ty += 12 + AIRE; }
+  // (y en LAS ISLAS, que no tienen cinta: el sobrevuelo junta puntos — 23/11)
+  if ((gameMode === 'cycle' && h.suelto) || h.brujula) { drawPuntos(MARGEN, ty); ty += 12 + AIRE; }
   // EL ATAJO DEL TALLER (18/10): con aviones con fallas, la tecla que los manda a todos a reparar
   if (h.suelto && h.fallados > 0) { drawAtajoTaller(MARGEN, ty, h.fallados); ty += 9 + AIRE; }
   // LA CINTA: contra el buque si hay objetivo, contra tu record si es POR LA PATRIA.
