@@ -153,6 +153,12 @@ function llego(q, s) {
 export function tick(dt, s, escenas) {
   if (fin) return null;
   const p = pasos[i];
+  // EL PASO DE UN SOLO MODO (`vert`, 23/11: el sostén de SUAVE): con otro GAS MODO se saltea entero
+  if (fase === 'espera' && p.vert && !p.vert.includes(s.vert)) {
+    i++;
+    if (i >= pasos.length) { fin = true; return { tipo: 'fin', linea: null }; }
+    entrar(); return null;
+  }
   if (fase === 'espera') {
     t += dt;
     if (t < (i === 0 ? ESPERA_0 : ESPERA) || !llego(p.cuando, s)) return null;

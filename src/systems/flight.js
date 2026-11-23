@@ -36,7 +36,7 @@ const topeSube = y => 18 + (ALTO.VY_SUBE - 18) * kAlto(y);
 const topeBaja = y => -(20 + (ALTO.VY_BAJA - 20) * kAlto(y));
 import { MSL_MAX, MSL_REGEN_HERC, FLY_X, FLY_TOP, ZZ_PARED_TALUD, ZZ_PARED_LIBRE, GEO_ISLA_IMPACTO,
          METRALLAS, calorTiro, GUN_COOL_FIRE, GUN_COOL_IDLE, GUN_RESET, shoreAt, RADAR_ALT,
-         FUEL_RATE, VERT_FIJA, VERT_PLANEO, VERT_LATERAL, VERT_SOSTEN, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
+         FUEL_RATE, VERT_FIJA, VERT_PLANEO, VERT_LATERAL, VERT_STICK, VERT_SOSTEN, BANDA_ALT, PERF_ALT, CHV_FUEL_FREEZE, RAS_GASTO_F, COBRA } from '../data/tuning.js';
 // LAS FASES (PLAN_MISION_CINCO_FASES §11). Se LEEN, nunca se escriben, igual que los tramos en el
 // sembrador: `fsVal` contesta lo que rige a esta altura del vuelo y cae al valor de siempre cuando
 // la mision no declara fases — que es como se cumple la regla suprema (sin fases, este archivo se
@@ -132,11 +132,23 @@ function vertLibre(dt, G, TH, DIVE) {
   if (cfg.vert === 'fija' || cfg.vert === 'planeo' || cfg.vert === 'planeo_m') {
     const L = VERT_LATERAL, S0 = VERT_SOSTEN, dir = (inp.u ? 1 : 0) - (inp.d ? 1 : 0);
     let sosten = 1;
+    // EL SOSTEN SE CARGA CON EL GAS A FONDO (23/11): LT sube la aguja del gas; recien a 100 se llena la barra (CARGA) o
+    // sostiene (MANTENER). Lo dibuja el reloj del gas (render/hud.js)
+    // (23/11, el autor: "cada presionada de mantener frena, retrasa o carga de a poco el casteo"; "no tiene que llegar al
+    // 100 especificamente"): esperar la aguja a 95 costaba medio segundo por toque, y en ese rato la barra seguia
+    // vaciandose. Ahora carga APENAS se aprieta LT, a ritmo pleno; la aguja del gas queda como el dibujo de eso
+    const carga = !!inp.mant && run.fuel > 0;
     if (cfg.vert === 'planeo') {
-      run.sosten = Math.max(0, Math.min(1, (run.sosten ?? 1) + (inp.mant ? dt / S0.LLENA_S : -dt / S0.DURA_S)));
+      run.sosten = Math.max(0, Math.min(1, (run.sosten ?? 1) + (carga ? dt / S0.LLENA_S : -dt / S0.DURA_S)));
       sosten = run.sosten;
-    } else if (cfg.vert === 'planeo_m') { run.sosten = inp.mant ? 1 : 0; sosten = run.sosten; }
-    if (dir) { plane.vy += dir * L.ACEL * reac * dt; sinGasT = 0; }
+    } else if (cfg.vert === 'planeo_m') { run.sosten = carga ? 1 : 0; sosten = run.sosten; }
+    if (dir) {
+      // EL ARRANQUE (VERT_STICK): empieza a acelerar de a poco y se suelta a medida que se mantiene el stick
+      run.vertHold = (run.vertDir === dir ? run.vertHold || 0 : 0) + dt; run.vertDir = dir;
+      const u = Math.min(1, run.vertHold / VERT_STICK.RAMPA), k = u * u * (3 - 2 * u);
+      plane.vy += dir * (VERT_STICK.ACEL0 + (VERT_STICK.ACEL1 - VERT_STICK.ACEL0) * k) * reac * dt;
+      sinGasT = 0;
+    }
     else {
       plane.vy *= Math.max(0, 1 - L.FRENO * reac * dt);
       if (sosten <= 0) {
@@ -145,6 +157,11 @@ function vertLibre(dt, G, TH, DIVE) {
         if (plane.vy > quiere) plane.vy += (quiere - plane.vy) * Math.min(1, dt * 3);
       } else sinGasT = 0;
     }
+    if (!dir) { run.vertHold = 0; run.vertDir = 0; }
+    // LA MITAD DEL TOPE de siempre (VERT_STICK.TOPE): solo frena lo que el stick empuja, no una caida que ya venia
+    const tS = topeSube(plane.y) * VERT_STICK.TOPE, tB = topeBaja(plane.y) * VERT_STICK.TOPE;
+    if (dir > 0 && plane.vy > tS) plane.vy = tS;
+    if (dir < 0 && plane.vy < tB) plane.vy = tB;
     plane.vy = Math.max(-30, Math.min(30, plane.vy));
   } else if (mant) {
     const tgt = (gas ? VERT_FIJA.SUBE : 0) - (inp.d ? VERT_FIJA.BAJA : 0);
@@ -384,7 +401,10 @@ export function flightSystem(dt, deps) {
   run.rollCd = Math.max(0, run.rollCd - dt);
   if (rollVx !== null) plane.vx = rollVx;
   // throttle (palanca de gas): sube al dar gas, baja al soltar — solo indicador visual
-  const gasOn = run.fuel > 0 && (inp.u || (pointer.steer && plane.vy > 0.5));
+  // (23/11, el autor: "usar la de GAS y mostrar el casteo ahi: cuando llega a 100 de gas esa barra se carga"): en SUAVE la
+  // palanca la mueve LT (mantener), no ↑ — ↑ ↓ ya son subir y bajar como los costados
+  const suave = cfg.vert === 'planeo' || cfg.vert === 'planeo_m';
+  const gasOn = run.fuel > 0 && (suave ? !!inp.mant : (inp.u || (pointer.steer && plane.vy > 0.5)));
   run.throttle += ((gasOn ? 1 : 0) - run.throttle) * Math.min(1, dt * 7);
   // COMBUSTIBLE: NO (menú [M]) = tanque infinito, para pruebas.
   // EL MULTIPLICADOR ES DE LA FASE (§3 del plan): crucero x1, rasante y filo x2, descenso x1.3, y
@@ -454,7 +474,9 @@ export function flightSystem(dt, deps) {
     bankTgt = Math.max(-1, Math.min(1, steerV)) * (cfg.control === CTRL_BANK ? 1 : ALABEO_DIRECTO);
     const vin = inp.u - inp.d;   // -1 pica / 0 / +1 trepa
     run.pitchHold = vin !== 0 ? run.pitchHold + dt : 0;
-    pitchTgt = pitchTarget(vin, run.pitchHold, plane.vy);
+    // (en ESTABLE y SUAVE la trompa sigue el ARRANQUE del stick: VERT_STICK.POSE_*)
+    pitchTgt = cfg.vert !== 'gas' ? pitchTarget(vin, run.pitchHold, plane.vy, VERT_STICK.POSE_DEMORA, VERT_STICK.POSE_RAMPA)
+      : pitchTarget(vin, run.pitchHold, plane.vy);
   }
   stepVuelo(dt, {
     bank: bankTgt, pitch: pitchTgt, boost: run.boost,

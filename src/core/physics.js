@@ -25,8 +25,8 @@ export const PITCH_ROW = 0.33;    // umbral para cambiar de fila del sprite (tre
  *  @param vin  -1 abajo / 0 / +1 arriba (la tecla)
  *  @param hold segundos que se lleva mantenida esa tecla
  *  @param vy   velocidad vertical real del avion */
-export function pitchTarget(vin, hold, vy) {
-  const ramp = clamp01((hold - PITCH_DELAY) / PITCH_RAMP);
+export function pitchTarget(vin, hold, vy, demora = PITCH_DELAY, rampa = PITCH_RAMP) {
+  const ramp = clamp01((hold - demora) / rampa);
   return clamp(vin * 0.9 * ramp + (vy / 22) * PITCH_VY, -1, 1);
 }
 

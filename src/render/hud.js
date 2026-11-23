@@ -1713,59 +1713,57 @@ function escarcha(id, x, y, nivel) {
   }
   ctx.restore();
 }
-// EL MACH CHICO (21/11): un relojito de 0 a 4 en la esquina de arriba a la derecha del velocimetro (tercera persona).
-// Cinco marcas —0, 1, 2, 3, 4—, la de 1 mas larga, y la aguja en acento desde el regimen del cono (core/mach.js).
-const MACH_CHICO_TOPE = 4;
-function machChico(x, y, mach) {
-  // (21/11, el autor: "mas chico, sin la M en el medio donde esta la aguja: que no tape el velocimetro"): en la esquina,
-  // por FUERA del arco de la escala del velocimetro (centro x+13, y+16, radio 10)
-  const r = 3.2, cx = x + CUADRO - r - 0.8, cy = y + r + 0.8;
-  const ang = f => Math.PI * 0.75 + Math.PI * 1.5 * Math.max(0, Math.min(1, f));   // 270°, de abajo-izq a abajo-der
-  ctx.save();
-  ctx.fillStyle = '#0d1418'; ctx.beginPath(); ctx.arc(cx, cy, r + 0.6, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#4e5a62'; ctx.lineWidth = 0.6; ctx.stroke();
-  // (21/11, el autor: "la aguja mas cortita, como un cursor, en amarillo, y va marcando de amarillo las barras que
-  // alcanza"): las marcas de 0..4 se prenden en acento a medida que el mach llega, y la aguja es una punta corta en el borde
-  for (let m = 0; m <= MACH_CHICO_TOPE; m++) {
-    const a = ang(m / MACH_CHICO_TOPE), r0 = m === 1 ? r - 1.4 : r - 0.8;
-    ctx.strokeStyle = mach >= m ? P.accent : '#5d6a71'; ctx.lineWidth = 0.6;
-    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.stroke();
-  }
-  const a = ang(mach / MACH_CHICO_TOPE);
-  ctx.strokeStyle = P.accent; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * (r - 1.6), cy + Math.sin(a) * (r - 1.6)); ctx.lineTo(cx + Math.cos(a) * (r + 0.3), cy + Math.sin(a) * (r + 0.3)); ctx.stroke();
-  ctx.restore();
-}
-// EL SOSTEN (23/11, el autor: "el casteo o tiempo que tarda la altura en empezar a descender, con un indicador similar al
-// del MACH: presiono el trigger trasero izquierdo y cargo esa flechita"): el mismo relojito, en la esquina de arriba a la
-// derecha del ALTIMETRO, solo en GAS MODO SUAVE. La aguja es la carga (run.sosten); se apaga a gris vacia y titila en rojo
-// cuando queda poco: es cuando hay que volver a apretar LT
-function sostenChico(x, y, k) {
-  const r = 3.2, cx = x + CUADRO - r - 0.8, cy = y + r + 0.8;
-  const ang = f => Math.PI * 0.75 + Math.PI * 1.5 * Math.max(0, Math.min(1, f));
-  const poco = k < 0.25, col = k <= 0 ? '#5d6a71' : poco ? (Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e') : P.accent;
-  ctx.save();
-  ctx.fillStyle = '#0d1418'; ctx.beginPath(); ctx.arc(cx, cy, r + 0.6, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = '#4e5a62'; ctx.lineWidth = 0.6; ctx.stroke();
-  // LOS NIVELES, como el mach (23/11, el autor: "ponele niveles al reloj, como el de mach"): cinco marcas, la de arriba
-  // mas larga, que se prenden en el color de la carga hasta donde llega
-  for (let m = 0; m <= 4; m++) {
-    const am = ang(m / 4), r0 = m === 4 ? r - 1.4 : r - 0.8;
-    ctx.strokeStyle = k > 0 && k >= m / 4 - 0.001 ? col : '#5d6a71'; ctx.lineWidth = 0.6;
-    ctx.beginPath(); ctx.moveTo(cx + Math.cos(am) * r0, cy + Math.sin(am) * r0); ctx.lineTo(cx + Math.cos(am) * r, cy + Math.sin(am) * r); ctx.stroke();
-  }
-  const a = ang(k);
-  ctx.strokeStyle = col; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * (r - 1.6), cy + Math.sin(a) * (r - 1.6)); ctx.lineTo(cx + Math.cos(a) * (r + 0.3), cy + Math.sin(a) * (r + 0.3)); ctx.stroke();
-  ctx.restore();
-}
 // (21/11, el autor: "los valores no hacen falta tal como los pusiste: una escala logica de hielo, con el 0 en el
 // medio"): de -20 a +20, el 0 arriba de todo (marca larga y su numero, el unico), la franja del hielo en amarillo
 const TA_MIN = -20, TA_MAX = 20;
+// EL ARCO DE LOS RELOJES ANCHOS (temperatura y gas): el eje, alto, para que el numero caiga en la linea de los demas
+const ARCO_CY = CUADRO - 8;
+// EL GAS EN ARCO (23/11, el autor: "converti al gas en esto, similar al hielo… y en la barra de relleno de abajo, en vez de
+// gris como el de temperatura, pone la barra ahi adentro"): el mismo arco ancho que la temperatura. La aguja es la palanca;
+// en GAS MODO SUAVE la franja de adentro del arco es el SOSTEN —se llena con el gas a fondo y se vacia sola—, en el acento
+// y titilando en rojo cuando queda poco. Sin SUAVE, la franja es solo el surco
+function gasArco(x, y, gas, sosten, suave, sinNafta) {
+  plate(x, y, CUADRO, CUADRO);
+  const cx = x + CUADRO / 2, cy = y + ARCO_CY, R = 10.8;
+  const A0 = Math.PI * 1.13, A1 = Math.PI * 1.87;
+  const ang = v => A0 + (A1 - A0) * Math.max(0, Math.min(1, v));
+  ctx.save();
+  // la franja: el surco, y encima lo que queda de sostén
+  ctx.lineWidth = 1.8; ctx.lineCap = 'butt';
+  ctx.strokeStyle = '#1e2a31'; ctx.beginPath(); ctx.arc(cx, cy, R - 1.7, A0, A1); ctx.stroke();
+  if (suave && sosten > 0) {
+    const poco = sosten < 0.25;
+    ctx.strokeStyle = poco ? (Math.sin(run.t * 14) > 0 ? P.warn : '#7d2f1e') : P.accent;
+    ctx.beginPath(); ctx.arc(cx, cy, R - 1.7, A0, ang(sosten)); ctx.stroke();
+  }
+  // las marcas cada cuarto; el 100 largo
+  for (let k = 0; k <= 4; k++) {
+    const a = ang(k / 4), r0 = k === 4 ? R - 3.2 : R - 1.2;
+    ctx.strokeStyle = k === 4 ? '#e8eef0' : '#6d7d85'; ctx.lineWidth = k === 4 ? 0.8 : 0.5;
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke();
+  }
+  ctx.restore();
+  // el icono abajo a la izquierda y el porcentaje en la linea de los demas
+  icono(x + 2, y + CUADRO - 9, 7, 'gas', P.dim);
+  ctx.textAlign = 'right'; ctx.font = uiFont(NUMEROS.fam, 5.5, '');
+  ctx.fillStyle = sinNafta ? P.warn : P.dim;
+  ctx.fillText(Math.round(Math.max(0, Math.min(1, gas)) * 100) + '%', x + CUADRO - 3, y + CUADRO - 4);
+  ctx.textAlign = 'left';
+  // la aguja: la palanca, blanca; a fondo, en el acento; sin nafta titila
+  ctx.save();
+  const a = ang(gas);
+  ctx.strokeStyle = sinNafta ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim) : gas >= 0.95 ? P.accent : '#e8eef0';
+  ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * (R - 0.8), cy + Math.sin(a) * (R - 0.8)); ctx.stroke();
+  ctx.fillStyle = '#5d6a71'; ctx.beginPath(); ctx.arc(cx, cy, 1.1, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
 function termoArco(x, y, t, f0, col) {
   const f = c => (c - TA_MIN) / (TA_MAX - TA_MIN);
   plate(x, y, CUADRO, CUADRO);
-  const cx = x + CUADRO / 2, cy = y + CUADRO - 4, R = 10.8;
+  // (23/11, el autor: "dale altura, que el renglon de abajo quede a la misma linea que el resto de los indicadores"):
+  // el eje sube (ARCO_CY) y el numero va en la base de los demas relojes (y + CUADRO - 4)
+  const cx = x + CUADRO / 2, cy = y + ARCO_CY, R = 10.8;
   const A0 = Math.PI * 1.13, A1 = Math.PI * 1.87;                  // de abajo-izquierda a abajo-derecha, por arriba
   const ang = v => A0 + (A1 - A0) * Math.max(0, Math.min(1, v));
   ctx.save();
@@ -1781,9 +1779,9 @@ function termoArco(x, y, t, f0, col) {
   ctx.font = '3px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#e8eef0';
   ctx.fillText('0', cx, cy - R - 1.2);
   // °C abajo a la izquierda, y el valor en su color abajo a la derecha
-  ctx.fillStyle = '#9fb0b6'; ctx.textAlign = 'left'; ctx.fillText('°C', x + 2.5, y + CUADRO - 2);
-  ctx.textAlign = 'right'; ctx.font = 'bold 5px monospace'; ctx.fillStyle = col;
-  ctx.fillText(Math.round(t.c) + '°', x + CUADRO - 2, y + CUADRO - 2);
+  ctx.fillStyle = '#9fb0b6'; ctx.textAlign = 'left'; ctx.fillText('°C', x + 2.5, y + CUADRO - 4);
+  ctx.textAlign = 'right'; ctx.font = uiFont(NUMEROS.fam, 5.5, ''); ctx.fillStyle = col;
+  ctx.fillText(Math.round(t.c) + '°', x + CUADRO - 3, y + CUADRO - 4);
   // la aguja: blanca, desde el eje de abajo; en la franja del hielo, celeste
   const a = ang(f(t.c)), hielo = t.c <= 2;
   ctx.strokeStyle = hielo ? '#9fdcff' : '#e8eef0'; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
@@ -3285,8 +3283,8 @@ export function drawHUD(h) {
   // (21/11, el autor: "el reloj de mach en la cabina, pero en tercera persona un reloj mucho mas chico DENTRO de la
   // velocidad, en un extremo de arriba, que indique los mach mas a nivel general: 0 1 2 3 4"): afuera de la cabina
   // el machimetro grande se va y queda el chiquito, en la esquina de arriba a la derecha del velocimetro
-  if (!enCabina()) machChico(xVuelo(0), CUADROS_Y, mach);
-  else if (!h.brujula) reloj(X_MACH, CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
+  // (23/11, el autor: "la aguja extra en velocidad esta al pedo"): sin el mach chico en tercera persona
+  if (enCabina() && !h.brujula) reloj(X_MACH, CUADROS_Y, { val: fM(mach), ico: 'mach', col: mach >= M_CONO ? P.accent : P.foam,
     zonas: [[fM(M_CONO), 1, P.accent]], marcas: [[fM(1), P.foam]],
     txt: mach.toFixed(2), txtCol: mach >= M_CONO ? P.accent : P.dim });
   // ALTITUD, en metros y con la escala ESTIRADA ABAJO (raiz cuadrada): el juego entero pasa en los
@@ -3342,7 +3340,6 @@ export function drawHUD(h) {
     // momento de soltar: el mismo latido que la cinta y el estante.
     borde: h.sueltaYa ? (titilaSuelta() ? SUELTA_COL : null) : enSuelta ? SUELTA_COL : null,
     txt: Math.round(altVista) + 'm', txtCol: visto ? P.warn : P.dim }, gAl));
-  if ((cfg.vert === 'planeo' || cfg.vert === 'planeo_m') && !h.altFija) sostenChico(xVuelo(2), CUADROS_Y, run.sosten ?? 1);
   // LA ALTURA TRABADA (LAS ISLAS desde arriba, autor 19/11: "marcar locked o un candado en el marcador de
   // altura"): desde la vista cenital la altura queda clavada, y el reloj lo dice con un CANDADO en la punta
   // de arriba a la derecha y el borde fijo en el color del candado
@@ -3369,10 +3366,8 @@ export function drawHUD(h) {
   // GAS: la palanca, leida como las RPM de un tablero de verdad. Era la corredera vertical del borde
   // derecho; sin nafta, la aguja parpadea (el reloj de nafta, a la izquierda, dice por que).
   // (SIN BORDE CRITICO, por pedido del autor: el gas se opera, no avisa. Sin nafta avisa la nafta.)
-  reloj(xVuelo(3), CUADROS_Y, { val: run.throttle, ico: 'gas',
-    col: run.fuel <= 0 ? (Math.sin(run.t * 10) > 0 ? P.warn : P.dim)
-      : run.throttle > 0.66 ? P.foam : run.throttle > 0.15 ? P.accent : P.bodyDark,
-    txt: Math.round(Math.max(0, Math.min(1, run.throttle)) * 100) + '%', txtCol: run.fuel <= 0 ? P.warn : P.dim });
+  const suaveG = cfg.vert === 'planeo' || cfg.vert === 'planeo_m';
+  alTablero(xVuelo(3), CUADROS_Y, () => gasArco(xVuelo(3), CUADROS_Y, run.throttle, run.sosten ?? 1, suaveG, run.fuel <= 0));
 
   // ---- EL PODER DEL JUGADOR, arriba de su cara (ver barraPoder) ---------------------------------
   // QUEDO UNO SOLO (13/9). La barra del RASANTE se fue entera, y con ella su lengueta LISTO y su

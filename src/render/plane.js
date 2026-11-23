@@ -71,6 +71,10 @@ let filaSost = 1, filaAnt = 1, filaCambioT = -1, filaPrevCuadro = 1;
 // derecho (las piruetas, el poder y la cobra tienen sus hojas). `?fino=0` vuelve a la de siempre, para
 // comparar. Las filas van por el ANGULO que pide el cabeceo, con histeresis de un cuarto de paso.
 const FINO_ON = !(typeof location !== 'undefined' && /[?&]fino=0\b/.test(location.search));
+// EL ANGULO DE LA POSE (grados, + trompa arriba), del ultimo cuadro dibujado: las lineas de velocidad y las rafagas se
+// inclinan con el (23/11, el autor: "el efecto de viento debe acompañar el sentido")
+let gradosPose = 0;
+export const anguloPose = () => gradosPose;
 const FINO_NF = 13, FINO_GRADOS = [14, 7, 0, -7, -14], FINO_TOPE = 0.7;   // pitch 0,7 = 14°
 let finoFila = 2, finoAnt = 2, finoCambioT = -1, finoPrev = 2;
 // LA TREPADA SOSTENIDA SE ASIENTA (21/11, el autor: "el dibujo del avion cambia… se ve mas feo — trepando, arriba"):
@@ -1082,6 +1086,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     arribaT = pcCrudo > ASIENTA_POSE && !run.mv && run.t > 0 ? arribaT + dtA : 0; }
   const asienta = Math.max(0, Math.min(1, (arribaT - ASIENTA_T) / ASIENTA_DUR));
   const pcPose = asienta > 0 ? pcCrudo + (Math.min(pcCrudo, ASIENTA_POSE) - pcCrudo) * asienta * asienta * (3 - 2 * asienta) : pcCrudo;
+  gradosPose = 14 * Math.max(-1, Math.min(1, pcPose / FINO_TOPE));   // (lo lee el VIENTO: game.js, las lineas de velocidad)
   // la fila con HISTERESIS: para cambiar hay que pasar FILA_ENTRA; para volver a nivel, bajar de FILA_SALE
   // (21/11, el autor: "cuando voy muy arriba o muy abajo el avion pierde muchisima calidad"): topando el techo o rozando
   // el agua el cabeceo rebota y la fila cambiaba varias veces por segundo — cada cambio funde dos cuadros y el avion
@@ -1409,17 +1414,11 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     const fija = proj(plane.x, plane.y + plane.pitch * AIM_PITCH, 70);
     const em = miraMezcla * miraMezcla * (3 - 2 * miraMezcla);
     const c = { x: fija.x + (vm.sx - fija.x) * em, y: fija.y + (vm.sy - fija.y) * em };
-    // CON JOYSTICK, UNA MARCA CHICA AL FRENTE (21/11, el autor: "no se si con joystick la mira gigante suma. Con mouse
-    // si. Con joystick importa donde esta el avion y donde mira de frente, no la mira"): sin mouse que la mueva, la mira
-    // grande tapaba lo que viene; queda un punto con dos rayitas adelante de la trompa, adonde van las balas
-    if (padActivo() && em < 0.05) {
-      ctx.globalAlpha = 0.85;
-      px(c.x - 0.75, c.y - 0.75, 1.5, 1.5, P.accent);
-      px(c.x - 5, c.y - 0.5, 2.5, 1, P.accent); px(c.x + 2.5, c.y - 0.5, 2.5, 1, P.accent);
-      ctx.globalAlpha = 1;
-    } else
-    // MIRA elegible desde el menu [M] (cfg.mira, 1..9). Si la hoja no cargo aun, reticulo vectorial.
-    if (!drawMira(cfg.mira, c.x, c.y, MIRA_SIZE, 0.7 + 0.2 * em)) {
+    // CON JOYSTICK, LA MISMA MIRA A LA MITAD (23/11, el autor: "la mira del joystick es horrible, cambiar por la del mouse
+    // achicada a la mitad; si el mouse se mueve, crece con transicion y vuelve a estar como ahora"). Antes era un punto
+    // con dos rayitas (21/11: la grande tapaba lo que viene). El tamaño sigue a `em`: mouse → entera, quieto → mitad
+    const tam = padActivo() ? MIRA_SIZE * (0.5 + 0.5 * em) : MIRA_SIZE;
+    if (!drawMira(cfg.mira, c.x, c.y, tam, 0.7 + 0.2 * em)) {
       ctx.globalAlpha = 0.7;
       px(c.x - 5, c.y, 3, 1.5, P.accent); px(c.x + 3, c.y, 3, 1.5, P.accent);
       px(c.x, c.y - 5, 1.5, 3, P.accent); px(c.x, c.y + 3, 1.5, 3, P.accent);

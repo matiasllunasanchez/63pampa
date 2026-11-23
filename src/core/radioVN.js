@@ -174,3 +174,6 @@ export const restante = () => (radio.dur > 0 ? Math.max(0, 1 - radio.t / radio.d
 
 /** ¿Hay algo que dibujar? Sigue siendo `true` mientras la caja termina de bajar. */
 export const visible = () => radio.activa || radio.ease > 0;
+/** ¿Hay voz en vuelo hablando O esperando turno? (23/11, el autor: "no debe suceder nunca que un dialogo pausa se pise con
+ *  uno ingame": el tutorial no abre su pausa mientras quede algo en la cola — saldria pegado detras) */
+export const ocupada = () => visible() || cola.length > 0;

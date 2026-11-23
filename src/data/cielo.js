@@ -45,7 +45,7 @@ export const NUBES_SOL = { R: 70, A: 0.85 };
  *   RARO      LA LUZ EXTRAÑA (solo de noche, casi nunca): `chance` de que salga cuando toca; se queda
  *             `quieta` s, pega `saltos` saltos y se va. */
 export const VIDA_CIELO = {
-  PAJAROS: { cada: [7, 22], n: [3, 8], y: [6, 34], vel: [5, 11], aleteo: [3.5, 5.5], cerca: 0.25 },
+  PAJAROS: { cada: [7, 22], n: [3, 8], y: [6, 34], vel: [4, 8], aleteo: [1.3, 2], planeo: 0.45, cerca: 0.25 },   // (23/11: "parecen murcielagos": aleteo lento y planean)
   AVION: { cada: [35, 80], y: [52, 86], vel: [5, 9], estela: 0.65, largo: [50, 120] },
   FUGAZ: { cada: [5, 16], vel: [150, 260], vida: [0.35, 0.75], cola: 0.11 },
   SATELITE: { cada: [25, 60], vel: [6, 11], destello: 0.3 },

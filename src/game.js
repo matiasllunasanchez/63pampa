@@ -133,7 +133,19 @@ import { drawPersec, drawCinta, cintaRect } from './render/persec.js';
 import { drawChancha } from './render/chancha.js';
 import { inp, mouse, pointer, puntero, flags, padInfo, padActivo, mandoCambiar, initInput } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
-import { drawPlane } from './render/plane.js';
+import { drawPlane, anguloPose } from './render/plane.js';
+// LA INCLINACION DEL VIENTO (tangente del angulo de la pose, suavizada con su propio reloj): ver "ráfagas de viento" en draw
+let vientoTan = 0, vientoT = -1;
+const centroViento = { x: 0, y: 0 };
+// (23/11, el autor: "quiza hay que inclinarlas mas, y mover el centro hacia donde va el avion; deben tener de centro el
+// avion"): INCLINA multiplica la inclinacion de la pose; CORRE es cuantos px por unidad de tangente se corre el centro
+// de las lineas hacia donde va la trompa (arriba si sube)
+const VIENTO = { INCLINA: 2.2, CORRE: 70 };
+const vientoY = (x, cx = W / 2) => Math.abs(x - cx) * vientoTan * VIENTO.INCLINA;
+function vientoPaso() {
+  const t = performance.now() / 1000, d = vientoT < 0 ? 0 : Math.min(0.05, t - vientoT); vientoT = t;
+  vientoTan += (Math.tan(anguloPose() * Math.PI / 180) - vientoTan) * Math.min(1, d * 8);
+}
 import { drawBullet } from './render/ammo.js';
 import * as hud from './render/hud.js';
 import * as world from './render/world.js';
@@ -149,7 +161,7 @@ import * as world3D from './legacy/three-world.js';
 import { cv, ctx, W, H, DW, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, labelFont, probarFuente, setPZ, titleFont } from './render/ctx.js';
 import * as screens from './render/screens.js';
 import { drawMando, drawDemoRasante } from './render/mando.js';
-import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog, retener as retenerRadio } from './core/radioVN.js';
+import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog, retener as retenerRadio, ocupada as radioOcupada } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
 import { drawDesenfoque, BLUR_DBG } from './render/desenfoque.js';   // BLUR_DBG: QUITAR con __blurdbg
@@ -5850,7 +5862,8 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0, hielo: run.hielo || 0,
         chafitas: chapitasSys.nubesEnElAire().length > 0,
         marca: islas.marcado(), objIslas: !!islas.objetivoDe() && !islas.objetivoDe().vivo,
-        radio: radioVis(),
+        vert: cfg.vert,   // (el GAS MODO: el paso del sostén es solo de SUAVE)
+        radio: radioOcupada(),   // (la que habla y la que espera turno: la pausa no se abre encima de ninguna)
         // (el tablero entero en pantalla: el paso que marca indicadores lo espera — systems/tutorial.js)
         hud: (S.state === 'play' || S.state === 'landing' || (S.state === 'takeoff' && !!carrera)) && hudEntra >= 1 }, SCENES);
       if (!a) return;
@@ -7655,10 +7668,22 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       if (cfg.devcam && S.state === 'play') world.drawFlightLane(testRadio);   // modo camara: el carril del avion
 
       // ráfagas de viento
+      // EL VIENTO ACOMPAÑA EL CABECEO (23/11, el autor: "si estoy subiendo, las lineas que vienen de frente deben estar
+      // inclinadas desde el centro hacia abajo los mismos grados que el avion; si baja, hacia arriba"): cada punto del
+      // viento se corre en vertical lo que dice su distancia al centro por la tangente del angulo de la pose
+      vientoPaso();
       ctx.globalAlpha = 0.35;
       for (const g2 of gusts) {
-        px(g2.x, g2.y, g2.len, 1, P.crest);
-        px(g2.x + 3, g2.y + 1, g2.len * 0.5, 1, P.dim);
+        if (Math.abs(vientoTan) < 0.01) {
+          px(g2.x, g2.y, g2.len, 1, P.crest);
+          px(g2.x + 3, g2.y + 1, g2.len * 0.5, 1, P.dim);
+          continue;
+        }
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = P.crest; ctx.beginPath();
+        ctx.moveTo(g2.x, g2.y + 0.5 + vientoY(g2.x)); ctx.lineTo(g2.x + g2.len, g2.y + 0.5 + vientoY(g2.x + g2.len)); ctx.stroke();
+        ctx.strokeStyle = P.dim; ctx.beginPath();
+        ctx.moveTo(g2.x + 3, g2.y + 1.5 + vientoY(g2.x + 3)); ctx.lineTo(g2.x + 3 + g2.len * 0.5, g2.y + 1.5 + vientoY(g2.x + 3 + g2.len * 0.5)); ctx.stroke();
       }
       ctx.globalAlpha = 1;
 
@@ -8012,6 +8037,9 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
       // queres, pero que no tapen tanto, cargan mucho la pantalla"): a la mitad de lo que eran, y una de
       // cada cinco (fija por su angulo, no sorteada por cuadro) un poco mas marcada
       // (en LAS ISLAS solo desde la cabina: afuera y desde arriba no hay punto de fuga del pasillo)
+      { // (en CABINA el avion sos vos: el centro es el de siempre, sobre el horizonte, corrido igual hacia donde va)
+        const pa = enCabina() ? { x: W / 2, y: HOR - 4 } : proj(plane.x, plane.y, PZ);
+        centroViento.x = pa.x; centroViento.y = pa.y - vientoTan * VIENTO.CORRE; }
       for (const s of (islas.enPasillo() && !islas.vistaPasillo() ? [] : streaks)) {
         ctx.globalAlpha = (s.a * 7.31) % 1 < 0.2 ? 0.42 : 0.25;
         // el LARGO del trazo lo trae la linea (9 por omision, lo de siempre). Lo estira quien la
@@ -8022,11 +8050,13 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // el mundo desde afuera. Desde la CABINA no: el punto de fuga del aire que te pasa esta
         // donde apunta el morro, bastante mas abajo del horizonte, y con las lineas naciendo
         // arriba parecian venir de atras del riel del canopy en vez de barrerte el vidrio.
-        const cy = HOR - 4 + (s.dy || 0);
-        const x1 = W / 2 + Math.cos(s.a) * s.r, y1 = cy + Math.sin(s.a) * s.r * FUGA_Y;
-        const x2 = W / 2 + Math.cos(s.a) * (s.r + L), y2 = cy + Math.sin(s.a) * (s.r + L) * FUGA_Y;
+        // (desde afuera, 23/11: el centro es EL AVION, corrido hacia donde va — VIENTO.CORRE)
+        const cxA = s.dy !== undefined ? W / 2 : centroViento.x;
+        const cy = s.dy !== undefined ? HOR - 4 + s.dy : centroViento.y;
+        const x1 = cxA + Math.cos(s.a) * s.r, y1 = cy + Math.sin(s.a) * s.r * FUGA_Y;
+        const x2 = cxA + Math.cos(s.a) * (s.r + L), y2 = cy + Math.sin(s.a) * (s.r + L) * FUGA_Y;
         ctx.strokeStyle = P.foam;
-        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x1, y1 + vientoY(x1, cxA)); ctx.lineTo(x2, y2 + vientoY(x2, cxA)); ctx.stroke();
       }
       ctx.globalAlpha = 1;
 

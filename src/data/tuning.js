@@ -2680,6 +2680,12 @@ export const FRENTE = { VISTA: 4200, BASE: 190, TOPE: 700, NIEBLA_M: 420, NIEBLA
 // SUAVE · MANTENER: sostiene solo mientras se aprieta LT. Sin sosten, cae despacio (VERT_SOSTEN.CAIDA).
 export const VERT_MODOS = ['gas', 'fija', 'planeo', 'planeo_m'];
 export const VERT_LATERAL = { ACEL: 115, FRENO: 4.5 };
+// EL STICK ARRIBA/ABAJO CON ARRANQUE (23/11, el autor: "la velocidad de subida y bajada es demasiado rapida, reducir a la
+// mitad, darle arranque: arranca lento y luego aumenta"): en ESTABLE y SUAVE la vertical ya no usa VERT_LATERAL.ACEL
+// entero desde el primer cuadro. La aceleracion va de ACEL0 a ACEL1 en RAMPA s de stick mantenido, y la velocidad se
+// topea en TOPE (fraccion del tope de siempre: 18 m/s subiendo, 20 bajando, mas arriba del carril). POSE_DEMORA y
+// POSE_RAMPA: la trompa del dibujo acompaña ese arranque (core/physics.js pitchTarget).
+export const VERT_STICK = { ACEL0: 6, ACEL1: 45, RAMPA: 0.8, TOPE: 0.5, POSE_DEMORA: 0.12, POSE_RAMPA: 0.85 };
 //   LLENA_S  segundos de LT para llenar la flechita · DURA_S  lo que dura llena hasta vaciarse sola
 //   CAIDA    m/s de caida sin sosten · DEMORA  s para llegar a esa caida (no se desploma: se va asentando)
 export const VERT_SOSTEN = { LLENA_S: 0.45, DURA_S: 6, CAIDA: 2.5, DEMORA: 0.8 };

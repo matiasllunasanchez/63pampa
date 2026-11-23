@@ -61,7 +61,7 @@ function nuevaBandada(b) {
   for (let i = 0; i < b.n; i++) {
     if (enV) { const lado = i % 2 ? 1 : -1, fila = (i + 1) >> 1; b.dx[i] = -dir * fila * sep; b.dy[i] = lado * fila * sep * 0.45; }
     else { b.dx[i] = rnd(-4, 4) * sep; b.dy[i] = rnd(-2, 2) * sep * 0.6; }
-    b.ph[i] = Math.random() * 6.28;
+    b.ph[i] = Math.random() * 1.2;   // (la bandada aletea casi a la par: desfasados al azar titilaban como murcielagos)
   }
 }
 
@@ -176,7 +176,9 @@ export function drawVidaDia(capa) {
     ctx.fillStyle = b.esc > 1 ? '#20262c' : (sk.skyMid ? mezclaOsc(sk.skyMid) : '#3a4048');
     for (let i = 0; i < b.n; i++) {
       // EL ALETEO en tres cuadros: alas arriba (una V), extendidas (una raya), abajo (una A chata)
-      const a = Math.sin(run.t * b.ale * 6.28 + b.ph[i]);
+      // …y PLANEAN (V.PAJAROS.planeo del tiempo): unos aletazos y las alas quietas, extendidas
+      const planea = Math.sin(run.t * 0.55 + b.ph[i] * 0.5 + b.ale) < V.PAJAROS.planeo * 2 - 1;
+      const a = planea ? 0 : Math.sin(run.t * b.ale * 6.28 + b.ph[i]);
       const x = Math.round(bx + b.dx[i]), y = Math.round(b.y + b.dy[i] + Math.sin(run.t * 1.3 + b.ph[i]) * 0.8);
       const e = b.esc, alaY = a > 0.35 ? -e : a < -0.35 ? e * 0.5 : 0;
       ctx.fillRect(x, y, e, e);                                  // el cuerpo

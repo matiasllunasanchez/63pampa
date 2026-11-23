@@ -43,9 +43,10 @@ import { PORT_H, AIR_START_Y } from '../data/runways.js';
 
 export const CTRL_DIRECT = 0, CTRL_BANK = 1, CTRL_N = 2;
 
-// el default del GAS MODO: en la app, ESTABLE (el playtest: "el gas es demasiado molesto"); en las pruebas (sin preload de Electron) y en Node, la
+// el default del GAS MODO: en la app, SUAVE · MANTENER (23/11, el autor jugandolo: "dejar por defecto esta configuracion";
+// antes ESTABLE, por el playtest: "el gas es demasiado molesto"); en las pruebas (sin preload de Electron) y en Node, la
 // vertical vieja ('gas'), que es la que los pilotos automaticos de los fixtures saben volar
-const VERT_DEF = typeof window !== 'undefined' && window.RASANTE_APP ? 'fija' : 'gas';
+const VERT_DEF = typeof window !== 'undefined' && window.RASANTE_APP ? 'planeo_m' : 'gas';
 export const cfg = {
   // AGUA EN AUTO (SPEC_AGUA_OLAS F5): el estilo del mar lo elige el CIELO (WATER_AUTO en
   // data/palette.js). Es el default porque en campaña la mision ya decide el cielo, y con el agua
