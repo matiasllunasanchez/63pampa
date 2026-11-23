@@ -50,7 +50,7 @@ const TECLAS = [
   { t: '8', c: 14, f: 1, ac: 'Secund' }, { t: '4', c: 13, f: 2, ac: 'Brake' }, { t: '6', c: 15, f: 2, ac: 'Chancha' }, { t: '2', c: 14, f: 3, ac: 'Cam' },
 ];
 // el color de cada familia de accion (vuelo, armas, el resto), igual en el teclado y en su leyenda
-const FAMILIA = { Fly: 0, Gas: 0, Dive: 0, Mant: 0, Brake: 0, Roll: 0, Pan: 0, Boost: 0, Gun: 1, Msl: 1, MiraB: 1, TiraB: 1, Secund: 1, Chapitas: 1 };
+const FAMILIA = { Fly: 0, Gas: 0, Dive: 0, Direccion: 0, Mant: 0, Brake: 0, Roll: 0, Pan: 0, Boost: 0, Gun: 1, Msl: 1, MiraB: 1, TiraB: 1, Secund: 1, Chapitas: 1 };
 const COLORES = ['#e8a33d', '#ff6a5a', '#6fe3ff'];
 const colorDe = ac => COLORES[FAMILIA[ac] ?? 2];
 
@@ -238,7 +238,8 @@ const MI = { s: 0.095, y: 37 };   // escala del PNG en la lamina (320x180) y su 
 const PUNTAS = [
   { px: 122, py: 72, al: 'izq', ac: ['Mant'] },                       // LT: mantener la altura (22/11)
   { px: 53, py: 163, al: 'izq', ac: ['Msl'] },                        // LB
-  { px: 68, py: 374, al: 'izq', ac: ['Fly', 'Gas', 'Dive'], dy: -8.8 },   // stick izquierdo
+  // (23/11, el autor: "reduzcamos el ESQUIVAR y todo el resto solo por DIRECCION DE VUELO"): un renglon
+  { px: 68, py: 374, al: 'izq', ac: ['Direccion'], dy: 0 },   // stick izquierdo
   { px: 25, py: 446, al: 'izq', ac: ['Secund'] },                     // cruceta ▲
   { px: 25, py: 485, al: 'izq', ac: [], dy: 0.6 },                    // cruceta ◄ (sin uso)
   { px: 527, py: 45, al: 'arr', ac: [] },                             // BACK (sin uso)
@@ -251,7 +252,7 @@ const PUNTAS = [
   { px: 1186, py: 415, al: 'der', ac: ['Gun'] },                      // A
   { px: 492, py: 668, al: 'izq', ac: ['Cam'] },                       // cruceta ▼
   { px: 545, py: 625, al: 'der', ac: ['Chancha'], dx: -1.8, dy: 4.6 },          // cruceta ►
-  { px: 776, py: 680, al: 'der', ac: ['Roll', 'MiraB'], r3: true, dy: -14 },   // stick derecho
+  { px: 776, py: 680, al: 'der', ac: ['Roll', 'Brake', 'MiraB'], r3: true, flechas: true, dy: -19 },   // stick derecho
 ];
 const FUENTE_P = 3.8, RENGLON = 4.4;
 
@@ -262,13 +263,16 @@ function placa(txt, x, y, al) {
 
 // LAS FLECHITAS DEL STICK DERECHO (23/11, el autor: "rolar tiene izquierda y derecha, trayecto de bomba flechita hacia
 // abajo"): en la lamina, la direccion del stick antes de la accion
-const FLECHA_PAD = { Roll: '◄ ► ', MiraB: '▼ ' };
+// (y el ▲: EL FRENO, con LT — 23/11, el autor: "si llamas hacia arriba tiene que estar dentro del mismo bloque donde
+// estan todos los sentidos y el R3")
+const FLECHA_PAD = { Roll: '◄ ► ', Brake: '▲ ', MiraB: '▼ ' };
+const TXT_PAD = { Brake: 'mandoFrenoLT' };
 function dibujarPadPng() {
   const s = MI.s, w = 1280 * s, ox = (W - w) / 2, oy = MI.y;
   ctx.drawImage(IMG_MANDO, ox, oy, w, 720 * s);
   for (const p of PUNTAS) {
     const x = ox + p.px * s, y = oy + p.py * s;
-    const lineas = p.ac.map(ac => [(p.r3 ? FLECHA_PAD[ac] || '' : '') + T('ctrl' + ac), colorDe(ac)]);
+    const lineas = p.ac.map(ac => [(p.flechas ? FLECHA_PAD[ac] || '' : '') + T(p.flechas && TXT_PAD[ac] || 'ctrl' + ac), colorDe(ac)]);
     if (p.r3) lineas.push([T('mandoR3'), colorDe('TiraB')]);
     if (!lineas.length) lineas.push([T('mandoSinUso'), P.dim]);
     const al = p.al === 'izq' ? 'right' : p.al === 'der' ? 'left' : 'center';
