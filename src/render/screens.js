@@ -841,8 +841,13 @@ function pantallaVieja(t, sinRadar = false) {
   }
   // EN LINEA, titilando
   if ((t % 1.2) < 0.8) {
-    ctx.fillStyle = `rgba(${V}, 0.6)`; ctx.fillRect(W - 50, 17, 3, 3);
-    ctx.textAlign = 'left'; ctx.fillText(T('tarj_linea'), W - 45, 20);
+    // (23/11, el autor: "el EN LINEA esta pisado con el borde"): alineado a la DERECHA, adentro de la escuadra de arriba
+    // (que termina en W - 13 + 7 de alto): el texto termina 8 px antes y el cuadradito va pegado a su izquierda
+    ctx.textAlign = 'right'; ctx.fillStyle = `rgba(${V}, 0.6)`; ctx.font = 'bold 5px monospace';
+    const xl = W - 22, wl = ctx.measureText(T('tarj_linea')).width;
+    ctx.fillText(T('tarj_linea'), xl, 23);
+    ctx.fillRect(xl - wl - 5, 20, 3, 3);
+    ctx.textAlign = 'left';
   }
   // el tiron: cada ~3,7 s, 0,09 s
   const ciclo = t % 3.7;
@@ -863,18 +868,21 @@ const TARJ = { x: 18, cap: 21, titulo: 30, tituloRot: 38, renglon: 20, wrap: 25,
 // renglon —el avion, el misil, el buque, el mapa—, a la derecha del texto. SE DIBUJA MIENTRAS SE TIPEA: una barrida de
 // izquierda a derecha con un borde mas brillante (el haz), titila apenas como la letra, lleva las lineas de barrido
 // del monitor encima, cuatro escuadras chicas alrededor y el rotulo abajo.
-const LAM = { x: 186, y: 64, w: 120, h: 67.5, src: '../assets/libro/' };   // (la pantalla de la tarjeta es de 320 x 180)
+// (23/11, el autor: "centrame el contenido… el cuadrado sobresale de la linea roja… todo alineado, centrado y con espaciados
+// uniformes"): la lamina se arma contra el MARGEN DERECHO de la tarjeta, el mismo que el izquierdo (TARJ.x, donde termina la
+// linea roja): sus escuadras (3 px afuera) terminan justo ahi. Arriba arranca a la altura de la primera linea del texto.
+const LAM_ESC = 3, LAM = { w: 106, h: 59.6, src: '../assets/libro/' };   // (la pantalla de la tarjeta es de 320 x 180)
 const LAM_IMG = {};
 function laminaImg(n) {
   let im = LAM_IMG[n];
   if (!im) { im = LAM_IMG[n] = new Image(); im.src = LAM.src + n + '.png'; }
   return im.complete && im.naturalWidth ? im : null;
 }
-function drawLamina(ln, d) {
+function drawLamina(ln, d, yTop) {
   const im = laminaImg(ln.lamina);
   const largo = Math.max(1, String(ln.es || '').length);
   const k = Math.max(0, Math.min(1, d.typed / (largo * 0.55)));   // termina de dibujarse antes que el texto
-  const { x, y, w, h } = LAM, V = VIEJA.verde;
+  const { w, h } = LAM, x = W - TARJ.x - LAM_ESC - w, y = yTop, V = VIEJA.verde;
   ctx.save();
   // las escuadras de la lamina
   ctx.strokeStyle = `rgba(${V}, ${0.25 + 0.3 * k})`; ctx.lineWidth = 0.6;
@@ -958,7 +966,7 @@ function drawTarjeta(w, d, sc, ln) {
     for (let y = yText - 8; y < yFin + 3; y += 1) ctx.fillRect(TARJ.x - 2, y, W - TARJ.x * 2 + 4, 1 / 3);
     ctx.globalAlpha = 1;
   }
-  if (ln && ln.lamina) drawLamina(ln, d);
+  if (ln && ln.lamina) drawLamina(ln, d, yText - 6);
   const last = d.si + 1 >= d.seq.length && d.li + 1 >= ((sc.lineas || []).length);
   // LOS CONTROLES, VERDES Y ADENTRO DE LAS ESCUADRAS (autor, 16/10): la caja es el recuadro que
   // marcan las cuatro esquinas de pantallaVieja, y el verde es el del fosforo

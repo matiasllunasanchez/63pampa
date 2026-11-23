@@ -160,54 +160,82 @@ export function drawChancha() {
 // EL NARANJA DE LA MANGUERA: el de las mangueras de reabastecimiento, que se pintan para que el que
 // recibe las vea contra el cielo. Con el gris oscuro de antes (una cadena de puntos de 1 px) la
 // manguera se perdia contra el mar. El oscuro va de sombra, abajo a la derecha: le da cuerpo de tubo.
-const MANG = '#f08a2c', MANG_SOMBRA = '#7a3814', MANG_MARCA = '#f4efe2';
+const MANG = '#f08a2c', MANG_SOMBRA = '#7a3814', MANG_MARCA = '#f4efe2', MANG_GLOBO = '#ffb35c';
 
 /** La manguera, de la boca del pod `o` a la canasta `b` (los dos en pantalla). Engorda hacia la
  *  canasta, que esta mas cerca de la camara (CH_Z - CH_HOSE_Z contra CH_Z): de grosor parejo se ve
- *  como un hilo pegado al cielo y no como un tubo que viene hacia vos. */
-function manguera(o, b, k) {
+ *  como un hilo pegado al cielo y no como un tubo que viene hacia vos.
+ *  (23/11, el autor: "hay mucha calidad diferente de resolucion ahi, mejora la manguera"): era una fila de cuadrados de
+ *  la grilla de diseño (`px`, 3 px de pantalla cada uno) al lado del avion en HD. Ahora es un TRAZO de canvas —que llega
+ *  al pixel de pantalla—: la curva que cuelga, en tramos que engordan hacia la canasta, con filo oscuro, el naranja, un
+ *  brillo arriba y las fajas blancas de la punta. */
+function manguera(o, b, k, flujo = null) {
   const kb = b.k;                                          // la escala a la profundidad de la canasta
   const cuelga = Math.abs(b.y - o.y) * 0.25;
-  const n = Math.max(12, Math.ceil(Math.hypot(b.x - o.x, b.y - o.y)));   // un punto por pixel: sin huecos
-  // dos pasadas: primero la sombra corrida un pixel abajo y a la derecha, despues el naranja encima.
-  // Con la sombra pegada a cada punto, en el tramo casi vertical cada punto tapaba la del anterior y
-  // la manguera salia rayada como una cadena.
-  for (const pasada of [0, 1]) {
-    for (let i = 0; i <= n; i++) {
-      const u = i / n;
-      const hx = o.x + (b.x - o.x) * u, hy = o.y + (b.y - o.y) * u + Math.sin(u * Math.PI) * cuelga;
-      const t = Math.max(2, (k + (kb - k) * u) * 0.26);
-      if (!pasada) { px(hx - t / 2 + 1, hy - t / 2 + 1, t, t, MANG_SOMBRA); continue; }
-      // LAS MARCAS BLANCAS de la punta: las fajas que tiene la manguera real cerca de la canasta
-      const marca = (u > 0.78 && u < 0.82) || (u > 0.87 && u < 0.91);
-      px(hx - t / 2, hy - t / 2, t, t, marca ? MANG_MARCA : MANG);
-    }
-  }
-}
-
-/** LA CANASTA vista de atras, que es como la ve el que va a cargar: el ARO abierto, cuatro rayos y el
- *  acople en el medio. Es lo que hay que ir a buscar, asi que va MAS claro que el resto del avion
- *  —el unico punto de toda la pantalla que importa mientras dura la cita— y con un filo oscuro para
- *  que no se pierda contra un cielo claro. Enganchado, el aro pasa al naranja de la caja. */
-function canasta(b, conn, alfa) {
-  const R = Math.max(2, b.k * 0.8), g = Math.max(1, R * 0.24);
-  const col = conn ? P.accent : P.foam;
-  ctx.globalAlpha = alfa;
-  const aro = (r, grueso, color) => {
-    const n = Math.max(12, Math.ceil(r * 6));
-    for (let i = 0; i < n; i++) {
-      const a = i / n * Math.PI * 2;
-      px(b.x + Math.cos(a) * r - grueso / 2, b.y + Math.sin(a) * r - grueso / 2, grueso, grueso, color);
+  const N = 24, pt = u => ({ x: o.x + (b.x - o.x) * u, y: o.y + (b.y - o.y) * u + Math.sin(u * Math.PI) * cuelga });
+  const ancho = u => Math.max(0.8, (k + (kb - k) * u) * 0.2);
+  ctx.save(); ctx.lineCap = 'round';
+  const tramos = (col, extra, dy = 0, dx = 0, filtro) => {
+    ctx.strokeStyle = col;
+    for (let i = 0; i < N; i++) {
+      const u0 = i / N, u1 = (i + 1) / N, um = (u0 + u1) / 2;
+      if (filtro && !filtro(um)) continue;
+      const a = pt(u0), c = pt(u1), w = ancho(um);
+      ctx.lineWidth = Math.max(0.35, w + extra(w));
+      ctx.beginPath(); ctx.moveTo(a.x + dx * w, a.y + dy * w); ctx.lineTo(c.x + dx * w, c.y + dy * w); ctx.stroke();
     }
   };
-  aro(R, g + 2, '#1e2420');                                // el filo
-  for (let i = 0; i < 4; i++) {                            // los rayos de la canasta
-    const a = Math.PI / 4 + i * Math.PI / 2;
-    for (let r = R * 0.3; r < R; r += 1) px(b.x + Math.cos(a) * r - 0.5, b.y + Math.sin(a) * r - 0.5, 1, 1, P.dim);
+  tramos(MANG_SOMBRA, w => w * 0.45 + 0.35);                              // el filo oscuro
+  tramos(MANG, () => 0);                                                  // el tubo
+  tramos('#ffc58a', w => -w * 0.7, -0.22, -0.12);                         // el brillo, arriba a la izquierda
+  // LAS MARCAS BLANCAS de la punta: las fajas que tiene la manguera real cerca de la canasta
+  tramos(MANG_MARCA, () => 0, 0, 0, u => (u > 0.78 && u < 0.82) || (u > 0.87 && u < 0.91));
+  // LOS GLOBITOS DE NAFTA: bultos que bajan del pod a la canasta mientras pasa combustible. La manguera se infla donde
+  // pasa cada uno (filo oscuro, naranja claro y un brillo), y achican apenas al entrar y al llegar para no aparecer de golpe.
+  if (flujo !== null) {
+    const NG = 4, VEL = 0.85;                                             // globitos en la manguera; manguera por segundo
+    for (let i = 0; i < NG; i++) {
+      const u = (flujo * VEL + i / NG) % 1;
+      const a = pt(u), w = ancho(u), borde = Math.min(1, u / 0.08, (1 - u) / 0.08);
+      const r = Math.max(0.6, w * (0.95 + 0.25 * Math.sin(flujo * 9 + i)) * borde);
+      const q0 = pt(Math.max(0, u - 0.02)), q1 = pt(Math.min(1, u + 0.02)), ang = Math.atan2(q1.y - q0.y, q1.x - q0.x);   // estirado a lo largo del tubo
+      ctx.fillStyle = MANG_SOMBRA; ctx.beginPath(); ctx.ellipse(a.x, a.y, r * 1.5 + 0.4, r + 0.4, ang, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = MANG_GLOBO; ctx.beginPath(); ctx.ellipse(a.x, a.y, r * 1.5, r, ang, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff3d6'; ctx.beginPath(); ctx.arc(a.x - r * 0.45, a.y - r * 0.35, Math.max(0.3, r * 0.35), 0, Math.PI * 2); ctx.fill();
+    }
   }
-  aro(R, g, col);
-  const ac = Math.max(2, R * 0.55);                        // el acople, donde entra la sonda
-  px(b.x - ac / 2, b.y - ac / 2, ac, ac, '#1e2420');
-  px(b.x - ac / 4, b.y - ac / 4, ac / 2, ac / 2, MANG);
-  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+/** LA CANASTA vista de atras, que es como la ve el que va a cargar: el ARO abierto, los rayos y el
+ *  acople en el medio. Es lo que hay que ir a buscar, asi que va MAS claro que el resto del avion
+ *  —el unico punto de toda la pantalla que importa mientras dura la cita— y con un filo oscuro para
+ *  que no se pierda contra un cielo claro. Enganchado, el aro pasa al naranja de la caja.
+ *  (23/11: con trazos finos, como la manguera: la tela translucida entre los rayos, ocho rayos, el aro con su filo y el
+ *  acople redondo — antes, aros de cuadraditos que se veian en otra resolucion que el avion) */
+function canasta(b, conn, alfa) {
+  const R = Math.max(2, b.k * 0.8), g = Math.max(0.6, R * 0.16);
+  const col = conn ? P.accent : P.foam;
+  ctx.save();
+  ctx.globalAlpha = alfa;
+  const circ = r => { ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI * 2); };
+  // la tela de la canasta, translucida
+  ctx.globalAlpha = alfa * 0.45; ctx.fillStyle = '#b9b2a2'; circ(R); ctx.fill();
+  ctx.globalAlpha = alfa;
+  // los rayos (ocho), del acople al aro
+  ctx.strokeStyle = '#59646a'; ctx.lineWidth = Math.max(0.35, R * 0.05);
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = Math.PI / 8 + i * Math.PI / 4;
+    ctx.moveTo(b.x + Math.cos(a) * R * 0.3, b.y + Math.sin(a) * R * 0.3); ctx.lineTo(b.x + Math.cos(a) * R, b.y + Math.sin(a) * R);
+  }
+  ctx.stroke();
+  // el aro: filo oscuro y el color encima
+  ctx.strokeStyle = '#1e2420'; ctx.lineWidth = g + 0.8; circ(R); ctx.stroke();
+  ctx.strokeStyle = col; ctx.lineWidth = g; circ(R); ctx.stroke();
+  // el acople, donde entra la sonda
+  const ac = Math.max(0.8, R * 0.28);
+  ctx.fillStyle = '#1e2420'; circ(ac); ctx.fill();
+  ctx.fillStyle = MANG; circ(ac * 0.55); ctx.fill();
+  ctx.restore();
 }
