@@ -256,6 +256,7 @@ import { canRelevo, pilotIdx, formationSlots, puestoFormacion, naftaCompanero, a
 import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 import { sembrarAzar, hashTexto } from './core/azar.js';
 import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
+import { apodoAvion } from './data/apodos_aviones.js';
 
   (() => {
     'use strict';
@@ -8524,7 +8525,7 @@ import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
         // fundido y la RADIO, y la primera version apagaba el bloque entero — medido, el avion se
         // quedaba volando a pleno color sin un solo cuadro de fundido.
         const perdidaUI = blancoSys.perdida();
-        ctx.save(); ctx.scale(U, U); ctx.globalAlpha = hudEntra; if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), avionNombre: (PLANES[selPlane] || {}).name, sinCinta: enCabina() || (!!libro && !!libro.tut && !(dlgPausa && lecFoco && lecFoco.foco.includes('ruta')) && !blancoSys.asomado()), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
+        ctx.save(); ctx.scale(U, U); ctx.globalAlpha = hudEntra; if (!perdidaUI) hud.drawHUD({ best, gameMode, curLevel, pilotoAvion: pilotoAvion(), avionNombre: apodoAvion(PLANES[selPlane]), sinCinta: enCabina() || (!!libro && !!libro.tut && !(dlgPausa && lecFoco && lecFoco.foco.includes('ruta')) && !blancoSys.asomado()), objectiveDist, objectiveShip: nombreObjetivo(), goalKind: objectiveKind,
         radarAlt: fases.techoRadar(RADAR_ALT), sinRadar: cfg.radar === 'off' || islas.sinRadar(), altFija: islas.altFija(), brujula: islas.brujula(), temp: islas.temperatura() || frio.estado() || (islas.enPasillo() ? null : { c: frio.tempPasillo(cfg, plane.y), hielo: 0, canon: 0 }),   // (21/11: en la pista tambien, "debe estar siempre")
         // LA SUELTA: la banda de altura de soltar, para el altimetro (solo mientras hay buque vivo)
         sueltaAlt: S.state === 'play' && sueltaHud && sueltaHud.enAtaque ? BL_ALT_IDEAL : null,

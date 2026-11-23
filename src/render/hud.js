@@ -2275,10 +2275,10 @@ function drawPiloto(charlaVoz, delAvion, avionNombre) {
   const ape = apellidoDe(nombre), avion = avionNombre || '';
   ctx.font = '3.6px monospace'; ctx.textAlign = 'left';
   if (avion) {
-    const wT = Math.min(PILOTO.lado + 8, ctx.measureText(avion).width), wA = wT + 13, xA = Math.round(x + PILOTO.lado / 2 - wA / 2);
+    // (23/11, despues: "quitemos el icono ese de avion"): solo el nombre del avion
+    const wT = Math.min(PILOTO.lado + 8, ctx.measureText(avion).width), wA = wT + 4, xA = Math.round(x + PILOTO.lado / 2 - wA / 2);
     plate(xA, y - 8, Math.round(wA), 7);
-    iconoEn(xA + 4.5, y - 4.5, 'avion', P.accent);
-    ctx.fillStyle = P.dim; ctx.fillText(avion, xA + 10.5, y - 3, PILOTO.lado + 8);
+    ctx.fillStyle = P.dim; ctx.fillText(avion, xA + 2, y - 3, PILOTO.lado + 8);
   }
   ctx.font = F_ROT; ctx.textAlign = 'center'; ctx.fillStyle = P.foam;
   ctx.fillText(ape, x + PILOTO.lado / 2, y + PILOTO.alto - 2, PILOTO.lado - 2);
