@@ -505,33 +505,49 @@ const tarjeta = (id, titulo, lineas, rotulo) => ({
 const dato = m => m.fecha + ' · ' + m.hora + ' · ' + m.despegue.desde;
 
 export const LIBRO_SCENES = {
-  R1_CONTEXTO: tarjeta('R1_CONTEXTO', r1.name, [dato(r1), 'El Super Étendard era de la Armada y el único avión argentino que podía lanzar el Exocet: un misil antibuque que se suelta a 20 o 30 millas y llega solo, rozando el agua.', 'Argentina tenía cinco Exocet y no iban a llegar más. Cada avión lleva uno: si uno falla, queda el otro.', 'Un Neptune de la Armada encontró a la flota esa mañana. Dos Super Étendard despegaron de Río Grande a las 09:45 y cargaron nafta de un Hércules en la ida.', 'Al ras del mar, sin radar, hasta la posición que pasó el Neptune. Para apuntar hay que subir y prender el radar: una sola vez.']),
+  // EL CONTEXTO DE CADA SALIDA (23/11, el autor: "que cada mision te cuente EL CONTEXTO DONDE SUCEDE HOY, LO QUE SUCEDIO
+  // ANTES Y CUAL ES EL PLAN A EJECUTAR… no hables a una sola persona, que sea CONTAR CUAL ES EL PLAN como si estuviesen
+  // todos los pilotos reunidos"; "la mision jugable es el plan ejecutado"): HOY · ANTES · el avion · EL PLAN
+  R1_CONTEXTO: tarjeta('R1_CONTEXTO', r1.name, [dato(r1),
+    'HOY. Río Grande, Tierra del Fuego. Un Neptune de la Armada encontró esta mañana a la flota británica, al este de las islas.',
+    'ANTES. El 2 de mayo un submarino británico hundió al crucero General Belgrano. La Argentina tiene cinco Exocet y no van a llegar más.',
+    'El Super Étendard es de la Armada y el único avión argentino que puede lanzar el Exocet: un misil antibuque que se suelta a 20 o 30 millas y llega solo, rozando el agua.',
+    'EL PLAN. Salen dos Super Étendard, con un Exocet cada uno. Cargan nafta de un Hércules en la ida y siguen al ras, sin radar, hasta la posición que pasó el Neptune.',
+    'Ahí suben, prenden el radar una sola vez, lanzan a 20 o 30 millas y vuelven al ras a Río Grande. Si un misil falla, queda el otro.']),
   R1_LO_QUE_PASO: tarjeta('R1_LO_QUE_PASO', r1.name, ['4 de mayo de 1982. A las 11:04 los dos Super Étendard lanzaron sus Exocet desde 20 a 30 millas, y volvieron al ras a Río Grande.', 'Uno alcanzó al HMS Sheffield. Murieron 20 tripulantes. Se hundió seis días después, mientras lo remolcaban.'], 'rot_lqp'),
-  R2_CONTEXTO: tarjeta('R2_CONTEXTO', r2.name, [dato(r2), 'El A-4B Skyhawk de la Fuerza Aérea no tiene misiles antibuque: ataca con una bomba, y para soltarla hay que pasar por encima del buque, adentro de su antiaérea.', 'En mayo las espoletas fallaban seguido: muchas bombas atravesaban el buque sin estallar.', 'Dos buques británicos bombardeaban las posiciones de Puerto Argentino. A las 12:20 salió la escuadrilla CUÑA contra la Brilliant; a las 12:30, ORO contra la Glasgow.', 'La Brilliant tiene Sea Wolf. Último día de niebla.']),
+  R2_CONTEXTO: tarjeta('R2_CONTEXTO', r2.name, [dato(r2),
+    'HOY. Dos buques británicos, la Glasgow y la Brilliant, bombardean desde el mar las posiciones de Puerto Argentino. Es el último día de niebla.',
+    'ANTES. En mayo las espoletas fallan seguido: muchas bombas atraviesan el buque sin estallar.',
+    'El A-4B Skyhawk de la Fuerza Aérea no tiene misiles antibuque: ataca con una bomba, y para soltarla tiene que pasar por encima del buque, adentro de su antiaérea.',
+    'EL PLAN. Dos escuadrillas de A-4B desde Río Gallegos: CUÑA sale a las 12:20 contra la Brilliant y ORO a las 12:30 contra la Glasgow.',
+    'Al ras sobre el agua, una pasada por encima de cada buque, bombas y afuera. La Brilliant tiene Sea Wolf: no quedarse cerca.']),
   R2_LO_QUE_PASO: tarjeta('R2_LO_QUE_PASO', r2.name, ['12 de mayo de 1982. De ocho A-4B volvieron cuatro: los Sea Wolf de la Brilliant bajaron a tres de CUÑA.', 'Una bomba de ORO atravesó a la Glasgow de lado a lado y estalló en el agua: el destructor quedó fuera de combate el resto de la guerra.', 'Al volver, uno de ORO cruzó Pradera del Ganso y lo derribó la antiaérea propia.'], 'rot_lqp'),
-  R3_CONTEXTO: tarjeta('R3_CONTEXTO', r3.name, [dato(r3), 'El A-4Q era el Skyhawk de la Armada, hecho para el portaaviones. Después del Belgrano la flota se quedó en el continente y volaron desde Río Grande.', 'Sus bombas tienen cola retardadora: frenan en el aire y dan tiempo a escapar de la explosión, así que se pueden soltar más bajo.', '21 de mayo, el día del desembarco en San Carlos. La primera sección de la Tercera Escuadrilla despega de Río Grande a las 14:10, con cuatro bombas con cola retardadora cada uno.', 'No hay Hércules: la nafta es la que se lleva. Hay mal tiempo en la boca del estrecho.']),
+  R3_CONTEXTO: tarjeta('R3_CONTEXTO', r3.name, [dato(r3),
+    'HOY. 21 de mayo: los británicos desembarcan en San Carlos, y sus fragatas cubren el estrecho.',
+    'ANTES. Después del Belgrano la flota argentina se quedó en el continente: los A-4Q de la Armada, hechos para el portaaviones, vuelan desde Río Grande.',
+    'Sus bombas tienen cola retardadora: frenan en el aire y dan tiempo a escapar de la explosión, así que se pueden soltar más bajo.',
+    'EL PLAN. La primera sección de la Tercera Escuadrilla despega a las 14:10: tres A-4Q con cuatro bombas cada uno.',
+    'No hay Hércules: la nafta es la que se lleva. Entrar al ras por la boca del estrecho, con mal tiempo, buscar una fragata y soltar bajo.']),
   R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', r3.name, ['21 de mayo de 1982. Los tres A-4Q le pegaron a la HMS Ardent; la segunda sección, ocho minutos después, también. La fragata se hundió.', 'A la salida, dos Sea Harrier derribaron a los tres: dos pilotos se eyectaron y sobrevivieron; el tercero no volvió.'], 'rot_lqp'),
-  R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4), 'El Dagger era la versión israelí del Mirage 5, de la Fuerza Aérea: más rápido que el Skyhawk, pero sin sonda para cargar nafta en vuelo.', 'Por eso volaba con tres tanques y dos bombas de 250 kg: el alcance justo para ir, atacar y volver.', '8 de junio. Dos escuadrillas de Dagger, PERRO y GATO, salen de Río Grande. Uno vuelve porque un pájaro le rompe el parabrisas: quedan cinco.', 'El Dagger no carga nafta en vuelo: lo que llevás es lo que hay.']),
+  R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4),
+    'HOY. 8 de junio. Los británicos siguen en el estrecho de San Carlos y mueven tropas hacia Bahía Agradable.',
+    'ANTES. Desde el desembarco del 21 de mayo, las fragatas británicas cuidan el estrecho.',
+    'El Dagger es la versión israelí del Mirage 5, de la Fuerza Aérea: más rápido que el Skyhawk, pero sin sonda para cargar nafta en vuelo.',
+    'EL PLAN. Dos escuadrillas de Dagger, PERRO y GATO, salen de Río Grande con tres tanques y dos bombas de 250 kg cada uno: el alcance justo para ir, atacar y volver.',
+    'No hay carga en vuelo: lo que se lleva es lo que hay. Uno vuelve al rato porque un pájaro le rompe el parabrisas: siguen cinco.']),
   R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', r4.name, ['8 de junio de 1982. Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.', 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.'], 'rot_lqp'),
   // UNA HOJA POR TIPO DE AVION (23/11, el autor: "en la explicacion de la mision del Invincible, explicar los roles de cada
   // tipo de avion y como funciona; una hoja para cada tipo de avion"): el que lanza, el que escolta y la cisterna, cada uno
   // con su lamina y lo que se hace con el en el juego
   R5_CONTEXTO: tarjeta('R5_CONTEXTO', r5.name, [
     [dato(r5), 'mapa_invincible', 'RÍO GRANDE → EL GRUPO DE PORTAAVIONES'],
-    ['Era el último Exocet: de los cinco que llegaron de Francia quedaba uno. Esta vez salía acompañado por cuatro A-4C de la Fuerza Aérea.', 'exocet', 'EXOCET AM39 · EL ÚLTIMO'],
-    // EL SUPER ETENDARD, EN CUATRO HOJAS (23/11, el autor: "llevaba el Exocet, tenia la responsabilidad de encontrar con
-    // su radar la ubicacion del Invincible evitando que el radar enemigo los encuentre; una vez encontrado debe configurar
-    // el lanzamiento de manera correcta y una vez lanzado, huir… con capturas de UI"): las ui_* son capturas del juego
-    // pasadas al fosforo (tools/blender/laminas_ui.py)
-    ['SUPER ÉTENDARD. Llevás el Exocet y tenés que encontrar al Invincible. En la barra de arriba, la zona azul es donde está: al final de la zona ya lo ves. Con el radar lo encontrás ANTES, y cuanto más avanzás, más fácil. Si subís, es mucho más fácil, pero te ven a vos.', 'ui_busca', 'S. ÉTENDARD 1 · BUSCAR CON RADAR'],
-    ['Cuando el radar lo encuentra, aparece sobre el buque su nombre, a cuántos km está y una flecha roja: volá hacia ahí. Si el Sea Dart te detecta, bajá al ras y lanzá cuanto antes.', 'ui_ubicado', 'S. ÉTENDARD 2 · BLANCO UBICADO'],
-    ['Ya cerca del buque, apuntá y soltá como una bomba: se abre el lanzamiento. Apretá las flechas en el orden en que aparecen; así cargás distancia, rumbo y potencia. Bien cargado, el Exocet va solo al buque; si le errás, se pierde en el mar.', 'ui_pulso', 'S. ÉTENDARD 3 · CARGAR EL EXOCET'],
-    ['Lanzado el Exocet, a huir: das la vuelta al ras y volvés. Del misil se encargan los A-4C.', 'supere_exocet', 'S. ÉTENDARD 4 · HUIR'],
-    // EL A-4C, EN DOS (23/11, el autor: "escoltas, debian proteger a toda costa a los Super Etendard y luego al Exocet…
-    // seguir al misil lado a lado la mayor distancia posible… eliminando todo lo que podria colisionar con el")
-    ['A-4C SKYHAWK. La escolta, sin misiles. Hasta el lanzamiento vas detrás de los Super Étendard y los cuidás a toda costa.', 'a4c', 'A-4C 1 · CUIDAR AL QUE LANZA'],
-    ['Cuando sale el Exocet, te pegás al costado del misil y lo acompañás lo más lejos que puedas. Todo lo que se le cruce lo bajás con el cañón: si algo lo toca, cae.', 'ui_escolta', 'A-4C 2 · AL LADO DEL EXOCET'],
-    ['KC-130 HÉRCULES. La cisterna: cuando la nafta llega al rojo, lo llamás y cargás detrás de la canasta. Después, al ras por el sur del grupo de portaaviones.', 'kc130', 'KC-130 HÉRCULES · LA CISTERNA'],
+    ['HOY. 30 de mayo. El portaaviones Invincible navega con su grupo al este de las islas. Desde ahí despegan los Harrier.', 'invincible', 'HMS INVINCIBLE'],
+    ['ANTES. De los cinco Exocet se usaron cuatro: dos contra el Sheffield el 4 de mayo y dos contra el Atlantic Conveyor el 25. Queda uno.', 'exocet', 'EXOCET AM39 · EL ÚLTIMO'],
+    // (las hojas del plan llevan los dibujos de los aviones; la del radar, la barra con la zona donde se lo busca)
+    ['EL PLAN. Despegan juntos dos Super Étendard, uno con el último Exocet, y cuatro A-4C de la Fuerza Aérea. Un Hércules los carga en la ida.', 'kc130', 'KC-130 · LA CARGA EN LA IDA'],
+    ['Los Super Étendard buscan al Invincible con el radar antes de tenerlo a la vista, en la zona donde debería estar. Subir lo encuentra antes, pero los delata.', 'ui_busca', 'LA ZONA DE BÚSQUEDA'],
+    ['Encontrado, lanzan el Exocet a distancia y vuelven al ras a Río Grande.', 'supere_exocet', 'SUPER ÉTENDARD · EL LANZAMIENTO'],
+    ['Los A-4C los custodian hasta el lanzamiento. Después siguen al misil hasta el portaaviones, bajan lo que se le cruce y sueltan sus bombas.', 'a4c', 'A-4C · LA ESCOLTA'],
   ]),
   R6_CONTEXTO: tarjeta('R6_CONTEXTO', r6.name, [dato(r6), PENDIENTE]),
   R6_LO_QUE_PASO: tarjeta('R6_LO_QUE_PASO', r6.name, [PENDIENTE], 'rot_lqp'),

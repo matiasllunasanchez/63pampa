@@ -2127,6 +2127,7 @@ function carasDe(nombre, delAvion) {
 // ONDA EXPANSIVA me daño, los pajaros"). Una lengueta con el texto que SUBE desde atras del canto de la caja, se
 // queda y vuelve a bajar. Los sostenidos (calor, altura) viven mientras dure la causa; los de un golpe, AVISO_T.
 const AVISO_T = 1.8, AVISO_SUBE = 0.18;
+const SEC_FIJA_COL = '#5ab4ff';   // la flechita del secundario cuando esta FIJO
 export const CH_AVISO_VERDE = '#5fd35f';
 const avisos = {};          // id de caja → { txt, col, t (s de vida), hasta (s; Infinity = sostenido), on }
 const avisoReloj = () => performance.now() / 1000;
@@ -3229,7 +3230,7 @@ function drawEstante(h) {
   const r = h.rack, verde = !!(r && h.sueltaYa && titilaSuelta());
   const c = cargaDe(cfg.carga);
   const hayAla = !!(r ? r.ala : c.ala);
-  if (!r && !hayAla && !(run.chapitasMax > 0) && (run.sinBombas || run.soloExocet || !pide(run.msl < (run.mslMax || MSL_MAX)))) return;   // (sin armas, sin estante: 17/10)
+  if (!r && !hayAla && !(run.chapitasMax > 0) && !c.exocet && (run.sinBombas || run.soloExocet || !pide(run.msl < (run.mslMax || MSL_MAX)))) return;   // (sin armas, sin estante: 17/10)
   plate(X_RACK, CUADROS_Y, RACK_W, CUADRO);
   const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1;
   const VACIO = '#2e3c45';
@@ -3237,14 +3238,16 @@ function drawEstante(h) {
   // una flechita naranja afuera, a la izquierda, y su numero en naranja. Fila por fila es el mismo orden
   // que las teclas: arriba los tanques (1), al medio la bomba (2), abajo las chafitas (3).
   // (las chafitas no se eligen: son APOYO — la flecha solo señala tanques o bomba, 18/11)
-  const yElegida = { tanque: CUADROS_Y + 5, bomba: CUADROS_Y + 13 }[run.secundaria];
+  const yElegida = { tanque: CUADROS_Y + 5, bomba: CUADROS_Y + 13, exocet: CUADROS_Y + 13 }[run.secundaria];
+  // FIJO (23/11, el autor: "la flechita cuando esta LOCKEADA en azul"): un solo secundario para elegir
+  const colFlecha = run.secFija ? SEC_FIJA_COL : P.accent;
   const fila = (yy, ico, n, col, mono, colDig) => {
     iconoEn(cx, yy, ico, col, undefined, mono);
     const elegida = yy === yElegida;
-    if (n !== null) digito(xd, yy - 2, n, elegida && n > 0 ? P.accent : colDig || (n > 0 ? P.foam : VACIO));
+    if (n !== null) digito(xd, yy - 2, n, elegida && n > 0 ? colFlecha : colDig || (n > 0 ? P.foam : VACIO));
   };
   if (yElegida !== undefined) {
-    px(X_RACK - 3, yElegida - 2, 1, 5, P.accent); px(X_RACK - 2, yElegida - 1, 1, 3, P.accent); px(X_RACK - 1, yElegida, 1, 1, P.accent);
+    px(X_RACK - 3, yElegida - 2, 1, 5, colFlecha); px(X_RACK - 2, yElegida - 1, 1, 3, colFlecha); px(X_RACK - 1, yElegida, 1, 1, colFlecha);
   }
   // ARRIBA: el par de ala
   const ya = CUADROS_Y + 5, ala = r ? r.ala : c.ala;
@@ -3282,7 +3285,9 @@ function drawEstante(h) {
   } else {
     // las bombas de la tecla de bomba (MSL_MAX, se recargan): cargada blanca con la punta amarilla,
     // sin ninguna la misma silueta en el gris de la placa
-    if (!run.sinBombas && !run.soloExocet) fila(yc, 'bomba', run.msl, run.msl > 0 ? null : VACIO, !(run.msl > 0));
+    // EL EXOCET (23/11): en el centro, con su dibujo; uno, y cero cuando ya salio
+    if (c.exocet && (run.soloExocet || run.secundaria === 'exocet')) { const n = run.exoGastado ? 0 : 1; fila(yc, 'exocet', n, n > 0 ? null : VACIO, !(n > 0)); }
+    else if (!run.sinBombas && !run.soloExocet) fila(yc, 'bomba', run.msl, run.msl > 0 ? null : VACIO, !(run.msl > 0));
   }
   // ABAJO: las chapitas (vacio si el avion no trae)
   // …SEPARADAS: son el ELEMENTO DE APOYO, no un secundario (18/11). Una raya punteada las aparta del estante y van

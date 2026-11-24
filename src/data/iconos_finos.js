@@ -264,8 +264,27 @@ export const ICONOS_FINOS = {
     'oso...osso...osso...osso.....',
     '.o.....oo.....oo.....oo......',
   ],
+  // EL EXOCET (23/11): largo y finito, alas en cruz al medio, aletas de cola, radomo oscuro y la faja roja
+  exocet: [
+    '..ooo........................',
+    '.oFFFo.....ooo...............',
+    '.oFFFFo...oFFFo..............',
+    '.oFFFFFo..oFFFFo.............',
+    '.oFFFFFFoooFFFFFooooooooo....',
+    '..ohhhhhhhhhhhhhhhhEhhhxxoo..',
+    '..oxgggggggggggggggEgggXxxxo.',
+    '..oxgggggggggggggggEgggXxxxxo',
+    '..oxgggggggggggggggEgggxxxxo.',
+    '..ossssssssssssssssEsssxxoo..',
+    '.oFFFFFFoooFFFFFooooooooo....',
+    '.oFFFFFo..oFFFFo.............',
+    '.oFFFFo...oFFFo..............',
+    '.oFFFo.....ooo...............',
+    '..ooo........................',
+  ],
 };
 // los de colores propios (la bomba): letra → color. Las mayusculas son otros materiales.
 export const ICONOS_FINOS_PAL = {
+  exocet: { o: '#1c2a33', h: '#f4f8fa', g: '#d8e0e4', s: '#9fb0b8', x: '#2a3338', X: '#4a565c', E: '#e0442c', F: '#b8c6cc' },
   bomba: { o: '#3a2a14', h: '#fffaf0', g: '#efe3c6', s: '#c4b28e', A: '#f2cf4a', B: '#e0a92e', C: '#a8781c', D: '#f0553a', E: '#d93a22', F: '#9e2414', J: '#fff2a0', K: '#f2cf4a', L: '#c9a020', x: '#0a0e11' },
 };

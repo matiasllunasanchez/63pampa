@@ -1624,17 +1624,29 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // LAS CHAFITAS NO SON SECUNDARIO (18/11, el autor: "arma primaria la metralleta, secundaria las bombas, y elemento
     // de APOYO las chafitas, que se lanzan con su tecla especial"): el estante rota entre tanques y bomba; las chafitas
     // salen siempre con [H] / ◯ (chapitasAccion), se combinan con piruetas y se dibujan aparte en el estante.
-    const SECUNDARIOS = ['tanque', 'bomba'];
+    // EL EXOCET ES UN SECUNDARIO (23/11, el autor: "el arma secundaria esta FIJA en el exocet con el dibujo del exocet y se
+    // lanza igual que la bomba… la mira con la forma de lanzar depende del arma secundaria que tenga seleccionada"): con el
+    // misil colgado entra a la rueda; la MIRA (recta celeste o la caida de la bomba) y lo que hace soltar salen de lo ELEGIDO.
+    // Con el Exocet como UNICA arma esta FIJO (`run.secFija`): la flechita del estante va en azul y la rueda no cambia nada
+    // (los tanques se sueltan igual con su tecla).
+    const SECUNDARIOS = ['tanque', 'bomba', 'exocet'];
+    const exocetCargado = () => !!(cargaDe(cfg.carga) || {}).exocet;
     /** Si el avion TIENE ese secundario ahora (la ruedita saltea los que no). */
     const tieneSecundario = k => (k === 'tanque' ? naftaSys.hayTanque() && !!proximoPilon(run.tanque)
-      : k === 'chafitas' ? run.chapitasMax > 0 && run.chapitas > 0 : true);
+      : k === 'chafitas' ? run.chapitasMax > 0 && run.chapitas > 0
+        : k === 'exocet' ? exocetCargado()
+          : k === 'bomba' ? !run.soloExocet && !run.sinBombas : true);
+    /** ¿Se apunta / suelta el Exocet? (el elegido, y colgado) */
+    const exocetElegido = () => run.secundaria === 'exocet' && exocetCargado();
     function elegirSecundaria(k) {
       if (!k) return;
+      if (run.secFija && k !== run.secundaria) { beep(200, 0.06, 'square', 0.035); return; }   // FIJO: no se cambia
       run.secundaria = k;
       // con lo que tiene suena alto; elegir algo vacio igual queda marcado, pero suena apagado
       beep(tieneSecundario(k) ? 700 : 260, 0.05, 'square', 0.035);
     }
     function secundariaPaso(dir) {
+      if (run.secFija) { beep(200, 0.06, 'square', 0.035); return; }
       const i0 = SECUNDARIOS.indexOf(run.secundaria);
       for (let d = 1; d <= SECUNDARIOS.length; d++) {
         const k = SECUNDARIOS[(i0 + dir * d + SECUNDARIOS.length * 3) % SECUNDARIOS.length];
@@ -3657,7 +3669,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // carga es el misil y un tanque — el arma es el Exocet y nada mas. El tablero no muestra la fila de la bomba.
       run.soloExocet = !!(cargaDe(cfg.carga) || {}).exocet;
       run.exoUbicado = false;   // el blanco del Exocet: lo ubica el ECO del radar (abajo, radarSys.tick)
-      if (run.soloExocet) { run.mslMax = 0; run.msl = 0; }
+      if (run.soloExocet) { run.mslMax = 0; run.msl = 0; run.secundaria = 'exocet'; }
+      else if (run.secundaria === 'exocet') run.secundaria = 'bomba';
       if (suelto() && !run.mslMax && !run.sinBombas && !run.soloExocet) { run.mslMax = 1 + soporteDe(pichon); run.mslCada = 7; }
       if (suelto() && run.sinCanon && pichon.includes('canon')) run.sinCanon = false;
       libretaEnRun();
@@ -5783,12 +5796,15 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // flanco lo detecta su propio update (systems/pasada.js) — este embudo es del pasillo.
       if (S.state === 'pasada') return;
       if (S.state !== 'play' || run.mslCd > 0) return;
-      if (exocetLanzable()) { lanzarExocet(); return; }   // el Exocet no se suelta: se lanza con el PULSO
-      // (EL INVINCIBLE, fuera de la zona: el ultimo Exocet no se tira a la marchanta — avisa y espera)
-      if (zonaLanzamiento() && (cargaDe(cfg.carga) || {}).exocet) { lanzarExocet(); return; }
-      // SIN BLANCO UBICADO (23/11, el autor: "si no se encontro la ubicacion que no te deje lanzarlo y reproduzca un sonido
-      // de error"): con el Exocet colgado la tecla es SOLO del Exocet — no cae a la bomba
-      if (run.soloExocet) { exocetSinBlanco(); return; }
+      // EL EXOCET ELEGIDO (23/11): la tecla es SOLO del Exocet — no cae a la bomba. Con otro secundario elegido, ni lo mira
+      if (exocetElegido()) {
+        if (exocetLanzable()) { lanzarExocet(); return; }   // el Exocet no se suelta: se lanza con el PULSO
+        // (EL INVINCIBLE, fuera de la zona: el ultimo Exocet no se tira a la marchanta — avisa y espera)
+        if (zonaLanzamiento()) { lanzarExocet(); return; }
+        // SIN BLANCO UBICADO (23/11, el autor: "si no se encontro la ubicacion que no te deje lanzarlo y reproduzca un sonido
+        // de error")
+        exocetSinBlanco(); return;
+      }
       // EL LANZADOR FALLADO (PLAN_FALLAS: "las bombas no se desprendian"): leve, una de cada cuatro no sale;
       // media, la mitad; TOTAL, ninguna. No se gasta: queda colgada, y el clac del pilon dice por que
       { const g = falla('bombas');
@@ -6715,6 +6731,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // Un [B] que ya tiro con la mira no vuelve a tirar al levantarse. La de la bomba vive en
       // flight.js. Fuera del pasillo no se apunta nada, y el que vuelve con la tecla ya levantada
       // no tira solo.
+      run.secFija = !!run.soloExocet && exocetCargado();   // (el Exocet como unica arma: fijo, aunque cuelgue un tanque)
       if (S.state === 'play') {
         const b = !!inp.tanq;
         if (inp.apunta) { if (b && !run.tanqAntes) { soltarTanquesAccion(); run.tanqHecho = true; } }
@@ -8507,7 +8524,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         // (en verde cuando el blanco esta en verde: soltar ahora pega — systems/blanco.js `hud().listo`)
         const verdeBlanco = runClimax() === 'suelta' && !!(blancoSys.hud() || {}).listo;
         // EL EXOCET (16/10): no cae — la mira es una RECTA celeste al ras, y encuadra lo que cruza
-        if (run.apuntaBomba && (cargaDe(cfg.carga) || {}).exocet) drawLineaExocet(plane.x, plane.y, PZ, exocetLanzable() ? exocetATiro() : true, marcaExocet());
+        if (run.apuntaBomba && exocetElegido()) drawLineaExocet(plane.x, plane.y, PZ, exocetLanzable() ? exocetATiro() : true, marcaExocet());
         else if (run.apuntaBomba) drawTrayectoria(trayectoria(bombaSale(), run.spd, suelo), hayBomba() || (run.apuntaTanque && hayTanque), verdeBlanco);
         else if (run.apuntaTanque) drawTrayectoria(trayectoria(Object.assign(tanquesSalen('centro', 1)[0], { x: plane.x }), run.spd, suelo), hayTanque);
         if (hzW) ctx.restore();

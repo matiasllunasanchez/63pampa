@@ -202,6 +202,14 @@ export const ICONOS = {
     'ggbbRRbbR.',
     'gg........',
   ], pal: { g: '#e0a92e', W: '#fffaf0', w: '#efe3c6', b: '#c4b28e', r: '#d93a22', R: '#9e2414', o: '#f2cf4a' } },
+  // EL EXOCET (23/11): el lugar de la bomba en el estante; el dibujo de verdad es el FINO (data/iconos_finos.js)
+  exocet: { letra: 'X', png: null, col2: '#d8e0e4', pix: [
+    'f.........',
+    'ffwwwwwwxx',
+    'ffwwwwwwxx',
+    'f.........',
+    '..........',
+  ], pal: { f: '#b8c6cc', w: '#d8e0e4', x: '#2a3338' } },
   // EL TANQUE DE ALA (LA SUELTA, 23/9): el estante muestra la CARGA, y un pilon con tanque no es un
   // hueco de bomba. Mismo tamaño que la bomba (10x5) y la silueta opuesta: un huso redondo en las
   // dos puntas, sin las aletas cuadradas de la cola — se distinguen por la forma antes que por el

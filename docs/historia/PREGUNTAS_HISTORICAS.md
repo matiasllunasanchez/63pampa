@@ -1767,3 +1767,12 @@ Del autor, puestos en `src/data/perfiles.js`, `src/data/radar_propio.js` y `src/
 - **Mirage 5P sin sonda** de reabastecimiento (el Dagger ya no la tenía). ¿Los 5P que llegaron de Perú tenían sonda?
 - **El ala delta al ras** (Dagger y Mirage): por debajo de 25 m no salen las piruetas de giro cerrado ni los frenos ("su ala en delta perdía energía rápidamente al girar cerrado"). El número es de juego.
 - **Los Super Étendard del 30 de mayo:** en EL INVINCIBLE la placa del escuadrón dice 3-A-202 y 3-A-205 (`data/libro_vuelo.js` r5). ¿Qué matrículas volaron ese día?
+
+## Las tarjetas de contexto del libro: HOY · ANTES · EL PLAN (23/11)
+
+Reescritas en `src/data/libro_vuelo.js` (`R1_CONTEXTO` … `R5_CONTEXTO`) como el plan contado a todos los pilotos. Casi todo sale de lo que ya estaba; lo NUEVO, a verificar:
+- **R1 · ANTES:** "El 2 de mayo un submarino británico hundió al crucero General Belgrano." (el HMS Conqueror).
+- **R1 · HOY:** la flota "al este de las islas". ¿Dónde estaba el grupo del Sheffield el 4 de mayo respecto de las islas?
+- **R4 · HOY:** el 8 de junio "los británicos mueven tropas hacia Bahía Agradable" (el desembarco en Fitzroy / Bahía Agradable). ¿Cómo lo sabían los pilotos argentinos esa mañana?
+- **R5 · ANTES:** "De los cinco Exocet se usaron cuatro: dos contra el Sheffield el 4 de mayo y dos contra el Atlantic Conveyor el 25." ¿Confirmado que fueron dos y dos?
+- **R5 · HOY:** el Invincible "al este de las islas", y "desde ahí despegan los Harrier".

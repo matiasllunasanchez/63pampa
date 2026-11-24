@@ -974,7 +974,7 @@ export function initInput(cv, a) {
       const l1 = down(4) || (S.state === 'play' && down(2));   // (□ / X tambien, 23/11: "activar radar cambiarlo a SOLTAR SECUNDARIA")
       flags.padEyect = l1 && down(5);   // L1+R1 juntos = EYECCION (LAS ISLAS sin nafta: game.js `islasSeco`)
       if (l1 && !padHeld.l1) padSec = S.state === 'play' ? a.secundaria() : 'bomba';
-      setPad('msl', (l1 && padSec === 'bomba') || (r3 && !miraStick));
+      setPad('msl', (l1 && (padSec === 'bomba' || padSec === 'exocet')) || (r3 && !miraStick));
       setPad('tanq', l1 && padSec === 'tanque');
       if (l1 && !padHeld.l1 && padSec === 'chafitas') a.chapitas();
       padHeld.l1 = l1;
