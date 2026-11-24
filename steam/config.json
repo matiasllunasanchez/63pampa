@@ -1,0 +1,8 @@
+{
+  "_LEEME": "Completar con los numeros de Steamworks (ver steam/LEEME.md). Lo leen tools/steam.js y electron/steam.js.",
+  "appId": 5699270,
+  "depotWindows": 5699271,
+  "depotMac": 5699272,
+  "rama": "",
+  "usuario": "mycrystalstyle"
+}

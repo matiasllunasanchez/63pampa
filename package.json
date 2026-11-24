@@ -58,7 +58,10 @@
     "lint:layers": "node tools/lint_layers.js",
     "defensas": "electron tools/fixture_defensas.js",
     "balance:defensas": "node tools/balance_defensas.js",
-    "trailer": "electron tools/trailer.js"
+    "trailer": "electron tools/trailer.js",
+    "steam:build": "node tools/steam.js build",
+    "steam:subir": "node tools/steam.js subir",
+    "steam:probar": "npm run build:game && electron . --prod --full --steam"
   },
   "author": "Matias Luna",
   "license": "UNLICENSED",
@@ -107,7 +110,8 @@
         "dmg"
       ],
       "icon": "build/icon.icns",
-      "category": "public.app-category.games"
+      "category": "public.app-category.games",
+      "x64ArchFiles": "**/node_modules/steamworks.js/dist/osx/**"
     },
     "linux": {
       "target": [
@@ -115,7 +119,10 @@
       ],
       "icon": "build/icon.png",
       "category": "Game"
-    }
+    },
+    "asarUnpack": [
+      "node_modules/steamworks.js/**"
+    ]
   },
   "devDependencies": {
     "electron": "^43.1.1",
@@ -124,6 +131,7 @@
     "png-to-ico": "^3.0.2"
   },
   "dependencies": {
+    "steamworks.js": "^0.4.0",
     "three": "^0.185.1"
   }
 }

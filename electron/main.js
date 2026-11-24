@@ -3,6 +3,7 @@
 const { app, BrowserWindow, Menu, ipcMain, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const steam = require('./steam');
 
 // EL MODO DEV (8/10): `yarn start` -> dev (sin el arranque del fichin, audio en mute, con el MODO DEV
 // en el menu); `yarn start --prod` -> el juego de verdad. Empaquetado es siempre el de verdad.
@@ -128,7 +129,13 @@ ipcMain.on('pantalla-completa', (e, v) => {
   if (w && w.isFullScreen() !== !!v) w.setFullScreen(!!v);
 });
 
-app.whenReady().then(() => {
+// STEAM (electron/steam.js): antes de arrancar, por el overlay. Si Steam lo va a relanzar, se cierra aca.
+const SIGUE = steam.arrancarSteam(app);
+if (!SIGUE) app.quit();
+ipcMain.on('steam-logro', (e, id) => { e.returnValue = steam.logro(id); });
+ipcMain.on('steam-estado', e => { e.returnValue = steam.estado(); });
+
+if (SIGUE) app.whenReady().then(() => {
   // el Dock de macOS sin empaquetar: el .icns de build/ recien entra al empaquetar
   if (process.platform === 'darwin' && app.dock) app.dock.setIcon(ICONO);
   createWindow();

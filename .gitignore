@@ -25,3 +25,7 @@ capturas-3d/
 # el trailer renderizado (tools/trailer.js): artefacto, pesa y se rehace
 trailer/
 .env
+
+# Steam: el contenido de los depots y lo que genera tools/steam.js (se rehace con npm run steam:build)
+steam/contenido/
+steam/generado/

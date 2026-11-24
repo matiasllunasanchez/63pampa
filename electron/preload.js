@@ -15,6 +15,11 @@ contextBridge.exposeInMainWorld('RASANTE_FULL', process.argv.includes('--rasante
 contextBridge.exposeInMainWorld('rasanteVentana', { pantallaCompleta: v => ipcRenderer.send('pantalla-completa', !!v) });
 // LOS TEMAS DE music/original, como estan en la carpeta (electron/main.js; los usa systems/audio.js)
 contextBridge.exposeInMainWorld('rasanteMusica', { original: () => ipcRenderer.sendSync('musica-original') });
+// STEAM (electron/steam.js): logros y si esta conectado. Fuera del build de Steam devuelven false / activo:false.
+contextBridge.exposeInMainWorld('rasanteSteam', {
+  logro: id => ipcRenderer.sendSync('steam-logro', String(id)),
+  estado: () => ipcRenderer.sendSync('steam-estado'),
+});
 
 window.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add('electron');
