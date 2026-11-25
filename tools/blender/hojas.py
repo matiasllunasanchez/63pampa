@@ -22,9 +22,12 @@ import math
 
 R = math.pi / 180
 
+# (25/11, el autor: "los helicopteros enemigos tambien se ven duros, mas poses"): 25 yaws (eran 8 — de frente a perfil
+# de a 3,75° en vez de 13°) x 2 fases del rotor
+HELO_YAWS = 25
 def _helo(fuente):
-    """8 yaws (de frente a perfil, cola a la derecha) x 2 fases del rotor."""
-    return [dict(modelo=fuente % ph, yaw=i / 7 * math.pi / 2) for ph in (0, 1) for i in range(8)]
+    """HELO_YAWS yaws (de frente a perfil, cola a la derecha) x 2 fases del rotor."""
+    return [dict(modelo=fuente % ph, yaw=i / (HELO_YAWS - 1) * math.pi / 2) for ph in (0, 1) for i in range(HELO_YAWS)]
 
 # LA CHANCHA: los cuatro conos de helice y la boca de los dos pods de manguera, estribor (ancla 4) y
 # babor (ancla 5). CH_MOT y CH_POD son los de tools/blender/modelos_enemigos.py
@@ -44,8 +47,8 @@ ICONOS_CARTAS = ['canon', 'cinta', 'bala', 'brp', 'snakeye', 'espoleta', 'ter', 
 HOJAS = {
     # LOS HELICOPTEROS, HECHOS EN BLENDER (4/10/2026, tools/blender/modelos_helos.py): el de siempre
     # es el Sea King HC.4 verde de los comandos
-    'helo': dict(fw=64, fh=48, dist=15, lookY=0.15, cols=8, frames=_helo('bl:seaKingVerde:%d')),
-    **{'helo_' + m.lower(): dict(fw=128, fh=96, dist=19, lookY=0.3, cols=8, frames=_helo('bl:' + m + ':%d'))
+    'helo': dict(fw=64, fh=48, dist=15, lookY=0.15, cols=HELO_YAWS, frames=_helo('bl:seaKingVerde:%d')),
+    **{'helo_' + m.lower(): dict(fw=128, fh=96, dist=19, lookY=0.3, cols=HELO_YAWS, frames=_helo('bl:' + m + ':%d'))
        for m in ('seaKing', 'wessex', 'seaLynx', 'gazelle', 'scout')},
     # (23/11, el autor: "rehorneala") AL DOBLE: de cerca, en la cita, ocupa media pantalla y los 160 px se estiraban
     # y NUEVE alabeos en vez de tres (el autor: "debe moverse mas fluido"): render/chancha.js elige el cuadro por la

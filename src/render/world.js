@@ -200,6 +200,8 @@ export const seaH = (wx, wz) => seaBase(wx, wz, run.t, climaDe(cfg));
 // paso en pixeles con el que se recorre la fila en la franja de orilla del puerto. 3px basta:
 // la orilla es una curva suave y a menos de eso solo se gastan evaluaciones de seno.
 const PORT_STEP = 3;
+// LO QUE SE INCLINA UN HELICOPTERO al patrullar de costado (rad, a su velocidad maxima): ~10°
+const HELO_INCLINA = 0.17;
 
 /** Un TRAMO horizontal de la base de despegue: suelo + pista con sus marcas. Recibe el tramo
  *  [x0,x1) porque en la franja de orilla la fila sale cortada en pedazos.
@@ -2363,7 +2365,13 @@ function dibujarObstaculo(o) {
       const col = Math.round(yaw * (enemyArt.SHEETS[hoja].cols - 1));
       const row = ((run.t * 16) | 0) % 2;
       const fl = !!(o.hitT && run.t - o.hitT < 0.09);   // impacto: el sprite entero destella
+      // (25/11, "los helicopteros se ven duros"): SE INCLINA hacia donde patrulla — el disco del rotor empuja para ese lado.
+      // La velocidad de costado sale de la misma oscilacion que lo mueve (x = xa + sin(t·mvW + ph)·mvA, collision.js)
+      const vx = o.mvA ? Math.cos(run.t * o.mvW + o.ph) * o.mvA * o.mvW : 0;
+      const incl = Math.max(-1, Math.min(1, vx / 5)) * HELO_INCLINA;
+      if (incl) { ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(incl); ctx.translate(-s.x, -s.y); }
       enemyArt.drawFrame(ctx, hoja, col, row, s.x, { centerY: s.y }, kk, dir > 0, fl);
+      if (incl) ctx.restore();
       drawHpBar(s.x, s.y - 3.8 * kk, kk, o);
       return;
     }

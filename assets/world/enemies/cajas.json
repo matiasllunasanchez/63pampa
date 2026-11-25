@@ -229,7 +229,7 @@
   "helo": {
     "fw": 64,
     "fh": 48,
-    "cols": 8,
+    "cols": 25,
     "rows": 2,
     "box": {
       "x0": 2,
@@ -242,12 +242,12 @@
   "helo_gazelle": {
     "fw": 128,
     "fh": 96,
-    "cols": 8,
+    "cols": 25,
     "rows": 2,
     "box": {
       "x0": 25,
       "y0": 38,
-      "x1": 83,
+      "x1": 84,
       "y1": 60
     },
     "margen": 25
@@ -255,7 +255,7 @@
   "helo_scout": {
     "fw": 128,
     "fh": 96,
-    "cols": 8,
+    "cols": 25,
     "rows": 2,
     "box": {
       "x0": 28,
@@ -268,7 +268,7 @@
   "helo_seaking": {
     "fw": 128,
     "fh": 96,
-    "cols": 8,
+    "cols": 25,
     "rows": 2,
     "box": {
       "x0": 9,
@@ -281,7 +281,7 @@
   "helo_sealynx": {
     "fw": 128,
     "fh": 96,
-    "cols": 8,
+    "cols": 25,
     "rows": 2,
     "box": {
       "x0": 21,
@@ -294,7 +294,7 @@
   "helo_wessex": {
     "fw": 128,
     "fh": 96,
-    "cols": 8,
+    "cols": 25,
     "rows": 2,
     "box": {
       "x0": 12,
