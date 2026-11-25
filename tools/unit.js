@@ -2669,7 +2669,7 @@ test('fallas: la tirada respeta las bases, se queda con las dos peores, y el tal
   assert.equal(estadoAvion({ canon: 3 }), 'muchas'); assert.equal(estadoAvion({ canon: 1, bombas: 1 }), 'muchas');
   assert.deepEqual(reparar({ canon: 1, bombas: 2, reabast: 3 }, 2), { reabast: 3 }, 'el liviano no toca la total');
   assert.deepEqual(reparar({ reabast: 3 }, 3), {});
-  assert.match(textoFallas({ reabast: 3, canon: 2 }), /SONDA ROTA.*UN SOLO CAÑON/);
+  assert.match(textoFallas({ reabast: 3, canon: 2 }), /SONDA ROTA.*UN SOLO CAÑÓN/);
 });
 
 // LA «CONFIGURACION INDIA» DEL DAGGER (data/cargas.js, 12/10): tres tanques y dos bombas en el ala media

@@ -282,7 +282,7 @@ export const SCENES = {
       { id: 'M03_BURRADA_030', personaje: 'GITANO', cara: 'gitano_neutro', hold: 0.6,
         es: 'Venís volando, y aparecen dos atrás, ¿sí? Ellos más veloces que nosotros y no son fáciles de perder. Además su armamento es mucho mejor que el nuestro.', en: '' },
       { id: 'M03_BURRADA_040', personaje: 'EL TURCO', cara: 'turco_hang_cansado', hold: 1.0,
-        es: 'Si, obvio... ¿y? Mavé.', en: '' },
+        es: 'Sí, obvio... ¿y? Mavé.', en: '' },
       { id: 'M03_BURRADA_050', personaje: 'GITANO', cara: 'gitano_explicando_mira_arriba', hold: 0.5,
         accion: 'El Vasco, que caminaba por ahí, se detiene a escuchar debido al entusiasmo del Gitano.',
         es: 'Entonces, en vez intentar escapar, tirás la trompa hacia arriba. Derechito al cielo, completamente vertical.', en: '' },
@@ -980,7 +980,7 @@ export const SCENES = {
     titulo: 'EL CUADERNO', placa: 'p1c_cuaderno', img: 'carta7_m6',
     lineas: [
       { id: 'M06_CARTA_010', personaje: null, cara: null, hold: 0,
-        es: 'Viejo: ¿es verdad que allá hicieron un festival para juntar cosas para nosotros? Porque acá no llegó ni un chocolate. Ah, si. Llegó una revista que decía "Estamos ganando". ¿Ganando?', en: '' },
+        es: 'Viejo: ¿es verdad que allá hicieron un festival para juntar cosas para nosotros? Porque acá no llegó ni un chocolate. Ah, sí. Llegó una revista que decía "Estamos ganando". ¿Ganando?', en: '' },
       { id: 'M06_CARTA_020', personaje: null, cara: null, hold: 0,
         es: 'Cambiando de tema, el Colorado me mostró la foto de la hermana, toda gastada de tanto mirarla. "Cuando volvamos, te la presento", me dijo. Me reí, pá. Hacía días que no me reía.', en: '' },
       { id: 'M06_CARTA_030', personaje: null, cara: null, hold: 0,
@@ -1305,7 +1305,7 @@ export const SCENES = {
         accion: 'Suspira profundo.',
         es: 'No sé, Pichón. Pero pensá que cada vez que entramos, allá abajo hay un pibe que respira un día más. Para eso sirve. No para la bandera del mástil: para el pibe. Siempre fue por los pibes.', en: '' },
       { id: 'M09_2_020', personaje: 'ESTEBAN', cara: 'tero_neutro', hold: 0,
-        accion: 'Continua pensando en los casquitos agitando los brazos contra el cielo.',
+        accion: 'Continúa pensando en los casquitos agitando los brazos contra el cielo.',
         es: '...por el pibe.', en: '' },
       // EL GESTO DEL PICHON POR ULTIMA VEZ (§9d, M9). Escucha mas de lo que se queda nunca. Y el
       // remate es la unica linea del juego que dice que el gesto NO LO SALVO — sin subrayarlo.

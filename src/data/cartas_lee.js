@@ -23,12 +23,12 @@ export const LEE = {
   metralla2: {
     que: 'Duplica la cadencia del cañón: el doble de tiros por segundo con X o ESPACIO. Ojo que la cinta se gasta igual de rápido: recalienta antes si no soltás el gatillo.',
     dato: 'MIL TIROS POR MINUTO, EL COLT MK 12',
-    historia: 'Los A-4 llevaban dos cañones Colt Mk 12 de 20 mm. Tiraban rápido pero eran caprichosos: se cargaban con un sistema neumático y se trababan. Hay un piloto que conto que se le callaron después de dos tiros. El cañón era el último recurso, no el arma del ataque.',
+    historia: 'Los A-4 llevaban dos cañones Colt Mk 12 de 20 mm. Tiraban rápido pero eran caprichosos: se cargaban con un sistema neumático y se trababan. Hay un piloto que contó que se le callaron después de dos tiros. El cañón era el último recurso, no el arma del ataque.',
   },
   metralla3: {
-    que: 'Tres veces y media la cadencia de fabrica, pero tarda un segundo en girar antes de escupir. Apreta antes de tener el blanco en la mira, no cuando ya lo tenés encima.',
+    que: 'Tres veces y media la cadencia de fábrica, pero tarda un segundo en girar antes de escupir. Apretá antes de tener el blanco en la mira, no cuando ya lo tenés encima.',
     dato: 'NINGÚN AVIÓN ARGENTINO LA TENÍA',
-    historia: 'Licencia del juego. El cañón de caños giratorios existe —el tipo Gatling, que usaban aviones estadounidenses—, pero en 1982 ningún avión argentino lo llevaba. Lo que si es real es su maña: los caños tienen que tomar vuelta antes de tirar en serio.',
+    historia: 'Licencia del juego. El cañón de caños giratorios existe —el tipo Gatling, que usaban aviones estadounidenses—, pero en 1982 ningún avión argentino lo llevaba. Lo que sí es real es su maña: los caños tienen que tomar vuelta antes de tirar en serio.',
   },
   cinta2: {
     que: 'La ráfaga aguanta una vez y media más antes de recalentar. Mismo cañón, misma cadencia: solo podés mantener apretado más tiempo. Sirve con cualquier metralla.',
@@ -36,29 +36,29 @@ export const LEE = {
     historia: 'Cien tiros por cañón, a mil por minuto: unos seis segundos de fuego en toda la salida. No era una barra de balas, eran tres o cuatro ráfagas cortas. El piloto que apretaba de más volvía sin nada para defenderse a la vuelta, que era la parte más peligrosa.',
   },
   cinta3: {
-    que: 'El doble de ráfaga que la cinta de fabrica antes de que el cañón recaliente. Junto con la metralla de oro es la que te deja barrer una fila entera sin soltar.',
-    dato: 'SEIS SEGUNDOS DE FUEGO, Y SE ACABO',
-    historia: 'En el A-4 la cinta no se alargaba: lo que entraba en el avión era lo que habia. Por eso la cuenta de los pilotos era en segundos, no en balas. Acá la cinta crece porque es un juego; allá se volvía con los cañones vacios o trabados, y nadie los destrababa en vuelo.',
+    que: 'El doble de ráfaga que la cinta de fábrica antes de que el cañón recaliente. Junto con la metralla de oro es la que te deja barrer una fila entera sin soltar.',
+    dato: 'SEIS SEGUNDOS DE FUEGO, Y SE ACABÓ',
+    historia: 'En el A-4 la cinta no se alargaba: lo que entraba en el avión era lo que había. Por eso la cuenta de los pilotos era en segundos, no en balas. Acá la cinta crece porque es un juego; allá se volvía con los cañones vacios o trabados, y nadie los destrababa en vuelo.',
   },
   canon: {
     que: 'A los aviones que no traen cañón (el Neptune, los del Fénix) les monta uno: aparece la metralla con X o ESPACIO, y recién ahí se ofrecen sus mejoras.',
     dato: 'LICENCIA DEL JUEGO',
-    historia: 'Invento del juego: el Neptune y los jets civiles del Escuadrón Fénix no llevaban armas. Su guerra era otra: buscar, guiar, engañar. La carta existe para que puedas volarlos igual, pero sabe que en 1982 esos tripulantes iban desarmados adentro de la zona de combate.',
+    historia: 'Invento del juego: el Neptune y los jets civiles del Escuadrón Fénix no llevaban armas. Su guerra era otra: buscar, guiar, engañar. La carta existe para que puedas volarlos igual, pero sabé que en 1982 esos tripulantes iban desarmados adentro de la zona de combate.',
   },
   potencia2: {
     que: 'Cada bala rompe una vez y media. El precio: cada tiro calienta un poco más el cañón, así que la ráfaga se corta antes. Pega menos veces, pero más fuerte.',
     dato: 'MÁS GOLPE, MENOS RÁFAGA',
-    historia: 'La munición perforante existe: un núcleo duro que entra antes de romperse. Que tipo de munición cargaban los cañones argentinos en cada salida no lo tenemos verificado, así que la carta es del juego. La idea es real: no todas las balas son iguales.',
+    historia: 'La munición perforante existe: un núcleo duro que entra antes de romperse. Qué tipo de munición cargaban los cañones argentinos en cada salida no lo tenemos verificado, así que la carta es del juego. La idea es real: no todas las balas son iguales.',
   },
   potencia3: {
-    que: 'El doble de daño por tiro que la de fabrica. Recalienta todavía más: con la cinta corta, la ráfaga dura un suspiro. Combinala con CINTA LARGA o ENTERA.',
+    que: 'El doble de daño por tiro que la de fábrica. Recalienta todavía más: con la cinta corta, la ráfaga dura un suspiro. Combinala con CINTA LARGA o ENTERA.',
     dato: 'EL DOBLE POR TIRO',
-    historia: 'Licencia del juego, como la anterior. Lo que evoca: el piloto de ataque no iba a pelear con el cañon. Iba a tirar una bomba y volver. Cada bala que gastaba era una bala menos para la vuelta, cuando aparecían los Sea Harrier.',
+    historia: 'Licencia del juego, como la anterior. Lo que evoca: el piloto de ataque no iba a pelear con el cañón. Iba a tirar una bomba y volver. Cada bala que gastaba era una bala menos para la vuelta, cuando aparecían los Sea Harrier.',
   },
   brp: {
-    que: 'Cambia la MK-17 por la BRP-250 (Z / L1): arma rápido y casi siempre explota. El precio: pesa la mitad, así que si pegas en la punta del buque rompe menos.',
+    que: 'Cambia la MK-17 por la BRP-250 (Z / L1): arma rápido y casi siempre explota. El precio: pesa la mitad, así que si pegás en la punta del buque rompe menos.',
     dato: 'DESDE EL 25 DE MAYO, EXPLOTARON',
-    historia: 'Bomba española de 250 kg. A las argentinas les rehicieron las espoletas en pocas semanas, con armeros y la Fabrica Militar de Aviones de Cordoba. Desde el 25 de mayo, prácticamente todas las bombas de la Fuerza Aérea explotaron. Ese día se hundió el Coventry.',
+    historia: 'Bomba española de 250 kg. A las argentinas les rehicieron las espoletas en pocas semanas, con armeros y la Fábrica Militar de Aviones de Córdoba. Desde el 25 de mayo, prácticamente todas las bombas de la Fuerza Aérea explotaron. Ese día se hundió el Coventry.',
   },
   snakeye: {
     que: 'La MK-82 frenada (Z / L1): las aletas la frenan, arma enseguida y casi siempre detona. Es la más chica y se queda atrás: hay que soltarla bien encima del blanco.',
@@ -68,7 +68,7 @@ export const LEE = {
   espoletas1: {
     que: 'La bomba que lleves arma antes al caer y detona más seguido. Sirve con la MK-17, la BRP o la Snakeye: menos bombas que pegan y se quedan dormidas.',
     dato: 'TIRAR BAJO DESARMABA LA BOMBA',
-    historia: 'La espoleta se arma cayendo: necesita tiempo de caida. Pero subir para darselo era morir, así que se tiraba muy bajo y muchas bombas pegaban sin explotar. Ya en mayo, armeros argentinos tocaban espoletas a mano y bajaban el tiempo de armado.',
+    historia: 'La espoleta se arma cayendo: necesita tiempo de caída. Pero subir para darselo era morir, así que se tiraba muy bajo y muchas bombas pegaban sin explotar. Ya en mayo, armeros argentinos tocaban espoletas a mano y bajaban el tiempo de armado.',
   },
   espoletas2: {
     que: 'Arma casi al soltarla: la que pega, explota. Con la MK-17 cambia todo; con la BRP o la Snakeye, ya no se te duerme ninguna.',
@@ -86,9 +86,9 @@ export const LEE = {
     historia: 'Con reabastecimiento, los A-4 llegaron a salir con tres bombas de 250 kg, como en el ataque del 8 de junio en Bahía Agradable. Más bombas era más peso, y más peso era menos alcance: todo dependía de que el Hercules estuviera donde tenía que estar.',
   },
   exocet: {
-    que: 'Solo Super Etendard. Cuelga un Exocet (Z / L1): adentro de las 30 millas lo lanzás, cargas las coordenadas en la prueba, y bien hecho siempre pega. Mal hecho, se va al mar.',
+    que: 'Solo Super Etendard. Cuelga un Exocet (Z / L1): adentro de las 30 millas lo lanzás, cargás las coordenadas en la prueba, y bien hecho siempre pega. Mal hecho, se va al mar.',
     dato: 'CINCO AM39 EN TODA LA GUERRA',
-    historia: 'Llegaron cinco Super Etendard y cinco Exocet AM39 antes de que Francia cortara la entrega. Volaban al ras, subían un momento, prendían el radar, y lanzaban. El 4 de mayo uno pego en el HMS Sheffield; el 25 de mayo hundieron al Atlantic Conveyor.',
+    historia: 'Llegaron cinco Super Etendard y cinco Exocet AM39 antes de que Francia cortara la entrega. Volaban al ras, subían un momento, prendían el radar, y lanzaban. El 4 de mayo uno pegó en el HMS Sheffield; el 25 de mayo hundieron al Atlantic Conveyor.',
   },
 
   // ---------------- DEFENSA ----------------
@@ -98,12 +98,12 @@ export const LEE = {
     // (20/10, el autor: la carta de las primeras chafitas con la maquina de fideos, "detallando". Lo
     // verificado, de docs/historia/MEJORAS_PICHON.md §1; los nombres de las personas van en la placa del
     // cierre, no aca — la regla de atribucion de ese documento)
-    historia: 'Los aviones argentinos no tenían chaff ni bengalas de fabrica. En la II Brigada Aérea, en Paraná, sacaron del depósito los rollos de aluminio que envolvían los escapes de los Canberra. Primero los cortaron a tijera unos chicos de escuela, pero no alcanzaba. Un suboficial propuso una máquina de hacer tallarines: la presto la fabrica de pastas Via Napoli, y le dieron a la manivela las 24 horas, durante casi una semana. Las tiras salían de 7 centímetros, la medida del radar del Sea Dart. La máquina esta hoy en la Sala Histórica de la II Brigada.',
+    historia: 'Los aviones argentinos no tenían chaff ni bengalas de fábrica. En la II Brigada Aérea, en Paraná, sacaron del depósito los rollos de aluminio que envolvían los escapes de los Canberra. Primero los cortaron a tijera unos chicos de escuela, pero no alcanzaba. Un suboficial propuso una máquina de hacer tallarines: la prestó la fábrica de pastas Via Napoli, y le dieron a la manivela las 24 horas, durante casi una semana. Las tiras salían de 7 centímetros, la medida del radar del Sea Dart. La máquina está hoy en la Sala Histórica de la II Brigada.',
   },
   chafitas2: {
     que: 'Otro cartucho: dos cargas por avión (H / círculo). Cada carga es una nube y una bengala. Usalas cuando el misil ya salió, no antes.',
     dato: 'EN EL FRENO, CON PAPEL HIGIÉNICO',
-    historia: 'En los Mirage y los Dagger, el chaff iba en cartuchos envueltos en papel higiénico, cerrados con cinta y metidos en el freno aerodinamico. Para soltarlo, el piloto abría el freno: justo cuando más necesitaba la velocidad, la perdia.',
+    historia: 'En los Mirage y los Dagger, el chaff iba en cartuchos envueltos en papel higiénico, cerrados con cinta y metidos en el freno aerodinámico. Para soltarlo, el piloto abría el freno: justo cuando más necesitaba la velocidad, la perdía.',
   },
   chafitas3: {
     que: 'Tres cargas por avión (H / círculo). Con tres podés gastar una contra el Sea Dart al entrar y te quedan para la vuelta, donde esperan los Harrier.',
@@ -113,17 +113,17 @@ export const LEE = {
   chafitas4: {
     que: 'El máximo: cuatro cargas por avión (H / círculo). Más no entran. Sigue costando velocidad cada vez que abrís el freno para soltar una.',
     dato: 'UNA CADA 15 SEGUNDOS, EL 1 DE MAYO',
-    historia: 'El 1 de mayo, un piloto argentino esquivo misiles Sidewinder soltando bengalas y chaff cada quince segundos, y es posible que eso le haya salvado la vida. Si sirvieron en general es difícil de medir; los que las fabricaron decían que se notaba.',
+    historia: 'El 1 de mayo, un piloto argentino esquivó misiles Sidewinder soltando bengalas y chaff cada quince segundos, y es posible que eso le haya salvado la vida. Si sirvieron en general es difícil de medir; los que las fabricaron decían que se notaba.',
   },
   chafRecarga: {
-    que: 'Una carga de chafitas se repone sola cada 25 segundos, hasta el tope que tenga tu avion. No suma cargas: rellena las que gastaste.',
+    que: 'Una carga de chafitas se repone sola cada 25 segundos, hasta el tope que tenga tu avión. No suma cargas: rellena las que gastaste.',
     dato: '24 HORAS POR DÍA, CASI UNA SEMANA',
-    historia: 'La máquina de tallarines no paraba: le dieron a la manivela las veinticuatro horas, durante casi una semana, para que hubiera chaff en las bases del sur. Hoy esa máquina esta en la Sala Histórica de la II Brigada Aérea, en Parana.',
+    historia: 'La máquina de tallarines no paraba: le dieron a la manivela las veinticuatro horas, durante casi una semana, para que hubiera chaff en las bases del sur. Hoy esa máquina está en la Sala Histórica de la II Brigada Aérea, en Paraná.',
   },
   chafPotencia: {
     que: 'La nube de chafitas dura una vez y media más y engaña a los misiles desde más lejos. Las mismas cargas, mejor aprovechadas.',
     dato: 'TIRAS DE 7 CM, A LA MEDIDA',
-    historia: 'El chaff funciona si las tiras tienen la medida justa para la onda del radar que se quiere engañar. Para el radar que guiaba al Sea Dart salieron de siete centimetros. El ancho lo daba la máquina: era el de un tallarin.',
+    historia: 'El chaff funciona si las tiras tienen la medida justa para la onda del radar que se quiere engañar. Para el radar que guiaba al Sea Dart salieron de siete centímetros. El ancho lo daba la máquina: era el de un tallarín.',
   },
   escudo1: {
     que: 'El escudo del avión se recarga el doble de rápido después de un golpe. No aguanta más: vuelve antes, así el segundo golpe te encuentra entero.',
@@ -131,24 +131,24 @@ export const LEE = {
     historia: 'No hay registro de que se blindaran los A-4 a mano: la chapa extra es del juego. Lo real es lo de alrededor: aviones que volvían con agujeros de esquirlas y mecánicos que los dejaban listos para salir otra vez.',
   },
   escudo2: {
-    que: 'El escudo se recarga tres veces más rápido que el de fabrica. Entre golpe y golpe, casi siempre llegás cubierto.',
+    que: 'El escudo se recarga tres veces más rápido que el de fábrica. Entre golpe y golpe, casi siempre llegás cubierto.',
     dato: 'SE VOLVÍA CON AGUJEROS',
-    historia: 'Invento del juego, como la primera. Lo que evoca: el A-4 tenía fama de aguantador. Lo que si es real: aviones que volvían con impactos encima y que, si se podían arreglar, volvían a la fila.',
+    historia: 'Invento del juego, como la primera. Lo que evoca: el A-4 tenía fama de aguantador. Lo que sí es real: aviones que volvían con impactos encima y que, si se podían arreglar, volvían a la fila.',
   },
   veterano: {
     que: 'Cuando cae el avión que vuela, el siguiente de la escuadrilla entra en la mitad de tiempo. No es una vida más: es menos tiempo sin nadie en el aire.',
     dato: 'SECCIONES DE TRES O CUATRO',
-    historia: 'Se atacaba en secciones de pocos aviones, uno detrás de otro. Si caía el que iba adelante, el numeral siguiente seguía la corrida: no había tiempo de pensarlo. Volar de numeral, pegado al líder, era leer el terreno un segundo antes que el.',
+    historia: 'Se atacaba en secciones de pocos aviones, uno detrás de otro. Si caía el que iba adelante, el numeral siguiente seguía la corrida: no había tiempo de pensarlo. Volar de numeral, pegado al líder, era leer el terreno un segundo antes que él.',
   },
   reparacion: {
-    que: 'De uso: la chapa del avión que vuela queda entera otra vez, y el escudo lleno. Solo se ofrece si estas golpeado.',
+    que: 'De uso: la chapa del avión que vuela queda entera otra vez, y el escudo lleno. Solo se ofrece si estás golpeado.',
     dato: 'REMACHES, CINTA Y UNA NOCHE',
-    historia: 'En las bases del sur se reparaba con lo que habia. De los ocho A-4Q de la Armada, al empezar solo volaban tres: los demás tenían fisuras en las alas. Con mantenimiento a destajo llegaron a tener los ocho en condiciones.',
+    historia: 'En las bases del sur se reparaba con lo que había. De los ocho A-4Q de la Armada, al empezar solo volaban tres: los demás tenían fisuras en las alas. Con mantenimiento a destajo llegaron a tener los ocho en condiciones.',
   },
   amigo: {
     que: 'De uso: vuelve un avión a la escuadrilla, una vida más en la fila. Solo se ofrece si te falta alguno.',
     dato: 'LAS BASES, A MÁS DE 700 KM',
-    historia: 'Los aviones salían de bases en el continente, a más de setecientos kilómetros del blanco. Había varias bases y varios escuadrones repartidos por la costa patagonica. Con el embargo no llegaban aviones nuevos: lo que había al empezar era lo que habia.',
+    historia: 'Los aviones salían de bases en el continente, a más de setecientos kilómetros del blanco. Había varias bases y varios escuadrones repartidos por la costa patagónica. Con el embargo no llegaban aviones nuevos: lo que había al empezar era lo que había.',
   },
   rescate: {
     que: 'Si un piloto se eyecta (Q+E / L1+R1, cayendo), al rato su avión vuelve a la escuadrilla. Sin la carta, eyectarse salva la vida pero no el lugar en la fila.',
@@ -158,9 +158,9 @@ export const LEE = {
 
   // ---------------- EL TALLER ----------------
   siliconado: {
-    que: 'Volando rasante sobre el mar el rocio deja sal en el parabrisas y la vista se va cerrando de los bordes al centro. Con el vidrio siliconado la sal no se pega: se vuela bajo todo lo que haga falta.',
+    que: 'Volando rasante sobre el mar el rocío deja sal en el parabrisas y la vista se va cerrando de los bordes al centro. Con el vidrio siliconado la sal no se pega: se vuela bajo todo lo que haga falta.',
     dato: 'LA SAL DEL ATLÁNTICO SUR',
-    historia: 'Volando a metros del agua, el rocio se secaba de golpe contra el vidrio y dejaba una costra de sal que no sacaba ni la lluvia. Hubo pilotos que volvieron sin ver la pista y aterrizaron mirando por el costado. El aerosol es del juego: la idea de cuidar el vidrio, no.',
+    historia: 'Volando a metros del agua, el rocío se secaba de golpe contra el vidrio y dejaba una costra de sal que no sacaba ni la lluvia. Hubo pilotos que volvieron sin ver la pista y aterrizaron mirando por el costado. El aerosol es del juego: la idea de cuidar el vidrio, no.',
   },
   tallerLiv: {
     que: 'De uso: arregla las fallas leves y medias (carga lenta, se traba a veces, recalienta…) de hasta tres aviones de la escuadrilla.',
@@ -179,25 +179,25 @@ export const LEE = {
   },
   municion: {
     que: 'De uso: bombas y chafitas al tope en toda la escuadrilla, la que vuela y la que espera en la fila.',
-    dato: 'LLEGO EL CAMIÓN DE LA ARMERÍA',
-    historia: 'Cada salida empezaba en tierra, con los armeros colgando bombas y revisando espoletas a mano. Muchos de los arreglos que hicieron funcionar a las bombas salieron de ellos, no de una fabrica.',
+    dato: 'LLEGÓ EL CAMIÓN DE LA ARMERÍA',
+    historia: 'Cada salida empezaba en tierra, con los armeros colgando bombas y revisando espoletas a mano. Muchos de los arreglos que hicieron funcionar a las bombas salieron de ellos, no de una fábrica.',
   },
 
   // ---------------- ALCANCE ----------------
   tanques: {
-    que: 'Dos tanques externos: más nafta, más alcance. Pesan y frenan; los soltás con B. Si los tiras llenos, esa nafta se va al mar.',
+    que: 'Dos tanques externos: más nafta, más alcance. Pesan y frenan; los soltás con B. Si los tirás llenos, esa nafta se va al mar.',
     dato: 'DOS TANQUES Y UNA BOMBA',
     historia: 'Sin reabastecer, un A-4 salía con dos tanques en las alas y una sola bomba abajo. Más de setecientos kilómetros hasta el blanco, cinco a diez minutos sobre la zona, y combustible para una sola pasada. La vuelta era la parte más larga.',
   },
   chancha1: {
-    que: 'De uso: una llamada al Hercules cisterna (J) sin pagarla con puntos. Subís, te enganchás a la canasta y cargas. Solo aviones con sonda.',
+    que: 'De uso: una llamada al Hercules cisterna (J) sin pagarla con puntos. Subís, te enganchás a la canasta y cargás. Solo aviones con sonda.',
     dato: 'DOS KC-130H EN TODA LA FUERZA',
-    historia: 'Había solo dos Hercules cisterna. Los A-4 y los Super Etendard tenían sonda y podían cargar en vuelo; los Dagger, no. La cita se hacia lejos de la flota y alto, donde el radar británico no llegaba, para que los aviones llegaran al blanco y pudieran volver.',
+    historia: 'Había solo dos Hercules cisterna. Los A-4 y los Super Etendard tenían sonda y podían cargar en vuelo; los Dagger, no. La cita se hacía lejos de la flota y alto, donde el radar británico no llegaba, para que los aviones llegaran al blanco y pudieran volver.',
   },
   kc130: {
     que: 'Con la carta, la Chancha (J) llega en la mitad de tiempo y carga más rápido una vez enganchado. Solo aviones con sonda.',
     dato: 'DOS CISTERNAS, Y SE RESERVARON LAS DOS',
-    historia: 'Con dos cisternas en toda la guerra, cuantos aviones podían atacar lejos dependía de ellos. Para el ataque al Invincible del 30 de mayo se reservaron los dos. Sin los Hercules, buena parte de los ataques no habrían llegado.',
+    historia: 'Con dos cisternas en toda la guerra, cuántos aviones podían atacar lejos dependía de ellos. Para el ataque al Invincible del 30 de mayo se reservaron los dos. Sin los Hercules, buena parte de los ataques no habrían llegado.',
   },
 
   // ---------------- PODERES ----------------
@@ -222,7 +222,7 @@ export const LEE = {
     historia: 'Para no ser vistos por el radar de los buques, los pilotos argentinos volaban pegados al agua: quince a treinta metros, y hay relatos de pasadas a tres. La costra de sal en el parabrisas, después de horas al ras, dificultaba el aterrizaje.',
   },
   radar1: {
-    que: 'Prender el radar propio (Y) no cuesta puntos y se recarga el doble de rapido. Sigue delatandote mientras esta prendido. Solo Super Etendard.',
+    que: 'Prender el radar propio (Y) no cuesta puntos y se recarga el doble de rápido. Sigue delatándote mientras está prendido. Solo Super Etendard.',
     dato: 'PRENDERLO ERA DELATARSE',
     historia: 'El 4 de mayo los Super Etendard volaron al ras con el radar Agave apagado. Cerca del blanco subieron, lo prendieron unos segundos para encontrar al buque, bajaron y lanzaron. Los buques escuchaban las emisiones: el radar prendido era una bengala.',
   },
@@ -231,45 +231,45 @@ export const LEE = {
   radarMalvinas: {
     que: 'Cada vez que una pareja de Harrier entra a buscarte, salta el aviso RADAR DE PUERTO ARGENTINO. No los saca: te da el segundo para prepararte.',
     dato: 'UN TPS-43 EN PUERTO ARGENTINO',
-    historia: 'La Fuerza Aérea tenía un radar TPS-43 en Puerto Argentino. Desde ahí se seguían los movimientos británicos y se avisaba a los aviones que entraban o salían de las islas. Lo buscaron con misiles antirradar y siguio funcionando hasta el final.',
+    historia: 'La Fuerza Aérea tenía un radar TPS-43 en Puerto Argentino. Desde ahí se seguían los movimientos británicos y se avisaba a los aviones que entraban o salían de las islas. Lo buscaron con misiles antirradar y siguió funcionando hasta el final.',
   },
   neptune: {
-    que: 'Solo CICLO: el blanco ya esta ubicado, así que la primera parte de cada aproximación viene más tranquila. La presión sube recién al acercarte.',
+    que: 'Solo CICLO: el blanco ya está ubicado, así que la primera parte de cada aproximación viene más tranquila. La presión sube recién al acercarte.',
     dato: 'UN AVIÓN VIEJO BUSCANDO LA FLOTA',
     historia: 'La Armada tenía dos SP-2H Neptune, patrulleros viejos y sin armas. Con el radar bajo la panza buscaban a la flota británica para guiar a los Super Etendard. Gastados y sin repuestos por el embargo, se retiraron a mediados de mayo.',
   },
   tracker: {
-    que: 'Bajando al ras, la barra de alarma del radar enemigo se vacía el doble de rapido. Premia lo que el juego ya pide: volar abajo.',
+    que: 'Bajando al ras, la barra de alarma del radar enemigo se vacía el doble de rápido. Premia lo que el juego ya pide: volar abajo.',
     dato: '18 RADARES BRITÁNICOS IDENTIFICADOS',
     historia: 'Tripulaciones de la Armada adaptaron un Tracker para escuchar las emisiones británicas, volando bajísimo para que no los vieran. Identificaron dieciocho radares, anotaron sus frecuencias y con eso se armaron rutas de aproximación más seguras.',
   },
   guerraElec: {
     que: 'La barra de alarma del radar enemigo se carga más lento: tardan una vez y media más en encontrarte. Se suma con EL TRACKER.',
     dato: 'ESCUCHAR SIN SER ESCUCHADO',
-    historia: 'El Ejercito monto interceptación y radiolocalización desde Rio Gallegos y Puerto Santa Cruz, con procedimientos manuales y operadores entrenados. Saber que buscaba el enemigo, y donde, era también una forma de esconderse.',
+    historia: 'El Ejército montó interceptación y radiolocalización desde Río Gallegos y Puerto Santa Cruz, con procedimientos manuales y operadores entrenados. Saber qué buscaba el enemigo, y dónde, era también una forma de esconderse.',
   },
   mirage: {
     que: 'De uso: por los próximos 5 km no entra ninguna pareja nueva de Harrier. Las que ya están, siguen.',
     dato: 'ALTOS, PARA QUE LOS MIREN A ELLOS',
-    historia: 'Después de los combates del 1 de mayo, los Mirage IIIEA casi no bajaron a pelear. Su trabajo paso a ser otro: volar alto y hacerse ver, para atraer a los Sea Harrier mientras los aviones de ataque entraban por abajo.',
+    historia: 'Después de los combates del 1 de mayo, los Mirage IIIEA casi no bajaron a pelear. Su trabajo pasó a ser otro: volar alto y hacerse ver, para atraer a los Sea Harrier mientras los aviones de ataque entraban por abajo.',
   },
   fenix: {
     que: 'De uso: la próxima vez que la barra de alarma se llene, la oleada se va detrás del Learjet y la barra baja. Se gasta una vez.',
     dato: 'JETS CIVILES EN LA ZONA DE GUERRA',
-    historia: 'El Escuadrón Fénix junto aviones civiles —Learjet y otros ejecutivos— con pilotos voluntarios. Guiaban a los A-4 como navegantes y hacían de señuelo en las pantallas britanicas. El 7 de junio, un Learjet de la Fuerza Aérea en misión de fotografía cayo derribado por un Sea Dart.',
+    historia: 'El Escuadrón Fénix juntó aviones civiles —Learjet y otros ejecutivos— con pilotos voluntarios. Guiaban a los A-4 como navegantes y hacían de señuelo en las pantallas británicas. El 7 de junio, un Learjet de la Fuerza Aérea en misión de fotografía cayó derribado por un Sea Dart.',
   },
   coordinado: {
-    que: 'Los antiaéreos y las defensas del buque tiran más lento: su recarga corre a un 60%. Todo lo que te dispara desde abajo duda mas.',
-    dato: 'DOS A LA VEZ, NO SABEN A QUIEN',
-    historia: 'Entrar de a varios y por distintos rumbos dividía las defensas del buque. El 25 de mayo, el sistema Sea Wolf de la Broadsword no pudo resolver a dos A-4 que se cruzaban, y no disparo. Ese ataque termino con el Coventry hundido.',
+    que: 'Los antiaéreos y las defensas del buque tiran más lento: su recarga corre a un 60%. Todo lo que te dispara desde abajo duda más.',
+    dato: 'DOS A LA VEZ, NO SABEN A QUIÉN',
+    historia: 'Entrar de a varios y por distintos rumbos dividía las defensas del buque. El 25 de mayo, el sistema Sea Wolf de la Broadsword no pudo resolver a dos A-4 que se cruzaban, y no disparó. Ese ataque terminó con el Coventry hundido.',
   },
   terreno: {
     que: 'Rozar la tierra perdona más: el margen de roce sobre el suelo dura casi el doble (1,8). Sobre el agua sigue igual.',
     dato: 'EL RADAR NO VE DETRÁS DE UNA LOMA',
-    historia: 'El radar mira en línea recta. Sobre las islas, los pilotos usaban las lomas y los valles para esconderse: entraban por detrás del terreno y aparecían encima del estrecho sin aviso. Hacia falta conocer cada cerro de memoria.',
+    historia: 'El radar mira en línea recta. Sobre las islas, los pilotos usaban las lomas y los valles para esconderse: entraban por detrás del terreno y aparecían encima del estrecho sin aviso. Hacía falta conocer cada cerro de memoria.',
   },
   itb: {
-    que: 'Solo CICLO: cada blanco te espera sin Sea Cat ni Sea Wolf, porque el Exocet de tierra ya le pego. Y la prueba del ataque te perdona un error mas.',
+    que: 'Solo CICLO: cada blanco te espera sin Sea Cat ni Sea Wolf, porque el Exocet de tierra ya le pegó. Y la prueba del ataque te perdona un error más.',
     dato: 'UN EXOCET DE BARCO, EN UN TRAILER',
     historia: 'Un capitán ingeniero y dos técnicos bajaron un Exocet MM38 de un destructor, lo montaron en un carro y lo armaron con válvulas, porque no había tiempo de programar nada. El 12 de junio, desde tierra, le pegaron al HMS Glamorgan en la popa.',
   },
@@ -278,12 +278,12 @@ export const LEE = {
   mask: {
     que: 'Abajo, abajo-abajo: clava el avión al ras, congela el roce y vacía la barra del radar enemigo. Mientras dura, podés disparar y usar turbo.',
     dato: 'ABAJO DEL HORIZONTE DEL RADAR',
-    historia: 'Terrain masking: volar tan bajo que el terreno, o la curva del mar, queda entre vos y el radar. La onda viaja recta y no dobla. Es la base de todo el ataque a ras: el radar del buque te ve recién cuando ya estas cerca.',
+    historia: 'Terrain masking: volar tan bajo que el terreno, o la curva del mar, queda entre vos y el radar. La onda viaja recta y no dobla. Es la base de todo el ataque a ras: el radar del buque te ve recién cuando ya estás cerca.',
   },
   splits: {
     que: 'Arriba, abajo, abajo con el avión alto: medio tonel y picada. Pierde altura y gana velocidad de golpe. Dejas el eje lateral y podés tirar.',
     dato: 'MEDIO TONEL Y MEDIO LOOP',
-    historia: 'El Split-S: el avión rola hasta quedar invertido y tira hacia abajo, cerrando medio loop. Sale en sentido contrario, más bajo y más rapido. Es la forma clásica de irse para abajo YA, pero pide altura: hecha bajo, termina en el suelo.',
+    historia: 'El Split-S: el avión rola hasta quedar invertido y tira hacia abajo, cerrando medio loop. Sale en sentido contrario, más bajo y más rápido. Es la forma clásica de irse para abajo YA, pero pide altura: hecha bajo, termina en el suelo.',
   },
   breakt: {
     que: 'Abajo, izquierda, izquierda (o derecha): tirón lateral violento, alas de canto. El avión se achica y esquiva de costado. Te deja el eje vertical.',
@@ -308,12 +308,12 @@ export const LEE = {
   hiyo: {
     que: 'Arriba, abajo, arriba: sube, cuelga y recae. Esquive vertical: lo que venía pasa por abajo. Te cuesta velocidad.',
     dato: 'SUBIR PARA NO PASARSE',
-    historia: 'El high yo-yo: el avión sube fuera del viraje para no pasarse de largo de uno más lento, cambia velocidad por altura y después recae sobre el. Colgarse arriba y dejar que el otro pase.',
+    historia: 'El high yo-yo: el avión sube fuera del viraje para no pasarse de largo de uno más lento, cambia velocidad por altura y después recae sobre él. Colgarse arriba y dejar que el otro pase.',
   },
   jink: {
     que: 'Arriba, izquierda, derecha: cuatro quiebres secos, rumbo imposible de adivinar. No controlás nada mientras dura, pero el avión se achica.',
     dato: 'NUNCA DERECHO DOS SEGUNDOS',
-    historia: 'Jinking: cambios bruscos y desparejos de rumbo y altura para que el artillero no pueda calcular donde vas a estar. Contra el cañón y la antiaérea, lo peor que podés hacer es volar derecho y parejo.',
+    historia: 'Jinking: cambios bruscos y desparejos de rumbo y altura para que el artillero no pueda calcular dónde vas a estar. Contra el cañón y la antiaérea, lo peor que podés hacer es volar derecho y parejo.',
   },
   spin: {
     que: 'Picar y rolar: rola sobre su eje mientras pica. No se controla nada; el avión se achica y se corre un poco hacia el lado del rolido.',
@@ -328,12 +328,12 @@ export const LEE = {
   climbmax: {
     que: 'El mismo combo, ya contra el radar: cruza el techo. Expuesto: la alarma se carga. Pero llegás a donde abajo no se pasa.',
     dato: 'IDA ALTA, ATAQUE BAJO',
-    historia: 'Volar alto gasta mucho menos combustible que volar al ras. Por eso la ida se hacia alta, y se bajaba recién al acercarse a la flota. Todo el tiempo arriba era tiempo en las pantallas britanicas.',
+    historia: 'Volar alto gasta mucho menos combustible que volar al ras. Por eso la ida se hacía alta, y se bajaba recién al acercarse a la flota. Todo el tiempo arriba era tiempo en las pantallas británicas.',
   },
   barrel: {
     que: 'Rolar: abajo, derecha, arriba, izquierda. La O grande: sube, pasa invertido y vuelve al punto exacto. No se controla, y el avión se achica.',
     dato: 'UN ROLIDO ALREDEDOR DE UN PUNTO',
-    historia: 'El tonel barril combina un rolido con un loop: el avión dibuja un espiral y termina en la misma línea en la que entro. En combate sirve para frenar en el camino sin perder altura y dejar que el que te persigue se pase de largo.',
+    historia: 'El tonel barril combina un rolido con un loop: el avión dibuja un espiral y termina en la misma línea en la que entró. En combate sirve para frenar en el camino sin perder altura y dejar que el que te persigue se pase de largo.',
   },
 };
 

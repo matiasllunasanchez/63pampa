@@ -209,7 +209,7 @@ export const MISSIONS = [
     roster: F5, par: 6500, story: 'storyM2', brief: 'briefM2', epi: 'epiM2',
   },
   {
-    id: 'm3', name: 'EL INVENTO', date: 'primeros dias de mayo de 1982',
+    id: 'm3', name: 'EL INVENTO', date: 'primeros días de mayo de 1982',
     despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'patrulla de reconocimiento costero' },
     // LA PISTA OBLIGATORIA DE ESTA MISION (pedido del autor, 10/10/2026): ALAMBRE, desde que
     // arranca. Es la unica mision que pide la suya; el resto de la campaña vuela con game.mp3.
@@ -236,7 +236,7 @@ export const MISSIONS = [
     roster: F5, par: 7000, story: 'storyM3', brief: 'briefM3', epi: 'epiM3',
   },
   {
-    id: 'm4', name: 'EL DIA QUE SANGRO EL MAR', date: '4 de mayo de 1982',
+    id: 'm4', name: 'EL DÍA QUE SANGRÓ EL MAR', date: '4 de mayo de 1982',
     despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'blanco: destructor clase 42' },
     goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: 2600 },
     cfg: C({ bombs: 0.5 }),
@@ -278,7 +278,7 @@ export const MISSIONS = [
     roster: F5, par: 7500, story: 'storyM4', brief: 'briefM4', epi: 'epiM4',
   },
   {
-    id: 'm5', name: 'EL CALLEJON DE LAS BOMBAS', date: '21 de mayo de 1982',
+    id: 'm5', name: 'EL CALLEJÓN DE LAS BOMBAS', date: '21 de mayo de 1982',
     despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'entrada al estrecho de San Carlos' },
     goal: { kind: 'ship', ship: 'HMS ARDENT', dist: 2600 },
     climax: 'arena',   // ver la nota de arriba
@@ -331,7 +331,7 @@ export const MISSIONS = [
     roster: F5, par: 8500, story: 'storyM5', brief: 'briefM5', epi: 'epiM5',
   },
   {
-    id: 'm6', name: 'LA BOMBA QUE NO DESPERTO', date: '23 de mayo de 1982',
+    id: 'm6', name: 'LA BOMBA QUE NO DESPERTÓ', date: '23 de mayo de 1982',
     despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'fragata al noroeste del estrecho' },
     goal: { kind: 'ship', ship: 'HMS ANTELOPE', dist: 2800 },
     cfg: C({ sky: 'sun', obstacles: 1.7, fog: 1, fogLen: 0 }),
@@ -424,7 +424,7 @@ export const MISSIONS = [
     roster: F3, par: 11500, story: 'storyM11', brief: 'briefM11', epi: 'epiM11',
   },
   {
-    id: 'm12', name: 'ANGEL DE CORRIENTES', date: '8 de junio de 1982 · segunda salida',
+    id: 'm12', name: 'ÁNGEL DE CORRIENTES', date: '8 de junio de 1982 · segunda salida',
     despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'segunda salida sobre Fitzroy' },
     goal: { kind: 'ship', ship: 'RFA SIR TRISTRAM', dist: 3000 },
     cfg: C({ obstacles: 1.7, bombs: 2, rain: 1, squad: 3 }),

@@ -35,6 +35,46 @@ export const U = W / DW;   // 1.5 — factor de la grilla de diseño a la de mun
 
 export const cv = document.getElementById('g');
 export const ctx = cv.getContext('2d');
+// LAS TILDES DE EMBOLISM SPARK (25/11, el autor: "dibujarlas encima"). Esa letra (FONTS.desc: el homenaje y el texto
+// corrido de los menus) trae la "á" pero la dibuja IGUAL que la "a" (tools/glifos.js): el texto dice "caídos" y se lee
+// "caidos". En vez de cambiar la letra, cada vez que se escribe con ella se le dibuja la marca encima a la vocal: el acento
+// (una rayita inclinada), la virgulilla de la eñe y la dieresis. La posicion sale de medir el texto hasta esa letra, con
+// la alineacion y el `maxWidth` de la llamada; las alturas son fracciones del cuerpo de la letra.
+const TILDE_FUENTE = 'EmbolismSpark', CON_MARCA = /[áéíóúÁÉÍÓÚñÑüÜ]/;
+const MARCA = { á: 'a', é: 'e', í: 'i', ó: 'o', ú: 'u', Á: 'A', É: 'E', Í: 'I', Ó: 'O', Ú: 'U', ñ: 'n', Ñ: 'N', ü: 'u', Ü: 'U' };
+const fillTextNativo = ctx.fillText.bind(ctx);
+ctx.fillText = function (txt, x, y, maxW) {
+  if (maxW === undefined) fillTextNativo(txt, x, y); else fillTextNativo(txt, x, y, maxW);
+  const t = String(txt);
+  if (!CON_MARCA.test(t) || !ctx.font.includes(TILDE_FUENTE)) return;
+  const m = /(\d+(?:\.\d+)?)px/.exec(ctx.font), s = m ? +m[1] : 10;
+  const total = ctx.measureText(t).width, k = maxW !== undefined && total > maxW ? maxW / total : 1;
+  const al = ctx.textAlign, x0 = al === 'center' ? x - total * k / 2 : (al === 'right' || al === 'end') ? x - total * k : x;
+  ctx.save();
+  ctx.textAlign = 'left';
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i], base = MARCA[c];
+    if (!base) continue;
+    const pre = ctx.measureText(t.slice(0, i)).width, w = ctx.measureText(base).width;
+    const cx = x0 + (pre + w / 2) * k, mayus = base !== base.toLowerCase();
+    const top = y - s * (mayus ? 0.78 : (base === 'i' ? 0.62 : 0.5));   // arriba de la letra (la i: arriba de su punto)
+    const g = Math.max(0.6, s * 0.075);
+    ctx.beginPath();
+    if (c === 'ñ' || c === 'Ñ') {                  // la virgulilla: una ese acostada
+      const a = w * 0.42 * k, yy = top - s * 0.1;
+      ctx.lineWidth = g; ctx.strokeStyle = ctx.fillStyle;
+      ctx.moveTo(cx - a, yy + s * 0.03); ctx.quadraticCurveTo(cx - a / 2, yy - s * 0.07, cx, yy); ctx.quadraticCurveTo(cx + a / 2, yy + s * 0.07, cx + a, yy - s * 0.03);
+      ctx.stroke();
+    } else if (c === 'ü' || c === 'Ü') {           // la dieresis: dos puntos
+      const r = g * 0.75, d = w * 0.22 * k;
+      ctx.arc(cx - d, top - s * 0.08, r, 0, Math.PI * 2); ctx.moveTo(cx + d + r, top - s * 0.08); ctx.arc(cx + d, top - s * 0.08, r, 0, Math.PI * 2); ctx.fill();
+    } else {                                        // el acento: una rayita inclinada hacia la derecha
+      const h = s * 0.17, b2 = s * 0.08;
+      ctx.moveTo(cx - b2 * 0.6, top); ctx.lineTo(cx - b2 * 0.6 + g, top); ctx.lineTo(cx + b2 + g * 0.5, top - h); ctx.lineTo(cx + b2 - g * 0.5, top - h); ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+};
 cv.width = W * SC;
 cv.height = H * SC;
 

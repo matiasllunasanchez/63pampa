@@ -25,16 +25,16 @@ import { DESDE_BRP } from './bombas.js';
 
 export const UPGRADES = [
   { id: 'mask', name: 'TERRAIN MASKING', seq: 'abajo abajo-abajo', desc: 'Clavado al ras. Baja alarma', quote: 'Pegadito al agua, culiao. Ahí no te ve ni tu vieja.' },
-  { id: 'splits', name: 'SPLIT-S', seq: 'arriba abajo abajo (alto)', desc: 'Salida en picada', quote: 'Media vueltita y pa abajo, de una. Chau, ingles.' },
+  { id: 'splits', name: 'SPLIT-S', seq: 'arriba abajo abajo (alto)', desc: 'Salida en picada', quote: 'Media vueltita y pa abajo, de una. Chau, inglés.' },
   { id: 'breakt', name: 'BREAK TURN', seq: 'abajo izq izq / abajo der der', desc: 'Tirón de costado', quote: 'Un volantazo de costado. Agarrate, que se te vuela el mate.' },
   { id: 'loyo', name: 'LOW YO-YO', seq: 'abajo arriba abajo', desc: 'Pica y gana velocidad', quote: 'Bajas, agarrás envión y salís picando. Como en el potrero.' },
   { id: 'sturn', name: 'S-TURN', seq: 'izq der izq', desc: 'Esquiva en S', quote: 'Ida y vuelta, como un wing. La gambeta cordobesa, viste.' },
-  { id: 'popup', name: 'POP-UP', seq: 'abajo arriba arriba (bajo)', desc: 'Trepada de ataque', quote: 'Un saltito pa asomar la nariz, y abajo. Que hace, inglés?' },
+  { id: 'popup', name: 'POP-UP', seq: 'abajo arriba arriba (bajo)', desc: 'Trepada de ataque', quote: 'Un saltito pa asomar la nariz, y abajo. ¿Qué hace, inglés?' },
   { id: 'hiyo', name: 'HIGH YO-YO', seq: 'arriba abajo arriba', desc: 'Esquive vertical', quote: 'Te colgás arriba y que pase de largo el gil.' },
-  { id: 'jink', name: 'JINK', seq: 'arriba izq der', desc: 'Zigzag de 4 quiebres', quote: 'Zigzag de loco. Ni yo se pa donde voy, culiao.' },
+  { id: 'jink', name: 'JINK', seq: 'arriba izq der', desc: 'Zigzag de 4 quiebres', quote: 'Zigzag de loco. Ni yo sé pa dónde voy, culiao.' },
   { id: 'spin', name: 'TIRABUZON', seq: 'picar + rolar (der) izq izq', desc: 'Rola picando', quote: 'Girás como trompo y te vas pa abajo. Mareadito, pero vivo.' },
   { id: 'climb', name: 'ASCENSO', seq: 'mirar arriba + arriba arriba', desc: 'Sube al techo del radar', quote: 'Subís hasta el techito y te quedas ahí, quietito.' },
-  { id: 'climbmax', name: 'SOBRE EL RADAR', seq: 'igual, ya contra el radar', desc: 'Pasa el radar. Te ven', quote: 'Te ven todos, pero llegas. A lo guapo.' },
+  { id: 'climbmax', name: 'SOBRE EL RADAR', seq: 'igual, ya contra el radar', desc: 'Pasa el radar. Te ven', quote: 'Te ven todos, pero llegás. A lo guapo.' },
   { id: 'barrel', name: 'TONEL BARRIL', seq: 'rolar: abajo der arriba izq', desc: 'Vuelve al mismo punto', quote: 'Una vuelta enterita y volvés al mismo lugar. Como el colectivo.' },
 ];
 
@@ -55,9 +55,9 @@ export const CHAFITAS = [
   chafita(1, 'CHAFITAS',
     '+1 {chapitas}. Engaña misiles',
     'Chaff le dicen los yanquis. Yo les digo chafitas: son chapitas, pero más finitas.'),
-  chafita(2, 'MÁS CHAFITAS', '+1 {chapitas}. Dos cargas', 'Otro cartucho! La máquina de tallarines corta... si, otro.', 'chafitas1'),
+  chafita(2, 'MÁS CHAFITAS', '+1 {chapitas}. Dos cargas', '¡Otro cartucho! La máquina de tallarines corta... sí, otro.', 'chafitas1'),
   chafita(3, 'MÁS CHAFITAS', '+1 {chapitas}. Tres cargas', 'Tres. Le di a la manivela toda la noche, no siento el brazo.', 'chafitas2'),
-  chafita(4, 'MÁS CHAFITAS', '+1 {chapitas}. Cuatro, el máximo', 'Cuatro. Más no entran. Lo medi. Dos veces.', 'chafitas3'),
+  chafita(4, 'MÁS CHAFITAS', '+1 {chapitas}. Cuatro, el máximo', 'Cuatro. Más no entran. Lo medí. Dos veces.', 'chafitas3'),
 ];
 
 /** LA METRALLA Y SU CINTA (9/10/2026) — dos escaleras de mejoras del cañon, con el mismo molde que las
@@ -72,13 +72,13 @@ export const CHAFITAS = [
  *  con la cinta corta (decision del autor, ver game.js). */
 const arma = (id, nivel, campo, name, desc, quote, requiere) => ({ id, [campo]: nivel, name, tecla: 'X / ESPACIO', desc, quote, requiere });
 export const METRALLA = [
-  arma('metralla2', 2, 'metralla', 'METRALLA DE PLATA', '{canon} ×2 tiros', 'Cambie los resortes: escupe el doble porque... bueno, escupe.'),
+  arma('metralla2', 2, 'metralla', 'METRALLA DE PLATA', '{canon} ×2 tiros', 'Cambié los resortes: escupe el doble porque... bueno, escupe.'),
   arma('metralla3', 3, 'metralla', 'METRALLA DE ORO', '{canon} ×3,5. Arranca lento',
-    'Seis caños girando! Tarda un segundo, pero despues... perdon.', 'metralla2'),
+    '¡Seis caños girando! Tarda un segundo, pero después... perdón.', 'metralla2'),
 ];
 export const CINTA = [
-  arma('cinta2', 2, 'cinta', 'CINTA LARGA', '{canon} ráfaga +50 %', 'Si la cinta es más larga, la ráfaga dura mas. Es obvio. Perdon.'),
-  arma('cinta3', 3, 'cinta', 'CINTA ENTERA', '{canon} ráfaga ×2', 'Toda la cinta que entra en el ala. La medi tres veces. Cuatro.', 'cinta2'),
+  arma('cinta2', 2, 'cinta', 'CINTA LARGA', '{canon} ráfaga +50 %', 'Si la cinta es más larga, la ráfaga dura más. Es obvio. Perdón.'),
+  arma('cinta3', 3, 'cinta', 'CINTA ENTERA', '{canon} ráfaga ×2', 'Toda la cinta que entra en el ala. La medí tres veces. Cuatro.', 'cinta2'),
 ];
 /** LA BRP-250 (10/10/2026, el autor: "deberia ser otra mejora del Pichon") — la bomba española con la
  *  espoleta rehecha (data/bombas.js; es «Doce segundos», §3 de docs/historia/MEJORAS_PICHON.md), que en
@@ -91,13 +91,13 @@ export const CINTA = [
  *  Fuera de campaña manda `bombaDe` (data/bombas.js). */
 export const BOMBA_BRP = { id: 'brp', bomba: 'brp', name: 'BRP-250', tecla: 'Z / L1', desde: DESDE_BRP - 1,
   desc: '{bomba} casi no falla',
-  quote: 'Le rehice la espoleta. La que pega, revienta. Casi poetico.' };
+  quote: 'Le rehice la espoleta. La que pega, revienta. Casi poético.' };
 /** EL SILICONADO M-60 (17/11/2026, el autor): el aerosol del parabrisas. Volando rasante el rocio del mar deja
  *  en el vidrio una costra de sal que va tapando la vista de los bordes al centro (systems/salitre.js); con esta
  *  carta el vidrio esta siliconado y la sal no se pega. Una sola carta, y queda. */
 export const SILICONADO = { id: 'siliconado', name: 'SILICONADO M-60',
   desc: 'Sin sal en el vidrio',
-  quote: 'Un aerosol de ferretería! La sal resbala y... perdón, funciona.' };
+  quote: '¡Un aerosol de ferretería! La sal resbala y... perdón, funciona.' };
 const tiene = (owned, id) => !!owned && (owned.includes ? owned.includes(id) : owned.has(id));
 /** ¿La libreta `owned` tiene el SILICONADO? (sin el, la sal se pega: systems/salitre.js) */
 export const siliconadoDe = owned => tiene(owned, SILICONADO.id);

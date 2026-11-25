@@ -524,7 +524,7 @@ export function drawVictory(w) {
   ctx.fillStyle = P.accent; ctx.font = titleFont(20);
   ctx.fillText(T('vic_titulo'), W / 2, 34);
   ctx.fillStyle = P.dim; ctx.font = descFont(10);
-  ctx.fillText('(2 niveles de prueba - se agregaran mas)', W / 2, 52);
+  ctx.fillText('(2 niveles de prueba - se agregarán más)', W / 2, 52);
   ctx.fillStyle = P.ink; ctx.font = menuFont(12);
   ctx.fillText(T('vic_puntaje', { n: Math.floor(w.score) }), W / 2, 84);
 

@@ -3,7 +3,7 @@
 // tablero (data/iconos.js, el que dibuja render/iconos.js `iconoEn`): la carta lo dibuja. Donde se escribe sin iconos
 // (el banco de la campaña, listas), `descPlano` lo cambia por la palabra. Datos puros.
 export const PALABRA_ICONO = {
-  bomba: 'bomba', canon: 'cañon', misil: 'misil', chapitas: 'chafitas', escudo: 'escudo', avion: 'avion',
+  bomba: 'bomba', canon: 'cañón', misil: 'misil', chapitas: 'chafitas', escudo: 'escudo', avion: 'avión',
   tanque: 'tanque', chancha: 'Chancha', momentum: 'momentum', rasante: 'rasante', nafta: 'nafta', turbo: 'turbo',
 };
 export const ICONO_RE = /\{(\w+)\}/g;

@@ -147,7 +147,7 @@ export function capacidadesDe(pl, lang = 'es') {
   pz('casco', true, (en ? 'DODGE ' : 'ESQUIVE ') + esq + '%',
     'Un disparo que te alcanza pasa de largo el ' + esq + '% de las veces; en plena pirueta, mucho más' + (cla < 100 ? ' (las piruetas le rinden el ' + cla + '%)' : ''),
     'A hit that reaches you misses ' + esq + '% of the time; mid-manoeuvre, far more' + (cla < 100 ? ' (manoeuvres give ' + cla + '%)' : ''));
-  const rol = pf.rolido < 0.5 ? ['MUY LENTO', 'VERY SLOW'] : pf.rolido < 0.95 ? ['LENTO', 'SLOW'] : pf.rolido > 1.1 ? ['RAPIDO', 'FAST'] : ['NORMAL', 'NORMAL'];
+  const rol = pf.rolido < 0.5 ? ['MUY LENTO', 'VERY SLOW'] : pf.rolido < 0.95 ? ['LENTO', 'SLOW'] : pf.rolido > 1.1 ? ['RÁPIDO', 'FAST'] : ['NORMAL', 'NORMAL'];
   const vel = pl.vuelo && pl.vuelo.vel ? Math.round(pl.vuelo.vel * 100) : 100;
   pz('reloj', true, (en ? 'SPEED ' : 'VEL. ') + vel + '%', 'Velocidad ' + vel + '% del Skyhawk · rolido con Q / E ' + rol[0].toLowerCase(),
     'Speed ' + vel + '% of the Skyhawk · Q / E roll ' + rol[1].toLowerCase());
