@@ -102,7 +102,7 @@ export const AGU = {
   // EL PISO PARA QUE ARRANQUE. Por debajo de esto el flow no se dispara y lo juntado se pierde: el
   // poder cambia la camara y la lamina del avion de golpe, y dos segundos de eso no se leen como
   // una rafaga sino como un error grafico.
-  CONC_MIN: 3,
+  CONC_MIN: 6,     // (25/11: era 3 — el RASANTE es la ULTI: "que dure menos y cueste mas", RAS_ASIST en data/tuning.js)
   // LA GRACIA DE LA ENTRADA. Venis bombeando el gas para no rebotar contra el agua; el estado se
   // abre, el avion se clava —o sea que el gas ya no hace falta— pero tu dedo YA SALIO. Sin esto,
   // ese toque cae afuera del azul y te saca en el mismo instante en que entraste: el reflejo que

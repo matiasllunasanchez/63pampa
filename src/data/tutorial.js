@@ -63,9 +63,10 @@ const base = {
   // (la hora es inventada — 21/11, el autor: "inventemos una hora": temprano, con el sol bajo del amanecer)
   despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', rumbo: 'vuelo de instrucción', hora: '07:40' },
   chancha: false, par: 3000, aviones: AVION, escuadrilla: '', goal: LEJOS, fases: FASES,
-  // EL AVION NO SE CAE (la perilla de M1): un choque pega en la chapa, nunca baja de `piso`, y lo comenta
-  // un banco de avisos del Turco y el Pichon. Es el "punto de control" del plan: no se pierde nada.
-  sinMuerte: { golpe: 20, piso: 30, gracia: 1.5 },
+  // (25/11, el autor: "en tutorial debe poder morir. Muero y reinicio completamente el tutorial. Acabo de chocar y no
+  // muero pero se trabo"): ya no lleva `sinMuerte` —el avion que no se caia quedaba metido en el cerro o el buque,
+  // golpeando cuadro tras cuadro—. Chocar revienta y sale REINTENTAR; SI vuelve a empezar la etapa de cero (game.js
+  // onDeath / reintentarLibro).
   avisos: { agua: 'AV_TUT_AGUA', choque: 'AV_TUT_CHOQUE', piso: 'AV_TUT_PISO', pista: 'AV_TUT_PISTA', bl_errado: 'AV_TUT_ERRO', bl_larga: 'AV_TUT_ERRO', cada: 5 },
 };
 
@@ -102,8 +103,11 @@ const ETAPA1 = [
   { dice: 'TUT1_ROLAR', foco: ['horizonte'], teclas: ['Roll'],
     sigue: [{ usa: ['rollL', 'rollR'], consigna: 'tutC_rolar' }], remate: 'TUT1_ROLAR_OK' },
   // (solo OLAS y pocas: sin pajaros ni nada mas, 18/11 — "no tantos enemigos, y menos en la primera etapa")
+  // (25/11, el autor: "antes de pedirte que pases las olas te tiene que pedir que vuelvas a vuelo rasante, porque si ya
+  // estas arriba esquivas las olas super por arriba"): primero BAJAR a rasante (5 m o menos: lo que el altimetro lee 5),
+  // y recien ahi cuentan las olas
   { dice: 'TUT1_OLAS', obstacles: 0.9,
-    sigue: [{ pasa: 6, consigna: 'tutC_pasa' }], remate: 'TUT1_OLAS_OK' },
+    sigue: [{ altBajo: 5.5, consigna: 'tutC_volveRas' }, { pasa: 6, consigna: 'tutC_pasa' }], remate: 'TUT1_OLAS_OK' },
   // LA SAL EN EL PARABRISAS (19/11, el autor: "explicar la mecanica del vidrio empañado con sal, y que para mejorarlo
   // tiene que subir un poco"; despues, "que la limpie la nube"): el paso arranca con el vidrio salado (`sal`) y se lava
   // adentro de la nube (systems/salitre.js)
@@ -137,7 +141,8 @@ const ETAPA1 = [
 // 3D, asi que no entran (el plan los nombraba): cañon, calor, blancos que se mueven y un Harrier de practica.
 const ETAPA2 = [
   { dice: 'TUT2_HOLA' },
-  { dice: 'TUT2_CANON', foco: ['canon'], teclas: ['Gun', 'Fly'], blancos: { tipo: 'balloon', n: 3 },
+  // (25/11, el autor: "dice rompe los globos y te permite esquivarlos con el stick izquierdo, eso no va… solo A"): solo el cañon
+  { dice: 'TUT2_CANON', foco: ['canon'], teclas: ['Gun'], blancos: { tipo: 'balloon', n: 3 },
     sigue: [{ rompe: 3, consigna: 'tutC_rompe' }], remate: 'TUT2_CANON_OK' },
   { dice: 'TUT2_CALOR', foco: ['canon'], teclas: ['Gun'],
     sigue: [{ calienta: true, consigna: 'tutC_calienta' }], remate: 'TUT2_CALOR_OK' },
@@ -206,12 +211,17 @@ const ETAPA3 = [
   // (21/11, el autor: "para lanzarla, stick derecho para arriba y clic R3: eso tiene que explicar el tutorial")
   // (21/11, el autor: "la marca verde de buque debo mostrarla ahi"; "no tenes forma de medir segundos"): el foco va en
   // el SEMAFORO de la suelta (render/blanco.js), que dice cuando soltar sin contar nada
-  { dice: 'TUT3_BLANCO', cuando: { faltan: 0.35 }, foco: ['semaforo'], teclas: ['Bomba'],   // (sin el altimetro en el foco: la caja va abajo y no tapa el semaforo)
+  { dice: 'TUT3_BLANCO', cuando: { faltan: 0.35 }, foco: ['ruta'], teclas: ['Bomba'],   // (25/11: sin semaforo — el foco, la barra de arriba)
+    // (sin el altimetro en el foco: la caja va abajo y no tapa el semaforo)
     sigue: [{ suelta: true, consigna: 'tutC_suelta' }, { pega: true, consigna: 'tutC_hunde' }] },
   // EL ESCAPE, APENAS PEGA LA BOMBA (21/11, el autor: "la explicacion del escape debe estar apenas entra la bomba: pausa y
   // explica, BIEN, AHORA ESCAPA RAPIDO DE LA ZONA. Sin cambio de clima ni tanta transicion"): game.js, en el tutorial,
   // saltea el video del viraje y escapa con una sola estrella
-  { dice: 'TUT3_ESCAPE', sigue: [{ hunde: true, consigna: 'tutC_escapa' }], remate: 'TUT3_BLANCO_OK' },
+  // LA VUELTA MAS LARGA Y CON ENEMIGOS (25/11, el autor: "la pasada y la vuelta es muy corta… meter mas complejidad en
+  // ESCAPA YA, mas enemigos y demas, hasta estar a una distancia considerable como para estar lejos del radar y llamar a
+  // la Chancha"): despues de hundirlo hay que ALEJARSE (`pasado`: 0,35 del camino mas alla del buque) con la fase de
+  // escape sembrada (abajo, `fases`); recien ahi la nafta y la Chancha
+  { dice: 'TUT3_ESCAPE', sigue: [{ hunde: true, consigna: 'tutC_escapa' }, { pasado: 0.35, consigna: 'tutC_aleja' }], remate: 'TUT3_BLANCO_OK' },
   // LA NAFTA Y LA CHANCHA (18/11, "falta explicar combustible y recarga"): el tanque baja y la Chancha lo llena
   { dice: 'TUT3_NAFTA', foco: ['nafta'], nafta: 35 },
   { dice: 'TUT3_CHANCHA', foco: ['chancha'], teclas: ['Chancha'], llena: ['chancha'],
@@ -232,7 +242,7 @@ const ETAPA4 = [
   { dice: 'TUT4_RUMBO', foco: ['mach'], teclas: ['Fly'],
     sigue: [{ usa: ['l', 'r'], consigna: 'tutC_virar' }], remate: 'TUT4_RUMBO_OK' },
   { dice: 'TUT4_RELIEVE', foco: ['alt'], teclas: ['Gas'],
-    sigue: [{ bajoTecho: 8, consigna: 'tutC_relieve' }], remate: 'TUT4_RELIEVE_OK' },
+    sigue: [{ bajoTecho: 8, techo: 5, consigna: 'tutC_relieve' }], remate: 'TUT4_RELIEVE_OK' },   // (25/11: a 5 m del suelo, como el rasante de la etapa 1)
   // (21/11, el autor: "no se explica que el indicador es la zona de radar"): el foco va en el cartel ZONA RADAR
   { dice: 'TUT4_RADAR', foco: ['radar', 'alt'] },
   { dice: 'TUT4_HARRIER' },
@@ -271,7 +281,9 @@ export const TUTORIAL_ETAPAS = [
       { tipo: 'transito', hasta: 0.2, solo: MAR, bombs: 0, bidones: false },
       { tipo: 'rasante', hasta: 0.85, solo: MAR, bombs: 0, bidones: false },
       { tipo: 'blanco', hasta: 1, solo: MAR, bombs: 0, bidones: false },
-      { tipo: 'vuelta', hasta: 1.45, obstacles: 0, caza: 0, bombs: 0, bidones: false },
+      // (25/11) el ESCAPE con enemigos —olas, pajaros y Harriers— hasta 1,35; despues, mar calmo para la Chancha y la llegada
+      { tipo: 'vuelta', hasta: 1.35, obstacles: 1.1, caza: 1, bombs: 0, bidones: false },
+      { tipo: 'vuelta', hasta: 2, obstacles: 0, caza: 0, bombs: 0, bidones: false },
     ],
     aviones: [{ ...AVION[0], carga: 'tanques_bomba' }],
     cfg: P({ sky: 'dusk', terrain: 'sea', carga: 'tanques_bomba', radar: 'normal', fuelOn: true, fuelScale: 0.2 }), pasos: ETAPA3,   // (sin poderes: el RASANTE te clava al ras y no deja subir a soltar la bomba)
@@ -288,7 +300,10 @@ export const TUTORIAL_ETAPAS = [
     // (la Chancha ya se enseño). Un solo tramo largo: la etapa la cierran los pasos, como las otras
     bomba: 'brp', dificultad: 'facil', desdePuerto: true,
     aviones: [{ ...AVION[0], carga: 'tanques_bomba' }],
-    cfg: P({ sky: 'cloudy', terrain: 'sea', start: 'runway', carga: 'tanques_bomba', radar: 'normal' }), pasos: ETAPA4,
+    // (25/11, el autor: "no engancha bien entre el despegue y la isla, despeguemos DIRECTAMENTE en la isla, no secuencia"):
+    // ya no hay carrera en la pista del pasillo y salto al mapa — arranca en el aire, recien levantado sobre la cabecera de
+    // la BAM MALVINAS, con el tren todavia abajo (game.js `abrirTutorial`)
+    cfg: P({ sky: 'cloudy', terrain: 'sea', start: 'air', carga: 'tanques_bomba', radar: 'normal' }), pasos: ETAPA4,
     consejos: { es: ['En las islas la altura se mide desde el suelo: el cerro te la come.', 'Marcá en el MAPA de la pausa y seguí la brújula.', 'Adentro de un radar inglés, abajo de 20 m.'],
       en: ['On the islands altitude is measured from the ground: hills eat it.', 'Mark a point on the pause MAP and follow the compass.', 'Inside a British radar, stay under 20 m.'] } },
 ];
@@ -447,7 +462,7 @@ const LISTA = [
   escena('TUT3_RADAR',
     T(PICHON, 'pichon_radio_explicando', 'El radar inglés ve hasta la raya roja del altímetro. Subí a verlo y bajá rápido.'),
     B(PICHON, 'pichon_radio_orgullo', 'Abajo del radar no existimos.')),
-  escena('TUT3_RADAR_OK', T(TURCO, 'turco_radio_aprueba', 'El radar avisa y después te tira. Tenés poco pa bajar.')),
+  escena('TUT3_RADAR_OK', T(TURCO, 'turco_radio_aprueba', 'El radar avisa y después te tira. Tenés poco tiempo para bajar.')),
   escena('TUT3_SECUND',
     T(TURCO, 'turco_radio_escucha', 'Abajo a la derecha, lo que soltás: tanques o bomba. Pasá a los tanques y volvé a la bomba.'),
     B(PICHON, 'pichon_radio_explicando', 'Las chafitas van aparte: se largan directo.')),
@@ -458,7 +473,7 @@ const LISTA = [
     T(TURCO, 'turco_radio_sonrisa', 'Llamá a la Chancha, el Hércules cisterna. Ponete atrás y abajo de la manguera, quietito.')),
   escena('TUT3_CHANCHA_OK', T(TURCO, 'turco_radio_risa', 'La Chancha no falla nunca. Bueno, casi.')),
   escena('TUT3_BLANCO',
-    T(PICHON, 'pichon_radio_alerta', 'El buque. El semáforo: rojo lejos, amarillo ya llega, verde ¡SOLTÁ!'),
+    T(PICHON, 'pichon_radio_alerta', 'El buque. Mirá arriba: cuando el nombre del casco se pone verde y titila, ¡SOLTÁ!'),
     T(TURCO, 'turco_radio_sonrisa', 'Mantené el recorrido pa ver ande cae. Con la verde, la largás.'),
     B(PICHON, 'pichon_radio_preocupado', 'Si errás, otra pasada. El casco no se va.')),
   escena('TUT3_ESCAPE',

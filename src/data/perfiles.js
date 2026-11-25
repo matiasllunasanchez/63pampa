@@ -46,7 +46,7 @@ export const ESQUIVE = {
   PIRUETA: {
     jink: 0.4, breakt: 0.4, sturn: 0.35, tonel: 0.35, splits: 0.4, derrape: 0.4,
     barrel: 0.45, spin: 0.45, mortal: 0.5, cobrainv: 0.5, cobra: 0.3,
-    hiyo: 0.25, loyo: 0.25, popup: 0.15, mask: 0.15, climb: 0.1, climbmax: 0.1, dive: 0.1, divemax: 0.15,
+    cielo: 0.35, barrena: 0.35, hiyo: 0.25, loyo: 0.25, popup: 0.15, mask: 0.15, climb: 0.1, climbmax: 0.1, dive: 0.1, divemax: 0.15,
     isl_vuelta: 0.5, isl_vertical: 0.35,
   },
   // cuanto del bono de la pirueta le toca a cada clase de avion (uno duro la hace mas lenta y abierta)

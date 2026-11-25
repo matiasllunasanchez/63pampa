@@ -1768,7 +1768,8 @@ function dibujarOtro(v, k, yo) {
   for (const f of v.wrap) ancho = Math.max(ancho, ctx.measureText(f).width);
   ctx.font = 'bold 5px monospace';
   ancho = Math.max(ancho, ctx.measureText(v.personaje || '').width);
-  const alto = CHV_CARA, tw = Math.min(W - 2 * VOZ.margen - CHV_CARA - VOZ.aire, Math.ceil(ancho) + OTRO_PAD * 2);
+  // (25/11) con tres renglones la caja crece por abajo lo que haga falta; con uno o dos queda del alto del retrato
+  const alto = Math.max(CHV_CARA, 12 + (v.wrap.length - 1) * OTRO_FILA + 5), tw = Math.min(W - 2 * VOZ.margen - CHV_CARA - VOZ.aire, Math.ceil(ancho) + OTRO_PAD * 2);
   // EN DOS TIEMPOS (pedido del autor, 12/9): PRIMERO ENTRA EL RETRATO desde el borde, y recien
   // cuando esta puesto SALE EL TEXTO de atras de el, hacia la izquierda. Al irse pasa al reves: el
   // texto se guarda detras del retrato y despues el retrato se va. Es el gesto de alguien que

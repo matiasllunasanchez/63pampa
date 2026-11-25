@@ -27,7 +27,8 @@ import { proj, popup } from '../core/fx.js';
 import { T } from '../core/i18n.js';
 import { P } from '../data/palette.js';
 import { W, H, HOR, F, PZ } from '../render/ctx.js';
-import { TURBO, ALTO } from '../data/tuning.js';
+import { TURBO, ALTO, RAS_ASIST } from '../data/tuning.js';
+import { hitbox } from '../core/hitbox.js';
 import { CANON_LIMITE, CANON_TRABA } from '../data/frio.js';
 // LO ALTO (14/11, data/tuning.js ALTO): arriba del carril (FLY_TOP) la trepada y la picada se van soltando
 // a lo largo de ALTO.RAMPA metros, de los 18/20 m/s de siempre a los de arriba. Abajo, identico.
@@ -55,6 +56,29 @@ import { SISTEMAS } from '../data/sistemas_buque.js';
 /** CONTRA EL BUQUE (PLAN_DEFENSAS_BUQUE): donde se CRUZAN una bala de velocidad `vel` y el casco, que
  *  viene a `run.spd`. Ahi converge la rafaga, en vez de a 110: a 600 la recta que pasaba por la mira a
  *  110 erraba la pieza apuntada por la paralaje entre la camara y el cañon. */
+/** EL EMPUJE DE COSTADO de la ayuda del RASANTE: por cada obstaculo adelante (hasta RAS_ASIST.LEJOS m) que te
+ *  va a pasar por encima del ala, hacia el lado libre; mas cuanto mas cerca y mas centrado lo tenes. */
+function asistRasante() {
+  let a = 0;
+  for (const o of obstacles) {
+    const dz = o.z - PZ;
+    if (dz < 0 || dz > RAS_ASIST.LEJOS || o.dead || o.hit) continue;
+    const hb = hitbox(o);
+    if (plane.y > hb.oy + hb.hh + 1.5) continue;            // lo pasas por arriba: no hace falta
+    const dx = plane.x - o.x, lim = hb.hw + RAS_ASIST.MARGEN;
+    if (Math.abs(dx) >= lim) continue;
+    a += (dx >= 0 ? 1 : -1) * RAS_ASIST.FUERZA * (1 - dz / RAS_ASIST.LEJOS) * (0.4 + 0.6 * (1 - Math.abs(dx) / lim));
+  }
+  return a;
+}
+/** ¿Hay algo para tirarle adelante? (la ULTI dispara sola) */
+function algoAdelante() {
+  for (const o of obstacles) {
+    const dz = o.z - PZ;
+    if (dz > 2 && dz < RAS_ASIST.TIRO_Z && !o.dead && Math.abs(o.x - plane.x) < RAS_ASIST.TIRO_X) return true;
+  }
+  return false;
+}
 const zEncuentro = vel => { const z0 = PZ + 3; return z0 + vel * (blanco.z - z0) / (vel + Math.max(1, run.spd)); };
 import * as est from './estrellas.js';
 import { PORT_H } from '../data/runways.js';
@@ -159,7 +183,9 @@ function vertLibre(dt, G, TH, DIVE) {
       plane.vy *= Math.max(0, 1 - L.FRENO * reac * dt);
       if (sosten <= 0) {
         // sin sosten: la caida llega de a poco (DEMORA) y se topea en CAIDA
-        const quiere = -S0.CAIDA * Math.min(1, sinGasT / S0.DEMORA);
+        // …y pasado el planeo (PLANEA_S), casi en picada (PICADA)
+        const pica = Math.max(0, Math.min(1, (sinGasT - S0.PLANEA_S) / S0.PICA_RAMPA)), pk = pica * pica * (3 - 2 * pica);
+        const quiere = -(S0.CAIDA + (S0.PICADA - S0.CAIDA) * pk) * Math.min(1, sinGasT / S0.DEMORA);
         if (plane.vy > quiere) plane.vy += (quiere - plane.vy) * Math.min(1, dt * 3);
       } else sinGasT = 0;
     }
@@ -420,6 +446,8 @@ export function flightSystem(dt, deps) {
   // El perfil de colision se sigue encogiendo mientras rola — eso lo dice `tight` en el catalogo.
   run.rollCd = Math.max(0, run.rollCd - dt);
   if (rollVx !== null) plane.vx = rollVx;
+  // LA AYUDA DEL RASANTE (25/11, RAS_ASIST): con el poder, lo que se te viene encima te corre de costado
+  if (rasante.active() && !run.mv) plane.vx = Math.max(-34, Math.min(34, plane.vx + asistRasante() * dt));
   // throttle (palanca de gas): sube al dar gas, baja al soltar — solo indicador visual
   // (23/11, el autor: "usar la de GAS y mostrar el casteo ahi: cuando llega a 100 de gas esa barra se carga"): en SUAVE la
   // palanca la mueve LT (mantener), no ↑ — ↑ ↓ ya son subir y bajar como los costados
@@ -584,7 +612,8 @@ export function flightSystem(dt, deps) {
   // o si llegaste al tope. Perder la precision deja de ser solo castigo: es tambien la puerta.
   const flowSeg = agu.tomarFlow();
   // (sin PODERES —la etapa 1 del tutorial— el flow no se dispara: "active RASANTE y no se entendio que era", 18/11)
-  if (flowSeg > 0 && cfg.poderes !== false) rasante.lanzar(flowSeg * AGU.SEG_ACIERTO);   // (cada acierto, SEG_ACIERTO s)
+  // (25/11: la ULTI dura RAS_ASIST.DUR fijos — "que dure menos"; antes, SEG_ACIERTO s por acierto)
+  if (flowSeg > 0 && cfg.poderes !== false) rasante.lanzar(RAS_ASIST.DUR);
   run.multShow = agu.activo() ? agu.multAguante() : run.mult;
   run.score += (run.boost ? 2 : 1) * 12 * run.multShow * dt;
   // superficie LETAL: tocar el suelo (o el agua) = explotar. Sobre tierra hay que volar en la banda
@@ -824,7 +853,10 @@ export function flightSystem(dt, deps) {
   // CON LA MIRA DE LA BOMBA PUESTA el gatillo es de la bomba, no del cañon (ver abajo)
   // (sin cañon —`sinCanon` en data/planes.js, los aviones que no tenian armas— el gatillo no dispara)
   // (…ni con los CAÑONES MUDOS, la falla TOTAL de data/fallas.js: `run.falCanon` 3)
-  const gatillo = inp.fire && !inp.apunta && !run.sinCanon && !(run.falCanon >= 3);
+  // (25/11) LA ULTI DISPARA SOLA y no recalienta (RAS_ASIST): tira cuando hay algo adelante
+  const ulti = rasante.active();
+  if (ulti) { run.heat = 0; run.overheat = false; }
+  const gatillo = (inp.fire || (ulti && algoAdelante())) && !inp.apunta && !run.sinCanon && !(run.falCanon >= 3);
   const met = METRALLAS[run.metralla] || METRALLAS[1];   // comun, plata u oro (data/tuning.js)
   run.heat -= dt * (gatillo ? GUN_COOL_FIRE : GUN_COOL_IDLE);
   if (run.heat < 0) run.heat = 0;

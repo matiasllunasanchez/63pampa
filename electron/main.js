@@ -40,6 +40,14 @@ function monitorElegido() {
   return screen.getPrimaryDisplay();
 }
 
+// EN MAC, LA PANTALLA COMPLETA "SIMPLE" (25/11, el autor: "cuando hace full screen se traba, hace primero un zoom
+// hacia la maquina y luego hacia pantalla total"): la nativa de macOS abre la ventana en 1280x720 y despues la lleva
+// con una animacion a un Space nuevo, con el juego ya corriendo — de ahi el zoom y el bajon de cuadros. La simple
+// (la de antes de Lion) tapa la pantalla al instante, sin animacion ni Space: se pone ANTES de mostrar la ventana,
+// asi el jugador la ve nacer ya completa. En Windows y Linux la de siempre (no anima).
+const MAC = process.platform === 'darwin';
+const esCompleta = w => (MAC ? w.isSimpleFullScreen() : w.isFullScreen());
+
 function createWindow() {
   const mon = monitorElegido().workArea;
   const win = new BrowserWindow({
@@ -56,7 +64,7 @@ function createWindow() {
     show: false,          // se muestra recién cuando el contenido está listo (evita parpadeo)
     // A PANTALLA COMPLETA DE ENTRADA (autor, 4/10). Si el jugador eligio VENTANA en OPCIONES, la pagina
     // lo pide apenas carga (ver `pantalla-completa` abajo y la fila PANTALLA en src/game.js).
-    fullscreen: true,
+    fullscreen: !MAC,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       // lo lee el preload (window.RASANTE_DEV / RASANTE_FULL: `--full`, la version sin PROXIMAMENTE)
@@ -71,6 +79,7 @@ function createWindow() {
   });
 
   Menu.setApplicationMenu(null);          // sin menú nativo (es un juego)
+  if (MAC) win.setSimpleFullScreen(true);
   win.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
 
   win.once('ready-to-show', () => win.show());
@@ -104,13 +113,18 @@ function createWindow() {
   win.on('enter-full-screen', () => pleno(true));
   win.on('leave-full-screen', () => pleno(false));
   // abrir YA a pantalla completa no dispara 'enter-full-screen': la clase se pone al cargar
-  win.webContents.on('did-finish-load', () => pleno(win.isFullScreen()));
+  win.webContents.on('did-finish-load', () => pleno(esCompleta(win)));
+  // poner o sacar la completa (F11 y OPCIONES -> PANTALLA). La simple de Mac no dispara los eventos: avisa aca
+  win.__completa = v => {
+    if (esCompleta(win) === !!v) return;
+    if (MAC) { win.setSimpleFullScreen(!!v); pleno(!!v); } else win.setFullScreen(!!v);
+  };
 
   // F11 alterna pantalla completa. ESCAPE YA NO SACA DE PANTALLA COMPLETA (autor, 4/10): es la tecla
   // de pausa y de volver en los menus, y se la comia la ventana. Para salir: OPCIONES -> PANTALLA, o F11.
   win.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
-    if (input.key === 'F11') { win.setFullScreen(!win.isFullScreen()); event.preventDefault(); }
+    if (input.key === 'F11') { win.__completa(!esCompleta(win)); event.preventDefault(); }
   });
 }
 
@@ -126,7 +140,7 @@ ipcMain.on('musica-original', e => {
 // OPCIONES -> PANTALLA: la pagina pide completa (true) o ventana (false) — ver electron/preload.js
 ipcMain.on('pantalla-completa', (e, v) => {
   const w = BrowserWindow.fromWebContents(e.sender);
-  if (w && w.isFullScreen() !== !!v) w.setFullScreen(!!v);
+  if (w && w.__completa) w.__completa(!!v);
 });
 
 // STEAM (electron/steam.js): antes de arrancar, por el overlay. Si Steam lo va a relanzar, se cierra aca.

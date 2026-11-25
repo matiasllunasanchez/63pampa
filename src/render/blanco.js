@@ -457,9 +457,10 @@ function corchetes(listo, alt, previa) {
 // `forzar`: el tutorial lo esta nombrando (foco 'semaforo'): el semaforo sale aunque el buque no este a tiro todavia
 export function drawBlancoHud(h, forzar) {
   // (el paso del tutorial que lo nombra llega antes de que el buque se arme: sin foto, el semaforo en LEJOS)
-  if (!h || !h.enAtaque) { if (forzar) semaforo(h || {}, true); return; }
+  // (25/11, el autor: "el recorrido de bomba esta raro… sacalo"): el SEMAFORO ya no se dibuja — el momento de soltar lo
+  // dice la barra de arriba (render/hud.js: la pestaña del buque se llena de verde y titila). La funcion queda por si vuelve
+  if (!h || !h.enAtaque) return;
   corchetes(h.listo, h.alt, h.previa);
-  semaforo(h);
   // LA MIRA SOLO EN VERDE: en la ventana de distancia Y a buena altura. Antes adentro de los
   // corchetes iba tambien una cuenta atras en numeros; el autor los saco el 26/9 ("quitemos los
   // numeros dentro"), asi que lo que queda es binario y se lee de un golpe: o hay mira, o no hay.

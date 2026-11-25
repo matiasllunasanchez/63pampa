@@ -133,7 +133,15 @@ function cinta(o) {
   if (o.nombre) {
     // comparte el canto con la cinta: se lee como una pestaña del mismo instrumento, no como otro
     plate(bx0 + ancho - 1, py, nomW, 11);
-    ctx.font = F_VAL; ctx.textAlign = 'left'; ctx.fillStyle = P.warn;
+    // A DISTANCIA DE SOLTAR, EL NOMBRE SE PRENDE EN VERDE (25/11, el autor: "usar la barra de arriba en verde titilando con
+    // el nombre CASCO DE PRACTICA, en verde cuando esta en distancia"): la pestaña del buque se llena de verde al latido
+    // del tablero (titilaSuelta) con la letra oscura, y en el otro medio tiempo queda la letra verde
+    const on = !!o.solta;
+    if (on) {
+      ctx.globalAlpha = verde ? 0.92 : 0.28; ctx.fillStyle = SUELTA_COL; ctx.fillRect(bx0 + ancho, py + 1, nomW - 2, 9);
+      ctx.globalAlpha = 1; bordePlaca(bx0 + ancho - 1, py, nomW, 11, SUELTA_COL);
+    }
+    ctx.font = F_VAL; ctx.textAlign = 'left'; ctx.fillStyle = on ? (verde ? '#0b1a0d' : SUELTA_COL) : P.warn;
     ctx.fillText(o.nombre, bx0 + ancho + 3, py + 7);
   }
   if (o.rot) {
@@ -1819,7 +1827,7 @@ function escarcha(id, x, y, nivel) {
     ctx.globalAlpha = Math.min(1, nivel * 1.1); ctx.strokeStyle = '#ffffff'; ctx.strokeRect(x + 1.5, y + 1.5, W0 - 3, W0 - 3);
     ctx.globalAlpha = 1;
     // (el copo del medio se saco el mismo 23/11; va el ICONO, chico, arriba a la derecha)
-    if (nivel > 0.15) iconoHielo(x + W0 - 10, y + 1);
+    if (nivel > 0.15) iconoHielo(x + W0 - 1 - COPO_PLACA, y + 1);
   }
   // LAS GOTAS: resbalan para abajo, se estiran, y al llegar al borde de abajo se van
   for (let i = gotas.length - 1; i >= 0; i--) {
@@ -2246,18 +2254,19 @@ function barritaMomentum(x, y, w) {
   donde.momentum = [x + w / 2, y];
 }
 /** EL ICONO DEL HIELO (23/11, el autor: "en los 3 indicadores, pero BIEN HECHO el icono de hielo y arriba a la derecha"):
- *  un copo de 7 x 7 en pixel art — el centro blanco, los seis brazos celestes con sus puntas, sobre una placa oscura
- *  de 9 x 9. (x, y) es la esquina de arriba a la izquierda de la placa. */
-const COPO_PIX = ['x..x..x', '.x.x.x.', '..xxx..', 'xxxoxxx', '..xxx..', '.x.x.x.', 'x..x..x'];
+ *  un copo en pixel art — el centro blanco, los brazos celestes con sus puntas, sobre una placa oscura. (25/11, el autor:
+ *  "mas chico el icono"): de 7 x 7 sobre 9 x 9 paso a 5 x 5 sobre 7 x 7. (x, y) es la esquina de arriba a la izquierda. */
+const COPO_PIX = ['x.x.x', '.xxx.', 'xxoxx', '.xxx.', 'x.x.x'], COPO_N = COPO_PIX.length, COPO_PLACA = COPO_N + 2;
 function iconoHielo(x, y) {
   x = Math.round(x); y = Math.round(y);
   ctx.save();
-  ctx.globalAlpha = 0.8; ctx.fillStyle = '#0b1620'; ctx.fillRect(x, y, 9, 9);
-  ctx.globalAlpha = 1; ctx.fillStyle = '#5fa8d8'; ctx.fillRect(x, y, 9, 1); ctx.fillRect(x, y + 8, 9, 1); ctx.fillRect(x, y, 1, 9); ctx.fillRect(x + 8, y, 1, 9);
-  for (let j = 0; j < 7; j++) for (let i = 0; i < 7; i++) {
+  ctx.globalAlpha = 0.8; ctx.fillStyle = '#0b1620'; ctx.fillRect(x, y, COPO_PLACA, COPO_PLACA);
+  const P2 = COPO_PLACA, U2 = P2 - 1;
+  ctx.globalAlpha = 1; ctx.fillStyle = '#5fa8d8'; ctx.fillRect(x, y, P2, 1); ctx.fillRect(x, y + U2, P2, 1); ctx.fillRect(x, y, 1, P2); ctx.fillRect(x + U2, y, 1, P2);
+  for (let j = 0; j < COPO_N; j++) for (let i = 0; i < COPO_N; i++) {
     const c = COPO_PIX[j][i];
     if (c === '.') continue;
-    const punta = (i === 0 || i === 6 || j === 0 || j === 6);
+    const punta = (i === 0 || i === COPO_N - 1 || j === 0 || j === COPO_N - 1);
     ctx.fillStyle = c === 'o' ? '#ffffff' : punta ? '#8fd0ff' : '#d6f1ff';
     ctx.fillRect(x + 1 + i, y + 1 + j, 1, 1);
   }
@@ -2282,7 +2291,7 @@ function pilotoHelado(x, y, lado, nivel) {
   ctx.globalAlpha = Math.min(1, nivel * 1.6); ctx.strokeStyle = '#bfe8ff'; ctx.lineWidth = 1; ctx.strokeRect(x - 0.5, y - 0.5, lado + 1, lado + 1);
   ctx.globalAlpha = 1;
   // el copo BIEN chiquito, en la esquina (23/11: "el del piloto hacerlo bien chiquito a un costado")
-  if (nivel > 0.15) iconoHielo(x + lado - 9, y);
+  if (nivel > 0.15) iconoHielo(x + lado - COPO_PLACA, y);
   ctx.restore();
 }
 /** Manchas de escarcha que CRECEN desde las cuatro esquinas (triangulos tramados), del tamaño que dice `nivel`. */

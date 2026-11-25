@@ -801,6 +801,22 @@ export const ESTELA_ABRE = 0.34;
 // 11,6 m (systems/vuelo.js), asi que dejarlo un poco abajo hace que se deshilache ANTES de que la
 // poda la corte de golpe — que es lo que se quiere.
 export const ESTELA_EDAD = 11;
+// EL ALA DE CANTO SOBRE EL AGUA (25/11, el autor: "agregar efectos en el agua cuando el avion se pone asi [de canto] sobre
+// el agua… marcando una linea con el ala en el agua, a diferencia de cuando va horizontal"). systems/vuelo.js mide cuanto
+// va de canto (|sen| del rolido: el giro libre Q/E + el de la pirueta + el banqueo) y a que altura queda la punta de abajo:
+//   DESDE     |sen| del rolido desde el que cuenta como de canto (0,55 ≈ 33°), PLENO el que ya es canto entero (≈ 70°)
+//   ALT       m sobre el agua de la PUNTA de abajo hasta donde marca la raya (mas cerca, mas fuerte)
+//   APAGA     cuanto se apagan la V, la lengua y las cortinas de siempre yendo de canto. En 0 (25/11, el autor: "todo lo que
+//             ya estaba estaba bien"): lo de siempre queda igual y la raya se SUMA
+//   GOTAS     cuantas gotas por cuadro tira la punta, y SUBE / ABRE su envion (px/s)
+//   (25/11, el autor: "lo que queria es AGREGAR MAS… una al lado mas finita quiza"): GOTAS sube de 5 a 12; BRUMA son las
+//   gotas gordas y lentas del velo de agua; SURCO las salpicaduras sobre la raya recien cortada; PAR la segunda raya, mas
+//   fina, a PAR m hacia afuera de la primera
+export const CANTO_AGUA = { DESDE: 0.55, PLENO: 0.94, ALT: 2.6, APAGA: 0, GOTAS: 12, SUBE: 150, ABRE: 40, BRUMA: 4, SURCO: 4, PAR: 0.45,
+  // (25/11, el autor: "cuando DOBLO no hace la linea… aplicalo tambien cuando doblo al maximo con el stick izquierdo"): el
+  // banqueo de doblar cuenta como BANK rad de rolido a fondo (1,3 ≈ 75°: el doblado al maximo ya es ala vertical)
+  // BANK_TOPE: el banqueo que ya es "al maximo" (con control directo el alabeo topa en 0,55: core/horizon.js ALABEO_DIRECTO)
+  BANK: 1.3, BANK_TOPE: 0.5 };
 export const ESTELA_ALT = 9;             // altura de mundo hasta la que se siembra estela
 
 // DONDE ESTAN LAS PUNTAS DE ALA en la pantalla, medidas desde la sombra del avion y en pixeles
@@ -811,6 +827,16 @@ export const ESTELA_ALT = 9;             // altura de mundo hasta la que se siem
 export const ALA_PX = 15;
 
 export const RAS_ALT = 2.4;
+// EL RASANTE, REPENSADO (25/11, el autor: "el poder de rasante con la nueva forma de gas pierde cierto sentido…
+// quiza ser invencible en rasante?" — "y que esquive todo con ayuda" — "ademas se hace mas facil de obtenerlo"). Con
+// el gas que mantiene la altura, quedarse al ras ya no cuesta: el poder ahora da otra cosa. ES LA ULTI ("deberia ser
+// como una ULTI… inmune, que esquive solo y dispare solo y todo solo, que sea inalcanzable, que haga todo perfecto,
+// que dure menos y cueste mas"). Mientras dura (DUR s fijos; se gana con mas aciertos: AGU.CONC_MIN):
+//   · NADA te mata: ni disparos (systems/damage.js) ni choques (game.js no cobra la muerte);
+//   · ESQUIVA SOLO: mira LEJOS m hacia adelante y empuja hasta FUERZA u/s² para el lado libre de lo que se te viene
+//     encima, mas fuerte cuanto mas cerca y mas centrado (systems/flight.js `asistRasante`);
+//   · DISPARA SOLO: el cañon tira cuando hay algo adelante (a menos de TIRO_Z m y TIRO_X de costado), sin recalentar.
+export const RAS_ASIST = { LEJOS: 75, FUERZA: 700, MARGEN: 3.5, DUR: 6, TIRO_Z: 140, TIRO_X: 9 };
 export const RAS_SPRING = 6;     // rate del lerp de vuelta al ras. Si en el playtest se siente
                                  // "riel", se ABLANDA ESTE NUMERO — no se agrega asistencia (§6.1)
 export const RAS_CEIL = 17;      // techo blando: apenas bajo RADAR_ALT (20), el mismo filo que el
@@ -1297,6 +1323,13 @@ export const POPUP = { CORTE: 0.14, FRENO: 0.3, ENTRA: 0.15, SUELTA: 0.55 };
 // FORMA: exponente de la altura sobre la vuelta, ((1−cos θ)/2)^FORMA — con 1 trepaba 6 u ya en la panza
 // al sol y se iba por arriba del cuadro; con 3 se SIENTA como la cobra mientras frena (~2 u) y la trepada
 // grande es la de la vuelta. FRENO: el de la cobra.
+// EL TIRABUZON AL CIELO (25/11, data/moves.js `cielo`): desde la cobra plantada, una espiral vertical hasta SOBRE metros
+// por encima de la capa de nubes (ALTO.NUBES + ALTO.ESPESOR; con techo ALTO.TECHO). La altura sigue una S (arranca
+// lento desde la cobra, trepa rapido y se asienta arriba) y el rolido da VUELTAS vueltas enteras (termina derecho);
+// la espiral se abre R m de costado. NIVELA: la ultima fraccion de la maniobra en que la trompa vuelve a nivel.
+// LA BARRENA usa lo mismo para abajo: hasta PISO m (sobre el agua o el suelo del pasillo), VUELTAS_B vueltas, y la
+// picada paga velocidad (ACELERA, por segundo, mientras cae).
+export const CIELO = { SOBRE: 60, VUELTAS: 6, R: 2.5, NIVELA: 0.12, PISO: 6, VUELTAS_B: 4, ACELERA: 40 };
 export const MORTAL = { SUBE: 11, FORMA: 3, FRENO: 0.75, CORTE: 0.55, ACERCA: 6, FRENA: [40, 95, 120, 170],
   VUELTA: [[0, 0, 1100], [0.12, 100, 40], [0.45, 115, 40], [1, 360, 200]] };
 
@@ -2705,7 +2738,11 @@ export const VERT_STICK = { ACEL0: 10, ACEL1: 70, RAMPA: 0.5, TOPE: 0.75, POSE_D
 // aguja la alcanza (ALCANZA de tolerancia) y la sigue para arriba
 // (23/11, el autor: "el avion debe descender un poquito mas rapido cuando el gas esta en cero, y aunque apriete para arriba
 // debe subir poco o nada: literal esta PLANEANDO"): CAIDA 2.5 → 3.4, y sin sosten el stick arriba sube a lo sumo SUBE_SIN m/s
-export const VERT_SOSTEN = { LLENA_S: 0.45, DURA_S: 6, CAIDA: 3.4, SUBE_SIN: 0.6, DEMORA: 0.8, AGUJA_SUBE: 1.0, AGUJA_BAJA: 0.35, ALCANZA: 0.03 };
+// (25/11, el autor: "debe caer un poco mas rapido sin gas… planear 5 o 10 segs y luego comenzar a caer, casi en picada; y
+// mientras planea cae lento como ahora"): los primeros PLANEA_S segundos sin sosten es la caida de CAIDA (el planeo); despues
+// la caida sube en PICA_RAMPA s hasta PICADA m/s
+export const VERT_SOSTEN = { LLENA_S: 0.45, DURA_S: 6, CAIDA: 3.4, SUBE_SIN: 0.6, DEMORA: 0.8, AGUJA_SUBE: 1.0, AGUJA_BAJA: 0.35, ALCANZA: 0.03,
+  PLANEA_S: 7, PICA_RAMPA: 1.5, PICADA: 16 };
 export const VERT_FIJA = { SUBE: 16, BAJA: 20, RESP: 6 };          // m/s al apretar, y que tan rapido llega / se clava
 export const VERT_PLANEO = { G: 3, TH: 12, CAIDA: 1.2, SUBE: 7, AMORT: 4, DEMORA: 1, DIVE: 30 };
 

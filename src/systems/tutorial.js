@@ -84,7 +84,9 @@ function cumple(c, s, dt) {
   if (c.altBajo != null) return s.alt < c.altBajo;
   if (c.bajoTecho != null) {
     if (s.roza) acum = 0;
-    else if (s.alt <= (c.techo ?? s.techo)) acum += dt;   // (`techo` propio del paso: el rasante del tutorial, 5 m)
+    // (`techo` propio del paso: el rasante del tutorial, 5 m). (25/11, el autor: "estaba a 5 y no contaba"): el altimetro
+    // REDONDEA (render/hud.js), asi que con techo propio vale todo lo que se lee como 5 o menos: hasta 5,5
+    else if (s.alt < (c.techo != null ? c.techo + 0.5 : s.techo + 1e-9)) acum += dt;
     return acum >= c.bajoTecho;
   }
   if (c.usa) {
@@ -138,6 +140,8 @@ function cumple(c, s, dt) {
   if (c.hieloBajo != null) return (s.hielo || 0) <= c.hieloBajo;     // …y sacarselo al ras del mar
   if (c.marca) return !!s.marca;                                     // LAS ISLAS: un punto marcado en el MAPA de la pausa
   if (c.objIslas) return !!s.objIslas;                               // …y la BASE COSTERA rota
+  // LEJOS DEL BUQUE (25/11): `pasado` = fraccion del camino al blanco recorrida MAS ALLA de el, ya en la vuelta
+  if (c.pasado != null) return !!s.climaxHecho && 1 - s.faltan >= 1 + c.pasado;
   if (c.chancha) return !!s.chancha;
   if (c.chafitas) return !!s.chafitas;                               // LAS CHAFITAS: una nube en el aire
   return true;

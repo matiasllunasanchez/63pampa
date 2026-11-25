@@ -21,7 +21,8 @@ import { run } from '../core/run.js';
 import { wake, parts, prune } from '../core/world.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
-import { PZ, W } from '../render/ctx.js';
+import { PZ, W, F } from '../render/ctx.js';
+import { CANTO_AGUA } from '../data/tuning.js';
 import { FLY_X, ALA_PX, ROCIO_ABRE, ROCIO_BAJA, ROCIO_RAS_ABRE, ROCIO_RAS_BAJA,
          ROCIO_BARRIDO, ROCIO_PUNTA, ROCIO_COLUMNA, ROCIO_RAS_COLUMNA,
          AGUA_RAS_GRADOS, ESTELA_ALT, ROCIO_TURBO, BANDA_ALT, RAS_POLVO, PIQUE } from '../data/tuning.js';
@@ -212,8 +213,18 @@ export function estelaVuelo(dt, o) {
   const alt = o.alt === undefined ? plane.y : o.alt;
   // estela sobre el agua
   const lowI = Math.max(0, 1 - alt / ESTELA_ALT);
+  // DE CANTO (CANTO_AGUA, 25/11): cuanto va de canto, de que lado queda la punta de abajo y a que altura. La punta raya el
+  // agua (`tx`/`ti` en la estela: render/world.js la une en una linea) y la V del casco se apaga
+  const C = CANTO_AGUA, fi = (run.freeRoll || 0) + (run.mvRoll || 0) + Math.max(-1, Math.min(1, (plane.bank || 0) / C.BANK_TOPE)) * C.BANK, sn = Math.sin(fi);
+  const semi = ALA_PX * PZ / F, cu = Math.max(0, Math.min(1, (Math.abs(sn) - C.DESDE) / (C.PLENO - C.DESDE)));
+  const canto = cu * cu * (3 - 2 * cu), altPunta = alt - semi * Math.abs(sn);
+  const seco0 = !!(o.pista || o.tierra);
+  const rayaI = seco0 ? 0 : canto * Math.max(0, Math.min(1, 1 - altPunta / C.ALT));
+  const tipX = plane.x + Math.sign(sn || 1) * semi * Math.abs(Math.cos(fi));
+  run.cantoAgua = seco0 ? 0 : canto * Math.max(0, Math.min(1, 1 - alt / ESTELA_ALT));
   if (lowI > 0 && !o.pista && !o.tierra) {
-    wake.push({ x: plane.x, z: PZ, i: lowI, seed: Math.random() * 100, d: run.derrapeAgua || 0 });   // seed: motas estables · d: patinazo del derrape
+    wake.push({ x: plane.x, z: PZ, i: lowI * (1 - C.APAGA * canto), seed: Math.random() * 100, d: run.derrapeAgua || 0,   // seed: motas estables · d: patinazo del derrape
+      tx: tipX, ti: rayaI, tl: Math.sign(sn || 1) });
     if (wake.length > 150) wake.shift();
   }
   for (const wp of wake) wp.z -= run.spd * dt;
@@ -229,7 +240,31 @@ export function estelaVuelo(dt, o) {
   // Queda con `<` estricto —a la altura justa ya estas en el escalon de arriba—; los otros dos
   // numeros son sueltos a proposito: el 2,8 es densidad pura y el 7 tiene hermano en ROCIADA_ALT
   // pero no esta atado, porque la densidad del rocio no tiene por que seguir a otro efecto.
-  const nSpray = Math.round((alt < 2.8 ? 6 : alt < BANDA_ALT ? 3 : alt < 7 ? 1 : 0) * (o.mas || 1));
+  const nSpray = Math.round((alt < 2.8 ? 6 : alt < BANDA_ALT ? 3 : alt < 7 ? 1 : 0) * (o.mas || 1) * (1 - C.APAGA * canto));
+  // LA PUNTA QUE CORTA EL AGUA (CANTO_AGUA): una cortina fina que sale de la punta de abajo, para arriba y hacia afuera
+  if (rayaI > 0.05 && !seco0) {
+    const sT = proj(tipX, 0, PZ), lado = Math.sign(sn || 1), n = Math.round(C.GOTAS * rayaI + Math.random() * 0.8);
+    for (let i = 0; i < n; i++) parts.push({
+      x: sT.x + (Math.random() - 0.5) * 2, y: sT.y - 1,
+      vx: lado * C.ABRE * (0.2 + Math.random()) + (Math.random() - 0.5) * 10,
+      vy: -C.SUBE * (0.4 + Math.random() * 0.8) * (0.5 + rayaI * 0.5) + run.spd * ROCIO_BARRIDO * 0.6,
+      life: 0.18 + Math.random() * 0.22,
+      c: Math.random() < 0.6 ? P.foam : '#f2f7fb',
+      r: (0.8 + Math.random() * 0.9) * (run.boost ? ROCIO_TURBO : 1),
+    });
+    // LA BRUMA: gotas gordas y lentas que quedan flotando sobre la punta (el velo de agua pulverizada)
+    for (let i = 0; i < Math.round(C.BRUMA * rayaI + Math.random() * 0.6); i++) parts.push({
+      x: sT.x + lado * Math.random() * 5, y: sT.y - 2 - Math.random() * 3,
+      vx: lado * C.ABRE * 0.3 * Math.random(), vy: -(20 + Math.random() * 40) + run.spd * ROCIO_BARRIDO * 0.8,
+      life: 0.22 + Math.random() * 0.2, c: Math.random() < 0.5 ? P.foam : P.crest, r: 2 + Math.random() * 2,
+    });
+    // EL SURCO: salpicaduras chicas sobre la raya recien cortada, un poco detras de la punta
+    for (let i = 0; i < Math.round(C.SURCO * rayaI + Math.random() * 0.6); i++) {
+      const sS = proj(tipX + lado * (Math.random() * C.PAR), 0, PZ - Math.random() * 3);
+      parts.push({ x: sS.x, y: sS.y - 1, vx: lado * (5 + Math.random() * 15), vy: -(30 + Math.random() * 60) + run.spd * ROCIO_BARRIDO,
+        life: 0.12 + Math.random() * 0.14, c: Math.random() < 0.5 ? '#f2f7fb' : P.foam, r: 0.7 + Math.random() * 0.6 });
+    }
+  }
   // DE DONDE SALE Y HACIA DONDE VA. Por omision es lo del PASILLO: una manchita angosta delante del
   // morro, que es donde uno la ve desde afuera del avion.
   //

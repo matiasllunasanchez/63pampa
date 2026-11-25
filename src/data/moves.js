@@ -152,6 +152,15 @@ export const MOVES = {
   // a derecho (COBRA_INV en data/tuning.js). [G]+[↓] / L2 + stick derecho abajo, o ↓↓↑ con la derecha.
   cobrainv: { dur: 4.6, name: 'COBRA MORTAL INVERTIDA', steer: null, fire: false, turbo: false, tight: false, legado: true },
   mortal: { dur: 1.6, name: 'MORTAL', steer: null, fire: false, turbo: false, tight: false, legado: true },
+  // EL TIRABUZON AL CIELO (25/11, el autor: "luego del efecto que frena, si mientras esta en esa apreto stick izquierdo
+  // arriba + arriba + arriba, el avion sube en tirabuzon hacia arriba mucha distancia… por encima de las nubes"): la
+  // cobra que, en vez de volver a nivel, se va para arriba ROLANDO — una espiral vertical que pasa el techo de nubes
+  // (CIELO en data/tuning.js). Se encadena a la cobra plantada como el mortal (systems/moves.js `cobraAlCielo`); no
+  // tiene combo suelto. Sin disparo (mirando al cielo); el turbo, si, que es lo que la empuja.
+  cielo: { dur: 6, name: 'TIRABUZON AL CIELO', steer: null, fire: false, turbo: true, tight: true },
+  // …Y SU ESPEJO, LA BARRENA (25/11, el autor: "si apreto abajo abajo abajo (3 veces) baja en picada verticalmente
+  // tambien"): desde la cobra plantada, la espiral para ABAJO hasta CIELO.PISO metros, rolando y ganando velocidad.
+  barrena: { dur: 3.2, name: 'BARRENA', steer: null, fire: false, turbo: true, tight: true },
 };
 
 /** ¿La maniobra activa encoge el perfil de colision? (la consultan collision y el overlay) */
@@ -191,6 +200,7 @@ export const COMBO = {
   // LOS FRENOS (4/10): la tecla de freno ([G] / L2), sola o con la mano derecha, y su combo
   // (23/11: el freno es SHIFT izq —mantener altura— + ↑; [G] sigue andando)
   cobra: '[SHIFT+↑] · ⟳↑↓↑', mortal: '[SHIFT+↑] → ↑↓ · ⟳↑↑↓', cobrainv: '[SHIFT+↑]+S · ⟳↓↓↑',
+  cielo: '[SHIFT+↑] → W W W', barrena: '[SHIFT+↑] → S S S',
   derrape: '←+D y →+A · →+A y ←+D',   // (22/11: rolar es ← → en el teclado-joystick)
 };
 /** EL MISMO COMBO EN EL JOYSTICK, solo donde no es igual al teclado (19/11): las flechas son la mano derecha
@@ -200,6 +210,7 @@ export const COMBO_PAD = {
   spin: 'der← izq↓ der→ · der→ izq↓ der←',
   // (23/11, el autor: el freno es MANTENER ALTURA + el stick derecho hacia arriba)
   cobra: '[L2+der↑] · ⟳↑↓↑', mortal: '[L2+der↑] → ↑↓ · ⟳↑↑↓', cobrainv: '[L2+der↑]+izq↓ · ⟳↓↓↑',
+  cielo: '[L2+der↑] → izq↑ izq↑ izq↑', barrena: '[L2+der↑] → izq↓ izq↓ izq↓',
   derrape: 'der←+izq→ y der→+izq← · der→+izq← y der←+izq→',
 };
 

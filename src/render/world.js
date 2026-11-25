@@ -34,10 +34,13 @@ import { geoActiva, sueloEn, orillaS, ladoEn, playaCerca, playaClase, alturaSuel
 import { P, LAND, CLAND, SKY_ASTRO, RADAR_VERDE } from '../data/palette.js';
 import { CHUNK_LIFE, ONDA_T, ONDA_R, EYEC_ASIENTO_T } from '../data/despiece.js';
 import { drawParte, yawDe, colorDe } from './partes.js';
-import { OLA_GIGANTE } from '../data/tuning.js';
+import { OLA_GIGANTE, ALA_PX } from '../data/tuning.js';
 import { MAR_HONDO, MAR_GRANO, OLA_CRESTA, ESPUMA_VAR, MAR_LEJOS, PIQUE, SHIP_UH, SHIP_DECK, SHORE_X, shoreAt, SAND_W, portJut, PORT_AMP, PORT_FOAM, FLY_X, FLY_TOP, RADAR_ALT, SHIP_H, SPAWN_Z, VEIL_MAX, OLA_WZ, RESACA_MAX, SEA_FOAM_TH, SUN_GLINT_HALF, RADAR_MARCO_LIBRE, RADAR_MARCO_LLENO, RADAR_MARCO_LINEAS, TIERRA_LUZ, TIERRA_AMP, KELP_W, KELP_A,
-  ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD, ESTELA_TURBO, ESTELA_TURBO_A } from '../data/tuning.js';
+  ALAMBRE_CADA, ALAMBRE_POSTE, ALAMBRE_H, MOJADO_A, CHARCO_P, CHARCO_H, PASTO_LEAN, PASTO_ONDA, PASTO_V, PASTO_KX, PASTO_KZ, PASTO_ACOSTAR, RACHA_N, RACHA_T, RACHA_A, ESTELA_ABRE, ESTELA_EDAD, CANTO_AGUA, ESTELA_TURBO, ESTELA_TURBO_A } from '../data/tuning.js';
 import { RUNWAYS, PORT_H } from '../data/runways.js';
+import { NOCHE } from '../data/noche.js';
+import { formationSlots, puestoFormacion } from '../core/squad.js';
+import { PLANE_SCALE } from './plane.js';
 import { SHIP_CLASS } from '../data/ships.js';
 import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
 import { inBank, fogVis, fogTop, fogFade, alfaCielo } from '../systems/fog.js';
@@ -233,6 +236,7 @@ function portRow(y, wz, k, x0, x1, f) {
   if (rb > ra) {
     // (los bordes con decimales, como la linea: redondeados al pixel salian en escalera — 18/10)
     ctx.fillStyle = R.surf; ctx.fillRect(ra, y, rb - ra, 1);
+    asfaltoPista(y, wz, k, ra, rb, R);
     if (R.center === 'amarilla') {                                    // la linea AMARILLA continua (BAM Malvinas)
       // SIN ESCALONES Y SIN ENGORDAR (18/10, el autor: "la pista se ve fea, mas que nada la linea
       // amarilla"): iba fila por fila redondeada al pixel, y al correrse el avion de costado salia en
@@ -248,11 +252,15 @@ function portRow(y, wz, k, x0, x1, f) {
     }
     // FRENADAS: dos pares de manchas oscuras a los lados del eje, la marca de las ruedas al tocar.
     // Cada 24 unidades y de 3.5 de largo — se leen como huellas repetidas, no como rayado parejo.
-    if (R.skid && (wz % 24) < 3.5) {
-      ctx.globalAlpha = 0.3;
-      for (const off of [-3.4, -2.2, 2.2, 3.4]) {
-        const sxk = W / 2 + (off - cam.x) * k + ZB, wk = Math.max(1, 0.7 * k);
-        if (sxk >= x0 && sxk + wk <= x1) px(sxk, y, wk, 1, '#14181a');
+    // (25/11) A LA TROCHA DEL AVION y como una frenada de verdad: negra al tocar y se va lavando a lo largo, con un serpenteo
+    const fz = ((wz % 24) + 24) % 24;
+    if (R.skid && fz < 9) {
+      const u = fz / 9, wob = Math.sin(wz * 0.7) * 0.06;
+      ctx.globalAlpha = 0.42 * (1 - u) * (1 - u);
+      ctx.fillStyle = '#14181a';
+      for (const s2 of [-1, 1]) {
+        const c2 = s2 * trocha + wob, xa = W / 2 + (c2 - rueda / 2 - cam.x) * k + ZB, wk = Math.max(0.6, rueda * k);
+        if (xa >= x0 && xa + wk <= x1) ctx.fillRect(xa, y, wk, 1);
       }
       ctx.globalAlpha = 1;
     }
@@ -261,6 +269,198 @@ function portRow(y, wz, k, x0, x1, f) {
     if (a - bw >= x0 && a <= x1) px(a - bw, y, bw, 1, P.accent);
     if (b >= x0 && b + bw <= x1) px(b, y, bw, 1, P.accent);
   }
+}
+
+// LA TEXTURA DE LA PISTA (25/11, el autor: "mejorar la pista del aeropuerto con textura de asfalto e irregularidades para
+// darle la sensacion de velocidad y avance"). Todo va ATADO AL MUNDO (wx, wz), asi que corre hacia la camara con el
+// avance: juntas de losas de lado a lado, parches de reparacion, fisuras y grano. Lo que en una fila lejana cubre mas
+// mundo que su propio tamaño se apaga (dzFila), para que a lo lejos no haga moire ni titile.
+//   JUNTA      cada cuantos m una junta transversal, y su ancho (m)
+//   PARCHE     celda de los parches (m de costado x m de largo) y la chance de que una celda tenga uno
+//   FISURA     celda de las fisuras (m x m) y su chance; GRANO cada cuantos m una fila de piedritas, cuantas por m y su tamaño
+//   RODADA     las dos bandas gastadas por las ruedas, a ± X m del eje, de ancho W
+const ASF = { JUNTA: 12, JUNTA_W: 0.22, PARCHE_X: 3.5, PARCHE_Z: 6, PARCHE_P: 0.26, FISURA_X: 2.5, FISURA_Z: 9, FISURA_P: 0.18,
+  GRANO: 0.3, GRANO_N: 0.9, GRANO_T: 0.1, RODADA_X: 2.6, RODADA_W: 1.6 };
+const ASF_OSC = '#24292c', ASF_CLARO = '#8a9094';
+// EL ANCHO DE LAS RUEDAS (25/11, el autor: "el ancho de las frenadas no es el de los aviones"): las rodadas y las frenadas
+// van a la trocha del tren principal DEL AVION QUE VOLAS, medida en su hoja tren.png (pixeles de cuadro del centro al
+// medio de cada rueda; los helicopteros no tienen tren y quedan con el de siempre). En metros de mundo: los pixeles del
+// cuadro / px de la hoja × escala × PLANE_SCALE / (F / PZ) — lo mismo que mide el avion dibujado a la profundidad de juego.
+const TROCHA = { sky: 6, a4q: 6, dagger: 7, supere: 7.5, mirage: 7.5, pampa: 5, herc: 8, pucara: 12, mb339: 7, neptune: 19.5,
+  learjet: 7, citation: 8.5, merlin: 12.5, mu2: 5, aerostar: 10, commander: 11, guarani: 21, t34c: 8.5, skyvan: 9 };
+let trocha = 0.55, rueda = 0.16;
+/** El avion que vuela (data/planes.js): de el salen la trocha y el ancho de la goma. Lo llama el orquestador. */
+export function setPistaAvion(pl) {
+  if (!pl) return;
+  const t = TROCHA[pl.key] ?? 6;
+  trocha = t / (pl.px || 1) * (pl.escala || 1) * PLANE_SCALE / (F / PZ);
+  rueda = Math.max(0.12, trocha * 0.28);
+}
+// EL SOL SOBRE EL ASFALTO (25/11, el autor: "quiza el brillo del sol deberia rebotar contra la pista"): con el astro a la
+// vista, una columna de luz tibia en el eje del cuadro (donde esta el sol), fuerte a lo lejos —el asfalto rebota a angulo
+// rasante— y apagandose hacia vos. Y las SOMBRAS de las matas, para el lado contrario al sol (hacia la camara).
+const SOL_PISTA = { ANCHO: 0.14, ALFA: 0.42, COL: '#ffd9a0', SOMBRA: 0.22 };
+const conSol = () => !!SKY_ASTRO[cfg.sky] && cfg.sky !== 'moon' && !((run.solTapado || 0) > 0.5);
+// EL BRILLO SEGUN EL AMBIENTE (25/11, el autor: "el brillo de la pista debe variar segun el ambiente; en el tutorial con el
+// atardecer fijo quedo excelente"). La referencia es ESE cielo (dawn, la etapa 1 del tutorial): sus numeros son los de
+// SOL_PISTA y no se tocan. Los demas, por clima: `a` cuanto brilla, `col` de que color, `ancho` del huso (fraccion de W),
+// `sombra` de las matas (0 = sin sombra), `astro` si es el reflejo de un astro (lo tapa el frente) o un lustre difuso.
+//   ocaso calido y anaranjado · sol pleno mas blanco y mas abierto · la luna, fria y finita · nublado, un lustre gris
+//   ancho y sin sombras · tormenta, el asfalto MOJADO: mas brillo que nublado, frio · noche cerrada, nada
+const BRILLO_PISTA = {
+  dawn: { a: SOL_PISTA.ALFA, col: SOL_PISTA.COL, ancho: SOL_PISTA.ANCHO, sombra: SOL_PISTA.SOMBRA, astro: true },
+  dusk: { a: 0.44, col: '#ffbf78', ancho: 0.13, sombra: 0.24, astro: true },
+  sun: { a: 0.32, col: '#fff0d2', ancho: 0.17, sombra: 0.17, astro: true },
+  clear: { a: 0.28, col: '#fff6e6', ancho: 0.18, sombra: 0.15, astro: true },
+  moon: { a: 0.17, col: '#c6d4f2', ancho: 0.08, sombra: 0.1, astro: true },
+  cloudy: { a: 0.09, col: '#d9dee0', ancho: 0.32, sombra: 0, astro: false },
+  storm: { a: 0.16, col: '#a9bccb', ancho: 0.26, sombra: 0, astro: false },
+  night: { a: 0, col: '#000000', ancho: 0, sombra: 0, astro: false },
+};
+/** El brillo de la pista AHORA (el del clima, con el frente tapando el astro), o null si no hay. */
+function brilloPista() {
+  const B = BRILLO_PISTA[cfg.sky] || BRILLO_PISTA.dawn;
+  const k = B.astro ? Math.max(0, 1 - (run.solTapado || 0)) : 1;
+  return B.a * k > 0.01 ? { ...B, a: B.a * k, sombra: B.sombra * k } : null;
+}
+const rgba0 = hex => 'rgba(' + parseInt(hex.slice(1, 3), 16) + ',' + parseInt(hex.slice(3, 5), 16) + ',' + parseInt(hex.slice(5, 7), 16) + ',0)';
+function asfaltoPista(y, wz, k, ra, rb, R) {
+  const camH = Math.max(0.3, cfg.cliff ? cam.y - PORT_H : cam.y), z = F / k;
+  const dzFila = z * z / (camH * F);                 // cuantos m de mundo cubre esta fila de pantalla
+  const sx = wx => W / 2 + (wx - cam.x) * k + ZB;
+  const tramo = (wa, wb, col, al) => {               // [wa, wb] de costado, recortado a la pista
+    const xa = Math.max(ra, sx(wa)), xb = Math.min(rb, sx(wb));
+    if (xb > xa && al > 0.01) { ctx.globalAlpha = al; ctx.fillStyle = col; ctx.fillRect(xa, y, xb - xa, 1); }
+  };
+  const hw = R.hw;
+  // las RODADAS: la goma que dejan las ruedas, A LA TROCHA DEL AVION (setPistaAvion). No son bandas parejas: la goma se
+  // pega a manchones (mas y menos negra a lo largo) y el que rodo antes no iba justo por el eje (un serpenteo leve)
+  const gomaA = 0.5 + 0.5 * Math.sin(wz * 0.21 + Math.sin(wz * 0.053) * 3), serp = Math.sin(wz * 0.031) * 0.18 + Math.sin(wz * 0.11) * 0.05;
+  for (const s2 of [-1, 1]) {
+    const cx2 = s2 * trocha + serp, an = rueda * (1.6 + 0.5 * Math.sin(wz * 0.4 + s2));
+    tramo(cx2 - an / 2, cx2 + an / 2, '#15191b', 0.16 * gomaA);
+    tramo(cx2 - rueda / 2, cx2 + rueda / 2, '#101315', 0.22 * gomaA * (0.6 + 0.4 * hash2(Math.floor(wz * 1.3), s2 + 5)));
+  }
+  // los PARCHES: rectangulos de asfalto mas nuevo (oscuro) o lavado (claro), de a celdas
+  const iz = Math.floor(wz / ASF.PARCHE_Z);
+  for (let ix = Math.floor(-hw / ASF.PARCHE_X); ix * ASF.PARCHE_X < hw; ix++) {
+    const h = hash2(ix * 31 + 7, iz);
+    if (h >= ASF.PARCHE_P) continue;
+    const h2 = hash2(ix, iz * 17 + 3), h3 = hash2(ix * 5 + 1, iz * 9);
+    const z0 = iz * ASF.PARCHE_Z + h2 * 2, z1 = z0 + 1.2 + h3 * 3.2;
+    if (wz < z0 || wz > z1) continue;
+    // (25/11, el autor: "son demasiado rectangulares") — el borde de cada fila se mueve: punta redondeada arriba y abajo
+    // (el ancho sigue un arco) y un temblor de bache en cada lado, distinto a izquierda y derecha
+    const u = (wz - z0) / (z1 - z0), arco = Math.sqrt(Math.max(0, Math.sin(u * Math.PI)));
+    const ancho = (1 + h2 * 2.2) * (0.35 + 0.65 * arco), xc = ix * ASF.PARCHE_X + h3 * 1.2 + (1 + h2 * 2.2) / 2 + Math.sin(u * 3 + h * 30) * 0.25;
+    const tiI = Math.sin(wz * 5.1 + h * 70) * 0.18 + Math.sin(wz * 13.7 + h2 * 50) * 0.08;
+    const tiD = Math.sin(wz * 4.3 + h3 * 60) * 0.18 + Math.sin(wz * 11.9 + h * 20) * 0.08;
+    tramo(xc - ancho / 2 + tiI, xc + ancho / 2 + tiD, h < ASF.PARCHE_P * 0.6 ? ASF_OSC : ASF_CLARO, 0.22 * Math.max(0.3, 1 - dzFila / 3) * (0.75 + 0.25 * arco));
+  }
+  // las JUNTAS de las losas, de lado a lado: lo que mas se lee como velocidad
+  const aJ = 0.4 * Math.max(0, 1 - dzFila / 5);
+  if (aJ > 0 && (wz % ASF.JUNTA + ASF.JUNTA) % ASF.JUNTA < Math.max(ASF.JUNTA_W, dzFila)) tramo(-hw, hw, ASF_OSC, aJ);
+  // las FISURAS: rayas finas que serpentean a lo largo
+  const aF = 0.45 * Math.max(0, 1 - dzFila / 1.2);
+  if (aF > 0) {
+    const fz = Math.floor(wz / ASF.FISURA_Z);
+    for (let ix = Math.floor(-hw / ASF.FISURA_X); ix * ASF.FISURA_X < hw; ix++) {
+      const h = hash2(ix * 13 + 2, fz * 7 + 5);
+      if (h >= ASF.FISURA_P) continue;
+      const largo = 2 + hash2(ix, fz) * 5, z0 = fz * ASF.FISURA_Z + hash2(fz, ix * 3) * 3;
+      if (wz < z0 || wz > z0 + largo) continue;
+      const fx = ix * ASF.FISURA_X + h * 6 + Math.sin(wz * 1.7 + h * 40) * 0.35 + Math.sin(wz * 4.3 + ix) * 0.12;
+      const ancho = Math.max(0.7, 0.06 * k) / k;
+      tramo(fx, fx + ancho, '#15191b', aF);
+    }
+  }
+  // el GRANO: piedritas claras y oscuras, del tamaño de GRANO_T m (cuadradas: no se estiran con el paralaje)
+  const aG = 0.3 * Math.max(0, 1 - dzFila / ASF.GRANO);
+  if (aG > 0 && (wz % ASF.GRANO + ASF.GRANO) % ASF.GRANO < Math.max(ASF.GRANO_T, dzFila)) {
+    // (25/11) de cerca cada piedrita era una raya ancha (el escorzo aplasta su largo) y la pista se leia rayada de
+    // rectangulos: el punto no pasa de pixel y medio, y cada fila de la banda corre su piedrita un poco de costado
+    const gz = Math.floor(wz / ASF.GRANO), n = Math.round(2 * hw * ASF.GRANO_N), t = Math.min(1.5, Math.max(0.8, ASF.GRANO_T * k));
+    for (let i = 0; i < n; i++) {
+      const gx = -hw + hash2(gz, i * 3 + 1) * 2 * hw + Math.sin(wz * 37 + i) * 0.04, xs = sx(gx);
+      if (xs < ra || xs + t > rb) continue;
+      ctx.globalAlpha = aG; ctx.fillStyle = hash2(i, gz * 5) < 0.55 ? ASF_OSC : ASF_CLARO; ctx.fillRect(xs, y, t, 1);
+    }
+  }
+  // EL REFLEJO DEL SOL: en pantalla el sol esta en el eje del cuadro (W/2, como el camino del sol del mar). Un huso de luz
+  // que se abre a lo lejos y se apaga cerca (la distancia es lo que hace rasante el angulo), con un brillo que corre
+  const BP = brilloPista();
+  if (BP) {
+    const lejos = Math.min(1, dzFila / 2.5), al = BP.a * lejos * (0.8 + 0.2 * Math.sin(wz * 0.9 - run.t * 2));
+    if (al > 0.02) {
+      const mw = W * BP.ancho * (0.35 + 0.65 * lejos), xa = Math.max(ra, W / 2 - mw), xb = Math.min(rb, W / 2 + mw);
+      if (xb > xa) {
+        const g = ctx.createLinearGradient(W / 2 - mw, 0, W / 2 + mw, 0), c0 = rgba0(BP.col);
+        g.addColorStop(0, c0); g.addColorStop(0.5, BP.col); g.addColorStop(1, c0);
+        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = al; ctx.fillStyle = g; ctx.fillRect(xa, y, xb - xa, 1);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// LAS LUCES DE LA PISTA DE NOCHE (25/11, el autor: "mejorar las luces cuando esta oscuro, los reflejos y sombras y luces en
+// la pista desde los aviones"). Solo con los cielos oscuros (data/noche.js: night, storm, moon). Tres cosas, y las tres
+// abren la oscuridad (van a la capa de luz de render/brillo.js, que es la mascara del velo de la noche):
+//   las BALIZAS del borde, cada BALIZA m, con su halo chico y la estela de su reflejo sobre el asfalto
+//   la LUZ DE ATERRIZAJE de cada avion (el tuyo y, en el carreteo, los de la formacion): un charco alargado que se
+//     estira por la pista ADELANTE del avion y se apaga al levantar (FARO_ALTO m)
+//   el REFLEJO de las luces de navegacion en el asfalto: rojo a la izquierda, verde a la derecha, al pie de cada punta
+const LUCES_PISTA = { BALIZA: 9, BALIZA_LEJOS: 260, FARO: [4, 9, 15, 22, 30], FARO_LARGO: 34, FARO_ALTO: 10, FARO_A: 0.85, NAV_A: 0.3 };
+function drawLucesPista(dv) {
+  const n = NOCHE.CIELOS[cfg.sky], R = RUNWAYS[cfg.runway] || RUNWAYS[0];
+  if (!n || !R.hw) return;
+  const L = LUCES_PISTA, gy = cfg.cliff ? PORT_H : 0, fin = cfg.coast - PORT_AMP - 20;
+  ctx.save();
+  // las BALIZAS: de la mas lejana a la mas cercana
+  const z0 = Math.ceil(Math.max(dv + 3, 0) / L.BALIZA) * L.BALIZA;
+  for (let wz = Math.min(fin, dv + L.BALIZA_LEJOS); wz >= z0; wz -= L.BALIZA) {
+    const zz = Math.floor(wz / L.BALIZA) * L.BALIZA;
+    if (zz - dv < 3) continue;
+    for (const lado of [-1, 1]) {
+      const s = proj(lado * (R.hw + 0.4), gy, zz - dv);
+      const t = Math.max(1, s.k * 0.16), lejos = Math.min(1, s.k / 6);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.35 * lejos; ctx.fillStyle = '#ffcf6a';
+      ctx.fillRect(s.x - t / 2, s.y, t, Math.max(1, Math.min(4, s.k * 0.35)));   // la estela del reflejo, hacia vos (corta: larga parecia un poste)
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1; ctx.fillStyle = '#ffe2a0';
+      ctx.fillRect(Math.round(s.x - t / 2), Math.round(s.y - t), Math.ceil(t), Math.ceil(t));
+      luz(ctx, s.x, s.y - t / 2, Math.max(3, s.k * 0.9), [255, 205, 120], 0.55);
+    }
+  }
+  // LOS AVIONES: el tuyo y, en el carreteo, la formacion
+  const aviones = [{ x: plane.x, y: plane.y, z: PZ }];
+  if (S.state === 'takeoff') {
+    const slots = formationSlots(run.squad);
+    for (let i = 0; i < slots.length; i++) { const pu = puestoFormacion(slots, i, plane.x, plane.y, run.t); aviones.push({ x: pu.x, y: pu.y, z: PZ + pu.dz }); }
+  }
+  const semi = ALA_PX * PZ / F;
+  for (const a of aviones) {
+    const alto = Math.max(0, a.y - gy), on = Math.max(0, 1 - alto / L.FARO_ALTO);
+    if (on <= 0.02) continue;
+    // la LUZ DE ATERRIZAJE: charcos achatados a lo largo, cada vez mas grandes y mas tenues
+    for (const d of L.FARO) {
+      if (a.z + d + dv > fin) break;
+      const s = proj(a.x, gy, a.z + d), I = (1 - d / L.FARO_LARGO) * on;
+      ctx.save(); ctx.translate(s.x, s.y); ctx.scale(1, 0.28);
+      luz(ctx, 0, 0, (1.4 + d * 0.13) * s.k, [255, 238, 205], L.FARO_A * I);
+      ctx.restore();
+    }
+    // el REFLEJO de las luces de navegacion, al pie de cada punta
+    for (const [lado, col] of [[-1, '#ff4a3a'], [1, '#4aff7a']]) {
+      const s = proj(a.x + lado * semi, gy, a.z), t = Math.max(1, s.k * 0.12);
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = L.NAV_A * on; ctx.fillStyle = col;
+      ctx.fillRect(s.x - t / 2, s.y, t, Math.max(1, s.k * 0.5));
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+  ctx.restore();
 }
 
 /** EL CAMPO DE LA BASE (4/10/2026, pedido del autor: "en el pasto del despegue el efecto parece
@@ -273,7 +473,7 @@ function drawBaseVeg(dv) {
   if (R.ground === 'asphalt') return;                       // plataforma de asfalto: no hay campo
   const gy = cfg.cliff ? PORT_H : 0;
   const fin = Math.min(cfg.coast - PORT_AMP - 2, dv + 150);
-  const climaP = climaDe(cfg), quieto = (PASTO_LEAN[climaP] || 0) === 0;
+  const climaP = climaDe(cfg), quieto = (PASTO_LEAN[climaP] || 0) === 0, bpS = brilloPista(), sol = !!(bpS && bpS.sombra > 0);
   const SP = 2.8;
   for (let wz = Math.ceil((fin) / SP) * SP; wz > dv + 3; wz -= SP) {        // de atras hacia adelante
     const camZ = wz - dv, k = F / camZ, iz = Math.round(wz / SP);
@@ -302,6 +502,22 @@ function drawBaseVeg(dv) {
           soldierArt.drawArgentino(ctx, r.x, r.y, r.k, run.t * 9 + h3 * 6, ida ? 1 : -1, false);
         }
         continue;
+      }
+      // LA SOMBRA (25/11, el autor: "sombras de los arbustos tambien si es que hay sol"): el sol esta adelante, en el
+      // horizonte, asi que la sombra cae HACIA LA CAMARA y para afuera del eje — una mancha baja y achatada al pie
+      // (25/11, el autor: "las sombras de los pastizales estan horribles"): eran elipses lisas, gordas y con el borde
+      // suavizado — manchas de otro dibujo. Ahora es pixel art: dos o tres renglones al pie, cada uno mas angosto y mas
+      // tenue, corridos apenas hacia afuera; y solo cerca (k > 2), donde la mata ya se lee
+      if (sol && k > 2) {
+        const sw = k * (h1 > 0.93 ? 1.7 : 1.1) * (0.8 + h2 * 0.3), filas = Math.min(3, Math.max(1, Math.round(k * 0.25)));
+        const dx = Math.round((s.x - W / 2) * 0.06), y0 = Math.round(s.y);
+        const a0 = ctx.globalAlpha;
+        for (let f = 0; f < filas; f++) {
+          const w = Math.max(1, Math.round(sw * (1 - f * 0.28)));
+          ctx.globalAlpha = a0 * bpS.sombra * (1 - f * 0.3);
+          px(Math.round(s.x + dx * (1 + f) - w / 2), y0 + f, w, 1, '#10140d');
+        }
+        ctx.globalAlpha = a0;
       }
       if (h1 > 0.962) veg.piedras(s.x, s.y, k * 2.0, h2);
       else if (h1 > 0.93) veg.mata(s.x, s.y, k * 2.3, h2, theme.land.tuft);
@@ -699,7 +915,7 @@ export function drawSea(alHorizonte) {
     const f = fRow;   // ya viene clampeado en 1 (ver fRow)
     px(-70, y, W + 140, rowH, aguaCol(f));
   }
-  if (landVisible) { drawBaseVeg(dv); drawEstacionados(dv); }
+  if (landVisible) { drawBaseVeg(dv); drawEstacionados(dv); drawLucesPista(dv); }
   if (nMar || nCosta || nPlaya) profundidad(HOR + 1, yEnd, dv);
   geoFilas.mar = nMar; geoFilas.tierra = nTierra; geoFilas.costa = nCosta; geoFilas.playa = nPlaya;
   if (geoOn) {
@@ -1815,6 +2031,34 @@ export function drawWake() {
   // nafta; esto es lo que lo hace VERSE desde afuera del avion — el agua atras tuyo cambia.
   // Es un multiplicador y no un dibujo aparte a proposito: la estela sigue siendo una sola.
   const wAnch = run.boost ? ESTELA_TURBO : 1, wAlfa = run.boost ? ESTELA_TURBO_A : 1;
+  // LA RAYA DEL ALA DE CANTO (25/11, data/tuning.js CANTO_AGUA): la punta de abajo corto el agua y dejo una LINEA, no una V.
+  // Une las muestras seguidas que la tienen (`tx`, `ti`): un surco blanco fino con el agua abierta a los dos lados, que se
+  // ensancha y se deshace al quedar atras
+  for (let j = 0; j + 1 < wake.length; j++) {
+    const w0 = wake[j], w1 = wake[j + 1];
+    if (!(w0.ti > 0.04 && w1.ti > 0.04)) continue;
+    const a0 = proj(w0.tx, 0, w0.z), a1 = proj(w1.tx, 0, w1.z);
+    const age = Math.min(1, (PZ - w0.z) / ESTELA_EDAD), ti = Math.min(w0.ti, w1.ti);
+    const ab = Math.max(1, Math.min(2.2, a0.k * (0.08 + age * 0.2)));   // cuanto se abrio el surco (con techo: cerca de la camara no es un haz)
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = ti * 0.3 * (1 - age);                     // el agua abierta a los costados
+    ctx.strokeStyle = P.foam; ctx.lineWidth = ab * 2.2;
+    ctx.beginPath(); ctx.moveTo(a0.x, a0.y); ctx.lineTo(a1.x, a1.y); ctx.stroke();
+    ctx.globalAlpha = Math.min(1, ti * 1.1) * (1 - age * 0.85);   // el surco recien cortado
+    ctx.strokeStyle = age < 0.3 ? '#f2f7fb' : P.crest; ctx.lineWidth = Math.max(0.8, Math.min(1.3, a0.k * 0.06));
+    ctx.beginPath(); ctx.moveTo(a0.x, a0.y); ctx.lineTo(a1.x, a1.y); ctx.stroke();
+    // LA SEGUNDA RAYA, mas fina y mas tenue, a CANTO_AGUA.PAR m hacia afuera (la ola que abre el ala al cortar)
+    const off = (w0.tl || 1) * CANTO_AGUA.PAR * (1 + age * 0.8);
+    const b0 = proj(w0.tx + off, 0, w0.z), b1 = proj(w1.tx + off, 0, w1.z);
+    ctx.globalAlpha = Math.min(1, ti * 0.7) * (1 - age * 0.9);
+    ctx.strokeStyle = P.crest; ctx.lineWidth = Math.max(0.5, Math.min(0.9, a0.k * 0.035));
+    ctx.beginPath(); ctx.moveTo(b0.x, b0.y); ctx.lineTo(b1.x, b1.y); ctx.stroke();
+    if (age > 0.25 && hash2(Math.round((w0.seed || 0) * 1000), j) > 0.6) {   // espuma suelta que queda
+      ctx.globalAlpha = ti * 0.6 * (1 - age);
+      px(a0.x + (hash2(j, 7) - 0.5) * ab * 3, a0.y, 1, 1, P.foam);
+    }
+  }
+  ctx.lineCap = 'butt';
   for (const wp of wake) {
     const trail = PZ - wp.z;                       // metros que quedaron atrás
     const s = proj(wp.x, 0, wp.z);

@@ -110,7 +110,8 @@ function enPista(x, z) {
   const largo = sy * dx - cy * dz, lado = cy * dx + sy * dz;
   return Math.abs(largo) < q.largo / 2 && Math.abs(lado) < q.ancho / 2 + PISTA.margen ? { largo, lado } : null;
 }
-export const pistaEscena = () => (enPasillo() && I.libre && I.pista ? I.pista : null);
+// (25/11: tambien en el TUTORIAL, que arranca recien levantado de ella — la etapa 4; aterrizar sigue siendo del libre)
+export const pistaEscena = () => (enPasillo() && (I.libre || I.tut) && I.pista ? I.pista : null);
 /** ¿Las islas estan corriendo CON el radar apagado? (flight.js no carga la barra; el HUD no la muestra) */
 export const sinRadar = () => enPasillo() && !I.radar;
 export const listo = () => mundo.listo();
@@ -271,7 +272,7 @@ export function pasoPasillo(dt) {
       P3.sostiene = I.mar ? 0 : SOSTIENE_T; P3.altFija = null;
     }
   }
-  if (I.ir) { const q = I.ir; I.ir = null; const [x, z] = mundo.lonLatLocal(q.lon, q.lat); P3.x = x; P3.z = z; if (q.rumbo != null) P3.yaw = q.rumbo * Math.PI / 180; P3.g = Math.max(mundo.sueloH(x, z), 0); if (q.alt) plane.y = q.alt; }
+  if (I.ir) { const q = I.ir; I.ir = null; const [x, z] = mundo.lonLatLocal(q.lon, q.lat); P3.x = x; P3.z = z; if (q.rumbo != null) P3.yaw = q.rumbo * Math.PI / 180; P3.g = Math.max(mundo.sueloH(x, z), 0); if (q.alt) plane.y = q.alt; if (q.inicio) P3.ini = { x, z, yaw: P3.yaw }; }
   geoExterna.on = true; geoExterna.sinRoce = true;
   carteles.queda = enCabina() ? null : 3;   // (los carteles de las islas: 3 s, render/hud.js `corre`)
   // EL CAMPO DEL PASILLO sobre el mapa (render/world.js `drawCampoIslas`): donde esta el carril en el mapa y el suelo

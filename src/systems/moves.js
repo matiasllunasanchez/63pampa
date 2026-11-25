@@ -17,7 +17,7 @@ import { proj, popup } from '../core/fx.js';
 import { sfxOne, beep } from './audio.js';
 import { P } from '../data/palette.js';
 import { PZ, W, H } from '../render/ctx.js';
-import { FLY_X, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, COBRA_INV, POPUP, QUIEBRE, JINK, PIQUE, ALTO } from '../data/tuning.js';
+import { FLY_X, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, COBRA_INV, POPUP, QUIEBRE, JINK, PIQUE, ALTO, CIELO } from '../data/tuning.js';
 import { MOVES } from '../data/moves.js';
 
 const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
@@ -188,6 +188,17 @@ export function cobraAlMortal() {
   run.mvFase = '';
   return true;
 }
+
+/** CONVIERTE LA COBRA EN EL TIRABUZON AL CIELO (25/11): la cobra plantada, en vez de bajar la trompa, se va para arriba
+ *  rolando. Como el mortal, no pasa por `startMove` (hay una pirueta corriendo) ni vuelve a cobrar nafta. */
+export function cobraAlCielo(id = 'cielo') {
+  if (!enCobraPlantada()) return false;
+  run.mv = id; run.mvT = 0; run.mvY0 = plane.y; run.mvX0 = plane.x; run.mvTgt = 0; run.mvFase = '';
+  run.mvRoll = 0; run.mvCobra = 0; run.mvFreno = 0;
+  return true;
+}
+/** Hasta donde trepa: arriba de la capa de nubes, sin pasar el techo de LO ALTO. */
+const techoCielo = () => Math.min(ALTO.TECHO - 5, ALTO.NUBES + ALTO.ESPESOR + CIELO.SOBRE);
 
 // perfil suave 0→1→0 (campana) — la base de los empujes que entran y salen con peso
 const bell = p => Math.sin(Math.PI * Math.max(0, Math.min(1, p)));
@@ -528,6 +539,27 @@ export function movesSystem(dt, inp, act) {
       const frenoP = ssP(p / POPUP.ENTRA) * (1 - ssP((p - POPUP.SUELTA) / (0.75 - POPUP.SUELTA)));
       E.mvFreno = POPUP.CORTE * frenoP;
       E.spd = Math.max(40, E.spd * Math.exp(-POPUP.FRENO * frenoP * dt) - E.spd * 0.10 * dt);
+      break;
+    }
+    case 'cielo': case 'barrena': {
+      // EL TIRABUZON AL CIELO: la altura sigue una S (smootherstep: sale despacio de la cobra, trepa a fondo y se
+      // asienta arriba de las nubes), el rolido da CIELO.VUELTAS vueltas enteras con la misma S —asi termina derecho—
+      // y la espiral se abre de costado al ritmo del rolido. Trompa al cielo hasta el final, que nivela.
+      // LA BARRENA es la misma espiral para ABAJO, hasta CIELO.PISO, y la picada paga velocidad.
+      const baja = E.mv === 'barrena';
+      if (!E.mvTgt) E.mvTgt = baja ? Math.min(E.mvY0, CIELO.PISO) : Math.max(E.mvY0 + 40, techoCielo());
+      const s5 = t => { const c = Math.max(0, Math.min(1, t)); return c * c * c * (c * (c * 6 - 15) + 10); };
+      const u = s5(p), yDes = E.mvY0 + (E.mvTgt - E.mvY0) * u;
+      E.mvRoll = dir * u * Math.PI * 2 * (baja ? CIELO.VUELTAS_B : CIELO.VUELTAS);
+      const xDes = E.mvX0 + Math.sin(E.mvRoll) * CIELO.R * bell(p);
+      B.vy = Math.max(-400, Math.min(400, (yDes - B.y) / Math.max(dt, 1e-3)));
+      B.vx = Math.max(-40, Math.min(40, (xDes - B.x) / Math.max(dt, 1e-3)));
+      if (baja && B.y + B.vy * dt < CIELO.PISO) B.vy = Math.max(0, (CIELO.PISO - B.y) / Math.max(dt, 1e-3));   // nunca al agua
+      const sube = p < 1 - CIELO.NIVELA, sg = baja ? -1 : 1;
+      B.bank = 0; B.pitch = sg * (sube ? 1 : Math.max(0, (1 - p) / CIELO.NIVELA));
+      E.mvSteep = sube ? sg : 0;
+      if (baja && sube) E.spd += CIELO.ACELERA * dt;
+      if (B === plane && sube && p > 0.1) run.shake = Math.min(3, run.shake + dt * 4);
       break;
     }
     case 'climb': case 'climbmax': case 'dive': case 'divemax': {

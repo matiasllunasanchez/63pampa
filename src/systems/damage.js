@@ -24,6 +24,7 @@ import { boom, beep, sfxOne } from './audio.js';
 import { applyHit, effects, tierOf, isFatal, absorber, dmgRoce, recargar, ESCUDO, DMG, agonia } from '../core/damage.js';
 import { tickDesgaste } from '../core/desgaste.js';
 import { esDisparo, chanceEsquive } from '../core/esquive.js';
+import * as rasante from './rasante.js';
 
 /** Avion nuevo: chapa sana y escudo lleno. La llama el arranque de corrida Y el relevo del
  *  escuadron — cada avion del escuadron entra entero, que es lo que hace que el escuadron siga
@@ -82,6 +83,8 @@ export const esquiveAhora = () => chanceEsquive(run.esquiveBase ?? 0.08, run.esq
 export function takeHit(cause) {
   // EL ESQUIVE (data/perfiles.js ESQUIVE): un disparo que te alcanzo puede pasar de largo — la base del avion, y
   // mucho mas en plena pirueta. No se cobra, no sacude; sale el cartelito y cuenta como esquivado.
+  // (25/11) CON EL PODER RASANTE —la ULTI, RAS_ASIST en data/tuning.js— nada te toca: ni un rasguño
+  if (rasante.active()) return false;
   if (esDisparo(cause) && Math.random() < esquiveAhora()) {
     stats.dodges = (stats.dodges || 0) + 1; run.esquivoT = run.t;
     popup(W / 2, 50, T('esquivo'), P.accent);

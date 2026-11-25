@@ -39,7 +39,7 @@ export const radio = {
   personaje: null,
   cara: null,
   wrap: [],
-  bloque: 0,     // el bloque de dos renglones que muestra la caja en vuelo (ver `bloque()`)
+  bloque: 0,     // el bloque de tres renglones que muestra la caja en vuelo (ver `bloque()`)
   entera: false, // la linea ya se leyo entera (pausa de dialogo)
   t: 0,          // segundos transcurridos de la linea en curso
   dur: 0,        // cuanto dura
@@ -121,7 +121,7 @@ export function decir(raw, caraDe) {
   radio.activa = true;
   radio.ease = 0;
 }
-const BLOQUE = 2;            // los renglones que entran en la caja en vuelo
+const BLOQUE = 3;            // los renglones que entran en la caja en vuelo (25/11, el autor: "agrandar para que entre una linea mas")
 const durDe = filas => { const n = filas.join(' ').length; return Math.min(T_MAX, Math.max(T_MIN, T_MIN + n * T_POR_CHAR)); };
 /** Los renglones que muestra AHORA la caja en vuelo (dos, del bloque en curso). La pausa de dialogo usa `wrap` entero. */
 export const bloque = () => radio.wrap.slice(radio.bloque * BLOQUE, radio.bloque * BLOQUE + BLOQUE);

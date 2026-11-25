@@ -2747,7 +2747,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       else if (r.id === 'opciones') { pauseView = 'opciones'; opcSel = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'cartas') { pauseView = 'cartas'; cartasSel = 0; cartasCrece = 0; cartasLeer = cartasLeerV = 0; beep(600, 0.06, 'square', 0.05); }
       else if (r.id === 'save') { pauseView = 'save'; saveSel = 0; beep(600, 0.06, 'square', 0.05); }
-      else if (r.id === 'terminar') { tutTermina = true; pauseToggle(); }
+      else if (r.id === 'terminar') { tutTermina = true; tutFinT = 0; pauseToggle(); }   // (25/11, el autor: "apreté terminar etapa y no me sacó"): sale ya, sin los 4 s de vuelo del final
       else if (r.id === 'reiniciar') {
         paused = false;
         if (dlgPausa) { dlgPausa = false; lecFoco = null; callarRadio(); retenerRadio(false); }
@@ -2924,6 +2924,13 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // (SIEMPRE DE CERO, de principio a fin — el autor, 18/11: no se retoma desde ningun punto de control)
       libroAvSel = 0;
       libroDespegar();
+      // LA ETAPA 4 SALE DE PUERTO ARGENTINO SIN SECUENCIA (25/11): ya en el aire, a la altura de salida sobre la cabecera de
+      // la BAM MALVINAS y con el tren abajo, que se guarda solo — como si recien hubiera levantado. Ahi reaparece tambien
+      if (TUTORIAL_ETAPAS[k].desdePuerto && cfg.start === 'air') {
+        const p = SOBREVUELO.pista;
+        islas.irA({ lon: p.lon, lat: p.lat, alt: AIR_START_Y, rumbo: p.rumbo, inicio: true });
+        run.gear = 1;
+      }
     }
     /** Termina el contexto: a elegir el avion — SOLO SI HAY QUE ELEGIR (autor, 13/10: "si son todos
      *  iguales no pongas nada; si son iguales pero tienen diferentes configuraciones quiza si; si podes
@@ -4394,6 +4401,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
     const mvOk = id => moveAllowed(id, { campaign: conLibreta(), owned: pichon, off: cfg.movesOff }) && avionPuede(id);
     let uAntes = false, dAntes = false;
     let mortalArma = false;   // ya se toco ARRIBA dentro de la cobra: falta el ABAJO
+    let cieloToques = 0;      // toques de ARRIBA (mano izquierda) dentro de la cobra: al tercero, EL TIRABUZON AL CIELO
+    let barrenaToques = 0;    // …y de ABAJO: al tercero, LA BARRENA (la picada vertical en espiral)
     // EL ASCENSOR, AHORA POR MANTENIDO (autor, 11/11: "cambiala por un mantenido… lo mismo para
     // arriba"). Antes era `↑↑↑↑`: cuatro toques repetidos, y el espejo `↓↓↓↓` encima CHOCABA con el
     // TERRAIN MASKING (⟳↓↓↓), que en minusculas es la misma secuencia.
@@ -6142,6 +6151,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // avion revienta y la mision se reinicia: en la campaña nadie muere fuera del guion, asi que un
       // choque no puede costar un Fiel y seguir. Lo que no es choque (misiles, fuego) sigue averiado.
       if (relevoRompe() && esChoque(cause)) { die(cause); return; }
+      // EL TUTORIAL NO TIENE RELEVO (25/11): morir es perder la etapa — REINTENTAR la arranca de cero
+      if (libro && libro.tut) { die(cause); return; }
       if (canRelevo(run.lives)) {
         // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
         // (fuera de la campaña, lo que no es choque cae al azar —`derribar`, 16/10— y no vuelve averiado)
@@ -7462,7 +7473,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         // Y la [G] SOLA volvio a ser la cobra limpia, aunque vengas con el gas apretado. El acorde
         // [G]+[W] chocaba con el gas A SABIENDAS (autor, 24/10) y el precio era que volando normal
         // —o sea con [W] puesta— la cobra no salia nunca: salia el mortal.
-        mortalArma = false;
+        mortalArma = false; cieloToques = 0; barrenaToques = 0;
         const fr = inp.d > 0.3 ? 'cobrainv' : 'cobra';
         if (avionPuede(fr)) moves.startMove(fr, 1);   // (el Hercules no planta la trompa: data/perfiles.js)
       }
@@ -7473,9 +7484,12 @@ import { apodoAvion } from './data/apodos_aviones.js';
         const u = inp.u > 0.3, d = inp.d > 0.3;
         const flU = u && !uAntes, flD = d && !dAntes;
         if (moves.enCobraPlantada()) {
-          if (flU) mortalArma = true;
-          else if (flD && mortalArma) { mortalArma = false; if (avionPuede('mortal')) moves.cobraAlMortal(); }
-        } else mortalArma = false;
+          // (25/11) ARRIBA tres veces y no ARRIBA-ABAJO: EL TIRABUZON AL CIELO (data/moves.js `cielo`)
+          // …y ABAJO tres veces (sin haber armado con ARRIBA): LA BARRENA, la picada vertical en espiral
+          if (flU) { mortalArma = true; barrenaToques = 0; if (++cieloToques >= 3 && avionPuede('cielo')) { mortalArma = false; cieloToques = 0; moves.cobraAlCielo('cielo'); } }
+          else if (flD && mortalArma) { mortalArma = false; cieloToques = 0; if (avionPuede('mortal')) moves.cobraAlMortal(); }
+          else if (flD && ++barrenaToques >= 3) { barrenaToques = 0; if (avionPuede('barrena')) moves.cobraAlCielo('barrena'); }
+        } else { mortalArma = false; cieloToques = 0; barrenaToques = 0; }
 
         // ---- EL ASCENSOR: mirada sostenida y despues dos toques ----
         // MIRAR arriba/abajo son los MISMOS campos que lee el paneo de camara del pasillo: las
@@ -7608,7 +7622,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         else if (busqDef() && !run.climaxHecho) { if (!islas.enMar()) empezarBusqueda(); }
         else { finishObjective(); return; }
       }
-      if (fs && fs.death) { onDeath(fs.death); return; }
+      if (fs && fs.death && !rasante.active()) { onDeath(fs.death); return; }   // (la ULTI: nada te mata, RAS_ASIST)
       // LAS ISLAS: el rumbo y el suelo real, despues del vuelo de siempre (no hace nada fuera de ellas)
       { const mi = islas.pasoPasillo(dt); if (mi === 'aterrizo') { abrirTienda(); return; } if (mi) { onDeath(mi); return; } }
       pasoBusqueda(dt);
@@ -7815,7 +7829,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         }
       }
       const hit = collisionSystem(dt);   // impactos → devuelve { death } si un choque fue fatal
-      if (hit) { onDeath(hit.death); return; }
+      if (hit && !rasante.active()) { onDeath(hit.death); return; }   // (la ULTI: inalcanzable, RAS_ASIST)
       // LA COLA (PLAN_HARRIERS_PERSECUCION, PLAN A). Corre SOLO acá, en el PASILLO: el §6.6 pide
       // que no aparezca en ARENA, PASADA ni MINUTOS SAGRADOS, y la forma de garantizarlo es que
       // el duelo no tenga ningun otro sitio desde donde correr. Devuelve señal como todos: si te
@@ -8141,6 +8155,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       const barcoHorizonte = runClimax() === 'suelta' || sinObjetivoVisible() ? null : () => world.drawApproachBarge(objectiveDist, objectiveShip,
         S.state === 'pulso' ? fxLejos(pulso.shipFx(pulsoRender.ventana(cine.state(), run.t))) : null,
         runClimax() === 'pasada' && S.state !== 'pulso');
+      world.setPistaAvion(PLANES[selPlane]);   // la trocha de las rodadas de la pista (render/world.js)
       if (!world3D.isSea()) world.drawSea(barcoHorizonte);   // el mar 2D solo cuando three no lo esta poniendo
       else if (barcoHorizonte) barcoHorizonte();
       // la barcaza objetivo creciendo en el horizonte. El tercer parametro es lo que EL PULSO le

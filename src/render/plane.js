@@ -35,7 +35,7 @@ let ANCLAS = ANCLAS_A4;
 import { capasDe } from '../data/cargas.js';
 import { ALA_PX, ROCIADA_ABRE, ROCIADA_BAJA, ROCIADA_RAS_ABRE, ROCIADA_ALT,
          CORTINA_ABRE, CORTINA_ANCHO, CORTINA_BAJA, CORTINA_RAS_ABRE, CORTINA_N, CORTINA_ALT,
-         ROCIADA_TURBO, CORTINA_TURBO,
+         ROCIADA_TURBO, CORTINA_TURBO, CANTO_AGUA,
          ROCIADA_VERTICE, ROCIADA_FILAS, ROCIADA_REVUELTO, ROCIADA_REVUELTO_V,
          ROCIADA_RAS_CORTE, AVERIA_TAMBALEO, PIQUE, DERRAPE, METRALLAS } from '../data/tuning.js';
 import { skinOf } from '../data/skins.js';
@@ -799,10 +799,16 @@ function hieloAlas(img, sx, sy, fw, fh, dW, dH, nivel) {
   c.clearRect(0, 0, w, h); c.imageSmoothingEnabled = false;
   c.globalCompositeOperation = 'source-over';
   c.drawImage(img, sx, sy, fw, fh, 0, 0, w, h);
-  c.globalCompositeOperation = 'source-atop';
+  // (25/11, el autor: "cuando estoy muy arriba a veces tiene otro diseño"): este lienzo llevaba el SPRITE entero de la
+  // hoja base y se pegaba opaco encima del avion — tapaba el HD (hojaHd.js), el borde y la carga de abajo: arriba, con
+  // hielo, el avion se veia con el dibujo viejo. Ahora el sprite es solo la MASCARA ('source-in'): queda la escarcha
+  // con la forma de las alas, y el avion de abajo se ve igual que sin hielo
+  c.globalCompositeOperation = 'source-in';
   const a = Math.min(0.6, nivel * 0.7), medio0 = Math.round(w * 0.4), medio1 = Math.round(w * 0.6);
   c.fillStyle = `rgba(205,238,255,${a})`;
-  c.fillRect(0, 0, medio0, h); c.fillRect(medio1, 0, w - medio1, h);
+  // (UN solo trazo con los dos rectangulos: con 'source-in' cada relleno borra lo que queda afuera de el)
+  c.beginPath(); c.rect(0, 0, medio0, h); c.rect(medio1, 0, w - medio1, h); c.fill();
+  c.globalCompositeOperation = 'source-atop';
   // los puntitos de escarcha: siempre en el mismo lugar (no titilan), mas cuanto mas hielo
   // (contados y del tamaño de un pixel EN PANTALLA, como antes: el lienzo ahora es mas grande que el dibujo)
   c.fillStyle = 'rgba(245,252,255,0.9)';
@@ -840,7 +846,9 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // ROCIADA: el avion levanta agua al pasar rasante. Antes eran DOS BARRAS planas cruzando la
   // pantalla; ahora es una lengua de agua bajo el fuselaje, dos brazos en V que se abren hacia
   // atras y gotas sueltas — que es como se lee el agua batida en pixel art.
-  const churn = Math.max(0, 1 - plane.y / ROCIADA_ALT);
+  // (de canto, la V del casco y las cortinas de las dos puntas se apagan: la punta de abajo raya el agua — CANTO_AGUA)
+  const cantoK = 1 - CANTO_AGUA.APAGA * (run.cantoAgua || 0);
+  const churn = Math.max(0, 1 - plane.y / ROCIADA_ALT) * cantoK;
   // el rocio es de AGUA: con geografia, se pregunta que hay bajo el avion (G1). Una sola vez: lo
   // usan la rociada, las cortinas y la erupcion del roce — sobre tierra ninguna es de agua (4/10)
   const seco = geoPorPunto() ? esTierraEn(plane.x, run.dist + PZ) : cfg.terrain === 'land';
@@ -938,7 +946,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // preguntarlo. Renombrarlo es lo que deja que la rociada y las cortinas tengan variante.
     // SOBRE TIERRA NO HAY CORTINAS (4/10): son agua arrancada por los vortices. El polvo del ras lo
     // levanta systems/vuelo.js (`polvoRas`) como particulas, con su propio gesto.
-    const mojado = seco ? 0 : Math.max(0, 1 - plane.y / CORTINA_ALT);
+    const mojado = seco ? 0 : Math.max(0, 1 - plane.y / CORTINA_ALT) * cantoK;
     if (mojado > 0) {
       const gordo = run.boost ? CORTINA_TURBO : 1;           // con turbo arranca mas agua
       for (const sg of [-1, 1]) {
