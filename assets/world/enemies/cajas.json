@@ -619,15 +619,15 @@
   "harrier_cola": {
     "fw": 84,
     "fh": 84,
-    "cols": 9,
-    "rows": 5,
+    "cols": 25,
+    "rows": 9,
     "box": {
       "x0": 18,
-      "y0": 11,
+      "y0": 19,
       "x1": 65,
-      "y1": 75
+      "y1": 69
     },
-    "margen": 8
+    "margen": 14
   },
   "roca_baja": {
     "fw": 96,

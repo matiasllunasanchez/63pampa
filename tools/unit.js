@@ -2377,8 +2377,8 @@ test('aguante: el sector nuevo se corre del anterior y nunca se sale de la barra
 
 test('anclas: las hojas traen la grilla entera medida', async () => {
   const { ANCLAS } = await import('../src/data/anclas.js');
-  // la base: 9 alabeos x 3 cabeceos; el poder (desde el 25/11, "muchas poses") 25 x 5; la FINA, 13 x 5
-  for (const [hoja, filas, cols] of [['base', 3, 9], ['ras', 5, 25], ['fino', 5, 13]]) {
+  // la base: 9 alabeos x 3 cabeceos; el poder (desde el 25/11, "muchas poses") 25 x 5; la FINA, 13 x 9 (25/11)
+  for (const [hoja, filas, cols] of [['base', 3, 9], ['ras', 5, 25], ['fino', 9, 13]]) {
     const A = ANCLAS[hoja];
     assert.ok(A, `falta la hoja '${hoja}'`);
     for (const campo of ['tips', 'tob', 'box']) {

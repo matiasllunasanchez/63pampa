@@ -352,6 +352,9 @@ export function estelaVuelo(dt, o) {
       c: onLand ? (Math.random() < 0.6 ? '#6b6250' : '#4a4636') : (Math.random() < 0.7 ? P.foam : P.crest),
       // el TURBO engorda la gota en vez de agregar gotas: el presupuesto ya esta lleno (tuning)
       r: (1 + Math.random() * 1.3) * (run.boost ? ROCIO_TURBO : 1),
+      // (25/11, el autor: "el agua aparece por encima del ala… solo en rasante"): con el poder el avion se ve de costado y
+      // las gotas suben por delante del ala — van al FONDO, detras del avion (game.js dibuja los `fondo` antes)
+      fondo: !!o.ras,
     });
   }
   // ESTE 4,5 NO ES LA BANDA aunque hoy valga lo mismo: es proximidad FISICA al agua —la marejada

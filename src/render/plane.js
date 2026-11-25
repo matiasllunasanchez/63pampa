@@ -64,7 +64,10 @@ let boostSc = 1;   // factor animado del achique por turbo
 //     FILA_SALE — en el borde ya no titila entre dos poses.
 //   · FUNDIDO de fila: al cambiar de cabeceo, el frame viejo se apaga encima del nuevo en FILA_FUNDE s.
 const ALABEO_RAD = 1.05;                       // el alabeo a fondo que traen los frames (~60°, ver muzzles)
-const FILA_ENTRA = 0.36, FILA_SALE = 0.26, FILA_FUNDE = 0.11, FILA_MIN = 0.35;
+// (25/11, el autor: "cuando el avion baja y sube siento que el cambio de sprites es demasiado brusco"): el fundido entre dos
+// cabeceos duraba 0,11 s; con 0,32 s se veian DOS AVIONES SUPERPUESTOS ("cuando bajo y subo a veces veo doble aviones") —
+// 0,16 s en S: el de antes se apaga rapido al principio y no queda el fantasma
+const FILA_ENTRA = 0.36, FILA_SALE = 0.26, FILA_FUNDE = 0.16, FILA_MIN = 0.35;
 let filaSost = 1, filaAnt = 1, filaCambioT = -1, filaPrevCuadro = 1;
 // LA HOJA FINA (14/10, probada en el A-4 y pasada a todos: "rehornear mas secuencias para que se vea mas fluido"):
 // sheet5.png, 13 alabeos (uno cada 10°) x 5 cabeceos (±14° de a 7°), con sus anclas (ANCLAS.fino), sus
@@ -76,7 +79,9 @@ const FINO_ON = !(typeof location !== 'undefined' && /[?&]fino=0\b/.test(locatio
 // inclinan con el (23/11, el autor: "el efecto de viento debe acompañar el sentido")
 let gradosPose = 0;
 export const anguloPose = () => gradosPose;
-const FINO_NF = 13, FINO_GRADOS = [14, 7, 0, -7, -14], FINO_TOPE = 0.7;   // pitch 0,7 = 14°
+// (25/11) NUEVE cabeceos, uno cada 3,5° (eran 5, de a 7°): el cambio de pose es chico y va sin fundido — con el fundido se
+// veian dos aviones superpuestos al subir y bajar
+const FINO_NF = 13, FINO_GRADOS = [14, 10.5, 7, 3.5, 0, -3.5, -7, -10.5, -14], FINO_TOPE = 0.7;   // pitch 0,7 = 14°
 // LA HOJA DEL PODER RASANTE (25/11, el autor: "las poses del poder RASANTE tienen que ser muchas"): 25 alabeos (uno cada 5°)
 // x los 5 cabeceos de la fina — la ULTI esquiva y dispara sola, siempre moviendose
 const RAS_NF = 25;
@@ -1155,14 +1160,16 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   if (ancho13 || ras5) {
     // el angulo que pide el cabeceo, y la fila mas cercana; se cambia recien pasado 1/4 de paso de mas
     const ang = 14 * Math.max(-1, Math.min(1, pcPose / FINO_TOPE));
-    if (ahoraS - finoCambioT >= FILA_MIN && Math.abs(ang - FINO_GRADOS[finoFila]) > 3.5 + 1.75) finoFila = FINO_GRADOS.reduce((m, g, i) => Math.abs(g - ang) < Math.abs(FINO_GRADOS[m] - ang) ? i : m, 0);
+    if (ahoraS - finoCambioT >= FILA_MIN && Math.abs(ang - FINO_GRADOS[finoFila]) > 1.75 + 0.875) finoFila = FINO_GRADOS.reduce((m, g, i) => Math.abs(g - ang) < Math.abs(FINO_GRADOS[m] - ang) ? i : m, 0);
     if (finoFila !== finoPrev) { finoAnt = finoPrev; finoCambioT = ahoraS; finoPrev = finoFila; }
   }
-  const rowPose = ancho13 || ras5 ? finoFila : filaSost;
+  // (la hoja del poder sigue con 5 cabeceos, de a 7°: la fila fina de a 3,5° se lleva a la suya)
+  const rowPose = ancho13 ? finoFila : ras5 ? Math.round(finoFila / 2) : filaSost;
   if (filaSost !== filaPrevCuadro) { filaAnt = filaPrevCuadro; filaCambioT = ahoraS; filaPrevCuadro = filaSost; }
-  const fundeFila = fino || ras5 ? (finoCambioT >= 0 ? 1 - (ahoraS - finoCambioT) / FILA_FUNDE : 0)
+  const fundeFila = fino ? 0   // (la fina va sin fundido: ver FINO_GRADOS)
+    : ras5 ? (finoCambioT >= 0 && Math.round(finoAnt / 2) !== Math.round(finoFila / 2) ? 1 - (ahoraS - finoCambioT) / FILA_FUNDE : 0)
     : filaCambioT >= 0 ? 1 - (ahoraS - filaCambioT) / FILA_FUNDE : 0;   // 1 → 0
-  const filaFundida = fino || ras5 ? finoAnt : filaAnt;
+  const filaFundida = ras5 ? Math.round(finoAnt / 2) : fino ? finoAnt : filaAnt;
   // lo que el alabeo pide mas alla de la columna elegida (±media columna), en radianes de pantalla
   const resto = rolling ? 0 : (bank - (1 - 2 * colPose / (NF - 1))) * ALABEO_RAD;
   const prRoll = rolling ? Math.min(1, run.mvT / MOVES.tonel.dur) : 0;   // 0→1 durante el tonel
@@ -1306,7 +1313,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // misma hoja; las poses de pirueta y la cobra cambian de hoja y ahi manda la maniobra)
     if (fundeFila > 0 && !hoja4 && img !== hoja2 && row === rowPose && filaFundida !== row) {
       const a0 = ctx.globalAlpha;
-      ctx.globalAlpha = a0 * fundeFila;
+      ctx.globalAlpha = a0 * fundeFila * fundeFila;   // (cuadratica: el de antes se va rapido)
       ctx.drawImage(img, sx4, filaFundida * FH4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
       if (aHd) encimaHd(img, sx4, filaFundida * FH4, FW4, FH4, -dW / 2, -dH / 2, dW, dH, aHd);
       ctx.globalAlpha = a0;

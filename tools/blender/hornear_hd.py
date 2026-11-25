@@ -39,7 +39,7 @@ SONDA = ('sky', 'a4q')                                                          
 px_de = lambda k: 336 if k in PX2 else 168
 # (25/11) y LA HOJA 3, la del poder RASANTE (la camara a 45°): su cuadro ya es el doble del base, asi que la de cerca va
 # al cuadruple (`px_vista`). Sin tren: el poder se vuela con las ruedas guardadas
-VISTAS = (('base', 3, 9, ''), ('fino', 5, 13, '5'), ('ras', 5, 25, '3'))
+VISTAS = (('base', 3, 9, ''), ('fino', 9, 13, '5'), ('ras', 5, 25, '3'))
 px_vista = lambda k, v: px_de(k) * (2 if v == 'ras' else 1)
 # `--solo ras` hornea / arma una sola vista (las otras ya estan)
 SOLO = sys.argv[sys.argv.index('--solo') + 1] if '--solo' in sys.argv else None

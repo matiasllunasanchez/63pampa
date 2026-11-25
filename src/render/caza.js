@@ -126,9 +126,13 @@ function drawCazaSprite(H) {
     // nivelado, 2 pica). La pose sale del movimiento real (bank, pitch). Las filas de las piruetas
     // (3 y 4, ±32°) estan horneadas pero NO se usan: el Harrier no hace piruetas, y con ellas se lo
     // veia de arriba ("muy vertical").
-    const col = Math.max(0, Math.min(8, Math.round((H.bank * 0.5 + 0.5) * 8)));
+    // (25/11, "los Harriers detras se notan muy DUROS"): 25 alabeos x 9 cabeceos (hojas.py) — la pose sigue al bank y al
+    // cabeceo de a pasos chicos (5° y 3,5°) en vez de saltar entre tres
+    const sh = enemyArt.SHEETS.harrier_cola, nc = sh.cols || 9, nf = sh.rows || 3;
+    const col = Math.max(0, Math.min(nc - 1, Math.round((H.bank * 0.5 + 0.5) * (nc - 1))));
     const p = H.pitch || 0;
-    const fila = p > 0.45 ? 0 : p < -0.45 ? 2 : 1;
+    const fila = nf >= 9 ? Math.max(0, Math.min(8, Math.round((14 - 14 * Math.max(-1, Math.min(1, p / 0.6))) / 3.5)))
+      : p > 0.45 ? 0 : p < -0.45 ? 2 : 1;
     enemyArt.drawFrame(ctx, 'harrier_cola', col, fila, s.x, { centerY: s.y }, k, false, false, 0);
     resplandor(s.x, s.y, k, H);
     return;

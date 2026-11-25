@@ -723,7 +723,10 @@ export const ROCIO_BARRIDO = 2.8;
 //            lleve. Esas salen antes del giro del eje, asi que con el poder van derecho mientras
 //            las barridas van a 45: bajarla (o ponerla en 0) es como se apaga esa discrepancia.
 export const ROCIO_PUNTA = 0.7, ROCIO_COLUMNA = 0.45;
-export const ROCIO_RAS_COLUMNA = 0.45;   // probar en 0 si con el poder la columna desentona
+// (25/11, el autor: "a veces el agua aparece por encima del ala, o mal ubicada… solo en rasante"): con el poder el avion
+// se dibuja de costado, corrido y agrandado, y la columna salia de la punta de la vista DE ATRAS — subia atravesando el
+// ala. En 0: con el poder no hay columna (el resto del rocio sigue, barrido a 45°)
+export const ROCIO_RAS_COLUMNA = 0;
 
 // ---------------------------------------------------------------------------------------------
 // EL POLVO DEL SUELO — el gemelo en tierra del rocio de arriba (carreteo, despegue y el pasaje

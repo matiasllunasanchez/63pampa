@@ -194,9 +194,11 @@ HOJAS = {
     # para el cuadro cuadrado de 84 → 40.81° verticales), los MISMOS 9 alabeos (-60..+60) y los cabeceos
     # de las dos hojas del jugador en una sola: filas 0-2 = +14, 0, -14 (sheet.png) y 3-4 = +32, -32
     # (sheet2.png, las piruetas). La pose como en hornear.py: cabeceo en X y alabeo en Z, sin volteo.
-    'harrier_cola': dict(fw=84, fh=84, pos=(0, 2.4, 12.5), fov=40.8078, lookY=0.15, cols=9, nueva=True,
+    # (25/11, el autor: "los Harriers detras se notan muy DUROS sus movimientos"): de 9 alabeos x 3 cabeceos (y dos filas de
+    # piruetas que no se usaban) a 25 alabeos (uno cada 5°) x 9 cabeceos (uno cada 3,5°), como la hoja fina del jugador
+    'harrier_cola': dict(fw=84, fh=84, pos=(0, 2.4, 12.5), fov=40.8078, lookY=0.15, cols=25, nueva=True,
                          frames=[dict(modelo='bl:harrier:atras', rots=[('X', p * R), ('Z', a * R)])
-                                 for p in (14, 0, -14, 32, -32) for a in (-60, -45, -30, -15, 0, 15, 30, 45, 60)]),
+                                 for p in (14, 10.5, 7, 3.5, 0, -3.5, -7, -10.5, -14) for a in range(-60, 61, 5)]),
     # ---------------- FASE 6: LOS SOLDADOS Y LA EYECCION (4/10/2026, tools/blender/modelos_soldados.py) ----------------
     # LA INFANTERIA: el encuadre de tools/bake_soldiers.html — la celda es una VENTANA FIJA de 2,9 unidades
     # con el suelo en la fila 20 (el juego ancla por la celda, no por una caja), de perfil mirando a la

@@ -79,7 +79,7 @@ VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     'cobra': (12, 126, '4', True),   # + la fila 11: 25°, la del DERRAPE
     # LA HOJA FINA (14/10, todos los aviones): 13 alabeos x 5 cabeceos (hornear.py --vista fino). Solo
     # se arma donde se horneo: sheet5.png, sus capas de carga, su tren (tren5.png) y sus anclas.
-    'fino': (5, 84, '5', True),
+    'fino': (9, 84, '5', True),   # (25/11: nueve cabeceos, uno cada 3,5°)
     # EL TONEL EN VERTICAL (21/11, hornear.py --vista tonelv): una fila, la vuelta entera cada 15° (24
     # columnas), cuadro de 126 como la cobra. NO se simetriza: la columna c y la 24-c son caras opuestas
     # del mismo giro, no espejos alrededor del centro de la fila. Sin anclas propias: el juego no le

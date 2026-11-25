@@ -76,7 +76,9 @@ if VISTA == 'ras':
 # mismo rango (±14° de a 7°, contra tres). Misma camara y mismo cuadro: sheet5.png.
 if VISTA == 'fino':
     ANGLES = list(range(-60, 61, 10))
-    PITCHES = [14, 7, 0, -7, -14]
+    # (25/11, el autor: "cuando subo… veo DOBLE aviones superpuestos"): con 7° entre cabeceos el salto se fundia y se veian
+    # dos poses a la vez; NUEVE cabeceos (uno cada 3,5°) y el cambio es tan chico que va sin fundido
+    PITCHES = [14, 10.5, 7, 3.5, 0, -3.5, -7, -10.5, -14]
 # `--vista cobra`: LA HOJA 4 (sheet4.png), la de LA COBRA (el freno, pedido del autor 4/10/2026): la
 # trompa sube hasta pasar la vertical — 40°, 75° y 100° (un poco hacia atras, como en la foto que
 # mando). Vertical, el avion mide su LARGO en el cuadro y no su envergadura, y no entra en 84: el
