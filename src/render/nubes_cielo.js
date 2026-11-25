@@ -174,7 +174,7 @@ export function drawNubesCielo(zfx, sol) {
     for (let i = 0; i < cuantas; i++) {
       const c = nubes[i];
       if (!c.cv) continue;
-      const cx = ((c.x * periodo - cam.x * C.par - run.t * C.deriva - zfx * C.par / 2.2) % periodo + periodo) % periodo - 70 - C.w[1] / 2;
+      const cx = ((c.x * periodo - cam.x * C.par * 0.6 - run.t * C.deriva - zfx * C.par / 2.2) % periodo + periodo) % periodo - 70 - C.w[1] / 2;
       if (cx + c.w / 2 < -70 || cx - c.w / 2 > W + 70) continue;
       // la altura: la capa del SOL se centra en el astro (si el telon tiene uno a la vista)
       const subeY = C.ySol && sol ? Math.max(4, HOR - sol.y - C.ySol + c.yR * C.ySol * 2) : C.y[0] + c.yR * (C.y[1] - C.y[0]);

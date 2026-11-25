@@ -2744,7 +2744,9 @@ export const VERT_STICK = { ACEL0: 10, ACEL1: 70, RAMPA: 0.5, TOPE: 0.75, POSE_D
 // (25/11, el autor: "debe caer un poco mas rapido sin gas… planear 5 o 10 segs y luego comenzar a caer, casi en picada; y
 // mientras planea cae lento como ahora"): los primeros PLANEA_S segundos sin sosten es la caida de CAIDA (el planeo); despues
 // la caida sube en PICA_RAMPA s hasta PICADA m/s
-export const VERT_SOSTEN = { LLENA_S: 0.45, DURA_S: 6, CAIDA: 3.4, SUBE_SIN: 0.6, DEMORA: 0.8, AGUJA_SUBE: 1.0, AGUJA_BAJA: 0.35, ALCANZA: 0.03,
+// (25/11, feedback del playtest: "el gas dura entre 5 y 6 seg y cargarlo casi 2 seg… esquivar, que no te vuelen, mirar los
+// relojes: es demasiado apretar el gas cada 5 seg"): DURA_S 6 → 10. La carga sigue igual (la aguja, AGUJA_SUBE)
+export const VERT_SOSTEN = { LLENA_S: 0.45, DURA_S: 10, CAIDA: 3.4, SUBE_SIN: 0.6, DEMORA: 0.8, AGUJA_SUBE: 1.0, AGUJA_BAJA: 0.35, ALCANZA: 0.03,
   PLANEA_S: 7, PICA_RAMPA: 1.5, PICADA: 16 };
 export const VERT_FIJA = { SUBE: 16, BAJA: 20, RESP: 6 };          // m/s al apretar, y que tan rapido llega / se clava
 export const VERT_PLANEO = { G: 3, TH: 12, CAIDA: 1.2, SUBE: 7, AMORT: 4, DEMORA: 1, DIVE: 30 };

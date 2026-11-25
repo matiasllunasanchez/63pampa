@@ -124,7 +124,7 @@ const ETAPA1 = [
   // la temperatura baje a -1 grado"): `hieloArriba` — en este paso el aire de arriba de las nubes tambien junta hielo
   // (afuera del tutorial, arriba de las nubes es seco: systems/frio.js)
   { dice: 'TUT1_HIELO', foco: ['temp', 'alt'], teclas: ['Gas', 'Dive'], hieloArriba: true,
-    sigue: [{ hieloSobre: 0.15, consigna: 'tutC_hielo' }, { hieloBajo: 0.05, consigna: 'tutC_deshiela' }], remate: 'TUT1_HIELO_OK' },
+    sigue: [{ frio: -1, consigna: 'tutC_hielo' }, { deshiela: { hielo: 0.05, alt: 8 }, consigna: 'tutC_deshiela' }], remate: 'TUT1_HIELO_OK' },
   { dice: 'TUT1_TURBO', foco: ['vel'], teclas: ['Boost'],
     sigue: [{ usa: ['turbo'], consigna: 'tutC_turbo' }], remate: 'TUT1_TURBO_OK' },
   // LA PAUSA GUIADA: el juego abre la pausa en CONTROLES, y para seguir hay que cerrarla

@@ -22,9 +22,10 @@ const OK_T = 1.1;         // el tilde de una consigna cumplida, antes de pasar a
 let tp = 0;   // segundos de practica del paso en curso
 let pasos = [], i = 0, fase = 'espera', t = 0, linea = 0, sub = 0, okT = 0, acum = 0, vistos = {}, base = {}, fin = true;
 
-/** Arranca una lista de pasos (vacia = apagado), siempre desde el primero. */
-export function empezar(lista) {
-  pasos = lista || []; i = 0; fin = !pasos.length;
+/** Arranca una lista de pasos (vacia = apagado), desde el primero — o desde `desde` (25/11: al reintentar despues de
+ *  morir, se retoma en el paso donde se cayo). */
+export function empezar(lista, desde = 0) {
+  pasos = lista || []; i = Math.max(0, Math.min(desde | 0, Math.max(0, pasos.length - 1))); fin = !pasos.length;
   entrar();
 }
 function entrar() { fase = 'espera'; t = 0; linea = 0; sub = 0; okT = 0; acum = 0; vistos = {}; }
@@ -136,6 +137,11 @@ function cumple(c, s, dt) {
   if (c.rasante) return !!s.rasante;
   if (c.salSobre != null) return (s.sal || 0) >= c.salSobre;     // LA SAL: juntarla volando al ras…
   if (c.salBajo != null) return (s.sal || 0) <= c.salBajo;
+  // (25/11, el autor: "llegas a -1° y te podes quedar arriba para siempre, nada te dice que bajes"): el paso se cumple con
+  // el TERMOMETRO en `frio` grados (lo que dice la consigna) o con el hielo ya pegado, lo que llegue primero
+  if (c.frio != null) return (s.temp != null && Math.round(s.temp) <= c.frio) || (s.hielo || 0) >= (c.hieloSobre ?? 0.15);
+  // …y para cerrarlo hay que BAJAR al ras con el hielo derretido (sin hielo juntado, bajar igual: si no se cumplia arriba)
+  if (c.deshiela) return (s.hielo || 0) <= c.deshiela.hielo && s.alt < c.deshiela.alt;
   if (c.hieloSobre != null) return (s.hielo || 0) >= c.hieloSobre;   // EL HIELO (systems/frio.js): juntarlo en la nube…
   if (c.hieloBajo != null) return (s.hielo || 0) <= c.hieloBajo;     // …y sacarselo al ras del mar
   if (c.marca) return !!s.marca;                                     // LAS ISLAS: un punto marcado en el MAPA de la pausa

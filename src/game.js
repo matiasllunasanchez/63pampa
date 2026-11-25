@@ -1972,7 +1972,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     /** El epilogo de la mision que se acaba de volar. */
     function irAlEpilogo() {
       // EL TUTORIAL no cuenta nada al final: la etapa queda tildada y se vuelve a su menu
-      if (libro && libro.tut) { marcarEtapa(libro.k); pedirReintento(reintentarLibro, volverAlLibro); return; }   // (…con REINTENTAR, 23/11)
+      if (libro && libro.tut) { libro.desde = 0; marcarEtapa(libro.k); pedirReintento(reintentarLibro, volverAlLibro); return; }   // (…con REINTENTAR, 23/11; terminada, se reintenta de cero)
       // EL LIBRO DE VUELO cuenta lo que pasó SIEMPRE, y lo que pasó es de la salida en curso — no
       // depende de que la corrida haya llegado a armar su recuento.
       if (libro && curMission() && curMission().epi) { initStory(curMission().epi); setState('epilogue'); return; }
@@ -2911,9 +2911,11 @@ import { apodoAvion } from './data/apodos_aviones.js';
       return true;
     }
     /** UNA ETAPA DEL TUTORIAL: sin contexto ni eleccion — despega derecho, TERO solo en el A-4B. */
-    function abrirTutorial(k) {
+    /** `desde` (25/11, el autor: "si perdes contra un Harrier tenes que empezarlo todo otra vez; deberias empezar por la parte
+     *  donde moriste"): el paso desde el que se retoma — ya en el aire, sin repetir el despegue ni lo anterior. */
+    function abrirTutorial(k, desde = 0) {
       if (!TUTORIAL_ETAPAS[k]) return;
-      libro = { k, av: null, tut: true };
+      libro = { k, av: null, tut: true, desde };
       gameMode = 'cycle'; S.test = false;
       // LA ETAPA 4 (20/11) se vuela sobre LAS ISLAS; las otras, en el pasillo (y apagan las islas que hubiera dejado PRUEBAS)
       islas.activar(!!TUTORIAL_ETAPAS[k].islas, true);
@@ -2921,7 +2923,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // puede colarse aca — el reset lo devolvia DESPUES de que la etapa pidiera pista, y se arrancaba volando
       startCiclo = null;
       loadLevel(nivelTut(k));
-      // (SIEMPRE DE CERO, de principio a fin — el autor, 18/11: no se retoma desde ningun punto de control)
+      // (de cero si se entra a la etapa; retomada desde el paso donde se murio, si es un REINTENTAR — 25/11)
+      if (desde > 0) cfg.start = 'air';
       libroAvSel = 0;
       libroDespegar();
       // LA ETAPA 4 SALE DE PUERTO ARGENTINO SIN SECUENCIA (25/11): ya en el aire, a la altura de salida sobre la cabecera de
@@ -3331,7 +3334,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     function reintentarLibro() {
       const k = libro.k, av = libro.av, tut = !!libro.tut;
       paused = false; soltarMision();
-      if (tut) { abrirTutorial(k); return; }
+      if (tut) { abrirTutorial(k, libro.desde || 0); return; }
       if (!prepararLibro(k)) return;
       libroAvSel = av || 0;
       libroDespegar();
@@ -4557,7 +4560,10 @@ import { apodoAvion } from './data/apodos_aviones.js';
       sembrarAzar(libro && libro.av !== null ? libroDef().id + '/' + libro.av : null);
       // …y LA RADIO DEL LIBRO (core/voz.js): lo que diria el elenco lo dice el numeral, con su apodo y su cara
       // EL TUTORIAL arranca sus pasos (systems/tutorial.js) con cada corrida
-      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null); tutPasados = 0; tutRotos = 0; tutEsquivados = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false; tutGolpes = 0; tutRoceT = 0;
+      // (25/11) al reintentar despues de morir, desde el paso donde se cayo — y con lo que los pasos de antes ya prendieron
+      const tutDesde = libro && libro.tut ? libro.desde || 0 : 0;
+      if (tutDesde) for (const p of libroDef().pasos.slice(0, tutDesde)) if (p.poderes) cfg.poderes = true;
+      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null, tutDesde); tutPasados = 0; tutRotos = 0; tutEsquivados = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false; tutGolpes = 0; tutRoceT = 0;
       // (…y LOS MODOS SUELTOS igual — 23/11, el autor: "en POR LA PATRIA aparece Puma hablando, no deberia": ahi no
       // vuela nadie de la campaña; lo que gritaba Puma lo dice el que vuela detras, PATRIA 2, 3…)
       setVozLibro((libro && libro.av !== null && !libro.tut) || suelto() ? {
@@ -5243,6 +5249,9 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // TRES CIELOS NO TIENEN `sol`, Y ES A PROPOSITO: el nublado lo tiene tapado, la noche muestra
     // auroras y la tormenta, relampagos. El mismo pico los delata solo (0.04-0.10 contra 0.39-0.61
     // de los que si tienen astro). Un destello sin astro del cual salir es una mancha en el vidrio.
+    // EL TELON SE CORRE MENOS (25/11, el autor: "el fondo se mueve mucho cuando te moves vos, reducir el paralaje"): era 0,8 de
+    // lo que se corre la camara; las sierras y las nubes bajaron en la misma proporcion (render/sierras.js, nubes_cielo.js)
+    const FONDO_PAR = 0.5;
     const TBACK_MAP = {
       dusk:    { f: 'sunrise.png',      hor: 0.72, sol: { x: 0.485, y: 0.518 }, col: '255,178,96' },
       // (25/11, el autor: "NOCHE CON LUNA GRANDE, USARLA"): la noche lleva la luna llena entre nubes, como la de LUNA
@@ -5992,6 +6001,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     const erroSuelta = c => c === 'death_fallo_blanco' || c === 'death_suelta';
 
     function die(cause) {
+      if (libro && libro.tut) libro.desde = tutSys.estado().paso;   // (25/11: REINTENTAR retoma el tutorial en este paso)
       setState('dead'); deathCause = cause; deathT = 0; retrySel = 0;   // (REINTENTAR arranca siempre en SI)
       // …y POR QUE: la bomba errada se explica por su ultimo veredicto sobre el buque
       deathPorque = derrota(cause, blancoSys.estado().res, blancoSys.estado().bomba);
@@ -6363,7 +6373,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         mv: run.mv || null, bombasVuelo: pmissiles.filter(p => !p.tanque).length, climaxHecho: !!run.climaxHecho, termina: tutTermina, pego: blancoSys.alarma() || !!run.climaxHecho,
         faltan: objectiveDist > 0 ? (objectiveDist - run.dist) / objectiveDist : 1, aterrizando: S.state === 'landing', tren: landDown, aterrizo: tutAterrizo,
         pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), momentumLleno: !tempo.active() && tempo.meterVal() >= 1, chancha: chancha.enCurso(),
-        aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0, hielo: run.hielo || 0,
+        aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0, hielo: run.hielo || 0, temp: run.temp,
         chafitas: chapitasSys.nubesEnElAire().length > 0,
         marca: islas.marcado(), objIslas: !!islas.objetivoDe() && !islas.objetivoDe().vivo,
         vert: cfg.vert,   // (el GAS MODO: el paso del sostén es solo de SUAVE)
@@ -8100,7 +8110,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         const e = tbackEntry(), imS = tbackImg();
         if (e && e.sol && imS) {
           const dwS = W + 140, dhS = dwS * imS.naturalHeight / imS.naturalWidth;
-          solPant = { x: (-70 - cam.x * 0.8 - zfxT) + e.sol.x * dwS,
+          solPant = { x: (-70 - cam.x * FONDO_PAR - zfxT) + e.sol.x * dwS,
                       y: (HOR - e.hor * dhS) + e.sol.y * dhS, col: e.col };
         }
       }
@@ -8120,7 +8130,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         // tambien en alto y cambiaria el encuadre del cielo en TODAS las misiones, con zigzag o
         // sin el. El costo es que en una curva sostenida y larga el telon deja de acompañar —
         // es lo mas lejano que hay en pantalla, y es lo que menos se nota.
-        ctx.drawImage(tb2, -70 - cam.x * 0.8 - zfxT, HOR - tbackHor() * dh, dw, dh);
+        ctx.drawImage(tb2, -70 - cam.x * FONDO_PAR - zfxT, HOR - tbackHor() * dh, dw, dh);
       } else {
       const g = ctx.createLinearGradient(0, 0, 0, HOR);
       g.addColorStop(0, theme.sky.skyTop); g.addColorStop(0.6, theme.sky.skyMid); g.addColorStop(1, theme.sky.horizon);

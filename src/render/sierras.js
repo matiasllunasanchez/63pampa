@@ -26,8 +26,9 @@ const hex = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
 const mezcla = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 
 // LA CORDILLERA LEJANA: anchas, bajas, palidas; se corren poco con la camara
-const LEJOS = { n: 4, par: 1.6, bruma: 0.62 };
-const ISLA_PAR = 2.2, ISLA_GIRO = 0.7;   // las islas de adelante: cuanto se corren con la camara y con el rumbo
+// (25/11: el paralaje del fondo bajo ~40%, "el fondo se mueve mucho cuando te moves vos" — era 1,6 y 2,2)
+const LEJOS = { n: 4, par: 1.0, bruma: 0.62 };
+const ISLA_PAR = 1.4, ISLA_GIRO = 0.7;   // las islas de adelante: cuanto se corren con la camara y con el rumbo
 const lejanas = Array.from({ length: LEJOS.n }, (_, i) => ({
   x: (i + Math.random() * 0.6) / LEJOS.n, w: 110 + Math.random() * 90, h: 7 + Math.random() * 7,
   seed: (Math.random() * 9973) | 0,
