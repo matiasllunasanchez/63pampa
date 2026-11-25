@@ -463,7 +463,7 @@ export const STRINGS = {
     ctrlRoll: 'ROLAR / GIRO 360°', ctrlRollK: '← →',    ctrlRollP: 'stick der ← →',
     ctrlPan: 'MIRAR ARR / ABAJO', ctrlPanK: '↑',      ctrlPanP: 'stick der ↓',
     ctrlMoves: 'PIRUETAS',      ctrlMovesK: 'secuencias de toques', ctrlMovesP: 'los dos sticks',
-    ctrlEyecta: 'EYECCIÓN', ctrlEyectaK: '← + → (sostener)', ctrlEyectaP: 'L1 + R1 (sostener)', ctrlBomba: 'RECORRIDO DE BOMBA Y SOLTAR', ctrlBombaK: '↓ + ENTER', ctrlBombaP: 'stick der ↓ + R3', ctrlTonel: 'TONEL',         ctrlTonelK: 'D D  ·  A A',  ctrlTonelP: 'stick izq → →',
+    ctrlBomba: 'RECORRIDO DE BOMBA Y SOLTAR', ctrlBombaK: '↓ + ENTER', ctrlBombaP: 'stick der ↓ + R3', ctrlTonel: 'TONEL',         ctrlTonelK: 'D D  ·  A A',  ctrlTonelP: 'stick izq → →',
     ctrlHands: 'zigzag: mano izq · rolidos: mano der', ctrlHandsK: '', ctrlHandsP: '',
     ctrlWasd: 'con MIRA MÓVIL, las flechas vuelven a volar', ctrlWasdK: '', ctrlWasdP: '',
     // en la PASADA no hay controles nuevos: el mismo boton suelta la ristra entera
@@ -1725,7 +1725,7 @@ export const STRINGS = {
     ctrlRoll: 'ROLL / 360° ROLL', ctrlRollK: '← →',     ctrlRollP: 'right stick ← →',
     ctrlPan: 'LOOK UP / DOWN',  ctrlPanK: '↑',        ctrlPanP: 'right stick ↓',
     ctrlMoves: 'MANEUVERS',     ctrlMovesK: 'tap sequences',    ctrlMovesP: 'both sticks',
-    ctrlEyecta: 'EJECT', ctrlEyectaK: '← + → (hold)', ctrlEyectaP: 'L1 + R1 (hold)', ctrlBomba: 'BOMB RUN AND DROP', ctrlBombaK: '↓ + ENTER', ctrlBombaP: 'right stick ↓ + R3', ctrlTonel: 'BARREL ROLL',   ctrlTonelK: 'D D  ·  A A',  ctrlTonelP: 'left stick → →',
+    ctrlBomba: 'BOMB RUN AND DROP', ctrlBombaK: '↓ + ENTER', ctrlBombaP: 'right stick ↓ + R3', ctrlTonel: 'BARREL ROLL',   ctrlTonelK: 'D D  ·  A A',  ctrlTonelP: 'left stick → →',
     ctrlHands: 'zigzags: left hand · rolls: right hand', ctrlHandsK: '', ctrlHandsP: '',
     ctrlWasd: 'with FREE SIGHT, the arrows fly again', ctrlWasdK: '', ctrlWasdP: '',
     ctrlArena: 'in 3D you fly the SAME: A D turn, let go of W and you sink', ctrlArenaK: '', ctrlArenaP: '',
