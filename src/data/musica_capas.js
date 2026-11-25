@@ -29,7 +29,7 @@ export const PISTAS_CAPAS = {
   // (el bandoneon y todo lo melodico) -18,8, voces -32,1 — la pista es INSTRUMENTAL: lo que Demucs
   // llama voces es lo que se le filtra de los otros, un brillo que se guarda para el climax.
   balas: {
-    nombre: 'BALAS EN BANDONEON', origen: 'demucs',
+    nombre: 'BALAS EN BANDONEÓN', origen: 'demucs',
     bpm: 88.513, offset: 1.774, compas: 4, dur: 208.85,
     capas: {
       bajo: { archivo: 'balas/bajo.m4a', siempre: true },

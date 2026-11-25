@@ -799,7 +799,7 @@ export function flightSystem(dt, deps) {
   // estrella ni oleada) y vuelve a la mitad
   if (run.detection >= 1 && run.fenix > 0) {
     run.fenix--; run.detection = 0.35;
-    cartel('ESCUADRON FENIX', P.accent, 'La oleada se fue detras del Learjet');
+    cartel('ESCUADRÓN FÉNIX', P.accent, 'La oleada se fue detrás del Learjet');
   }
   if (run.detection >= 1) {
     // (16/10: los modos sueltos no tienen fases, y ahi la alarma corre igual: `cfg.pintaSuelto`)

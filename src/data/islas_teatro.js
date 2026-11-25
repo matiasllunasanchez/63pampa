@@ -24,15 +24,15 @@ export const BASES = [
     piezas: { carpa: 5, deposito: 1, puesto: 1, rapier: 2, camion: 2, blindado: 2, soldados: 3 } },
   { n: 'SAN CARLOS', bando: 'gb', lon: -59.010, lat: -51.525, r: 240,
     piezas: { carpa: 4, deposito: 2, radar: 1, rapier: 1, camion: 1, soldados: 3 } },
-  { n: 'BAHIA AJAX', bando: 'gb', lon: -59.085, lat: -51.545, r: 220,
+  { n: 'BAHÍA AJAX', bando: 'gb', lon: -59.085, lat: -51.545, r: 220,
     piezas: { deposito: 3, carpa: 3, rapier: 1, camion: 2, blindado: 1, soldados: 2 } },
   { n: 'MONTE SUSSEX', bando: 'gb', lon: -59.000, lat: -51.585, r: 300,
     piezas: { puesto: 2, manpad: 2, carpa: 2, blindado: 1, soldados: 2 } },
   { n: 'CABO FANNING', bando: 'gb', lon: -59.125, lat: -51.440, r: 160,
     piezas: { puesto: 1, manpad: 1, rapier: 1, soldados: 1 } },
   // los Rapier de los cerros de la bahia, sueltos
-  { n: 'RAPIER (BAHIA SAN CARLOS ESTE)', bando: 'gb', lon: -58.990, lat: -51.500, r: 60, piezas: { rapier: 1 } },
-  { n: 'RAPIER (BAHIA SAN CARLOS OESTE)', bando: 'gb', lon: -59.105, lat: -51.510, r: 60, piezas: { rapier: 1 } },
+  { n: 'RAPIER (BAHÍA SAN CARLOS ESTE)', bando: 'gb', lon: -58.990, lat: -51.500, r: 60, piezas: { rapier: 1 } },
+  { n: 'RAPIER (BAHÍA SAN CARLOS OESTE)', bando: 'gb', lon: -59.105, lat: -51.510, r: 60, piezas: { rapier: 1 } },
 
   // ---------------- LO NUESTRO ----------------
   { n: 'PUERTO ARGENTINO', bando: 'arg', lon: -57.860, lat: -51.692, r: 420,
@@ -47,14 +47,14 @@ export const BASES = [
     piezas: { deposito: 2, carpa: 3, canon: 2, pucara: 3, camion: 1, soldados: 3 } },
   { n: 'DARWIN', bando: 'arg', lon: -58.958, lat: -51.808, r: 200,
     piezas: { puesto: 2, carpa: 2, soldados: 2 } },
-  { n: 'PUERTO YAPEYU', bando: 'arg', lon: -59.516, lat: -51.616, r: 260,
+  { n: 'PUERTO YAPEYÚ', bando: 'arg', lon: -59.516, lat: -51.616, r: 260,
     piezas: { carpa: 4, puesto: 2, canon: 1, camion: 1, soldados: 3 } },
-  { n: 'BAHIA FOX', bando: 'arg', lon: -60.070, lat: -51.940, r: 260,
+  { n: 'BAHÍA FOX', bando: 'arg', lon: -60.070, lat: -51.940, r: 260,
     piezas: { carpa: 4, puesto: 2, canon: 1, soldados: 3 } },
   { n: 'MONTE KENT', bando: 'arg', lon: -58.112, lat: -51.674, r: 200, piezas: { puesto: 2, soldados: 2 } },
   { n: 'MONTE LONGDON', bando: 'arg', lon: -57.982, lat: -51.665, r: 180, piezas: { puesto: 2, soldados: 2 } },
   { n: 'DOS HERMANAS', bando: 'arg', lon: -58.025, lat: -51.682, r: 180, piezas: { puesto: 1, soldados: 2 } },
-  { n: 'ISLA BORBON', bando: 'arg', lon: -59.610, lat: -51.310, r: 200, piezas: { carpa: 2, puesto: 1, soldados: 1 } },
+  { n: 'ISLA BORBÓN', bando: 'arg', lon: -59.610, lat: -51.310, r: 200, piezas: { carpa: 2, puesto: 1, soldados: 1 } },
 ];
 
 // LOS BUQUES. `malla`: t21 (fragata Tipo 21), t42 (destructor Tipo 42), log (logistico / de desembarco). `rumbo` en
@@ -89,7 +89,7 @@ export const BUQUES = [
   // LO NUESTRO EN EL AGUA (A VERIFICAR donde estaba cada uno el 24 de mayo): el transporte que quedo en Bahia Fox
   // despues del ataque del 16, el costero Monsunen cerca de Darwin y el guardacostas de Prefectura en Puerto
   // Argentino. Estan para que la duda sea de verdad: de lejos un buque es un buque
-  { n: 'ARA BAHIA BUEN SUCESO', malla: 'log', bando: 'arg', lon: -60.060, lat: -51.950, rumbo: 120, bahia: true },
+  { n: 'ARA BAHÍA BUEN SUCESO', malla: 'log', bando: 'arg', lon: -60.060, lat: -51.950, rumbo: 120, bahia: true },
   { n: 'ARA MONSUNEN', malla: 'log', bando: 'arg', clase: 'lcu', esc: 0.35, lon: -58.960, lat: -51.835, rumbo: 60, bahia: true },
   { n: 'GC ISLAS MALVINAS', malla: 'log', bando: 'arg', clase: 'lcu', esc: 0.22, lon: -57.800, lat: -51.668, rumbo: 90, bahia: true, patrulla: 800 },
 ];
@@ -196,7 +196,7 @@ export const RADARES = [
   { n: 'RADAR PUERTO ARGENTINO', bando: 'arg', lon: -57.86, lat: -51.69, r: 22000 },
   { n: 'HMS COVENTRY', bando: 'gb', buque: 'HMS COVENTRY', r: 16000 },
   { n: 'HMS BROADSWORD', bando: 'gb', buque: 'HMS BROADSWORD', r: 11000 },
-  { n: 'BAHIA SAN CARLOS', bando: 'gb', lon: -59.07, lat: -51.52, r: 10000 },
+  { n: 'BAHÍA SAN CARLOS', bando: 'gb', lon: -59.07, lat: -51.52, r: 10000 },
 ];
 // m sobre el suelo: abajo de esto el radar britanico no te ve — EL MISMO TECHO DEL PASILLO (RADAR_ALT, 20/11, el
 // autor: "el efecto del radar debe ser igual a pasillo"); era 45

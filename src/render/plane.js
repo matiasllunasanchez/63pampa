@@ -769,14 +769,24 @@ export function drawTren(pl, g, col, row, x, y, w, h, fino) {
  *  alfa fijo y apagandose por encima de y=6— asi que en cuanto despegaban se quedaban sin ella
  *  mientras el lider conservaba la suya. Dos rutinas para la misma cosa es un escuadron con dos
  *  aviones distintos, y la que no se mira se pudre. */
+// LA FORMA DE LA SOMBRA (25/11, el autor: "mejorar las sombras de los aviones del suelo" — eran tres barras chatas): la
+// silueta de un ala en flecha vista de atras y aplastada contra el piso, renglon por renglon de adelante (arriba) hacia
+// atras: la trompa, el borde de ataque, el ala entera, el borde de fuga y la cola. [ancho en unidades de `f`, alfa]
+const SOMBRA_FORMA = [[4, 0.7], [15, 0.85], [27, 1], [21, 0.9], [9, 0.75]];
 export function drawShadow(wx, wy, z, f) {
   f = f || 1;
   const sh = proj(wx, 0, z);
-  const r = Math.max(0.7, f);                       // el grosor acompaña, pero no se colapsa
-  ctx.globalAlpha = Math.max(0.08, 0.4 - wy * 0.009);
-  px(sh.x - 9 * f, sh.y - r, 18 * f, 1, '#101c1e');
-  px(sh.x - 13 * f, sh.y, 27 * f, 1, '#101c1e');
-  px(sh.x - 9 * f, sh.y + r, 18 * f, 1, '#101c1e');
+  // ARRIBA SE ABRE Y SE APAGA: la sombra de un avion alto es mas difusa (penumbra) y mas clara — sigue siendo la
+  // referencia de altura del juego, asi que nunca se apaga del todo (piso 0.08)
+  const alto = Math.max(0, wy), abre = 1 + Math.min(0.6, alto * 0.012), a0 = Math.max(0.08, 0.42 - alto * 0.009);
+  const fil = Math.max(0.6, f * 0.55);              // el alto de cada renglon (con la distancia se aplasta)
+  const n = SOMBRA_FORMA.length, y0 = sh.y - fil * (n - 1) / 2;
+  for (let i = 0; i < n; i++) {
+    const [w, k] = SOMBRA_FORMA[i], ww = w * f * abre, yy = y0 + i * fil;
+    // la PENUMBRA, apenas mas ancha y tenue, y adentro la sombra plena: el borde no queda cortado a cuchillo
+    ctx.globalAlpha = a0 * k * 0.45; px(sh.x - ww * 0.58, yy, ww * 1.16, Math.max(1, fil), '#0c1416');
+    ctx.globalAlpha = a0 * k; px(sh.x - ww / 2, yy, ww, Math.max(1, fil), '#0c1416');
+  }
   ctx.globalAlpha = 1;
 }
 

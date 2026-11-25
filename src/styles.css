@@ -16,7 +16,7 @@
      relojes del tablero (ver NUMEROS en render/hud.js). */
   @font-face { font-family: 'CosmicSuperHuman'; src: url('../assets/fonts/panel/ui_game/CosmicSuperHumanRegular-Regular.otf') format('opentype'); font-display: block; }
   @font-face { font-family: 'CCSuperHuman'; src: url('../assets/fonts/panel/ui_game/cc-superhuman/CCSuperHuman-Regular.otf') format('opentype'); font-display: block; }
-  @font-face { font-family: 'Wiltype'; src: url('../assets/fonts/panel/ui_game/wiltype/Wiltype Mac.ttf') format('truetype'); font-display: block; }
+  @font-face { font-family: 'Wiltype'; src: url('../assets/fonts/panel/ui_game/wiltype/Wiltype.ttf') format('truetype'); font-display: block; }
   @font-face { font-family: 'Thernaly'; src: url('../assets/fonts/panel/ui_game/thernaly/Thernaly-Regular.ttf') format('truetype'); font-display: block; }
   @font-face { font-family: 'Unitblock'; src: url('../assets/fonts/panel/ui_game/unitblock/Unitblock.ttf') format('truetype'); font-display: block; }
 

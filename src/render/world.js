@@ -414,8 +414,26 @@ function asfaltoPista(y, wz, k, ra, rb, R) {
 const LUCES_PISTA = { BALIZA: 9, BALIZA_LEJOS: 260, FARO: [4, 9, 15, 22, 30], FARO_LARGO: 34, FARO_ALTO: 10, FARO_A: 0.85, NAV_A: 0.3 };
 function drawLucesPista(dv) {
   const n = NOCHE.CIELOS[cfg.sky], R = RUNWAYS[cfg.runway] || RUNWAYS[0];
-  if (!n || !R.hw) return;
+  if (!R.hw) return;
   const L = LUCES_PISTA, gy = cfg.cliff ? PORT_H : 0, fin = cfg.coast - PORT_AMP - 20;
+  // DE DIA ESTAN, APAGADAS (25/11, el autor: "las luces en los costados de la pista tienen que estar apagadas cuando es de
+  // dia, pero deben estar fisicamente"): el mismo poste chato en el mismo lugar, en gris, sin halo ni reflejo
+  if (!n) {
+    ctx.save();
+    const z0d = Math.ceil(Math.max(dv + 3, 0) / L.BALIZA) * L.BALIZA;
+    for (let wz = Math.min(fin, dv + L.BALIZA_LEJOS); wz >= z0d; wz -= L.BALIZA) {
+      const zz = Math.floor(wz / L.BALIZA) * L.BALIZA;
+      if (zz - dv < 3) continue;
+      for (const lado of [-1, 1]) {
+        const s = proj(lado * (R.hw + 0.4), gy, zz - dv), t = Math.max(1, s.k * 0.16);
+        ctx.globalAlpha = Math.min(1, s.k / 3);
+        ctx.fillStyle = '#3a3f42'; ctx.fillRect(Math.round(s.x - t / 2), Math.round(s.y - t), Math.ceil(t), Math.ceil(t));
+        ctx.fillStyle = '#c9c2a8'; ctx.fillRect(Math.round(s.x - t / 2), Math.round(s.y - t), Math.ceil(t), Math.max(1, Math.ceil(t * 0.4)));   // el vidrio, apagado
+      }
+    }
+    ctx.restore();
+    return;
+  }
   ctx.save();
   // las BALIZAS: de la mas lejana a la mas cercana
   const z0 = Math.ceil(Math.max(dv + 3, 0) / L.BALIZA) * L.BALIZA;
@@ -787,12 +805,19 @@ export function drawSea(alHorizonte) {
       const zbS = bendW(z) * k, zbP = bendW(wzP - dv) * kP;
       ZB = zbS;
       const f = fRow;   // ya viene clampeado en 1 (ver fRow)
-      px(-70, y, W + 140, rowH, aguaCol(f));
+      // (25/11, el autor: "arregla esa union entre pista y tierra"): si DESPUES de la base sigue TIERRA, la franja no
+      // es una orilla — no hay agua ni rompiente: el campo de la base se funde con el de afuera en un borde mezclado
+      const tierraSigue = !cfg.cliff && (geoOn ? sueloEn(cfg.coast + PORT_AMP + PORT_FOAM + 2) : cfg.terrain) === 'land';
+      px(-70, y, W + 140, rowH, tierraSigue ? groundCol(LAND_ST, f) : aguaCol(f));
       let land0 = null, rock0 = null, foam0 = null;
       const flush = (sx) => {
         if (land0 !== null) { ZB = zbP; portRow(y, wzP, kP, land0, sx, f); ZB = zbS; land0 = null; }
         if (rock0 !== null) { cliffFace(y, k, rock0, sx, f); rock0 = null; }
-        if (foam0 !== null) { px(foam0, y, sx - foam0, 1, P.foam); foam0 = null; }
+        if (foam0 !== null) {
+          if (tierraSigue) { ctx.globalAlpha = 0.5; px(foam0, y, sx - foam0, 1, '#323a2b'); ctx.globalAlpha = 1; }   // medio turba, medio campo
+          else px(foam0, y, sx - foam0, 1, P.foam);
+          foam0 = null;
+        }
       };
       for (let sx = -70; sx <= W + PORT_STEP; sx += PORT_STEP) {
         // la orilla se evalua en la x de MUNDO de cada plano: la meseta con su propia escala

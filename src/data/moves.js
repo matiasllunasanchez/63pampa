@@ -121,7 +121,7 @@ export const MOVES = {
   // punto" de la maniobra. Se cambio a pedido: rolando 360° sin desplazarse se veia estatica.
   // El drift es la MITAD del split-s, para que siga leyendose mas axial que las demas; ponerlo en
   // 0 devuelve el comportamiento anterior sin tocar nada mas.
-  spin: { dur: 1.0, name: 'TIRABUZON', steer: null, fire: true, turbo: true, tight: true, drift: 12 },
+  spin: { dur: 1.0, name: 'TIRABUZÓN', steer: null, fire: true, turbo: true, tight: true, drift: 12 },
   // TONEL BARRIL: la O grande — se abre, sube, pasa boca arriba y vuelve. Trayectoria cerrada,
   // asi que tampoco se controla: corregirla la dejaria de cerrar.
   barrel: { dur: 1.4, name: 'TONEL BARRIL', steer: null, fire: true, turbo: false, tight: true },
@@ -157,7 +157,7 @@ export const MOVES = {
   // cobra que, en vez de volver a nivel, se va para arriba ROLANDO — una espiral vertical que pasa el techo de nubes
   // (CIELO en data/tuning.js). Se encadena a la cobra plantada como el mortal (systems/moves.js `cobraAlCielo`); no
   // tiene combo suelto. Sin disparo (mirando al cielo); el turbo, si, que es lo que la empuja.
-  cielo: { dur: 6, name: 'TIRABUZON AL CIELO', steer: null, fire: false, turbo: true, tight: true },
+  cielo: { dur: 6, name: 'TIRABUZÓN AL CIELO', steer: null, fire: false, turbo: true, tight: true },
   // …Y SU ESPEJO, LA BARRENA (25/11, el autor: "si apreto abajo abajo abajo (3 veces) baja en picada verticalmente
   // tambien"): desde la cobra plantada, la espiral para ABAJO hasta CIELO.PISO metros, rolando y ganando velocidad.
   barrena: { dur: 3.2, name: 'BARRENA', steer: null, fire: false, turbo: true, tight: true },
@@ -230,11 +230,11 @@ export const maniobras = () => Object.keys(MOVES).map(id => ({ id, ...MOVES[id] 
 // arena?"): no son de MOVES —las vuela systems/islas/islas.js `maniobra` sobre el mapa— asi que se listan aparte y
 // se ven de UNA forma: LA LANZO YO, sobre LAS ISLAS (`islas`: el combo que la dispara; el derrape es el del pasillo)
 export const MANIOBRAS_ISLAS = [
-  { id: 'isl_uud', islas: 'uud', titulo: 'ISLAS · MEDIA VUELTA POR ARRIBA', desc: 'W W S   ·   Immelmann: la camara espera la trompa y gira a la cola' },
-  { id: 'isl_ddu', islas: 'ddu', titulo: 'ISLAS · MEDIA VUELTA POR ABAJO', desc: 'S S W   ·   Split-S: rola, pica y sale al reves, mas bajo' },
+  { id: 'isl_uud', islas: 'uud', titulo: 'ISLAS · MEDIA VUELTA POR ARRIBA', desc: 'W W S   ·   Immelmann: la cámara espera la trompa y gira a la cola' },
+  { id: 'isl_ddu', islas: 'ddu', titulo: 'ISLAS · MEDIA VUELTA POR ABAJO', desc: 'S S W   ·   Split-S: rola, pica y sale al revés, más bajo' },
   { id: 'isl_duuu', islas: 'duuu', titulo: 'ISLAS · VERTICAL ARRIBA', desc: 'S W W W   ·   la trompa al cielo, lejos; Q/E gira sobre su eje' },
   { id: 'isl_uddd', islas: 'uddd', titulo: 'ISLAS · PICADA VERTICAL', desc: 'W S S S   ·   de panza, trompa abajo; saca sola cerca del suelo' },
-  { id: 'isl_derrape', islas: 'derrape', titulo: 'ISLAS · DERRAPE', desc: 'Q+D y despues E+A   ·   la moto de agua del pasillo, sobre el mapa' },
+  { id: 'isl_derrape', islas: 'derrape', titulo: 'ISLAS · DERRAPE', desc: 'Q+D y después E+A   ·   la moto de agua del pasillo, sobre el mapa' },
 ];
 
 // LAS TRES PRESENTACIONES (la regla del 16/8: toda maniobra se diseña una vez y se entrega en tres
@@ -246,7 +246,7 @@ export const MANIOBRAS_ISLAS = [
 export const MV_VISTAS = [
   {
     id: 'yo', titulo: 'LA LANZO YO',
-    desc: 'El poder del jugador: tu avion la vuela, como con el combo',
+    desc: 'El poder del jugador: tu avión la vuela, como con el combo',
     setup: (a, mv) => {
       // (LAS DE LAS ISLAS: arranca LAS ISLAS sin radar y la lanza cuando el mapa ya esta puesto; reintenta hasta que sale)
       const isl = MANIOBRAS_ISLAS.find(m => m.id === mv);
@@ -261,19 +261,19 @@ export const MV_VISTAS = [
   },
   {
     id: 'companero', titulo: 'UN COMPAÑERO',
-    desc: 'Un Fiel te sobrepasa por atras, la vuela en escena y se va',
+    desc: 'Un Fiel te sobrepasa por atrás, la vuela en escena y se va',
     // sin lado: entra por donde diga WINGMV.LADO, que es ATRAS (sobrepasando). Poner 'izq'/'der'
     // aca es lo unico que hace falta para verla cruzar el cuadro de costado.
     setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mvactor', mv); }); },
   },
   {
     id: 'esquiva', titulo: 'ESQUIVANDO',
-    desc: 'Le tiran, la usa para esquivar y contesta al salir (EL TEATRO AEREO)',
+    desc: 'Le tiran, la usa para esquivar y contesta al salir (EL TEATRO AÉREO)',
     setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('teatro', mv); }); },
   },
   {
-    id: 'cine', titulo: 'COMO CINEMATICA',
-    desc: 'La misma maniobra filmada: bandas negras y el mundo en camara lenta',
+    id: 'cine', titulo: 'COMO CINEMÁTICA',
+    desc: 'La misma maniobra filmada: bandas negras y el mundo en cámara lenta',
     setup: (a, mv) => { a.patria(); a.luego(1.4, g => { g.sonda('pasilloLimpio'); g.sonda('mvfilm', mv); }); },
   },
 ];

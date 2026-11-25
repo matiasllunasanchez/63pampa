@@ -26,7 +26,7 @@ export const CLIMAS = [
   { id: 'temporal', temp: 2, n: 'TEMPORAL', en: 'GALE', peso: 1, lluvia: 3, viento: 23, rafagas: 1, olas: 2.6, bruma: 2.6, nubes: 0.45, oscuro: 0.65, tormenta: true },
   { id: 'nevisca', temp: 0.5, n: 'NEVISCA', en: 'SNOW SHOWERS', peso: 1.4, lluvia: 2, nieve: true, nieveH: 110, viento: 12, rafagas: 0.45, olas: 1.4, bruma: 2.2, nubes: 0.35, oscuro: 0.35 },
   { id: 'niebla', temp: 3, n: 'NIEBLA', en: 'FOG', peso: 1, lluvia: 0, viento: 3, rafagas: 0.05, olas: 0.5, bruma: 7, nubes: 0.2, oscuro: 0.2 },
-  { id: 'despejado', temp: 1, n: 'DESPEJADO Y FRIO', en: 'CLEAR AND COLD', peso: 1.4, lluvia: 0, viento: 7, rafagas: 0.1, olas: 0.8, bruma: 0.6, nubes: -0.4, oscuro: 0 },
+  { id: 'despejado', temp: 1, n: 'DESPEJADO Y FRÍO', en: 'CLEAR AND COLD', peso: 1.4, lluvia: 0, viento: 7, rafagas: 0.1, olas: 0.8, bruma: 0.6, nubes: -0.4, oscuro: 0 },
 ];
 // cada cuanto cambia (s, al azar entre los dos) y cuanto tarda en pasar de uno al otro
 export const CLIMA_CADA = [200, 380], CLIMA_PASA = 35;

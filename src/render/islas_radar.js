@@ -64,7 +64,7 @@ export function drawAmenazas(L, t) {
     ctx.beginPath(); ctx.moveTo(7, 0); ctx.lineTo(-4, -5); ctx.lineTo(-1, 0); ctx.lineTo(-4, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.restore(); ctx.globalAlpha = 1;
     ctx.fillStyle = ROJO;
-    ctx.fillText((a.adelante ? '' : 'ATRAS ') + km, Math.round(px - ux * 14), Math.round(py - uy * 12 + 2));
+    ctx.fillText((a.adelante ? '' : 'ATRÁS ') + km, Math.round(px - ux * 14), Math.round(py - uy * 12 + 2));
   }
   ctx.textAlign = 'left';
 }

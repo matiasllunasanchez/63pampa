@@ -24,18 +24,18 @@
 import { DESDE_BRP } from './bombas.js';
 
 export const UPGRADES = [
-  { id: 'mask', name: 'TERRAIN MASKING', seq: 'abajo abajo-abajo', desc: 'Clavado al ras. Baja alarma', quote: 'Pegadito al agua, culiao. Ahi no te ve ni tu vieja.' },
+  { id: 'mask', name: 'TERRAIN MASKING', seq: 'abajo abajo-abajo', desc: 'Clavado al ras. Baja alarma', quote: 'Pegadito al agua, culiao. Ahí no te ve ni tu vieja.' },
   { id: 'splits', name: 'SPLIT-S', seq: 'arriba abajo abajo (alto)', desc: 'Salida en picada', quote: 'Media vueltita y pa abajo, de una. Chau, ingles.' },
-  { id: 'breakt', name: 'BREAK TURN', seq: 'abajo izq izq / abajo der der', desc: 'Tiron de costado', quote: 'Un volantazo de costado. Agarrate, que se te vuela el mate.' },
-  { id: 'loyo', name: 'LOW YO-YO', seq: 'abajo arriba abajo', desc: 'Pica y gana velocidad', quote: 'Bajas, agarras envion y salis picando. Como en el potrero.' },
+  { id: 'breakt', name: 'BREAK TURN', seq: 'abajo izq izq / abajo der der', desc: 'Tirón de costado', quote: 'Un volantazo de costado. Agarrate, que se te vuela el mate.' },
+  { id: 'loyo', name: 'LOW YO-YO', seq: 'abajo arriba abajo', desc: 'Pica y gana velocidad', quote: 'Bajas, agarrás envión y salís picando. Como en el potrero.' },
   { id: 'sturn', name: 'S-TURN', seq: 'izq der izq', desc: 'Esquiva en S', quote: 'Ida y vuelta, como un wing. La gambeta cordobesa, viste.' },
-  { id: 'popup', name: 'POP-UP', seq: 'abajo arriba arriba (bajo)', desc: 'Trepada de ataque', quote: 'Un saltito pa asomar la nariz, y abajo. Que hace, ingles?' },
-  { id: 'hiyo', name: 'HIGH YO-YO', seq: 'arriba abajo arriba', desc: 'Esquive vertical', quote: 'Te colgas arriba y que pase de largo el gil.' },
+  { id: 'popup', name: 'POP-UP', seq: 'abajo arriba arriba (bajo)', desc: 'Trepada de ataque', quote: 'Un saltito pa asomar la nariz, y abajo. Que hace, inglés?' },
+  { id: 'hiyo', name: 'HIGH YO-YO', seq: 'arriba abajo arriba', desc: 'Esquive vertical', quote: 'Te colgás arriba y que pase de largo el gil.' },
   { id: 'jink', name: 'JINK', seq: 'arriba izq der', desc: 'Zigzag de 4 quiebres', quote: 'Zigzag de loco. Ni yo se pa donde voy, culiao.' },
-  { id: 'spin', name: 'TIRABUZON', seq: 'picar + rolar (der) izq izq', desc: 'Rola picando', quote: 'Giras como trompo y te vas pa abajo. Mareadito, pero vivo.' },
-  { id: 'climb', name: 'ASCENSO', seq: 'mirar arriba + arriba arriba', desc: 'Sube al techo del radar', quote: 'Subis hasta el techito y te quedas ahi, quietito.' },
+  { id: 'spin', name: 'TIRABUZON', seq: 'picar + rolar (der) izq izq', desc: 'Rola picando', quote: 'Girás como trompo y te vas pa abajo. Mareadito, pero vivo.' },
+  { id: 'climb', name: 'ASCENSO', seq: 'mirar arriba + arriba arriba', desc: 'Sube al techo del radar', quote: 'Subís hasta el techito y te quedas ahí, quietito.' },
   { id: 'climbmax', name: 'SOBRE EL RADAR', seq: 'igual, ya contra el radar', desc: 'Pasa el radar. Te ven', quote: 'Te ven todos, pero llegas. A lo guapo.' },
-  { id: 'barrel', name: 'TONEL BARRIL', seq: 'rolar: abajo der arriba izq', desc: 'Vuelve al mismo punto', quote: 'Una vuelta enterita y volves al mismo lugar. Como el colectivo.' },
+  { id: 'barrel', name: 'TONEL BARRIL', seq: 'rolar: abajo der arriba izq', desc: 'Vuelve al mismo punto', quote: 'Una vuelta enterita y volvés al mismo lugar. Como el colectivo.' },
 ];
 
 /** LAS CHAFITAS (8/10/2026) — las primeras mejoras del banco que NO son piruetas, y por eso viven
@@ -50,14 +50,14 @@ export const UPGRADES = [
  *  literal, menos "una tecnica inventada por ellos": el chaff lo desarrollaron a la vez los britanicos
  *  (Window) y los alemanes (Düppel); los estadounidenses le pusieron el nombre (PREGUNTAS_HISTORICAS).
  *  Regla de atribucion (MEJORAS_PICHON.md): el Pichon no dice que invento nada. */
-const chafita = (k, name, desc, quote, requiere) => ({ id: 'chafitas' + k, chafitas: k, name, tecla: 'H / circulo', desc, quote, requiere });
+const chafita = (k, name, desc, quote, requiere) => ({ id: 'chafitas' + k, chafitas: k, name, tecla: 'H / círculo', desc, quote, requiere });
 export const CHAFITAS = [
   chafita(1, 'CHAFITAS',
     '+1 {chapitas}. Engaña misiles',
-    'Chaff le dicen los yanquis. Yo les digo chafitas: son chapitas, pero mas finitas.'),
-  chafita(2, 'MAS CHAFITAS', '+1 {chapitas}. Dos cargas', 'Otro cartucho! La maquina de tallarines corta... si, otro.', 'chafitas1'),
-  chafita(3, 'MAS CHAFITAS', '+1 {chapitas}. Tres cargas', 'Tres. Le di a la manivela toda la noche, no siento el brazo.', 'chafitas2'),
-  chafita(4, 'MAS CHAFITAS', '+1 {chapitas}. Cuatro, el maximo', 'Cuatro. Mas no entran. Lo medi. Dos veces.', 'chafitas3'),
+    'Chaff le dicen los yanquis. Yo les digo chafitas: son chapitas, pero más finitas.'),
+  chafita(2, 'MÁS CHAFITAS', '+1 {chapitas}. Dos cargas', 'Otro cartucho! La máquina de tallarines corta... si, otro.', 'chafitas1'),
+  chafita(3, 'MÁS CHAFITAS', '+1 {chapitas}. Tres cargas', 'Tres. Le di a la manivela toda la noche, no siento el brazo.', 'chafitas2'),
+  chafita(4, 'MÁS CHAFITAS', '+1 {chapitas}. Cuatro, el máximo', 'Cuatro. Más no entran. Lo medi. Dos veces.', 'chafitas3'),
 ];
 
 /** LA METRALLA Y SU CINTA (9/10/2026) — dos escaleras de mejoras del cañon, con el mismo molde que las
@@ -77,8 +77,8 @@ export const METRALLA = [
     'Seis caños girando! Tarda un segundo, pero despues... perdon.', 'metralla2'),
 ];
 export const CINTA = [
-  arma('cinta2', 2, 'cinta', 'CINTA LARGA', '{canon} rafaga +50 %', 'Si la cinta es mas larga, la rafaga dura mas. Es obvio. Perdon.'),
-  arma('cinta3', 3, 'cinta', 'CINTA ENTERA', '{canon} rafaga ×2', 'Toda la cinta que entra en el ala. La medi tres veces. Cuatro.', 'cinta2'),
+  arma('cinta2', 2, 'cinta', 'CINTA LARGA', '{canon} ráfaga +50 %', 'Si la cinta es más larga, la ráfaga dura mas. Es obvio. Perdon.'),
+  arma('cinta3', 3, 'cinta', 'CINTA ENTERA', '{canon} ráfaga ×2', 'Toda la cinta que entra en el ala. La medi tres veces. Cuatro.', 'cinta2'),
 ];
 /** LA BRP-250 (10/10/2026, el autor: "deberia ser otra mejora del Pichon") — la bomba española con la
  *  espoleta rehecha (data/bombas.js; es «Doce segundos», §3 de docs/historia/MEJORAS_PICHON.md), que en
@@ -97,7 +97,7 @@ export const BOMBA_BRP = { id: 'brp', bomba: 'brp', name: 'BRP-250', tecla: 'Z /
  *  carta el vidrio esta siliconado y la sal no se pega. Una sola carta, y queda. */
 export const SILICONADO = { id: 'siliconado', name: 'SILICONADO M-60',
   desc: 'Sin sal en el vidrio',
-  quote: 'Un aerosol de ferreteria! La sal resbala y... perdon, funciona.' };
+  quote: 'Un aerosol de ferretería! La sal resbala y... perdón, funciona.' };
 const tiene = (owned, id) => !!owned && (owned.includes ? owned.includes(id) : owned.has(id));
 /** ¿La libreta `owned` tiene el SILICONADO? (sin el, la sal se pega: systems/salitre.js) */
 export const siliconadoDe = owned => tiene(owned, SILICONADO.id);

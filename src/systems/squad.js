@@ -42,7 +42,7 @@ export function setRoster(r, ch) { roster = r; chapas = r && ch ? ch : null; }
 export const rosterActive = () => !!roster;
 /** Nombre en radio del numeral `idx`: Fiel con nombre en campaña, PATRIA n en arcade.
  *  Mas alla de la lista (escuadron agrandado en pruebas), numerales CAUQUEN del guion. */
-export const pilotName = idx => roster ? (roster[idx] || 'CAUQUEN ' + (idx + 1)) : callsign(idx);
+export const pilotName = idx => roster ? (roster[idx] || 'CAUQUÉN ' + (idx + 1)) : callsign(idx);
 /** El nombre PINTADO del avion del numeral `idx` (data/pilots.js AVION), o null: fuera de campaña
  *  no hay Fieles, y un CAUQUEN de pruebas no tiene chapa con nombre. */
 export const planeName = idx => roster ? ((chapas && chapas[idx]) || AVION[roster[idx]] || null) : null;

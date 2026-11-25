@@ -45,12 +45,12 @@ export const CARTAS = [
   ...METR,
   { id: 'canon', grupo: 'armas', name: 'CAÑON', tecla: 'X / ESPACIO', solo: ['__sinCanon'],
     desc: '+1 {canon}',
-    quote: 'Este no traia fierro. Se lo he colgao yo, changuito. De prepo.' },
+    quote: 'Este no traía fierro. Se lo he colgao yo, changuito. De prepo.' },
   { id: 'potencia2', grupo: 'armas', name: 'BALA PERFORANTE', tecla: 'X / ESPACIO', necesita: 'canon',
     desc: '{canon} daño +50 %',
     quote: 'Puntas de acero. Las afile yo con... no importa con que.' },
   { id: 'potencia3', grupo: 'armas', name: 'BALA PERFORANTE II', tecla: 'X / ESPACIO', necesita: 'canon', requiere: 'potencia2',
-    desc: '{canon} daño ×2', quote: 'El doble de daño. Calienta mas, pero el calculo da. Creo que da.' },
+    desc: '{canon} daño ×2', quote: 'El doble de daño. Calienta más, pero el calculo da. Creo que da.' },
   { ...sinCombo(BOMBA_BRP), grupo: 'armas', desde: undefined },
   { id: 'snakeye', grupo: 'armas', name: 'SNAKEYE (MK-82)', tecla: 'Z / L1',
     desc: '{bomba} al toque. Rompe poco',
@@ -62,31 +62,31 @@ export const CARTAS = [
     desc: '{bomba} arma al soltar', quote: 'Arma apenas la soltas. Ya se, ya se: cuidado con la onda.' },
   { id: 'soporte1', grupo: 'armas', name: 'SOPORTE MULTIPLE', tecla: 'Z / L1',
     desc: '+1 {bomba}. Suma peso',
-    quote: 'Tres donde iba una. Despue no me llore que no levanta.' },
+    quote: 'Tres donde iba una. Despué no me llore que no levanta.' },
   { id: 'soporte2', grupo: 'armas', name: 'SOPORTE MULTIPLE II', tecla: 'Z / L1', requiere: 'soporte1',
     desc: '+1 {bomba}. Suma peso',
     quote: 'Otra ma? Esto no lo levanta ni Ala, m\'hijo.' },
   { id: 'exocet', grupo: 'armas', name: 'EXOCET AM39', tecla: 'Z / L1', solo: ['supere'],
-    rota: 'Tu avion no cuenta con sistemas electronicos para llevar un Exocet',
+    rota: 'Tu avión no cuenta con sistemas electrónicos para llevar un Exocet',
     desc: '{misil} antibuque, de lejos',
     quote: 'Uno solo. No lo pierdas.' },
 
   // ---------------- DEFENSA ----------------
   ...CHAF,
-  { id: 'chafRecarga', grupo: 'defensa', name: 'CHAFITAS DE REPUESTO', tecla: 'H / circulo', requiere: 'chafitas1',
+  { id: 'chafRecarga', grupo: 'defensa', name: 'CHAFITAS DE REPUESTO', tecla: 'H / círculo', requiere: 'chafitas1',
     desc: '+1 {chapitas} cada 25 s', quote: 'Se recargan solas. No pregunten como. Bueno, si quieren...' },
-  { id: 'chafPotencia', grupo: 'defensa', name: 'CHAFITAS DENSAS', tecla: 'H / circulo', requiere: 'chafitas1',
-    desc: '{chapitas} nube mas larga', quote: 'Mas tiras por cartucho: el misil se marea. Linda palabra.' },
+  { id: 'chafPotencia', grupo: 'defensa', name: 'CHAFITAS DENSAS', tecla: 'H / círculo', requiere: 'chafitas1',
+    desc: '{chapitas} nube más larga', quote: 'Más tiras por cartucho: el misil se marea. Linda palabra.' },
   { id: 'escudo1', grupo: 'defensa', name: 'CHAPA REFORZADA', desc: '{escudo} carga ×2',
     quote: 'Le he puesto una plancha atra del asiento. Por las duda, nomá.' },
   { id: 'escudo2', grupo: 'defensa', name: 'CHAPA REFORZADA II', requiere: 'escudo1',
-    desc: '{escudo} carga ×3', quote: 'Pesa una aca, pero volve, que es lo que importa.' },
+    desc: '{escudo} carga ×3', quote: 'Pesa una acá, pero volve, que es lo que importa.' },
   { id: 'veterano', grupo: 'defensa', name: 'RELEVO VETERANO',
-    desc: '{avion} relevo ×2 de rapido', quote: 'Los de atras ya saben. Entran sin esperar.' },
+    desc: '{avion} relevo ×2 de rápido', quote: 'Los de atrás ya saben. Entran sin esperar.' },
   { id: 'reparacion', grupo: 'defensa', name: 'REPARACION', uso: true, pide: 'reparar',
     desc: 'Chapa entera',
     quote: 'Remache, cinta y mate. Aguanta otra, changuito.' },
-  { id: 'amigo', grupo: 'defensa', name: 'AVION AMIGO', uso: true, pide: 'amigo',
+  { id: 'amigo', grupo: 'defensa', name: 'AVIÓN AMIGO', uso: true, pide: 'amigo',
     desc: '+1 {avion}',
     quote: 'Llego uno de Rio Grande. Vuela con ustedes.' },
 
@@ -96,33 +96,33 @@ export const CARTAS = [
     desc: 'Arregla fallas leves de 3', quote: 'Cinta, alambre y una noche sin dormi. Ha quedao joya.' },
   { id: 'tallerPes', grupo: 'taller', name: 'TALLER PESADO', uso: true, pide: 'tallerPes', peso: 2,
     desc: 'Arregla una falla grave', quote: 'La pieza entera, vino en el Hercules. La he cambiao yo solito.' },
-  { id: 'vuelta', grupo: 'taller', name: 'VUELTA RAPIDA', uso: true, pide: 'vuelta',
+  { id: 'vuelta', grupo: 'taller', name: 'VUELTA RÁPIDA', uso: true, pide: 'vuelta',
     desc: 'Los de la base vuelven ya', quote: 'Cargao, revisao y pa\'l aire. Ligero, que no hay tiempo.' },
   { id: 'municion', grupo: 'taller', name: 'MUNICION', uso: true,
-    desc: '{bomba} y {chapitas} al tope', quote: 'Ha llegao el camion de la armeria. Sirvanse, vago.' },
+    desc: '{bomba} y {chapitas} al tope', quote: 'Ha llegao el camión de la armeria. Sírvanse, vago.' },
 
   // ---------------- ALCANCE ----------------
   { id: 'tanques', grupo: 'alcance', name: 'TANQUES DE ALA', tecla: 'B',
-    desc: '+2 {tanque}. Mas alcance',
+    desc: '+2 {tanque}. Más alcance',
     quote: 'Mil cuatrocientos litro de cada lao. Volve, m\'hijo.' },
   { id: 'chancha1', grupo: 'alcance', name: '+1 CHANCHA', uso: true, necesita: 'sonda', tecla: 'J',
-    rota: 'Tu avion no tiene sonda de reabastecimiento',
+    rota: 'Tu avión no tiene sonda de reabastecimiento',
     desc: '+1 {chancha} gratis',
     quote: 'La Chancha te espera. Una vez nomá, no te mal acostumbre.' },
 
   // ---------------- PODERES ----------------
   { id: 'momentum1', grupo: 'poderes', name: 'MOMENTUM', tecla: '4',
-    desc: '{momentum} dura mas',
-    quote: 'El tiempo no se frena. Vos pensas mas rapido. Casi lo mismo.' },
+    desc: '{momentum} dura más',
+    quote: 'El tiempo no se frena. Vos pensás más rapido. Casi lo mismo.' },
   { id: 'momentum2', grupo: 'poderes', name: 'MOMENTUM II', tecla: '4', requiere: 'momentum1',
-    desc: '{momentum} mas largo', quote: 'Mas lento todavia. O vos mas rapido. Sigo sin decidir cual.' },
+    desc: '{momentum} más largo', quote: 'Más lento todavia. O vos más rapido. Sigo sin decidir cual.' },
   { id: 'momentum3', grupo: 'poderes', name: 'MOMENTUM III', tecla: '4', requiere: 'momentum2',
-    desc: '{momentum} al maximo', quote: 'Como si el mundo te esperara. No lo puedo explicar. Me molesta.' },
+    desc: '{momentum} al máximo', quote: 'Como si el mundo te esperara. No lo puedo explicar. Me molesta.' },
 
   { id: 'rasante1', grupo: 'poderes', name: 'RASANTE FINO', tecla: '5',
-    desc: '{rasante} banda mas ancha', quote: 'Ensanche la banda azul. No es trampa, es ingenieria. Un poco.' },
+    desc: '{rasante} banda más ancha', quote: 'Ensanche la banda azul. No es trampa, es ingenieria. Un poco.' },
   { id: 'radar1', grupo: 'poderes', name: 'RADAR DE GUARDIA', tecla: 'Y', necesita: 'radar',
-    rota: 'Tu avion no lleva radar de busqueda',
+    rota: 'Tu avión no lleva radar de busqueda',
     desc: 'Radar gratis. Recarga ×2', quote: 'No se apaga nunca. Yo tampoco, desde que lo arme.' },
 
   // ---------------- INTELIGENCIA Y TACTICA (18/10, de la historia de 1982) ----------------
@@ -137,17 +137,17 @@ export const CARTAS = [
   { id: 'tracker', grupo: 'inteligencia', name: 'EL TRACKER QUE ESCUCHABA',
     desc: 'Al ras, alarma baja ×2',
     quote: 'Dieciocho radares identificados. Sabemos donde no miran.' },
-  { id: 'guerraElec', grupo: 'inteligencia', name: 'GUERRA ELECTRONICA',
-    desc: 'La alarma sube mas lento',
+  { id: 'guerraElec', grupo: 'inteligencia', name: 'GUERRA ELECTRÓNICA',
+    desc: 'La alarma sube más lento',
     quote: 'Desde Rio Gallegos les ensucian la pantalla. Aprovechen.' },
   { id: 'mirage', grupo: 'inteligencia', name: 'BARRIDO DE MIRAGE', uso: true,
     desc: '5 km sin Harrier nuevos',
     quote: 'Los Mirage salen altos. Que los persigan a ellos.' },
-  { id: 'fenix', grupo: 'inteligencia', name: 'ESCUADRON FENIX', uso: true,
-    desc: 'Desvia la proxima oleada',
-    quote: 'Un Learjet civil haciendo de escuadrilla. Mas coraje que muchos.' },
+  { id: 'fenix', grupo: 'inteligencia', name: 'ESCUADRÓN FÉNIX', uso: true,
+    desc: 'Desvía la próxima oleada',
+    quote: 'Un Learjet civil haciendo de escuadrilla. Más coraje que muchos.' },
   { id: 'coordinado', grupo: 'inteligencia', name: 'ATAQUE COORDINADO',
-    desc: 'Las defensas tiran mas lento',
+    desc: 'Las defensas tiran más lento',
     quote: 'Entramos por dos rumbos. No van a saber a quien mirar.' },
   { id: 'terreno', grupo: 'inteligencia', name: 'CONOCER EL TERRENO',
     desc: 'Rozar tierra perdona ×2',
@@ -156,8 +156,8 @@ export const CARTAS = [
     desc: 'Solo CICLO: Exocet previo',
     quote: 'Ellos tienen la maquina. Nosotros tenemos las manos.' },
   { id: 'kc130', grupo: 'alcance', name: 'SEGUNDO KC-130', necesita: 'sonda', tecla: 'J',
-    rota: 'Tu avion no tiene sonda de reabastecimiento',
-    desc: '{chancha} antes y mas rapida',
+    rota: 'Tu avión no tiene sonda de reabastecimiento',
+    desc: '{chancha} antes y más rápida',
     quote: 'El segundo Hercules ya despego. Carguen tranquilos.' },
   { id: 'rescate', grupo: 'defensa', name: 'KIT DE SUPERVIVENCIA',
     desc: '{avion} el eyectado vuelve',
@@ -177,14 +177,14 @@ export function motivoRota(c, av) {
   if (!av) return null;
   if (c.solo) {
     const ok = c.solo.some(k => k === av.key || (k === '__sinCanon' && av.sinCanon));
-    if (!ok) return c.solo[0] === '__sinCanon' ? null : (c.rota || 'Tu avion no puede llevarla');
+    if (!ok) return c.solo[0] === '__sinCanon' ? null : (c.rota || 'Tu avión no puede llevarla');
   }
-  if (c.necesita === 'sonda' && av.sonda === false) return c.rota || 'Tu avion no tiene sonda de reabastecimiento';
+  if (c.necesita === 'sonda' && av.sonda === false) return c.rota || 'Tu avión no tiene sonda de reabastecimiento';
   if (c.necesita === 'canon' && av.sinCanon) return null;   // (las de la metralla: piden el CAÑON antes, no se rompen)
   // las piruetas, una por una contra el PERFIL del avion (data/perfiles.js): el Hercules ninguna, el Dagger no las de giro largo
   if (c.necesita === 'piruetas' && !puedeManiobra(av.key, c.id)) return av.sinPiruetas || perfilDe(av.key).maniobras === 'pesado'
-    ? 'Tu avion no hace piruetas' : 'Tu avion no puede hacer esta pirueta';
-  if (c.necesita === 'radar' && !RADAR_PROPIO.AVIONES.includes(av.key)) return c.rota || 'Tu avion no lleva radar';
+    ? 'Tu avión no hace piruetas' : 'Tu avión no puede hacer esta pirueta';
+  if (c.necesita === 'radar' && !RADAR_PROPIO.AVIONES.includes(av.key)) return c.rota || 'Tu avión no lleva radar';
   return null;
 }
 /** ¿Se puede ofrecer AHORA? (sin contar la rotura: esa se decide aparte) */

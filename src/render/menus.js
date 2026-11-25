@@ -2140,6 +2140,19 @@ function trazoDentado(h) {
   }
   ctx.closePath();
 }
+/** LA ESTAMPITA EN BLANCO (el detalle de un hueco sin destapar): el mismo papel troquelado, apagado, y un ? en la ventana. */
+function estampitaVacia(x, y, s) {
+  const h = s / 2, b = EST_BORDE, iw = s - b * 2;
+  ctx.save(); ctx.translate(x + h, y + h);
+  ctx.save(); ctx.translate(1.2, 1.4); trazoDentado(h); ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill(); ctx.restore();
+  ctx.save(); trazoDentado(h); ctx.globalAlpha = 0.32; ctx.fillStyle = EST_PAPEL; ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#121a20'; ctx.fillRect(-h + b, -h + b, iw, iw);
+  ctx.setLineDash([2, 2]); ctx.strokeStyle = '#2e3b44'; ctx.lineWidth = 0.8; ctx.strokeRect(-h + b + 1.5, -h + b + 1.5, iw - 3, iw - 3); ctx.setLineDash([]);
+  ctx.textAlign = 'center'; ctx.fillStyle = '#4a5a66'; ctx.font = menuFont(iw * 0.6);
+  ctx.fillText('?', 0, iw * 0.22);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
 function estampita(e, x, y, s, on, col, i, nueva, t) {
   const giro = on ? 0 : (((i * 7919) % 13) - 6) * 0.006, esc = on ? 1.08 : 1, cx = x + s / 2, cy = y + s / 2;
   ctx.save();
@@ -2202,11 +2215,15 @@ function huecoAlbum(x, y, s, on, i) {
   ctx.setLineDash([2, 2]); ctx.strokeStyle = on ? P.accent : '#2e3b44'; ctx.lineWidth = on ? 1.4 : 0.8;
   ctx.strokeRect(x + 1.5, y + 1.5, s - 3, s - 3);
   ctx.restore();
+  // (25/11, el autor: "numeros mas protagonistas, signo de pregunta opacidad baja y atras, numeros mas gordos"): el ? queda
+  // de FONDO, grande y casi transparente, y el numero impreso del hueco pasa al centro, en negrita y claro
   ctx.textAlign = 'center';
-  ctx.fillStyle = on ? P.accent : '#33414b'; ctx.font = menuFont(12);
-  ctx.fillText('?', x + s / 2, y + s / 2 + 3);
-  ctx.fillStyle = '#3d4b55'; ctx.font = labelFont(5.5);
-  ctx.fillText(String(i + 1), x + s / 2, y + s - 4);   // (el numero impreso del hueco, como en un album de verdad)
+  ctx.save();
+  ctx.globalAlpha = on ? 0.22 : 0.1; ctx.fillStyle = on ? P.accent : '#8a9aa6'; ctx.font = menuFont(s * 0.62);
+  ctx.fillText('?', x + s / 2, y + s * 0.72);
+  ctx.restore();
+  ctx.fillStyle = on ? P.accent : '#8796a1'; ctx.font = menuFont(s * 0.34);
+  ctx.fillText(String(i + 1), x + s / 2, y + s * 0.62);   // (el numero impreso del hueco, como en un album de verdad)
   ctx.textAlign = 'left';
 }
 /** COMO SE RECORRE (22/11, el autor: "debe aclarar como recorrer el album, con que botones o teclas"): las teclas o los
@@ -2302,12 +2319,31 @@ function drawAlbumDetalle(e, visto, w) {
   ctx.strokeStyle = visto ? col : '#2a343b'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, pw - 1, ph - 1);
   ctx.globalAlpha = 0.16; ctx.fillStyle = col; ctx.fillRect(x + 1, y + 1, pw - 2, 18); ctx.globalAlpha = 1;
   const pad = 8, ancho = pw - pad * 2;
+  // (25/11, el autor: "rellena esto con una estampita con signo de pregunta y espacios vacios"): sin destapar, el detalle
+  // tiene la MISMA forma que el destapado —el nombre, la estampita, lo que hace y la historia— pero vacio: la estampita
+  // en blanco con un ?, y renglones grises donde iria el texto. Lo que dice como destaparla va al lado de la estampita
   if (!visto) {
-    ctx.fillStyle = '#5a6a74'; ctx.font = menuFont(12); ctx.textAlign = 'center';
-    ctx.fillText('? ? ?', x + pw / 2, y + 70);
-    ctx.font = cartaFont(); ctx.fillStyle = P.dim;
-    lineasDe(T({ tema: 'albumBloqTema', avion: 'albumBloqAvion', buque: 'albumBloqBuque', mision: 'albumBloqMision' }[e.tipo] || 'albumBloqCarta'), ancho - 20).forEach((l, i) => ctx.fillText(l, x + pw / 2, y + 96 + i * 12));
+    const gris = '#26313a', barra = (bx, by, bw2) => { ctx.fillStyle = gris; ctx.fillRect(Math.round(bx), Math.round(by), Math.round(bw2), 4); };
+    ctx.textAlign = 'right'; ctx.fillStyle = '#5a6a74'; ctx.font = menuFont(11);
+    ctx.fillText('? ? ?', x + pw - pad - 4, y + 14);
     ctx.textAlign = 'left';
+    const ay = y + 24, A = 58;
+    estampitaVacia(x + pad, ay, A);
+    const tx = x + pad + A + 6, tw = pw - pad * 2 - A - 6;
+    ctx.font = cartaFont(); ctx.fillStyle = P.dim;
+    let yy = ay + 10;
+    for (const l of lineasDe(T({ tema: 'albumBloqTema', avion: 'albumBloqAvion', buque: 'albumBloqBuque', mision: 'albumBloqMision' }[e.tipo] || 'albumBloqCarta'), tw)) { ctx.fillText(l, tx, yy); yy += 11; }
+    yy += 4;
+    ctx.fillStyle = '#141b21'; ctx.fillRect(tx, yy, 18, 18); ctx.strokeStyle = gris; ctx.strokeRect(tx + 0.5, yy + 0.5, 17, 17);   // la carita
+    barra(tx + 22, yy + 3, tw * 0.62); barra(tx + 22, yy + 10, tw * 0.45);
+    yy = ay + A + 12;
+    const titulo = t => { ctx.fillStyle = '#4a5862'; ctx.font = labelFont(6.5); ctx.fillText(t, x + pad, yy); const tw2 = ctx.measureText(t).width;
+      ctx.globalAlpha = 0.25; ctx.fillRect(x + pad + tw2 + 4, yy - 3, ancho - tw2 - 4, 1); ctx.globalAlpha = 1; yy += 8; };
+    titulo(T('banco_que'));
+    for (const f of [1, 0.94, 0.58]) { barra(x + pad, yy - 3, ancho * f); yy += 9; }
+    yy += 3; barra(x + pw / 2 - ancho * 0.2, yy - 4, ancho * 0.4); yy += 11;   // el dato
+    titulo(T('banco_1982'));
+    for (const f of [1, 0.97, 0.9, 0.66]) { if (yy > y + ph - 6) break; barra(x + pad, yy - 3, ancho * f); yy += 9; }
     return;
   }
   // la cabecera: el icono del grupo y el nombre

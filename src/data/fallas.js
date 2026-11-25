@@ -21,10 +21,10 @@ export const SISTEMAS = {
   bombas: { base: 0.10, grados: [50, 35, 15], es: ['SE TRABA A VECES', 'SE TRABA SEGUIDO', 'NO SE DESPRENDEN'],
     en: ['JAMS AT TIMES', 'JAMS OFTEN', 'WON\'T RELEASE'] },
   // LOS CAÑONES
-  canon: { base: 0.05, grados: [50, 35, 15], es: ['RECALIENTA', 'UN SOLO CAÑON', 'CAÑONES MUDOS'],
+  canon: { base: 0.05, grados: [50, 35, 15], es: ['RECALIENTA', 'UN SOLO CAÑÓN', 'CAÑONES MUDOS'],
     en: ['OVERHEATS', 'ONE GUN ONLY', 'GUNS DEAD'] },
   // EL ALTIMETRO: no quita nada, cambia COMO se vuela
-  altimetro: { base: 0.03, grados: [50, 35, 15], es: ['ALTIMETRO TIEMBLA', 'ALTIMETRO ATRASA', 'ALTIMETRO MUERTO'],
+  altimetro: { base: 0.03, grados: [50, 35, 15], es: ['ALTÍMETRO TIEMBLA', 'ALTÍMETRO ATRASA', 'ALTÍMETRO MUERTO'],
     en: ['ALTIMETER JITTERS', 'ALTIMETER LAGS', 'ALTIMETER DEAD'] },
 };
 export const SISTEMAS_ID = Object.keys(SISTEMAS);

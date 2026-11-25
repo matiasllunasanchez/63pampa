@@ -2126,7 +2126,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       const ids = Object.keys(PISTAS_CAPAS);
       capasPista = ids[(ids.indexOf(capasPista) + dir + ids.length) % ids.length];
       capas.arrancar(capasPista);
-      cartel(PISTAS_CAPAS[capasPista].nombre, P.accent, 'MUSICA EN CAPAS · [N] [M] CAMBIAR');
+      cartel(PISTAS_CAPAS[capasPista].nombre, P.accent, 'MÚSICA EN CAPAS · [N] [M] CAMBIAR');
     }
     /** EL MEDIDOR (solo en SMALL CON MUSICA): la intensidad y cuanto suena cada capa, abajo a la
      *  derecha, para afinar la tabla volando. Es herramienta, no HUD: no va en el juego de verdad. */
@@ -5073,7 +5073,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         if (islas.enPasillo()) {
           const v = islas.cambiarVista();
           beep(520 + v * 120, 0.05, 'square', 0.04);
-          cartel(['DESDE ARRIBA', 'DE ATRAS', 'CABINA'][v], P.accent);
+          cartel(['DESDE ARRIBA', 'DE ATRÁS', 'CABINA'][v], P.accent);
           return;
         }
         if (S.state === 'play' || S.state === 'takeoff') {
@@ -5245,8 +5245,12 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // de los que si tienen astro). Un destello sin astro del cual salir es una mancha en el vidrio.
     const TBACK_MAP = {
       dusk:    { f: 'sunrise.png',      hor: 0.72, sol: { x: 0.485, y: 0.518 }, col: '255,178,96' },
-      night:   { f: 'night.png',        hor: 0.72 },   // auroras, sin luna en cuadro
-      storm:   { f: 'night_storm.jpg',  hor: 0.72 },   // relampagos, sin astro
+      // (25/11, el autor: "NOCHE CON LUNA GRANDE, USARLA"): la noche lleva la luna llena entre nubes, como la de LUNA
+      // (night.png —auroras, la luna en cuarto fuera de cuadro— queda sin usar)
+      night:   { f: 'night_2.jpeg',     hor: 0.62, sol: { x: 0.504, y: 0.505 }, col: '188,214,255' },
+      // (25/11: decia 'night_storm.jpg', que NO EXISTE — la tormenta salia sin telon y en su lugar quedaba un cuadrado
+      // gris sobre el horizonte. El .jpeg es el que no trae los rayos pintados: los rayos los pone el juego)
+      storm:   { f: 'night_storm.jpeg', hor: 0.72 },   // nubarrones, sin astro
       clear:   { f: 'day_argentday.png', hor: 0.72, sol: { x: 0.498, y: 0.484 }, col: '255,236,180' },
       cloudy:  { f: 'day_cloudy.png',   hor: 0.72 },   // dia nublado (desembarco): el sol esta tapado
       // --- los tres marinos nuevos: otra proporcion (menos altos) y el astro mas arriba ---
@@ -9821,7 +9825,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       window.__bancoAbrir = (ids, rotaId) => {
         abrirBanco();
         if (bancoOffer && ids) bancoOffer.cartas = ids.map(id => CARTAS_SUELTAS.find(x => x.id === id)).filter(Boolean);
-        if (bancoOffer && rotaId) { const c = CARTAS_SUELTAS.find(x => x.id === rotaId); bancoOffer.rota = c && { ...c, motivo: c.rota || 'Tu avion no puede llevarla' }; }
+        if (bancoOffer && rotaId) { const c = CARTAS_SUELTAS.find(x => x.id === rotaId); bancoOffer.rota = c && { ...c, motivo: c.rota || 'Tu avión no puede llevarla' }; }
         return window.__banco();
       };
       // EL ALBUM (22/11): abrirlo ya, en la figurita `i` (para mirarlo)

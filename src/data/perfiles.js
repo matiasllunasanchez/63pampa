@@ -123,10 +123,10 @@ export function capacidadesDe(pl, lang = 'es') {
   const en = lang === 'en', pf = perfilDe(pl.key), out = [];
   const pz = (icono, ok, r, es, eng) => out.push({ icono, ok, r, t: en ? eng : es });
   const cal = CALIBRE_AVION[pl.key] || '20';
-  if (pl.sinArmas) pz('canon', false, en ? 'NO GUN' : 'SIN CAÑON', 'Sin armas: ni cañon, ni bombas, ni chafitas', 'No weapons: no gun, bombs or chaff');
-  else if (pl.sinCanon) pz('canon', false, en ? 'GUN: UPGR.' : 'CAÑON: MEJORA', 'Sin cañon: se gana como mejora', 'No gun: earned as an upgrade');
-  else if (pl.canon) pz('canon', true, en ? 'OWN GUN' : 'CAÑON PROPIO', 'Su propio cañon', 'Its own gun');
-  else pz('canon', true, (en ? 'GUNS ' : 'CAÑON ') + cal + ' MM', 'Dos cañones de ' + cal + ' mm', 'Two ' + cal + ' mm guns');
+  if (pl.sinArmas) pz('canon', false, en ? 'NO GUN' : 'SIN CAÑÓN', 'Sin armas: ni cañón, ni bombas, ni chafitas', 'No weapons: no gun, bombs or chaff');
+  else if (pl.sinCanon) pz('canon', false, en ? 'GUN: UPGR.' : 'CAÑÓN: MEJORA', 'Sin cañón: se gana como mejora', 'No gun: earned as an upgrade');
+  else if (pl.canon) pz('canon', true, en ? 'OWN GUN' : 'CAÑÓN PROPIO', 'Su propio cañón', 'Its own gun');
+  else pz('canon', true, (en ? 'GUNS ' : 'CAÑÓN ') + cal + ' MM', 'Dos cañones de ' + cal + ' mm', 'Two ' + cal + ' mm guns');
   if (pl.key === 'supere') pz('exocet', true, 'EXOCET', 'Puede llevar el Exocet AM39 (se gana como mejora)', 'Can carry the Exocet AM39 (earned as an upgrade)');
   // (13/11, el autor: "no se entiende que es SI / NO"): el rotulo NOMBRA la cosa; si no la tiene, va en gris
   pz('hercules', pl.sonda !== false, en ? 'TANKER' : 'CHANCHA',
@@ -134,18 +134,18 @@ export function capacidadesDe(pl, lang = 'es') {
     pl.sonda === false ? 'No refuelling probe: no tanker' : 'Refuels in flight from the tanker (the KC-130)');
   const radar = RADAR_PROPIO.AVIONES.includes(pl.key), corto = radar && (pl.key === 'dagger' || pl.key === 'mirage');
   pz('radar', radar, corto ? (en ? 'SHORT RADAR' : 'RADAR CORTO') : 'RADAR',
-    corto ? 'Radar corto: marca lo que tenes adelante y cerca' : radar ? 'Radar propio de busqueda' : 'Sin radar propio',
+    corto ? 'Radar corto: marca lo que tenés adelante y cerca' : radar ? 'Radar propio de busqueda' : 'Sin radar propio',
     corto ? 'Short radar: marks what is close ahead' : radar ? 'Own search radar' : 'No search radar');
   const man = pf.maniobras;
   pz('pirueta', man !== 'pesado', man === 'rigido' ? (en ? 'SOME MANOEUV.' : 'PIRUETAS LIMIT.') : (en ? 'MANOEUVRES' : 'PIRUETAS'),
-    (man === 'pesado' ? 'Ninguna pirueta ni freno: solo pegarse al piso y trepar o picar' : man === 'rigido' ? 'Piruetas y frenos, sin TONEL BARRIL, TIRABUZON ni los mortales' : 'Todas las piruetas y los frenos')
-      + (pf.ras ? '; al ras, ni las de giro cerrado ni los frenos (el ala delta pierde energia)' : ''),
+    (man === 'pesado' ? 'Ninguna pirueta ni freno: solo pegarse al piso y trepar o picar' : man === 'rigido' ? 'Piruetas y frenos, sin TONEL BARRIL, TIRABUZÓN ni los mortales' : 'Todas las piruetas y los frenos')
+      + (pf.ras ? '; al ras, ni las de giro cerrado ni los frenos (el ala delta pierde energía)' : ''),
     (man === 'pesado' ? 'No piruetas or brakes: only hugging the ground and climbing or diving' : man === 'rigido' ? 'Piruetas and brakes, without BARREL ROLL, CORKSCREW or back flips' : 'Every pirueta and brake')
       + (pf.ras ? '; down low, no tight turns or brakes (the delta wing bleeds energy)' : ''));
   // EL ESQUIVE (21/11): la base, y cuanto le rinde una pirueta (la clase)
   const esq = Math.round(pf.esquive * 100), cla = Math.round(ESQUIVE.CLASE[man] * 100);
   pz('casco', true, (en ? 'DODGE ' : 'ESQUIVE ') + esq + '%',
-    'Un disparo que te alcanza pasa de largo el ' + esq + '% de las veces; en plena pirueta, mucho mas' + (cla < 100 ? ' (las piruetas le rinden el ' + cla + '%)' : ''),
+    'Un disparo que te alcanza pasa de largo el ' + esq + '% de las veces; en plena pirueta, mucho más' + (cla < 100 ? ' (las piruetas le rinden el ' + cla + '%)' : ''),
     'A hit that reaches you misses ' + esq + '% of the time; mid-manoeuvre, far more' + (cla < 100 ? ' (manoeuvres give ' + cla + '%)' : ''));
   const rol = pf.rolido < 0.5 ? ['MUY LENTO', 'VERY SLOW'] : pf.rolido < 0.95 ? ['LENTO', 'SLOW'] : pf.rolido > 1.1 ? ['RAPIDO', 'FAST'] : ['NORMAL', 'NORMAL'];
   const vel = pl.vuelo && pl.vuelo.vel ? Math.round(pl.vuelo.vel * 100) : 100;
@@ -156,11 +156,11 @@ export function capacidadesDe(pl, lang = 'es') {
     taller: ['taller', 'workshop'], inteligencia: ['inteligencia', 'intelligence'], piruetas: ['piruetas', 'manoeuvres'] };
   const mas = Object.keys(pf.grupos).filter(g => pf.grupos[g] > 1).map(g => G[g] ? G[g][en ? 1 : 0] : g);
   const km = pf.bancoKm || 6;
-  pz('cajon', true, (en ? 'UPGR. ' : 'MEJORA ') + km + ' KM', 'En POR LA PATRIA y CICLO: una mejora cada ' + km + ' km' + (mas.length ? ', con mas cartas de ' + mas.join(' y ') : ''),
+  pz('cajon', true, (en ? 'UPGR. ' : 'MEJORA ') + km + ' KM', 'En POR LA PATRIA y CICLO: una mejora cada ' + km + ' km' + (mas.length ? ', con más cartas de ' + mas.join(' y ') : ''),
     'In POR LA PATRIA and CICLO: an upgrade every ' + km + ' km' + (mas.length ? ', with more ' + mas.join(' and ') + ' cards' : ''));
   const fk = pf.fallasK;
   pz('caja_herr', true, fk > 1.05 ? (en ? 'FAULTS +' : 'FALLAS +') : fk < 0.95 ? (en ? 'FAULTS -' : 'FALLAS -') : (en ? 'FAULTS' : 'FALLAS'),
-    fk > 1.05 ? 'Fallas mas frecuentes (POR LA PATRIA y CICLO): avion viejo, repuestos cortados por el embargo' : fk < 0.95 ? 'Casi no falla (POR LA PATRIA y CICLO)' : 'Fallas normales (POR LA PATRIA y CICLO)',
+    fk > 1.05 ? 'Fallas más frecuentes (POR LA PATRIA y CICLO): avión viejo, repuestos cortados por el embargo' : fk < 0.95 ? 'Casi no falla (POR LA PATRIA y CICLO)' : 'Fallas normales (POR LA PATRIA y CICLO)',
     fk > 1.05 ? 'More frequent faults (POR LA PATRIA and CICLO): old airframe, spares cut by the embargo' : fk < 0.95 ? 'Rarely fails (POR LA PATRIA and CICLO)' : 'Normal faults (POR LA PATRIA and CICLO)');
   return out;
 }

@@ -3,6 +3,10 @@
 
 <head>
   <meta charset="utf-8">
+  <!-- LA POLITICA DE CONTENIDO (25/11): todo sale de la carpeta del juego (file:) — los scripts sin inline ni eval; el
+       mapa de las islas arma sus workers con un blob y las capturas usan data:/blob:. Sin esto Electron avisa en consola
+       "Insecure Content-Security-Policy" -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file:; style-src 'self' 'unsafe-inline' file:; img-src 'self' file: data: blob:; media-src 'self' file: data: blob:; font-src 'self' file: data:; connect-src 'self' file: data: blob:; worker-src 'self' file: blob:">
   <title>RASANTE</title>
   <link rel="icon" type="image/png" href="../assets/ui/icono.png">
   <link rel="stylesheet" href="styles.css">
