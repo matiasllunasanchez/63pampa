@@ -66,6 +66,11 @@ if VISTA == 'empinada':
 # (el poder RASANTE), con sus tres cabeceos de siempre
 if VISTA in ('empinada', 'cobra', 'ras'):
     ANGLES = list(range(-60, 61, 10))
+# (25/11, el autor: "mas poses" para el poder RASANTE): la hoja 3 pasa a los CINCO cabeceos de la fina (±14° de a 7°) —
+# con tres el avion saltaba de pose al subir o bajar durante la ULTI
+if VISTA == 'ras':
+    PITCHES = [14, 7, 0, -7, -14]
+    ANGLES = list(range(-60, 61, 5))   # …y 25 alabeos (uno cada 5°): la ULTI esquiva y dispara sola, siempre en movimiento
 # `--vista fino` (14/10, el autor: "rehornear mas secuencias del avion para que se vea mas fluido"): la
 # hoja base con MAS POSES — un alabeo cada 10° (13 columnas, contra 9 de 15°) y cinco cabeceos en el
 # mismo rango (±14° de a 7°, contra tres). Misma camara y mismo cuadro: sheet5.png.

@@ -213,6 +213,13 @@ function vertRasante(dt, inp, G, TH, DIVE) {
   // loma o una isla quedaban adentro de la tierra — el poder te apretaba contra el suelo hasta el roce.
   const suelo = esTierraEn(plane.x, run.dist + PZ) ? alturaSuelo(plane.x, run.dist + PZ) : 0;
   const yr = suelo + rasante.alt(), techo = suelo + rasante.ceil(), k = rasante.spring();
+  // LA ULTI SOSTIENE SOLA (25/11, el autor: "rasante deberia mantener el gas para que no caiga mientras esta usandose el
+  // poder"): el gas, la picada y el viento no la mueven — va clavada al ras, que es "hacer todo perfecto"
+  if (rasante.active()) {
+    const tgt = Math.max(-20, Math.min(18, (yr - plane.y) * k));
+    plane.vy += (tgt - plane.vy) * Math.min(1, dt * k);
+    return;
+  }
   if (inp.u && run.fuel > 0) {
     const suave = Math.max(0, Math.min(1, (techo - plane.y) / 3));
     plane.vy += (TH * suave - G) * dt;

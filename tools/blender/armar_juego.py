@@ -73,7 +73,7 @@ CAPAS_SOLO = {'herc': ('herc_250', 'herc_500')}   # las cargas propias del Hercu
 for _k in ('learjet', 'citation', 'merlin', 'mu2', 'aerostar', 'commander', 'guarani', 'neptune') + ('chinook_faa', 'chinook_ej', 'uh1h', 'bell212', 'puma_ej', 'puma_pna', 'a109', 't34c', 'skyvan'): CAPAS_SOLO[_k] = ()   # los que no cuelgan nada
 CAPAS_ESTANDAR = ('pucara', 'mb339')   # los de las secundarias con las cuatro capas de siempre
 VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
-    'base': (3, 84, '', True), 'empinada': (2, 84, '2', True), 'ras': (3, 168, '3', False),
+    'base': (3, 84, '', True), 'empinada': (2, 84, '2', True), 'ras': (5, 168, '3', False),
     # LA COBRA (4/10): 40/75/100° de cabeceo, cuadro de 126 (x1,5: vertical, el avion mide su largo);
     # desde el MORTAL sigue la vuelta entera: 130…335° (once filas, ver hornear.py)
     'cobra': (12, 126, '4', True),   # + la fila 11: 25°, la del DERRAPE
@@ -86,7 +86,7 @@ VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     # pega tobera ni estelas en esa pose (render/plane.js). sheet6.png y sus capas de carga.
     'tonelv': (1, 126, '6', False),
 }
-COLS_DE = {'fino': 13, 'empinada': 13, 'cobra': 13, 'ras': 13, 'tonelv': 24}   # (piruetas y poder desde el 15/10); la base: 9
+COLS_DE = {'fino': 13, 'empinada': 13, 'cobra': 13, 'ras': 25, 'tonelv': 24}   # (piruetas y poder desde el 15/10); la base: 9
 # `VISTAS=cobra .venv-art/bin/python3 armar_juego.py`: arma SOLO esas vistas (las anclas de las otras
 # se leen de lo que ya escribio la ultima armada completa — ver escribir_anclas)
 if os.environ.get('VISTAS'): VISTAS = {k: v for k, v in VISTAS.items() if k in os.environ['VISTAS'].split(',')}

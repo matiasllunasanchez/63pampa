@@ -77,6 +77,9 @@ const FINO_ON = !(typeof location !== 'undefined' && /[?&]fino=0\b/.test(locatio
 let gradosPose = 0;
 export const anguloPose = () => gradosPose;
 const FINO_NF = 13, FINO_GRADOS = [14, 7, 0, -7, -14], FINO_TOPE = 0.7;   // pitch 0,7 = 14°
+// LA HOJA DEL PODER RASANTE (25/11, el autor: "las poses del poder RASANTE tienen que ser muchas"): 25 alabeos (uno cada 5°)
+// x los 5 cabeceos de la fina — la ULTI esquiva y dispara sola, siempre moviendose
+const RAS_NF = 25;
 let finoFila = 2, finoAnt = 2, finoCambioT = -1, finoPrev = 2;
 // LA TREPADA SOSTENIDA SE ASIENTA (21/11, el autor: "el dibujo del avion cambia… se ve mas feo — trepando, arriba"):
 // con W sostenido el cabeceo quedaba clavado en el tope (la fila de 14°, la que muestra el lomo plano) toda la trepada y
@@ -1119,7 +1122,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   const pir13 = !HORNO_VIEJO && useSheet && (((enMortalF || run.mvCobra > 0.05) && !!(hoja4D || hoja2D)) || !!(steepV && hoja2D));
   const ancho13 = fino || pir13;
   // (la hoja 3, la del poder RASANTE, tambien va con 13 alabeos desde el 15/10; sus tres cabeceos, los de siempre)
-  const NF = ancho13 || (rasHoja && !HORNO_VIEJO) ? FINO_NF : SHEET_NF;
+  const ras5 = rasHoja && !HORNO_VIEJO;   // (la hoja 3 de Blender: 25 x 5; la de three, la vieja de 13 x 3)
+  const NF = ancho13 ? FINO_NF : ras5 ? RAS_NF : SHEET_NF;
   const AN = ancho13 ? ANCLAS.fino : rasHoja ? ANCLAS.ras : ANCLAS.base;
   // EL GIRO TOTAL DEL SPRITE, resuelto en UN SOLO LUGAR.
   //
@@ -1148,17 +1152,17 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     if (filaSost === 1) { if (pcPose > FILA_ENTRA) filaSost = 0; else if (pcPose < -FILA_ENTRA) filaSost = 2; }
     else if (filaSost === 0 ? pcPose < FILA_SALE : pcPose > -FILA_SALE) filaSost = Math.abs(pcPose) > FILA_ENTRA ? (pcPose > 0 ? 0 : 2) : 1;
   }
-  if (ancho13) {
+  if (ancho13 || ras5) {
     // el angulo que pide el cabeceo, y la fila mas cercana; se cambia recien pasado 1/4 de paso de mas
     const ang = 14 * Math.max(-1, Math.min(1, pcPose / FINO_TOPE));
     if (ahoraS - finoCambioT >= FILA_MIN && Math.abs(ang - FINO_GRADOS[finoFila]) > 3.5 + 1.75) finoFila = FINO_GRADOS.reduce((m, g, i) => Math.abs(g - ang) < Math.abs(FINO_GRADOS[m] - ang) ? i : m, 0);
     if (finoFila !== finoPrev) { finoAnt = finoPrev; finoCambioT = ahoraS; finoPrev = finoFila; }
   }
-  const rowPose = ancho13 ? finoFila : filaSost;
+  const rowPose = ancho13 || ras5 ? finoFila : filaSost;
   if (filaSost !== filaPrevCuadro) { filaAnt = filaPrevCuadro; filaCambioT = ahoraS; filaPrevCuadro = filaSost; }
-  const fundeFila = fino ? (finoCambioT >= 0 ? 1 - (ahoraS - finoCambioT) / FILA_FUNDE : 0)
+  const fundeFila = fino || ras5 ? (finoCambioT >= 0 ? 1 - (ahoraS - finoCambioT) / FILA_FUNDE : 0)
     : filaCambioT >= 0 ? 1 - (ahoraS - filaCambioT) / FILA_FUNDE : 0;   // 1 → 0
-  const filaFundida = fino ? finoAnt : filaAnt;
+  const filaFundida = fino || ras5 ? finoAnt : filaAnt;
   // lo que el alabeo pide mas alla de la columna elegida (±media columna), en radianes de pantalla
   const resto = rolling ? 0 : (bank - (1 - 2 * colPose / (NF - 1))) * ALABEO_RAD;
   const prRoll = rolling ? Math.min(1, run.mvT / MOVES.tonel.dur) : 0;   // 0→1 durante el tonel
@@ -1292,7 +1296,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     silueta = { img, sx: sx4, sy: sy4, sw: FW4, sh: FH4, dx: -dW / 2, dy: -dH / 2, dw: dW, dh: dH, m: ctx.getTransform() };
     // LA HOJA DE CERCA (render/hojaHd.js): grande en pantalla —el despegue— se funde encima la horneada al doble
     // (tambien con la FINA, que es la de volar nivelado — la pista —: tiene su `sheet5_hd`)
-    const aHd = conBase ? mezclaHd(dW, PX) : 0;
+    // (25/11: y la HOJA 3, la del poder RASANTE a 45° — `sheet3_hd`; su cuadro es el doble del base, de ahi el PX * 2)
+    const aHd = conBase ? mezclaHd(dW, PX) : (F3 === SHEET3_FW && !hoja4) ? mezclaHd(dW, PX * 2) : 0;
     if (aHd) encimaHd(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH, aHd);
     // LAS PALAS DE LOS HELICOPTEROS, girando (18/11): la hoja trae el rotor sin palas y el horno midio, pose
     // por pose, el cubo y la elipse por donde giran (`AN.rot`, tools/blender/hornear.py)

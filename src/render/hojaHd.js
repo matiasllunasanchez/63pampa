@@ -15,7 +15,7 @@ const CARPETAS_HD = 'a4-skyhawk|a4q|iai-dagger|super-etendard|pampa-63|mirage-5p
   + 'swearingen-merlin|mitsubishi-mu2|aerostar-601|turbo-commander|ia50-guarani|ia58-pucara|mb-339a|sp2h-neptune|'
   + 'ch47c-chinook-faa|ch47c-chinook-ejercito|uh-1h|bell-212|sa330-puma-ejercito|sa330-puma-prefectura|a109-hirundo|'
   + 't34c-turbo-mentor|sc7-skyvan';
-const CON_HD = new RegExp('planes\\/(' + CARPETAS_HD + ')\\/(sheet5?|skin_[a-z]+5?|tren5?|variante[1-4])\\.png(\\?.*)?$');   // (+ las variantes de los numerales)
+const CON_HD = new RegExp('planes\\/(' + CARPETAS_HD + ')\\/(sheet[35]?|skin_[a-z]+[35]?|tren5?|variante[1-4])\\.png(\\?.*)?$');   // (+ las variantes de los numerales)
 // (los helicopteros no tienen tren: su capa esta vacia y no se horneo al doble)
 const SIN_TREN = /(chinook|uh-1h|bell-212|sa330|a109)[^/]*\/tren/;
 const HD = new Map();

@@ -37,7 +37,13 @@ HELIS = ('chinook_faa', 'chinook_ej', 'uh1h', 'bell212', 'puma_ej', 'puma_pna', 
 PX2 = ('herc', 'neptune', 'guarani', 'chinook_faa', 'chinook_ej', 'skyvan')
 SONDA = ('sky', 'a4q')                                                                 # la sonda de un lado
 px_de = lambda k: 336 if k in PX2 else 168
-VISTAS = (('base', 3, 9, ''), ('fino', 5, 13, '5'))
+# (25/11) y LA HOJA 3, la del poder RASANTE (la camara a 45°): su cuadro ya es el doble del base, asi que la de cerca va
+# al cuadruple (`px_vista`). Sin tren: el poder se vuela con las ruedas guardadas
+VISTAS = (('base', 3, 9, ''), ('fino', 5, 13, '5'), ('ras', 5, 25, '3'))
+px_vista = lambda k, v: px_de(k) * (2 if v == 'ras' else 1)
+# `--solo ras` hornea / arma una sola vista (las otras ya estan)
+SOLO = sys.argv[sys.argv.index('--solo') + 1] if '--solo' in sys.argv else None
+vistas = lambda: [x for x in VISTAS if not SOLO or x[0] == SOLO]
 
 def claves_de(k):
     """(clave de Blender, carpeta, nombre base de la hoja) de todo lo que cuelga de la celula `k`."""
@@ -46,14 +52,14 @@ def claves_de(k):
     return out
 
 def trabajos(celulas):
-    for v, _, _, _ in VISTAS:
+    for v, _, _, _ in vistas():
         for k in celulas:
             for b, _, _ in claves_de(k):
-                yield (b, None, v, px_de(k))
-                if k in SONDA: yield (b, 'sinsonda', v, px_de(k))
-            if k not in HELIS: yield (k, 'tren', v, px_de(k))
+                yield (b, None, v, px_vista(k, v))
+                if k in SONDA and v != 'ras': yield (b, 'sinsonda', v, px_vista(k, v))
+            if k not in HELIS and v != 'ras': yield (k, 'tren', v, px_vista(k, v))
     for k in celulas:
-        if k in CELULAS:
+        if k in CELULAS and not SOLO:
             for n in range(1, 5): yield ('var_%s_%d' % (k, n), None, 'base', px_de(k))
 
 def hornear(t):
@@ -69,23 +75,24 @@ def hornear(t):
 def armar(celulas):
     sys.path.insert(0, AQUI)
     import armar_juego as J
-    def una(src, filas, px, cols, dest):
+    def una(src, filas, px, cols, dest, sim=True):
         if not os.path.isdir(src): return
-        J.con_contorno(J.hoja(src, filas, px, True, cols), filas, px).save(dest)
+        J.con_contorno(J.hoja(src, filas, px, sim, cols), filas, px).save(dest)
         print('->', os.path.relpath(dest, RAIZ))
     for k in celulas:
         px = px_de(k)
-        for v, filas, cols, suf in VISTAS:
+        for v, filas, cols, suf in vistas():
             for b, carpeta, nombre in claves_de(k):
-                una(os.path.join(AQUI, OUT, b, v), filas, px, cols, os.path.join(RAIZ, 'assets', 'planes', carpeta, nombre + suf + '_hd.png'))
+                # (la de 45° NO se espeja: vista de costado, el avion no es simetrico en el cuadro)
+                una(os.path.join(AQUI, OUT, b, v), filas, px_vista(k, v), cols, os.path.join(RAIZ, 'assets', 'planes', carpeta, nombre + suf + '_hd.png'), v != 'ras')
             if k not in HELIS:
                 una(os.path.join(AQUI, OUT, k, 'capas', 'tren_' + v), filas, px, cols, os.path.join(RAIZ, 'assets', 'planes', CARPETA[k], 'tren' + suf + '_hd.png'))
-        if k in CELULAS:
+        if k in CELULAS and not SOLO:
             for n in range(1, 5):
                 una(os.path.join(AQUI, OUT, 'var_%s_%d' % (k, n), 'base'), 3, px, 9, os.path.join(RAIZ, 'assets', 'planes', CARPETA[k], 'variante%d_hd.png' % n))
 
 if __name__ == '__main__':
-    pedidas = [a for a in sys.argv[1:] if not a.startswith('--')] or list(CARPETA)
+    pedidas = [a for a in sys.argv[1:] if not a.startswith('--') and a != SOLO] or list(CARPETA)
     if '--armar' not in sys.argv:
         t0 = time.time(); fallas = 0; lista = list(trabajos(pedidas))
         with ThreadPoolExecutor(max_workers=4) as ex:

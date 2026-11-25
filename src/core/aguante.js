@@ -94,11 +94,14 @@ export const AGU = {
   // LOS PRIMEROS CUATRO NO SE VEN. Cuentan como segundos, pero en pantalla son el contador chico
   // (x2 x3 x4): la palabra RASANTE recien aparece cuando ya hay algo que mostrar, y de ahi en
   // adelante cada acierto le prende una letra. Siete letras mas el borde son los otros ocho.
-  CONC_GATE: 4,    // aciertos antes de que la palabra aparezca (cuentan igual)
+  // (25/11: el autor, "el poder de rasante nunca se activa" — salia recien al CERRARSE el estado, y con el gas que
+  // mantiene la altura el estado ya no se cierra solo: se quedaba abierto y la ULTI no llegaba nunca). Ahora la palabra
+  // RASANTE se llena desde el primer acierto y, LLENA, dispara la ULTI (CONC_TOPE); cerrarse antes con CONC_MIN tambien
+  CONC_GATE: 0,    // aciertos antes de que la palabra aparezca (cuentan igual)
   CONC_LETRAS: 8,  // las 7 letras de RASANTE + el borde: los segundos que la palabra puede mostrar
   // (21/11, el autor: "el tiempo de rasante deberia durar mas"): cada acierto paga SEG_ACIERTO segundos de poder (era 1)
   SEG_ACIERTO: 1.5,
-  CONC_TOPE: 12,   // el techo. Cae justo donde topea un jugador bueno bajo presion (12 aciertos)
+  CONC_TOPE: 8,    // el techo: con la palabra llena (8 aciertos) sale la ULTI (era 12, el de un jugador bueno bajo presion)
   // EL PISO PARA QUE ARRANQUE. Por debajo de esto el flow no se dispara y lo juntado se pierde: el
   // poder cambia la camara y la lamina del avion de golpe, y dos segundos de eso no se leen como
   // una rafaga sino como un error grafico.
