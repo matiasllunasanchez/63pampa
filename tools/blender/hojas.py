@@ -55,8 +55,11 @@ HOJAS = {
                     puntos=[(x, 1.10, -4.35) for x in _conos] + [(sg * CH_POD[0], CH_POD[1], CH_POD[2]) for sg in (1, -1)]),
     'jet': dict(fw=128, fh=96, dist=16, lookY=0.2, cols=5, nivelado=2,
                 frames=[dict(modelo='bl:caza', roll=a * R) for a in (-30, -15, 0, 15, 30)]),
-    'harrier': dict(fw=128, fh=96, dist=16, lookY=0.2, cols=5, nivelado=2,
-                    frames=[dict(modelo='bl:harrier', roll=a * R) for a in (-30, -15, 0, 15, 30)]),
+    # (25/11, el autor: "los Harriers de frente tambien se ven duros, mas poses"): 25 alabeos (uno cada 2,5°, el mismo
+    # rango de ±30°) x 5 cabeceos (+10…-10 de a 5°: la trompa sube y baja). `nivelado` = el cuadro derecho del medio
+    'harrier': dict(fw=128, fh=96, dist=16, lookY=0.2, cols=25, nivelado=2 * 25 + 12,
+                    frames=[dict(modelo='bl:harrier', roll=a * R, pitch=p * R)
+                            for p in (10, 5, 0, -5, -10) for a in [x / 2 for x in range(-60, 61, 5)]]),
     'harrier_rear': dict(fw=128, fh=96, dist=16, lookY=0.2, baseYaw=0, cols=5, nivelado=2,
                          frames=[dict(modelo='bl:harrier:atras', roll=a * R) for a in (-30, -15, 0, 15, 30)]),
     'harrier_turn': dict(fw=128, fh=96, dist=18, lookY=0.2, baseYaw=0, cols=5,

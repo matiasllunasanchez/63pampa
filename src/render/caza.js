@@ -141,13 +141,16 @@ function drawCazaSprite(H) {
       { centerY: s.y }, k, false, false, 0);
   } else if (enemyArt.ready('harrier')) {
     const col = pose(enemyArt.SHEETS.harrier.cols);
+    // (25/11) DE FRENTE TAMBIEN CABECEA: 5 filas (+10…-10°), la del medio nivelada; la hoja vieja trae una sola
+    const nfH = enemyArt.SHEETS.harrier.rows || 1, pH = H.pitch || 0;
+    const filaH = nfH >= 5 ? Math.max(0, Math.min(4, Math.round(2 - 2 * Math.max(-1, Math.min(1, pH / 0.6))))) : 0;
     if (trasero) {
       ctx.save();
       ctx.translate(s.x, 0);
       ctx.scale(PH_SQUASH, 1);
-      enemyArt.drawFrame(ctx, 'harrier', col, 0, 0, { centerY: s.y }, k, false, false, PH_DARK);
+      enemyArt.drawFrame(ctx, 'harrier', col, filaH, 0, { centerY: s.y }, k, false, false, PH_DARK);
       ctx.restore();
-    } else enemyArt.drawFrame(ctx, 'harrier', col, 0, s.x, { centerY: s.y }, k, false, false, 0);
+    } else enemyArt.drawFrame(ctx, 'harrier', col, filaH, s.x, { centerY: s.y }, k, false, false, 0);
   } else {
     const c = trasero ? '#1b2228' : P.bodyDark;
     px(s.x - 4.2 * k, s.y - 0.4 * k, 8.4 * k, 0.8 * k, c);

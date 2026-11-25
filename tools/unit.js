@@ -1730,9 +1730,10 @@ test('buques: la hoja de costado NO se hornea bajo la flotacion', async () => {
 // ================= EL HARRIER (PLAN_HORNEADO B3) =================
 test('harrier: las tres poses de LA COLA existen y son suyas', async () => {
   const { CAJAS } = await import('../src/data/cajas.js');
-  for (const k of ['harrier', 'harrier_rear', 'harrier_turn']) {
+  // (25/11: la de FRENTE tiene 25 alabeos x 5 cabeceos —"los Harriers de frente se ven duros"—; la de atras y la del viraje, 5)
+  for (const [k, cols] of [['harrier', 25], ['harrier_rear', 5], ['harrier_turn', 5]]) {
     assert.ok(CAJAS[k], `falta la hoja '${k}'`);
-    assert.equal(CAJAS[k].cols, 5, `'${k}' tiene que tener 5 columnas`);
+    assert.equal(CAJAS[k].cols, cols, `'${k}' tiene que tener ${cols} columnas`);
   }
   // Y EL JET GENERICO SIGUE SIENDO SUYO: son dos aviones distintos que pueden estar en el mismo
   // cuadro. Si algun dia vuelven a ser el mismo modelo, esto no lo agarra — pero que las hojas

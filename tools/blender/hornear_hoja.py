@@ -143,8 +143,9 @@ def posar(raiz, fr):
         raiz.matrix_basis = m
         return
     base = S.get('baseYaw', math.pi) + S.get('quarter', 0)
-    raiz.matrix_basis = (Matrix.Rotation(fr.get('yaw', 0), 4, 'Y') @ Matrix.Rotation(fr.get('roll', 0), 4, 'Z')
-                         @ Matrix.Rotation(base, 4, 'Y'))
+    # (25/11) `pitch`: el CABECEO por fuera de todo — positivo levanta la trompa en el cuadro (el Harrier de frente)
+    raiz.matrix_basis = (Matrix.Rotation(-fr.get('pitch', 0), 4, 'X') @ Matrix.Rotation(fr.get('yaw', 0), 4, 'Y')
+                         @ Matrix.Rotation(fr.get('roll', 0), 4, 'Z') @ Matrix.Rotation(base, 4, 'Y'))
 
 def puntos(cam_T, fr=None):
     """LAS ANCLAS (la Chancha: los cuatro conos de helice y la boca del pod): el punto del modelo

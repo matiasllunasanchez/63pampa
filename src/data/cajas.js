@@ -32,7 +32,7 @@ export const CAJAS = {
   depot: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 10, y0: 16, x1: 55, y1: 34 }, margen: 8 },
   eyectado: { fw: 48, fh: 76, cols: 7, rows: 3, box: { x0: 2, y0: 6, x1: 45, y1: 71 }, margen: 2, puntos: [[24, 50.16]] },
   fragata: { fw: 64, fh: 48, cols: 1, rows: 1, box: { x0: 5, y0: 20, x1: 57, y1: 32 }, margen: 5 },
-  harrier: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 32, y0: 25, x1: 95, y1: 66 }, margen: 25 },
+  harrier: { fw: 128, fh: 96, cols: 25, rows: 5, box: { x0: 32, y0: 18, x1: 95, y1: 69 }, margen: 18 },
   harrier_cola: { fw: 84, fh: 84, cols: 25, rows: 9, box: { x0: 18, y0: 19, x1: 65, y1: 69 }, margen: 14 },
   harrier_rear: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 28, y0: 25, x1: 99, y1: 73 }, margen: 22 },
   harrier_turn: { fw: 128, fh: 96, cols: 5, rows: 1, box: { x0: 18, y0: 27, x1: 115, y1: 65 }, margen: 12 },

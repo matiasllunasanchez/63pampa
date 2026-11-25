@@ -190,15 +190,15 @@
   "harrier": {
     "fw": 128,
     "fh": 96,
-    "cols": 5,
-    "rows": 1,
+    "cols": 25,
+    "rows": 5,
     "box": {
       "x0": 32,
-      "y0": 25,
+      "y0": 18,
       "x1": 95,
-      "y1": 66
+      "y1": 69
     },
-    "margen": 25
+    "margen": 18
   },
   "harrier_rear": {
     "fw": 128,

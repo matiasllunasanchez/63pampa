@@ -34,7 +34,7 @@ export function drawCap(c) {
   for (let i = 0; i < 2; i++) {
     const x = -c.lado * CAP.ANCHO * (1 - 2 * f) + plane.x - c.lado * i * 6;
     const s = proj(x, CAP.Y + i * 1.5, CAP.Z + i * 8);
-    if (enemyArt.ready('harrier')) enemyArt.drawFrame(ctx, 'harrier', 0, 0, s.x, { centerY: s.y }, s.k, c.lado > 0, false, 0.25);
+    if (enemyArt.ready('harrier')) enemyArt.drawFrame(ctx, 'harrier', 0, (enemyArt.SHEETS.harrier.rows || 1) >= 5 ? 2 : 0, s.x, { centerY: s.y }, s.k, c.lado > 0, false, 0.25);
     else { ctx.fillStyle = '#2b2f33'; ctx.fillRect(s.x - 2, s.y - 1, 4, 2); }
   }
 }
