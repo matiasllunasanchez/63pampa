@@ -677,7 +677,7 @@ export const LIBRO_SCENES = {
     // los sticks o teclas que ya conocemos"): la lamina `mando:Gun` dibuja el mando del cañon (el que suelta el humo)
     // (26/11, el autor, con su texto; y "como debe quedar el espacio con las balsas y el humo": la lamina con la columna de
     // humo y, encima, la tecla que lo suelta)
-    { es: 'LAS BALSAS. La bengala de humo se lanza como una bomba, adentro de la cúpula verde.\n\nCon cada grupo marcado, subí pasando las nubes, arriba de 260 metros, sin salir de la cúpula, y prendé el radar para informar la posición.\n\nSuerte, compañero.', lamina: 'balsas_humo', laminaTxt: 'LANZAR LA BENGALA DE HUMO', mando: 'TiraB' },
+    { es: 'LAS BALSAS. La bengala de humo se lanza como una bomba, adentro de la cúpula azul.\n\nCon cada grupo marcado, subí pasando las nubes, arriba de 260 metros, sin salir de la cúpula, y prendé el radar para informar la posición.\n\nSuerte, compañero.', lamina: 'balsas_humo', laminaTxt: 'LANZAR LA BENGALA DE HUMO', mando: 'TiraB' },
   ]),
   R6_LO_QUE_PASO: tarjeta('R6_LO_QUE_PASO', r6.name, [
     hoy(r6, 'Poco después de las 9, el Neptune 2-P-111 vio la mancha de aceite bajo las nubes. Siguió buscando y encontró las balsas; voló en círculos sobre ellas hasta que el radar del destructor Piedra Buena lo tomó, y volvió a Río Grande casi sin combustible.', 'belgrano', 'ARA GENERAL BELGRANO'),

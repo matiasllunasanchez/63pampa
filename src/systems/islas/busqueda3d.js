@@ -121,7 +121,8 @@ function humo() {
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texHumo(), transparent: true, depthWrite: false,
       // (VERDE desde el 26/11, el autor: "una bengala que larga humo VERDE o blanco": el blanco se perdia entre la lluvia y
       // las nubes, y el naranja de antes se confundia con las bengalas)
-      color: i < 2 ? new THREE.Color(0.2, 1, 0.35) : new THREE.Color(0.35, 0.95 + (i % 3) * 0.02, 0.45) }));
+      // (AZUL desde el 26/11: el azul es lo nuestro, el verde lo britanico)
+      color: i < 2 ? new THREE.Color(0.25, 0.6, 1) : new THREE.Color(0.45, 0.72 + (i % 3) * 0.03, 1) }));
     s.renderOrder = 5; g.add(s);
   }
   R.g.add(g);
@@ -130,16 +131,17 @@ function humo() {
 // EL CIRCULO DONDE TIRAR EL HUMO (26/11, el autor: "que haya una zona clara aceptable para tirar el humo"): un anillo
 // verde sobre el agua alrededor de cada grupo visto sin marcar, del radio en que el humo lo marca (BUSQ.MARCA); sin prueba
 // de profundidad, para que las olas del temporal no lo tapen
+// (AZUL desde el 26/11, el autor: "azul representa a nosotros, verde a los britanicos")
 // …Y LA CUPULA (26/11, el autor: "una cupula grande como la de la zona de disparo del buque, para marcar la zona y si el
 // jugador se va, saber donde tiene que volver… asi en las 3 zonas"): media esfera de malla verde sobre el anillo
 function circulo() {
   const g = new THREE.Group();
   const gm = new THREE.RingGeometry(0.93, 1, 64); gm.rotateX(-Math.PI / 2);
-  const anillo = new THREE.Mesh(gm, new THREE.MeshBasicMaterial({ color: new THREE.Color(0.35, 1, 0.45), transparent: true, opacity: 0.8, depthTest: false, depthWrite: false }));
+  const anillo = new THREE.Mesh(gm, new THREE.MeshBasicMaterial({ color: new THREE.Color(0.35, 0.7, 1), transparent: true, opacity: 0.8, depthTest: false, depthWrite: false }));
   anillo.renderOrder = 4; g.add(anillo);
   // (26/11, el autor: "la zona verde es demasiado obvia, mas sutil"): menos gajos y casi transparente
   const cupula = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 5, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color(0.35, 1, 0.45), wireframe: true, transparent: true, opacity: 0.09, depthWrite: false, fog: false }));
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(0.35, 0.7, 1), wireframe: true, transparent: true, opacity: 0.09, depthWrite: false, fog: false }));
   cupula.renderOrder = 3; g.add(cupula);
   R.g.add(g);
   return g;
@@ -166,15 +168,18 @@ export function frame(escena, e, t = 0, viento = [6, 0]) {
   ajustar(R.beng, bs.length, bengala);
   bs.forEach((q, k) => {
     const g = R.beng[k];
-    g.visible = q.viva;
-    if (!q.viva) return;
+    // (26/11, el autor: "las bengalas no deben desaparecer"): las ya barridas siguen ahi, mas tenues
+    g.visible = true;
+    const k0 = q.viva ? 1 : 0.45;
     const ciclo = BENG_ALTO / BENG_CAE, u = ((t + q.f) % ciclo) / ciclo, y = BENG_ALTO * (1 - u);
     g.position.set(q.x + Math.sin(t * 0.7 + k) * 8, 0, q.z);
     const [luz, ...humo] = g.children;
     luz.position.set(0, y, 0);
     const parpadeo = 0.85 + 0.15 * Math.sin(t * 23 + k * 3);
-    luz.scale.set(BENG_LUZ * parpadeo, BENG_LUZ * parpadeo, 1);
-    humo.forEach((s, i) => { const yy = y + 6 + i * 9; s.position.set(viento[0] * i * 1.4, yy, viento[1] * i * 1.4); const r = 6 + i * 4; s.scale.set(r, r, 1); s.material.opacity = 0.5 * (1 - i / 6); });
+    luz.scale.set(BENG_LUZ * parpadeo * k0, BENG_LUZ * parpadeo * k0, 1);
+    // (…y la revisada ya no brilla ni titila: con la tormenta se confundia con los relampagos — queda solo su humo)
+    luz.visible = q.viva;
+    humo.forEach((s, i) => { const yy = y + 6 + i * 9; s.position.set(viento[0] * i * 1.4, yy, viento[1] * i * 1.4); const r = 6 + i * 4; s.scale.set(r, r, 1); s.material.opacity = 0.5 * k0 * (1 - i / 6); });
   });
   // LOS INDICIOS (cada uno con su forma: se crean una vez por lista)
   if (R.ind.length !== e.ind.length) { R.ind.forEach(o => R.g.remove(o)); R.ind = e.ind.map(indicio); }

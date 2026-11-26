@@ -29,7 +29,7 @@ export const BUSQ = {
   // (26/11, el autor: "pocas bengalas, 3 o 4, y 2 o 3 grupos de balsas; 1 o 2 bengalas solas lejos"): GRUPOS de las
   // BENGALAS tienen balsas al lado (a GRUPO_A m, entre BENGALA_D del centro); las solas, mas lejos (BENGALA_SOLA_D)
   BENGALAS: 4, GRUPOS: 2, GRUPO_A: 260, BENGALA_D: [700, 2400], BENGALA_SOLA_D: [2600, 3800], BENGALA_SEP: 1400,   // (26/11, el autor: "estan demasiado lejos": eran [900, 5200] y 2200)
-  BENGALA_R: 2000, BENGALA_S: 2.5, RADAR_ALT: 22,
+  BENGALA_R: 2000, BENGALA_S: 2.5, RADAR_ALT: 22, BENGALA_CERCA: 450,   // (pasar a BENGALA_CERCA m de una sola la da por revisada)
   // LAS BALSAS: N, en un racimo de RACIMO m, DERIVA m mas alla de la punta SE de la mancha
   BALSAS_N: 6, RACIMO: 110, DERIVA: [700, 1300],
   // SI NO LAS MARCAS SE PIERDEN: alejarse PIERDE m de las balsas sin humo y vuelven a ser invisibles (derivaron)

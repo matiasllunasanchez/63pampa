@@ -99,6 +99,12 @@ export function paso(dt, a) {
   if (a.suelta) { const [fx, fz] = dir(a.yaw); humoEn(a.x + fx * 60, a.z + fz * 60); }
   // LAS BALSAS SE VEN A OJO, debajo de las nubes y cerca
   if (B.fase === 'bengalas' && v > 0) for (const g of B.grupos) if (!g.vista && Math.hypot(g.x - a.x, g.z - a.z) < v + BUSQ.RACIMO) verGrupo(g, a, false);
+  // …Y UNA BENGALA SOLA, PASANDO CERCA (26/11, el autor: "si nos acercamos y no hay balsas, un mensaje debe decir 'por aca
+  // no estan, vamos a la siguiente'"): a menos de BENGALA_CERCA m, sin radar, queda revisada
+  if (B.fase === 'bengalas') for (const q of B.beng) {
+    if (!q.viva || q.grupo >= 0 || Math.hypot(q.x - a.x, q.z - a.z) > BUSQ.BENGALA_CERCA) continue;
+    q.viva = false; B.ev.push({ k: 'bengalaVacia', quedan: B.beng.filter(z => z.viva).length });
+  }
   // EL RADAR CERCA DE UNA BENGALA: si tiene balsas al lado, aparecen; si no, LISTO, a la siguiente
   // (`B.barre`: lo barrido de la que se esta barriendo ahora, 0..1, para el cartel de avance)
   B.barre = 0;
@@ -207,7 +213,8 @@ export function escena() {
   if (!B.on) return null;
   const vistos = B.grupos.filter(g => g.vista);
   return { mancha: null, ind: B.ind, humos: B.humos, zona: { x: B.cx, z: B.cz, r: BUSQ.ZONA_R }, bengalas: B.beng,
-    balsas: vistos.length ? vistos.flatMap(g => g.lista) : null,
+    // (26/11, el autor: "las balsas deben estar siempre; el radar solo las marca mas claramente"): todas, vistas o no
+    balsas: B.grupos.length ? B.grupos.flatMap(g => g.lista) : null,
     circulos: [...vistos.filter(g => !g.marcada).map(g => ({ x: g.x, z: g.z, r: BUSQ.MARCA })),
       ...(B.fase === 'informar' && B.final ? [{ x: B.final.x, z: B.final.z, r: BUSQ.CIRCULO_R }] : [])] };
 }

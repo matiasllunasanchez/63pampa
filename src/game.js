@@ -4785,7 +4785,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     // usando (su paso de marcar abre el mapa)
     const mapaVale = () => islas.enPasillo() && !(libro && !libro.tut);
     // LA BUSQUEDA EN EL MAR (libro r6): el humo con el gatillo (flanco) y la espera despues de que el destructor te tomo
-    let humoAntes = false, busqFinT = 0, busqNaftaDicha = false;
+    let humoAntes = false, busqFinT = 0, busqNaftaDicha = false, informeFinT = -99;
     const busqDef = () => (libro && !libro.tut ? libroDef().busqueda || null : null);
     /** LLEGASTE A LA ZONA: fundido, y el MAR ABIERTO del motor de las islas (systems/islas/busqueda.js). */
     function empezarBusqueda() {
@@ -4830,7 +4830,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         cartelSostenido('beng', b > 0 && b < 1, T('busq_beng_barre'), '#5ab4ff', null, Math.round(b * 100) + '%'); }
       for (const e of islas.busquedaEventos()) {
         if (e.k === 'grupo') { cartel(T('busq_grupo', { h: e.reloj }), '#7fe07a', T('busq_grupo_sub'), { alerta: true }); beep(880, 0.16, 'square', 0.06); }
-        else if (e.k === 'informada') { cartel(T('busq_grupo_marcado', { m: e.m, n: e.n }), '#7fe07a', T('busq_grupo_marcado_sub')); beep(980, 0.12, 'square', 0.05, 300); }
+        else if (e.k === 'informada' || e.k === 'tomadas') informeFinT = run.t;
+        if (e.k === 'informada') { cartel(T('busq_grupo_marcado', { m: e.m, n: e.n }), '#7fe07a', T('busq_grupo_marcado_sub')); beep(980, 0.12, 'square', 0.05, 300); }
         else if (e.k === 'bengalaVacia') { cartel(T('busq_beng_vacia'), '#c9ced3', T('busq_beng_vacia_sub', { n: e.quedan })); beep(300, 0.1, 'square', 0.04, -40); }
         else if (e.k === 'humo') { cartel(T(e.ok ? 'busq_humo_ok' : 'busq_humo_lejos'), e.ok ? '#7fe07a' : '#c9ced3', T('busq_humo_sub', { n: e.quedan })); sfxOne('swoosh'); }
         else if (e.k === 'sinHumo') cartel(T('busq_sin_humo'), P.warn);
@@ -4853,11 +4854,13 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         // (26/11, el autor: "no hace falta que suba vertical; tiene que subir pero no irse del radio hasta informar")
         if (!h.cerca) C = ['busq_volve_humo', 'busq_volve_humo_sub'];
         else if (h.alto < BUSQ.CIRCULO_ALT) C = ['busq_subi', 'busq_subi_sub'];
-        else { C = ['busq_informa', 'busq_informa_sub']; gl = mando('Radar'); }
+        else { C = null; gl = null; }   // (arriba y adentro: el indicador grande de la torta — hud.js drawInforme, 26/11)
       } else if (h && h.fase === 'barrido') C = ['busq_barrer', 'busq_barrer_sub'];
       const n = h ? (h.fase === 'barrido' ? Math.round(h.prog * 8) : h.humos) : 0;
-      cartelSostenido('busq', !!C, C ? T(C[0], { p: h && h.prog != null ? Math.round(h.prog * 100) : 0 }) : '', P.accent, gl ? { glifos: gl } : null,
-        C ? T(C[1], { n, m: h.marcadas, t: h.grupos, p: h.prog == null ? 0 : Math.round(h.prog * 100) }) : null);
+      const conBarra = h && h.fase === 'informar' && C && C[0] === 'busq_informa';
+      cartelSostenido('busq', !!C, C ? T(C[0], { p: h && h.prog != null ? Math.round(h.prog * 100) : 0 }) : '', conBarra ? '#5ab4ff' : P.accent,
+        gl ? { glifos: gl } : conBarra ? { prog: h.prog || 0 } : null,
+        C && C[1] ? T(C[1], { n, m: h.marcadas, t: h.grupos, p: h.prog == null ? 0 : Math.round(h.prog * 100) }) : null);
       if (islas.busquedaHecha()) { busqFinT += dt; if (busqFinT > 4) terminarBusqueda(); }
     }
     /** El rotulo de la salida en curso: el lugar, la zona, el dia y la hora del despegue (la del avion elegido si
@@ -9204,6 +9207,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         // 520 / 700 km en vez de los metros del pasillo. null = la barra de siempre.
         chanchaFr: chanchaEnCinta(), busca: zonasCinta() || buscaCinta(),
         humosBengala: run.bengalaHumo ? islas.humosQuedan() : null,
+        informe: (() => { const bh = run.bengalaHumo ? islas.busquedaHud() : null; if (bh && bh.fase === 'informar' && bh.cerca && bh.alto >= BUSQ.CIRCULO_ALT) return { p: bh.prog || 0, on: radarP.on };
+          return run.t - informeFinT < 2 ? { p: 1, on: true } : null; })(),   // (completo, en azul, 2 s)
         contador: (() => { const bh = run.bengalaHumo ? islas.busquedaHud() : null; return bh && bh.grupos ? { rot: T('busq_contador'), n: bh.marcadas, de: bh.grupos } : null; })(),   // (las bengalas de humo de la busqueda: el estante)
         ruta: rutaSys.hay() ? { pos: blancoSys.escapando() ? rutaSys.dato().blancoKm : rutaSys.pos(), blanco: rutaSys.dato().blancoKm, radarKm: rutaSys.dato().radarKm || 0 } : null,
         // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro

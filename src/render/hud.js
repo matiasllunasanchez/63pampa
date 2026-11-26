@@ -656,6 +656,61 @@ function drawPuntos(x, y) {
   ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.textAlign = 'right';
   ctx.fillText(T('hud_pts'), x + w - 3, y + 9);
 }
+/** INFORMANDO UBICACION (26/11, el autor: "subiendo, mientras lanzo radar y se llena el porcentaje, que se represente con
+ *  un indicador grande que diga INFORMANDO UBICACION y se rellene tipo torta… arma algo"): arriba al centro, una torta que
+ *  se llena (azul; verde al completarse) con la antena emitiendo adentro, y abajo el rotulo y el porcentaje. Sin radar
+ *  prendido, la torta quieta y PRENDE EL RADAR titilando. `inf` = { p 0..1, on }. */
+function drawInforme(inf) {
+  const cx = Math.round(W / 2), cy = 30, R = 14, t = performance.now() / 1000;   // (arriba: mas abajo pisaba el avion)
+  // (26/11, el autor: "no hace falta el porcentaje… en el final un icono de radar azul, y toda la barra y el texto azul")
+  const p = Math.max(0, Math.min(1, inf.p)), lleno = p >= 1, col = '#5ab4ff';
+  ctx.save();
+  // el fondo y la torta
+  ctx.fillStyle = 'rgba(8, 14, 20, 0.82)'; ctx.beginPath(); ctx.arc(cx, cy, R + 3, 0, Math.PI * 2); ctx.fill();
+  if (p > 0) {
+    ctx.fillStyle = col; ctx.globalAlpha = lleno ? 0.85 : 0.55;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, R + 2.5, 0, Math.PI * 2); ctx.stroke();
+  // las marcas de cuarto
+  for (let i = 0; i < 4; i++) { const a = -Math.PI / 2 + i * Math.PI / 2; px(Math.round(cx + Math.cos(a) * (R + 2.5)) - 1, Math.round(cy + Math.sin(a) * (R + 2.5)) - 1, 2, 2, col); }
+  // AL TERMINAR, EL RADAR: la pantallita con su barrido, en blanco sobre el azul lleno
+  if (lleno) {
+    ctx.strokeStyle = '#e8f4ff'; ctx.lineWidth = 1;
+    for (const k of [1, 0.6]) { ctx.beginPath(); ctx.arc(cx, cy, 9 * k, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(cx - 9, cy); ctx.lineTo(cx + 9, cy); ctx.moveTo(cx, cy - 9); ctx.lineTo(cx, cy + 9); ctx.stroke();
+    const a = t * 4; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * 9, cy + Math.sin(a) * 9); ctx.stroke();
+  }
+  // LA ANTENA: el mastil, la punta y las ondas que salen (laten mientras emite)
+  ctx.strokeStyle = '#e8f4ff'; ctx.fillStyle = '#e8f4ff'; ctx.lineWidth = 1.2;
+  if (!lleno) {
+  ctx.beginPath(); ctx.moveTo(cx, cy + 9); ctx.lineTo(cx, cy - 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - 5, cy + 9); ctx.lineTo(cx, cy + 3); ctx.lineTo(cx + 5, cy + 9); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy - 3, 1.6, 0, Math.PI * 2); ctx.fill();
+  for (let k = 1; k <= 3; k++) {
+    const fase = inf.on ? ((t * 1.6 + k / 3) % 1) : 0.4;
+    ctx.globalAlpha = inf.on ? 0.25 + 0.75 * (1 - fase) : 0.25;
+    const r = 3 + k * 3.2;
+    ctx.beginPath(); ctx.arc(cx, cy - 3, r, -Math.PI * 0.85, -Math.PI * 0.6); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy - 3, r, -Math.PI * 0.4, -Math.PI * 0.15); ctx.stroke();
+  }
+  }
+  ctx.globalAlpha = 1;
+  // EL ROTULO y el porcentaje (o PRENDE EL RADAR)
+  // (en monospace: la letra de los avisos no tiene la Ó)
+  const r1 = T(lleno ? 'busq_informado' : 'busq_informa_grande');
+  const r2 = !inf.on && !lleno ? T('busq_prende_radar') : '';
+  ctx.font = 'bold 6px monospace';
+  const lw = Math.ceil(Math.max(ctx.measureText(r1).width, ctx.measureText(r2).width)) + 8;
+  ctx.fillStyle = 'rgba(8, 14, 20, 0.82)'; ctx.fillRect(Math.round(cx - lw / 2), cy + R + 5, lw, r2 ? 17 : 10);
+  ctx.textAlign = 'center'; ctx.fillStyle = col;
+  ctx.fillText(r1, cx, cy + R + 12);
+  if (!inf.on && !lleno) { if (Math.sin(t * 8) > -0.3) { ctx.fillStyle = P.warn; ctx.fillText(r2, cx, cy + R + 19); } }
+
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
 /** Un contador de la mision ({ rot, n, de }): el rotulo apagado y la cuenta, en verde al completarse. */
 function drawContador(x, y, c) {
   const num = c.n + '/' + c.de;
@@ -663,9 +718,11 @@ function drawContador(x, y, c) {
   ctx.font = F_ROT; const rw = ctx.measureText(c.rot).width;
   const w = Math.max(46, Math.ceil(4 + rw + 6 + nw + 4));
   plate(x, y, w, 12);
-  ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.fillText(c.rot, x + 4, y + 8.5);
+  // (centrado VERTICAL en la placa de 12 — 26/11, el autor)
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.fillText(c.rot, x + 4, y + 6.5);
   ctx.font = 'bold 9px monospace'; ctx.fillStyle = c.n >= c.de ? '#7fe07a' : P.accent; ctx.textAlign = 'right';
-  ctx.fillText(num, x + w - 4, y + 9); ctx.textAlign = 'left';
+  ctx.fillText(num, x + w - 4, y + 6.5); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 }
 /** LA AMENAZA (modos sueltos, 18/10): rotulo, el numero en su color —verde al arrancar, ambar, rojo al final—
  *  y una barrita de cinco que se llena hasta el siguiente nivel; en el tope dice MAX. `xd` = el borde DERECHO. */
@@ -1411,6 +1468,9 @@ function drawUnCartel(a, techo) {
   const w3 = fila ? wIco + 5 + w1 + wCuenta : 0;
   const wIcoC = !fila && a.c.ico ? 11 : 0;   // el icono a la izquierda del titulo (`o.ico`)
   let w = Math.round(Math.max(fila ? 0 : w1 + wIcoC, fila ? 0 : w2, w3) + (c.alerta ? 20 : 12)), h = fila ? FILA_H : c.sub ? 12 + SUB_PX + 2 : 12;
+  // LA BARRA DE AVANCE (`o.prog` 0..1, 26/11: "el porcentaje del radar tiene que ser mas claro… hoy es un texto larguisimo"):
+  // una barra que se llena abajo, adentro de la caja
+  if (c.prog != null) { h += 6; w = Math.max(w, 110); }
   // (la medida de FUERA DE RADAR: al menos su ancho y su alto; el texto se centra adentro con `bajaTxt`)
   let bajaTxt = 0;
   if (enPlacaRadar()) { const h0 = h; w = Math.max(w, cajaZona.w); h = Math.max(h, cajaZona.h); bajaTxt = Math.round((h - h0) / 2); }
@@ -1448,6 +1508,11 @@ function drawUnCartel(a, techo) {
     }
   }
   bordePlaca(x, y, w, h, col);
+  if (c.prog != null) {
+    const bw = w - 8, p = Math.max(0, Math.min(1, c.prog));
+    ctx.fillStyle = '#16222e'; ctx.fillRect(x + 4, y + h - 6, bw, 3);
+    ctx.fillStyle = p >= 1 ? '#7fe07a' : '#5ab4ff'; ctx.fillRect(x + 4, y + h - 6, Math.round(bw * p), 3);
+  }
   ctx.textAlign = 'center';
   ctx.font = avisoFont(8); ctx.fillStyle = col;
   if (!fila) {
@@ -3310,8 +3375,8 @@ function drawEstante(h) {
     plate(X_RACK, CUADROS_Y, RACK_W, CUADRO);
     const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1, yc = CUADROS_Y + 13, n = h.humosBengala;
     px(X_RACK - 3, yc - 2, 1, 5, P.accent); px(X_RACK - 2, yc - 1, 1, 3, P.accent); px(X_RACK - 1, yc, 1, 1, P.accent);
-    iconoEn(cx, yc, 'bomba', n > 0 ? '#7fe07a' : '#2e3c45', undefined, true);
-    digito(xd, yc - 2, n, n > 0 ? '#7fe07a' : '#2e3c45');
+    iconoEn(cx, yc, 'bomba', n > 0 ? '#5ab4ff' : '#2e3c45', undefined, true);
+    digito(xd, yc - 2, n, n > 0 ? '#5ab4ff' : '#2e3c45');
     ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.dim;
     ctx.fillText(T('estanteHumo'), X_RACK + RACK_W / 2, CUADROS_Y - 2); ctx.textAlign = 'left';
     return;
@@ -3442,6 +3507,7 @@ export function drawHUD(h) {
   // EL CONTADOR DE LA MISION (26/11, el autor: "arriba un contador separado del mensaje principal: una cosa es la accion que
   // se solicita y otra el contador general de la mision activa"): BALSAS 1/2 en su placa, debajo de los puntos
   if (h.contador) { drawContador(MARGEN, ty, h.contador); ty += 12 + AIRE; }
+  if (h.informe) drawInforme(h.informe);
   // EL ATAJO DEL TALLER (18/10): con aviones con fallas, la tecla que los manda a todos a reparar
   if (h.suelto && h.fallados > 0) { drawAtajoTaller(MARGEN, ty, h.fallados); ty += 9 + AIRE; }
   // LA CINTA: contra el buque si hay objetivo, contra tu record si es POR LA PATRIA.
