@@ -16,7 +16,7 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
-## 0.4.0 — 26/11/2026
+## 0.4.0 — 26/11/2026 (Steam BuildID 26954311)
 
 - **Libro de vuelo:** se abre el Rescate del Belgrano. Se busca en el temporal con el radar del Neptune: zonas en la ida y una vuelta por las mismas, la mancha de aceite, las bengalas, las balsas y la bengala de humo que se lanza como una bomba.
 - **Las hojas del libro:** la fecha y el lugar van chicos arriba, los subtítulos (ANTES, EL PLAN, EL TEMPORAL…) en su renglón y el mando dibujado en el cuadro. En el Belgrano, textos nuevos y la lámina de las balsas.
