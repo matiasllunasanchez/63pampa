@@ -1152,3 +1152,13 @@ export function initInput(cv, a) {
   }
   requestAnimationFrame(pollGamepad);
 }
+
+
+/** LOS NOMBRES DE LOS BOTONES segun el mando (la tabla de CONTROLES esta en nomenclatura PlayStation): con uno de Xbox
+ *  (`padInfo.kind`, detectado por el nombre del mando) se traducen al vuelo. Lo usan game.js y las hojas del libro. */
+export function padTexto(t) {
+  return padInfo.kind !== 'xbox' ? t : String(t)
+    .replace(/✕/g, 'A').replace(/◯/g, 'B').replace(/□/g, 'X').replace(/△/g, 'Y')
+    .replace(/\bL1\b/g, 'LB').replace(/\bR1\b/g, 'RB').replace(/\bL2\b/g, 'LT')
+    .replace(/gatillo|trigger/gi, 'RT');
+}

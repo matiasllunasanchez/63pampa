@@ -262,7 +262,7 @@ function pregunta(x, y, col) {
   px(x, y, 3, 1, col); px(x + 2, y + 1, 1, 1, col); px(x + 1, y + 2, 2, 1, col); px(x + 1, y + 4, 1, 1, col);
 }
 export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, solta, ruta, chanchaFr, busca) {
-  const flip = giroVuelta(!!vuelta);
+  const flip = giroVuelta(!!vuelta || !!(busca && busca.regreso != null));   // (una sola vez por cuadro: el giro lleva reloj)
   // LA VUELTA CUENTA LO SUYO: cuanto llevas hecho del regreso contra cuanto mide. Pasada la meta, el
   // odometro de la ida ya no es una ruta — «2.8 / 2.2 km» es un numero que se paso, no un lugar.
   if (vuelta) {
@@ -279,15 +279,19 @@ export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, sol
     });
     return;
   }
-  const km = Math.max(0, run.dist) / 1000;
+  // EL REGRESO POR LAS ZONAS (r6, 26/11): `busca.regreso` es donde estas volviendo hacia el puerto — el avion de la cinta
+  // mira para atras y los km bajan
+  const reg = busca && busca.regreso != null ? busca.regreso : null;
+  const flipR = flip;
+  const km = (reg != null ? reg * objectiveDist : Math.max(0, run.dist)) / 1000;
   const esBuque = kind !== 'distance';
   cinta({
     nombre: esBuque ? objectiveShip : null,
-    prog: Math.max(0, Math.min(1, ruta ? ruta.pos / ruta.blanco : run.dist / objectiveDist)),
+    prog: Math.max(0, Math.min(1, reg != null ? reg : ruta ? ruta.pos / ruta.blanco : run.dist / objectiveDist)),
     meta: esBuque ? 'buque' : 'distancia',
     buque: esBuque ? (ICONO_BUQUE_NOMBRE[objectiveShip] || ICONO_BUQUE[SHIP_CLASS[objectiveShip]] || 'buque_t42') : null,
     a: ruta ? kmTxt(Math.min(ruta.pos, ruta.blanco)) : km.toFixed(1),
-    b: '/ ' + (ruta ? kmTxt(ruta.blanco) : (objectiveDist / 1000).toFixed(1)), flip,
+    b: '/ ' + (ruta ? kmTxt(ruta.blanco) : (objectiveDist / 1000).toFixed(1)), flip: flipR,
     // 'km' en MINUSCULA y del color del total: mas chica sin bajar de cuerpo, y es ademas el simbolo
     // correcto del kilometro (el SI no lo escribe en mayuscula)
     uni: 'km', uniCol: P.warn,
@@ -3707,7 +3711,10 @@ export function drawHUD(h) {
   // redondo, con su barrido y el avioncito de la placa del piloto—. Si ese hueco esta tomado (el termometro en la
   // cabina o con la brujula), vuelve arriba del grupo de la derecha, como antes.
   // (el hueco se ocupa cuando el termometro va ahi: en la cabina o con brujula; sin termometro —Super Etendard— queda libre)
-  const radarEnFila = !enCabina() && !(h.temp && (h.brujula || h.brujulaPasillo));
+  // (26/11, el autor: "la UI en islas tiene el radar encima de otro indicador, pongamos tal cual esta en pasillo;
+  // respetemos la consistencia de la UI"): afuera de la cabina la fila es SIEMPRE la del pasillo — temperatura en el
+  // lugar del mach, radar en el de la Chancha—; la brujula (islas y POR LA PATRIA) sube arriba de la temperatura
+  const radarEnFila = !enCabina();
   // (25/11, el autor: "el icono del radar en ISLAS de cualquier avion debe ser el mismo de pasillo, mismo tamaño y todo"):
   // con el hueco tomado (las islas: brujula y termometro) va EL MISMO RELOJ, arriba del grupo de la derecha. La placa
   // chica queda solo para la cabina.
@@ -3869,13 +3876,13 @@ export function drawHUD(h) {
   // (VA EN EL LUGAR DEL MACH: el hueco de al lado del gas es el de la Chancha, que en las islas tambien va)
   // …Y EN POR LA PATRIA TAMBIEN (23/11, el autor: "aunque no sirva tanto, para rellenar y que el usuario se acostumbre a
   // todos los controles, exactamente en el mismo lugar que isla"): `h.brujulaPasillo`, sin objetivo
-  if (bru) drawBrujula(X_MACH, CUADROS_Y, bru);
+  if (bru) drawBrujula(X_MACH, enCabina() ? CUADROS_Y : CUADROS_Y - AIRE - CUADRO, bru);
   // (21/11, el autor: "no pongas arriba el coso, metelo todo en horizontal"): en la fila, en el lugar que era el
   // reloj de la Chancha (que paso a ser el icono de arriba de la nafta)
   // (21/11, el autor: "el indicador de temperatura del lado izquierdo: nafta, temperatura, velocidad, nivel"): en
   // tercera persona va donde estaba el machimetro grande (el mach chico vive en el velocimetro); con la brujula de las
   // islas en ese lugar, y en la cabina, se queda donde estaba
-  tempX = !enCabina() && !bru ? X_MACH : X_CHANCHA;
+  tempX = !enCabina() ? X_MACH : X_CHANCHA;
   if (h.temp) drawTemperatura(tempX, CUADROS_Y, h.temp);
   marcaFalla(xVuelo(2), CUADROS_Y, gAl);
   if ((cfg.vert === 'planeo' || cfg.vert === 'planeo_m') && (run.sosten ?? 1) <= 0 && plane.vy < -0.3) flechaBaja(xVuelo(2), CUADROS_Y);

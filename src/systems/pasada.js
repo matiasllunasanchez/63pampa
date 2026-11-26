@@ -47,6 +47,7 @@ import * as dmg from './damage.js';
 // squad.js no sabe de la pasada — el que sabe de los dos es game.js, como manda la arquitectura.
 import { pilotName } from './squad.js';
 import { alMando } from '../core/squad.js';
+import { vibraSuelta } from '../core/vibra.js';   // (26/11: el mando)
 
 // El mar MATA: es la regla del juego entero y la pasada, que se juega A RAS, es donde mas pesa.
 // Los tres numeros son LOS DEL ARENA a proposito (systems/arena.js): es el mismo mar y el mismo
@@ -377,6 +378,7 @@ function dropOne(turbo) {
   // los que sabian. La bomba pica una vez en el agua y entra al casco por la linea de flotacion.
   const sapito = alt < PS.SAPITO_ALT_M && !!turbo;
   A.bombs--;
+  vibraSuelta('bomba');
   A.fx.push({
     k: 'bomb', banda, sapito, skipped: 0, life: 14, T: 0,
     x: A.pos.x, y: A.pos.y, z: A.pos.z,

@@ -235,8 +235,8 @@ export const maniobras = () => Object.keys(MOVES).map(id => ({ id, ...MOVES[id] 
 export const MANIOBRAS_ISLAS = [
   { id: 'isl_uud', islas: 'uud', titulo: 'ISLAS · MEDIA VUELTA POR ARRIBA', desc: 'W W S   ·   Immelmann: la cámara espera la trompa y gira a la cola' },
   { id: 'isl_ddu', islas: 'ddu', titulo: 'ISLAS · MEDIA VUELTA POR ABAJO', desc: 'S S W   ·   Split-S: rola, pica y sale al revés, más bajo' },
-  { id: 'isl_duuu', islas: 'duuu', titulo: 'ISLAS · VERTICAL ARRIBA', desc: 'S W W W   ·   la trompa al cielo, lejos; Q/E gira sobre su eje' },
-  { id: 'isl_uddd', islas: 'uddd', titulo: 'ISLAS · PICADA VERTICAL', desc: 'W S S S   ·   de panza, trompa abajo; saca sola cerca del suelo' },
+  { id: 'isl_duuu', islas: 'duuu', titulo: 'ISLAS · VERTICAL ARRIBA', desc: 'S W W W   ·   la trompa al cielo, lejos, hasta S S; Q/E gira sobre su eje' },
+  { id: 'isl_uddd', islas: 'uddd', titulo: 'ISLAS · PICADA VERTICAL', desc: 'W S S S   ·   de panza, trompa abajo, hasta W W; saca sola cerca del suelo' },
   { id: 'isl_derrape', islas: 'derrape', titulo: 'ISLAS · DERRAPE', desc: 'Q+D y después E+A   ·   la moto de agua del pasillo, sobre el mapa' },
 ];
 

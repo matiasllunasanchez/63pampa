@@ -100,27 +100,22 @@ export function paso(dt, a) {
   B.humos = B.humos.filter(h => h.t < BUSQ.HUMO_S);
   // LOS INDICIOS: se ven una vez y se dicen (no son)
   if (v > 0) for (const i of B.ind) if (!i.visto && Math.hypot(i.x - a.x, i.z - a.z) < v + i.t) { i.visto = true; B.ev.push({ k: 'indicio', id: i.id }); }
-  // EL HUMO: lo que sale cae un poco adelante (el avion sigue)
-  if (a.suelta) {
-    if (B.quedan <= 0) B.ev.push({ k: 'sinHumo' });
-    else {
-      B.quedan--;
-      const [fx, fz] = dir(a.yaw), hx = a.x + fx * 60, hz = a.z + fz * 60;
-      B.humos.push({ x: hx, z: hz, t: 0 });
-      const cerca = B.balsas && B.balsas.vistas && Math.hypot(hx - B.balsas.x, hz - B.balsas.z) < BUSQ.MARCA;
-      B.ev.push({ k: 'humo', ok: !!cerca, quedan: B.quedan });
-      if (cerca && !B.balsas.marcadas) { B.balsas.marcadas = true; B.fase = 'circulos'; B.ev.push({ k: 'marcadas' }); }
-    }
-  }
+  // EL HUMO: lo que sale cae un poco adelante (el avion sigue). (Desde el 26/11 lo suelta la BENGALA que cae como una
+  // bomba —game.js `tryLaunchMissile`, islas.js `bombas`— y donde toca el agua nace el humo: `humoEn`.)
+  if (a.suelta) { const [fx, fz] = dir(a.yaw); humoEn(a.x + fx * 60, a.z + fz * 60); }
   if (B.fase === 'mancha' && v > 0 && aMancha(a.x, a.z) < v + B.mancha.ancho / 2) {
     B.mancha.vista = true; B.fase = 'balsas'; B.ev.push({ k: 'mancha' });
   }
   // EL RADAR CERCA DE UNA BENGALA (ver arriba): descarta la bengala o encuentra la mancha
+  // (26/11, el autor: "deberia avisarme cuando tiro radar en una bengala, marcarla LISTO y no verla mas"): `B.barre`
+  // es lo barrido de la que se esta barriendo ahora (0..1), para el cartel de avance (game.js)
+  B.barre = 0;
   if ((B.fase === 'mancha' || B.fase === 'barrido') && a.radar && a.alto >= BUSQ.RADAR_ALT) {
     for (let i = 0; i < B.beng.length; i++) {
       const q = B.beng[i];
       if (!q.viva || Math.hypot(q.x - a.x, q.z - a.z) > BUSQ.BENGALA_R) continue;
       q.barrido += dt;
+      B.barre = Math.min(1, q.barrido / BUSQ.BENGALA_S);
       if (q.barrido < BUSQ.BENGALA_S) continue;
       q.viva = false;
       if (i === B.bengMancha && B.fase === 'mancha') { B.mancha.vista = true; B.fase = 'balsas'; B.ev.push({ k: 'mancha', radar: true }); }
@@ -147,12 +142,10 @@ export function paso(dt, a) {
   if (B.fase === 'circulos') {
     const h = B.humos.length ? B.humos.reduce((m, q) => (Math.hypot(q.x - B.balsas.x, q.z - B.balsas.z) < Math.hypot(m.x - B.balsas.x, m.z - B.balsas.z) ? q : m)) : B.balsas;
     const ok = a.alto >= BUSQ.CIRCULO_ALT && Math.hypot(h.x - a.x, h.z - a.z) < BUSQ.CIRCULO_R;
-    if (B.yawAnt !== null && ok) {
-      let d = a.yaw - B.yawAnt; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
-      B.vueltas += Math.abs(d) / (Math.PI * 2);
-    }
-    B.yawAnt = a.yaw;
-    if (B.vueltas >= BUSQ.VUELTAS) { B.fase = 'hecho'; B.ev.push({ k: 'tomadas' }); }
+    // (26/11, el autor: "subir a los 260 metros, quedarme en un radio del humo y lanzar radar 3 o 4 segundos, y ahi gano"):
+    // ya no son vueltas de rumbo — es el RADAR prendido, arriba y cerca del humo, CIRCULO_S segundos (B.vueltas: los segundos)
+    if (ok && a.radar) B.vueltas += dt;
+    if (B.vueltas >= BUSQ.CIRCULO_S) { B.fase = 'hecho'; B.ev.push({ k: 'tomadas' }); }
   }
   // EL BARRIDO (sin mancha): los sectores del anillo, pasados bajo el techo
   if (B.fase === 'barrido' && v > 0) {
@@ -170,19 +163,34 @@ export function paso(dt, a) {
 }
 
 export const tomarEventos = () => B.ev.splice(0);
+/** Cuantos marcadores de humo quedan. */
+export const humosQuedan = () => (B.on ? B.quedan : 0);
+/** EL HUMO NACE ACA (x, z del mapa): donde la bengala toco el agua. Si cae cerca de las balsas, quedan marcadas. */
+export function humoEn(hx, hz) {
+  if (!B.on) return;
+  if (B.quedan <= 0) { B.ev.push({ k: 'sinHumo' }); return; }
+  B.quedan--;
+  B.humos.push({ x: hx, z: hz, t: 0 });
+  const cerca = B.balsas && B.balsas.vistas && Math.hypot(hx - B.balsas.x, hz - B.balsas.z) < BUSQ.MARCA;
+  B.ev.push({ k: 'humo', ok: !!cerca, quedan: B.quedan });
+  if (cerca && !B.balsas.marcadas) { B.balsas.marcadas = true; B.balsas.humo = { x: hx, z: hz }; B.fase = 'circulos'; B.ev.push({ k: 'marcadas' }); }
+}
 
 /** Hacia donde marca la brujula: el centro de la zona; el humo que las marca en los circulos. null si nada. */
 export function blanco() {
   // (26/11, el autor: "no debe aparecer el cuadradito"): sin marca de zona — se siguen las bengalas, la mancha y el humo
+  // …SALVO EL HUMO EN LOS CIRCULOS (26/11, el autor: "el humo debe verse a traves de las nubes, yo debo saber por donde
+  // girar"): arriba de 260 m se esta adentro de las nubes y no se ve nada — la brujula y la marca apuntan al humo
+  if (B.fase === 'circulos' && B.balsas && B.balsas.humo) return B.balsas.humo;
   return null;
 }
 
 /** Lo que muestra el tablero: la fase, los humos que quedan, el progreso (circulos o barrido). */
 export function hud() {
   if (!B.on) return null;
-  const prog = B.fase === 'circulos' ? Math.min(1, B.vueltas / BUSQ.VUELTAS)
+  const prog = B.fase === 'circulos' ? Math.min(1, B.vueltas / BUSQ.CIRCULO_S)
     : B.fase === 'barrido' ? B.sect.filter(Boolean).length / 8 : null;
-  return { fase: B.fase, humos: B.quedan, prog };
+  return { fase: B.fase, humos: B.quedan, prog, barre: B.barre || 0 };
 }
 
 /** Para el dibujo 3D (busqueda3d.js) y el mapa: lo que hay en el agua. Las balsas, solo una vez vistas. */

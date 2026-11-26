@@ -112,6 +112,10 @@ def m_balsas(T):
     L_ = cargar('modelos_libro_lam', 'modelos_libro.py')
     return L_.balsas_grupo(T, K_nuevo(cargas=False))
 
+def m_balsas_humo(T):
+    L_ = cargar('modelos_libro_lam', 'modelos_libro.py')
+    return L_.balsas_grupo(T, K_nuevo(cargas=False), humo=True)
+
 # (modelo, azimut, elevacion, margen): el azimut se mide desde ESTRIBOR (+x de three) hacia la PROA;
 # la elevacion, positiva desde arriba. Ortografica: es un plano, no una foto.
 LAMINAS = {
@@ -125,7 +129,8 @@ LAMINAS = {
     # (26/11) EL SHEFFIELD de tres cuartos de proa por estribor, y el NEPTUNE de tres cuartos desde abajo-adelante
     'sheffield':     (m_sheffield, 34, 18, 0.05),
     'neptune':       (m_neptune, 30, -12, 0.06),
-    'balsas':        (m_balsas, 20, 26, 0.06),
+    'balsas':        (m_balsas, 20, 16, 0.06),
+    'balsas_humo':   (m_balsas_humo, 20, 14, 0.05),
 }
 
 # ============================ LA ESCENA ============================

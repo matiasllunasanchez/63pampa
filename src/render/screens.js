@@ -15,7 +15,7 @@ import { sinceReady, txtOf, palabrasVisibles } from '../core/dialogue.js';
 import { PLACA_DE_CUADRO } from '../data/placas.js';
 import { HUD_TECHO, cintaCaja, vozMin, VOZ, pilotoCaja, sinTilde, pisoCabina } from './hud.js';
 import { enCabina } from '../core/cabina.js';
-import { padActivo } from '../core/input.js';
+import { padActivo, padTexto } from '../core/input.js';
 import { retrato } from './retratos.js';
 
 // Segundos que la pantalla de victoria espera antes de traer la frase de cierre. No es un valor
@@ -849,10 +849,12 @@ function pantallaVieja(t, sinRadar = false) {
   if ((t % 1.2) < 0.8) {
     // (23/11, el autor: "el EN LINEA esta pisado con el borde"): alineado a la DERECHA, adentro de la escuadra de arriba
     // (que termina en W - 13 + 7 de alto): el texto termina 8 px antes y el cuadradito va pegado a su izquierda
-    ctx.textAlign = 'right'; ctx.fillStyle = `rgba(${V}, 0.6)`; ctx.font = 'bold 5px monospace';
-    const xl = W - 22, wl = ctx.measureText(T('tarj_linea')).width;
-    ctx.fillText(T('tarj_linea'), xl, 23);
-    ctx.fillRect(xl - wl - 5, 20, 3, 3);
+    // (26/11, el autor: "la mitad de tamaño, es solo decorativo"): letra de 2,5 y cuadradito de 1,5
+    ctx.textAlign = 'right'; ctx.fillStyle = `rgba(${V}, 0.6)`; ctx.font = 'bold 2.5px monospace';
+    // (…"y bien al extremo derecho superior, bien alineado"): metido en la escuadra de arriba a la derecha (W - 13, 13)
+    const xl = W - 16, wl = ctx.measureText(T('tarj_linea')).width;
+    ctx.fillText(T('tarj_linea'), xl, 17.6);
+    ctx.fillRect(xl - wl - 2.5, 15.6, 1.6, 1.6);
     ctx.textAlign = 'left';
   }
   // el tiron: cada ~3,7 s, 0,09 s
@@ -911,8 +913,15 @@ function drawLamina(ln, d, yTop) {
     ctx.globalAlpha = 0.3; ctx.fillStyle = '#000';
     for (let yy = y; yy < y + h; yy += 1) ctx.fillRect(x, yy, cw, 1 / 3);
   }
+  // …o el mando ENCIMA del dibujo (`ln.mando`): abajo al centro de la lamina, mas chico
+  if (ln.mando && im && k >= 1) {
+    const pad = padActivo(), gl = glifos.glifosDe(pad ? padTexto(T('ctrl' + ln.mando + 'P')) : T('ctrl' + ln.mando + 'K'), pad);
+    const gh = 11, gw = glifos.medir(gl, gh);
+    ctx.globalAlpha = 1;   // (despues del barrido del monitor: encima y entera)
+    glifos.dibujar(gl, Math.round(x + (w - gw) / 2), Math.round(y + h - gh - 3), gh, performance.now() / 1000, TARJ.fosforo, true);
+  }
   if (mando && k > 0) {
-    const pad = padActivo(), gl = glifos.glifosDe(T('ctrl' + mando[1] + (pad ? 'P' : 'K')), pad);
+    const pad = padActivo(), gl = glifos.glifosDe(pad ? padTexto(T('ctrl' + mando[1] + 'P')) : T('ctrl' + mando[1] + 'K'), pad);
     const gh0 = 18, gh = Math.min(gh0, Math.floor(gh0 * (w - 12) / Math.max(1, glifos.medir(gl, gh0)))), gw = glifos.medir(gl, gh);   // (que entre en el cuadro)
     ctx.globalAlpha = Math.min(1, k * 2);
     glifos.dibujar(gl, Math.round(x + (w - gw) / 2), Math.round(y + (h - gh) / 2), gh, performance.now() / 1000, TARJ.fosforo, true);
@@ -927,7 +936,7 @@ function drawLamina(ln, d, yTop) {
   ctx.restore();
 }
 function drawTarjeta(w, d, sc, ln) {
-  pantallaVieja(w.t || 0, !!(ln && ln.lamina));
+  pantallaVieja(w.t || 0, !!(ln && (ln.lamina || ln.subtitulo)));   // (el radar decorativo no, si la hoja es de texto largo)
   ctx.textAlign = 'left';
   // la linea chica de arriba: CAPÍTULO N en las misiones, o el `rotulo` de la tarjeta (LO QUE PASÓ)
   const rot = sc.rotulo ? T(sc.rotulo) : sc.capitulo ? T('tarj_capitulo', { n: sc.capitulo }) : '';
@@ -972,14 +981,19 @@ function drawTarjeta(w, d, sc, ln) {
   ctx.globalAlpha = 0.9 + Math.random() * 0.1;
   let left = d.typed, curX = TARJ.x, curY = yText, yFin = yText;
   // (el renglon en blanco de un '\n\n' separa los parrafos con MEDIO renglon: entero, el texto se salia por abajo)
-  for (let i = 0, y = yText; i < d.wrap.length; y += d.wrap[i] === '' ? 5 : 11, i++) {
+  // LA CABEZA (`ln.nCabeza`, data/libro_vuelo.js `hoyCtx`): la fecha y debajo el lugar, tipeados primero, chicos y finos
+  const nCab = (ln && ln.nCabeza) || 0, FUENTE = ctx.font;
+  for (let i = 0, y = yText; i < d.wrap.length; y += d.wrap[i] === '' ? 5 : i < nCab ? 8 : 11, i++) {
     if (left <= 0) break;
     const shown = d.wrap[i].slice(0, left);
     left -= d.wrap[i].length + 1;
     if (!shown) continue;
-    ctx.fillText(shown, TARJ.x, y);
+    const cab = i < nCab;
+    ctx.font = cab ? '5px monospace' : FUENTE; ctx.globalAlpha = cab ? 0.65 : 0.9 + Math.random() * 0.1;
+    ctx.fillText(shown, TARJ.x, cab ? y - 2 : y);
     curX = TARJ.x + ctx.measureText(shown).width + 1; curY = y; yFin = y;
   }
+  ctx.font = FUENTE;
   // el cursor: un bloque del alto de la letra, titilando a medio segundo como el de una terminal; recien
   // aparece cuando empieza a tipear (antes, el titulo es lo unico que pasa) y no se va al terminar
   if (d.typed > 0 && (d.done ? (d.seqT % 1) < 0.5 : Math.sin(d.seqT * 14) > -0.5)) {
@@ -991,16 +1005,6 @@ function drawTarjeta(w, d, sc, ln) {
     ctx.globalAlpha = 0.35; ctx.fillStyle = '#000';
     for (let y = yText - 8; y < yFin + 3; y += 1) ctx.fillRect(TARJ.x - 2, y, W - TARJ.x * 2 + 4, 1 / 3);
     ctx.globalAlpha = 1;
-  }
-  // LA FECHA DEL DIA (26/11, el autor: "la fecha en el bloque de texto con letra mas chica y fina, arriba a la derecha, y
-  // luego el texto"): `ln.fecha` (data/libro_vuelo.js `hoy`), en el verde apagado, alineada al borde derecho del bloque
-  if (ln && ln.fecha) {
-    ctx.font = 'bold 7px monospace';
-    let ancho = 0;
-    for (const r of d.wrap) ancho = Math.max(ancho, ctx.measureText(r).width);
-    ctx.font = '5px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = TARJ.fosforo; ctx.globalAlpha = 0.6;
-    ctx.fillText(ln.fecha, TARJ.x + ancho, yText0 - 11);
-    ctx.globalAlpha = 1; ctx.textAlign = 'left';
   }
   if (ln && ln.lamina) drawLamina(ln, d, yText0 - 6);
   const last = d.si + 1 >= d.seq.length && d.li + 1 >= ((sc.lineas || []).length);
@@ -1343,6 +1347,9 @@ const LADO_TECLA = 8;
 
 /** `estilo` (opcional): { color, lado, fuente } — la TARJETA DE MISION los pide verdes y mas chicos,
  *  adentro de sus escuadras (autor, 16/10). Sin estilo, los de siempre. */
+/** El mando de SIGUIENTE (1) o ANTERIOR (-1) en el aparato que se esta usando: flechas en teclado; ✕ / ◯ en el joystick
+ *  (core/input.js: cualquier boton avanza, el ◯ vuelve). */
+const mandoAvanza = dir => glifos.glifosDe(padActivo() ? padTexto(dir > 0 ? '✕' : '◯') : (dir > 0 ? '→' : '←'), padActivo());
 function promptAvanzar(w, d, last, caja, estilo) {
   const col = (estilo && estilo.color) || P.accent, LADO = (estilo && estilo.lado) || LADO_TECLA;
   const fuente = (estilo && estilo.fuente) || '5px monospace';
@@ -1377,8 +1384,11 @@ function promptAvanzar(w, d, last, caja, estilo) {
     const ultima = last && w.state !== 'epilogue';
     ctx.font = fuente; ctx.fillStyle = col; ctx.textAlign = 'right';
     ctx.globalAlpha = ultima ? 1 : 0.5;
-    ctx.fillText(T(ultima ? 'startPrompt' : 'nextPrompt'), xIcono - 3, yIcono + LADO - 1.5);
-    dibujarTeclaFlecha(xIcono, yIcono, LADO, 1, col);
+    // (26/11, el autor: "anterior y siguiente adaptarse a teclado o joystick y marcar la tecla que venimos usando en todos
+    // lados"): el glifo de siempre (render/glifos.js) — → en teclado, ✕ en el joystick —, con su ancho a la izquierda
+    const gA = mandoAvanza(1), wA = glifos.medir(gA, LADO);
+    ctx.fillText(T(ultima ? 'startPrompt' : 'nextPrompt'), der - 4 - wA - 3, yIcono + LADO - 1.5);
+    glifos.dibujar(gA, der - 4 - wA, yIcono, LADO, performance.now() / 1000, col);
     ctx.globalAlpha = 1;
   }
   // VOLVER: en la esquina inferior IZQUIERDA, a la MISMA ALTURA que AVANZAR y en espejo — la tecla
@@ -1393,9 +1403,10 @@ function promptAvanzar(w, d, last, caja, estilo) {
   if (d.li > 0 || d.si > 0) {
     const xV = izq + 4, yV = yIcono;
     ctx.globalAlpha = 0.5;
-    dibujarTeclaFlecha(xV, yV, LADO, -1, col);
+    const gV = mandoAvanza(-1), wV = glifos.medir(gV, LADO);
+    glifos.dibujar(gV, xV, yV, LADO, 0, col);
     ctx.font = fuente; ctx.fillStyle = col; ctx.textAlign = 'left';
-    ctx.fillText(T('backPrompt'), xV + LADO + 3, yV + LADO - 1.5);
+    ctx.fillText(T('backPrompt'), xV + wV + 3, yV + LADO - 1.5);
     ctx.textAlign = 'left'; ctx.globalAlpha = 1;
   }
 }

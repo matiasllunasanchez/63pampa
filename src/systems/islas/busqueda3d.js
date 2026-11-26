@@ -119,8 +119,9 @@ function humo() {
   const g = new THREE.Group();
   for (let i = 0; i < N_PUFF; i++) {
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texHumo(), transparent: true, depthWrite: false,
-      // (NARANJA, el humo de un marcador de rescate: el blanco se perdia entre la lluvia y las nubes)
-      color: i < 2 ? new THREE.Color(1, 0.4, 0.05) : new THREE.Color(1, 0.55 + (i % 3) * 0.06, 0.22) }));
+      // (VERDE desde el 26/11, el autor: "una bengala que larga humo VERDE o blanco": el blanco se perdia entre la lluvia y
+      // las nubes, y el naranja de antes se confundia con las bengalas)
+      color: i < 2 ? new THREE.Color(0.2, 1, 0.35) : new THREE.Color(0.35, 0.95 + (i % 3) * 0.02, 0.45) }));
     s.renderOrder = 5; g.add(s);
   }
   R.g.add(g);

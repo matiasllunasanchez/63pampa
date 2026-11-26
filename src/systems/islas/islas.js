@@ -416,6 +416,7 @@ function bombas(dt, m) {
   for (let i = pmissiles.length - 1; i >= 0; i--) {
     const pm = pmissiles[i];
     if (pm.exocet || pm.tanque || !('extra' in pm) || objetivo.seguida(pm)) continue;
+    if (pm.bengala) { aMundo(pm.x, 0, pm.z, _b); objetivo.soltada(pm, _b.x, _b.z, P3.yaw, P3.g); continue; }   // (la bengala no se traba)
     // LA BOMBA TRABADA (21/11, el autor: "tambien hay probabilidades normales de que se trabe la bomba"): no sale del
     // soporte — sigue colgada (vuelve al estante) y se puede volver a intentar
     if (!I.mar && Math.random() < BOMBA.TRABA) { pmissiles.splice(i, 1); run.msl = (run.msl || 0) + 1; cartel(T('islasTrabada'), P.warn, T('islasTrabadaSub')); continue; }
@@ -424,6 +425,9 @@ function bombas(dt, m) {
   }
   const golpes = objetivo.paso(dt, new Set(pmissiles), m);
   for (const { pm, que, x, z, alto } of golpes) {
+    // LA BENGALA DEL HUMO (26/11, el autor: "el humo con una bengala puesta en la caida como una bomba cualquiera"): donde
+    // toca el agua (o lo que sea) nace el humo de la busqueda; no estalla
+    if (pm.bengala) { busqueda.humoEn(x, z); const j = pmissiles.indexOf(pm); if (j >= 0) pmissiles.splice(j, 1); continue; }
     // LA EXPLOSION EN 3D (estallido3d.js): la ven todas las camaras, tambien la de arriba
     estallido(x, alto, z, que === 'blanco' ? 2.2 : que === 'agua' ? 0.8 : 1, que === 'agua' ? 'agua' : 'fuego');
     if (que === 'agua') continue;   // (el agua la resolvio el pasillo: la bomba ya no esta)
@@ -519,6 +523,7 @@ export const precargar = () => mundo.cargar();
 export const soltarHumo = () => { if (I.mar) I.humo = true; };
 export const enMar = () => enPasillo() && !!I.mar;
 export const busquedaEventos = () => (I.mar ? busqueda.tomarEventos() : []);
+export const humosQuedan = () => (I.mar ? busqueda.humosQuedan() : 0);
 export const busquedaHud = () => (enPasillo() && I.mar ? busqueda.hud() : null);
 export const busquedaHecha = () => !!I.mar && busqueda.hecho();
 export const busquedaEscena = () => (enPasillo() && I.mar ? busqueda.escena() : null);
@@ -538,7 +543,7 @@ export function brujula() {
  *  (En MAR ABIERTO, lo que diga la busqueda: el centro de la zona o el humo de las balsas.) */
 function blanco() {
   if (MARCA.on) return MARCA;
-  if (I.mar) { const b = busqueda.blanco(); return b ? { x: b.x, z: b.z, g: 0, n: T('busq_zona') } : null; }
+  if (I.mar) { const b = busqueda.blanco(); return b ? { x: b.x, z: b.z, g: 0, n: T('busq_humo_marca') } : null; }
   const O = objetivo.OBJ;
   return O.on && O.vivo ? { x: O.x, z: O.z, g: O.g, n: T('islasObjetivoCorto') } : null;
 }
@@ -670,8 +675,11 @@ function tiempo(dt) {
 const MAN = {
   uud: { k: 'vuelta', sube: 1, h: 55, avion: 'splits' },
   ddu: { k: 'vuelta', sube: -1, h: 45, avion: 'splits' },
-  duuu: { k: 'vertical', dir: 1, dur: 2.6, v: 70, avion: 'climb' },
-  uddd: { k: 'vertical', dir: -1, dur: 2.6, v: 80, avion: 'dive' },
+  // (26/11, el autor: "para cortar la picada hacia arriba apretar hacia abajo 2 veces, asi puedo subir y bajar en picada
+  // todo lo necesario; igual para abajo"): la vertical ya no se corta sola a los 2,6 s — sigue hasta ↓↓ (la de arriba) o
+  // ↑↑ (la de abajo), con un tope de VERT_TOPE s; la picada igual saca sola cerca del suelo
+  duuu: { k: 'vertical', dir: 1, dur: 30, v: 70, avion: 'climb' },
+  uddd: { k: 'vertical', dir: -1, dur: 30, v: 80, avion: 'dive' },
 };
 // la media vuelta en tiempos (s): ROLA panza arriba (solo la de abajo), CABECEA hasta la trompa al jugador, la camara
 // GIRA, y la de arriba ENDEREZA. TOPE: los grados de la vuelta al girar la camara (la fila 190 de la hoja 4).
@@ -690,6 +698,12 @@ export const manDz = () => (enPasillo() ? manDzV : 0);
 export function maniobra(seq, puede) {
   if (!enPasillo() || !I.puesto) return null;
   const s = seq.toLowerCase();
+  // CORTAR LA VERTICAL: dos toques al reves (↓↓ la de arriba, ↑↑ la de abajo) — empieza a soltarla (la rampa de salida)
+  { const M = P3.man;
+    if (M && M.k === 'vertical' && seq.length === 2 && s === (M.dir > 0 ? 'dd' : 'uu')) {
+      if (M.dur > M.t + ENTRA_V) M.dur = Math.max(M.t + ENTRA_V, ENTRA_V * 2);
+      return true;
+    } }
   if (s === 'duu' || s === 'udd') return false;        // (el POP-UP y el SPLIT-S del pasillo: aca son las de abajo)
   const d = MAN[s];
   if (!d) return null;

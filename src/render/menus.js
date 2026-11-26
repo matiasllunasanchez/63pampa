@@ -17,11 +17,13 @@ import { BANCO, loadoutAt } from '../data/upgrades.js';
 import { fmtDate } from '../systems/saves.js';
 import { iconoDe, ICONO_FW, ICONO_COLS, ICONOS } from '../data/iconos_cartas.js';
 import { capacidadesDe } from '../data/perfiles.js';
-// solo `version`: esbuild trae del package.json nada mas que ese campo
-import { version as VERSION } from '../../package.json';
 import { CTRL_CATEGORIAS } from '../data/controles.js';
 import { MOVES, COMBO, COMBO_PAD } from '../data/moves.js';
 import { caraDe } from '../data/voces_cartas.js';
+// LA VERSION del package.json: la mete esbuild al armar el bundle (`--define` en build:game; ninguna capa importa de
+// fuera de src/). Sin bundle (las pruebas en Node) queda vacia
+// eslint-disable-next-line no-undef
+const VERSION = typeof __RASANTE_VERSION__ !== 'undefined' ? __RASANTE_VERSION__ : '';
 import { descTrozos, descPlano } from '../data/desc_iconos.js';
 import { iconoEn } from './iconos.js';
 import { retrato, silueta } from './retratos.js';

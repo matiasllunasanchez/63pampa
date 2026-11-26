@@ -247,15 +247,47 @@ def belgrano_hundiendose(T, K, balsas=True):
 # LAS BALSAS DEL BELGRANO, DE CERCA (26/11, el autor: "otro diseño de balsas aca" — la hoja LAS BALSAS usaba la misma
 # lamina del crucero): cinco balsas salvavidas (modelos_rescate.py, la de carpa con los naufragos asomados) juntas y a
 # su tamaño, cada una con su ola (se inclinan distinto), cortadas en la linea del agua.
-def balsas_grupo(T, K):
+def balsas_grupo(T, K, humo=False):
+    # (26/11, despues: "no parecen balsas, mejorar que parezcan carpas y dibujar un poco el agua"): la carpa mas ALTA (la
+    # cupula estirada para arriba se lee como carpa y no como hongo), las bocas abiertas hacia la camara, y el MAR: crestas
+    # de ola bajas y largas, cortadas en la linea del agua, que dejan sus curvas alrededor de las balsas
     R = importlib.util.spec_from_file_location('modelos_rescate_lib', os.path.join(AQUI, 'modelos_rescate.py'))
     MR = importlib.util.module_from_spec(R); R.loader.exec_module(MR)
     raiz = B._raiz(T, 'Balsas')
-    lugares = [(0.0, 0.0, 10, 0.0), (-3.1, 1.6, 150, 0.05), (3.0, 1.2, 260, -0.04), (-1.4, 4.4, 70, 0.08), (2.0, 4.8, 200, 0.0)]
+    mat = K['mat_cel']('mar', '#2a4a5a')
+    lugares = [(0.0, 0.0, 275, 0.0), (-3.4, 2.2, 250, 0.06), (3.3, 1.6, 300, -0.05), (-0.6, 5.2, 265, 0.1)]
     for i, (x, z, giro, alza) in enumerate(lugares):
         piv = B._vacio(raiz, 'balsa_%d' % i)
         MR.balsa_salvavidas(piv, K)
-        piv.location = (x, alza - 0.12, z)
-        piv.rotation_euler = (math.radians(7 * ((i % 3) - 1)), math.radians(giro), math.radians(6 * ((i % 2) * 2 - 1)))
+        piv.scale = (1.0, 1.55, 1.0)
+        piv.location = (x, alza - 0.15, z)
+        piv.rotation_euler = (math.radians(6 * ((i % 3) - 1)), math.radians(giro), math.radians(5 * ((i % 2) * 2 - 1)))
+    # LAS OLAS: cintas finas y onduladas que asoman apenas del agua — de arriba se leen como las lineas de un mar picado
+    import bpy, bmesh
+    for f, zf in enumerate((-2.6, -1.0, 0.7, 2.4, 4.1, 5.8, 7.4)):
+        bm = bmesh.new(); arriba, abajo = [], []
+        ph = f * 1.9
+        xs = [-6.3 + k * 0.3 for k in range(43)]
+        for xx in xs:
+            zz = zf + 0.28 * math.sin(xx * 1.1 + ph) + 0.12 * math.sin(xx * 2.7 + ph * 0.5)
+            abajo.append(bm.verts.new((xx, -0.02, zz))); arriba.append(bm.verts.new((xx, 0.07, zz)))
+        for k in range(len(xs) - 1):
+            mx = xs[k]
+            if any(abs(mx - x) < 1.7 and abs(zf - z) < 1.9 for x, z, _, _ in lugares): continue   # (detras de una balsa no)
+            bm.faces.new((abajo[k], abajo[k + 1], arriba[k + 1], arriba[k]))
+        me = bpy.data.meshes.new('ola_%d' % f); bm.to_mesh(me); bm.free()
+        ob = bpy.data.objects.new('ola_%d' % f, me); bpy.context.collection.objects.link(ob); ob.parent = raiz
+        ob.data.materials.append(mat)
+    # EL HUMO (26/11, la hoja LAS BALSAS: "como debe quedar el espacio con las balsas y el humo"): el marcador flotando al
+    # lado de las balsas y la columna que sube y se abre, tirada por el viento hacia un costado
+    if humo:
+        mh = K['mat_cel']('humo', '#d8d8d8')
+        hx, hz = 1.6, -1.6
+        elipsoide('marcador', (hx, 0.05, hz), (0.22, 0.18, 0.22), raiz, mh, seg=10, anillos=5)
+        for k in range(12):
+            u = k / 11.0
+            r = (0.35 + 1.0 * u) * (0.8 + 0.35 * abs(math.sin(k * 2.3)))
+            x = hx + 2.8 * u * u + 0.45 * math.sin(k * 2.1) * u
+            elipsoide('humo', (x, 0.35 + k * 0.55, hz - 0.5 * u + 0.35 * math.cos(k * 1.7) * u), (r * 1.15, r * 0.75, r), raiz, mh, seg=12, anillos=6)
     _cortar_agua(raiz, 0.0)
     return raiz

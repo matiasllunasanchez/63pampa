@@ -2815,3 +2815,26 @@ export const FALLA_ALERTA = { ANTES: 0.6, PASO: 0.45, DURA: 0.9, SFX: 'planeFail
 // se conservan… siempre que siga la partida"): al perder un avion y seguir con el siguiente se va PARTE del puntaje
 // (una tajada y no un fijo: el puntaje de una corrida va de cientos a cientos de miles). Eyectarse no la cobra.
 export const PENA_MUERTE = { PARTE: 0.35 };
+
+
+// ---------- LA VIBRACION DEL MANDO (26/11/2026, el autor: "vibracion cuando el avion choca o toca el agua, con variantes;
+// cuando se sufre daño o las balas golpean la chapa; un toque por cada cosa lanzada; la metralleta leve; el agua con
+// niveles segun roce, cercania o choque"; core/vibra.js). Cada efecto es [motor grande, motor chico, ms] (0..1): el
+// grande es el golpe grave y pesado, el chico el zumbido agudo. OPCIONES -> VIBRACION los escala (SI 1, SUAVE 0.5, NO 0).
+//   CERCA    el rasante sin tocar: arriba del agua menos de CERCA.M m, un zumbido del motor chico que crece al bajar
+//   ROCE     tocando el agua: pulsos cada ROCE.CADA s, de [min..max] segun lo que queda del margen de roce
+//   CHOQUE   el derribo: el golpe, el rebote y el final que se apaga (con AGUA, un rebote mas: el panzazo)
+//   BALA     cada bala que pega en la chapa: un tac seco del motor chico
+//   DANO     un golpe que saca chapa: grave, de [min..max] segun cuanto saco
+//   SUELTA   un toque por cada cosa que se suelta, segun el peso
+//   CANON    cada tiro del cañon, apenitas, y no mas seguido que CANON_CADA s
+export const HAPTICA = {
+  CERCA: { M: 2.5, DEBIL: [0.04, 0.22], CADA: 0.12 },
+  ROCE: { CADA: 0.11, MIN: [0.25, 0.35, 80], MAX: [0.7, 0.8, 100] },
+  CHOQUE: [[1, 1, 380], [0.55, 0.3, 260], [0.25, 0.1, 380]], CHOQUE_AGUA: [0.8, 0.5, 200],
+  BALA: [0.08, 0.6, 45],
+  DANO: { MIN: [0.4, 0.25, 140], MAX: [0.9, 0.5, 260] },
+  SUELTA: { bomba: [0.45, 0.2, 90], tanques: [0.3, 0.15, 70], exocet: [0.55, 0.35, 140], misil: [0.3, 0.3, 80],
+    chafitas: [0, 0.25, 35], humo: [0.08, 0.3, 50] },
+  CANON: [0, 0.12, 22], CANON_CADA: 0.09,
+};

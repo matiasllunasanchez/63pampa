@@ -16,6 +16,16 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
+## 0.4.0 — 26/11/2026
+
+- **Libro de vuelo:** se abre el Rescate del Belgrano. Se busca en el temporal con el radar del Neptune: zonas en la ida y una vuelta por las mismas, la mancha de aceite, las bengalas, las balsas y la bengala de humo que se lanza como una bomba.
+- **Las hojas del libro:** la fecha y el lugar van chicos arriba, los subtítulos (ANTES, EL PLAN, EL TEMPORAL…) en su renglón y el mando dibujado en el cuadro. En el Belgrano, textos nuevos y la lámina de las balsas.
+- **El clima:** viento de altura, que crece con la altura y con el temporal. Los rayos cercanos pueden pegarle a la electrónica según el avión. Hay menos pájaros con mal tiempo.
+- **La vibración del joystick:** al rozar o tocar el agua, con las balas y el daño, al soltar cada carga, con el cañón y en el derribo. Se elige en OPCIONES → VIBRACIÓN: SÍ, SUAVE o NO.
+- **Las verticales de las islas:** ya no se cortan solas. Se cortan con dos toques al revés (↓↓ la de arriba, ↑↑ la picada).
+- **El modo de gas:** ya no se elige; queda siempre el de fábrica.
+- **Los nombres de los botones:** con un mando de Xbox se muestran A/B/X/Y y LB/RB.
+
 ## 0.3.0 — 26/11/2026 (Steam BuildID 26950464)
 
 - **La música en vuelo:** al azar entre `music/original` (instrumentales) y `music/soundtrack`, que incluye Zona Rasante, Nadie vuela solo, Alambre, Misty Malvinas y Dicen de mí 2. El mate y Gambeta 1 y 2 quedan para la campaña.

@@ -61,7 +61,10 @@ export const cfg = {
   // OPCIONES lo cambia y lo guarda en 'rasante_vert'. Default: VERT_DEF.
   // EL DIRECTOR DE LA DIFICULTAD (22/11, systems/director.js): prendido salvo que OPCIONES lo apague
   director: true,
-  vert: (() => { try { const v = JSON.parse(localStorage.getItem('rasante_vert')); return ['gas', 'fija', 'planeo', 'planeo_m'].includes(v) ? v : VERT_DEF; } catch (e) { return VERT_DEF; } })(),
+  // LA VIBRACION DEL MANDO (26/11, core/vibra.js): 1 SI, 0.5 SUAVE, 0 NO — OPCIONES la cambia y la guarda en 'rasante_vibra'
+  vibra: (() => { try { const v = JSON.parse(localStorage.getItem('rasante_vibra')); return [0, 0.5, 1].includes(v) ? v : 1; } catch (e) { return 1; } })(),
+  // (EN PRODUCCION no se lee lo guardado: el gas es SIEMPRE el default — 26/11, el autor: "en produccion no lo cambiemos nunca")
+  vert: (() => { try { if (typeof window !== 'undefined' && window.RASANTE_APP && !window.RASANTE_DEV) return VERT_DEF; const v = JSON.parse(localStorage.getItem('rasante_vert')); return ['gas', 'fija', 'planeo', 'planeo_m'].includes(v) ? v : VERT_DEF; } catch (e) { return VERT_DEF; } })(),
   // LAS TRES CAPAS DEL CLIMAX 3D, TAMBIEN EN EL PASILLO (PLAN_MEJORAS_3D P3/P6/P2). Nacieron
   // para la escena del climax y valen igual aca, porque el pasillo tiene su propia escena 3D (el
   // buque del final y, con AGUA 3D puesta, el mar). Son PRESENTACION PURA: ninguna toca una

@@ -25,6 +25,7 @@ import { applyHit, effects, tierOf, isFatal, absorber, dmgRoce, recargar, ESCUDO
 import { tickDesgaste } from '../core/desgaste.js';
 import { esDisparo, chanceEsquive } from '../core/esquive.js';
 import * as rasante from './rasante.js';
+import { vibraBala, vibraDano } from '../core/vibra.js';   // (26/11: el mando)
 
 /** Avion nuevo: chapa sana y escudo lleno. La llama el arranque de corrida Y el relevo del
  *  escuadron — cada avion del escuadron entra entero, que es lo que hace que el escuadron siga
@@ -103,6 +104,8 @@ export function takeHit(cause) {
     r = { integ: a.integ, down: a.down, dmg: Math.round(a.aChapa) };
   }
   run.integ = r.integ;
+  // EL MANDO (26/11): la bala que pega en la chapa es un tac seco; lo demas, un golpe grave segun cuanto saco
+  if (!r.down) { if (esDisparo(cause) && (r.dmg || 0) < 15) vibraBala(); else vibraDano(Math.min(1, (r.dmg || 0) / 40)); }
   if (r.down) return true;
   run.shake = Math.min(7, run.shake + 2.4);
   run.hurtT = 0.6;                       // fogonazo rojo en el HUD (lo lee el render)

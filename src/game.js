@@ -132,7 +132,7 @@ import * as persec from './systems/persec.js';
 import { drawCaza, zv as zvCaza, setLucesCaza } from './render/caza.js';
 import { drawPersec, drawCinta, cintaRect } from './render/persec.js';
 import { drawChancha } from './render/chancha.js';
-import { inp, mouse, pointer, puntero, flags, padInfo, padActivo, mandoCambiar, initInput } from './core/input.js';
+import { inp, mouse, pointer, puntero, flags, padInfo, padActivo, mandoCambiar, initInput , padTexto as padTextoIn } from './core/input.js';
 import { flightSystem } from './systems/flight.js';
 import { drawPlane, anguloPose } from './render/plane.js';
 // LA INCLINACION DEL VIENTO (tangente del angulo de la pose, suavizada con su propio reloj): ver "ráfagas de viento" en draw
@@ -258,6 +258,7 @@ import { RUNWAYS, AIR_START_Y, PORT_H } from './data/runways.js';
 import { sembrarAzar, hashTexto } from './core/azar.js';
 import { PILOTOS_GENERALES } from './data/pilotos_generales.js';
 import { apodoAvion } from './data/apodos_aviones.js';
+import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mando — las sueltas y el derribo)
 
   (() => {
     'use strict';
@@ -1002,12 +1003,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
 
     /** Los nombres de botones de la tabla de CONTROLES estan en nomenclatura PlayStation; con un
      *  mando de Xbox se traducen al vuelo. Ver la nota de NOMBRES DE LOS BOTONES en draw(). */
-    function padTexto(t) {
-      return padInfo.kind !== 'xbox' ? t : t
-        .replace(/✕/g, 'A').replace(/◯/g, 'B').replace(/□/g, 'X').replace(/△/g, 'Y')
-        .replace(/\bL1\b/g, 'LB').replace(/\bR1\b/g, 'RB').replace(/\bL2\b/g, 'LT')
-        .replace(/gatillo|trigger/gi, 'RT');
-    }
+    // (26/11: vive en core/input.js — las hojas del libro tambien la usan)
+    const padTexto = padTextoIn;
     /** Una zona de foco por nombre. Casi todas son del HUD; la cinta de SEGUIR es de la persecucion. */
     // (el SEMAFORO de la suelta vive en coordenadas de mundo: se pasa a las de diseño — 21/11)
     const zonaLeccion = id => id === 'seguir' ? cintaRect()
@@ -1468,6 +1465,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       const velAntes = velRelativa(naftaSys.colgadoAhora(bombasAhora));
       const r = naftaSys.soltarTanques();
       if (!r) { beep(150, 0.09, 'square', 0.05); cartel(T('tanques_nada'), P.dim); return; }
+      vibraSuelta('tanques');
       // (la carga se usa aca abajo, en tanquesSalen; despues vuelve a cero para el proximo par)
       const tirados = r.soltados.reduce((s, k) => s + k, 0);
       // …Y CAEN (N6): cada uno es un proyectil con la balistica de la bomba, desde su pilon — el par
@@ -1667,7 +1665,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       if (!alcanza('chapitas')) return;   // USAR CUESTA (16/10)
       const r = chapitasSys.soltar(plane.x, plane.y, PZ, visto);
       if (!r) { beep(150, 0.09, 'square', 0.05); cartel(T('chapitas_nada'), P.dim); return; }
-      cobrar('chapitas');
+      cobrar('chapitas'); vibraSuelta('chafitas');
       run.spd = Math.max(34, run.spd * (1 - CHAPITAS.FRENO));          // el freno abierto
       // EL CARTUCHO: sale expulsado hacia atras con un golpe de polvora — un soplo gris de la cola, y
       // recien ahi el viento abre la nube (lo que trajo el autor el 8/10; ver PREGUNTAS_HISTORICAS)
@@ -2629,7 +2627,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     let opcSel = 0;
     const opcRows = () => [
       { id: 'musica', label: T('pauseMusica') + ':  ' + (musicaOn() ? T('optYes') : T('optNo')) },
-      { id: 'gas', label: T('optGas') + ':  ◄ ' + T('optGas_' + cfg.vert) + ' ►' },
+      ...(DEV ? [{ id: 'gas', label: T('optGas') + ':  ◄ ' + T('optGas_' + cfg.vert) + ' ►' }] : []),   // (solo en DEV: 26/11)
       ...(canPickMusic() && musicaOn() ? [{ id: 'pista', label: T('pausePista') + ':  ◄ ' + currentTrackName() + ' ►' }] : []),
       { id: 'volver', label: T('menuBack') },
     ];
@@ -3090,7 +3088,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // adentro de una zona y por encima de ZONAS.ALT_MIN, cada segundo entero se tira el dado: en la de la mancha, P segun
     // la altura (P_BAJO al minimo → P_TECHO bajo las nubes → P_ARRIBA por encima de la capa); en las otras, VACIA_S
     // segundos de barrido la dan por vacia. Pasada la ultima zona sin contacto, la mision se pierde (death_sin_contacto).
-    const ZONAS = { ALT_MIN: 22, P_BAJO: 0.1, P_TECHO: 0.45, P_ARRIBA: 0.8, VACIA_S: 3, IR_S: 2.6, AVISO: 0.05 };
+    const ZONAS = { ARRIBA: 30, TREPA: 35, ALT_MIN: 22, P_BAJO: 0.25, P_TECHO: 0.7, P_NUBE: 0.03,   // (26/11, el autor: "la probabilidad parece baja": eran 0.1 y 0.45)
+      VACIA_S: 3, IR_S: 2.6, AVISO: 0.05 };
     const zonasDef = () => (libro && !libro.tut ? libroDef().zonas || null : null);
     let zonasM = null;
     function armarZonas() {
@@ -3101,8 +3100,11 @@ import { apodoAvion } from './data/apodos_aviones.js';
     /** La probabilidad por segundo de ver la mancha desde `alt` m (adentro de su zona, con el radar prendido). */
     function pZona(alt) {
       if (alt < ZONAS.ALT_MIN) return 0;
-      if (alt > ALTO.NUBES) return ZONAS.P_ARRIBA;
+      // LAS NUBES LO EMPASTAN (26/11, el autor: "dale, hacelo asi con las nubes"): rinde mas cuanto mas cerca de la base de
+      // las nubes, pero adentro o arriba casi no ve (antes, arriba de las nubes era donde MAS veia: premiaba lo contrario
+      // del temporal). Lo mejor es subir hasta casi tocarlas
       const techo = Math.max(ZONAS.ALT_MIN + 1, ALTO.NUBES - ALTO.ESPESOR);
+      if (alt > techo) return ZONAS.P_NUBE;
       return ZONAS.P_BAJO + (ZONAS.P_TECHO - ZONAS.P_BAJO) * Math.min(1, (alt - ZONAS.ALT_MIN) / (techo - ZONAS.ALT_MIN));
     }
     /** Un cuadro de las zonas. true = la mision se perdio (o se fue a la busqueda) en este cuadro. */
@@ -3116,32 +3118,52 @@ import { apodoAvion } from './data/apodos_aviones.js';
         if (Z.irT >= ZONAS.IR_S) { cartelSostenido('zona', false); empezarBusqueda(); return true; }
         return false;
       }
-      const f = run.dist / objectiveDist, ult = Z.lista[Z.lista.length - 1];
+      // LA VUELTA ES UNA VUELTA (26/11, el autor: "el avion de la barra debe arrancar desde la bandera y volver, pasando por
+      // las zonas descartadas; y restar km arriba"): en el regreso el odometro del pasillo queda quieto (el mundo sigue
+      // pasando) y la posicion en la ruta, `Z.reg.f`, BAJA con lo que se vuela — de la bandera hacia el puerto
+      if (Z.reg) { Z.reg.f -= Math.max(0, run.dist - Z.reg.d) / objectiveDist; run.dist = Z.reg.d; }
+      const f = zonaF(), ult = Z.reg ? Z.lista[0] : Z.lista[Z.lista.length - 1];
+      // LA IDA, ARRIBA (26/11, el autor: "en la IDA conviene mantener al Neptune BIEN ARRIBA y jugar entre bajo y encima de
+      // las nubes hasta encontrar la zona, no rasante; recien en ISLA baja"): al salir del despegue trepa solo hasta pasar
+      // la capa de nubes (ZONAS.ARRIBA m sobre su techo); despues se maneja como siempre
+      if (!Z.subio) {
+        if (plane.y < ALTO.NUBES + ZONAS.ARRIBA && f < Z.lista[0].f0) plane.vy = Math.max(plane.vy, ZONAS.TREPA);
+        else Z.subio = true;
+      }
       if (!Z.avisada && f >= Z.lista[0].f0 - ZONAS.AVISO) { Z.avisada = true; beep(660, 0.08, 'sine', 0.05, 200); cartel(T('zona_aviso'), '#5ab4ff', T('zona_aviso_sub'), { alerta: true }); }
       // LA ULTIMA ZONA, AVISADA (26/11, el autor: "no queda claro cuando pierdo")
-      if (!Z.ultAviso && f >= ult.f0) { Z.ultAviso = true; beep(500, 0.1, 'square', 0.05); cartel(T('zona_ultima'), P.warn, T(Z.vuelta ? 'zona_ultima_pierde' : 'zona_ultima_vuelta'), { alerta: true }); }
+      if (!Z.ultAviso && (Z.reg ? f <= ult.f1 : f >= ult.f0)) { Z.ultAviso = true; beep(500, 0.1, 'square', 0.05); cartel(T('zona_ultima'), P.warn, T(Z.vuelta ? 'zona_ultima_pierde' : 'zona_ultima_vuelta'), { alerta: true }); }
       // PASASTE TODAS SIN CONTACTO: UNA VUELTA MAS (26/11, el autor: "si me pase una seccion y no encontre nada, el juego
       // deberia permitirme volver por el mismo camino para intentar nuevamente, al menos una vez"). El trayecto vuelve a
       // la primera zona con un fundido; las ya barridas sin contacto quedan apagadas. La segunda vez, se pierde.
-      if (f > ult.f1) {
+      if (Z.reg ? f < ult.f0 - ZONAS.AVISO : f > Math.max(ult.f1, 0.985)) {
         cartelSostenido('zona', false);
         if (Z.vuelta) { die('death_sin_contacto'); return true; }
-        Z.vuelta = true; Z.ultAviso = false; Z.acc = 0;
-        run.dist = objectiveDist * Math.max(0, Z.lista[0].f0 - ZONAS.AVISO);
-        fadeT = 0.9;
+        // EL GIRO, EN LA BANDERA: desde ahi se vuelve hacia el puerto por las mismas zonas
+        // (el mundo queda quieto en un tramo de mar a mitad de ruta —al lado de la meta se oscurecia y asomaba su cartel—,
+        // con un fundido corto para que el salto no se vea)
+        run.dist = objectiveDist * 0.5; fadeT = 0.7;
+        Z.vuelta = true; Z.ultAviso = false; Z.acc = 0; Z.reg = { d: run.dist, f: 1 };
         cartel(T('zona_vuelta'), P.warn, T('zona_vuelta_sub'), { alerta: true });
         return false;
       }
       const i = Z.lista.findIndex(z => f >= z.f0 && f <= z.f1), z = i >= 0 ? Z.lista[i] : null;
       const barre = !!z && z.estado === '?' && radarP.on;
-      cartelSostenido('zona', barre, T('zona_barre'), '#5ab4ff', null, T(plane.y < ZONAS.ALT_MIN ? 'zona_barre_bajo' : 'zona_barre_sub'));
+      cartelSostenido('zona', barre, T('zona_barre'), '#5ab4ff', null, T(plane.y < ZONAS.ALT_MIN ? 'zona_barre_bajo' : plane.y > ALTO.NUBES - ALTO.ESPESOR ? 'zona_barre_nube' : 'zona_barre_sub'));
       if (!barre) { Z.acc = 0; return false; }
       if (plane.y < ZONAS.ALT_MIN) { Z.acc = 0; return false; }
       Z.acc += dt;
       while (Z.acc >= 1) {
         Z.acc -= 1;
-        if (i === Z.blanco) {
-          if (Math.random() < pZona(plane.y)) {
+        // ¿ESTA ACA? (26/11, el autor: "si pase la zona 1, siempre debe haber probabilidades de aparicion en cualquiera de
+        // las zonas"): ya no hay una zona fijada de antemano — al empezar a barrer una se decide, con chance 1/n de las que
+        // quedan sin descartar (las salteadas siguen contando). La ultima que queda la tiene seguro.
+        const nQuedan = Z.lista.filter(x => x.estado === '?').length;
+        if (z.tiene == null || nQuedan === 1) z.tiene = nQuedan === 1 || Math.random() < 1 / Math.max(1, nQuedan);
+        if (z.tiene) {
+          // LA UNICA QUE QUEDA SIN DESCARTAR: si esta, el radar la ve de una (26/11, "no me da el tiempo cuando YA SE que esta")
+          const sola = nQuedan === 1;
+          if (sola || Math.random() < pZona(plane.y)) {
             Z.hallada = true; Z.irT = 0; z.estado = 'mancha';
             cartelSostenido('zona', false);
             beep(1250, 0.08, 'sine', 0.05, 300); setTimeout(() => beep(1500, 0.1, 'sine', 0.05, 300), 110);
@@ -3150,15 +3172,28 @@ import { apodoAvion } from './data/apodos_aviones.js';
           }
         } else if (++z.barrido >= ZONAS.VACIA_S) {
           z.estado = 'vacia'; beep(300, 0.1, 'square', 0.04, -40);
+          // DESCARTADAS TODAS MENOS UNA (26/11, el autor: "si ya descarte todas, es obvio que esta en la que queda"): esa
+          // es la del contacto — se da por hallada y se va al mar abierto
+          const quedan = Z.lista.filter(x => x.estado === '?');
+          if (quedan.length === 1) {
+            Z.hallada = true; Z.irT = 0; quedan[0].estado = 'mancha';
+            cartelSostenido('zona', false);
+            beep(1250, 0.08, 'sine', 0.05, 300); setTimeout(() => beep(1500, 0.1, 'sine', 0.05, 300), 110);
+            cartel(T('zona_deducida'), '#7fe07a', T('zona_deducida_sub'), { alerta: true });
+            return false;
+          }
           cartel(T('zona_vacia'), '#c9ced3', T('zona_vacia_sub'));
           return false;
         }
       }
       return false;
     }
-    /** Lo que la cinta de arriba dibuja de las zonas (null sin zonas). */
-    const zonasCinta = () => (zonasDef() && zonasM ? { pregunta: !zonasM.hallada, zonas: zonasM.lista.map((z, i) => ({ f0: z.f0, f1: z.f1, estado: z.estado,
-      on: radarP.on && z.estado === '?' && run.dist / objectiveDist >= z.f0 && run.dist / objectiveDist <= z.f1 })) } : null);
+    /** Donde estas en la ruta de las zonas (fraccion): el odometro, o en el regreso la posicion que baja (`Z.reg`). */
+    const zonaF = () => (zonasM && zonasM.reg ? zonasM.reg.f : run.dist / objectiveDist);
+    /** Lo que la cinta de arriba dibuja de las zonas (null sin zonas). `regreso`: la posicion de vuelta hacia el puerto. */
+    const zonasCinta = () => (zonasDef() && zonasM ? { pregunta: !zonasM.hallada, regreso: zonasM.reg && !zonasM.hallada ? zonasM.reg.f : null,
+      zonas: zonasM.lista.map((z, i) => ({ f0: z.f0, f1: z.f1, estado: z.estado,
+      on: radarP.on && z.estado === '?' && zonaF() >= z.f0 && zonaF() <= z.f1 })) } : null);
     /** BLANCO UBICADO: la flecha roja, el punto del radar, la brujula — y el Exocet ya se puede lanzar */
     function ubicarExo() {
       run.exoUbicado = true; buscaAcc = 0;
@@ -4219,7 +4254,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     { let dev = false; for (const r of OPT_TODAS) { if (r.head) dev = SECCIONES_DEV.has(r.head); r.dev = dev; } }
     const OPT_ROWS = DEV
       ? (() => { const i = OPT_TODAS.findIndex(r => r.dev); return [...OPT_TODAS.slice(0, i), { head: 'optSecDev', dev: true }, ...OPT_TODAS.slice(i)]; })()
-      : OPT_TODAS.filter(r => !r.dev);
+      : OPT_TODAS.filter(r => !r.dev && !r.soloDev);
 
     // ---------- MEJORAS DEL PICHON ----------
     // Sub-pantalla de OPCIONES con TODO lo que toca al avión. Misma forma de fila que OPT_ROWS
@@ -4270,13 +4305,19 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // ahorra una corrida arruinada a quien lo rozo sin querer.
       // EL GAS MODO (22/11, playtest: "la mecanica del gas es demasiado molesta"): NORMAL (la de siempre), ESTABLE
       // (altura fija) y SUAVE (planea, sin subibaja). Ver VERT_MODOS en data/tuning.js.
-      { label: () => T('optGas'), opts: VERT_MODOS, names: () => VERT_MODOS.map(m => T('optGas_' + m)),
+      // (26/11, el autor: "el modo de gas nunca se cambia; en produccion no lo cambiemos nunca ni demos la opcion, es el que
+      // ya esta"): `soloDev` — fuera del MODO DEV la fila no existe y el gas es siempre el default (core/state.js)
+      { soloDev: true, label: () => T('optGas'), opts: VERT_MODOS, names: () => VERT_MODOS.map(m => T('optGas_' + m)),
         get: () => cfg.vert, set: v => cfg.vert = v, save: 'rasante_vert',
         card: () => prefCard('Gas', () => T('optGas')) },
       // EL DIRECTOR (22/11): la dificultad que se acomoda a como te va, en POR LA PATRIA y CICLO
       { label: () => T('optDirector'), opts: [true, false], names: onOff, sw: true,
         get: () => cfg.director, set: v => cfg.director = v, save: 'rasante_director',
         card: () => prefCard('Director', () => T('optDirector')) },
+      // LA VIBRACION DEL MANDO (26/11, core/vibra.js): SI, SUAVE (la mitad) o NO
+      { label: () => T('optVibra'), opts: [1, 0.5, 0], names: () => [T('optVibra_si'), T('optVibra_suave'), T('optVibra_no')],
+        get: () => cfg.vibra, set: v => cfg.vibra = v, save: 'rasante_vibra',
+        card: () => prefCard('Vibra', () => T('optVibra')) },
       { label: () => T('optInvY'), opts: [0, 1], names: () => [T('optInvYNo'), T('optInvYYes')],
         get: () => cfg.invY, set: v => cfg.invY = v,
         card: () => prefCard('InvY', () => T('optInvY')) },
@@ -4711,10 +4752,12 @@ import { apodoAvion } from './data/apodos_aviones.js';
         // (la semilla, al azar si hubo ZONAS: cada salida con las bengalas en otro lado — 26/11)
         busqueda: { encuentra: av.encuentra !== false, semilla: zonasM ? (Math.random() * 4294967296) >>> 0 : hashTexto(libroDef().id + '/' + (libro.av || 0)) } });
       busqFinT = 0; humoAntes = true; fadeT = 2.2; run.dist = objectiveDist - 1;
+      run.bengalaHumo = true;   // (la tecla de la bomba suelta la bengala del humo: flight.js y tryLaunchMissile)
       cartel(T('busq_entra'), P.accent, T('busq_entra_sub'));
     }
     /** EL DESTRUCTOR TE TOMO (o la zona quedo barrida): de vuelta al pasillo, a casa con la nafta que quede. */
     function terminarBusqueda() {
+      run.bengalaHumo = false;
       cartelSostenido('busq', false);
       islas.activar(false);
       clearWorld({ keepFx: false });
@@ -4727,8 +4770,10 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // sola y la mision cerraba en medio del mar), y sin llegar a la meta — flight.js corta ahi, antes de los mandos y
       // la nafta, y el avion quedaba clavado
       run.dist = Math.min(run.dist, objectiveDist - 1);
-      if (inp.fire && !humoAntes) islas.soltarHumo();
       humoAntes = !!inp.fire;
+      // EL BARRIDO DE UNA BENGALA (26/11): mientras el radar la barre, el cartel con el avance
+      { const bh = islas.busquedaHud(); const b = bh ? bh.barre : 0;
+        cartelSostenido('beng', b > 0 && b < 1, T('busq_beng_barre'), '#5ab4ff', null, Math.round(b * 100) + '%'); }
       for (const e of islas.busquedaEventos()) {
         if (e.k === 'indicio') cartel(T('busq_ind_' + e.id), '#c9ced3', T('busq_nada'));
         else if (e.k === 'mancha') { cartel(T(e.radar ? 'busq_mancha_radar' : 'busq_mancha'), P.accent, T('busq_mancha_sub'), { alerta: true }); beep(660, 0.12, 'square', 0.05); }
@@ -4798,6 +4843,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
       guia = null; guiaHecha = false;   // (el Learjet guia vuelve a entrar en cada salida)
+      run.bengalaHumo = false;   // (la bengala del humo es solo de la busqueda)
       // EL FRENTE DE TORMENTA devuelve el cielo, la lluvia y el viento que piso — antes de que el mundo al azar
       // de los modos sueltos sortee el nuevo (systems/frente.js)
       if (resetFrente()) applyCfg();
@@ -6069,6 +6115,15 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // flanco lo detecta su propio update (systems/pasada.js) — este embudo es del pasillo.
       if (S.state === 'pasada') return;
       if (S.state !== 'play' || run.mslCd > 0) return;
+      // LA BENGALA DEL HUMO (EL RESCATE DEL BELGRANO, 26/11, el autor: "LANZAR la bengala, mismo sistema que la bomba, pero
+      // que larga humo verde"): en el mar abierto la tecla de la bomba suelta una bengala con su balistica; donde toca el
+      // agua nace el humo (systems/islas/islas.js `bombas`, busqueda.js `humoEn`)
+      if (islas.enMar()) {
+        if (islas.humosQuedan() <= 0) { beep(150, 0.08, 'square', 0.04); cartel(T('busq_sin_humo'), P.dim); run.mslCd = 0.5; return; }
+        const pm = bombaSale(); pm.bengala = true; pmissiles.push(pm);
+        vibraSuelta('humo'); beep(520, 0.06, 'square', 0.04, -80); run.mslCd = 0.5;
+        return;
+      }
       // EL EXOCET ELEGIDO (23/11): la tecla es SOLO del Exocet — no cae a la bomba. Con otro secundario elegido, ni lo mira
       if (exocetElegido()) {
         if (exocetLanzable()) { lanzarExocet(); return; }   // el Exocet no se suelta: se lanza con el PULSO
@@ -6106,6 +6161,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // core/blanco.js, que es donde esta explicado por que y cuanto. Fuera de la suelta es 0 y el
       // tiro oblicuo del 20/9 queda intacto, bit a bit.
       pmissiles.push(bombaSale());
+      vibraSuelta('bomba');   // EL MANDO: el toque de la suelta
       if (runClimax() !== 'suelta') run.msl--;   // en la suelta ya lo descontó el estante
       run.mslCd = 0.5;
       run.cargaBomba = 0;   // la proxima, con la mira todavia puesta, se carga de nuevo
@@ -6364,6 +6420,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // (el TRAILER: tools/trailer_preload.js, plano a plano; en el juego nadie lo toca)
       if (typeof window !== 'undefined' && window.__trailerInmortal) return;
       ultimaCausa = cause;   // la sonda __seawolf la muestra (un relevo no pasa por die)
+      vibraChoque(cause === 'death_sea');   // EL MANDO: el golpe del derribo (en el agua, con el panzazo)
       // EL AVION VACIO TOCO ALGO (la eyeccion de las islas, `eyectoPend`): ahora si revienta, y lo que se cobra es la
       // eyeccion — el relevo con los puntos enteros, o el final
       if (eyectoPend) {
@@ -8356,8 +8413,17 @@ import { apodoAvion } from './data/apodos_aviones.js';
       if (islas.enPasillo() && arena3D.isOn()) drawRedIslas(islas.redRadar(run.t));
       // EL TECHO DE NUBES DE LA BUSQUEDA (libro r6): arriba de BUSQ.TECHO estas adentro de la nube y no se ve el mar
       if (islas.enMar()) {
-        const a = Math.max(0, Math.min(0.93, (plane.y - (BUSQ.TECHO - 20)) / 60));
+        // adentro: el blanco entra al pasar la base y se va al salir por arriba (BUSQ.TOPE)
+        const entra = Math.max(0, Math.min(1, (plane.y - (BUSQ.TECHO - 20)) / 60));
+        const sale = Math.max(0, Math.min(1, (plane.y - BUSQ.TOPE) / 40));
+        const a = 0.93 * entra * (1 - sale);
         if (a > 0) { ctx.fillStyle = 'rgba(196,204,210,' + a.toFixed(3) + ')'; ctx.fillRect(-300, -300, W + 600, H + 600); }
+        // …y ARRIBA DE LA CAPA, EL PISO DE NUBES: tapa el mar de la mitad de la pantalla para abajo (el cielo queda limpio)
+        if (sale > 0) {
+          const g = ctx.createLinearGradient(0, H * 0.42, 0, H * 0.6);
+          g.addColorStop(0, 'rgba(214,220,226,0)'); g.addColorStop(1, 'rgba(214,220,226,' + (0.96 * sale).toFixed(3) + ')');
+          ctx.fillStyle = g; ctx.fillRect(-300, H * 0.42, W + 600, H * 0.58 + 300);
+        }
       }
       if (!world3D.isOn() && !arena3D.isOn() && !islas.enPasillo()) {   // ---- mundo 2D: en el climax 3D lo reemplaza el blit de arriba ----
       // cielo y sol 2D: en mar-abierto-3D los pone three (nubes/islas siguen 2D encima)
@@ -8750,7 +8816,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
 
       // LLUVIA: entre vos y el mundo, pero DETRAS de tu propio avion. Va fuera del giro a
       // proposito — lo que rota es la direccion de caida (ver render/rain.js).
-      drawRain();
+      // (arriba del techo de nubes de la busqueda no llueve: es el cielo limpio — 26/11)
+      if (!(islas.enMar() && plane.y > BUSQ.TOPE + 20)) drawRain();
 
       // CAMPAÑA: durante el relevo, el averiado se ve YENDOSE (banqueado, chico, con humo).
       // Va antes que drawPlane: esta mas lejos — pintor correcto respecto del que entra.
@@ -9988,7 +10055,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // SONDA del radar propio (15/10): el store y lo que resolveria el orquestador
     // sonda: LAS ZONAS DEL NEPTUNE (r6) — cual es la de la mancha, el estado de cada una, si se hallo
     if (typeof window !== 'undefined') window.__zonasdbg = () => JSON.stringify(zonasM && { blanco: zonasM.blanco, hallada: zonasM.hallada, irT: +zonasM.irT.toFixed(1),
-      lista: zonasM.lista.map(z => [+z.f0.toFixed(2), +z.f1.toFixed(2), z.estado, z.barrido]), f: +(run.dist / Math.max(1, objectiveDist)).toFixed(3), mar: islas.enMar(), busq: window.__busqueda && window.__busqueda() });
+      lista: zonasM.lista.map(z => [+z.f0.toFixed(2), +z.f1.toFixed(2), z.estado, z.barrido]), f: +zonaF().toFixed(3), reg: !!zonasM.reg, mar: islas.enMar(), busq: window.__busqueda && window.__busqueda() });
     if (typeof window !== 'undefined') window.__rpset = o => { Object.assign(radarP, o || {}); return window.__rpdbg(); };
     if (typeof window !== 'undefined') window.__rpdbg = () => JSON.stringify({ tiene: radarP.tiene, on: radarP.on,
       carga: +radarP.carga.toFixed(2), ve: radarP.ve, marca: +radarP.marcaT.toFixed(1), aereo: +radarP.aereoT.toFixed(1), buques: +radarP.buquesT.toFixed(1), ondas: radarP.ondas.length,

@@ -19,11 +19,15 @@ export const BUSQ = {
   // VER: lo que esta a menos de VISTA m (horizontal) se ve si volas abajo del techo de nubes; mas abajo, mas lejos
   // (VISTA_BAJO a ras del agua) — y adentro de la nube, nada
   TECHO: 150, VISTA: 260, VISTA_BAJO: 420, BAJO: 50,
+  // (26/11, el autor: "estoy a 1120 m y en algun punto debo sobrepasar el piso de NUBES BLANCAS para llegar al cielo
+  // limpio"): la capa tiene TECHO arriba — de TECHO a TOPE estas adentro (todo blanco); arriba, cielo y un PISO de nubes
+  TOPE: 240,
   // LA MANCHA DE ACEITE: ANCHO m de ancho y LARGO de largo, hacia el SE (RUMBO, grados), desde una de las BENGALAS
   MANCHA_ANCHO: 300, MANCHA_LARGO: 1800, MANCHA_RUMBO: 135,
   // LAS BENGALAS (26/11): cuantas, a que distancia del centro, separadas cuanto (y de la entrada); el radar las barre a
   // menos de BENGALA_R, arriba de RADAR_ALT, durante BENGALA_S segundos
-  BENGALAS: 5, BENGALA_D: [900, 5200], BENGALA_SEP: 2200, BENGALA_R: 2000, BENGALA_S: 2.5, RADAR_ALT: 22,
+  BENGALAS: 5, BENGALA_D: [700, 3400], BENGALA_SEP: 1400,   // (26/11, el autor: "estan demasiado lejos": eran [900, 5200] y 2200)
+  BENGALA_R: 2000, BENGALA_S: 2.5, RADAR_ALT: 22,
   // LAS BALSAS: N, en un racimo de RACIMO m, DERIVA m mas alla de la punta SE de la mancha
   BALSAS_N: 9, RACIMO: 140, DERIVA: [700, 1300],
   // SI NO LAS MARCAS SE PIERDEN: alejarse PIERDE m de las balsas sin humo y vuelven a ser invisibles (derivaron)
@@ -31,7 +35,7 @@ export const BUSQ = {
   // EL HUMO: HUMOS marcadores; uno que cae a menos de MARCA m del racimo las marca. Dura HUMO_S s (y se renueva)
   HUMOS: 6, MARCA: 320, HUMO_S: 240,
   // LOS CIRCULOS: arriba de CIRCULO_ALT m, a menos de CIRCULO_R m del humo, sumar VUELTAS vueltas de rumbo
-  CIRCULO_ALT: 260, CIRCULO_R: 2600, VUELTAS: 2,
+  CIRCULO_ALT: 260, CIRCULO_R: 2600, VUELTAS: 2, CIRCULO_S: 3.5,   // (26/11: RADAR prendido CIRCULO_S s, arriba y cerca)
   // LOS INDICIOS FALSOS: cuantos, y a que distancia del centro (lo que se ve en el mar y no es)
   INDICIOS_N: 9,
 };

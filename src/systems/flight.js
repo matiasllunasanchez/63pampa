@@ -114,6 +114,7 @@ import * as pasada from './pasada.js';
 import * as pulso from './pulso.js';
 import { engineFly, sfxOne, sfxSrc, beep, boom } from './audio.js';
 import * as dmg from './damage.js';
+import { vibraAgua, vibraCanon } from '../core/vibra.js';   // (26/11: el mando — el agua y el cañon)
 import { applyEnergy, applyDrag, speedTarget, windFactor, pitchTarget, scrapeLimit,
          bankStep, bankVx, BANK_MAX,
          PITCH_LERP, AFTER_STEP, AFTER_MAX, SCRAPE_RECOVER, SCRAPE_LIFT } from '../core/physics.js';
@@ -562,7 +563,9 @@ export function flightSystem(dt, deps) {
     ras: rasante.cam(),
     // EL ZIGZAG (PLAN_PASILLO_ZIGZAG Z2). Los dos valen 0 con el pasillo recto, que es lo que
     // hace que `npm run feel` de identico — la misma mecanica que `ras`, que devuelve null.
-    deriva: zigzag.derivaZigzag() + va.deriva + va.temX,
+    // (26/11, "en ISLA se me trabo el avion girando en circulos"): en las islas lo de costado se vuelve RUMBO
+    // (islas.js `pide`), asi que el empuje lateral sostenido del viento de altura lo hacia virar sin fin — alla no corre
+    deriva: zigzag.derivaZigzag() + (geoExterna.on ? 0 : va.deriva + va.temX),
     // …y la vertical del viento de altura: la correntada que hunde y el temblor (0 abajo del carril)
     vyViento: va.temY - va.hunde,
     // …y EL DERRAPE afloja el seguimiento lateral para que el cruce se vea (systems/moves.js)
@@ -737,6 +740,7 @@ export function flightSystem(dt, deps) {
     // (CONOCER EL TERRENO, 18/10: sobre tierra el margen dura mas — `run.terrenoK`, modos sueltos)
     const lim = scrapeLimit(run.spd, run.boost) * fsVal('agua', 1) * (deathMsg === 'death_land' ? run.terrenoK || 1 : 1);
     run.scrapeT += dt;
+    vibraAgua(0, lim > 0 ? run.scrapeT / lim : 1);   // EL MANDO: pulsos, mas fuertes cuanto mas gastado el margen
     // CON CHAPA (INTEGRIDAD / VISUAL, desde el 11/9) agotar el margen ya no mata: el roce gasta el
     // ESCUDO y despues la chapa (systems/damage.js, `roce`), y se cae recien sin chapa. El reloj se
     // topa en el margen y queda para lo otro que hace: la histeresis de la banda, dos lineas arriba.
@@ -773,6 +777,7 @@ export function flightSystem(dt, deps) {
     // cura, deja de cobrar.
     run.scrapeT = Math.max(0, run.scrapeT - dt * SCRAPE_RECOVER);   // salir descuenta, pero no borra
     run.scrapeVib = Math.max(0, run.scrapeVib - dt * 6);            // la vibracion se apaga al salir
+    if (!colchon) vibraAgua(plane.y - groundY, -1);                // EL MANDO: el zumbido del rasante, al bajar crece
   }
 
   // EL AGUA QUE LEVANTAS (estela + rocio): vive en la cama de vuelo desde que una cinematica
@@ -957,6 +962,7 @@ export function flightSystem(dt, deps) {
     if (cn) Object.assign(bala, { dano: cn.dano, vel: cn.vel, gordo: cn.gordo });
     if (run.potencia > 1) bala.dano = (bala.dano || 1) * run.potencia;   // BALA PERFORANTE (el banco suelto)
     bullets.push(bala);
+    vibraCanon();   // EL MANDO: apenitas, por tiro
     // (el cañon lento calienta lo mismo POR SEGUNDO que la metralla: cada tiro pesa lo que pesan los que no tira)
     run.heat += calorTiro(run.metralla, run.cinta) * (cn ? met.cad / cn.cad : 1) * (run.potencia > 1 ? 1 + (run.potencia - 1) * 0.15 : 1)   // (su precio: recalienta)
       * (run.falCanon === 1 ? 1.5 : 1);   // RECALIENTA (la falla LEVE)
@@ -987,7 +993,8 @@ export function flightSystem(dt, deps) {
   // mantener-y-soltar, y el mando (L1) tambien.
   // SIN NADA QUE SOLTAR NO HAY MIRA (25/11, el autor: "quitar al Neptune la mira de bomba porque no lanza nada"): los
   // que no llevan armas (`sinArmas`) y no ganaron bombas ni llevan el Exocet no apuntan
-  if (run.sinBombas && !run.mslMax && !run.soloExocet) { run.apuntaBomba = false; run.miraAntes = false; run.fuegoAntes = !!inp.fire; return false; }
+  // (…salvo la BENGALA DEL HUMO de la busqueda del Belgrano, `run.bengalaHumo`: esa se apunta y se suelta como una bomba)
+  if (run.sinBombas && !run.mslMax && !run.soloExocet && !run.bengalaHumo) { run.apuntaBomba = false; run.miraAntes = false; run.fuegoAntes = !!inp.fire; return false; }
   const mira = !!inp.apunta;
   if (mira) {
     run.apuntaBomba = true;
