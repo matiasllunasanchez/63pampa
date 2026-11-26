@@ -157,5 +157,13 @@ if (SIGUE) app.whenReady().then(() => {
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 
-// salir al cerrar todas las ventanas (menos en macOS, convención de la plataforma)
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+// SALIR CIERRA DE VERDAD (25/11, feedback de un amigo: "cuando apretas SALIR no cierra finalmente"). Es un
+// juego: cerrar la ventana cierra la app tambien en macOS (la convencion de quedar vivo en el Dock es de las apps
+// de documentos), y si algo la deja colgada —el hilo de Steam, un proceso hijo— a los 2 s se la corta igual.
+// La pagina pide `salir` desde el menu (src/game.js quitGame); la X de la ventana pasa por aca mismo.
+function salir() {
+  app.quit();
+  setTimeout(() => app.exit(0), 2000).unref();
+}
+ipcMain.on('salir', () => salir());
+app.on('window-all-closed', () => salir());

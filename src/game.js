@@ -2575,7 +2575,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
      *  portada, que es lo mas cercano a 'salir' que se puede hacer ahi. */
     function quitGame() {
       beep(300, 0.18, 'square', 0.05, 120);
-      try { window.close(); } catch (e) { }
+      // en Electron le pide a la app que se cierre entera (en Mac cerrar la ventana la dejaba viva)
+      try { if (window.rasanteVentana && window.rasanteVentana.salir) window.rasanteVentana.salir(); else window.close(); } catch (e) { }
       setTimeout(() => { if (!window.closed) { modeSel = modeInicial(); setState('title'); } }, 250);
     }
 

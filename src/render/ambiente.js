@@ -37,6 +37,8 @@ const AMB_MEZCLA = 0.3;           // cuanto pesa cada copia nueva sobre la acumu
  *  tubo va de x 366 a 1006 y de y 137 a 529, con las esquinas redondeadas). `ancho` es el del juego
  *  adentro — un poco menos que el tubo, para que las esquinas del juego no muerdan la curva — y
  *  (cx, cy) el centro del tubo. */
+// (25/11: la imagen se rehizo al doble, 2752x1535, para monitores grandes; las medidas siguen en las de 1376x768:
+//  el CSS la estira a FICHIN.W x FICHIN.H por la escala, asi que vale cualquier tamaño con la misma proporcion)
 const FICHIN = { W: 1376, H: 768, ancho: 600, cx: 686, cy: 333 };
 /** LOS TRES ACERCAMIENTOS (autor, 3/10): `k` cuanto se acerca la camara sobre lo que ya cubre la
  *  ventana, y `abajo` hasta que fila de la imagen llega el borde de abajo de la pantalla. 1 es el
@@ -47,6 +49,10 @@ const FICHIN = { W: 1376, H: 768, ancho: 600, cx: 686, cy: 333 };
  *  el centro del tubo sobre `abajo` para ubicarlo en vertical (0 apoyado abajo, 1 centrado). */
 const ZOOM = { 1: { k: 1, abajo: 768, centro: 0 }, 2: { k: 1.25, abajo: 670, centro: 0 }, 3: { k: 1.5, abajo: 615, centro: 1 } };
 export const ZOOMS = [1, 2, 3];
+/** Desde que aspecto la ventana cuenta como ultra ancha (un 16:9 es 1.78, un 21:9 2.33), y que parte del
+ *  alto ocupa ahi el juego con cada acercamiento. */
+const ULTRA = 1.9;
+const ULTRA_ALTO = { 1: 0.8, 2: 0.87, 3: 0.94 };
 
 /** EL ACERCAMIENTO DE FABRICA DEPENDE DE LA PANTALLA (autor, 4/10): notebook el 3, un monitor de
  *  1920 el 2, uno 4K el 1 — cuanto mas grande el vidrio, mas gabinete entra sin que el juego quede
@@ -137,11 +143,19 @@ function apagarResplandor() {
  *  su esquina y la caja del juego, todo en px CSS. */
 function geoFichin() {
   const iw = window.innerWidth, ih = window.innerHeight, z = zoomVigente();
-  const s = Math.max(iw / FICHIN.W, ih / FICHIN.H) * z.k;
+  let s = Math.max(iw / FICHIN.W, ih / FICHIN.H) * z.k;
+  // MONITOR ULTRA ANCHO (25/11, feedback de un amigo en un 21:9: "en monitor grande se ve horrible"; el autor:
+  // "hagamos zoom"). Mas ancho que el gabinete, cubrir la ventana lo agranda por el ANCHO: corta el mueble arriba
+  // y abajo y el juego queda en la mitad del vidrio. Ahi la camara se acerca hasta que el juego ocupe casi todo
+  // el alto (mas con cada acercamiento de OPCIONES) y el tubo va centrado: del gabinete queda el marco.
+  const ancho = iw / ih > ULTRA;
+  // (proporcional al acercamiento vigente: en el arranque, que va del gabinete entero al de OPCIONES, se acerca igual de suave)
+  if (ancho) s = Math.max(s, (ih * ULTRA_ALTO[zoom] * 16 / 9) / FICHIN.ancho * z.k / (ZOOM[zoom] || ZOOM[1]).k);
+  const z2 = ancho ? { ...z, centro: 1 } : z;
   // centrada en el tubo a lo ancho; en vertical, entre apoyada en `abajo` y con el tubo al centro
   // segun `centro`; y en ningun caso deja ver fuera de la imagen
   const x0 = Math.min(0, Math.max(iw - FICHIN.W * s, iw / 2 - FICHIN.cx * s));
-  const yAbajo = ih - z.abajo * s, yCentro = ih / 2 - FICHIN.cy * s, c = z.centro || 0;
+  const yAbajo = ih - z2.abajo * s, yCentro = ih / 2 - FICHIN.cy * s, c = z2.centro || 0;
   const y0 = Math.min(0, Math.max(ih - FICHIN.H * s, yAbajo + (yCentro - yAbajo) * c));
   const w = FICHIN.ancho * s, h = w * 9 / 16;
   return { s, x0, y0, w, h, x: x0 + FICHIN.cx * s - w / 2, y: y0 + FICHIN.cy * s - h / 2 };

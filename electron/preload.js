@@ -12,7 +12,10 @@ contextBridge.exposeInMainWorld('RASANTE_DEV', process.argv.includes('--rasante-
 // LA VERSION FULL (src/core/dev.js FULL): `--full` en main.js
 contextBridge.exposeInMainWorld('RASANTE_FULL', process.argv.includes('--rasante-full'));
 // OPCIONES -> PANTALLA (src/game.js): pantalla completa o ventana. Lo aplica electron/main.js.
-contextBridge.exposeInMainWorld('rasanteVentana', { pantallaCompleta: v => ipcRenderer.send('pantalla-completa', !!v) });
+contextBridge.exposeInMainWorld('rasanteVentana', {
+  pantallaCompleta: v => ipcRenderer.send('pantalla-completa', !!v),
+  salir: () => ipcRenderer.send('salir'),   // SALIR del menu: cierra la app entera (electron/main.js)
+});
 // LOS TEMAS DE music/original, como estan en la carpeta (electron/main.js; los usa systems/audio.js)
 contextBridge.exposeInMainWorld('rasanteMusica', { original: () => ipcRenderer.sendSync('musica-original') });
 // STEAM (electron/steam.js): logros y si esta conectado. Fuera del build de Steam devuelven false / activo:false.
