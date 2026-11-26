@@ -107,6 +107,11 @@ def m_sheffield(T):
 def m_neptune(T):
     return MOD.neptune(T, K_nuevo(cargas=False))
 
+# LAS BALSAS (26/11): cinco balsas de cerca, para la hoja LAS BALSAS del Belgrano
+def m_balsas(T):
+    L_ = cargar('modelos_libro_lam', 'modelos_libro.py')
+    return L_.balsas_grupo(T, K_nuevo(cargas=False))
+
 # (modelo, azimut, elevacion, margen): el azimut se mide desde ESTRIBOR (+x de three) hacia la PROA;
 # la elevacion, positiva desde arriba. Ortografica: es un plano, no una foto.
 LAMINAS = {
@@ -120,6 +125,7 @@ LAMINAS = {
     # (26/11) EL SHEFFIELD de tres cuartos de proa por estribor, y el NEPTUNE de tres cuartos desde abajo-adelante
     'sheffield':     (m_sheffield, 34, 18, 0.05),
     'neptune':       (m_neptune, 30, -12, 0.06),
+    'balsas':        (m_balsas, 20, 26, 0.06),
 }
 
 # ============================ LA ESCENA ============================

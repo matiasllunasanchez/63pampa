@@ -461,7 +461,7 @@ const r5 = {
 // ⚠ A CONFIRMAR (PREGUNTAS_HISTORICAS «EL RESCATE DEL BELGRANO»): las horas de despegue (≈), la base, el humo y los
 // circulos (son mecanica de juego, el autor 21/11), y donde exactamente.
 // SE VUELA: ida por el pasillo bajo la tormenta (nubes a 150 m), y en la zona, fundido al MAR ABIERTO del motor de las
-// islas: LA BUSQUEDA (systems/islas/busqueda.js). Vuelta por el pasillo, con la nafta justa.
+// islas: LA BUSQUEDA (systems/islas/busqueda.js). Vuelta por el pasillo. La nafta es decorativa (`naftaPiso`): alcanza y sobra.
 const LARGO_BELGRANO = 12000;
 const r6 = {
   id: 'r6', name: 'EL RESCATE DEL BELGRANO',
@@ -481,7 +481,7 @@ const r6 = {
   techoNubes: 150,
   chancha: false,
   // (SIN RADAR BRITANICO: la busqueda fue lejos de la flota — sin barra, sin red, sin Sea Dart)
-  cfg: cfgReal({ sky: 'storm', rain: 1, fog: 1, fogLen: 1, squad: 1, caza: 0, radar: 'off', fuelScale: 0.04 }),
+  cfg: cfgReal({ sky: 'storm', rain: 1, fog: 1, fogLen: 1, squad: 1, caza: 0, radar: 'off', fuelScale: 0.04, naftaPiso: 40 }),   // (naftaPiso: la nafta no aprieta — systems/flight.js)
   fases: [
     { tipo: 'rasante', hasta: 1, solo: MAR, obstacles: IDA_DENSA, bombs: 0, bidones: false },
     { tipo: 'vuelta', hasta: 2, solo: MAR, obstacles: 0.8, bombs: 0, bidones: false, caza: 0 },
@@ -547,12 +547,24 @@ const LAMINA_WRAP = 38;
 const tarjeta = (id, titulo, lineas, rotulo) => ({
   id, tipo: 'TARJETA', titulo, rotulo,
   lineas: lineas.map((l, i) => {
-    const [es, lamina, laminaTxt] = Array.isArray(l) ? l : [l];
+    // (una linea puede ser texto, [texto, lamina, rotulo] o { es, lamina, laminaTxt, fecha })
+    const { es: es0, lamina, laminaTxt, fecha } = Array.isArray(l) ? { es: l[0], lamina: l[1], laminaTxt: l[2] } : typeof l === 'string' ? { es: l } : l;
+    // EL SUBTITULO (26/11, el autor: "EL TEMPORAL lo estas usando como subtitulo, usalo como tal, dejale un salto de linea y
+    // sin punto, dale ese protagonismo"): «ANTES.», «EL PLAN.», «EL TEMPORAL.»… al principio de la linea salen del texto y
+    // van en su propio renglon, arriba (render/screens.js drawTarjeta)
+    const sub = /^([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ ]{2,})\. /.exec(es0);
+    const es = sub ? es0.slice(sub[0].length) : es0;
     return { id: id + '_' + String((i + 1) * 10).padStart(3, '0'), personaje: null, cara: null, hold: 0, es, en: '',
+      ...(sub ? { subtitulo: sub[1] } : {}),
+      ...(fecha ? { fecha } : {}),
       ...(lamina ? { lamina, laminaTxt: laminaTxt || '', wrap: LAMINA_WRAP } : {}) };
   }),
 });
 const dato = m => m.fecha + ' · ' + m.hora + ' · ' + m.despegue.desde;
+// LA FECHA DEL DIA, FUERA DEL TEXTO (26/11, el autor: "las fechas de hoy no las pongamos en el mismo texto y menos con la
+// palabra HOY; la fecha en el bloque de texto con letra mas chica y fina, arriba a la derecha, y luego el texto"):
+// render/screens.js drawTarjeta la dibuja arriba a la derecha del bloque tipeado
+const hoy = (m, es, lamina, laminaTxt, extra = '') => ({ es, lamina, laminaTxt, fecha: m.fecha + extra });
 
 export const LIBRO_SCENES = {
   // EL CONTEXTO DE CADA SALIDA (23/11, el autor: "que cada mision te cuente EL CONTEXTO DONDE SUCEDE HOY, LO QUE SUCEDIO
@@ -563,7 +575,7 @@ export const LIBRO_SCENES = {
   // siempre (aprobado el 23/11); solo se le cuelgan los dibujos
   R1_CONTEXTO: tarjeta('R1_CONTEXTO', r1.name, [
     [dato(r1), 'mapa_sheffield', 'RÍO GRANDE → LA FLOTA'],
-    ['HOY. Río Grande, Tierra del Fuego. Un Neptune de la Armada encontró esta mañana a la flota británica, al este de las islas.', 'neptune', 'SP-2H NEPTUNE · LA EXPLORACIÓN'],
+    hoy(r1, 'Río Grande, Tierra del Fuego. Un Neptune de la Armada encontró esta mañana a la flota británica, al este de las islas.', 'neptune', 'SP-2H NEPTUNE · LA EXPLORACIÓN'),
     ['ANTES. El 2 de mayo un submarino británico hundió al crucero General Belgrano. La Argentina tiene cinco Exocet y no van a llegar más.', 'belgrano', 'ARA GENERAL BELGRANO'],
     ['El Super Étendard es de la Armada y el único avión argentino que puede lanzar el Exocet: un misil antibuque que se suelta a 20 o 30 millas y llega solo, rozando el agua.', 'supere_exocet', 'SUPER ÉTENDARD · EXOCET AM39'],
     ['EL PLAN. Salen dos Super Étendard, con un Exocet cada uno. Cargan nafta de un Hércules en la ida y siguen al ras, sin radar, hasta la posición que pasó el Neptune.', 'kc130', 'KC-130 · LA CARGA EN LA IDA'],
@@ -571,36 +583,36 @@ export const LIBRO_SCENES = {
     ['Ahí suben y prenden el radar lo justo para encontrar al blanco: cada barrido los delata. Lanzan a 20 o 30 millas y vuelven al ras a Río Grande. Si un misil falla, queda el otro.', 'ui_busca', 'LA ZONA DE BÚSQUEDA'],
   ]),
   R1_LO_QUE_PASO: tarjeta('R1_LO_QUE_PASO', r1.name, [
-    ['4 de mayo de 1982. A las 11:04 los dos Super Étendard lanzaron sus Exocet desde 20 a 30 millas, y volvieron al ras a Río Grande.', 'exocet', 'EXOCET AM39'],
+    hoy(r1, 'A las 11:04 los dos Super Étendard lanzaron sus Exocet desde 20 a 30 millas, y volvieron al ras a Río Grande.', 'exocet', 'EXOCET AM39'),
     ['Uno alcanzó al HMS Sheffield. Murieron 20 tripulantes. Se hundió seis días después, mientras lo remolcaban.', 'sheffield', 'HMS SHEFFIELD · TIPO 42'],
   ], 'rot_lqp'),
   R2_CONTEXTO: tarjeta('R2_CONTEXTO', r2.name, [dato(r2),
-    'HOY. Dos buques británicos, la Glasgow y la Brilliant, bombardean desde el mar las posiciones de Puerto Argentino. Es el último día de niebla.',
+    hoy(r2, 'Dos buques británicos, la Glasgow y la Brilliant, bombardean desde el mar las posiciones de Puerto Argentino. Es el último día de niebla.'),
     'ANTES. En mayo las espoletas fallan seguido: muchas bombas atraviesan el buque sin estallar.',
     'El A-4B Skyhawk de la Fuerza Aérea no tiene misiles antibuque: ataca con una bomba, y para soltarla tiene que pasar por encima del buque, adentro de su antiaérea.',
     'EL PLAN. Dos escuadrillas de A-4B desde Río Gallegos: CUÑA sale a las 12:20 contra la Brilliant y ORO a las 12:30 contra la Glasgow.',
     'Al ras sobre el agua, una pasada por encima de cada buque, bombas y afuera. La Brilliant tiene Sea Wolf: no quedarse cerca.']),
-  R2_LO_QUE_PASO: tarjeta('R2_LO_QUE_PASO', r2.name, ['12 de mayo de 1982. De ocho A-4B volvieron cuatro: los Sea Wolf de la Brilliant bajaron a tres de CUÑA.', 'Una bomba de ORO atravesó a la Glasgow de lado a lado y estalló en el agua: el destructor quedó fuera de combate el resto de la guerra.', 'Al volver, uno de ORO cruzó Pradera del Ganso y lo derribó la antiaérea propia.'], 'rot_lqp'),
+  R2_LO_QUE_PASO: tarjeta('R2_LO_QUE_PASO', r2.name, [hoy(r2, 'De ocho A-4B volvieron cuatro: los Sea Wolf de la Brilliant bajaron a tres de CUÑA.'), 'Una bomba de ORO atravesó a la Glasgow de lado a lado y estalló en el agua: el destructor quedó fuera de combate el resto de la guerra.', 'Al volver, uno de ORO cruzó Pradera del Ganso y lo derribó la antiaérea propia.'], 'rot_lqp'),
   R3_CONTEXTO: tarjeta('R3_CONTEXTO', r3.name, [dato(r3),
-    'HOY. 21 de mayo: los británicos desembarcan en San Carlos, y sus fragatas cubren el estrecho.',
+    hoy(r3, 'Los británicos desembarcan en San Carlos, y sus fragatas cubren el estrecho.'),
     'ANTES. Después del Belgrano la flota argentina se quedó en el continente: los A-4Q de la Armada, hechos para el portaaviones, vuelan desde Río Grande.',
     'Sus bombas tienen cola retardadora: frenan en el aire y dan tiempo a escapar de la explosión, así que se pueden soltar más bajo.',
     'EL PLAN. La primera sección de la Tercera Escuadrilla despega a las 14:10: tres A-4Q con cuatro bombas cada uno.',
     'No hay Hércules: la nafta es la que se lleva. Entrar al ras por la boca del estrecho, con mal tiempo, buscar una fragata y soltar bajo.']),
-  R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', r3.name, ['21 de mayo de 1982. Los tres A-4Q le pegaron a la HMS Ardent; la segunda sección, ocho minutos después, también. La fragata se hundió.', 'A la salida, dos Sea Harrier derribaron a los tres: dos pilotos se eyectaron y sobrevivieron; el tercero no volvió.'], 'rot_lqp'),
+  R3_LO_QUE_PASO: tarjeta('R3_LO_QUE_PASO', r3.name, [hoy(r3, 'Los tres A-4Q le pegaron a la HMS Ardent; la segunda sección, ocho minutos después, también. La fragata se hundió.'), 'A la salida, dos Sea Harrier derribaron a los tres: dos pilotos se eyectaron y sobrevivieron; el tercero no volvió.'], 'rot_lqp'),
   R4_CONTEXTO: tarjeta('R4_CONTEXTO', r4.name, [dato(r4),
-    'HOY. 8 de junio. Los británicos siguen en el estrecho de San Carlos y mueven tropas hacia Bahía Agradable.',
+    hoy(r4, 'Los británicos siguen en el estrecho de San Carlos y mueven tropas hacia Bahía Agradable.'),
     'ANTES. Desde el desembarco del 21 de mayo, las fragatas británicas cuidan el estrecho.',
     'El Dagger es la versión israelí del Mirage 5, de la Fuerza Aérea: más rápido que el Skyhawk, pero sin sonda para cargar nafta en vuelo.',
     'EL PLAN. Dos escuadrillas de Dagger, PERRO y GATO, salen de Río Grande con tres tanques y dos bombas de 250 kg cada uno: el alcance justo para ir, atacar y volver.',
     'No hay carga en vuelo: lo que se lleva es lo que hay. Uno vuelve al rato porque un pájaro le rompe el parabrisas: siguen cinco.']),
-  R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', r4.name, ['8 de junio de 1982. Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.', 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.'], 'rot_lqp'),
+  R4_LO_QUE_PASO: tarjeta('R4_LO_QUE_PASO', r4.name, [hoy(r4, 'Cinco Dagger encontraron sola a la HMS Plymouth en el estrecho de San Carlos.'), 'Cuatro bombas la alcanzaron: una atravesó la chimenea y otra hizo estallar una carga de profundidad. Quedó fuera de combate. Volvieron todos.'], 'rot_lqp'),
   // UNA HOJA POR TIPO DE AVION (23/11, el autor: "en la explicacion de la mision del Invincible, explicar los roles de cada
   // tipo de avion y como funciona; una hoja para cada tipo de avion"): el que lanza, el que escolta y la cisterna, cada uno
   // con su lamina y lo que se hace con el en el juego
   R5_CONTEXTO: tarjeta('R5_CONTEXTO', r5.name, [
     [dato(r5), 'mapa_invincible', 'RÍO GRANDE → EL GRUPO DE PORTAAVIONES'],
-    ['HOY. 30 de mayo. El portaaviones Invincible navega con su grupo al este de las islas. Desde ahí despegan los Harrier.', 'invincible', 'HMS INVINCIBLE'],
+    hoy(r5, 'El portaaviones Invincible navega con su grupo al este de las islas. Desde ahí despegan los Harrier.', 'invincible', 'HMS INVINCIBLE'),
     ['ANTES. De los cinco Exocet se usaron cuatro: dos contra el Sheffield el 4 de mayo y dos contra el Atlantic Conveyor el 25. Queda uno.', 'exocet', 'EXOCET AM39 · EL ÚLTIMO'],
     // (las hojas del plan llevan los dibujos de los aviones; la del radar, la barra con la zona donde se lo busca)
     ['EL PLAN. Despegan juntos dos Super Étendard, uno con el último Exocet, y cuatro A-4C de la Fuerza Aérea. Un Hércules los carga en la ida.', 'kc130', 'KC-130 · LA CARGA EN LA IDA'],
@@ -615,20 +627,25 @@ export const LIBRO_SCENES = {
   // temporal"; "nuestro plan: aclarar que no teniamos la ubicacion exacta"; "explicar como buscar en el juego"; "falta la
   // parte de que hacer en ISLAS"). Texto para el OK del autor.
   R6_CONTEXTO: tarjeta('R6_CONTEXTO', r6.name, [dato(r6),
-    ['HOY. 3 de mayo, de madrugada. Ayer a las 16:02 el submarino nuclear británico HMS Conqueror torpedeó al crucero General Belgrano. Estaba fuera de la zona de exclusión que había declarado el Reino Unido y navegaba hacia el oeste, alejándose de las islas.', 'belgrano', 'ARA GENERAL BELGRANO'],
-    ['El crucero se hundió en alrededor de una hora. Hay reportes de balsas en el agua, pero nadie sabe dónde están: en la oscuridad y el mal tiempo, los destructores que lo escoltaban perdieron el contacto.', 'belgrano', 'LAS BALSAS'],
-    'EL TEMPORAL. Viento, lluvia, mar embravecido y agua helada. Las nubes están a 150 metros del mar: para ver algo hay que volar por debajo. Cada hora que pasa, el viento y las olas arrastran las balsas más lejos.',
-    ['NUESTRO PLAN. No tenemos la posición exacta del hundimiento. Los Neptune de la Armada salen de Río Grande a buscar en distintas zonas del trayecto, con el radar de búsqueda.', 'ui_busca', 'LAS ZONAS DE BÚSQUEDA'],
-    ['EN EL CAMINO. Volá rasante por las dudas. En la barra de arriba hay zonas con ?: en cada una subí y prendé el radar, que cuanto más alto, más lejos ve, y después volvé al ras. Cuidado: el radar prendido enciende las alarmas del radar enemigo. Buscá en todas las zonas del trayecto hasta tener contacto; si pasás la última sin nada, damos la vuelta una sola vez.', 'ui_busca', 'EL RADAR'],
-    ['EN LA ZONA. Con el contacto entrás al mar abierto. Hay cinco bengalas: seguilas y prendé el radar cerca de cada una hasta dar con la mancha de aceite. Seguí la mancha al sudeste: las balsas están más allá de la punta.', 'belgrano', 'LA MANCHA'],
-    'LAS BALSAS. Cuando las veas, marcalas con humo (ESPACIO · ✕ · R1), porque si te alejás sin marcarlas se pierden. Después subí por encima de 260 metros y da vueltas sobre el humo hasta que el destructor te tome. Volvé a Río Grande con la nafta que quede.',
+    hoy(r6, 'Ayer a las 16:02 el submarino nuclear británico HMS Conqueror torpedeó al crucero General Belgrano. Estaba fuera de la zona de exclusión que había declarado el Reino Unido y navegaba hacia el oeste, alejándose de las islas.', 'belgrano', 'ARA GENERAL BELGRANO', ' · MADRUGADA'),
+    ['El crucero se hundió en alrededor de una hora. Hay reportes de balsas en el agua, pero nadie sabe dónde están: en la oscuridad y el mal tiempo, los destructores que lo escoltaban perdieron el contacto.', 'balsas', 'LAS BALSAS'],
+    'EL TEMPORAL. Viento, lluvia, mar embravecido y agua helada.\n\nLas nubes están a 150 metros del mar: para ver algo hay que volar por debajo.\n\nCada hora que pasa, el viento y las olas arrastran las balsas más lejos.',
+    ['NUESTRO PLAN. No tenemos la posición exacta del hundimiento.\n\nLos Neptune de la Armada salen de Río Grande a buscar en distintas zonas del trayecto, con el radar de búsqueda.', 'ui_busca', 'LAS ZONAS DE BÚSQUEDA'],
+    // (26/11, el autor: "no se si es necesario volar rasante por las dudas, y no siento que este bien explicado, claro y conciso")
+    ['EN EL CAMINO. En la barra de arriba hay zonas con ?.\n\nEn cada una: subí, prendé el radar y volvé al ras. Más alto ve más lejos, pero prendido te detecta el radar enemigo.\n\nSi pasás la última sin contacto, damos la vuelta una sola vez.', 'ui_busca', 'EL RADAR'],
+    // (26/11, el autor: "una vez que encuentres la zona aproximada del hundimiento entras en mar abierto. Busca las bengalas,
+    // seguilas y prende el radar cuando estes cerca, busca una mancha de aceite en el agua, es donde ocurrio el hundimiento")
+    ['EN LA ZONA. Cuando encontrás la zona aproximada del hundimiento, entrás en mar abierto.\n\nBuscá las bengalas, seguilas y prendé el radar cuando estés cerca: buscás una mancha de aceite en el agua, que marca dónde se hundió.\n\nSeguí la mancha al sudeste: las balsas están más allá de la punta.', 'belgrano', 'LA MANCHA'],
+    // (26/11, el autor: "no hace falta explicarlo con texto; si vas a explicar como marcarlas, usa el cuadrado de la derecha y
+    // los sticks o teclas que ya conocemos"): la lamina `mando:Gun` dibuja el mando del cañon (el que suelta el humo)
+    ['LAS BALSAS. Cuando las veas, marcalas con humo: si te alejás sin marcarlas, se pierden.\n\nDespués subí por encima de 260 metros y da vueltas sobre el humo hasta que el destructor te tome.', 'mando:Gun', 'MARCAR CON HUMO'],
   ]),
   R6_LO_QUE_PASO: tarjeta('R6_LO_QUE_PASO', r6.name, [
-    ['3 de mayo de 1982. Poco después de las 9, el Neptune 2-P-111 vio la mancha de aceite bajo las nubes. Siguió buscando y encontró las balsas; voló en círculos sobre ellas hasta que el radar del destructor Piedra Buena lo tomó, y volvió a Río Grande casi sin combustible.', 'belgrano', 'ARA GENERAL BELGRANO'],
+    hoy(r6, 'Poco después de las 9, el Neptune 2-P-111 vio la mancha de aceite bajo las nubes. Siguió buscando y encontró las balsas; voló en círculos sobre ellas hasta que el radar del destructor Piedra Buena lo tomó, y volvió a Río Grande casi sin combustible.', 'belgrano', 'ARA GENERAL BELGRANO'),
     'El rescate siguió hasta el 4 de mayo con los destructores Bouchard y Piedra Buena, el aviso Gurruchaga y el Bahía Paraíso. De los 1.093 tripulantes del Belgrano volvieron 770. Murieron 323, la mayoría en las explosiones del ataque.',
   ], 'rot_lqp'),
   R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', r5.name, [
-    ['30 de mayo de 1982. Según la Argentina, el Exocet y las bombas alcanzaron al HMS Invincible. Según los británicos, el misil cayó al mar y los A-4C atacaron a la fragata Avenger sin acertar.', 'invincible', 'HMS INVINCIBLE'],
+    hoy(r5, 'Según la Argentina, el Exocet y las bombas alcanzaron al HMS Invincible. Según los británicos, el misil cayó al mar y los A-4C atacaron a la fragata Avenger sin acertar.', 'invincible', 'HMS INVINCIBLE'),
     ['Dos de los cuatro A-4C fueron derribados; sus pilotos no volvieron.', 'a4c', 'A-4C SKYHAWK'],
   ], 'rot_lqp'),
 };

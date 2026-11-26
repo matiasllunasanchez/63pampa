@@ -526,6 +526,9 @@ export function flightSystem(dt, deps) {
     naftaSys.sincronizar();
   }
   if (run.fuel <= 0) run.fuel = 0;
+  // LA NAFTA DECORATIVA (26/11, el autor, el Rescate del Belgrano: "el combustible debe alcanzar y sobrar para toda la
+  // mision, es meramente decorativo"): con `cfg.naftaPiso` la aguja baja, pero nunca por debajo del piso
+  if (cfg.naftaPiso && run.fuel < cfg.naftaPiso) run.fuel = cfg.naftaPiso;
   // ---- LA CAMA DE VUELO (systems/vuelo.js): integrar, topes, camara y actitudes con peso. Estas
   // lineas VIVIAN ACA; se mudaron enteras para poder correrlas tambien en una cinematica, donde el
   // avion se quedaba quieto y la camara clavada (PLAN_CINE_PESO §0). El pasillo no cambia: es la

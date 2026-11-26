@@ -242,3 +242,20 @@ def belgrano_hundiendose(T, K, balsas=True):
             piv.rotation_euler = (math.radians(6 * ((i % 3) - 1)), math.radians(giro), math.radians(5 * ((i % 2) * 2 - 1)))
     _cortar_agua(raiz, 0.0)
     return raiz
+
+
+# LAS BALSAS DEL BELGRANO, DE CERCA (26/11, el autor: "otro diseño de balsas aca" — la hoja LAS BALSAS usaba la misma
+# lamina del crucero): cinco balsas salvavidas (modelos_rescate.py, la de carpa con los naufragos asomados) juntas y a
+# su tamaño, cada una con su ola (se inclinan distinto), cortadas en la linea del agua.
+def balsas_grupo(T, K):
+    R = importlib.util.spec_from_file_location('modelos_rescate_lib', os.path.join(AQUI, 'modelos_rescate.py'))
+    MR = importlib.util.module_from_spec(R); R.loader.exec_module(MR)
+    raiz = B._raiz(T, 'Balsas')
+    lugares = [(0.0, 0.0, 10, 0.0), (-3.1, 1.6, 150, 0.05), (3.0, 1.2, 260, -0.04), (-1.4, 4.4, 70, 0.08), (2.0, 4.8, 200, 0.0)]
+    for i, (x, z, giro, alza) in enumerate(lugares):
+        piv = B._vacio(raiz, 'balsa_%d' % i)
+        MR.balsa_salvavidas(piv, K)
+        piv.location = (x, alza - 0.12, z)
+        piv.rotation_euler = (math.radians(7 * ((i % 3) - 1)), math.radians(giro), math.radians(6 * ((i % 2) * 2 - 1)))
+    _cortar_agua(raiz, 0.0)
+    return raiz

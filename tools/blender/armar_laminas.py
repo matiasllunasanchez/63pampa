@@ -22,7 +22,7 @@ BLENDER = '/Applications/Blender.app/Contents/MacOS/Blender'
 W, H = 480, 270
 ESC = 3
 VERDE = (0x5e, 0xf5, 0x8a)
-MODELOS = ['supere_exocet', 'a4c', 'kc130', 'exocet', 'invincible', 'belgrano', 'sheffield', 'neptune']
+MODELOS = ['supere_exocet', 'a4c', 'kc130', 'exocet', 'invincible', 'belgrano', 'sheffield', 'neptune', 'balsas']
 # LOS MAPAS: (lon, lat) del reabastecimiento (esquematico) y del blanco, y cuanto rodea la ruta por el sur (px)
 # · EL SHEFFIELD (26/11): tocado en ≈52°45'S 57°15'O (naval-history.net: «52¾S, 57¼»), unas 60-70 millas al SE de
 #   Puerto Argentino, de piquete por delante de los portaaviones. La cita con el Hercules (50°30'S 65°30'O) cae fuera

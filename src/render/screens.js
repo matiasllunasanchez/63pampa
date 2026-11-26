@@ -885,7 +885,10 @@ function laminaImg(n) {
   return im.complete && im.naturalWidth ? im : null;
 }
 function drawLamina(ln, d, yTop) {
-  const im = laminaImg(ln.lamina);
+  // UNA LAMINA QUE ES UN MANDO (26/11): `mando:<Nombre>` dibuja el control de la tabla de CONTROLES (strings `ctrl<Nombre>K`
+  // en teclado, `…P` en joystick) con los glifos de siempre — la tecla o el boton que ya conocemos, apretandose
+  const mando = /^mando:(\w+)$/.exec(ln.lamina || '');
+  const im = mando ? null : laminaImg(ln.lamina);
   const largo = Math.max(1, String(ln.es || '').length);
   const k = Math.max(0, Math.min(1, d.typed / (largo * 0.55)));   // termina de dibujarse antes que el texto
   const { w, h } = LAM, x = W - TARJ.x - LAM_ESC - w, y = yTop, V = VIEJA.verde;
@@ -908,8 +911,15 @@ function drawLamina(ln, d, yTop) {
     ctx.globalAlpha = 0.3; ctx.fillStyle = '#000';
     for (let yy = y; yy < y + h; yy += 1) ctx.fillRect(x, yy, cw, 1 / 3);
   }
+  if (mando && k > 0) {
+    const pad = padActivo(), gl = glifos.glifosDe(T('ctrl' + mando[1] + (pad ? 'P' : 'K')), pad);
+    const gh0 = 18, gh = Math.min(gh0, Math.floor(gh0 * (w - 12) / Math.max(1, glifos.medir(gl, gh0)))), gw = glifos.medir(gl, gh);   // (que entre en el cuadro)
+    ctx.globalAlpha = Math.min(1, k * 2);
+    glifos.dibujar(gl, Math.round(x + (w - gw) / 2), Math.round(y + (h - gh) / 2), gh, performance.now() / 1000, TARJ.fosforo, true);
+    ctx.globalAlpha = 1;
+  }
   // el rotulo, cuando ya esta dibujada
-  if (ln.laminaTxt && k >= 1) {
+  if (ln.laminaTxt && (k >= 1 || mando)) {
     ctx.globalAlpha = 0.9; ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center';
     ctx.fillStyle = TARJ.fosforo; ctx.shadowColor = TARJ.brillo; ctx.shadowBlur = 4;
     ctx.fillText(ln.laminaTxt, x + w / 2, y + h + 11);
@@ -946,17 +956,27 @@ function drawTarjeta(w, d, sc, ln) {
   // la de un monitor monocromo de los 80 — verde, con el resplandor del fosforo alrededor de cada
   // letra, un parpadeo leve de brillo, las lineas de barrido encima y el cursor de bloque que se
   // queda titilando al terminar, como una terminal esperando. `d.wrap` la trae partida por el motor.
-  const yText = yRaya + 18;
+  const yText0 = yRaya + 18;
+  // EL SUBTITULO (26/11, el autor: "EL TEMPORAL usalo como subtitulo, con un salto de linea y sin punto, dale protagonismo"):
+  // `ln.subtitulo` (data/libro_vuelo.js tarjeta) en su renglon, mas grande, y el texto tipeado empieza abajo
+  const yText = ln && ln.subtitulo ? yText0 + 16 : yText0;
+  if (ln && ln.subtitulo && palabrasVisibles() > 0) {
+    ctx.font = 'bold 10px monospace'; ctx.fillStyle = TARJ.fosforo;
+    ctx.shadowColor = TARJ.brillo; ctx.shadowBlur = 9;
+    ctx.fillText(ln.subtitulo, TARJ.x, yText0 + 2);
+    ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+  }
   ctx.font = 'bold 7px monospace'; ctx.fillStyle = TARJ.fosforo;
   // el resplandor NO escala con la transformacion: se da en px del buffer (U*SC = 3 por px de diseño)
   ctx.shadowColor = TARJ.brillo; ctx.shadowBlur = 7;
   ctx.globalAlpha = 0.9 + Math.random() * 0.1;
   let left = d.typed, curX = TARJ.x, curY = yText, yFin = yText;
-  for (let i = 0; i < d.wrap.length; i++) {
-    const y = yText + i * 11;
-    if (left <= 0) { curY = y - 11; break; }
+  // (el renglon en blanco de un '\n\n' separa los parrafos con MEDIO renglon: entero, el texto se salia por abajo)
+  for (let i = 0, y = yText; i < d.wrap.length; y += d.wrap[i] === '' ? 5 : 11, i++) {
+    if (left <= 0) break;
     const shown = d.wrap[i].slice(0, left);
     left -= d.wrap[i].length + 1;
+    if (!shown) continue;
     ctx.fillText(shown, TARJ.x, y);
     curX = TARJ.x + ctx.measureText(shown).width + 1; curY = y; yFin = y;
   }
@@ -972,7 +992,17 @@ function drawTarjeta(w, d, sc, ln) {
     for (let y = yText - 8; y < yFin + 3; y += 1) ctx.fillRect(TARJ.x - 2, y, W - TARJ.x * 2 + 4, 1 / 3);
     ctx.globalAlpha = 1;
   }
-  if (ln && ln.lamina) drawLamina(ln, d, yText - 6);
+  // LA FECHA DEL DIA (26/11, el autor: "la fecha en el bloque de texto con letra mas chica y fina, arriba a la derecha, y
+  // luego el texto"): `ln.fecha` (data/libro_vuelo.js `hoy`), en el verde apagado, alineada al borde derecho del bloque
+  if (ln && ln.fecha) {
+    ctx.font = 'bold 7px monospace';
+    let ancho = 0;
+    for (const r of d.wrap) ancho = Math.max(ancho, ctx.measureText(r).width);
+    ctx.font = '5px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = TARJ.fosforo; ctx.globalAlpha = 0.6;
+    ctx.fillText(ln.fecha, TARJ.x + ancho, yText0 - 11);
+    ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  }
+  if (ln && ln.lamina) drawLamina(ln, d, yText0 - 6);
   const last = d.si + 1 >= d.seq.length && d.li + 1 >= ((sc.lineas || []).length);
   // LOS CONTROLES, VERDES Y ADENTRO DE LAS ESCUADRAS (autor, 16/10): la caja es el recuadro que
   // marcan las cuatro esquinas de pantallaVieja, y el verde es el del fosforo

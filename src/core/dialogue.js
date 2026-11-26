@@ -162,7 +162,13 @@ function startLine() {
   dlg.t = 0; dlg.tDone = 0; dlg.typed = 0; dlg.accTyped = 0;
   dlg.done = !txt;                  // una linea vacia (o una escena sin lineas) ya esta "completa"
   dlg.wrap.length = 0;
-  for (const w of wrapChars(txt, (ln && ln.wrap) || WRAP_BODY)) dlg.wrap.push(w);
+  // LOS SALTOS DE LINEA (26/11, el autor: "usa el recurso de separar, saltos de linea"): cada '\n' corta el renglon y
+  // '\n\n' deja uno en blanco. El '\n' cuenta como un caracter, igual que el espacio que se come el wrap
+  for (const parte of String(txt).split('\n')) {
+    const ws = wrapChars(parte, (ln && ln.wrap) || WRAP_BODY);
+    if (!ws.length) ws.push('');
+    for (const w of ws) dlg.wrap.push(w);
+  }
 }
 
 /** Avanza el reloj. Devuelve 'auto' el cuadro en que el auto-avance pide pasar de linea (game.js
