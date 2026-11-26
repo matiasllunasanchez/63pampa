@@ -3388,6 +3388,11 @@ function approachF(p) {
 // alla, porque la escala y el cabeceo son una cuenta larga y dos copias se desincronizan solas.
 let LAST_BARGE = null;
 export const bargeGeom = () => LAST_BARGE;
+/** EL NOMBRE DEL BUQUE YA SE LEE SOBRE EL CASCO (`NOMBRE_SC`, abajo en drawApproachBarge). Lo pregunta game.js: si se
+ *  lo ve, el blanco del Exocet esta ubicado sin radar (25/11). `vis` = ultimo cuadro en que se dibujo el nombre. */
+const NOMBRE_SC = 0.28;
+let nombreVisT = -1;
+export const buqueALaVista = () => nombreVisT >= 0 && performance.now() - nombreVisT < 400;
 // SONDA (QUITAR antes de publicar). El TAMAÑO Y LA POSICION del buque tal como quedaron dibujados
 // este cuadro. Sin esto, "el buque no se sigue acercando" solo se puede discutir mirando: el
 // multiplicador del PULSO (`fx.grow`) puede estar creciendo y el buque igual no crecer en pantalla
@@ -3602,7 +3607,7 @@ export function drawCascoDelBuque(nombre, cx, len, deckY, uh, hullH, haze, fx) {
   ctx.globalAlpha = 1;
 }
 
-export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
+export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa, sinNombre) {
   const ph = momentum.phase(), PH = momentum.phases();
   if (objectiveDist <= 0 || ph >= PH.length) return;
   // EL PULSO dibuja el MISMO buque que venia creciendo en el pasillo: la prueba pasa delante de
@@ -3744,7 +3749,8 @@ export function drawApproachBarge(objectiveDist, objectiveShip, fx, deProa) {
   // eleccion de blanco (se vio volando el pasillo entero hasta la prueba, Q4): "HMS ARDENT"
   // encima del renglon del POLVORIN. El buque ya se presento en el briefing y en el pasillo; en
   // la prueba lo que hay que leer son las zonas.
-  if (sc > 0.28 && S.state !== 'pulso') {   // ya cerca: nombre sobre el barco
+  if (sc > NOMBRE_SC && S.state !== 'pulso' && !sinNombre) {   // ya cerca: nombre sobre el barco (con el A-4C de EL INVINCIBLE, no)
+    nombreVisT = performance.now();
     ctx.font = '9px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.warn; ctx.globalAlpha = 0.85;
     ctx.fillText(objectiveShip, bx, by - uh * 4.6);
     ctx.globalAlpha = 1;

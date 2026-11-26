@@ -156,7 +156,7 @@ export const run = {
   mvEsqT: -9,
   esquiveBase: 0.08, esquiveClase: 'agil',   // EL ESQUIVE del avion (data/perfiles.js; lo pone el arranque)
   esquivoT: -9,    // cuando fue el ultimo esquive (para el que lo quiera mostrar)
-  mv: null,        // 'splits' | 'breakt' | 'hiyo' | 'loyo' | 'jink' | 'sturn' | 'mask' | 'popup'
+  mv: null,        // 'splits' | 'breakt' | 'hiyo' | 'salto' | 'loyo' | 'jink' | 'sturn' | 'mask' | 'popup'
   mvT: 0,          // tiempo transcurrido de la maniobra
   mvDir: 1,        // sentido elegido (donde aplica)
   mvY0: 0,         // altura al entrar (los yo-yos vuelven a ella)

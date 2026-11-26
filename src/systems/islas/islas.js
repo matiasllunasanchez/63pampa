@@ -37,6 +37,7 @@ import { cabina, CABINA, enCabina } from '../../core/cabina.js';
 import { bullets, missiles, pmissiles, streaks } from '../../core/world.js';
 import { geoExterna } from '../../core/geografia.js';
 import { inp } from '../../core/input.js';
+import { radarP } from '../../core/radarPropio.js';
 import { KMH_U } from '../../data/tuning.js';
 import { DEFENSAS } from '../../data/defensas.js';
 import { AIR_START_Y } from '../../data/runways.js';
@@ -326,7 +327,7 @@ export function pasoPasillo(dt) {
   if (!I.mar) avisosRadar(dt);
   tiempo(dt);
   // LA BUSQUEDA (mar abierto): lo que se ve, el humo que se suelta, los circulos
-  if (I.mar && S.state === 'play') { busqueda.paso(dt, { x: P3.x, z: P3.z, yaw: P3.yaw, alto: P3.g + plane.y, suelta: I.humo }); I.humo = false; }
+  if (I.mar && S.state === 'play') { busqueda.paso(dt, { x: P3.x, z: P3.z, yaw: P3.yaw, alto: P3.g + plane.y, suelta: I.humo, radar: radarP.on }); I.humo = false; }
   // LAS OLEADAS DEL RADAR SALEN DEL RADAR (20/11, el autor: "deben provenir de diversas zonas"): el Sea Dart que
   // larga la barra llena (flight.js) nace 230 m adelante en el carril; en las islas se lo corre hacia el buque del
   // radar que te ve —en su direccion, hasta 900 m— y sale de ahi con su humo. Si el buque quedo atras, como siempre.

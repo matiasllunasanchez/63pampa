@@ -10,6 +10,7 @@ import { PILOTOS_GENERALES, carasGeneral } from '../data/pilotos_generales.js';
 
 export const CARA_DE_RADIO = {
   CONDOR: 'condor_radio', 'CÓNDOR': 'condor_radio',
+  BASE: 'condor_radio',   // (26/11: la BASE del libro de vuelo — el Neptune paso la posicion — con la radio de Condor)
   'PUERTO ARGENTINO': 'condor_radio',   // (23/11: el radar de Malvinas habla como Condor, con el icono de radio)
   PUMA: 'puma_neutro', GITANO: 'gitano_neutro', VASCO: 'vasco_neutro',
   PICHON: 'pichon_neutro', 'PICHÓN': 'pichon_neutro',

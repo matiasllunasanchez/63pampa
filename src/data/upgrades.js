@@ -30,6 +30,7 @@ export const UPGRADES = [
   { id: 'loyo', name: 'LOW YO-YO', seq: 'abajo arriba abajo', desc: 'Pica y gana velocidad', quote: 'Bajas, agarrás envión y salís picando. Como en el potrero.' },
   { id: 'sturn', name: 'S-TURN', seq: 'izq der izq', desc: 'Esquiva en S', quote: 'Ida y vuelta, como un wing. La gambeta cordobesa, viste.' },
   { id: 'popup', name: 'POP-UP', seq: 'abajo arriba arriba (bajo)', desc: 'Trepada de ataque', quote: 'Un saltito pa asomar la nariz, y abajo. ¿Qué hace, inglés?' },
+  { id: 'salto', name: 'SALTO DE OLA', seq: 'arriba abajo izq / arriba abajo der', desc: 'Salta la ola y vuelve al ras', quote: 'Un saltito de rana, culiao. Pasás la ola y al toque abajo de nuevo.' },
   { id: 'hiyo', name: 'HIGH YO-YO', seq: 'arriba abajo arriba', desc: 'Esquive vertical', quote: 'Te colgás arriba y que pase de largo el gil.' },
   { id: 'jink', name: 'JINK', seq: 'arriba izq der', desc: 'Zigzag de 4 quiebres', quote: 'Zigzag de loco. Ni yo sé pa dónde voy, culiao.' },
   { id: 'spin', name: 'TIRABUZON', seq: 'picar + rolar (der) izq izq', desc: 'Rola picando', quote: 'Girás como trompo y te vas pa abajo. Mareadito, pero vivo.' },
@@ -125,7 +126,8 @@ export const cintaDe = owned => 1 + CINTA.filter(c => tiene(owned, c.id)).length
 //  antes llegaba por la fecha (DESDE_BRP). Saltearla deja la MK-17 — y la carta sigue esperando.
 //  …Y EL SILICONADO M-60 (17/11) despues de la CINTA LARGA: a esa altura la sal en el vidrio ya se sufrio.
 const ORDEN = ['mask', 'chafitas1', 'splits', 'metralla2', 'brp', 'breakt', 'loyo', 'cinta2', 'siliconado', 'chafitas2', 'sturn', 'popup',
-  'hiyo', 'metralla3', 'chafitas3', 'jink', 'spin', 'cinta3', 'climb', 'chafitas4', 'climbmax', 'barrel'];
+  'hiyo', 'metralla3', 'chafitas3', 'jink', 'spin', 'cinta3', 'climb', 'chafitas4', 'climbmax', 'barrel',
+  'salto'];   // (25/11: el SALTO DE OLA, al final: no corre nada de lo que ya se ofrecia)
 const CARTAS = [...UPGRADES, ...CHAFITAS, ...METRALLA, ...CINTA, BOMBA_BRP, SILICONADO];
 export const BANCO = ORDEN.map(id => CARTAS.find(u => u.id === id));
 

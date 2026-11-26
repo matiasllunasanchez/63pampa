@@ -202,6 +202,8 @@ function armar() {
 // vuelve a encarar el mismo buque —ardiendo— y cada bomba que le pega suma puntos)
 // lo que el Exocet le saca de ventaja al avion, en promedio, hasta el buque (systems/collision.js EXOCET)
 const EXOCET_REL = 120;
+// (EL SHEFFIELD, 26/11) desde que distancia frena el mundo cuando el Exocet guiado ya le pego de lejos
+const LENTO_EXO = 260;
 const aTiro = () => blanco.on && blanco.z > PZ && blanco.z < BL.VISIBLE_Z && blanco.negroT < 0
   && blanco.perdidaT < 0 && !blanco.escapando;
 
@@ -236,6 +238,15 @@ export function tomarBomba() {
   else if (blanco.alaN > 0) blanco.alaN--;
   else return false;
   run.msl = blanco.alaN + blanco.centroN;
+  return true;
+}
+/** EL EXOCET DEL PULSO (EL SHEFFIELD, 26/11): con el buque a tiro y el misil todavia colgado, se puede entrar al Pulso.
+ *  No se traba ni cae: si la secuencia sale bien, game.js lo suelta con `tomarBomba` y se guia solo (collision.js). */
+export const exocetATiro = () => aTiro() && blanco.centroN > 0 && !blanco.cumplido;
+/** EL EXOCET DEL PULSO SALE (EL SHEFFIELD): del estante, sin el sorteo de la traba — eso es de la bomba que cae. */
+export function tomarExocet() {
+  if (blanco.centroN <= 0) return false;
+  blanco.centroN--; run.msl = blanco.alaN + blanco.centroN;
   return true;
 }
 /** La bomba del buque se trabo en esta pasada. */
@@ -326,7 +337,9 @@ export function golpe(pm, z0) {
   // MOMENTUM OBLIGADO: de aca al cruce, el mundo a BL.LENTO — SOLO si el cruce todavia no paso. Lo
   // apaga el cruce y nada mas, asi que una bomba soltada pasando por encima que le pega DESPUES del
   // cruce lo dejaba prendido para siempre (autor, 8/10: "le pegue, se activo el momentum y nunca se fue").
-  if (blanco.z >= PZ) blanco.lento = true;
+  // (EL EXOCET GUIADO pega LEJOS: la camara lenta espera a que el buque este tan cerca como con la bomba — `LENTO_EXO`)
+  if (blanco.z >= PZ && pm.guia && blanco.z - PZ > LENTO_EXO) blanco.lentoPend = true;
+  else if (blanco.z >= PZ) blanco.lento = true;
   blanco.cumplido = true;
   blanco.marcas.push({ x: pm.x, y: Math.max(blanco.base + 1, pm.y), t: run.t });
   // YA HUNDIDO (lo pego otro de la fila antes): el impacto suma puntos y fuego, nada mas
@@ -446,6 +459,7 @@ export function step(dt) {
   // RED DE SEGURIDAD de la camara lenta obligada: con el buque ya detras del avion no hay cruce que la
   // apague (un relevo o un salto de odometro pueden pasarlo por encima del cuadro del cruce).
   if (blanco.lento && blanco.zPrev < PZ) blanco.lento = false;
+  if (blanco.lentoPend && blanco.z - PZ <= LENTO_EXO) { blanco.lentoPend = false; if (blanco.z >= PZ) blanco.lento = true; }
   if (blanco.hundido) blanco.sinkT += dt;
   tarde(dt);
   // EL NEGRO ES TREGUA: lo que no se ve no puede matarte. Saltar el buque puede dejarte arriba del
@@ -745,7 +759,7 @@ export function hud() {
     enAtaque: vivo && aTiro(),
     // SE PASO LA VENTANA: la tuvo y ya no (el semaforo dice TARDE — render/blanco.js `semaforo`, 21/11)
     tarde: vivo && aTiro() && !!blanco.tuvoVentana && !blanco.enDist && !blanco.listo,
-    rack: { ala: blanco.ala, alaN: blanco.alaN, centroN: blanco.centroN, bloqueada: !aTiro(), bomba: blanco.bomba, trabada: blanco.trabada },
+    rack: { ala: blanco.ala, alaN: blanco.alaN, centroN: blanco.centroN, bloqueada: !aTiro(), bomba: cargaDe(cargaId).exocet ? 'exocet' : blanco.bomba, trabada: blanco.trabada },
     // LA ALTURA DEL SALTO: desde que soltaste hasta el cruce, cuanto mide el buque justo debajo de
     // tu linea — por encima de eso pasas limpio. La marca amarilla del altimetro.
     salto: blanco.negroT < 0 && blanco.z > PZ && (blanco.dicho.sali || blanco.lento)

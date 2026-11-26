@@ -19,8 +19,11 @@ export const BUSQ = {
   // VER: lo que esta a menos de VISTA m (horizontal) se ve si volas abajo del techo de nubes; mas abajo, mas lejos
   // (VISTA_BAJO a ras del agua) — y adentro de la nube, nada
   TECHO: 150, VISTA: 260, VISTA_BAJO: 420, BAJO: 50,
-  // LA MANCHA DE ACEITE: ANCHO m de ancho y LARGO de largo, hacia el SE (RUMBO, grados), a MANCHA_D m del centro
-  MANCHA_ANCHO: 300, MANCHA_LARGO: 1800, MANCHA_RUMBO: 135, MANCHA_D: [2500, 4200],
+  // LA MANCHA DE ACEITE: ANCHO m de ancho y LARGO de largo, hacia el SE (RUMBO, grados), desde una de las BENGALAS
+  MANCHA_ANCHO: 300, MANCHA_LARGO: 1800, MANCHA_RUMBO: 135,
+  // LAS BENGALAS (26/11): cuantas, a que distancia del centro, separadas cuanto (y de la entrada); el radar las barre a
+  // menos de BENGALA_R, arriba de RADAR_ALT, durante BENGALA_S segundos
+  BENGALAS: 5, BENGALA_D: [900, 5200], BENGALA_SEP: 2200, BENGALA_R: 2000, BENGALA_S: 2.5, RADAR_ALT: 22,
   // LAS BALSAS: N, en un racimo de RACIMO m, DERIVA m mas alla de la punta SE de la mancha
   BALSAS_N: 9, RACIMO: 140, DERIVA: [700, 1300],
   // SI NO LAS MARCAS SE PIERDEN: alejarse PIERDE m de las balsas sin humo y vuelven a ser invisibles (derivaron)

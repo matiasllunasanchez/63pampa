@@ -113,6 +113,10 @@ const cfgReal = over => P({ fuelOn: true, fuelScale: 0.065, globos: false, mar: 
 // aterrizaje 12:04 (el prompt decia 12:10). Niebla y bruma: regla del 2 al 12 de mayo.
 // EL CLIMAX ES EL PULSO: subir, prender el radar una vez, cargar el blanco, soltar y bajar.
 // SIN DEFENSA EN LA IDA: el lanzamiento fue a 20-30 millas, nunca se acercaron al buque.
+// (26/11, el autor: "agreguemos busqueda… quitemos los helicopteros… EL NEPTUNE DIO LA POSICION EXACTA… la seleccion no
+// tiene sentido"): se vuela como el Super Etendard de EL INVINCIBLE — `lanzamiento` abre la ZONA AZUL de la barra
+// (el radar tira el dado, mas facil arriba), PATRIA 2 avisa y en la zona se lanza; el tramo es solo mar (game.js
+// `tramoMar`). La BASE avisa por radio que el Neptune paso la posicion. Sin la despedida de los A-4C: el Exocet pega.
 const r1 = {
   id: 'r1', name: 'EL SHEFFIELD',
   fecha: '4 DE MAYO DE 1982', hora: '11:04', horaQue: 'lanzamiento',
@@ -120,7 +124,16 @@ const r1 = {
   despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'blanco: destructor clase 42' },
   horaDespegue: '09:45',
   goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: LARGO },
-  climax: 'pulso',
+  // LA PASADA DE LA ETAPA 3 (26/11, el autor: "tiene que ser igual que la pasada de la etapa 3… debo poder pasar por
+  // encima… y meter el escapa"; "la unica diferencia con la bomba es que se lanza solo si la secuencia es correcta y
+  // despues apunta solo; el resto es igual"): la SUELTA sobre el buque, con el Exocet. Con el buque a tiro la tecla entra
+  // al Pulso (`exocetPulso`); bien cargado, el misil sale en el pasillo guiado al casco, le pasas por encima y ESCAPÁ
+  // (`escape`: sin vuelta, se sale perdiendo las estrellas, el viraje y VOLVISTE A SALVO). Mal cargado, se pierde y toma
+  // la pasada el otro Super Etendard. (LICENCIA: el real se lanzo a 20-30 millas y nunca vio al buque.)
+  climax: 'suelta',
+  exocetPulso: true, escape: true,
+  // LA ZONA AZUL (la busqueda con el radar), antes de que el buque asome: en fraccion de la ida
+  buscaZona: [0.78, 0.93],
   cfg: cfgReal({ sky: 'cloudy', fog: 1, fogLen: 1, squad: 2, caza: 0 }),
   chanchaMinT: 40,
   chanchaVeces: { ida: 1, vuelta: 0 },
@@ -132,18 +145,28 @@ const r1 = {
   // SIN VUELTA: el Pulso cierra la mision. La vuelta real (al ras hasta Rio Grande, 12:04) no tuvo
   // nada que jugar, y la del juego despues del Pulso se volaba en negro (12/10).
   // MAR ABIERTO de punta a punta, que es lo real: el ataque fue sobre el Atlantico, a 20-30 millas de
-  // la flota. Cerca del blanco, los helicopteros de la flota. Sin `geografia`: todo es mar.
-  fases: fases({ cerca: FLOTA, casa: false }),
+  // la flota. Sin `geografia`: todo es mar. (Sin los helicopteros de la flota desde el 26/11: nunca se acercaron.)
+  // (25/11, el autor: "hay DEMASIADOS pajaros y todos concentrados en el pasillo"): con `solo: MAR` casi todo lo que
+  // nace en la ida es bandada (la ola va por el clima), y la densidad de la ida la multiplica. Como en EL INVINCIBLE:
+  // un cuarto de las bandadas del carril y mas olas para que la ida no quede vacia (las de adorno, afuera, siguen)
+  // LA BASE: EL NEPTUNE DIO LA POSICION (26/11, el autor): al empezar la segunda mitad del rasante, antes de la zona azul.
+  // (La cerca es solo mar: nunca hubo helicopteros — y el `solo` vale tambien en el escape)
+  fases: fases({ cerca: MAR, casa: false, ida: { aves: 0.25, olas: 1.8 } }).map((f, i, a) =>
+    (f.tipo === 'rasante' && a[i - 1] && a[i - 1].tipo === 'rasante' ? { ...f, radio: 'libro_r1_neptune' } : f)),
   // EL PREMIO SUELTA UN EXOCET, no cuatro: cada Super Etendard lanzo uno. Y la dificultad del Pulso
   // es la de M4 (4 de mayo): la cuenta por indice de campaña le daba la de la ultima mision.
   pulsoBombas: 1, pulsoT01: 3 / 13,
+  // (26/11, el autor: "pantalla de exito de sheffield"): el recuento con el Sheffield ardiendo
+  fondoRecuento: 'win_sheffield',
   par: PAR,
   escuadrilla: '2ª ESCUADRILLA AERONAVAL DE CAZA Y ATAQUE',
   // LA CARGA REAL: un Exocet AM39 bajo el ala derecha y un tanque de 1.100 l bajo la izquierda — desde
   // el 14/10 horneada y colgada (data/cargas.js `exocet`).
+  // UNA SOLA ESCUADRILLA (26/11, el autor: "no tiene sentido la seleccion, o solo para ver la configuracion"): los dos
+  // eran iguales. Una fila que muestra el avion y su carga, con las dos matriculas en la placa (como EL INVINCIBLE)
   aviones: [
-    { chapa: '3-A-202', plane: 'supere', carga: 'exocet', cargaTxt: 'EXOCET AM39 + 1 TANQUE' },
-    { chapa: '3-A-203', plane: 'supere', carga: 'exocet', cargaTxt: 'EXOCET AM39 + 1 TANQUE' },
+    { chapa: '3-A-202', plane: 'supere', carga: 'exocet', cargaTxt: 'EXOCET AM39 + 1 TANQUE',
+      squad: 2, chapas: ['3-A-202', '3-A-203'] },
   ],
   contexto: 'R1_CONTEXTO', epi: 'R1_LO_QUE_PASO',
 };
@@ -180,11 +203,14 @@ const r2 = {
   // Puerto Argentino. Sobre las islas no hay antiaerea enemiga (eran nuestras). EN LA VUELTA, PRADERA
   // DEL GANSO: tierra con ANTIAEREA PROPIA, en alerta roja — la que bajo a uno de ORO. Es el adicional
   // del prompt: no todo lo que dispara es enemigo.
-  fases: fases({ lejos: MAR, cerca: FLOTA, vuelta: [
-    { hasta: 1.12, obstacles: 0.7, caza: 0 },
-    { hasta: 1.30, obstacles: 1.2, caza: 0, solo: ['aa', 'birds', 'poles'] },   // Pradera del Ganso
-    { hasta: 2.0, obstacles: 0.5, caza: 0 },
-  ] }),
+  // (26/11, el autor: "le falta quitar tanto pajaro, y no entiendo por que hay helicopteros cerca de la Glasgow"): el
+  // rasante y el blanco son MAR —olas y pocas bandadas, como el Sheffield—; lo que defiende es el buque (Sea Wolf,
+  // Sea Dart, 4,5"), no helicopteros sembrados. Las bandadas, a un cuarto en la ida y a la mitad en la vuelta.
+  fases: fases({ lejos: MAR, cerca: MAR, ida: { aves: 0.25, olas: 1.8 }, vuelta: [
+    { hasta: 1.12, obstacles: 0.7, caza: 0, aves: 0.5 },
+    { hasta: 1.30, obstacles: 1.2, caza: 0, aves: 0.5, solo: ['aa', 'birds', 'poles'] },   // Pradera del Ganso
+    { hasta: 2.0, obstacles: 0.5, caza: 0, aves: 0.5 },
+  ] }).map(f => (f.tipo === 'filo' ? { ...f, solo: MAR } : f)),   // (el filo del radar no tenia `solo`: sorteaba de todo)
   geografia: {
     ida: [
       { km: 9, suelo: 'mar' },
@@ -308,16 +334,23 @@ const r4 = {
   ruta: { blancoKm: 610, radarKm: 180, niveladoKm: 120, potenciaKm: 50 },
   // LA RUTA: mar, la costa de la Gran Malvina, y el estrecho hacia el norte — donde aparece LA PLYMOUTH,
   // sola, de costado. En la vuelta, los Sea Harrier que mando la Exeter (no los alcanzaron).
-  fases: fases({ lejos: MAR, cerca: DEFENSA, blanco: { radio: 'libro_r4_buque' }, vuelta: [
-    { hasta: 1.4, obstacles: 0.7, caza: 1 },
-    { hasta: 2.0, obstacles: 0.5, caza: 0 },
-  ] }),
+  // (26/11, el autor: "ajustemos acorde a la Plymouth tambien", como la Glasgow): el rasante, el filo y el blanco son
+  // MAR —sin globos ni postes en el estrecho—; lo que defiende es el Sea Cat de la Plymouth. Bandadas a un cuarto en la
+  // ida y a la mitad en la vuelta (los Sea Harrier de la vuelta quedan: son la historia).
+  fases: fases({ lejos: MAR, cerca: MAR, blanco: { radio: 'libro_r4_buque' }, ida: { aves: 0.25, olas: 1.8 }, vuelta: [
+    { hasta: 1.4, obstacles: 0.7, caza: 1, aves: 0.5 },
+    { hasta: 2.0, obstacles: 0.5, caza: 0, aves: 0.5 },
+  ] }).map(f => (f.tipo === 'filo' ? { ...f, solo: MAR } : f)),
   geografia: {
     ida: [
       { km: 9, suelo: 'mar' },
       { km: 3, suelo: 'costa', lado: 'izq' },               // la Gran Malvina
       { km: 3, suelo: 'mar', paredes: 'izq' },              // el estrecho, pegado a la isla
       { km: 1.5, suelo: 'mar', paredes: 'ambos' },
+      // (26/11, el PDF del autor, «CÓMO VOLARON»: "al ver la fragata viran sobre el agua, pasan una loma y atacan"):
+      // la loma antes del blanco, como el cruce de la Gran Malvina en la Glasgow
+      { km: 0.4, suelo: 'mar' },
+      { km: 0.6, suelo: 'isla', alto: 14 },
       { suelo: 'mar' },                                     // cerca de Punta Chancho: la Plymouth
     ],
     vuelta: [
@@ -334,7 +367,15 @@ const r4 = {
   aviones: [
     { chapa: 'PERRO', plane: 'dagger', carga: 'india', cargaTxt: '2 BOMBAS DE 250 KG + 3 TANQUES' },
     { chapa: 'GATO', plane: 'dagger', carga: 'india', cargaTxt: '2 BOMBAS DE 250 KG + 3 TANQUES' },
+    // EL LEARJET GUIA, JUGABLE (26/11, el autor: "deberian ser jugables tambien, hasta llegar a la zona y irse, y ahi
+    // sale satisfactoria la mision"): LIBRA, del Escuadron Fenix. Lleva a los Dagger hasta el punto de quiebre, ellos
+    // bajan al ras y el se vuelve: ahi se cumple (game.js `pasoGuia`). Sin armas.
+    { chapa: 'LIBRA', plane: 'learjet', carga: 'nada', cargaTxt: 'SIN ARMAS · NAVEGACIÓN', rol: 'guia', squad: 1 },
   ],
+  // EL LEARJET QUE LOS GUIA (PDF del autor, «CÓMO VOLARON»: "alto, bajo, bajo, alto: guiados por un Learjet del Fénix
+  // hasta un punto de quiebre"): con los Dagger vuela ADELANTE y arriba en el transito alto, y en el quiebre —antes del
+  // silencio de radio— avisa y se vuelve trepando (game.js `pasoGuia`, render/squad.js `drawAvionVuelo`).
+  guia: { plane: 'learjet', radio: 'libro_r4_quiebre', radioDagger: 'libro_r4_recibido', bajan: 'dagger' },
   contexto: 'R4_CONTEXTO', epi: 'R4_LO_QUE_PASO',
 };
 
@@ -375,6 +416,8 @@ const r5 = {
   lanzamiento: +(INV_TRANSITO + 0.30 * (1 - INV_TRANSITO) / 0.75).toFixed(4),   // (el 0.55 de antes, corrido por el transito largo)
   pulsoLejos: 0.45,           // el buque, de lejos: el encuadre del Pulso multiplicado por esto
   pulsoBombas: 1, pulsoT01: 1,   // el ultimo Exocet; el Pulso de fines de mayo
+  // (25/11, el autor: "GANASTE y de fondo… esta imagen"): el recuento con la ilustracion del ataque
+  fondoRecuento: 'win_invincible',
   cfg: cfgReal({ sky: 'cloudy', rain: 1, squad: 2 }),
   chanchaMinT: 40,
   chanchaVeces: { ida: 1, vuelta: 0 },
@@ -423,8 +466,13 @@ const LARGO_BELGRANO = 12000;
 const r6 = {
   id: 'r6', name: 'EL RESCATE DEL BELGRANO',
   fecha: '3 DE MAYO DE 1982', hora: '≈09:00', horaQue: 'mancha',
-  desc: PENDIENTE,
+  // (25/11, el autor: "Sí, armala" — la descripcion propuesta con el diseño de las zonas)
+  desc: 'La tarde anterior hundieron al crucero General Belgrano. Un Neptune de la Armada sale de Río Grande a buscar a los náufragos, bajo un techo de nubes de 150 metros y con el mar en temporal. Se busca con el radar y siguiendo bengalas.',
   despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'zona de búsqueda: el hundimiento del Belgrano' },
+  // LAS ZONAS «?» DE LA BARRA (25/11, game.js `pasoZonas`): `n` franjas de `largo` (fraccion de la ida) repartidas de
+  // `desde` a `hasta`; la mancha esta en una al azar y se encuentra con el radar. Al encontrarla, el MAR ABIERTO (`busqueda`)
+  // arranca con la mancha adelante: las balsas se buscan a ojo
+  zonas: { n: 4, desde: 0.3, hasta: 0.95, largo: 0.1 },
   goal: { kind: 'distance', meters: LARGO_BELGRANO },
   // LA BUSQUEDA: donde (el crucero se hundio en 55°24'S 61°32'O; las balsas derivaron al SE), con que rumbo se entra y
   // el clima del dia (data/islas_clima.js: TEMPORAL — lluvia, viento, mar muy grueso, relampagos)
@@ -440,13 +488,12 @@ const r6 = {
   ],
   par: PAR,
   escuadrilla: 'ESCUADRILLA AERONAVAL DE EXPLORACIÓN',
-  // LAS DOS SALIDAS (el autor: "son dos salidas con 2 aviones marcando la hora cuando despega el avion"): cada
-  // Neptune trae su dia y su hora (el rotulo del despegue) y si ve o no la mancha (`encuentra`)
+  // UN SOLO NEPTUNE (25/11, el autor: "quiza podemos ser siempre el mismo, el que encontro la gente"): el 2-P-111. El
+  // 2-P-112 de la noche (nueve horas sin un indicio) no tenia final jugable; queda en la historia de la salida.
+  // (antes, 21/11: "son dos salidas con 2 aviones marcando la hora cuando despega el avion")
   aviones: [
     { chapa: '2-P-111', plane: 'neptune', carga: 'nada', cargaTxt: 'MARCADORES DE HUMO', fecha: '3 DE MAYO DE 1982', hora: '≈03:00', encuentra: true,
       papel: 'EL RELEVO: LLEGA A LA ZONA HACIA LAS 05:00' },
-    { chapa: '2-P-112', plane: 'neptune', carga: 'nada', cargaTxt: 'MARCADORES DE HUMO', fecha: '2 DE MAYO DE 1982', hora: '≈21:30', encuentra: false,
-      papel: 'LA NOCHE: NUEVE HORAS BARRIENDO LA ZONA' },
   ],
   contexto: 'R6_CONTEXTO', epi: 'R6_LO_QUE_PASO',
 };
@@ -454,7 +501,9 @@ const r6 = {
 /** LAS QUE SE JUEGAN (23/11, el autor: "vamos solo con la del Invincible y el resto dejemoslas bloqueadas tambien
  *  como EN DESARROLLO"): las demas se ven en su lugar del libro, en gris, y no se entran (el modo DEV las abre).
  *  Se van sumando a medida que cada una tenga sus laminas y su repaso. */
-export const LIBRO_ABIERTAS = ['r5'];
+// (26/11, el autor, para la 0.2.0: "Invencible, Sheffield, Glasgow, Ardent y Plymouth, las otras quedan en proximamente":
+// el Rescate del Belgrano sigue EN DESARROLLO)
+export const LIBRO_ABIERTAS = ['r1', 'r2', 'r3', 'r4', 'r5'];
 /** Las salidas, en orden de fecha: es el orden del LIBRO DE VUELO. */
 export const LIBRO_VUELO = [r6, r1, r2, r3, r5, r4];
 
@@ -508,13 +557,22 @@ export const LIBRO_SCENES = {
   // EL CONTEXTO DE CADA SALIDA (23/11, el autor: "que cada mision te cuente EL CONTEXTO DONDE SUCEDE HOY, LO QUE SUCEDIO
   // ANTES Y CUAL ES EL PLAN A EJECUTAR… no hables a una sola persona, que sea CONTAR CUAL ES EL PLAN como si estuviesen
   // todos los pilotos reunidos"; "la mision jugable es el plan ejecutado"): HOY · ANTES · el avion · EL PLAN
-  R1_CONTEXTO: tarjeta('R1_CONTEXTO', r1.name, [dato(r1),
-    'HOY. Río Grande, Tierra del Fuego. Un Neptune de la Armada encontró esta mañana a la flota británica, al este de las islas.',
-    'ANTES. El 2 de mayo un submarino británico hundió al crucero General Belgrano. La Argentina tiene cinco Exocet y no van a llegar más.',
-    'El Super Étendard es de la Armada y el único avión argentino que puede lanzar el Exocet: un misil antibuque que se suelta a 20 o 30 millas y llega solo, rozando el agua.',
-    'EL PLAN. Salen dos Super Étendard, con un Exocet cada uno. Cargan nafta de un Hércules en la ida y siguen al ras, sin radar, hasta la posición que pasó el Neptune.',
-    'Ahí suben, prenden el radar una sola vez, lanzan a 20 o 30 millas y vuelven al ras a Río Grande. Si un misil falla, queda el otro.']),
-  R1_LO_QUE_PASO: tarjeta('R1_LO_QUE_PASO', r1.name, ['4 de mayo de 1982. A las 11:04 los dos Super Étendard lanzaron sus Exocet desde 20 a 30 millas, y volvieron al ras a Río Grande.', 'Uno alcanzó al HMS Sheffield. Murieron 20 tripulantes. Se hundió seis días después, mientras lo remolcaban.'], 'rot_lqp'),
+  // (26/11, el autor: "hagamos laminas y horneemos todo lo necesario"): las laminas de EL SHEFFIELD, como las de EL
+  // INVINCIBLE — el mapa, el Neptune, el Belgrano, el avion con el misil, el Hercules y la zona azul. El texto es el de
+  // siempre (aprobado el 23/11); solo se le cuelgan los dibujos
+  R1_CONTEXTO: tarjeta('R1_CONTEXTO', r1.name, [
+    [dato(r1), 'mapa_sheffield', 'RÍO GRANDE → LA FLOTA'],
+    ['HOY. Río Grande, Tierra del Fuego. Un Neptune de la Armada encontró esta mañana a la flota británica, al este de las islas.', 'neptune', 'SP-2H NEPTUNE · LA EXPLORACIÓN'],
+    ['ANTES. El 2 de mayo un submarino británico hundió al crucero General Belgrano. La Argentina tiene cinco Exocet y no van a llegar más.', 'belgrano', 'ARA GENERAL BELGRANO'],
+    ['El Super Étendard es de la Armada y el único avión argentino que puede lanzar el Exocet: un misil antibuque que se suelta a 20 o 30 millas y llega solo, rozando el agua.', 'supere_exocet', 'SUPER ÉTENDARD · EXOCET AM39'],
+    ['EL PLAN. Salen dos Super Étendard, con un Exocet cada uno. Cargan nafta de un Hércules en la ida y siguen al ras, sin radar, hasta la posición que pasó el Neptune.', 'kc130', 'KC-130 · LA CARGA EN LA IDA'],
+    // (26/11, el autor: "ajustalo" — decia "prenden el radar una sola vez" y en el juego se prende las veces que haga falta)
+    ['Ahí suben y prenden el radar lo justo para encontrar al blanco: cada barrido los delata. Lanzan a 20 o 30 millas y vuelven al ras a Río Grande. Si un misil falla, queda el otro.', 'ui_busca', 'LA ZONA DE BÚSQUEDA'],
+  ]),
+  R1_LO_QUE_PASO: tarjeta('R1_LO_QUE_PASO', r1.name, [
+    ['4 de mayo de 1982. A las 11:04 los dos Super Étendard lanzaron sus Exocet desde 20 a 30 millas, y volvieron al ras a Río Grande.', 'exocet', 'EXOCET AM39'],
+    ['Uno alcanzó al HMS Sheffield. Murieron 20 tripulantes. Se hundió seis días después, mientras lo remolcaban.', 'sheffield', 'HMS SHEFFIELD · TIPO 42'],
+  ], 'rot_lqp'),
   R2_CONTEXTO: tarjeta('R2_CONTEXTO', r2.name, [dato(r2),
     'HOY. Dos buques británicos, la Glasgow y la Brilliant, bombardean desde el mar las posiciones de Puerto Argentino. Es el último día de niebla.',
     'ANTES. En mayo las espoletas fallan seguido: muchas bombas atraviesan el buque sin estallar.',
@@ -549,7 +607,12 @@ export const LIBRO_SCENES = {
     ['Encontrado, lanzan el Exocet a distancia y vuelven al ras a Río Grande.', 'supere_exocet', 'SUPER ÉTENDARD · EL LANZAMIENTO'],
     ['Los A-4C los custodian hasta el lanzamiento. Después siguen al misil hasta el portaaviones, bajan lo que se le cruce y sueltan sus bombas.', 'a4c', 'A-4C · LA ESCOLTA'],
   ]),
-  R6_CONTEXTO: tarjeta('R6_CONTEXTO', r6.name, [dato(r6), PENDIENTE]),
+  // (25/11: las hojas del ANTES y del PLAN, texto propuesto — espera el OK del autor; la lamina del Belgrano hundiendose
+  // con las balsas, tools/blender/modelos_libro.py `belgrano_hundiendose`)
+  R6_CONTEXTO: tarjeta('R6_CONTEXTO', r6.name, [dato(r6),
+    ['ANTES. El 2 de mayo a las 16:02 un submarino británico torpedeó al crucero General Belgrano. Se hundió en alrededor de una hora y la tripulación lo abandonó en balsas, en pleno temporal.', 'belgrano', 'ARA GENERAL BELGRANO'],
+    ['EL PLAN. Radar en las zonas ? de la barra; en la zona, radar junto a cada bengala hasta dar con la mancha. Las balsas, a ojo y con humo.', 'ui_busca', 'LA BÚSQUEDA'],
+  ]),
   R6_LO_QUE_PASO: tarjeta('R6_LO_QUE_PASO', r6.name, [PENDIENTE], 'rot_lqp'),
   R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', r5.name, [
     ['30 de mayo de 1982. Según la Argentina, el Exocet y las bombas alcanzaron al HMS Invincible. Según los británicos, el misil cayó al mar y los A-4C atacaron a la fragata Avenger sin acertar.', 'invincible', 'HMS INVINCIBLE'],

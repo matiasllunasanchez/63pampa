@@ -89,11 +89,24 @@ def _km(F):
     return S
 
 # ---------------- el armador ----------------
-def _helice(raiz, K, x, y, z, r, palas, mat_pala, mat_cono, sg):
+# LAS HELICES QUE GIRAN EN EL JUEGO (25/11, el autor con el Neptune: "las aspas no estan girando, que giren"): con
+# `helices_giran` en la ficha, las hojas de VUELO que el juego anima (las de `VISTAS_GIRAN`) se hornean SIN PALAS —el
+# cono solo— y el horno anota donde cae cada helice en cada pose, como los rotores de los helicopteros (`raiz['rotores']`
+# con el eje 'z': el disco de una helice esta en el plano x-y). render/plane.js las dibuja girando, DETRAS del avion
+# (la camara va atras: la gondola y el ala tapan el centro del disco). El selector y las otras hojas las llevan horneadas.
+VISTAS_GIRAN = ('base', 'ras', 'fino')
+
+def _helice(raiz, K, x, y, z, r, palas, mat_pala, mat_cono, sg, gira=False):
     """La HELICE: el cono y las palas en estrella (quietas: a 84 px una helice girando no se lee, y asi
     la silueta dice "helice"). Gira un poco segun el lado, para que las dos no sean un espejo exacto."""
     _subdiv(loft('cono', [(z - r * 0.32, 0.01, 0.01, y), (z - r * 0.20, r * 0.12, r * 0.12, y), (z, r * 0.16, r * 0.16, y)],
                  raiz, mat_cono, n=12, expo=2.0, cerrar=(True, True), x0=x), 1)
+    if gira and not K.get('insignias') and K.get('vista') in VISTAS_GIRAN:
+        import json
+        rs = json.loads(raiz.get('rotores', '[]'))
+        rs.append([x, y, z - r * 0.05, r, palas, r * 0.16, 'z'])
+        raiz['rotores'] = json.dumps(rs)
+        return
     for i in range(palas):
         a = math.radians(i * 360 / palas + (20 if sg > 0 else -20))
         p = caja('pala', (0, 0, 0), (r * 2 if palas % 2 == 0 and i < palas // 2 else r, r * 0.11, r * 0.035), raiz, mat_pala)
@@ -185,7 +198,7 @@ def avion(T, K, F):
                 est = [(z0, r * 0.62, r * 0.66, y), (z0 + L * 0.08, r * 0.95, r * 0.98, y), (z0 + L * 0.35, r, r * 1.05, y),
                        (z0 + L * 0.75, r * 0.80, r * 0.90, y + r * 0.10), (z1, r * 0.25, r * 0.30, y + r * 0.35)]
                 _subdiv(loft('gondola', est, raiz, mat, n=16, expo=m.get('expo', 2.2), cerrar=(True, True), x0=x), 1)
-                _helice(raiz, K, x, y, z0 - r * 0.05, m['helice'], m.get('palas', 3), pala, cono, sg)
+                _helice(raiz, K, x, y, z0 - r * 0.05, m['helice'], m.get('palas', 3), pala, cono, sg, gira=bool(F.get('helices_giran')))
             else:
                 est = [(z0, r * 0.85, r * 0.85, y), (z0 + L * 0.12, r, r, y), (z0 + L * 0.70, r * 0.95, r * 0.95, y),
                        (z1, r * 0.70, r * 0.70, y)]
@@ -284,7 +297,8 @@ def _helicoptero(raiz, K, S, pala, metal, negro):
     # donde cae cada rotor en cada pose (`raiz['rotores']`, hornear.py → tips.json `rot`); render/plane.js
     # dibuja las palas encima, girando. Solo el selector (una foto) las lleva horneadas.
     import json
-    raiz['rotores'] = json.dumps([[r.get('x', 0.0), r['y'], r['z'], r['r'], r['palas'], r['cuerda']] for r in S['rotores']])
+    # (se SUMAN a las helices que giran, si las hay — `_helice`)
+    raiz['rotores'] = json.dumps(json.loads(raiz.get('rotores', '[]')) + [[r.get('x', 0.0), r['y'], r['z'], r['r'], r['palas'], r['cuerda']] for r in S['rotores']])
     for r in S['rotores']:
         x, y, z, R, n = r.get('x', 0.0), r['y'], r['z'], r['r'], r['palas']
         m = r.get('mastil', 0.0)
@@ -558,6 +572,7 @@ FICHAS['neptune'] = dict(
     letras=[('112', -9.20, 0.10, 0.70)],
     bandera=(5.50, 6.60), escarapelas=(10.0, -0.8, 1.30),
     tren=dict(x=4.60, nariz=-10.0, suelo=-3.20, r=0.65, ancho=0.40),
+    helices_giran=True,   # (25/11: las palas las gira el juego — `_helice`)
 )
 
 # ============================ LOS QUE FALTABAN (18/11/2026) ============================

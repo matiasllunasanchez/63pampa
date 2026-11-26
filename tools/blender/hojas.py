@@ -42,7 +42,11 @@ ICONOS_CARTAS = ['canon', 'cinta', 'bala', 'brp', 'snakeye', 'espoleta', 'ter', 
                  'antena', 'mirage', 'learjet', 'pinza', 'terreno', 'itb', 'paracaidas', 'pirueta',
                  'fideos',   # (20/10: la maquina de fideos, la carta de las primeras chafitas)
                  'aerosol',  # (17/11: el siliconado M-60 del parabrisas)
-                 'bidon']    # (23/11: el bidon verde de la Chancha)
+                 'bidon',    # (23/11: el bidon verde de la Chancha)
+                 # (25/11: la tanda del album — la eyeccion, el Rapier, las chafitas por carga, cada pirueta)
+                 'eyeccion', 'rapier', 'chaf2', 'chaf3', 'chaf4', 'chaf_rec', 'chaf_den',
+                 'pir_mask', 'pir_splits', 'pir_breakt', 'pir_loyo', 'pir_sturn', 'pir_popup', 'pir_hiyo', 'pir_jink',
+                 'pir_spin', 'pir_climb', 'pir_climbmax', 'pir_barrel', 'pir_salto']
 
 HOJAS = {
     # LOS HELICOPTEROS, HECHOS EN BLENDER (4/10/2026, tools/blender/modelos_helos.py): el de siempre
@@ -156,6 +160,12 @@ HOJAS = {
     'aim9': dict(fw=32, fh=32, pos=(0, 0.3, 7.4), fov=26, lookY=0, cols=10, cajas=False, contorno=False,
                  destino='assets/ammo/aim9.png',
                  frames=[dict(modelo='bl:municion_aim9', rots=[('X', v * R)]) for v in range(0, 181, 20)]),
+    # LA ESTAMPITA DEL ALBUM (25/11/2026, el autor: "tiene que mostrar un misil, el SIDEWINDER"): el mismo
+    # modelo, quieto (sin la boca encendida) y grande, en diagonal y en 3/4 como la foto — la nariz abajo a
+    # la izquierda, girado sobre su eje para que las aletas no queden de canto (render/menus.js albumIcono)
+    'aim9_album': dict(nueva=True, fw=128, fh=128, pos=(0, 0, 13.0), fov=13, lookY=0, cols=1, cajas=False,
+                       destino='assets/ammo/aim9_album.png',
+                       frames=[dict(modelo='bl:municion_aim9:0:0', rots=[('Z', 135 * R), ('X', 80 * R), ('Z', 25 * R)])]),
     # LAS CHAFITAS (8/10/2026, el autor: "en Blender tienen que estar horneados tambien, son cilindros de
     # 16 cm"): el tubo que larga cada carga, nuevo y solo de Blender. Seis vistas como la municion —de
     # punta (0) a de costado (5)—; el giro en el plano y el destello los pone el juego (game.js

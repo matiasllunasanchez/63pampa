@@ -3,8 +3,13 @@
 // lo dibuja systems/islas/busqueda3d.js. Los avisos salen como eventos (`tomarEventos`) y game.js los vuelve
 // carteles y radio.
 //
+// LAS BENGALAS (26/11, el autor: "en ISLA debe haber varias zonas de busqueda… deben ser visibles las bengalas y yo debo
+// tirar radar, seguir bengalas hasta alguna de esas; 5 ubicaciones aleatorias y una de ellas es la mancha con las
+// balsas"): BUSQ.BENGALAS lugares al azar en la zona, cada uno con una bengala que se ve de lejos; la mancha esta en
+// uno. Con el radar PRENDIDO a menos de BENGALA_R de una bengala (y arriba de RADAR_ALT), BENGALA_S segundos: si es la
+// de la mancha, aparece; si no, la bengala se apaga (SIN CONTACTO). La mancha tambien se ve a ojo, pasando encima.
 // LAS FASES:
-//   'mancha'    barrer la zona bajo las nubes hasta ver la MANCHA DE ACEITE (los indicios falsos engañan)
+//   'mancha'    seguir las bengalas y barrer con el radar hasta dar con la MANCHA DE ACEITE (los indicios falsos engañan)
 //   'balsas'    la mancha se corre al SE: las BALSAS estan mas alla de su punta, derivando
 //   'marcar'    las viste: tirale HUMO encima antes de alejarte, o se pierden (derivan y hay que volver a verlas)
 //   'circulos'  marcadas: SUBI y da VUELTAS sobre el humo para que el destructor te tome
@@ -41,10 +46,20 @@ export function armar(x, z, yaw, { encuentra = true, semilla = 1 } = {}) {
     B.ind.push({ ...t, x: B.cx + Math.cos(a) * r, z: B.cz + Math.sin(a) * r, rot: rnd() * Math.PI, visto: false });
   }
   B.mancha = null; B.balsas = null;
+  // LAS BENGALAS: separadas entre si, ninguna pegada a la entrada
+  B.beng = [];
+  for (let t = 0; B.beng.length < BUSQ.BENGALAS && t < 400; t++) {
+    const a = rnd() * Math.PI * 2, r = BUSQ.BENGALA_D[0] + rnd() * (BUSQ.BENGALA_D[1] - BUSQ.BENGALA_D[0]);
+    const bx = B.cx + Math.cos(a) * r, bz = B.cz + Math.sin(a) * r;
+    if (Math.hypot(bx - x, bz - z) < BUSQ.BENGALA_SEP) continue;
+    if (B.beng.some(q => Math.hypot(q.x - bx, q.z - bz) < BUSQ.BENGALA_SEP)) continue;
+    B.beng.push({ x: bx, z: bz, viva: true, barrido: 0, f: rnd() * 30 });
+  }
+  B.bengMancha = encuentra ? Math.floor(rnd() * B.beng.length) : -1;
   if (encuentra) {
-    // LA MANCHA: arranca en algun lado de la zona y se estira hacia el SE
-    const a = rnd() * Math.PI * 2, d = BUSQ.MANCHA_D[0] + rnd() * (BUSQ.MANCHA_D[1] - BUSQ.MANCHA_D[0]);
-    const mx = B.cx + Math.cos(a) * d, mz = B.cz + Math.sin(a) * d, [sx, sz] = dir(BUSQ.MANCHA_RUMBO * DEG);
+    // LA MANCHA: en la bengala que le toco, y se estira hacia el SE
+    const q = B.beng[B.bengMancha];
+    const mx = q.x, mz = q.z, [sx, sz] = dir(BUSQ.MANCHA_RUMBO * DEG);
     B.mancha = { x0: mx, z0: mz, x1: mx + sx * BUSQ.MANCHA_LARGO, z1: mz + sz * BUSQ.MANCHA_LARGO, ancho: BUSQ.MANCHA_ANCHO, rot: BUSQ.MANCHA_RUMBO * DEG, vista: false };
     // LAS BALSAS: mas alla de la punta SE, derivando
     const dv = BUSQ.DERIVA[0] + rnd() * (BUSQ.DERIVA[1] - BUSQ.DERIVA[0]), ga = (BUSQ.MANCHA_RUMBO + (rnd() - 0.5) * 40) * DEG, [gx, gz] = dir(ga);
@@ -79,6 +94,7 @@ function aMancha(x, z) {
 /** Un cuadro. `a` = { x, z, yaw, alto (m sobre el mar), suelta (true el cuadro en que se aprieta el humo), dt }. */
 export function paso(dt, a) {
   if (!B.on) return;
+  B.ult = a;   // (la sonda `__busqueda('aca')`)
   const v = vista(a.alto);
   for (const h of B.humos) h.t += dt;
   B.humos = B.humos.filter(h => h.t < BUSQ.HUMO_S);
@@ -98,6 +114,19 @@ export function paso(dt, a) {
   }
   if (B.fase === 'mancha' && v > 0 && aMancha(a.x, a.z) < v + B.mancha.ancho / 2) {
     B.mancha.vista = true; B.fase = 'balsas'; B.ev.push({ k: 'mancha' });
+  }
+  // EL RADAR CERCA DE UNA BENGALA (ver arriba): descarta la bengala o encuentra la mancha
+  if ((B.fase === 'mancha' || B.fase === 'barrido') && a.radar && a.alto >= BUSQ.RADAR_ALT) {
+    for (let i = 0; i < B.beng.length; i++) {
+      const q = B.beng[i];
+      if (!q.viva || Math.hypot(q.x - a.x, q.z - a.z) > BUSQ.BENGALA_R) continue;
+      q.barrido += dt;
+      if (q.barrido < BUSQ.BENGALA_S) continue;
+      q.viva = false;
+      if (i === B.bengMancha && B.fase === 'mancha') { B.mancha.vista = true; B.fase = 'balsas'; B.ev.push({ k: 'mancha', radar: true }); }
+      else B.ev.push({ k: 'bengalaVacia', quedan: B.beng.filter(z => z.viva).length });
+      break;
+    }
   }
   if ((B.fase === 'balsas' || B.fase === 'marcar') && B.balsas) {
     const d = Math.hypot(B.balsas.x - a.x, B.balsas.z - a.z);
@@ -144,10 +173,8 @@ export const tomarEventos = () => B.ev.splice(0);
 
 /** Hacia donde marca la brujula: el centro de la zona; el humo que las marca en los circulos. null si nada. */
 export function blanco() {
-  if (!B.on) return null;
-  if (B.fase === 'circulos' && B.balsas) return { x: B.balsas.x, z: B.balsas.z };
-  if (B.fase === 'hecho') return null;
-  return { x: B.cx, z: B.cz };
+  // (26/11, el autor: "no debe aparecer el cuadradito"): sin marca de zona — se siguen las bengalas, la mancha y el humo
+  return null;
 }
 
 /** Lo que muestra el tablero: la fase, los humos que quedan, el progreso (circulos o barrido). */
@@ -161,17 +188,23 @@ export function hud() {
 /** Para el dibujo 3D (busqueda3d.js) y el mapa: lo que hay en el agua. Las balsas, solo una vez vistas. */
 export function escena() {
   if (!B.on) return null;
-  return { mancha: B.mancha, ind: B.ind, humos: B.humos, zona: { x: B.cx, z: B.cz, r: BUSQ.ZONA_R },
+  return { mancha: B.mancha, ind: B.ind, humos: B.humos, zona: { x: B.cx, z: B.cz, r: BUSQ.ZONA_R }, bengalas: B.beng,
     balsas: B.balsas ? B.balsas.lista : null };
 }
 
 /** La sonda: el estado entero (tools / __busqueda) */
 export const debug = () => ({ fase: B.fase, c: [Math.round(B.cx), Math.round(B.cz)], mancha: B.mancha && [Math.round(B.mancha.x0), Math.round(B.mancha.z0), Math.round(B.mancha.x1), Math.round(B.mancha.z1)],
-  balsas: B.balsas && [Math.round(B.balsas.x), Math.round(B.balsas.z), B.balsas.vistas, B.balsas.marcadas], humos: B.quedan, vueltas: +B.vueltas.toFixed(2), sect: B.sect });
+  balsas: B.balsas && [Math.round(B.balsas.x), Math.round(B.balsas.z), B.balsas.vistas, B.balsas.marcadas], humos: B.quedan, vueltas: +B.vueltas.toFixed(2), sect: B.sect,
+  beng: B.beng && B.beng.map(q => [Math.round(q.x), Math.round(q.z), q.viva]), bengMancha: B.bengMancha });
 
 // SONDA: __busqueda() el estado; __busqueda('mancha'|'balsas') te lleva encima (para probar sin barrer)
 if (typeof window !== 'undefined') window.__busqueda = q => {
   if (q === 'mancha' && B.mancha) return JSON.stringify({ x: B.mancha.x0, z: B.mancha.z0 });
   if (q === 'balsas' && B.balsas) return JSON.stringify({ x: B.balsas.x, z: B.balsas.z });
+  // 'aca': las balsas vistas, AD m adelante de la trompa (para mirarlas sin buscarlas)
+  if (q === 'aca' && B.balsas && B.ult) {
+    const [fx, fz] = dir(B.ult.yaw); B.balsas.x = B.ult.x + fx * 220; B.balsas.z = B.ult.z + fz * 220; armarRacimo();
+    B.balsas.vistas = true; return 'ok';
+  }
   return JSON.stringify(debug());
 };

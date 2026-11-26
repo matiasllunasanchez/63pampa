@@ -964,6 +964,9 @@ export function flightSystem(dt, deps) {
   // o la F"): con [F] o el clic derecho mantenido se ve la caida, y la bomba sale al APRETAR el
   // gatillo (ESPACIO). Soltar la mira sin apretar no tira nada. [Z] sigue siendo
   // mantener-y-soltar, y el mando (L1) tambien.
+  // SIN NADA QUE SOLTAR NO HAY MIRA (25/11, el autor: "quitar al Neptune la mira de bomba porque no lanza nada"): los
+  // que no llevan armas (`sinArmas`) y no ganaron bombas ni llevan el Exocet no apuntan
+  if (run.sinBombas && !run.mslMax && !run.soloExocet) { run.apuntaBomba = false; run.miraAntes = false; run.fuegoAntes = !!inp.fire; return false; }
   const mira = !!inp.apunta;
   if (mira) {
     run.apuntaBomba = true;

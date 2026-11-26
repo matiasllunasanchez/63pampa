@@ -18,6 +18,7 @@ import * as dmg from './damage.js';
 import { obstacles, soldiers, bullets, missiles, pmissiles, parts, prune, estallidos } from '../core/world.js';
 import * as blancoSys from './blanco.js';
 import { balaTope } from '../core/blanco.js';
+import { BL } from '../data/blanco.js';
 import { BOMBA_G, BOMBA_PLANEO, BOMBA_REL_MAX, SPAWN_Z, TQ_ONDA_X, TQ_ONDA_Z } from '../data/tuning.js';
 import { golpeTanque } from '../core/nafta.js';
 import { proj, popup, explodeAt, bloodBurst, columnaBomba, morir, stepDestruccion, estallido, piqueMunicion, espumaRompe } from '../core/fx.js';
@@ -843,6 +844,9 @@ export function collisionSystem(dt) {
       pm.vz = Math.min(run.spd + EXOCET.REL, pm.vz + EXOCET.ACEL * dt);
       pm.vy += ((EXOCET.RAS - pm.y) * 3 - pm.vy) * Math.min(1, dt * 4); pm.y += pm.vy * dt;
       pm.z += (pm.vz - run.spd) * dt;
+      // GUIADO (EL SHEFFIELD, 26/11, el autor: "se lanza solo si la secuencia es correcta y despues apunta solo"): el que
+      // sale del Pulso va al centro del casco; el de la suelta comun sigue derecho a la linea en que lo soltaste
+      if (pm.guia) { pm.vx = 0; pm.x += (BL.X - pm.x) * Math.min(1, dt * 2.5); }
       pm.humoT = (pm.humoT || 0) + dt;
       if (pm.humoT > 0.04) { pm.humoT = 0; (pm.humo = pm.humo || []).push({ x: pm.x, y: pm.y, wz: run.dist + pm.z, t: 0 }); }
     } else {
@@ -944,7 +948,8 @@ export function collisionSystem(dt) {
   // (ver pegaTanque, abajo)
   // el corte sube de 240 a SPAWN_Z: con el tiro oblicuo la bomba puede adelantarse de verdad, y
   // 240 la borraba en pleno vuelo. Mas alla de donde nace el mundo no tiene sentido seguirla.
-  prune(pmissiles, pm => pm.z < SPAWN_Z && pm.y > -3);
+  // (el Exocet GUIADO sale con el buque todavia lejos, mas alla de SPAWN_Z: vive hasta pegarle — EL SHEFFIELD, 26/11)
+  prune(pmissiles, pm => (pm.z < SPAWN_Z || (pm.guia && pm.z < 5000)) && pm.y > -3);
 
   return false;
 }

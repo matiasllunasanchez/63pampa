@@ -49,7 +49,7 @@ export const TEMAS = [
     que: 'El misil de radar de los destructores: te busca de lejos. Las chafitas lo engañan, y un quiebre fuerte después del lanzamiento lo puede hacer pasar de largo.',
     dato: 'ESPERAR 2 SEGUNDOS Y QUEBRAR',
     historia: 'Lo llevaban los destructores Tipo 42. La mañana del 25 de mayo, el HMS Coventry derribó así dos A-4C antes de ser hundido. Contra él, los Canberra largaban chaff y bengalas improvisados, y la táctica era esperar unos dos segundos tras el lanzamiento y quebrar el rumbo.' },
-  { id: 'eyeccion', arte: 'paracaidas', name: 'LA EYECCIÓN', icono: 'avion', grupo: 'defensa',
+  { id: 'eyeccion', arte: 'eyeccion', name: 'LA EYECCIÓN', icono: 'avion', grupo: 'defensa',
     desc: 'La última salida',
     que: 'Con el avión perdido y cayendo, todavía te podés eyectar. Sobre el mar no hay mucho tiempo: hay que salir antes de que sea tarde, y después esperar que te vengan a buscar.',
     dato: 'MAR A 1-2 °C',
@@ -66,12 +66,12 @@ export const TEMAS = [
     que: 'El misil corto de las fragatas Tipo 22, bueno contra los que vienen bajo. Su punto débil: dos aviones que se cruzan lo confunden.',
     dato: 'DE OCHO A-4B VOLVIERON CUATRO',
     historia: 'El 12 de mayo, los Sea Wolf de la Brilliant bajaron a tres A-4B de la escuadrilla CUÑA. El 25 de mayo, el de la Broadsword no pudo resolver a dos A-4 que se cruzaban y no disparó: ese ataque terminó con el Coventry hundido.' },
-  { id: 'sidewinder', sprite: { src: 'harrier', n: 5, fr: 2 }, name: 'EL SIDEWINDER', grupo: 'defensa',
+  { id: 'sidewinder', sprite: { src: 'ammo/aim9_album', n: 1, fr: 0 }, name: 'EL SIDEWINDER', grupo: 'defensa',
     desc: 'El misil de los Sea Harrier',
     que: 'El misil de calor de los Sea Harrier. El AIM-9L te puede tirar de frente: quemar el turbo o quebrar encima lo hace seguir de largo.',
     dato: 'TODO-ASPECTO: SE DISPARA DE FRENTE',
     historia: 'El AIM-9L británico era todo-aspecto y logró alrededor del 80 % de derribos. El AIM-9B que podía llevar el A-4Q argentino solo enganchaba el caño de escape, y no consta un solo disparo argentino en la guerra. Esa sola diferencia explica buena parte de lo que pasó en el aire.' },
-  { id: 'antiaereo', sprite: { src: 'manpad', n: 2, fr: 0 }, name: 'RAPIER Y BLOWPIPE', grupo: 'defensa',
+  { id: 'antiaereo', arte: 'rapier', name: 'RAPIER Y BLOWPIPE', grupo: 'defensa',
     desc: 'Desde la costa, a la salida',
     que: 'Los misiles portátiles desde tierra: aparecen en la costa y te tiran cuando pasás. El peligro grande está en la salida, no en la entrada.',
     dato: 'A 2-5 KM: SEGUNDOS DE AVISO',
@@ -130,12 +130,22 @@ export const MISIONES = LIBRO_OK.map(m => ({
   historia: lineas(m.id.toUpperCase() + '_CONTEXTO').slice(1).join(' '),
 }));
 
+/** EL NIVEL DE UNA MEJORA (25/11/2026, el autor: "en las que son mejoras, cambiar los colores, los bordes, el material:
+ *  normal, plata y oro, con mas remaches"): 0 normal, 1 plata, 2 oro. Cuenta los escalones de su escalera —la carta que
+ *  `requiere` de la MISMA familia (mismo nombre sin el numero: potencia2 → potencia3; las CHAFITAS DE REPUESTO piden
+ *  chafitas1 pero son otra cosa)—, y la METRALLA y la CINTA arrancan un escalon arriba: la comun viene de fabrica. */
+const familia = id => id.replace(/\d+$/, '');
+function nivelCarta(c) {
+  let d = c.metralla || c.cinta ? 1 : 0, k = c;
+  while (k && k.requiere && familia(k.requiere) === familia(k.id)) { d++; k = CARTAS.find(x => x.id === k.requiere); }
+  return Math.min(2, d);
+}
 /** Las secciones del album, en orden (cada una es una pestaña). */
 export const ALBUM_CATS = ['temas', 'cartas', 'aviones', 'buques', 'misiones'];
 /** Todas las figuritas, en orden de seccion. */
 export const ALBUM = [
   ...TEMAS.map(t => ({ ...t, tipo: 'tema', cat: 'temas' })),
-  ...CARTAS.map(c => ({ ...c, tipo: 'carta', cat: 'cartas' })),
+  ...CARTAS.map(c => ({ ...c, tipo: 'carta', cat: 'cartas', nivel: nivelCarta(c) })),
   ...AVIONES, ...BUQUES, ...MISIONES,
 ];
 export const ALBUM_KEY = 'rasante_album';

@@ -52,6 +52,9 @@ export function readyToEnter(dist, objectiveDist) {
 
 /** Foto de solo lectura para el render (convencion 4: el que dibuja no toca el estado). */
 export const state = () => Q;
+/** EL EXOCET SE CARGA SOLO CON FLECHAS / CRUCETA (25/11, el autor: "bloqueemos el stick, que sea con las flechas"):
+ *  core/input.js lo pregunta para no mandar toques del stick ni de WASD. */
+export const soloFlechas = () => !!(Q && Q.exocet && (Q.fase === 'prueba' || Q.fase === 'rojo'));
 export const active = () => !!Q;
 
 export function resetPulso() { Q = null; carry = null; cine.stop(); }
@@ -77,6 +80,12 @@ export function setCfg(c) {
 /** ¿La prueba es la del EXOCET? Entra aparte porque la carga se resuelve despues de setCfg (setRunObjective). */
 const EXOCET_PERDON = 3;   // las teclas que se pueden errar cargando las coordenadas del Exocet
 export function setExocet(v) { if (carry) carry.exocet = !!v; }
+/** EL EXOCET DEL INVINCIBLE (25/11): bien cargado no se lo ve pegar — sale, los A-4C lo siguen, te abris y termina
+ *  (`pulso_exocet_despide` en data/cines.js). Lo pide game.js con el Super Etendard de EL INVINCIBLE. */
+export function setDespide(v) { if (carry) carry.despide = !!v; }
+/** AL PASILLO (EL SHEFFIELD, 26/11, el autor: "tiene que ser igual que la pasada de la etapa 3"): bien cargado, la prueba
+ *  no tiene cinematica — devuelve 'objective' en el acto y game.js suelta el Exocet en el mismo pasillo, contra el buque. */
+export function setAlPasillo(v) { if (carry) carry.alPasillo = !!v; }
 
 /** EL BUQUE de esta corrida. Entra aparte de setCfg() y no dentro porque el orden de armado del
  *  run es reset() → setRunObjective(): cuando se configura la prueba, el objetivo todavia es el de
@@ -118,7 +127,7 @@ export function enter(desdePasillo, conf) {
   const c = conf || carry || {};
   carry = { t01: c.t01 || 0, campaign: !!c.campaign, owned: c.owned || [], off: c.off || null,
             ship: c.ship || '', tries: (carry && carry.tries) || 0, flak: (carry && carry.flak) || 0,
-            bombas: c.bombas || 0, exocet: !!c.exocet };   // (sin esta linea el `pulsoBombas` de la mision se perdia aca)
+            bombas: c.bombas || 0, exocet: !!c.exocet, despide: !!c.despide, alPasillo: !!c.alPasillo };   // (sin esta linea el `pulsoBombas` de la mision se perdia aca)
   Q = {
     t: 0,                                 // reloj REAL de la prueba
     fase: 'prueba',                       // 'prueba' | 'exito' | 'fallo'
@@ -246,6 +255,8 @@ export function tap(tok) {
   const b = barNow();
   if (!b) return false;
   const esperado = b.toks[Q.ti];
+  // LA CRUCETA DE ARRIBA (render/pulso.js drawCruceta) se hunde con cada toque: verde si fue la buena, roja si no
+  Q.cruzTok = tok; Q.cruzT = 0; Q.cruzOk = coincide(tok, esperado);
   if (coincide(tok, esperado)) {
     // QUE TECLA SE ACERTO, para que el render le ponga el destello verde. Se anota ANTES de
     // avanzar: despues, `idxCinta()` ya apunta a la siguiente.
@@ -280,11 +291,21 @@ function errar() {
   // y la anterior quedaba un cuadro mas encendida: dos teclas grandes a la vez y ninguna en su
   // lugar. Se rompio ahi: ahi se queda.
   Q.ci = Q.errIdx;
+  // EL EXOCET PERDONA TRES (25/11, el autor: "deberia poder fallar 3 veces en el pulso. Falle 1 y me dio como
+  // perdido"): la tecla se rompe en rojo, la barra vuelve a llenarse y se sigue en LA MISMA tecla. La cuarta, se desvia.
+  if (perdona()) return true;
   if (PULSO.UN_ERROR_PIERDE) { Q.fase = 'rojo'; return true; }
   // …y con la perilla en false vuelve la economia de Q2: se rehace el compas entero y el perdon
   // de los primeros niveles absorbe el primero.
   Q.ti = 0; Q.beatT = 0;
   if (Q.errs > Q.perdon) fallar('pulso_fallo_err');
+  return true;
+}
+
+/** ¿Este error se perdona? Solo en el Exocet y mientras queden fallas (`Q.perdon`). Deja la tecla igual. */
+function perdona() {
+  if (!Q.exocet || Q.errs > Q.perdon) return false;
+  Q.beatT = 0;
   return true;
 }
 
@@ -312,6 +333,7 @@ function exito() {
   const sellos = sellosDe({ errs: Q.errs, secs, par });
   Q.premio = { secs, par, sellos, n: sellosN(sellos), pts: puntosDe(PULSO_IMPACTO.pts, sellos) };
   Q.fase = 'cine'; Q.faseT = 0;
+  if (carry && carry.alPasillo) { Q.fase = 'pasillo'; return; }
   // LA PIRUETA QUE SE TECLEO: el ULTIMO compas que fue una pirueta (el remate no lo es). Regla 1
   // del plan del PULSO cerrando el circulo — el examen pedia la maniobra, y la recompensa es verla
   // salir. Si no hay ninguna (primera mision, libreta vacia) la ligadura queda sin atar y el beat
@@ -321,7 +343,8 @@ function exito() {
   // de la timeline se mide contra esto, asi que una maniobra corta no deja aire muerto y una larga
   // no queda cortada (PLAN_CINE_PESO P3). Sin pirueta, el encare y nada mas.
   const durMv = b && MOVES[b.move] ? MOVES[b.move].dur : 0;
-  cine.start(Q.exocet ? 'pulso_premio_exocet' : 'pulso_premio', {
+  Q.despide = !!(Q.exocet && carry && carry.despide);
+  cine.start(Q.despide ? 'pulso_exocet_despide' : Q.exocet ? 'pulso_premio_exocet' : 'pulso_premio', {
     pirueta: b ? b.move : undefined,
     piruetaDir: b ? b.dir : 1,
     tPir: CINE_VUELO.RAS_T + CINE_VUELO.POSE_T + durMv,
@@ -414,6 +437,8 @@ export function update(dtReal, dtMundo) {
   // dibuja no guarda nada (convencion 4).
   if (Q.fase === 'prueba') Q.ci += (idxCinta() - Q.ci) * Math.min(1, dtReal * PULSO_CINTA.EASE);
   Q.okT += dtReal;
+  Q.cruzT = (Q.cruzT ?? 9) + dtReal;
+  if (Q.fase === 'prueba' && Q.errIdx != null) Q.errT += dtReal;   // la tecla perdonada sigue rompiendose en rojo
 
   if (Q.fase === 'prueba') {
     // EL MARGEN: cada TECLA tiene su ventana, y es la que corre en la barra naranja de abajo.
@@ -421,6 +446,10 @@ export function update(dtReal, dtMundo) {
     // decision rapida.
     Q.beatT += dtReal;
     if (Q.beatT >= Q.beatMax) {
+      // (en el Exocet agotar la barra es una falla mas, de las tres que se perdonan)
+      if (Q.exocet) { Q.errs++; Q.errIdx = idxCinta(); Q.errT = 0; Q.motivo = 'pulso_fallo_t';
+        Q.shake = Math.min(5, Q.shake + 2); beep(150, 0.16, 'sawtooth', 0.06, -60);
+        if (perdona()) return null; Q.ci = Q.errIdx; Q.fase = 'rojo'; return null; }
       if (PULSO.UN_ERROR_PIERDE) { Q.errIdx = idxCinta(); Q.errT = 0; Q.ci = Q.errIdx; Q.fase = 'rojo';
         Q.motivo = 'pulso_fallo_t'; beep(150, 0.16, 'sawtooth', 0.06, -60); return null; }
       fallar('pulso_fallo_t');
@@ -448,6 +477,7 @@ export function update(dtReal, dtMundo) {
     return s && s.done ? { death: Q.errado ? 'death_exocet_errado' : 'death_pulso' } : null;
   }
 
+  if (Q.fase === 'pasillo') return 'objective';   // (EL SHEFFIELD: sin cinematica, al pasillo)
   Q.faseT += dtReal;
   // EL PREMIO: lo corre EL DIRECTOR (la timeline `pulso_premio` de data/cines.js). Cuando dice
   // que se termino, la mision se cierra por el embudo de siempre.
@@ -524,6 +554,7 @@ export function shipFx(vb) {
   // y sin esta guarda el buque volvia a 1× y sin escora justo ahi: un parpadeo del blanco a tamaño
   // de horizonte. Que hoy no se vea porque el recuento ya tapo la escena no lo hace correcto.
   if (!Q || Q.fase !== 'cine' || !cine.active()) return null;
+  if (Q.despide) return null;   // (el Exocet del Invincible: el buque NO se acerca — queda a 30 millas)
   // EL ACERCAMIENTO ES UNA SOLA CURVA, de punta a punta del premio. Estuvo partido en dos —el zoom
   // de la caida hasta la agonia, y el del sobrevuelo durante la agonia— y las DOS arrancaban con
   // pendiente cero (van al cuadrado): en la costura, que caia justo en el impacto, el buque dejaba

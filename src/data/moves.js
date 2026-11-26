@@ -96,6 +96,9 @@ export const MOVES = {
   sturn: { dur: 1.1, name: 'S-TURN', steer: 'y', fire: true, turbo: false, tight: true },
   // pegarse al terreno: clava el avion a ras, congela el roce y DESCARGA el radar enemigo
   mask: { dur: 1.6, name: 'TERRAIN MASKING', steer: 'x', fire: true, turbo: true, tight: false },
+  // SALTO DE OLA (25/11/2026, el autor): el saltito por encima de una ola comun y de vuelta al ras. Corto, sin
+  // perder velocidad, y se corre un poco hacia el lado del tercer toque (↑↓← / ↑↓→). Numeros: SALTO en tuning.
+  salto: { dur: 0.7, name: 'SALTO DE OLA', steer: 'x', fire: true, turbo: true, tight: false },
   // trepada brusca de ataque desde rasante
   popup: { dur: 0.8, name: 'POP-UP', steer: 'x', fire: true, turbo: false, tight: false },
   // ASCENSO: el TERRAIN MASKING dado vuelta. Trepa sostenido hasta un TECHO (run.mvTgt) y se
@@ -192,7 +195,7 @@ export const MV_HI = 18, MV_LO = 14;
 // pegados al bloque de prosa de arriba —que dice lo mismo— para que un cambio en uno deje al otro
 // a la vista.
 export const COMBO = {
-  splits: '↑↓↓ (alto)', breakt: '↓←← · ↓→→', hiyo: '↑↓↑', loyo: '↓↑↓',
+  splits: '↑↓↓ (alto)', breakt: '↓←← · ↓→→', hiyo: '↑↓↑', loyo: '↓↑↓', salto: '↑↓← · ↑↓→',
   jink: '↑←→ · ↑→←', sturn: '←→← · →←→', mask: '⟳↓↓↓', popup: '↓↑↑ (bajo)',
   dive: 'mirar ↓ ⟶ ↓↓', divemax: 'mirar ↓ ⟶ ↓↓ (contra el radar)',
   climb: 'mirar ↑ ⟶ ↑↑', climbmax: 'mirar ↑ ⟶ ↑↑ (contra el radar)', spin: 'Q S E · E S Q',

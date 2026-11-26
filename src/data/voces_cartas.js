@@ -60,6 +60,7 @@ export const VOZ_CARTA = {
  'sturn': 'gitano',
  'popup': 'gitano',
  'hiyo': 'gitano',
+ 'salto': 'gitano',
  'jink': 'gitano',
  'spin': 'gitano',
  'climb': 'gitano',

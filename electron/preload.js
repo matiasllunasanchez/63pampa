@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('RASANTE_APP', true);
 contextBridge.exposeInMainWorld('RASANTE_DEV', process.argv.includes('--rasante-dev'));
 // LA VERSION FULL (src/core/dev.js FULL): `--full` en main.js
 contextBridge.exposeInMainWorld('RASANTE_FULL', process.argv.includes('--rasante-full'));
+// TODO ABIERTO (src/core/dev.js TODO): `npm run todo`, `--todo` en main.js
+contextBridge.exposeInMainWorld('RASANTE_TODO', process.argv.includes('--rasante-todo'));
 // OPCIONES -> PANTALLA (src/game.js): pantalla completa o ventana. Lo aplica electron/main.js.
 contextBridge.exposeInMainWorld('rasanteVentana', {
   pantallaCompleta: v => ipcRenderer.send('pantalla-completa', !!v),

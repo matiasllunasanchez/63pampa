@@ -90,9 +90,22 @@ def m_kc130(T):
     piv.location = Vector((px, yc, zc + 0.55)) - punta
     return raiz
 
+def m_belgrano(T):
+    L_ = cargar('modelos_libro_lam', 'modelos_libro.py')
+    return L_.belgrano_hundiendose(T, K_nuevo(cargas=False))
+
 def m_invincible(T):
     L_ = cargar('modelos_libro_lam', 'modelos_libro.py')
     return L_.invincible(T, K_nuevo(cargas=False))
+
+# EL SHEFFIELD (26/11): el Tipo 42 del juego (modelos_buques.py `t42`), el mismo que se hornea para el pasillo
+def m_sheffield(T):
+    L_ = cargar('modelos_libro_lam', 'modelos_libro.py')
+    return L_.B.t42(T, K_nuevo(cargas=False))
+
+# EL NEPTUNE (26/11): el SP-2H del juego, sin cargas (el que encontro a la flota el 4 de mayo)
+def m_neptune(T):
+    return MOD.neptune(T, K_nuevo(cargas=False))
 
 # (modelo, azimut, elevacion, margen): el azimut se mide desde ESTRIBOR (+x de three) hacia la PROA;
 # la elevacion, positiva desde arriba. Ortografica: es un plano, no una foto.
@@ -102,6 +115,11 @@ LAMINAS = {
     'exocet':        (m_exocet, 18, 16, 0.05),
     'kc130':         (m_kc130, -58, 22, 0.04),
     'invincible':    (m_invincible, 32, 24, 0.04),
+    # (25/11) el Belgrano hundiendose, visto desde su aleta de BABOR como la foto (escorado hacia la camara)
+    'belgrano':      (m_belgrano, -135, 12, 0.05),
+    # (26/11) EL SHEFFIELD de tres cuartos de proa por estribor, y el NEPTUNE de tres cuartos desde abajo-adelante
+    'sheffield':     (m_sheffield, 34, 18, 0.05),
+    'neptune':       (m_neptune, 30, -12, 0.06),
 }
 
 # ============================ LA ESCENA ============================

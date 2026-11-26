@@ -228,7 +228,7 @@ import { cartel, cartelSostenido, tickCarteles, limpiarCarteles, carteles } from
 import { CARA_DE_RADIO, decirLinea, setVozLibro } from './core/voz.js';
 import { derrota, esChoque, tipoDerribo } from './data/derrotas.js';
 import { SOBREVUELO, EYECCION_PREMIO } from './data/islas_teatro.js';
-import { DEV, FULL } from './core/dev.js';
+import { DEV, FULL, TODO } from './core/dev.js';
 import { defensaDe } from './data/defensas.js';
 import { calibreDe } from './data/sistemas_buque.js';
 import { BOMBAS, bombaDe, bombaInfo } from './data/bombas.js';
@@ -2020,6 +2020,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     const albumLista = () => ALBUM.filter(e => e.cat === ALBUM_CATS[albumCatI]);
     const albumLeer = k => { try { return new Set(JSON.parse(localStorage.getItem(k)) || []); } catch (e) { return new Set(); } };
     const albumVistos = albumLeer(ALBUM_KEY);
+    const albumTodo = new Set(ALBUM.map(e => e.id));   // (TODO ABIERTO, core/dev.js: el album entero a la vista)
     // LAS NUEVAS (22/11, el autor: "cuando agregamos una entrada nueva habria que avisarle"): lo destapado que todavia no
     // se miro en el album. El menu principal las cuenta en la fila ALBUM y cada figurita lleva su marca hasta que el
     // cursor pasa por ella. En vuelo, un tema nuevo sale con cartel; una carta, en el cartel de la eleccion.
@@ -2607,7 +2608,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       { id: 'resume', label: T('pauseResume') },
       ...(suelto() ? [{ id: 'cartas', label: T('pauseCartas') }] : []),   // VER CARTAS: solo PATRIA y CICLO
       // EL MAPA DE LAS ISLAS (desarrollo, 19/11): arriba de OPCIONES, solo volando las islas
-      ...(islas.enPasillo() ? [{ id: 'mapa', label: T('pauseMapa') }] : []),
+      ...(mapaVale() ? [{ id: 'mapa', label: T('pauseMapa') }] : []),
       // EL CLIMA DE LAS ISLAS (20/11, el autor): ◄ ► (o ENTER) lo cambia en el acto (systems/islas/clima.js)
       // (LA FILA CLIMA, SOLO EN DEV — 21/11, el autor: "quitar la configuracion de clima en la demo, dejarla en dev": desde
       // PRUEBAS y el MODO DEV; no en JUEGO RAPIDO, el libro ni el tutorial)
@@ -2822,7 +2823,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // 'raiz' (las dos puertas), 'campanas' (continuar + las campañas) o 'libro' (las salidas). El ATRAS
     // de adentro vuelve a la raiz, con el cursor sobre la puerta de la que se vino.
     let campVista = 'raiz';
-    const campRows = () => campVista === 'campanas' ? (CAMPANA_BLOQUEADA ? [
+    const campRows = () => campVista === 'campanas' ? (CAMPANA_BLOQUEADA && !TODO ? [
       { id: 'c1', disabled: true },
       { id: 'back', back: true, sub: true },
     ] : [
@@ -2837,7 +2838,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       { id: 'back', back: true, tut: true },
     ] : campVista === 'libro' ? [
       // (las que no estan en LIBRO_ABIERTAS, en gris y EN DESARROLLO — 23/11; el modo DEV las abre todas)
-      ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k, disabled: !DEV && !LIBRO_ABIERTAS.includes(m.id) })),
+      ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k, disabled: !DEV && !TODO && !LIBRO_ABIERTAS.includes(m.id) })),
       // las que vienen, en gris debajo (17/10): se ven y se marcan, no se entran
       // (21/11, el autor: "las que no estan hechas marcar como PROXIMAMENTE"): tambien en la FULL
       ...LIBRO_PROXIMAS.map((m, k) => ({ id: 'proxima', k, disabled: true })),
@@ -2851,7 +2852,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     function campIr(vista, fila) {
       campVista = vista;
       // con la campaña BLOQUEADA (la demo) la raiz arranca sobre el LIBRO DE VUELO: es lo que se juega
-      if (!fila && vista === 'raiz' && CAMPANA_BLOQUEADA) fila = r => r.id === 'secLibro';
+      if (!fila && vista === 'raiz' && CAMPANA_BLOQUEADA && !TODO) fila = r => r.id === 'secLibro';
       // al ENTRAR al tutorial, el cursor va SIEMPRE a la primera etapa (19/11, el autor: "apenas entramos al menu de
       // tutorial, seleccionar el primer punto"). Al volver de una etapa se queda sobre la siguiente (volverAlLibro).
       if (!fila && vista === 'tutorial') fila = r => r.id === 'tut' && r.k === 0;
@@ -2977,6 +2978,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // lanza arranca en 'super'; el que escolta, en 'sigue' (detras de los Super Etendard)
       libro.av = libroAvSel;
       libro.tramo = !m.lanzamiento ? null : av.rol === 'escolta' ? 'sigue' : 'super';
+      superPasa = null;
       selPlane = Math.max(0, PLANES.findIndex(p => p.key === av.plane));
       cfg.carga = av.carga;
       if (av.squad) cfg.squad = av.squad;   // cada avion trae su escuadrilla (la de la salida si no dice)
@@ -3051,10 +3053,18 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // (…y despues, 23/11, el autor: "la idea del radar es encontrarlo ANTES… si llego al limite de la zona azul ya lo encuentro
     // porque literalmente LO VEO"): la chance sube a lo largo de la zona (P0 → 1) y en su FIN queda ubicado solo, con o sin
     // radar. Por eso la zona ya no termina en el cierre del lanzamiento sino a FIN de la ventana: al verlo, todavia se lanza.
-    const BUSCA = { ANTES: 0.07, P0: 0.12, ARRIBA: 4, ARRIBA_MIN: 0.45, FIN: 0.5 };
-    const buscaZona = () => (zonaLanzamiento() && objectiveDist > 0 ? [lanzaM() - BUSCA.ANTES * objectiveDist, lanzaM() + (cierreM() - lanzaM()) * BUSCA.FIN] : null);
+    // (25/11, el autor: "las probabilidades de encontrarlo en la zona azul son re bajas… duplica las probabilidades de todo"):
+    // cada tirada vale el doble (DOBLE), con tope TOPE. Una pasada de radar al entrar a la zona: ~50% → ~80%.
+    const BUSCA = { ANTES: 0.07, P0: 0.12, ARRIBA: 4, ARRIBA_MIN: 0.45, FIN: 0.5, DOBLE: 2, TOPE: 0.97 };
+    // (EL SHEFFIELD, 26/11: la mision puede traer su propia zona, `buscaZona` [desde, hasta] en fraccion de la ida, sin el
+    // lanzamiento lejos — ahi el Exocet se lanza en la pasada sobre el buque)
+    const buscaZona = () => (curMission() && curMission().buscaZona && objectiveDist > 0 ? curMission().buscaZona.map(f => f * objectiveDist)
+      : zonaLanzamiento() && objectiveDist > 0 ? [lanzaM() - BUSCA.ANTES * objectiveDist, lanzaM() + (cierreM() - lanzaM()) * BUSCA.FIN] : null);
     let buscaAcc = 0;
     function pasoBuscaExo(dt) {
+      // SI YA SE LEE EL NOMBRE SOBRE EL BUQUE, ESTA UBICADO (25/11, el autor: "si ya visiblemente VEO al invencible… puedo
+      // lanzar el exocet, no tengo ni que tirar el radar. Logica")
+      if (run.soloExocet && !run.exoUbicado && S.state === 'play' && world.buqueALaVista()) { ubicarExo(); return; }
       const z = buscaZona();
       // AL FINAL DE LA ZONA YA SE VE: ubicado solo, con el radar apagado o sin radar
       if (z && run.soloExocet && !run.exoUbicado && S.state === 'play' && run.dist >= z[1]) { ubicarExo(); return; }
@@ -3065,9 +3075,76 @@ import { apodoAvion } from './data/apodos_aviones.js';
         const u = (run.dist - z[0]) / Math.max(1, z[1] - z[0]);
         let p = BUSCA.P0 + (1 - BUSCA.P0) * u * u;   // sube despacio y al final es seguro
         if (run.radarVisto) p = Math.min(0.95, Math.max(BUSCA.ARRIBA_MIN, p * BUSCA.ARRIBA));
+        p = Math.min(BUSCA.TOPE, p * BUSCA.DOBLE);
         if (Math.random() < p) { ubicarExo(); return; }
       }
     }
+    // ---------- LAS ZONAS DE BUSQUEDA DEL NEPTUNE (libro r6, EL RESCATE DEL BELGRANO, 25/11) ----------
+    // El autor: "subir X metros, usar el radar en diferentes zonas de la barra de arriba de objetivo; quitar la bandera y
+    // poner signo de pregunta. El Belgrano puede aparecer en todas las zonas de la barra de manera aleatoria, y el radar
+    // tiene un porcentaje de aparicion: cuanto mas alto, mas probabilidad"; "cuando lo encontramos pasamos a ISLA, y ahi
+    // los buscamos". Lo que se encuentra es la MANCHA DE ACEITE (el crucero se hundio en una hora la tarde anterior: al
+    // otro dia habia mancha, restos y balsas). La mision declara `zonas` (data/libro_vuelo.js): N franjas «?» en la barra,
+    // y la mancha en una al azar (Math.random: cada salida distinta, no la semilla del libro). Con el radar PRENDIDO
+    // adentro de una zona y por encima de ZONAS.ALT_MIN, cada segundo entero se tira el dado: en la de la mancha, P segun
+    // la altura (P_BAJO al minimo → P_TECHO bajo las nubes → P_ARRIBA por encima de la capa); en las otras, VACIA_S
+    // segundos de barrido la dan por vacia. Pasada la ultima zona sin contacto, la mision se pierde (death_sin_contacto).
+    const ZONAS = { ALT_MIN: 22, P_BAJO: 0.1, P_TECHO: 0.45, P_ARRIBA: 0.8, VACIA_S: 3, IR_S: 2.6, AVISO: 0.05 };
+    const zonasDef = () => (libro && !libro.tut ? libroDef().zonas || null : null);
+    let zonasM = null;
+    function armarZonas() {
+      const d = zonasDef(), n = d.n, paso = (d.hasta - d.desde - d.largo) / Math.max(1, n - 1);
+      zonasM = { lista: [], blanco: Math.floor(Math.random() * n), hallada: false, acc: 0, irT: -1, avisada: false, bajoDicho: -1 };
+      for (let i = 0; i < n; i++) zonasM.lista.push({ f0: d.desde + i * paso, f1: d.desde + i * paso + d.largo, estado: '?', barrido: 0 });
+    }
+    /** La probabilidad por segundo de ver la mancha desde `alt` m (adentro de su zona, con el radar prendido). */
+    function pZona(alt) {
+      if (alt < ZONAS.ALT_MIN) return 0;
+      if (alt > ALTO.NUBES) return ZONAS.P_ARRIBA;
+      const techo = Math.max(ZONAS.ALT_MIN + 1, ALTO.NUBES - ALTO.ESPESOR);
+      return ZONAS.P_BAJO + (ZONAS.P_TECHO - ZONAS.P_BAJO) * Math.min(1, (alt - ZONAS.ALT_MIN) / (techo - ZONAS.ALT_MIN));
+    }
+    /** Un cuadro de las zonas. true = la mision se perdio (o se fue a la busqueda) en este cuadro. */
+    function pasoZonas(dt) {
+      if (!zonasDef() || S.state !== 'play' || islas.enMar() || !(objectiveDist > 0) || run.dist >= objectiveDist) return false;
+      if (!zonasM) armarZonas();
+      const Z = zonasM;
+      // HALLADA: el cartel y, un momento despues, el fundido al mar abierto (las balsas, a ojo)
+      if (Z.hallada) {
+        Z.irT += dt;
+        if (Z.irT >= ZONAS.IR_S) { cartelSostenido('zona', false); empezarBusqueda(); return true; }
+        return false;
+      }
+      const f = run.dist / objectiveDist, ult = Z.lista[Z.lista.length - 1];
+      if (!Z.avisada && f >= Z.lista[0].f0 - ZONAS.AVISO) { Z.avisada = true; beep(660, 0.08, 'sine', 0.05, 200); cartel(T('zona_aviso'), '#5ab4ff', T('zona_aviso_sub'), { alerta: true }); }
+      if (f > ult.f1) { cartelSostenido('zona', false); die('death_sin_contacto'); return true; }
+      const i = Z.lista.findIndex(z => f >= z.f0 && f <= z.f1), z = i >= 0 ? Z.lista[i] : null;
+      const barre = !!z && z.estado === '?' && radarP.on;
+      cartelSostenido('zona', barre, T('zona_barre'), '#5ab4ff', null, T(plane.y < ZONAS.ALT_MIN ? 'zona_barre_bajo' : 'zona_barre_sub'));
+      if (!barre) { Z.acc = 0; return false; }
+      if (plane.y < ZONAS.ALT_MIN) { Z.acc = 0; return false; }
+      Z.acc += dt;
+      while (Z.acc >= 1) {
+        Z.acc -= 1;
+        if (i === Z.blanco) {
+          if (Math.random() < pZona(plane.y)) {
+            Z.hallada = true; Z.irT = 0; z.estado = 'mancha';
+            cartelSostenido('zona', false);
+            beep(1250, 0.08, 'sine', 0.05, 300); setTimeout(() => beep(1500, 0.1, 'sine', 0.05, 300), 110);
+            cartel(T('zona_contacto'), '#7fe07a', T('zona_contacto_sub'), { alerta: true });
+            return false;
+          }
+        } else if (++z.barrido >= ZONAS.VACIA_S) {
+          z.estado = 'vacia'; beep(300, 0.1, 'square', 0.04, -40);
+          cartel(T('zona_vacia'), '#c9ced3', T('zona_vacia_sub'));
+          return false;
+        }
+      }
+      return false;
+    }
+    /** Lo que la cinta de arriba dibuja de las zonas (null sin zonas). */
+    const zonasCinta = () => (zonasDef() && zonasM ? { pregunta: !zonasM.hallada, zonas: zonasM.lista.map((z, i) => ({ f0: z.f0, f1: z.f1, estado: z.estado,
+      on: radarP.on && z.estado === '?' && run.dist / objectiveDist >= z.f0 && run.dist / objectiveDist <= z.f1 })) } : null);
     /** BLANCO UBICADO: la flecha roja, el punto del radar, la brujula — y el Exocet ya se puede lanzar */
     function ubicarExo() {
       run.exoUbicado = true; buscaAcc = 0;
@@ -3081,7 +3158,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       if (!zonaLanzamiento() || S.state !== 'play') return false;
       const falta = lanzaM() - run.dist;
       const amigo = (k, sub) => { beep(430, 0.06, 'square', 0.04); if (!decirLinea(T(k))) cartel(T(k).replace(/^PATRIA 2:\s*/, ''), '#5ab4ff', sub); };
-      if (!exoZona.aviso && falta > 0 && falta / Math.max(1, run.spd) <= EXO_AVISO_S) { exoZona.aviso = true; amigo('exo_aviso'); }
+      if (!exoZona.aviso && falta > 0 && falta / Math.max(1, run.spd) <= EXO_AVISO_S) { exoZona.aviso = true; amigo(curMission().exoAviso || 'exo_aviso'); }
       if (exoZona.t0 < 0 && falta / Math.max(1, run.spd) <= EXO_ABRE_S) {
         exoZona.t0 = run.t; exoZona.aviso = true;
         amigo('exo_enrango');
@@ -3097,10 +3174,15 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // EN LAS ISLAS (21/11): el blanco del Exocet son los PORTAAVIONES (contra el borde del mapa, imposibles de alcanzar
     // de otra forma); uno por salida (`islasExo`: el que esta en vuelo; `run.exoGastado`: ya se tiro)
     let islasExo = false;
+    const exocetPasada = () => runClimax() === 'suelta' && !!(curMission() && curMission().exocetPulso);
     const EXOCET_ERROR = 'errorExocet';   // data/sfx.js (assets/sfx/ammo/exocet_error.mp3, del autor)
     const exocetLanzable = () => !!(cargaDe(cfg.carga) || {}).exocet && (islas.enPasillo()
       ? !run.exoGastado && islas.portaavionesKm() != null
-      : zonaLanzamiento() ? enZonaLanza()
+      // (25/11, el autor: "el Invincible esta cerca, ya lo veo, pero me tiraba error al querer lanzar el exocet"): UBICADO
+      // —visto o con el radar, la marca roja— ya se lanza, aunque PATRIA 2 todavia no haya abierto la ventana
+      : zonaLanzamiento() ? enZonaLanza() || (run.exoUbicado && run.dist < cierreM())
+        // EL EXOCET EN LA PASADA (EL SHEFFIELD, 26/11): con el buque a tiro, la tecla entra al Pulso
+        : exocetPasada() ? blancoSys.exocetATiro()
         : runClimax() === 'pulso' && !(curMission() && curMission().lanzamiento) && objectiveDist > 0);
     /** Los km que faltan al blanco (con ruta, los reales; sin ruta, los del pasillo; en las islas, al portaaviones). */
     const kmAlBlanco = () => islas.enPasillo() ? (islas.portaavionesKm() ?? 999) : rutaSys.hay() ? rutaSys.alBlanco() : Math.max(0, objectiveDist - run.dist) / 1000;
@@ -3109,14 +3191,25 @@ import { apodoAvion } from './data/apodos_aviones.js';
      *  esta, un doble zumbido grave. */
     function exocetSinBlanco() {
       run.mslCd = 0.6;
-      if (EXOCET_ERROR) sfxOne(EXOCET_ERROR, 1, true);
-      else { beep(150, 0.09, 'square', 0.05); setTimeout(() => beep(110, 0.14, 'square', 0.05), 120); }
+      // (25/11, el autor: "sonido de exocet sin blanco reducir a la mitad")
+      if (EXOCET_ERROR) sfxOne(EXOCET_ERROR, 0.5, true);
+      else { beep(150, 0.09, 'square', 0.025); setTimeout(() => beep(110, 0.14, 'square', 0.025), 120); }
       cartel(T('exocet_sin_blanco'), P.warn, T('exocet_sin_blanco_sub'));
+    }
+    /** EL EXOCET SALE EN LA PASADA (EL SHEFFIELD): del estante, como la bomba del buque, pero guiado (collision.js `guia`). */
+    function salirExocet() {
+      if (!blancoSys.tomarExocet()) return;
+      // (sale con el MOTOR PRENDIDO y a ras del agua: al ras, la caida de la bomba lo reventaba debajo del avion)
+      const b = bombaSale();
+      pmissiles.push({ ...b, guia: true, t: 1, y: Math.max(2, b.y), vy: 0 });
+      run.mslCd = 0.5; run.cargaBomba = 0;
+      beep(90, 0.12, 'square', 0.05, 55); boom(0.04, true);
     }
     /** La tecla con el Exocet colgado: adentro del alcance entra al PULSO; afuera, avisa. */
     function lanzarExocet() {
       // SIN UBICAR CON EL RADAR, NO SALE (23/11, el autor: "no encontro el objetivo con el radar antes"). En las islas el
       // blanco es el portaaviones del borde y no hay eco: alli manda el alcance, como antes.
+      if (radarP.tiene && !islas.enPasillo() && !run.exoUbicado && world.buqueALaVista()) ubicarExo();   // a la vista: ubicado
       if (radarP.tiene && !islas.enPasillo() && !run.exoUbicado) {
         exocetSinBlanco(); cartel(T('exocet_sin_blanco'), P.warn, T('exocet_ubica'));
         return;
@@ -3129,7 +3222,10 @@ import { apodoAvion } from './data/apodos_aviones.js';
       exocetLejos = kmAlBlanco() > 5;   // de lejos el buque se ve chico en el parabrisas (fxLejos)
       islasExo = islas.enPasillo();
       if (islasExo) run.exoGastado = true;
+      pulso.setAlPasillo(exocetPasada());   // (EL SHEFFIELD: bien cargado, sale en el pasillo — 26/11)
       pulso.setExocet(true);   // lanzar ES la prueba del Exocet (EL INVINCIBLE la tenia apagada: entraba solo)
+      // (EL INVINCIBLE: sale, los A-4C lo siguen y termina — 25/11. EL SHEFFIELD no tiene escolta: el Exocet pega, 26/11)
+      pulso.setDespide(libroEnTramo() === 'super' && !!libroDef() && libroDef().aviones.some(a => a.rol === 'escolta'));
       pulso.enter(true); fadeT = 0.4;
     }
     /** LO QUE LA RECTA DEL EXOCET MARCA (16/10): el blanco mas cercano adelante y en el carril del avion —
@@ -3188,6 +3284,10 @@ import { apodoAvion } from './data/apodos_aviones.js';
     function chanchaEnCinta() {
       if (!cfg.fuelOn || chancha.activa()) return null;
       if (alRojo()) return chIdaLlena ? null : finTransito() * CH_ROJO_EN;
+      // (26/11, el autor: "todas las zonas del pasillo donde hay una chancha, al momento de aparecer sola, tiene que marcarse
+      // ahi arriba con la gota"): la de la IDA por km de la ruta (`chanchaIda`, la que se pide sola) tambien, donde entra
+      const rd = rutaSys.hay() ? rutaSys.dato() : null;
+      if (rd && rd.chanchaIda && rd.blancoKm > 0) return chIdaLlena ? null : Math.max(0, 1 - rd.chanchaIda[0] / rd.blancoKm);
       if (fases.hayZonaChancha() && !chancha.gastada()) return fases.zonaChanchaDesde();
       return null;
     }
@@ -3199,7 +3299,9 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // para que los Skyhawks defiendan el misil, donde si habra enemigos"). La zona de lanzamiento se mete en las fases
     // de la flota (helicopteros, globos, postes): mientras vuela el Super Etendard, todo el tramo es solo olas y bandadas
     // (systems/spawn.js lee `run.soloMar`); la escolta del A-4C, despues del disparo, vuelve a las fases de siempre.
-    const tramoMar = () => { run.soloMar = libroEnTramo() === 'super'; };
+    // (25/11, el autor: "cuando estoy cerca del Invincible no tiene que haber helicopteros ni nada raro cuando juego con el
+    // Skyhawk, a menos que el radar haya activado alarmas"): con el A-4C tambien es mar, hasta que el radar te detecta
+    const tramoMar = () => { const t = libroEnTramo(); run.soloMar = t === 'super' || ((t === 'sigue' || t === 'escolta') && !run.radarSeen); };
     /** DETRAS DE LOS SUPER ETENDARD (el A-4C de EL INVINCIBLE, autor 13/11): despues de cargar del
      *  Hercules —o al cruzar la linea del radar, si no cargaste— los Super Etendard se ponen adelante y
      *  hay que seguirlos (la PERSECUCION de siempre, con su banda). En `lanzamiento` sueltan el Exocet:
@@ -3209,23 +3311,92 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // los Skyhawk lo siguen y eliminan todo lo que pueda chocar al misil por X tiempo hasta impactar"): el Super Etendard
     // vuela ADELANTE desde el despegue (`acompana`: te espera, no te hace perder), en ESCOLTA_ADELANTA_M antes del punto de
     // lanzamiento se ADELANTA (la banda se abre), y ahi suelta el Exocet. La escolta dura ESCOLTA_DURA segundos
-    const ESCOLTA_ADELANTA_M = 900, SUPER_BANDA = [45, 80], SUPER_ADELANTA = [110, 150];
+    // (25/11, el autor: "el indicador de cercania del Super Etendard no se para que sirve… mantenelo lejos o ponelo detras, y
+    // que aparezca desde atras solo cuando lanza el misil a una cierta distancia y se va"): ya no vuela adelante tuyo ni
+    // hay banda. SUPER_PASA segundos antes del punto de lanzamiento entra DE ATRAS de la camara, por un costado y mas
+    // alto (no esta en el carril: no se lo puede tirar), te pasa, suelta el Exocet adelante y rompe hacia su lado
+    // trepando. Lo dibuja render/squad.js drawAvionVuelo; aca solo el reloj (`superPasa`).
+    const SUPER_PASA = 4.5, SUPER_SE_VA = 3.5, SUPER_LADO = 11;
+    let superPasa = null;   // { t, lanzo } mientras pasa y se va
     function pasoSigue() {
-      if (!persec.active() && !chancha.snapshot() && S.state === 'play') {
-        const su = libroDef().aviones.find(a => a.rol === 'lanza');
-        persec.startPersec({ nombre: 'SUPER ÉTENDARD',   // (el modelo: la chapa ya va en la placa del escuadron, 23/11)
-          plane: su ? su.plane : 'supere', mudo: true, acompana: true, banda: SUPER_BANDA });
-      }
       const lanzaM = objectiveDist * (curMission().lanzamiento || 0);
-      if (persec.active() && run.dist >= lanzaM - ESCOLTA_ADELANTA_M) persec.setBanda(SUPER_ADELANTA[0], SUPER_ADELANTA[1]);
-      if (run.dist >= lanzaM) {
-        // EL EXOCET SALE DE DONDE IBA EL SUPER ETENDARD (o de adelante tuyo, si nunca lo alcanzaste)
-        const s = persec.snapshot();
-        persec.resetPersec();
-        empezarEscolta(s ? { x: s.x, y: s.y, d: s.d } : null);
-        if (s) explodeAt(s.x, s.y, s.z, false, true, true);   // el fogonazo del disparo (chispas, sin bola)
+      const faltaS = (lanzaM - run.dist) / Math.max(1, run.spd);
+      if (!superPasa && faltaS <= SUPER_PASA && S.state === 'play') superPasa = { t: 0, lanzo: false };
+      if (superPasa && !superPasa.lanzo && run.dist >= lanzaM) {
+        // EL EXOCET SALE DEL SUPER ETENDARD, adelante tuyo y a su costado
+        const p = superPos();
+        superPasa.lanzo = true; superPasa.tL = superPasa.t;
+        empezarEscolta({ x: p.x, y: p.y, d: p.z - PZ });
+        explodeAt(p.x, p.y, p.z, false, true, true);   // el fogonazo del disparo (chispas, sin bola)
         sfxOne('misil');
       }
+    }
+    /** Donde va el Super Etendard que pasa (mundo: x, y, z desde la camara) y su alabeo. */
+    function superPos() {
+      const sp = superPasa;
+      if (!sp) return null;
+      if (!sp.lanzo) {
+        const u = Math.min(1, sp.t / SUPER_PASA), e = u * u * (3 - 2 * u);
+        return { x: cam.x + SUPER_LADO, y: plane.y + 7 - 2 * e, z: 1.5 + e * 70, bank: -0.25 * (1 - e) };
+      }
+      const v = Math.min(1, (sp.t - sp.tL) / SUPER_SE_VA);
+      return { x: cam.x + SUPER_LADO + v * v * 40, y: plane.y + 5 + v * 18, z: 71.5 + v * 60, bank: 0.9 * Math.min(1, v * 3) };
+    }
+    // EL LEARJET GUIA (r4 LA PLYMOUTH, 26/11; PDF del autor: "guiados por un Learjet del Fenix hasta un punto de quiebre").
+    // Con un Dagger: entra de atras, vuela ADELANTE y arriba durante el transito alto, y en el quiebre —el comienzo del
+    // ultimo tramo alto, antes del silencio de radio— avisa y se va trepando hacia su lado. Con EL LEARJET (rol 'guia',
+    // autor: "jugables tambien, hasta llegar a la zona y irse, y ahi sale satisfactoria la mision"): en el quiebre los
+    // Dagger te pasan de atras y pican al ras, y la mision se cumple. Lo dibuja render/squad.js drawAvionVuelo.
+    const GUIA_ENTRA = 3, GUIA_SE_VA = 4, GUIA_Z = 46, GUIA_LADO = -4, GUIA_ARRIBA = 6;
+    let guia = null, guiaHecha = false;   // guia = { t, va, tV } mientras esta
+    const guiaDef = () => (libro && curMission() && curMission().guia) || null;
+    const soyGuia = () => !!(libro && libroDef() && libroDef().aviones[libro.av] && libroDef().aviones[libro.av].rol === 'guia');
+    /** El punto de quiebre, en fraccion del objetivo: donde empieza el ultimo tramo de transito (el del silencio de radio). */
+    function guiaQuiebre() {
+      const f = (curMission() && curMission().fases) || [];
+      let i = -1; f.forEach((x, j) => { if (x.tipo === 'transito') i = j; });
+      // (a mitad del tramo anterior: en el borde mismo entra el silencio de radio de PATRIA 2 y se pisaban las lineas)
+      return i > 1 ? (f[i - 2].hasta + f[i - 1].hasta) / 2 : i > 0 ? f[i - 1].hasta : finTransito();
+    }
+    function pasoGuia(dt) {
+      const g = guiaDef();
+      if (!g || guiaHecha || S.state !== 'play') return;
+      const quiebre = run.dist >= objectiveDist * guiaQuiebre();
+      if (!guia) { if (quiebre) { guiaHecha = true; return; } guia = { t: 0, va: false }; }
+      guia.t += dt;
+      if (!guia.va && quiebre) {
+        guia.va = true; guia.tV = guia.t;
+        radioTramo(g.radio);
+      }
+      if (guia.va && soyGuia() && g.radioDagger && !guia.dijo && guia.t - guia.tV > 1.6) { guia.dijo = true; radioTramo(g.radioDagger); }
+      if (guia.va && guia.t - guia.tV > GUIA_SE_VA) {
+        guia = null; guiaHecha = true;
+        if (soyGuia()) { run.climaxHecho = true; finishObjective(); }   // (sin vuelta: tu parte termina en el quiebre)
+      }
+    }
+    /** Donde va el que no manejas: el Learjet adelante (si volas un Dagger) o los Dagger que pican (si volas el Learjet). */
+    function guiaPos() {
+      const gd = guia;
+      if (!gd) return [];
+      if (!soyGuia()) {
+        const u = Math.min(1, gd.t / GUIA_ENTRA), e = u * u * (3 - 2 * u);
+        const sway = Math.sin(gd.t * 0.7) * 1.2, alto = Math.sin(gd.t * 0.45) * 0.8;
+        if (!gd.va) return [{ x: cam.x + GUIA_LADO + sway, y: plane.y + GUIA_ARRIBA + alto - 3 * (1 - e), z: 1.5 + e * (GUIA_Z - 1.5), bank: -0.12 * Math.cos(gd.t * 0.7) }];
+        const v = Math.min(1, (gd.t - gd.tV) / GUIA_SE_VA);
+        return [{ x: cam.x + GUIA_LADO + sway - v * v * 45, y: plane.y + GUIA_ARRIBA + alto + v * 16, z: GUIA_Z + v * 50, bank: -0.9 * Math.min(1, v * 3) }];
+      }
+      if (!gd.va) return [];
+      // LOS DAGGER QUE BAJAN: tres, de atras de la camara, abajo y abiertos; te pasan y pican hacia el agua
+      const v = Math.min(1, (gd.t - gd.tV) / GUIA_SE_VA), e = v * v * (3 - 2 * v);
+      return [-7, 0, 7].map((dx, i) => {
+        const w = Math.max(0, Math.min(1, e * 1.25 - i * 0.12));
+        return { x: cam.x + dx * (1 - 0.3 * w), y: Math.max(3, plane.y - 2 - w * w * 22), z: 1.5 + w * 80, bank: 0, i };
+      });
+    }
+    function tickSuper(dt) {
+      if (!superPasa) return;
+      superPasa.t += dt;
+      if (superPasa.lanzo && superPasa.t - superPasa.tL > SUPER_SE_VA) superPasa = null;
     }
     /** EMPIEZA LA ESCOLTA (PLAN_INVINCIBLE I3): el Exocet vuela adelante como lider de PERSECUCION y hay
      *  que llevarlo hasta el portaaviones. `desde` = de donde sale el misil (el Super Etendard lider). */
@@ -3235,6 +3406,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // alrededor. A la distancia de la persecucion de siempre (60-140) los compañeros eran puntos.
       persec.startPersec({ nombre: 'EXOCET', tipo: 'exocet', banda: [25, 40], desde });
       escolta.amenazaT = ESCOLTA_GRACIA; escolta.cayeron = 0; escolta.final = 0; escolta.t = 0;
+      escolta.fuegoT = 0; escolta.tiroT = [0.3, 0.6, 0.9]; escolta.pasa = -1; escolta.fuegoDicho = false;
     }
     // ---------- LA ESCOLTA DEL EXOCET (PLAN_INVINCIBLE I4-I6) ----------
     // Cada ESCOLTA_AMENAZA segundos algo se le cruza al misil en su linea; si lo toca, el misil cae y la
@@ -3242,23 +3414,68 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // jugador queda solo con el misil — la licencia de juego del plan: en 1982 cayeron dos de cuatro.
     const ESCOLTA_AMENAZA = [3.5, 5.5];          // segundos entre amenazas (min, max)
     const ESCOLTA_GRACIA = 5;                     // la primera, recien a los cinco segundos del cambio
-    const ESCOLTA_CAIDAS = [0.3, 0.55, 0.8];
+    // (25/11, el autor: "el barco cuando estamos cerca… deben dañar a 2"): caen dos, y recien cerca del portaaviones,
+    // cuando su fuego ya esta encima (ESCOLTA_CERCA)
+    const ESCOLTA_CAIDAS = [0.8, 0.9];
+    // LO QUE VIENE CERCA DEL BUQUE (25/11): desde ESCOLTA_CERCA de la escolta el portaaviones TIRA (Sea Cat contra el
+    // grupo, cada FUEGO_CADA s); los compañeros le tiran a las bandadas que se le cruzan (COMPA_TIRO); y despues del
+    // impacto, «LISTO, NOS VAMOS» y EL PORTAAVIONES se te viene encima — tan alto como la ola gigante: pasarlo por arriba
+    // (BUQUE_ALTO) o por la punta del carril (BUQUE_HW). PASA_T es lo que tarda en llegarte.
+    const ESCOLTA_CERCA = 0.72, FUEGO_CADA = [1.4, 2.3], COMPA_TIRO = 0.55;
+    const PASA_T = 4.2, BUQUE_ALTO = 40, BUQUE_HW = 26;
     const ESCOLTA_CHOQUE = { x: 4.5, y: 6, z: 7 };   // la caja del misil contra lo que se le cruza
     const ESCOLTA_VUELAN = ['helo', 'jet', 'balloon', 'birds'];
-    const escolta = { amenazaT: 0, cayeron: 0, final: 0, t: 0 };
+    const escolta = { amenazaT: 0, cayeron: 0, final: 0, t: 0, fuegoT: 0, tiroT: [0, 0, 0], pasa: -1, fuegoDicho: false };
     const ESCOLTA_DURA = 45;   // s de escolta hasta que el Exocet impacta (23/11: "por X tiempo hasta impactar")
     const ESCOLTA_FINAL = 1.3;   // segundos que vuela solo el misil hasta estallar en el portaaviones
     let escoltaSinAmenazas = false;   // sonda (__escSin): para recorrer la escolta entera en una captura
     /** Un cuadro de la escolta. Devuelve true si el misil cayo (el cuadro se corta: ya se murio). */
     function pasoEscolta(dt) {
-      const s = persec.snapshot();
-      if (!s) return false;
-      // EL TRAMO FINAL: el misil se fue al buque; cuando estalla, se cierra la mision
-      if (escolta.final > 0) {
-        escolta.final -= dt;
-        if (escolta.final <= 0) { impactoExocet(); finishObjective(); return true; }
+      // EL PORTAAVIONES SE TE VIENE ENCIMA (despues del impacto): por arriba o por la punta, o te lo comes
+      if (escolta.pasa >= 0) {
+        escolta.pasa += dt;
+        if (escolta.pasa >= PASA_T) {
+          escolta.pasa = -1;
+          if (plane.y < BUQUE_ALTO && Math.abs(plane.x) < BUQUE_HW) { die('death_buque'); return true; }
+          finishObjective(); return true;
+        }
         return false;
       }
+      const s = persec.snapshot();
+      if (!s) return false;
+      // EL TRAMO FINAL: el misil se fue al buque; cuando estalla, «LISTO, NOS VAMOS» y queda pasar el portaaviones
+      if (escolta.final > 0) {
+        escolta.final -= dt;
+        if (escolta.final <= 0) {
+          impactoExocet();
+          escolta.pasa = 0;
+          beep(430, 0.06, 'square', 0.04);
+          const quien = squad.planeName(1) || squad.pilotName(1) || 'ZONDA 2';
+          if (!decirLinea(quien + ': ' + T('esc_listo'))) cartel(T('esc_listo'), '#5ab4ff');
+          cartel(T('esc_buque'), P.warn, T('esc_buque_sub'), { alerta: true });
+        }
+        return false;
+      }
+      // EL FUEGO DEL PORTAAVIONES, ya cerca: Sea Cat contra el grupo (se esquivan con un quiebre temprano)
+      if (escolta.t / ESCOLTA_DURA >= ESCOLTA_CERCA) {
+        if (!escolta.fuegoDicho) { escolta.fuegoDicho = true; cartel(T('esc_fuego'), P.warn, null, { alerta: true }); }
+        escolta.fuegoT -= dt;
+        if (escolta.fuegoT <= 0) {
+          escolta.fuegoT = FUEGO_CADA[0] + Math.random() * (FUEGO_CADA[1] - FUEGO_CADA[0]);
+          missiles.push({ tipo: 'wolf', def: 'cat', x: plane.x + (Math.random() - 0.5) * 30, y: plane.y + 3 + Math.random() * 4,
+            z: 230, vx: 0, vy: 0, done: false });
+        }
+      }
+      // LOS COMPAÑEROS LE TIRAN A LAS BANDADAS que se le cruzan al misil (cada uno con su cadencia)
+      persec.puestosEscolta().forEach((p, i) => {
+        escolta.tiroT[i] = (escolta.tiroT[i] || 0) - dt;
+        if (escolta.tiroT[i] > 0) return;
+        const o = obstacles.find(b => b.type === 'birds' && !b.adorno && !b.disp && !b.done && b.z > p.z + 8 && b.z < p.z + 130 && Math.abs(b.x - p.x) < 10);
+        if (!o) return;
+        escolta.tiroT[i] = COMPA_TIRO;
+        for (let k = 0; k < 2; k++) bullets.push({ x: p.x, y: p.y, z: p.z + 2 + k * 3, x0: p.x, y0: p.y, z0: p.z + 2 + k * 3, tx: o.x, ty: o.y, zt: o.z, path: true });
+        beep(520, 0.02, 'square', 0.012);
+      });
       // EL TIEMPO DE LA ESCOLTA: cumplido, el misil se va solo al portaaviones y estalla
       escolta.t += dt;
       if (escolta.t >= ESCOLTA_DURA) { escolta.final = ESCOLTA_FINAL; persec.alBlanco(); return false; }
@@ -3269,14 +3486,14 @@ import { apodoAvion } from './data/apodos_aviones.js';
       if (escolta.amenazaT <= 0) {
         escolta.amenazaT = ESCOLTA_AMENAZA[0] + Math.random() * (ESCOLTA_AMENAZA[1] - ESCOLTA_AMENAZA[0]);
         if (!escoltaSinAmenazas) {
-          sembrarAmenaza(s.x + (Math.random() - 0.5) * 3, s.y);
+          sembrarAmenaza(s.x + (Math.random() - 0.5) * 3, s.y, !run.radarSeen);   // (sin alarma del radar: solo bandadas)
           cartel(T('esc_amenaza'), P.warn);
         }
       }
       // …y si una lo alcanza, el misil cae
       for (const o of obstacles) {
         // LO QUE VUELA es lo que lo puede chocar (la ola y lo de tierra quedan abajo del misil)
-        if (o.done || (o.hp !== undefined && o.hp <= 0) || !(o.amenaza || ESCOLTA_VUELAN.includes(o.type))) continue;
+        if (o.done || o.disp || (o.hp !== undefined && o.hp <= 0) || !(o.amenaza || ESCOLTA_VUELAN.includes(o.type))) continue;   // (la bandada baleada ya no choca: 25/11)
         if (Math.abs(o.z - s.z) > ESCOLTA_CHOQUE.z || Math.abs(o.x - s.x) > ESCOLTA_CHOQUE.x) continue;
         if (o.y !== undefined && Math.abs(o.y - s.y) > ESCOLTA_CHOQUE.y) continue;
         explodeAt(s.x, s.y, s.z, true);
@@ -3291,6 +3508,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         const pts = persec.puestosEscolta(), p = pts[pts.length - 1];
         if (p) explodeAt(p.x, p.y, p.z, true);
         boom(0.6);
+        cartel(T('esc_cae'), P.warn);
         run.lives -= 1;
         squad.resetFila();
         escolta.cayeron++;
@@ -3327,9 +3545,9 @@ import { apodoAvion } from './data/apodos_aviones.js';
     let retryT = 0;          // reloj de 'reintentar' (la tecla que cerro el recuento no contesta sola)
     let reintento = null;    // al ganar: { si, no, fondo }
     function pedirReintento(si, no) {
-      reintento = { si, no, fondo: (S.state === 'results' || S.state === 'epilogue') && !!lastRun };
-      retrySel = 0; retryT = 0;
-      setState('reintentar');
+      // 26/11, el autor: "Cuando las misiones terminan satisfactorias, el REINTENTAR no aparece. Solo aparece si
+      // falla el jugador". Al ganar se va derecho a donde iba el NO; el estado 'reintentar' queda sin uso.
+      no();
     }
     /** La misma salida del libro (o la misma etapa del tutorial), con el mismo avion, sin volver a contar el contexto. */
     function reintentarLibro() {
@@ -3502,7 +3720,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       escapeSys.resetFuga(); senas = null;
       blancoSys.preparar(hayBlanco, objectiveShip, objectiveDist, { PZ, W }, cfg.carga,
         // (en el TUTORIAL pegarle no abre el escape: sin radar no hay estrellas que perder, y la vuelta arranca de corrido)
-        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta(), unGolpe: !!(curMission() && curMission().unGolpe),
+        { pasadas: curMission() && curMission().pasadas, vuelta: fases.hayVuelta() || !!(curMission() && curMission().escape), unGolpe: !!(curMission() && curMission().unGolpe),
           dificultad: curMission() && curMission().dificultad, bomba: bombaDeLaMision(),
           espoletas: suelto() ? espoletasDe(pichon) : 0,   // las del banco suelto
           // el piso de una ESTRUCTURA: la explanada que la geografia le aplana debajo (0 sin geografia)
@@ -3680,6 +3898,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // carga es el misil y un tanque — el arma es el Exocet y nada mas. El tablero no muestra la fila de la bomba.
       run.soloExocet = !!(cargaDe(cfg.carga) || {}).exocet;
       run.exoUbicado = false;   // el blanco del Exocet: lo ubica el ECO del radar (abajo, radarSys.tick)
+      zonasM = null;   // LAS ZONAS DEL NEPTUNE se arman de nuevo en cada corrida (al azar: ver armarZonas)
       if (run.soloExocet) { run.mslMax = 0; run.msl = 0; run.secundaria = 'exocet'; }
       else if (run.secundaria === 'exocet') run.secundaria = 'bomba';
       if (suelto() && !run.mslMax && !run.sinBombas && !run.soloExocet) { run.mslMax = 1 + soporteDe(pichon); run.mslCada = 7; }
@@ -4458,6 +4677,10 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // EL TECHO DE NUBES DE LA SALIDA (`techoNubes`, m: EL RESCATE DEL BELGRANO, nubes a 150 m): la capa del pasillo
     // (render/nubes_altas.js) baja hasta ahi —su base es NUBES − ESPESOR— y vuelve a la de siempre en otra mision
     const NUBES_BASE = ALTO.NUBES;
+    // EL MAPA DE LAS ISLAS (26/11, el autor: "en las misiones del libro de vuelo el mapa nunca deja teletransportar; de
+    // hecho, ocultémoslo durante las misiones del libro en islas"): ni en la pausa ni con [M]. El tutorial lo sigue
+    // usando (su paso de marcar abre el mapa)
+    const mapaVale = () => islas.enPasillo() && !(libro && !libro.tut);
     // LA BUSQUEDA EN EL MAR (libro r6): el humo con el gatillo (flanco) y la espera despues de que el destructor te tomo
     let humoAntes = false, busqFinT = 0;
     const busqDef = () => (libro && !libro.tut ? libroDef().busqueda || null : null);
@@ -4466,7 +4689,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
       const b = busqDef(), av = libroDef().aviones[libro.av || 0] || {};
       clearWorld({ keepFx: false });
       islas.activar(true, false, { lon: b.lon, lat: b.lat, rumbo: b.rumbo, alt: Math.max(40, Math.min(120, plane.y)), clima: b.clima,
-        busqueda: { encuentra: av.encuentra !== false, semilla: hashTexto(libroDef().id + '/' + (libro.av || 0)) } });
+        // (la semilla, al azar si hubo ZONAS: cada salida con las bengalas en otro lado — 26/11)
+        busqueda: { encuentra: av.encuentra !== false, semilla: zonasM ? (Math.random() * 4294967296) >>> 0 : hashTexto(libroDef().id + '/' + (libro.av || 0)) } });
       busqFinT = 0; humoAntes = true; fadeT = 2.2; run.dist = objectiveDist - 1;
       cartel(T('busq_entra'), P.accent, T('busq_entra_sub'));
     }
@@ -4488,7 +4712,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
       humoAntes = !!inp.fire;
       for (const e of islas.busquedaEventos()) {
         if (e.k === 'indicio') cartel(T('busq_ind_' + e.id), '#c9ced3', T('busq_nada'));
-        else if (e.k === 'mancha') { cartel(T('busq_mancha'), P.accent, T('busq_mancha_sub'), { alerta: true }); beep(660, 0.12, 'square', 0.05); }
+        else if (e.k === 'mancha') { cartel(T(e.radar ? 'busq_mancha_radar' : 'busq_mancha'), P.accent, T('busq_mancha_sub'), { alerta: true }); beep(660, 0.12, 'square', 0.05); }
+        else if (e.k === 'bengalaVacia') { cartel(T('busq_beng_vacia'), '#c9ced3', T('busq_beng_vacia_sub', { n: e.quedan })); beep(300, 0.1, 'square', 0.04, -40); }
         else if (e.k === 'balsas') { cartel(T('busq_balsas', { h: e.reloj }), '#7fe07a', T('busq_balsas_sub'), { alerta: true }); beep(880, 0.16, 'square', 0.06); }
         else if (e.k === 'perdidas') cartel(T('busq_perdidas'), P.warn, T('busq_perdidas_sub'), { alerta: true });
         else if (e.k === 'humo') { cartel(T(e.ok ? 'busq_humo_ok' : 'busq_humo_lejos'), e.ok ? '#7fe07a' : '#c9ced3', T('busq_humo_sub', { n: e.quedan })); sfxOne('swoosh'); }
@@ -4553,6 +4778,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
 
     let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
+      guia = null; guiaHecha = false;   // (el Learjet guia vuelve a entrar en cada salida)
       // EL FRENTE DE TORMENTA devuelve el cielo, la lluvia y el viento que piso — antes de que el mundo al azar
       // de los modos sueltos sortee el nuevo (systems/frente.js)
       if (resetFrente()) applyCfg();
@@ -4693,7 +4919,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       squad.resetSquad();
       eyectoPend = null;
       toT = 0; toCount = 4; rotLibro = null; rotSale = 0; hudEntra = 1; dspVisto = false; dspSale = 0;
-      { const m = curMission(); ALTO.NUBES = m && m.techoNubes ? m.techoNubes + ALTO.ESPESOR : NUBES_BASE; }
+      { const m = curMission(); ALTO.NUBES = m && m.techoNubes ? m.techoNubes + ALTO.ESPESOR : NUBES_BASE; ALTO.ENTRA_YA = m && m.techoNubes ? ALTO.ENTRA_BAJO : ALTO.ENTRA; }
       carrera = curMission() && curMission().despegueJugable && !cfg.cliff && cfg.start !== 'air' ? nuevaCarrera() : null; carreraFallas = 0;
       // LA CAMARA ARRANCA DONDE ESTA EL AVION, no en una constante. Con ACANTILADO el avion nace
       // sobre la meseta (`resetPlane`: PORT_H + 1.2 = 16.2 m) y la camara quedaba clavada en 4,
@@ -5042,6 +5268,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
           case 'duu': return plane.y < MV_LO && mvOk('popup') && moves.startMove('popup', 1);
           case 'dud': return mvOk('loyo') && moves.startMove('loyo', 1);       // ↓↑↓  pica, sube, pica
           case 'udu': return mvOk('hiyo') && moves.startMove('hiyo', 1);       // ↑↓↑  sube, pica, sube
+          case 'udl': return mvOk('salto') && moves.startMove('salto', -1);    // ↑↓←  SALTO DE OLA, cayendo a la izquierda
+          case 'udr': return mvOk('salto') && moves.startMove('salto', 1);     // ↑↓→  …y a la derecha
           case 'dll': return mvOk('breakt') && moves.startMove('breakt', -1);  // ↓←←  picar y empujar al lado
           case 'drr': return mvOk('breakt') && moves.startMove('breakt', 1);
           case 'lrl': return mvOk('sturn') && moves.startMove('sturn', -1);    // ←→←  el barrido en S
@@ -5055,6 +5283,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // EL PULSO: los toques de la prueba. Son los MISMOS tokens del detector de combos, asi que
       // el examen se teclea con el vocabulario que el pasillo enseño (plan §2, regla 1).
       pulsoTap: tok => { if (S.state === 'pulso') pulso.tap(tok); },
+      pulsoSoloFlechas: () => pulso.soloFlechas(),
       // VIRAJE DE COMBATE: solo existe en el ARENA. En el pasillo la media vuelta no significa
       // nada (es un scroll lateral: no hay para donde darse vuelta), asi que la tecla no hace nada.
       combatTurn: () => { if (S.state === 'arena' && arena.active()) arena.combatTurn(); },
@@ -5103,7 +5332,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // [M] = EL MAPA (21/11): en vuelo con mapa (las islas) abre la pausa directo en el mapa; con el mapa abierto, cierra
       mapaTecla: () => {
         if (paused && pauseView === 'mapa') { paused = false; pauseView = 'menu'; beep(400, 0.06, 'square', 0.05); return; }
-        if (S.state !== 'play' || paused || dlgPausa || !islas.enPasillo()) return;
+        if (S.state !== 'play' || paused || dlgPausa || !mapaVale()) return;
         paused = true; pauseSel = 0; pauseView = 'mapa'; mapaCur = null; pauseMsgT = -9;
         engineOff(); beep(600, 0.06, 'square', 0.05);
       },
@@ -6016,7 +6245,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       }
       // …la pantalla ya esta en negro (el de la pasada errada): sube directo, sin "show del destrozo"
       // (y el EXOCET perdido —desviado o sin lanzar—, 23/11, el autor: "directamente muestre pantalla de has perdido")
-      const exoPerdido = cause === 'death_exocet_errado' || cause === 'death_exocet_tarde';
+      const exoPerdido = cause === 'death_exocet_errado' || cause === 'death_exocet_tarde' || cause === 'death_sin_contacto';   // (y el Neptune sin contacto, 25/11)
       if (erroSuelta(cause) || exoPerdido) deathT = DEATH_REVEAL;
       // POR LA PATRIA: el derribado ES el fin del "nivel" → estrellas por puntaje. En campaña/ciclo
       // morir es fracaso (no se cumplio el objetivo): sin estrellas.
@@ -6764,7 +6993,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
         else if (!b && run.tanqAntes && !run.tanqHecho) soltarTanquesAccion();
         if (!b) run.tanqHecho = false;
         run.tanqAntes = b;
-        run.apuntaTanque = b || !!inp.apunta;
+        // (sin nada que soltar —el Neptune y los que no llevan armas ni tanques— no hay mira: 25/11)
+        run.apuntaTanque = (b || !!inp.apunta) && !(run.sinBombas && !run.mslMax && !run.soloExocet && !naftaSys.hayTanque());
       } else { run.apuntaTanque = false; run.apuntaBomba = false; run.tanqAntes = false; run.tanqHecho = false; }
       // LA CARGA DE LA GRANADA: sube mientras se apunta y vuelve a cero cuando no (el tiro del cuadro
       // en que se solto la tecla ya la uso: flight.js y el bloque de arriba corren antes que esto
@@ -7012,6 +7242,17 @@ import { apodoAvion } from './data/apodos_aviones.js';
             if (sig === 'objective') { cobrarPulso(); islas.exocetLlego(); }
             else cartel(T('islasExoPerdido'), P.warn, T('islasExoPerdidoSub'));
             setState('play'); fadeT = 0.6;
+          }
+          // EL EXOCET DE LA PASADA (EL SHEFFIELD, 26/11, el autor: "igual que la pasada de la etapa 3… debo poder pasar
+          // por encima… y meter el escapa"): bien cargado, de vuelta al pasillo con el misil suelto y GUIADO al casco; el
+          // resto es la pasada de la bomba — le pega, le pasas por encima, y el escape
+          else if (sig === 'objective' && exocetPasada()) { cobrarPulso(); setState('play'); fadeT = 0.35; plane.y = Math.max(plane.y, 3); plane.vy = Math.max(0, plane.vy); salirExocet(); }
+          // MAL CARGADO: el misil se pierde (gastado) y, como la bomba errada, toma la pasada el de atras de la fila
+          else if (sig && sig.death === 'death_exocet_errado' && exocetPasada() && canRelevo(run.lives)) {
+            blancoSys.tomarExocet(); setState('play');
+            blancoSys.enFila(); placaDefT = 2.2; onPassSpent({ spent: 'suelta', why: 'death_exocet_errado' });
+            const rr = squad.relevo();
+            if (rr && rr.solo) { rr.reb = BL_BLANCO.FILA_M - BL_BLANCO.REBOBINA_Z; rr.off = 0; }
           }
           else if (sig === 'objective') { cobrarPulso(); finishObjective(); }
           // 2º FALLO: cuesta un avion del escuadron (mismo camino que la pasada gastada — no te
@@ -7632,7 +7873,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       if (fs === 'objective') {
         // EL EXOCET LLEGA (libro r5): se adelanta solo hasta el portaaviones y estalla alla; la mision se
         // cierra cuando estalla (pasoEscolta), no en este cuadro
-        if (libroEnTramo() === 'escolta') { if (!(escolta.final > 0)) { escolta.final = ESCOLTA_FINAL; persec.alBlanco(); } }
+        if (libroEnTramo() === 'escolta') { if (!(escolta.final > 0) && escolta.pasa < 0 && persec.active()) { escolta.final = ESCOLTA_FINAL; persec.alBlanco(); } }
         // EL RESCATE DEL BELGRANO (libro r6): la zona no es un final, es LA BUSQUEDA en mar abierto
         else if (busqDef() && !run.climaxHecho) { if (!islas.enMar()) empezarBusqueda(); }
         else { finishObjective(); return; }
@@ -7762,7 +8003,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
         // de haber atacado, con las alarmas prendidas; una vez que salgo, cinematica y pantalla de partida
         // satisfactoria"). Con ruta, la linea es el horizonte de radar de la vuelta; sin ruta, perder las
         // estrellas, como antes.
-        const salio = rutaSys.hay() ? !rutaSys.enAlcance() : run.estrellas <= 0;
+        // (EL SHEFFIELD, 26/11: escape SIN vuelta — la ruta no tiene linea de salida del radar; se sale perdiendo las estrellas)
+        const salio = rutaSys.hay() && fases.hayVuelta() ? !rutaSys.enAlcance() : run.estrellas <= 0;
         // (en el TUTORIAL el escape no lo narra el elenco de la campaña: el video del viraje y listo)
         if (blancoSys.escapando() && salio && !vir) { vir = { fase: 'perdimos', t: 0 }; if (!(libro && libro.tut)) radioTramo('vir_perdimos'); missiles.length = 0; }
         // LA LINEA RECTA (V2): la artilleria de popa tira mientras escapas. Un tiro que pega es un
@@ -7916,7 +8158,10 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // LA ESCOLTA DEL EXOCET (libro r5): amenazas al misil, compañeros que caen, y el misil derribado
       if (libroEnTramo() === 'escolta' && pasoEscolta(dt)) return;
       if (libroEnTramo() === 'sigue') pasoSigue();
+      tickSuper(dt);
+      pasoGuia(dt);
       pasoBuscaExo(dt);
+      if (pasoZonas(dt)) return;
       if (pasoZonaLanza()) return;
       // EL GUION SE LLEVO AL LIDER (LA REGLA DEL AMIGO, systems/persec.js). No es tu muerte: es la
       // de el, y el pasillo sigue. Se anuncia y nada mas — si el guion quiere que ademas te cueste
@@ -8168,8 +8413,9 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // EL BUQUE DE LA APROXIMACION va EN EL HORIZONTE: adentro del suelo, antes de las lomadas (13/11 — ver
       // `alHorizonte` en render/world.js drawSea), asi todo lo que se levanta lo tapa
       const barcoHorizonte = runClimax() === 'suelta' || sinObjetivoVisible() ? null : () => world.drawApproachBarge(objectiveDist, objectiveShip,
-        S.state === 'pulso' ? fxLejos(pulso.shipFx(pulsoRender.ventana(cine.state(), run.t))) : null,
-        runClimax() === 'pasada' && S.state !== 'pulso');
+        S.state === 'pulso' ? fxLejos(pulso.shipFx(pulsoRender.ventana(cine.state(), run.t)))
+          : escolta.pasa >= 0 ? { grow: 1 + 7 * Math.pow(Math.min(1, escolta.pasa / PASA_T), 2), tilt: 0, sink: 0 } : null,
+        runClimax() === 'pasada' && S.state !== 'pulso', libroEnTramo() === 'sigue' || libroEnTramo() === 'escolta');
       world.setPistaAvion(PLANES[selPlane]);   // la trocha de las rodadas de la pista (render/world.js)
       if (!world3D.isSea()) world.drawSea(barcoHorizonte);   // el mar 2D solo cuando three no lo esta poniendo
       else if (barcoHorizonte) barcoHorizonte();
@@ -8207,7 +8453,10 @@ import { apodoAvion } from './data/apodos_aviones.js';
       if (runClimax() === 'suelta') { drawBlanco(); drawRecibe(); const sws = seawolfSys.snapshot(PZ); drawHumoSW(sws); drawZonaSW(sws, PZ); drawArtilleria(artilleria.snapshot()); }
       // cuña roja en el horizonte: hacia donde vamos. En LA SUELTA no: el buque ya esta en el mundo y
       // lleva su propia flecha de cerca — dos marcas para lo mismo eran "muchas flechas" (23/9).
-      if (runClimax() !== 'suelta' && !sinObjetivoVisible()) world.drawObjectiveMarker(objectiveDist, { nombre: nombreObjetivo(), km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null, exo: run.soloExocet && run.exoUbicado });
+      // (25/11, el autor: "la mira al final con el Invincible y los Skyhawk NO DEBE VERSE, no sabemos donde vamos… solo
+      // perseguimos el misil"): con el A-4C ni marca ni nombre del buque
+      const a4cCiego = libroEnTramo() === 'sigue' || libroEnTramo() === 'escolta';
+      if (runClimax() !== 'suelta' && !sinObjetivoVisible() && !a4cCiego) world.drawObjectiveMarker(objectiveDist, { nombre: nombreObjetivo(), km: rutaSys.hay() ? Math.round(rutaSys.alBlanco()) : null, exo: run.soloExocet && run.exoUbicado });
       world.drawWake();
       // EL REFLEJO DE LA LUNA, con el agua y debajo de lo que vuela (render/noche.js, 4/10)
       drawReflejoLuna(nocheDe(cfg.sky), solPant);
@@ -8492,9 +8741,17 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // EL LIDER de la PERSECUCION: siempre esta mas lejos que vos (es la definicion del modo), asi
       // que va antes del avion y no necesita el reparto en dos pasadas que si necesita LA COLA.
       if (!islas.enPasillo()) drawPersec(selPlane);
+      // EL SUPER ETENDARD QUE PASA Y LANZA (EL INVINCIBLE con el A-4C, 25/11: `superPasa`)
+      { const sp = superPos(); if (sp && S.state === 'play') { const su = libroDef() && libroDef().aviones.find(a => a.rol === 'lanza');
+        squadRender.drawAvionVuelo(su ? su.plane : 'supere', sp.x, sp.y, sp.z, sp.bank); } }
+      // EL LEARJET GUIA de la Plymouth (o los Dagger que pican, si volas el Learjet): `guia`
+      if (S.state === 'play' && guiaDef()) { const gd = guiaDef(), key = soyGuia() ? gd.bajan : gd.plane;
+        for (const p of guiaPos().sort((a, b) => b.z - a.z)) squadRender.drawAvionVuelo(key, p.x, p.y, p.z, p.bank); }
       // LA CHANCHA: siempre esta MAS LEJOS y mas arriba que vos (sostiene formacion adelante), asi
       // que va antes del avion — pintor correcto respecto del que entra a la canasta.
       if (!(islas.enPasillo() && !islas.vistaPasillo())) drawChancha();   // (en las islas, en las vistas del pasillo)
+      // EL COMPAÑERO cargando en la otra manguera (25/11): a tu misma profundidad, asi que va con la Chancha, antes que vos
+      if (S.state === 'play' && !islas.enPasillo()) squadRender.drawCompaChancha(selPlane, chancha.compaCarga());
       // LAS ISLAS: LA MARCA DEL OBJETIVO en las vistas del pasillo (islas.js `objetivoPasillo`): cuatro
       // esquinas naranjas donde cae la base en el carril y, abajo, el nombre y a cuanto esta
       // (EN EL TUTORIAL no: se sigue la BRUJULA — 21/11, el autor: "la marca en el horizonte no deberia estar")
@@ -8781,7 +9038,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
           : null,
         // …Y LOS KM REALES, si la mision declara `ruta` (PLAN_NAFTA_ALCANCE N1): la barra cuenta
         // 520 / 700 km en vez de los metros del pasillo. null = la barra de siempre.
-        chanchaFr: chanchaEnCinta(), busca: buscaCinta(),
+        chanchaFr: chanchaEnCinta(), busca: zonasCinta() || buscaCinta(),
         ruta: rutaSys.hay() ? { pos: blancoSys.escapando() ? rutaSys.dato().blancoKm : rutaSys.pos(), blanco: rutaSys.dato().blancoKm, radarKm: rutaSys.dato().radarKm || 0 } : null,
         // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
         fueraRadar: S.state === 'play' && !radarAlcance(),
@@ -8931,7 +9188,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
           // …y el PULSO tiene su propio titular: no te derribaron, erraste la mano. La mision se
           // reinicia entera con cualquier tecla, que es lo que ya hacia esta pantalla.
           // …y ERRAR LA SUELTA tambien: perdiste la mision, a nadie lo bajaron
-          perdido: deathCause === 'death_pulso' || deathCause === 'death_exocet_errado' || deathCause === 'death_exocet_tarde' || erroSuelta(deathCause), sel: retrySel });
+          perdido: deathCause === 'death_pulso' || deathCause === 'death_exocet_errado' || deathCause === 'death_exocet_tarde' || deathCause === 'death_sin_contacto' || erroSuelta(deathCause), sel: retrySel });
       // REINTENTAR al ganar: el recuento completo de fondo (o el panel, si no lo hubo) y el pie con SI / NO
       if (S.state === 'reintentar') {
         if (reintento && reintento.fondo && lastRun) screens.drawResults({ lastRun, resRow: lastRun.rows.length, resT: 99, t: run.t, bg: winBg });
@@ -8952,7 +9209,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // El fondo (drawPpalBg) si va escalado — es la grilla de diseño y cubre toda la pantalla.
       if (S.state === 'title') menus.drawTitle({ t: run.t });
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t, albumNuevos: albumNuevos.size });
-      if (S.state === 'album') menus.drawAlbum({ entradas: albumLista(), cat: albumCatI, cats: ALBUM_CATS, todas: ALBUM, vistos: albumVistos, nuevos: albumNuevos, sel: albumSel, t: run.t, lee: leeDe, planes: PLANES, joy: padActivo(), padTxt: padActivo() ? padTexto : null });
+      if (S.state === 'album') menus.drawAlbum({ entradas: albumLista(), cat: albumCatI, cats: ALBUM_CATS, todas: ALBUM, vistos: TODO ? albumTodo : albumVistos, nuevos: albumNuevos, sel: albumSel, t: run.t, lee: leeDe, planes: PLANES, joy: padActivo(), padTxt: padActivo() ? padTexto : null });
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
       if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t, vista: campVista, dT: deathT, rT: retryT });
       if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: libroDef(), sel: libroAvSel, cap: libroCap, t: run.t, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
@@ -9470,6 +9727,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
     if (typeof window !== 'undefined') window.__libroVolar = (id, av = 0) => { const k = LIBRO_VUELO.findIndex(m => m.id === id); if (k < 0) return false;
       abrirLibro(k); libroAvSel = av; libroDespegar(); return JSON.stringify({ st: S.state, tramo: libro && libro.tramo }); };
     if (typeof window !== 'undefined') window.__escoltaDbg = () => JSON.stringify({ tramo: libro && libro.tramo, persec: persec.snapshot() && { d: Math.round(persec.snapshot().d) }, esc: { t: +escolta.t.toFixed(1), final: escolta.final }, dist: Math.round(run.dist), obj: Math.round(objectiveDist), st: S.state, lives: run.lives });
+    // __escT(t): adelanta el reloj de la escolta (QUITAR — para mirar el final sin volar 45 s)
+    if (typeof window !== 'undefined') window.__escT = t => { escolta.t = +t; return JSON.stringify({ t: escolta.t, pasa: escolta.pasa, final: escolta.final }); };
     if (typeof window !== 'undefined') window.__escSin = v => { escoltaSinAmenazas = v !== 0; return escoltaSinAmenazas; };
     // sonda: donde va el tutorial (el fixture la lee para saber que hacer)
     // SONDA (21/11): abrir una etapa del tutorial (0..), como desde el menu
@@ -9703,6 +9962,9 @@ import { apodoAvion } from './data/apodos_aviones.js';
     // guardian del catalogo (PR4). Es la misma puerta que aprieta el jugador —prbConfirm—, no un
     // atajo: si el menu se rompe, la sonda se rompe con el.
     // SONDA del radar propio (15/10): el store y lo que resolveria el orquestador
+    // sonda: LAS ZONAS DEL NEPTUNE (r6) — cual es la de la mancha, el estado de cada una, si se hallo
+    if (typeof window !== 'undefined') window.__zonasdbg = () => JSON.stringify(zonasM && { blanco: zonasM.blanco, hallada: zonasM.hallada, irT: +zonasM.irT.toFixed(1),
+      lista: zonasM.lista.map(z => [+z.f0.toFixed(2), +z.f1.toFixed(2), z.estado, z.barrido]), f: +(run.dist / Math.max(1, objectiveDist)).toFixed(3), mar: islas.enMar(), busq: window.__busqueda && window.__busqueda() });
     if (typeof window !== 'undefined') window.__rpset = o => { Object.assign(radarP, o || {}); return window.__rpdbg(); };
     if (typeof window !== 'undefined') window.__rpdbg = () => JSON.stringify({ tiene: radarP.tiene, on: radarP.on,
       carga: +radarP.carga.toFixed(2), ve: radarP.ve, marca: +radarP.marcaT.toFixed(1), aereo: +radarP.aereoT.toFixed(1), buques: +radarP.buquesT.toFixed(1), ondas: radarP.ondas.length,
@@ -10377,6 +10639,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
         // apretando para llegar; y un toque, no tenerla apretada, para que la tecla con la que uno se
         // acomodo en la caja no lo suelte apenas se traba.
         suelta: tironSonda(),
+        compa: !!(run.orden && run.orden.length > 1),   // hay otro en la fila: carga a la par en la otra manguera
       });
       // LA CHARLA EN VUELO va al lado de la CHANCHA y por lo mismo: con el dt del MUNDO. Mientras
       // SE HABLA no llega aca — la atiende la CONGELADA de arriba, con el reloj de pared.
@@ -10403,7 +10666,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
       { const rp = radarSys.tick(dt, { enVuelo: S.state === 'play' && !cfg.devcam, alt: plane.y,
           aereos: caza.snapshot().filter(h => !h.enCola && h.z > PZ + 2).length,
           buques: obstacles.filter(o => buqueRadar(o, PZ)).length,
-          aTiro: objectiveDist > 0 && run.dist < objectiveDist
+          // (r6: no hay buque que marcar — lo que el radar encuentra lo resuelven LAS ZONAS, `pasoZonas`)
+          aTiro: objectiveDist > 0 && run.dist < objectiveDist && !zonasDef()
             && (rutaSys.hay() ? rutaSys.alBlanco() <= (radarP.p.ALCANCE_KM ?? RADAR_PROPIO.ALCANCE_KM) : objectiveDist - run.dist <= (radarP.p.ALCANCE_M ?? RADAR_PROPIO.ALCANCE_M)) });
         // LA DETECCION (16/10): detecting suena desde que empieza hasta que quedan marcadas las flechitas
         if (rp.det === 'empieza') sfxOne('radarDetecta');
@@ -10415,6 +10679,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
           if (run.soloExocet) run.exoUbicado = true; beep(1250, 0.08, 'sine', 0.05, 300); cartel(T('radar_eco'), '#5ab4ff', null, { alerta: true }); }
         else if (rp.sig === 'ecoAereo') { beep(1100, 0.08, 'sine', 0.05, 250); cartel(T('radar_eco_aereo'), '#5ab4ff', null, { alerta: true }); }
         else if (rp.sig === 'sinCarga') { beep(220, 0.1, 'square', 0.04, -60); cartel(T('radar_sin'), P.dim); }
+        else if (rp.sig === 'falla') { beep(160, 0.18, 'sawtooth', 0.05, -90); cartel(T('radar_falla'), '#ff7a3a', T('radar_falla_sub')); }
         else if (rp.sig === 'bajo') cartel(T('radar_bajo'), '#5ab4ff', T('radar_bajo_sub')); }
       // (LA SONDA FLOJA, PLAN_FALLAS: carga mas lento — leve al 60%, media al 35%)
       if (ch.carga > 0) run.fuel = Math.min(100, run.fuel + ch.carga * [1, 0.6, 0.35, 0][falla('reabast')]);

@@ -331,24 +331,30 @@ export function navLuces(lx, ly, rx, ry, cx, cy, k, wx, wz, f = 1, ph = 0) {
  *  [cubo x, y, punta a lo ancho x, y, punta a lo largo x, y], en fraccion del cuadro desde el centro) y un
  *  disco apenas marcado — lo que el ojo ve de un rotor a fondo. Cada pala deja dos fantasmas atras: a 60 cuadros
  *  por segundo, sin estela, unas palas que giran rapido parecen quietas o para atras. */
-function rotores(w, h, R, N) {
+// LAS HELICES (25/11, el Neptune: `N[i][2] === 'z'`, tools/blender/modelos_aviones.py `_helice`): el mismo dibujo,
+// giran todas para el mismo lado y mas rapido, con el disco un poco mas marcado. Van DETRAS del avion (26/11, el autor:
+// "están en la parte de atrás, es como si tuviese las hélices atrás"): la camara mira desde la cola, asi que la gondola
+// tapa el centro del disco y lo que asoma alrededor es la helice, adelante.
+function rotores(w, h, R, N, helices = false) {
   if (!R || !N) return;
   for (let i = 0; i < R.length; i++) {
+    if (!N[i] || (N[i][2] === 'z') !== helices) continue;
     const [hx, hy, ax, ay, bx, by] = R[i], n = N[i][0];
     const cx = hx * w, cy = hy * h, ux = (ax - hx) * w, uy = (ay - hy) * h, vx = (bx - hx) * w, vy = (by - hy) * h;
     const at = (a, f = 1) => [cx + (ux * Math.cos(a) + vx * Math.sin(a)) * f, cy + (uy * Math.cos(a) + vy * Math.sin(a)) * f];
     // el disco
-    ctx.globalAlpha = 0.10; ctx.fillStyle = '#c9d2d6'; ctx.beginPath();
+    ctx.globalAlpha = helices ? 0.16 : 0.10; ctx.fillStyle = '#c9d2d6'; ctx.beginPath();
     for (let k = 0; k <= 32; k++) { const [x, y] = at(k / 32 * Math.PI * 2); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
     ctx.fill();
     // las palas (los dos rotores del Chinook giran al reves uno del otro)
-    const giro = run.t * 9.5 * (i % 2 ? -1 : 1) + i * 0.7;
+    const sen = helices ? 1 : (i % 2 ? -1 : 1);
+    const giro = run.t * (helices ? 13 : 9.5) * sen + i * 0.7;
     ctx.strokeStyle = '#1d2124'; ctx.lineCap = 'round';
     ctx.lineWidth = Math.max(1, Math.hypot(ux, uy, vx, vy) * 0.7 * N[i][1]);
     for (const [atras, al] of [[0.34, 0.18], [0.17, 0.35], [0, 0.85]]) {
       ctx.globalAlpha = al; ctx.beginPath();
       for (let p = 0; p < n; p++) {
-        const a = giro - atras * (i % 2 ? -1 : 1) + p * Math.PI * 2 / n;
+        const a = giro - atras * sen + p * Math.PI * 2 / n;
         const [x, y] = at(a);
         ctx.moveTo(cx, cy); ctx.lineTo(x, y);
       }
@@ -1298,6 +1304,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // con la hoja BASE (y las skins, misma celula); con las otras hojas, o sin la capa, el dibujado
     const conBase = !F3 && !hoja4 && img !== hoja2;
     if (!(conBase && drawTren(pl, run.gear, col, row, -dW / 2, -dH / 2, dW, dH, fino))) drawGear(run.gear, 1);
+    // LAS HELICES QUE GIRAN (el Neptune): DETRAS del avion — ver `rotores`
+    if (AN.rot && !hoja4 && img !== hoja2) rotores(dW, dH, AN.rot[rowPose] && AN.rot[rowPose][colPose], AN.rotn, true);
     ctx.drawImage(img, sx4, sy4, FW4, FH4, -dW / 2, -dH / 2, dW, dH);
     // (la silueta, para que la NOCHE no le pase el oscurecido de la ola gigante por encima — render/noche.js)
     silueta = { img, sx: sx4, sy: sy4, sw: FW4, sh: FH4, dx: -dW / 2, dy: -dH / 2, dw: dW, dh: dH, m: ctx.getTransform() };

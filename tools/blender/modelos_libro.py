@@ -128,3 +128,117 @@ def exocet_am39(T, K):
         # LOS TIMONES de cola
         _aleta('timon', raiz, mat, z0 + 0.885 * Lm, z0 + 0.975 * Lm, z0 + 0.935 * Lm, z0 + 0.975 * Lm, r, 0.24, g)
     return raiz
+
+
+# ============================ EL CRUCERO GENERAL BELGRANO, HUNDIENDOSE ============================
+# (25/11/2026, el autor con la foto del hundimiento: "diseñá y horneá un Belgrano con los botes salvavidas naranjas
+# alrededor"). Para la lamina del ANTES de r6 (EL RESCATE DEL BELGRANO): la tarde del 2 de mayo de 1982, escorado a
+# BABOR, con la proa —la arrancó el torpedo— metida en el agua, y las balsas autoinflables alrededor
+# (tools/blender/modelos_rescate.py, la misma que reparte la busqueda en el mar).
+# El ex USS Phoenix, clase Brooklyn: 185,4 m de eslora, 21 m de manga. Castillo de proa largo; TRES TORRES triples de
+# 152 mm adelante (la B por encima de la A) y DOS atras (la X por encima de la Y); la superestructura en dos bloques con
+# el puente alto, DOS CHIMENEAS, el palo trípode de proa con su radar y el de popa; la GRUA de los hidroaviones en el
+# espejo. Espacio de three: y arriba, proa hacia -z, estribor +x. Eslora L = 10; el origen es la flotacion.
+K_B = L / 185.4
+
+def _torre(raiz, mat, z, y, ang=0.0, rev=False):
+    """Una torre triple de 152 mm: la casamata con su frente inclinado y los tres caños."""
+    m = lambda x: x * K_B
+    caja('torre', (0, y + m(1.6), z), (m(9.0), m(3.2), m(8.5)), raiz, mat)
+    caja('torre_techo', (0, y + m(3.4), z + (m(0.8) if not rev else -m(0.8))), (m(7.0), m(0.5), m(6.0)), raiz, mat)
+    s = -1 if not rev else 1
+    for dx in (-m(2.4), 0, m(2.4)):
+        c = caja('cano', (dx, y + m(1.8), z + s * m(4.25 + 5.0)), (m(0.55), m(0.55), m(10.0)), raiz, mat)
+        c.rotation_euler = (math.radians(-4 * s), 0, 0)
+
+def _barbeta(raiz, mat, z, y0, y1):
+    m = lambda x: x * K_B
+    B.columna('barbeta', raiz, mat, 0, z, [(y0, m(4.6), m(4.6)), (y1, m(4.6), m(4.6))], expo=2.0)
+
+def _cortar_agua(raiz, y=0.0):
+    """La LINEA DE AGUA: aplica la pose y corta cada malla en el plano del agua (lo de abajo se va). El borde del corte
+    es la linea que el Freestyle dibuja donde el buque entra al mar."""
+    import bpy, bmesh
+    from mathutils import Vector, Matrix
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    for ob in [o for o in raiz.children_recursive if o.type == 'MESH']:
+        ev = ob.evaluated_get(dg)
+        me = bpy.data.meshes.new_from_object(ev)
+        me.transform(ob.matrix_world)
+        bm = bmesh.new(); bm.from_mesh(me)
+        geo = bm.verts[:] + bm.edges[:] + bm.faces[:]
+        bmesh.ops.bisect_plane(bm, geom=geo, plane_co=Vector((0, 0, y)), plane_no=Vector((0, 0, 1)), clear_inner=True)
+        bm.to_mesh(me); bm.free()
+        ob.modifiers.clear()
+        ob.data = me
+        ob.matrix_world = Matrix.Identity(4)      # (sigue colgado de la raiz: el encuadre la recorre)
+        if not len(me.polygons): ob.hide_render = True
+
+
+def belgrano_hundiendose(T, K, balsas=True):
+    import bpy
+    raiz = B._raiz(T, 'Belgrano')
+    mat = K['mat_cel']('gris', '#6a7378')
+    m = lambda x: x * K_B
+    franco, manga = m(8.5), m(21.0)
+    buque = B._vacio(raiz, 'buque')
+    # EL CASCO con su castillo de proa (el arrufo lo levanta adelante) y la obra viva: se hunde, asi que se ve el costado
+    B.casco(buque, mat, L, manga, franco, 0.06, 0.02, arrufo=0.10, fondo=-0.35)
+    yc = franco
+    # LAS TORRES DE PROA: A en cubierta, B por encima (barbeta), C detras a la altura de A
+    zA, zB = -L * 0.33, -L * 0.265
+    _torre(buque, mat, zA, yc)
+    _barbeta(buque, mat, zB, yc, yc + m(3.0)); _torre(buque, mat, zB, yc + m(3.0))
+    # LA SUPERESTRUCTURA DE PROA: el bloque del puente, alto, y el puente arriba
+    zs = -L * 0.17
+    caja('bloque_proa', (0, yc + m(5.0), zs), (m(13.0), m(10.0), m(16.0)), buque, mat)
+    caja('puente', (0, yc + m(12.0), zs - m(2.0)), (m(11.0), m(4.0), m(9.0)), buque, mat)
+    caja('director', (0, yc + m(16.0), zs - m(1.0)), (m(4.5), m(3.0), m(5.0)), buque, mat)
+    # EL PALO TRIPODE de proa con la verga y el radar arriba
+    yp = yc + m(17.5)
+    caja('palo_proa', (0, yp + m(9.0), zs + m(2.0)), (m(1.0), m(18.0), m(1.0)), buque, mat)
+    for sg in (-1, 1):
+        p = caja('pata', (sg * m(2.2), yp + m(5.0), zs + m(4.5)), (m(0.6), m(12.0), m(0.6)), buque, mat)
+        p.rotation_euler = (math.radians(-18), 0, math.radians(sg * 10))
+    caja('verga', (0, yp + m(14.0), zs + m(2.0)), (m(10.0), m(0.5), m(0.6)), buque, mat)
+    caja('radar_proa', (0, yp + m(18.8), zs + m(2.0)), (m(5.5), m(2.6), m(0.8)), buque, mat)
+    # LAS DOS CHIMENEAS, entre los dos bloques
+    for zc in (-L * 0.055, L * 0.03):
+        B.columna('chimenea', buque, mat, 0, zc, [(yc + m(6.0), m(3.4), m(4.6)), (yc + m(17.0), m(3.2), m(4.3)), (yc + m(19.0), m(3.0), m(4.0))], inclina=0.04)
+    caja('casamata', (0, yc + m(3.0), -L * 0.01), (m(16.0), m(6.0), m(34.0)), buque, mat)
+    # EL BLOQUE DE POPA con el palo mayor (con su radar) y los botes
+    zp = L * 0.12
+    caja('bloque_popa', (0, yc + m(5.0), zp), (m(12.0), m(10.0), m(12.0)), buque, mat)
+    caja('palo_popa', (0, yc + m(16.0), zp), (m(1.0), m(14.0), m(1.0)), buque, mat)
+    caja('radar_popa', (0, yc + m(22.5), zp), (m(4.0), m(2.4), m(0.7)), buque, mat)
+    for sg in (-1, 1):
+        for dz in (-m(6.0), m(2.0)):
+            elipsoide('bote', (sg * m(7.2), yc + m(7.0), zp + dz), (m(1.3), m(1.0), m(4.0)), buque, mat, seg=10, anillos=5)
+    # LAS TORRES DE POPA: X por encima, Y en cubierta (miran a popa)
+    zX, zY = L * 0.235, L * 0.30
+    _barbeta(buque, mat, zX, yc, yc + m(3.0)); _torre(buque, mat, zX, yc + m(3.0), rev=True)
+    _torre(buque, mat, zY, yc, rev=True)
+    # LA GRUA del espejo (la de los hidroaviones), echada hacia popa
+    g = caja('grua', (0, yc + m(7.0), L * 0.45), (m(0.9), m(14.0), m(0.9)), buque, mat)
+    g.rotation_euler = (math.radians(28), 0, 0)
+    # LA POSE DEL HUNDIMIENTO: escorado ~22° a babor (sube estribor: +x arriba) y la proa metida (sin la proa que
+    # arranco el torpedo), un poco hundido entero
+    buque.rotation_euler = (math.radians(-9), 0, math.radians(26))
+    buque.location = (0, -m(5.5), 0)
+    # LAS BALSAS alrededor, del lado de BABOR (el que baja) y por la popa — exageradas: a esta escala una de 2,8 m es un punto
+    if balsas:
+        R = importlib.util.spec_from_file_location('modelos_rescate_lib', os.path.join(AQUI, 'modelos_rescate.py'))
+        MR = importlib.util.module_from_spec(R); R.loader.exec_module(MR)
+        k = K_B * 2.2
+        lugares = [(-0.13 * L, 0.20 * L, 30), (-0.19 * L, 0.05 * L, 160), (-0.16 * L, -0.12 * L, 250), (-0.24 * L, 0.30 * L, 80),
+                   (-0.09 * L, 0.38 * L, 200), (-0.27 * L, -0.03 * L, 320), (0.02 * L, 0.52 * L, 120), (-0.33 * L, 0.18 * L, 10),
+                   (-0.12 * L, -0.30 * L, 290), (0.14 * L, 0.46 * L, 45)]
+        for i, (x, z, giro) in enumerate(lugares):
+            piv = B._vacio(raiz, 'balsa_%d' % i)
+            MR.balsa_salvavidas(piv, K)
+            piv.scale = (k, k, k)
+            piv.location = (x, -0.05 * k, z)
+            piv.rotation_euler = (math.radians(6 * ((i % 3) - 1)), math.radians(giro), math.radians(5 * ((i % 2) * 2 - 1)))
+    _cortar_agua(raiz, 0.0)
+    return raiz

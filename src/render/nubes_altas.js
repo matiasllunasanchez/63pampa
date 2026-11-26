@@ -84,7 +84,7 @@ function textura() {
 /** Cuanto se ve la alfombra (0..1) y cuanto blanco hay (0..1), segun la camara. Puro. */
 export function nubesAltas(camY = cam.y) {
   const sobre = camY - ALTO.NUBES;
-  const capa = Math.max(0, Math.min(1, (sobre - ALTO.ESPESOR * 0.3) / 120));
+  const capa = Math.max(0, Math.min(1, (sobre - ALTO.ESPESOR * 0.3) / (ALTO.ENTRA_YA || 120)));
   const blanco = Math.max(0, 1 - Math.abs(sobre) / ALTO.ESPESOR);
   return { capa, blanco };
 }

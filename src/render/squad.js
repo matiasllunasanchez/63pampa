@@ -43,6 +43,52 @@ function hojaDe(pl, idx) {
   return pl.sheetOk ? pl.sheetImg : null;
 }
 
+/** UN AVION EN VUELO, suelto (25/11: los A-4C que pasan detras del Exocet en EL INVINCIBLE, render/pulso.js): el avion
+ *  `key` en (x, y, z) del mundo, alabeado `bank` (-1..1), con su tobera. Sin tren ni luces. */
+export function drawAvionVuelo(key, x, y, z, bank = 0) {
+  const pl = PLANES.find(p => p.key === key);
+  if (!pl || !pl.sheetOk || z < 3.8) return;
+  const kRef = proj(0, 0, PZ).k, s = proj(x, y, z);
+  if (!(s.k > 0)) return;
+  const f = s.k / kRef, k2 = pl.px || 1;
+  const col = Math.max(0, Math.min(SHEET_NF - 1, Math.round((SHEET_NF - 1) / 2 * (1 + bank)))), row = 1;
+  const w = SHEET_FW * PLANE_SCALE * f * (pl.escala || 1), h = SHEET_FH * PLANE_SCALE * f * (pl.escala || 1);
+  if (!Number.isFinite(s.x + s.y + w + h)) return;
+  const sx = col * SHEET_FW * k2, sy = row * SHEET_FH * k2, sw = SHEET_FW * k2, sh = SHEET_FH * k2;
+  const smooth = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(pl.sheetImg, sx, sy, sw, sh, s.x - w / 2, s.y - h / 2, w, h);
+  encimaHd(pl.sheetImg, sx, sy, sw, sh, s.x - w / 2, s.y - h / 2, w, h, mezclaHd(w, k2));
+  drawBorde(ctx, pl.sheetImg, sx, sy, sw, sh, s.x - w / 2, s.y - h / 2, w, h);
+  const tb = ANCLAS.base.tob[row] && ANCLAS.base.tob[row][col];
+  if (tb && !pl.sinTobera) { ctx.save(); ctx.translate(s.x, s.y); tobera(tb[0] * w, tb[1] * h, llama(), w / 84 * 2.4); ctx.restore(); }
+  ctx.imageSmoothingEnabled = smooth;
+}
+
+/** EL COMPAÑERO EN LA OTRA MANGUERA (systems/chancha.js `compaCarga`, 25/11): entra desde atras —detras de la camara,
+ *  abajo y abierto hacia su lado— hasta la canasta de la Chancha que no usas, y al soltarte vuelve para atras por el
+ *  mismo camino. Es el numeral que te sigue en la fila, con su pintura; nivelado, con la tobera como la tuya. */
+export function drawCompaChancha(selPlane, c) {
+  const pl = PLANES[selPlane];
+  if (!c || !pl) return;
+  const u = c.k * c.k * (3 - 2 * c.k);                        // suave en las dos puntas
+  const x = c.x + c.lado * 7 * (1 - u), y = c.y - 3 * (1 - u), z = c.z - (c.z - 1.5) * (1 - u);
+  if (z < 3.8) return;                                        // todavia (o ya) detras de la camara
+  const kRef = proj(0, 0, PZ).k, s = proj(x, y, z), f = s.k / kRef;
+  const hoja = hojaDe(pl, detras(run, 1));
+  if (!hoja) return;
+  const col = (SHEET_NF - 1) / 2, row = 1, k2 = pl.px || 1;
+  const w = SHEET_FW * PLANE_SCALE * f * (pl.escala || 1), h = SHEET_FH * PLANE_SCALE * f * (pl.escala || 1);
+  const smooth = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+  drawShadow(x, y, z, f);
+  const sx = col * SHEET_FW * k2, sy = row * SHEET_FH * k2, sw = SHEET_FW * k2, sh = SHEET_FH * k2;
+  ctx.drawImage(hoja, sx, sy, sw, sh, s.x - w / 2, s.y - h / 2, w, h);
+  encimaHd(hoja, sx, sy, sw, sh, s.x - w / 2, s.y - h / 2, w, h, mezclaHd(w, k2));
+  drawBorde(ctx, hoja, sx, sy, sw, sh, s.x - w / 2, s.y - h / 2, w, h);
+  const tb = ANCLAS.base.tob[row] && ANCLAS.base.tob[row][col];
+  if (tb && !pl.sinTobera) { ctx.save(); ctx.translate(s.x, s.y); tobera(tb[0] * w, tb[1] * h, llama(), w / 84 * 2.4); ctx.restore(); }
+  ctx.imageSmoothingEnabled = smooth;
+}
+
 /** UN AVION ESTACIONADO al costado de la pista del despegue (23/11, el autor: "aviones estacionados alrededor nomas…
  *  en pasillo solo de relleno"): el avion `key` en (x, y, z) del mundo (z desde la camara), quieto, nivelado y con el
  *  tren abajo — el mismo sprite, tren y sombra que la formacion, sin tobera ni luces (esta apagado). */

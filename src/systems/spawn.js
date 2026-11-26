@@ -513,7 +513,9 @@ function plantar(desde) {
 /** UNA AMENAZA AL EXOCET (libro r5, EL INVINCIBLE): un helicoptero o un caza que nace EN LA LINEA DEL
  *  MISIL, a su altura, y viene de frente. Quieto en su carril y sin `home` — no te busca a vos: esta
  *  ahi para chocar al misil, y la escolta existe para tirarle antes. */
-export function sembrarAmenaza(x, y) {
+export function sembrarAmenaza(x, y, soloAves) {
+  // (25/11) `soloAves`: lo que se le cruza al Exocet antes de que suene la alarma del radar es una bandada, no un helicoptero
+  if (soloAves) { obstacles.push({ type: 'birds', x, y, z: SPAWN_Z, bvx: 0, bvy: 0, bvz: 0, white: rnd() < 0.5, amenaza: true, done: false, ph: rnd() * 6.283 }); return; }
   const tipo = rnd() < 0.65 ? 'helo' : 'jet';
   obstacles.push({ type: tipo, x, y, z: SPAWN_Z, ...hpOf(tipo), xa: x, amenaza: true, done: false, ph: rnd() * 6.283 });
 }

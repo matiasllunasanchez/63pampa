@@ -17,7 +17,7 @@ import { proj, popup } from '../core/fx.js';
 import { sfxOne, beep } from './audio.js';
 import { P } from '../data/palette.js';
 import { PZ, W, H } from '../render/ctx.js';
-import { FLY_X, FUEL_PIRUETA, COBRA, DERRAPE, MORTAL, COBRA_INV, POPUP, QUIEBRE, JINK, PIQUE, ALTO, CIELO } from '../data/tuning.js';
+import { FLY_X, FUEL_PIRUETA, SALTO, COBRA, DERRAPE, MORTAL, COBRA_INV, POPUP, QUIEBRE, JINK, PIQUE, ALTO, CIELO } from '../data/tuning.js';
 import { MOVES } from '../data/moves.js';
 
 const MV_CD = 1.15;          // cooldown compartido con el tonel (mismo valor que startRoll)
@@ -526,6 +526,18 @@ export function movesSystem(dt, inp, act) {
       B.bank = B.vx / 40; B.pitch = B.y > tgt + 2 ? -0.6 : 0;
       E.scrapeT = 0;
       E.detection = Math.max(0, E.detection - dt * 0.85);
+      break;
+    }
+    case 'salto': {
+      // EL SALTO DE OLA: una S para arriba hasta la cresta (la mitad del tiempo) y otra para abajo hasta donde
+      // venias —o al ras, si venias alto—. Persigue esa curva como el ascensor; no frena (el pop-up si).
+      const pico = Math.max(E.mvY0 + SALTO.SUBE, SALTO.PICO), fin = Math.max(SALTO.PISO, Math.min(E.mvY0, SALTO.PICO - SALTO.SUBE));
+      const s3 = t => { const c = Math.max(0, Math.min(1, t)); return c * c * (3 - 2 * c); };
+      const yDes = p < 0.5 ? E.mvY0 + (pico - E.mvY0) * s3(p * 2) : pico + (fin - pico) * s3((p - 0.5) * 2);
+      B.vy = Math.max(-60, Math.min(60, (yDes - B.y) / Math.max(dt, 1e-3)));
+      B.vx = sx + dir * SALTO.LADO * bell(p);
+      B.bank = B.vx / 40; B.pitch = p < 0.45 ? 1 : p > 0.55 ? -1 : 0;
+      E.mvSteep = p < 0.35 ? 1 : p > 0.65 ? -1 : 0;
       break;
     }
     case 'popup': {

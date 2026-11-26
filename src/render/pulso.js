@@ -10,7 +10,8 @@
 //
 // Espacio de coordenadas: MUNDO (480×270, W/H de ctx.js) — es la capa donde vive la cabina.
 import { ctx, W, H, PZ, px } from './ctx.js';
-import { plane } from '../core/state.js';
+import { plane, cam } from '../core/state.js';
+import { drawAvionVuelo } from './squad.js';
 import { proj } from '../core/fx.js';
 import { P } from '../data/palette.js';
 import { T } from '../core/i18n.js';
@@ -144,6 +145,23 @@ const regDe = i => (REGS[i] || (REGS[i] = nuevoReguero()));
  *  basura de otra vida, igual que el `salto` del propio reguero. */
 const limpiarRegs = () => { REGS.length = 0; };
 
+/** LOS CUATRO A-4C DETRAS DEL EXOCET (25/11, el autor: "cuando se lanza el misil los aviones SKYHAWK deben pasarme y
+ *  perseguir el misil"): entran de atras de la camara, de a uno, por arriba y a los costados tuyos, se cierran sobre la
+ *  linea del misil y se van achicando hacia el horizonte. `f` = avance de la suelta (0..1). */
+const SKY_PASAN = [{ t0: 0.04, lado: -1, y: 2.2 }, { t0: 0.1, lado: 1, y: 3.0 }, { t0: 0.17, lado: -1, y: 4.4 }, { t0: 0.24, lado: 1, y: 5.0 }];
+function drawSkyhawks(f) {
+  // del mas lejano al mas cercano (pintor)
+  const lista = SKY_PASAN.map(a => {
+    const u = Math.max(0, Math.min(1, (f - a.t0) / 0.62));
+    return { a, u, z: 1.5 + Math.pow(u, 1.35) * 190 };
+  }).filter(e => e.u > 0).sort((p, q) => q.z - p.z);
+  for (const { a, u, z } of lista) {
+    const x = cam.x + a.lado * (9 - 6.5 * u);
+    const y = plane.y + a.y + u * 2;
+    drawAvionVuelo('sky', x, y, z, -a.lado * 0.35 * (1 - u));   // se inclinan hacia adentro al cerrarse
+  }
+}
+
 /** LO QUE PASA AFUERA DEL VIDRIO durante el premio: la ristra, el estallido y el buque ardiendo.
  *  Se dibuja ANTES de la cabina — es mundo, y el canopy tiene que poder taparlo. */
 function drawCineMundo(Q, c, t, cab) {
@@ -184,9 +202,11 @@ function drawCineMundo(Q, c, t, cab) {
         s: Math.max(1, PULSO_CINE.BOMBA_R * (1 - p * (Q.exocet ? 0.7 : 0.86))),
       };
     };
+    // (EL INVINCIBLE, `Q.despide`: la suelta dura toda la cinematica y el misil se pierde hacia el horizonte sin llegar)
+    const fp = c.fParte || 0, avanceMisil = Q.despide ? Math.min(0.96, fp * 1.25) : fp * 1.35;
     for (let i = 0; i < nB; i++) {
       // el avance del tramo lo da el director (`fParte`): el render no necesita saber cuanto dura
-      const p = Math.max(0, Math.min(1, c.fParte * 1.35 - i * 0.11));
+      const p = Math.max(0, Math.min(1, avanceMisil - i * 0.11));
       if (p <= 0) continue;
       // LA ESTELA, primero (va DEBAJO de la bomba): el humo que deja al salir. Es EL REGUERO —
       // la misma mecanica que el humo de tobera y los vortices de punta del avion (render/
@@ -197,6 +217,7 @@ function drawCineMundo(Q, c, t, cab) {
       // ARMA PASO en vez de recalcularlo desde donde esta ahora: por eso se abre y se deshilacha
       // como humo en vez de acompañar rigido al proyectil.
       const b = vuelo(i, p);
+      if (!Number.isFinite(b.x + b.y + b.s)) continue;   // (el primer cuadro del premio, sin blanco medido todavia)
       humear(regDe(i), b.x, b.y, Object.assign({ t, f: 1 - p * 0.4, on: p < 0.97, corta: true }, MISIL));
       // EL PROYECTIL, del sprite horneado (tools/bake_ammo.html). `caja` es alto de frame y el
       // proyectil ocupa como dos tercios, asi que se pide mas grande que el rectangulo que habia.
@@ -221,6 +242,8 @@ function drawCineMundo(Q, c, t, cab) {
       }
     }
   }
+
+  if (Q.despide && c.parte === 'suelta') drawSkyhawks(c.fParte);
 
   // ---- EL IMPACTO y lo que sigue: el fuego no se apaga cuando termina el compas del estallido,
   // se queda ardiendo toda la muerte.
@@ -565,6 +588,43 @@ const EXO_PANT = {
   X: W / 2 - 118, Y: 10, W: 236, FILA: 15,
   FONDO: '#031208', BORDE: '#1e6a3a', LUZ: '#6dff9e', MEDIA: '#2f8f55', APAGADA: '#0d2e1a',
 };
+// LA CRUCETA, ARRIBA A LA DERECHA DEL VISOR (25/11, el autor: "que sea con las flechas. Aclarar arriba las crucetas y
+// marcarlas como si se estuviesen clickeando"): las cuatro flechas en cruz. La que toca late; la que apretas se HUNDE
+// —verde si era, roja si no—. Debajo, las FALLAS que quedan (el Exocet perdona tres).
+const CRUZ = { X: W / 2 + 165, Y: 38, L: 14, HUNDE_T: 0.16, ROJO_PERDON: 0.4 };
+const CRUZ_BRAZO = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
+function drawCruceta(Q, toks, t) {
+  const C = CRUZ, L = C.L;
+  const tk = toks[idxDe(Q)], toca = tk && CRUZ_BRAZO[tk.tok] ? tk.tok : null;
+  ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace'; ctx.fillStyle = EXO_PANT.LUZ;
+  ctx.fillText(padInfo.id ? T('pulso_cruceta') : T('pulso_flechas'), C.X, C.Y - L * 1.5 - 5);
+  px(C.X - L / 2, C.Y - L / 2, L, L, '#0d1418');   // el centro de la cruz
+  const hunde = Q.cruzT != null && Q.cruzT < C.HUNDE_T;
+  for (const k in CRUZ_BRAZO) {
+    const [dx, dy] = CRUZ_BRAZO[k];
+    const apretada = hunde && (Q.cruzTok === k || Q.cruzTok === k.toUpperCase());
+    const late = toca === k && !apretada ? 0.5 + 0.5 * Math.sin(t * 12) : 0;
+    const off = apretada ? 1 : 0;   // apretada: baja un pixel y pierde la sombra, como un boton de verdad
+    const x = C.X + dx * L - L / 2, y = C.Y + dy * L - L / 2;
+    if (!apretada) px(x, y + 2, L, L, '#05080a');   // la sombra del boton
+    px(x, y + off, L, L, apretada ? (Q.cruzOk ? '#2f8f55' : '#a3262a') : toca === k ? '#e8e3d6' : '#1b242b');
+    if (late) { ctx.globalAlpha = late * 0.35; px(x - 1, y - 1, L + 2, L + 2, P.accent); ctx.globalAlpha = 1; }
+    ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = apretada ? '#fff' : toca === k ? '#10161a' : P.dim;
+    ctx.fillText(TOK_GLIFO[k], x + L / 2, y + off + L / 2 + 3);
+  }
+  // LAS FALLAS: tres luces que se apagan con cada error perdonado
+  const quedan = Math.max(0, Q.perdon - Q.errs), y0 = C.Y + L * 1.5 + 8;
+  ctx.font = '6px monospace'; ctx.fillStyle = P.dim;
+  ctx.fillText(T('pulso_fallas'), C.X, y0);
+  for (let i = 0; i < Q.perdon; i++) px(C.X - (Q.perdon * 7 - 2) / 2 + i * 7, y0 + 3, 5, 5, i < quedan ? P.warn : '#2e3c45');
+}
+/** El indice de la tecla que toca (el mismo que systems/pulso.js idxCinta, contado desde la foto). */
+function idxDe(Q) {
+  let n = 0;
+  for (let b = 0; b < Q.bi && b < Q.bars.length; b++) n += Q.bars[b].toks.length;
+  return n + Q.ti;
+}
 function drawExoPanel(Q, items, t) {
   const E = EXO_PANT, h = 4 + items.length * E.FILA;
   // el visor: marco, vidrio y las lineas de barrido del fosforo
@@ -623,13 +683,14 @@ function drawCinta(Q, toks, t) {
     const d = i - Q.ci;
     const cx = W / 2 + d * C.PASO;
     if (cx > W + 30) break;                       // todavia no entro al cuadro
-    const errada = Q.errIdx === i;
+    // (en el Exocet la falla perdonada destella roja un momento y la tecla vuelve: hay que apretarla igual)
+    const errada = Q.errIdx === i && (Q.fase !== 'prueba' || Q.errT < CRUZ.ROJO_PERDON);
     const est = errada ? 'mal' : d < 0.5 ? 'ahora' : 'viene';
     const lado = est === 'viene' ? C.CHICA : C.TECLA;
     // EL LATIDO DE LA ACTIVA SALE DEL CORAZON, no de un seno propio: `Q.hb` es el reloj del
     // pulso del piloto y `Q.hbPer` su periodo, asi que la tecla late mas rapido a medida que el
     // margen se va. La cosa que hay que apretar late con el que la aprieta.
-    const k = errada ? Math.min(1, Q.errT / C.ROJO_T)
+    const k = errada ? Math.min(1, Q.errT / (Q.fase === 'prueba' ? CRUZ.ROJO_PERDON : C.ROJO_T))
       : est === 'ahora' ? Math.max(0, 1 - Q.hb / Math.max(0.05, Q.hbPer || 0.95)) : 0;
     tecla(cx, CINTA_Y, lado, glifo(toks[i].tok, Q.exocet), est, k);
     // el NOMBRE DE LA MANIOBRA sobre la primera tecla de cada compas: es lo que convierte tres
@@ -769,7 +830,7 @@ export function drawPulso(w) {
   // estorbara: se saco porque la pregunta no existe — esos buques fueron dañados donde fueron
   // dañados, y si lo destruis, ese es el tema.
   if (Q.fase === 'prueba' || Q.fase === 'rojo') {
-    if (exoConfig) drawExoPanel(Q, w.exo || [], t);
+    if (exoConfig) { drawExoPanel(Q, w.exo || [], t); drawCruceta(Q, w.toks || [], t); }
     drawCinta(Q, w.toks || [], t);
   } else {
     // FALLO: se dice QUE paso y que se vuelve — el fallo es drama, no una pantalla de derrota

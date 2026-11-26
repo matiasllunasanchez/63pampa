@@ -62,8 +62,14 @@ export const POR_AVION = {
   supere: {},
   dagger: CORTO,
   mirage: CORTO,
+  // (25/11, el autor: "el radar puede fallar y debo esperar a que recargue; el fallo puede hacer que se gaste todo el radar de
+  // una, y el tiempo de casteo es superior"): el APS-20 de los Neptune estaba gastado —el 4 de mayo el del 2-P-112 quedo
+  // fuera de servicio y el radarista cambiaba los cristales a mano (Infobae, 21/11/2023)—. Cada prendida tira FALLA_P: si
+  // sale, entre FALLA_T[0] y FALLA_T[1] s despues se corta y VACIA la carga (hay que esperar la recarga entera). Y tarda
+  // mas en detectar que el Agave (DETECTA_*).
   neptune: { ALCANCE_KM: 320, ALCANCE_M: 6500, GASTA: 0.09, RECARGA: 0.07, MIN_PRENDER: 0.1, DELATA: 0.7,
-    ONDA_CADA: 1.3, ONDA_VIDA: 1.8, ONDA_R: 420, MARCA_T: 25, DETECTA_DESDE: 0.6, DETECTA_DUR: 0.8, COLOR: [110, 200, 255] },
+    ONDA_CADA: 1.3, ONDA_VIDA: 1.8, ONDA_R: 420, MARCA_T: 25, DETECTA_DESDE: 1.8, DETECTA_DUR: 2.2, COLOR: [110, 200, 255],
+    FALLA_P: 0.3, FALLA_T: [0.8, 3.5] },
 };
 /** Las reglas del radar de `key` (RADAR_PROPIO con lo propio del avion encima). */
 export const radarDe = key => ({ ...RADAR_PROPIO, ...(POR_AVION[key] || {}) });

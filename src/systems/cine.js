@@ -111,13 +111,19 @@ export function update(dtReal) {
     // objetivo, menos vy se pide. `ramp` es el peso del cambio — mas grande, mas perezoso.
     const tgt = Math.max(-18, Math.min(18, (C.pose.alt - plane.y) * 3.2));
     plane.vy += (tgt - plane.vy) * Math.min(1, dt * (2 / C.pose.ramp));
+    if (C.pose.x != null) {
+      const tx = Math.max(-24, Math.min(24, (C.pose.x - plane.x) * 2.2));
+      plane.vx += (tx - plane.vx) * Math.min(1, dt * (2 / C.pose.ramp));
+    }
   }
   if (C.vuelo) {
     // SIN PALANCA, la actitud la dicta la TRAYECTORIA: el alabeo tiende a nivel y la trompa sigue
     // a la velocidad vertical. Es lo que hace que la trepada de salida se vea "mirando al cielo" en
     // vez de un avion horizontal que sube de costado — y sale gratis, porque es la verdad fisica.
     const pitchTgt = Math.max(-1, Math.min(1, plane.vy / 12));
-    stepVuelo(dt, { bank: 0, pitch: pitchTgt, boost: C.vuelo.boost, techo: C.vuelo.techo });
+    // (el alabeo de la pose: rompiendo hacia el costado, se inclina para ese lado mientras se esta yendo)
+    const bk = C.pose && C.pose.x != null && Math.abs(C.pose.x - plane.x) > 1.5 ? C.pose.bank * Math.sign(C.pose.x - plane.x) : 0;
+    stepVuelo(dt, { bank: bk, pitch: pitchTgt, boost: C.vuelo.boost, techo: C.vuelo.techo });
     // EL AGUA: la estela y el rocio de volar a ras. Es la mitad de lo que dice "rasante".
     if (C.vuelo.agua) {
       // …y EN CABINA se abre a los costados: el chorro del morro lo tapa el tablero, y lo que se ve
@@ -192,7 +198,10 @@ function aplicar(b, sig) {
     // pose que EXPIRABA el avion se quedaba con la velocidad vertical colgada —en una cinematica
     // no hay gravedad ni intercambio de energia que la frene, eso es de flight.js— y la trepada de
     // salida terminaba a 50 m en vez de a los 26 pedidos: subia para siempre.
-    C.pose = b.pose === false ? null : { alt: o.alt, ramp: o.ramp || 0.5 };
+    // (25/11) `dx`: ademas se abre a un costado, `dx` metros desde donde esta, alabeado `bank` (el Super Etendard
+    // rompiendo despues de lanzar el Exocet)
+    C.pose = b.pose === false ? null : { alt: o.alt, ramp: o.ramp || 0.5,
+      x: o.dx != null ? plane.x + o.dx : null, bank: o.bank || 0 };
   }
 
   if (b.ritmo !== undefined) C.ritmo = b.ritmo;

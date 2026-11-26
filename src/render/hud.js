@@ -166,7 +166,23 @@ function cinta(o) {
     if (rFr !== null) px(xr, y - 2, 1, 5, SUELTA_COL);
     // LA ZONA DE BUSQUEDA DEL EXOCET (23/11): una franja AZUL sobre la via, donde hay que ir prendiendo el radar; late
     // mientras se esta buscando, y se va cuando el blanco queda ubicado
-    if (o.busca) {
+    // LAS ZONAS DEL NEPTUNE (r6, 25/11, el autor: "usar el radar en diferentes zonas de la barra de arriba; quitar la
+    // bandera y poner signo de pregunta"): varias franjas con un «?» arriba; la que se barrio sin contacto queda gris
+    // con una rayita, la de la mancha (una vez hallada) en verde
+    if (o.busca && o.busca.zonas) for (const z of o.busca.zonas) {
+      const zx0 = Math.round(x0 + linea * Math.max(0, z.f0)), zx1 = Math.round(x0 + linea * Math.min(1, z.f1));
+      const col = z.estado === 'vacia' ? '#5d6a70' : z.estado === 'mancha' ? '#7fe07a' : '#5ab4ff';
+      ctx.save();
+      ctx.globalAlpha = z.on ? 0.35 + 0.25 * Math.sin(performance.now() / 140) : z.estado === 'vacia' ? 0.22 : 0.32;
+      ctx.fillStyle = col; ctx.fillRect(zx0, y - 3, Math.max(1, zx1 - zx0), 6);
+      ctx.globalAlpha = 0.9; ctx.fillRect(zx0, y - 3, 1, 6); ctx.fillRect(zx1 - 1, y - 3, 1, 6);
+      ctx.restore();
+      const qx = Math.round((zx0 + zx1) / 2) - 1;
+      // (el «?» adentro de la franja: arriba se salia del recuadro de la cinta)
+      if (z.estado === 'vacia') px(qx - 1, y, 5, 1, '#8a979d');
+      else pregunta(qx, y - 2, z.estado === 'mancha' ? '#d8ffd0' : '#d8ecff');
+    }
+    else if (o.busca) {
       const bx0 = Math.round(x0 + linea * Math.max(0, o.busca.f0)), bx1 = Math.round(x0 + linea * Math.min(1, o.busca.f1));
       ctx.save();
       ctx.globalAlpha = o.busca.on ? 0.35 + 0.25 * Math.sin(performance.now() / 140) : 0.32;
@@ -182,6 +198,7 @@ function cinta(o) {
     if (o.meta === 'record') px(x0, y - 2, 1, 5, P.dim);
     else iconoEn(x0, y, 'puerto', P.foam, P.dim);
     if (o.meta === 'buque') iconoEn(x1, y, o.buque || 'buque_t42', P.warn);
+    else if (o.busca && o.busca.pregunta) pregunta(x1 - 1, y - 2, o.metaCol || P.warn);   // (r6: no se sabe donde estan)
     else iconoEn(x1 + 1.5, y, 'bandera', o.metaCol || P.warn);   // +1,5: el mastil cae justo en x1
     // el marcador que avanza (+ estelas de turbo)
     const pm = x0 + linea * o.prog;
@@ -238,6 +255,11 @@ function giroVuelta(vuelve) {
 // sin decimales: a esa escala el decimal es ruido. Sin ruta, los metros del pasillo de siempre.
 const kmTxt = km => (km >= 100 ? Math.round(km).toString() : km.toFixed(1));
 
+/** UN SIGNO DE PREGUNTA de 3×5 pixeles (las zonas del Neptune y la punta de su barra), esquina arriba-izquierda en (x, y). */
+function pregunta(x, y, col) {
+  x = Math.round(x); y = Math.round(y);
+  px(x, y, 3, 1, col); px(x + 2, y + 1, 1, 1, col); px(x + 1, y + 2, 2, 1, col); px(x + 1, y + 4, 1, 1, col);
+}
 export function drawObjectiveBar(objectiveDist, objectiveShip, kind, vuelta, solta, ruta, chanchaFr, busca) {
   const flip = giroVuelta(!!vuelta);
   // LA VUELTA CUENTA LO SUYO: cuanto llevas hecho del regreso contra cuanto mide. Pasada la meta, el
@@ -3285,7 +3307,7 @@ function drawEstante(h) {
     // QUE BOMBA ES (data/bombas.js): el nombre corto encima del estante — MK-17 o BRP
     if (r.bomba) {
       ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.dim;
-      ctx.fillText(r.bomba === 'mk17' ? 'MK17' : r.bomba === 'snakeye' ? 'MK82' : 'BRP', X_RACK + RACK_W / 2, CUADROS_Y - 2);
+      ctx.fillText(r.bomba === 'exocet' ? 'EXOCET' : r.bomba === 'mk17' ? 'MK17' : r.bomba === 'snakeye' ? 'MK82' : 'BRP', X_RACK + RACK_W / 2, CUADROS_Y - 2);
       ctx.textAlign = 'left';
     }
   } else if (c.centro === 'tanque') {
@@ -3661,8 +3683,18 @@ export function drawHUD(h) {
   // cabina o con la brujula), vuelve arriba del grupo de la derecha, como antes.
   // (el hueco se ocupa cuando el termometro va ahi: en la cabina o con brujula; sin termometro —Super Etendard— queda libre)
   const radarEnFila = !enCabina() && !(h.temp && (h.brujula || h.brujulaPasillo));
-  if (radarP.tiene) { if (radarEnFila) radarReloj(X_CHANCHA, CUADROS_Y); else radarPropio(X_CARGA, CUADROS_Y - AIRE - ALERTA_H); }
-  donde.radar = radarEnFila ? [X_CHANCHA + CUADRO / 2, CUADROS_Y] : [X_CARGA + Math.round(RADAR_W / 2), CUADROS_Y - AIRE - ALERTA_H];
+  // (25/11, el autor: "el icono del radar en ISLAS de cualquier avion debe ser el mismo de pasillo, mismo tamaño y todo"):
+  // con el hueco tomado (las islas: brujula y termometro) va EL MISMO RELOJ, arriba del grupo de la derecha. La placa
+  // chica queda solo para la cabina.
+  const radarArriba = !radarEnFila && !enCabina();
+  const yRadarArriba = CUADROS_Y - AIRE - CUADRO;
+  if (radarP.tiene) {
+    if (radarEnFila) radarReloj(X_CHANCHA, CUADROS_Y);
+    else if (radarArriba) radarReloj(X_CARGA, yRadarArriba);
+    else radarPropio(X_CARGA, CUADROS_Y - AIRE - ALERTA_H);
+  }
+  donde.radar = radarEnFila ? [X_CHANCHA + CUADRO / 2, CUADROS_Y] : radarArriba ? [X_CARGA + CUADRO / 2, yRadarArriba]
+    : [X_CARGA + Math.round(RADAR_W / 2), CUADROS_Y - AIRE - ALERTA_H];
   donde.chancha = [X_CHANCHA + CUADRO / 2, CUADROS_Y];
   donde.chapitas = [X_RACK + RACK_W / 2, CUADROS_Y];
 

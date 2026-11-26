@@ -38,6 +38,11 @@ export const FLY_X = 38, FLY_TOP = 68;
 // "natural" de uno rompia al otro. tools/unit.js vigila las dos cosas: que la banda sea una sola, y
 // que RAS_ALT siga quedando abajo.
 export const BANDA_ALT = 4.5;
+// EL SALTO DE OLA (25/11/2026, el autor: "una pirueta para esquivar olas simples y volver a rasante"): sube por
+// encima de una ola comun —la marejada es de 3 m y la rompiente de 5 (OLA_H)— y vuelve a caer a la altura de la que
+// salio, o al ras si venias mas alto. PICO: la altura minima de la cresta del salto (m); SUBE: lo minimo que sube
+// aunque ya vengas alto; LADO: cuanto se corre hacia el lado del tercer toque (unidades/s de pico); sin freno.
+export const SALTO = { PICO: 7.5, SUBE: 3, LADO: 14, PISO: 2.4 };
 
 // EL TECHO DE PERFECTO — mas alto que la banda, y a proposito (15/9).
 //
@@ -574,9 +579,11 @@ export const CH_BAJADA_T = 2.4, CH_BAJADA_H = 45;
 export const CH_APARECE_Y = 30;
 export const CH_SALIDA = 2.6;    // s que tarda en irse por arriba una vez que termino
 
-export const TEMPO_SCALE = 0.35;    // el mundo a ~1/3: se nota de verdad, no un slow-mo timido
+// (25/11, el autor: "no esta ralentizando lo suficiente, duplicar la lentitud"): las dos fases a la MITAD de la
+// velocidad que tenian — eran 0.6 la suave y 0.35 la lenta
+export const TEMPO_SCALE = 0.175;   // el mundo a ~1/6: el lento de verdad
 // EL PRIMER NIVEL (21/11, systems/tempo.js): mas suave que el de siempre; el segundo toque baja a TEMPO_SCALE
-export const TEMPO_SUAVE = 0.6;
+export const TEMPO_SUAVE = 0.3;
 // MOMENTUM SE CARGA CON TIEMPO, NO CON PUNTOS (pedido del autor, 26/9/2026): "tiene que ser por
 // tiempo de casteo, y mejorar con cada mejora — tiene que tener un tiempo de casteo, no por puntos".
 //
@@ -2675,6 +2682,10 @@ export const ALTO = {
   TECHO: 1500,
   VY_SUBE: 75, VY_BAJA: 95, RAMPA: 220,
   NUBES: 480, ESPESOR: 70, TEXEL: 6,
+  // LO QUE TARDA EN ENTRAR LA ALFOMBRA al salir por arriba (m). Con el TECHO BAJO de una mision (`techoNubes`, el
+  // Belgrano: 150 m) lo pone game.js en ENTRA_BAJO: a media opacidad se veia el mar lejos y las nubes cerca, como
+  // una alfombra a medio pintar (25/11, el autor: "mira como veo abajo")
+  ENTRA: 120, ENTRA_BAJO: 25,
 };
 
 // ---------- LA SAL EN EL PARABRISAS (17/11/2026, el autor; systems/salitre.js, render/salitre.js) ----------

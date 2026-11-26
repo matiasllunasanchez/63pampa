@@ -232,6 +232,8 @@ export const COMPASES = [
   { move: 'jink', seq: 'url', dir: 1 },      // ↑→←
   { move: 'loyo', seq: 'dud', dir: 1 },      // ↓↑↓  pica, sube, pica
   { move: 'hiyo', seq: 'udu', dir: 1 },      // ↑↓↑  sube, pica, sube
+  { move: 'salto', seq: 'udl', dir: -1 },    // ↑↓←  SALTO DE OLA (25/11)
+  { move: 'salto', seq: 'udr', dir: 1 },     // ↑↓→
   { move: 'spin', seq: 'dLL', dir: -1 },     // picas con el izquierdo, rolas con el derecho
   { move: 'spin', seq: 'dRR', dir: 1 },
   { move: 'popup', seq: 'duu', dir: 1 },     // salir de rasante hacia arriba (contextual por altura)

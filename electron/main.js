@@ -12,6 +12,11 @@ const DEV = !app.isPackaged && !process.argv.includes('--prod');
 // que mete electron-builder (`npm run dist:amigos`: los builds de acceso anticipado para amigos, 23/11)
 let FULL = process.argv.includes('--full');
 try { if (require('../package.json').rasanteFull) FULL = true; } catch (e) { }
+// TODO ABIERTO (25/11, el autor: "una version produccion pero que tenga todo abierto… estampitas, niveles, todo… pero
+// que sea solo lanzable desde npm"): `npm run todo`. Es la FULL mas la campaña, el libro entero y el album lleno. Solo
+// por argumento y nunca empaquetado: ningun build lo trae.
+const TODO = !app.isPackaged && process.argv.includes('--todo');
+if (TODO) FULL = true;
 
 // EL ICONO DEL JUEGO (12/10, el autor: "quitar el icono de Electron"). El empaquetado lo toma de build/
 // (electron-builder: icon.icns / icon.ico / icon.png); esto es el de EJECUCION — la ventana en Windows y
@@ -68,7 +73,7 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       // lo lee el preload (window.RASANTE_DEV / RASANTE_FULL: `--full`, la version sin PROXIMAMENTE)
-      additionalArguments: [...(DEV ? ['--rasante-dev'] : []), ...(FULL ? ['--rasante-full'] : [])],
+      additionalArguments: [...(DEV ? ['--rasante-dev'] : []), ...(FULL ? ['--rasante-full'] : []), ...(TODO ? ['--rasante-todo'] : [])],
       contextIsolation: true,     // seguridad estándar
       nodeIntegration: false,     // el renderer NO tiene acceso a Node
       // El juego arranca la música al cargar, sin esperar un gesto. Electron YA permite autoplay

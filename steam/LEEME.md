@@ -30,7 +30,8 @@ La **parte B** es para cuando haya que subir un build.
 
 ## B. Cada vez que se sube un build
 
-1. Subí la `version` del `package.json` si querés, por ejemplo `0.1.0` → `0.2.0`.
+1. Subí la `version` del `package.json` (por ejemplo `0.2.0` → `0.3.0`) y anotá en `CHANGELOG.md` qué trae.
+   La versión se ve abajo a la derecha del menú principal.
 2. Armá los dos depots:
 
    ```bash

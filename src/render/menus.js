@@ -17,6 +17,8 @@ import { BANCO, loadoutAt } from '../data/upgrades.js';
 import { fmtDate } from '../systems/saves.js';
 import { iconoDe, ICONO_FW, ICONO_COLS, ICONOS } from '../data/iconos_cartas.js';
 import { capacidadesDe } from '../data/perfiles.js';
+// solo `version`: esbuild trae del package.json nada mas que ese campo
+import { version as VERSION } from '../../package.json';
 import { CTRL_CATEGORIAS } from '../data/controles.js';
 import { MOVES, COMBO, COMBO_PAD } from '../data/moves.js';
 import { caraDe } from '../data/voces_cartas.js';
@@ -570,6 +572,12 @@ export function drawModeSelect(w) {
     ctx.globalAlpha = 1;
     y += hFila;
   }
+
+  // LA VERSION (25/11, el autor: "una version abajo a la derecha en el menu principal para ir marcando versionado
+  // y documentando", "chiquito"): la del package.json, apagada en la esquina. Que trae cada una: CHANGELOG.md.
+  ctx.textAlign = 'right'; ctx.font = menuFont(7); ctx.fillStyle = P.body; ctx.globalAlpha = 0.45;
+  ctx.fillText('v' + VERSION, NW - 6, NH - 5);
+  ctx.globalAlpha = 1; ctx.textAlign = 'left';
 
   // sin pie: el "flechas / ENTER" y el cambio de idioma salieron de aca. Lo primero porque la
   // lista ya se explica sola (hay un cursor > sobre la fila); lo segundo porque el idioma es
@@ -2125,6 +2133,10 @@ export function drawAlbum(w) {
 // satinado en diagonal, la sombra y un poco torcida (cada una distinto, fijo por su lugar). La marcada se LEVANTA:
 // derecha, mas grande y con mas sombra. La que falta es el HUECO IMPRESO del album: punteado, con su numero y el «?».
 const EST_PAPEL = '#f2efe6', EST_BORDE = 2.6;
+/** EL METAL DE LAS MEJORAS (25/11, el autor: "normal, plata y oro, con mas remaches"): `e.nivel` de data/album.js. */
+const EST_METAL = [null,
+  { claro: '#eef2f4', medio: '#b9c2c7', oscuro: '#6d777d', remache: '#ffffff' },
+  { claro: '#fff0b8', medio: '#e3b54a', oscuro: '#8a5f17', remache: '#fffbe6' }];
 /** EL CONTORNO DENTADO de la estampita ("con borde recortado blanco", 23/11): un cuadrado de lado 2h centrado en 0 con
  *  los mordiscos del troquel (medios circulos hacia adentro) a lo largo de los cuatro lados. */
 function trazoDentado(h) {
@@ -2160,10 +2172,17 @@ function estampita(e, x, y, s, on, col, i, nueva, t) {
   const h = s / 2;
   // la sombra sobre la hoja del album (mas larga levantada), con el mismo dentado
   ctx.save(); ctx.translate(on ? 2.5 : 1.2, on ? 3 : 1.4); trazoDentado(h); ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill(); ctx.restore();
-  // el papel, troquelado
-  ctx.save(); trazoDentado(h); ctx.fillStyle = EST_PAPEL; ctx.fill(); ctx.restore();
-  // la ventana del dibujo: el oscuro de siempre con el color del grupo
-  const b = EST_BORDE, iw = s - b * 2;
+  // el papel, troquelado — o, en las MEJORAS de plata y de oro, la chapa de ese metal, con su brillo en diagonal
+  const met = EST_METAL[e.nivel || 0];
+  ctx.save(); trazoDentado(h);
+  if (met) {
+    const gm = ctx.createLinearGradient(-h, -h, h, h);
+    gm.addColorStop(0, met.claro); gm.addColorStop(0.45, met.medio); gm.addColorStop(0.55, met.claro); gm.addColorStop(1, met.oscuro);
+    ctx.fillStyle = gm;
+  } else ctx.fillStyle = EST_PAPEL;
+  ctx.fill(); ctx.restore();
+  // la ventana del dibujo: el oscuro de siempre con el color del grupo (el marco de metal es mas ancho: lleva remaches)
+  const b = met ? Math.max(EST_BORDE, s * 0.075) : EST_BORDE, iw = s - b * 2;
   ctx.fillStyle = '#141c22'; ctx.fillRect(-h + b, -h + b, iw, iw);
   ctx.globalAlpha = 0.22; ctx.fillStyle = col; ctx.fillRect(-h + b, -h + b, iw, iw); ctx.globalAlpha = 1;
   albumIcono(e, 0, 0, iw - 1);
@@ -2175,7 +2194,20 @@ function estampita(e, x, y, s, on, col, i, nueva, t) {
   ctx.fillStyle = g; ctx.fillRect(-h, -h, s, s);
   ctx.restore();
   // el filo de la ventana (una linea apenas mas oscura) y, marcada, el contorno dentado en el acento
-  ctx.strokeStyle = 'rgba(80,70,50,0.55)'; ctx.lineWidth = 0.6; ctx.strokeRect(-h + b, -h + b, iw, iw);
+  ctx.strokeStyle = met ? met.oscuro : 'rgba(80,70,50,0.55)'; ctx.lineWidth = met ? 1 : 0.6; ctx.strokeRect(-h + b, -h + b, iw, iw);
+  if (met) {
+    // el ORO lleva el doble filo; los REMACHES van por el medio del marco: la plata en las esquinas y al medio, el oro
+    // el doble (un punto oscuro con su brillo arriba a la izquierda)
+    if (e.nivel >= 2) { ctx.strokeStyle = met.claro; ctx.lineWidth = 0.6; ctx.strokeRect(-h + b - 1.4, -h + b - 1.4, iw + 2.8, iw + 2.8); }
+    const m = -h + b / 2, paso = e.nivel >= 2 ? 4 : 2, rr = Math.max(0.55, s * 0.016);
+    for (let k = 0; k <= paso; k++) {
+      const q = -h + b / 2 + (s - b) * k / paso;
+      for (const [rx, ry] of [[q, m], [q, -m], [m, q], [-m, q]]) {
+        ctx.fillStyle = met.oscuro; ctx.beginPath(); ctx.arc(rx, ry, rr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = met.remache; ctx.beginPath(); ctx.arc(rx - rr * 0.3, ry - rr * 0.3, rr * 0.55, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
   if (on) { ctx.save(); trazoDentado(h + 0.6); ctx.strokeStyle = P.accent; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore(); }
   // NUEVA: la esquina roja, ahora como un triangulo sobre el papel
   if (nueva) { ctx.fillStyle = '#e8321e'; ctx.beginPath(); ctx.moveTo(h - 8, -h); ctx.lineTo(h, -h); ctx.lineTo(h, -h + 8); ctx.closePath(); ctx.fill(); }
@@ -2276,14 +2308,16 @@ function dibujarRecortado(im, sx, sy, sw, sh, cx, cy, lado) {
   ctx.drawImage(r.cv, r.x, r.y, r.w, r.h, Math.round(cx - w / 2), Math.round(cy - h / 2), w, h);
   ctx.imageSmoothingEnabled = suave;
 }
+const hojaImg = ruta => { let im = BUQUE_IMG[ruta]; if (!im) { im = BUQUE_IMG[ruta] = new Image(); im.src = '../assets/' + ruta + '.png'; } return im.complete && im.naturalWidth ? im : null; };
 const buqueImg = (c, hoja) => { const n = hoja || 'buque_' + c; let im = BUQUE_IMG[n]; if (!im) { im = BUQUE_IMG[n] = new Image(); im.src = '../assets/world/enemies/' + n + '.png'; } return im.complete && im.naturalWidth ? im : null; };
 function albumIcono(e, cx, cy, lado) {
   // LOS DIBUJOS DE VERDAD, nunca el icono del tablero agrandado: el buque horneado, la ilustracion del avion (tambien
   // la de la mision: el avion con que se volo) o el arte de una carta (los temas lo toman prestado con `arte`)
   if (e.sprite) {
-    const im = buqueImg(null, e.sprite.src); if (!im) return;
-    const fw = im.naturalWidth / e.sprite.n;
-    dibujarRecortado(im, fw * e.sprite.fr, 0, fw, im.naturalHeight, cx, cy, lado);
+    // (`src` con carpeta: otra hoja de assets/, como el Sidewinder de la estampita, assets/ammo/aim9_album.png)
+    const im = e.sprite.src.includes('/') ? hojaImg(e.sprite.src) : buqueImg(null, e.sprite.src); if (!im) return;
+    const fw = im.naturalWidth / e.sprite.n, fh = im.naturalHeight / (e.sprite.filas || 1);
+    dibujarRecortado(im, fw * e.sprite.fr, fh * (e.sprite.fila || 0), fw, fh, cx, cy, lado);
     return;
   }
   if (e.buque) {

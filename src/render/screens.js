@@ -52,7 +52,12 @@ const WIN_SRC = [
   '../assets/photos/win/win3.jpg',
   '../assets/photos/win/win4.jpg',
   '../assets/photos/win/win5.jpg',
+  // LOS FIJOS DE UNA MISION (`fondoRecuento`): despues de los del sorteo, que no los toca (WIN_AZAR_N)
+  '../assets/photos/win/win_invincible.jpg',   // (25/11, el autor: EL INVINCIBLE, el GANASTE del Exocet)
+  '../assets/photos/win/win_sheffield.jpg',    // (26/11, el autor: EL SHEFFIELD ardiendo, el GANASTE del Exocet)
 ];
+/** Cuantos de WIN_SRC entran al sorteo: los primeros. Los de abajo son de una mision. */
+const WIN_AZAR_N = 5;
 const LOSE_SRC = [
   '../assets/photos/lose/lose1.jpg',
   '../assets/photos/lose/lose2.jpg',
@@ -82,7 +87,7 @@ const PPAL_SRC = [
 // drawEndBg cae al fondo opaco de siempre
 const load = src => { const i = new Image(); if (src) i.src = src; return i; };
 const WIN_BG = WIN_SRC.map(load), LOSE_BG = LOSE_SRC.map(load), PPAL_BG = PPAL_SRC.map(load);
-export const WIN_BG_N = WIN_BG.length, LOSE_BG_N = LOSE_BG.length, PPAL_BG_N = PPAL_BG.length;
+export const WIN_BG_N = WIN_AZAR_N, LOSE_BG_N = LOSE_BG.length, PPAL_BG_N = PPAL_BG.length;
 /** El indice de un fondo de victoria por su nombre de archivo ('win3'), o -1 si no existe. */
 export const winBgDe = nombre => WIN_SRC.findIndex(s => s.endsWith('/' + nombre + '.jpg'));
 
@@ -486,7 +491,9 @@ export function drawDead(w) {
 
 /** EL PIE DE REINTENTAR: la pregunta y los dos botones, en la franja de abajo (la misma del derribado). La
  *  geometria se exporta: el clic del mouse la resuelve game.js contra estas mismas cajas. */
-export const REINTENTAR_UI = { y: H - 21, by: H - 16.5, bh: 12, bw: 30, si: W / 2 + 4, no: W / 2 + 40, preg: W / 2 - 4 };
+// (26/11, el autor: "mas chiquito y un poco mejor ubicado"): botones mas chicos, el grupo pregunta + SI + NO
+// centrado en el ancho y en el alto de la franja del pie (H - 21 … H)
+export const REINTENTAR_UI = { y: H - 21, by: H - 15, bh: 9, bw: 20, si: W / 2 + 4, no: W / 2 + 28, preg: W / 2 };
 /** Que boton hay en (x, y) de la grilla de diseño: 0 = SI, 1 = NO, -1 = ninguno. */
 export function reintentarEn(x, y) {
   const R = REINTENTAR_UI;
@@ -500,19 +507,18 @@ export function drawWinBg(idx) { drawEndBg(WIN_BG, idx || 0); }
 export function drawReintentar(w) {
   const R = REINTENTAR_UI;
   ctx.save();
-  ctx.fillStyle = 'rgba(6, 9, 12, 0.96)'; ctx.fillRect(0, R.y, W, H - R.y);   // (opaca: tapa el «continuar» del recuento)
-  ctx.fillStyle = 'rgba(214, 160, 70, 0.35)'; ctx.fillRect(14, R.y, W - 28, 0.5);
+  // (la franja y el filete los pone drawDead: REINTENTAR ya solo sale al perder)
   ctx.shadowColor = FIN_TXT.sombra; ctx.shadowBlur = 2; ctx.shadowOffsetY = 1;
-  ctx.textAlign = 'right'; ctx.fillStyle = P.ink; ctx.font = finFont(9);
-  ctx.fillText(T('retryAsk'), R.preg, R.by + 9);
+  ctx.textAlign = 'right'; ctx.fillStyle = P.ink; ctx.font = finFont(7);
+  ctx.fillText(T('retryAsk'), R.preg, R.by + 6.8);
   ctx.shadowColor = 'transparent';
   [['retrySi', R.si], ['retryNo', R.no]].forEach(([k, x], i) => {
     const on = w.sel === i;
     if (on) { ctx.fillStyle = P.accent; ctx.globalAlpha = 0.22 + 0.08 * Math.sin(w.t * 5); ctx.fillRect(x, R.by, R.bw, R.bh); ctx.globalAlpha = 1; }
     ctx.strokeStyle = on ? P.accent : '#3a464c'; ctx.lineWidth = 0.7;
     ctx.strokeRect(x + 0.5, R.by + 0.5, R.bw - 1, R.bh - 1); ctx.lineWidth = 1;
-    ctx.textAlign = 'center'; ctx.fillStyle = on ? P.accent : P.dim; ctx.font = finFont(8);
-    ctx.fillText(T(k), x + R.bw / 2, R.by + 8.6);
+    ctx.textAlign = 'center'; ctx.fillStyle = on ? P.accent : P.dim; ctx.font = finFont(6.5);
+    ctx.fillText(T(k), x + R.bw / 2, R.by + 6.6);
   });
   ctx.restore();
 }

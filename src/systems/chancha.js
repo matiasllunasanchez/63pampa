@@ -54,6 +54,14 @@ let centrada = false;
 // avion (te metes en la que te quede a mano); enganchado o trabado queda fija hasta que te soltas. Centrada (las
 // islas, el tutorial) la eleccion no existe: el Hercules se corre para dejar la de estribor en el eje.
 let lado = 1;
+// EL COMPAÑERO CARGA A LA PAR (25/11, el autor: "mientras yo recargo, el otro super etendard tambien tiene que estar
+// recargando a la par, apenas recargo; y apenas salgo el otro sale y se vuelve para atras"): con alguien mas en la fila
+// (`e.compa`), apenas enganchas entra desde atras a LA OTRA manguera, y apenas te soltas se suelta y cae para atras.
+// `compa` 0..1 es cuanto llego (0 = detras de la camara, 1 = en la canasta); `compaAnc`, la canasta donde va, que
+// se queda quieta mientras se aleja aunque ella ya se este yendo.
+const COMPA_ENTRA = 1.3, COMPA_SALE = 1.8;
+let compa = 0, compaAnc = null;
+export const compaCarga = () => (compa > 0 && compaAnc ? { k: compa, ...compaAnc } : null);
 export function centrar(on) { centrada = !!on; }
 // LA ALTURA EN LAS ISLAS (20/11, el autor: "la Chancha no aparecio; debe aparecer sobrevolando mi avion desde
 // arriba y bajar a una altura coherente"): CH_ALT es la del pasillo (48 m), y sobre el mapa real volas a cientos
@@ -139,10 +147,16 @@ export function tick(dt, e) {
     // pidio, vino, y el que no estaba fue el avion. La barra vuelve a cargar desde el score del
     // momento en que se vuelve, como en tempo.js.
     if (fase !== 'idle') { fase = 'idle'; conn = false; trabado = false; espera = false; rasa = false; }
+    compa = 0; compaAnc = null;
     lastScore = -1;
     return out;
   }
   if (lastScore < 0) lastScore = e.score;
+  // el compañero: entra mientras estes enganchado a ella, sale apenas no
+  const compaQuiere = !!e.compa && fase === 'cita' && conn && !centrada;
+  if (compaQuiere) { const o = canasta(-lado); compaAnc = { x: o.x, y: o.y, z: o.z, lado: -lado }; }
+  compa = Math.max(0, Math.min(1, compa + (compaQuiere ? dt / COMPA_ENTRA : -dt / COMPA_SALE)));
+  if (compa <= 0) compaAnc = null;
   // la barra se carga con puntos mientras ella NO esta en el aire: lo que se gana durante la cita
   // no adelanta la proxima (con ruta se la puede volver a llamar, y se cobraria sola)
   if (!usada && fase === 'idle' && meter < 1 && e.score > lastScore) {
@@ -286,6 +300,7 @@ export function cargar(p) { meter = Math.min(1, meter + (p === undefined ? CH_CH
 export function resetChancha() {
   fase = 'idle'; meter = 0; usada = false; usos.ida = 0; usos.vuelta = 0; reserva = 1; lastScore = -1; espera = false;
   etaT = 0; winT = 0; salT = 0; pedidoT = 0; conn = false; connT = 0; trabado = false; x = 0; citaT = 0; lado = 1;
+  compa = 0; compaAnc = null;
   rumT = 0; bombaT = 0; base = 0; rasa = false;
 }
 
@@ -294,6 +309,6 @@ if (typeof window !== 'undefined') {
   window.__chadbg = () => JSON.stringify({
     fase, meter: +meter.toFixed(3), usada, usos: { ...usos }, conn, trabado, reserva: +reserva.toFixed(3),
     eta: +etaT.toFixed(1), win: +winT.toFixed(1), connT: +connT.toFixed(1),
-    x: +x.toFixed(1), bx: +canasta().x.toFixed(1), by: +canasta().y.toFixed(1), caja: CH_BOX, rasa,
+    x: +x.toFixed(1), bx: +canasta().x.toFixed(1), by: +canasta().y.toFixed(1), caja: CH_BOX, rasa, compa: +compa.toFixed(2),
   });
 }

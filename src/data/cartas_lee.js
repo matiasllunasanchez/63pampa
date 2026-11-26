@@ -305,6 +305,11 @@ export const LEE = {
     dato: 'SUBIR, VER, Y VOLVER A BAJAR',
     historia: 'El pop-up es el ataque desde el ras: se llega bajo, se sube de golpe para ver el blanco y apuntar, y se vuelve a bajar. Así encontraron los Super Etendard a su blanco el 4 de mayo: subieron, miraron unos segundos con el radar, y bajaron.',
   },
+  salto: {
+    que: 'Arriba, abajo y al costado: un saltito por encima de la ola y de vuelta al ras, corrido un poco hacia el lado del último toque. No te frena, y si venías más alto te deja abajo.',
+    dato: 'LICENCIA DEL JUEGO',
+    historia: 'Volando a ras del mar con mal tiempo, las olas grandes eran un peligro real: el 9 de mayo dos A-4C se estrellaron contra las islas Sebaldes volando al ras. El salto, como pirueta con nombre, es del juego.',
+  },
   hiyo: {
     que: 'Arriba, abajo, arriba: sube, cuelga y recae. Esquive vertical: lo que venía pasa por abajo. Te cuesta velocidad.',
     dato: 'SUBIR PARA NO PASARSE',

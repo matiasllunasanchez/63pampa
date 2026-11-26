@@ -14,7 +14,7 @@ const NAFTA = { que: 'que_nafta', hist: 'hist_nafta' };
 export const DERROTAS = {
   death_sea: { que: 'que_mar', hist: 'hist_mar' },
   death_land: TIERRA, death_cliff: TIERRA, death_pared: TIERRA,
-  death_mast: CHOQUE, death_tree: CHOQUE, death_flag: CHOQUE, death_tower: CHOQUE, death_wire: CHOQUE,
+  death_mast: CHOQUE, death_buque: CHOQUE, death_tree: CHOQUE, death_flag: CHOQUE, death_tower: CHOQUE, death_wire: CHOQUE,
   death_bldg: CHOQUE, death_ship: CHOQUE, death_depot: CHOQUE, death_radar: CHOQUE, death_aagun: CHOQUE, death_lcu: CHOQUE,
   death_balloon: CHOQUE, death_barrera: CHOQUE,
   death_palos: { que: 'que_palos', hist: 'hist_palos' },
@@ -42,6 +42,7 @@ export const DERROTAS = {
   death_eyecto_mar: { que: null, hist: 'hist_eyeccion' },
   death_pulso: { que: 'que_pulso', hist: 'hist_bomba' },
   death_exocet_errado: { que: 'que_exocet_errado', hist: 'hist_exocet' },
+  death_sin_contacto: { que: 'que_sin_contacto', hist: 'hist_neptune' },
   death_pasada: { que: 'que_pasada', hist: 'hist_bomba' },
 };
 

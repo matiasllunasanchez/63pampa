@@ -311,6 +311,26 @@ export const CINES = {
     ],
   },
 
+  // EL EXOCET DEL INVINCIBLE (25/11, el autor: "cuando se lanza el misil los aviones SKYHAWK deben pasarme y perseguir el
+  // misil, y el protagonista se VA hacia el costado, y AHI TERMINA la mision, FADE IN NEGRO. GANASTE"): sin impacto y sin
+  // acercarse al buque (el portaaviones esta a 30 millas). Sale el misil, los cuatro A-4C te pasan por arriba detras de
+  // el (render/pulso.js `drawSkyhawks`, con `Q.despide`), el Super Etendard rompe hacia un costado y sube, y negro.
+  pulso_exocet_despide: {
+    id: 'pulso_exocet_despide',
+    beats: [
+      { t: 0, parte: 'encare', limpiar: 'popups', control: 'ninguno', ritmo: RITMO },
+      { t: 0, vuelo: true },
+      { t: 0, tempo: { a: RITMO, ramp: PULSO_CINE.DESHIELO, ease: 'suave' } },
+      { t: 0, cam: { modo: 'chase' } },
+      { t: 0, pose: { alt: CINE_VUELO.RAS_ALT, ramp: 0.25 } },
+      { t: 0.4, parte: 'suelta', sfx: { key: 'exocetSale' } },
+      // el Super Etendard se abre: rompe hacia un costado y trepa (la suelta sigue: el misil y los A-4C a la vista)
+      { t: 2.3, pose: { alt: CINE_VUELO.ESC_ALT, ramp: CINE_VUELO.ESC_T, dx: 16, bank: 0.85 } },
+      { t: 4.0, fade: { a: 1, dur: 1.0 } },
+      { t: 5.2, fin: true },
+    ],
+  },
+
   pulso_fallo_exocet: {
     id: 'pulso_fallo_exocet',
     beats: [

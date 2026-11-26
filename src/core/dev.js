@@ -16,3 +16,8 @@ export const DEV = typeof window === 'undefined' || !window.RASANTE_APP || !!win
 // (21/11, el autor: la campaña —EL CUADERNO DE MATEO— sigue bloqueada tambien aca, y el libro muestra las salidas que
 // faltan como PROXIMAMENTE)
 export const FULL = typeof window !== 'undefined' && !!window.RASANTE_FULL;
+
+// TODO ABIERTO (25/11, el autor: "version produccion con todo abierto sin bloquear: estampitas, niveles, todo; solo
+// lanzable desde npm"): `npm run todo` (main.js --todo, nunca empaquetado). La FULL mas la campaña de Mateo, todas las
+// salidas del libro que existen y el album entero a la vista (sin escribirlo: lo destapado de verdad no se toca).
+export const TODO = typeof window !== 'undefined' && !!window.RASANTE_TODO;

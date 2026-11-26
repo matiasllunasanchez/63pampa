@@ -269,28 +269,73 @@ def municion_misil(T, K):
         disco('fuego%d' % i, (0, 0, 1.02 + 0.02 * i), f, g, K['mat_emisivo']('fuego%d' % i, c))
     return g
 
-def municion_aim9(T, K):
-    """EL SIDEWINDER de los Harrier: el domo del buscador, la seccion de guiado oscura con los CANARDS
-    en X, las bandas amarilla (explosivo) y marron (motor), el motor largo, las alas de cola con los
-    ROLLERONS en la punta y la tobera encendida."""
-    g = vacio(T, 'aim9')
-    r = 0.10
-    elipsoide('domo', (0, 0, -1.34), (r, r, r * 1.1), g, K['mat_cel']('domo', '#2c3038'), seg=12, anillos=8)
-    guia, cuerpo = K['mat_cel']('guia', '#4d555c'), K['mat_cel']('cuerpo', '#c9ced1')
-    loft('guiado', [(-1.35, r, r, 0), (-0.85, r, r, 0)], g, guia, n=12, cerrar=(False, False))
-    loft('ojiva', [(-0.85, r, r, 0), (-0.43, r, r, 0)], g, cuerpo, n=12, cerrar=(False, False))
-    loft('banda', [(-0.73, r + 0.004, r + 0.004, 0), (-0.67, r + 0.004, r + 0.004, 0)], g, K['mat_cel']('amarilla', '#d8b246'), n=12, cerrar=(False, False))
-    loft('motor', [(-0.43, r, r, 0), (1.37, r, r, 0)], g, cuerpo, n=12, cerrar=(False, False))
-    loft('banda', [(-0.355, r + 0.004, r + 0.004, 0), (-0.305, r + 0.004, r + 0.004, 0)], g, K['mat_cel']('marron', '#7a4a2a'), n=12, cerrar=(False, False))
-    loft('tobera', [(1.37, r, r, 0), (1.47, r * 0.8, r * 0.8, 0)], g, guia, n=12, cerrar=(False, False))
-    aletas_x(g, K, '#4d555c', r, 0.23, 0.28, 0.035, -1.02)                 # los canards
-    aletas_x(g, K, '#b3b9bd', r, 0.34, 0.36, 0.04, 1.18)                   # las alas de cola
-    for i in range(4):                                                     # los rollerons
-        a = math.pi / 4 + i * math.pi / 2; d = r + 0.34
-        elipsoide('rolleron', (math.cos(a) * d, math.sin(a) * d, 1.30), (0.06, 0.06, 0.04), g, K['mat_cel']('rolleron', '#3a3f44'), seg=10, anillos=6)
-    for i, (c, f) in enumerate((('#b8341a', 1.05), ('#f07a22', 0.75), ('#ffe6a8', 0.40))):
-        disco('fuego%d' % i, (0, 0, 1.48 + 0.02 * i), r * f, g, K['mat_emisivo']('fuego%d' % i, c))
-    return g
+def _placa(nombre, padre, mat, puntos, espesor, ang, r0=0.0):
+    """Una PLACA de contorno libre en el plano que contiene al eje del misil, a `ang` alrededor de el:
+    `puntos` = [(u, z)], u radial desde el eje. Con espesor (las aletas del Sidewinder no son cajas)."""
+    bm = bmesh.new()
+    c, s = math.cos(ang), math.sin(ang)
+    def v(u, z, e): return bm.verts.new((c * u - s * e, s * u + c * e, z))
+    a = [v(u, z, -espesor / 2) for (u, z) in puntos]
+    b = [v(u, z, espesor / 2) for (u, z) in puntos]
+    bm.faces.new(list(reversed(a))); bm.faces.new(b)
+    n = len(puntos)
+    for k in range(n): bm.faces.new((a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(nombre); bm.to_mesh(me); bm.free()
+    return _obj(nombre, me, padre, mat)
+
+def municion_aim9(T, K, fuego='1', gordo='1'):
+    """EL SIDEWINDER de los Harrier, el AIM-9L (rehecho el 25/11/2026 con la foto del autor). Las
+    proporciones del real —2,87 m de largo, 12,7 cm de diametro, apenas engordado para que se lea—:
+    el DOMO del buscador, oscuro y vidriado; la seccion de GUIADO verde grisacea con los CANARDS doble
+    delta en X (la punta en flecha y el borde de fuga recto); el anillo de ventanas de la espoleta
+    laser (DSU-15); la cabeza de guerra con su BANDA AMARILLA de arma real; el motor largo y claro con
+    la banda MARRON adelante; el CONDUCTO de cables por arriba, de punta a cola; las alas de cola
+    trapezoidales con los ROLLERONS (las ruedas dentadas) en la punta de atras; y la tobera.
+    `fuego='0'`: sin la boca encendida (la estampita del album: el misil quieto, como en la foto).
+    `gordo='1'` (la hoja del juego): engordado de costado x1,4 —a 32 px el real es un hilo de un pixel y
+    de cola no se lee—; el album lo muestra flaco, como es."""
+    raiz = vacio(T, 'aim9')
+    g = vacio(raiz, 'aim9 cuerpo')                       # (la escala va adentro: el horno pisa la matriz de la raiz al posarla)
+    if gordo != '0': g.scale = (1.4, 1.4, 1.0)
+    ef = 2.6 if gordo != '0' else 1.0                    # (y las aletas mas gruesas: de COLA, la vista del que te persigue, se ven de canto)
+    r, Z0, Z1 = 0.072, -1.435, 1.435                     # radio y punta/cola (eje z, la nariz adelante)
+    vidrio = K['mat_cel']('domo', '#2a2f3a', True)
+    guia = K['mat_cel']('guia', '#626858')
+    cuerpo = K['mat_cel']('cuerpo', '#d5d9d6', True)
+    aleta = K['mat_cel']('aleta', '#bcc2c3', True)
+    oscuro = K['mat_cel']('oscuro', '#3a3f44')
+    elipsoide('domo', (0, 0, Z0 + r), (r * 0.98, r * 0.98, r), g, vidrio, seg=20, anillos=12)
+    loft('guiado', [(Z0 + r, r, r, 0), (-0.99, r, r, 0)], g, guia, n=20, cerrar=(False, False))
+    loft('juntura', [(-1.0, r + 0.003, r + 0.003, 0), (-0.985, r + 0.003, r + 0.003, 0)], g, oscuro, n=20, cerrar=(False, False))
+    # la ESPOLETA: el anillo bronce con sus ventanitas
+    loft('espoleta', [(-0.985, r, r, 0), (-0.90, r, r, 0)], g, K['mat_cel']('bronce', '#8a6a3c'), n=20, cerrar=(False, False))
+    ven = K['mat_cel']('ventana', '#23272c', True)
+    for k in range(8):
+        a = k * math.pi / 4 + math.pi / 8
+        elipsoide('ventana', (math.cos(a) * r, math.sin(a) * r, -0.943), (0.012, 0.012, 0.022), g, ven, seg=8, anillos=4)
+    loft('guerra', [(-0.90, r, r, 0), (-0.60, r, r, 0)], g, cuerpo, n=20, cerrar=(False, False))
+    loft('banda', [(-0.86, r + 0.003, r + 0.003, 0), (-0.81, r + 0.003, r + 0.003, 0)], g, K['mat_cel']('amarilla', '#d8b246'), n=20, cerrar=(False, False))
+    loft('motor', [(-0.60, r, r, 0), (Z1 - 0.06, r, r, 0)], g, cuerpo, n=20, cerrar=(False, False))
+    loft('banda', [(-0.57, r + 0.003, r + 0.003, 0), (-0.52, r + 0.003, r + 0.003, 0)], g, K['mat_cel']('marron', '#7a4a2a'), n=20, cerrar=(False, False))
+    loft('juntura', [(-0.605, r + 0.003, r + 0.003, 0), (-0.595, r + 0.003, r + 0.003, 0)], g, oscuro, n=20, cerrar=(False, False))
+    loft('tobera', [(Z1 - 0.06, r, r, 0), (Z1, r * 0.86, r * 0.86, 0)], g, oscuro, n=20, cerrar=(False, True))
+    # el CONDUCTO de cables, arriba (entre dos aletas, como en el real)
+    pieza('conducto', g, K['mat_cel']('conducto', '#aeb4b6'), (0.026, 0.02, 1.98), (0, r + 0.008, 0.06), (0, 0, 0))
+    hueso('cable', g, oscuro, (0, r + 0.004, -1.02), (0, r + 0.012, -0.93), 0.008, 0.008, seg=6)
+    # los CANARDS doble delta en X y las ALAS de cola trapezoidales, con su ROLLERON
+    for k in range(4):
+        a = math.pi / 4 + k * math.pi / 2
+        _placa('canard', g, guia, [(r * 0.9, -1.30), (r + 0.045, -1.19), (r + 0.235, -1.03), (r + 0.235, -1.005), (r * 0.9, -1.005)], 0.012 * ef, a)
+        _placa('ala', g, aleta, [(r * 0.9, 0.92), (r + 0.25, 1.26), (r + 0.25, 1.315), (r + 0.17, 1.315), (r + 0.17, 1.40), (r * 0.9, 1.40)], 0.014 * ef, a)
+        # el rolleron: la rueda en la muesca de la punta de atras, en el plano del ala
+        cx = r + 0.21
+        _placa('rolleron', g, oscuro, [(cx + 0.05 * math.cos(t), 1.36 + 0.05 * math.sin(t)) for t in [q * math.pi / 6 for q in range(12)]], 0.022, a)
+        _placa('eje', g, aleta, [(cx - 0.012, 1.348), (cx + 0.012, 1.348), (cx + 0.012, 1.372), (cx - 0.012, 1.372)], 0.03, a)
+    if fuego != '0':
+        for i, (c, f) in enumerate((('#b8341a', 1.05), ('#f07a22', 0.75), ('#ffe6a8', 0.40))):
+            disco('fuego%d' % i, (0, 0, Z1 + 0.01 + 0.02 * i), r * f, g, K['mat_emisivo']('fuego%d' % i, c))
+    return raiz
 
 def municion_chafita(T, K):
     """UN TUBO DE CHAFITAS (8/10/2026, el autor: "son cilindros de 16 cm"; el chaff de la maquina de

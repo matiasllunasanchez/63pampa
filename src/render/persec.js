@@ -128,6 +128,7 @@ export function drawPersec(selPlane) {
       const sm0 = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
       const col = (SHEET_NF - 1) / 2;
       for (const p of pts) {
+        if (p.z < 3.8) continue;   // (al entrar vienen de atras de la camara: 25/11)
         const q = proj(p.x, p.y, p.z), fq = Math.max(PURS_F_MIN, q.k / kRef);
         const w = SHEET_FW * PLANE_SCALE * fq * (yo.escala || 1), h = SHEET_FH * PLANE_SCALE * fq * (yo.escala || 1);
         ctx.drawImage(yo.sheetImg, col * SHEET_FW * (yo.px || 1), SHEET_FH * (yo.px || 1), SHEET_FW * (yo.px || 1), SHEET_FH * (yo.px || 1), q.x - w / 2, q.y - h / 2, w, h);

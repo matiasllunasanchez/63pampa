@@ -420,15 +420,24 @@ export function setEscoltas(n) { if (L) L.escoltas = Math.max(0, n | 0); }
  *  despegue"), alrededor del misil y abiertos ESCOLTA_K para que se lean a esa distancia. Lo leen el
  *  dibujo y la explosion de cuando cae uno: una sola cuenta. */
 const ESCOLTA_K = 1.8;
+const ESCOLTA_ENTRA = 2.6;   // s que tardan en pasarte desde atras al lanzar
 const EXOCET_ALT = 4;   // la altura de crucero del misil (rozaolas)
 const EXOCET_FINAL = 220;   // u/s a las que se adelanta en el tramo final, hacia el buque
 /** El tramo final del Exocet: deja la escolta y se va al blanco (game.js lo pide al llegar). */
 export function alBlanco() { if (L && L.tipo === 'exocet') { L.alBlanco = true; L.tx = 0; } }   // al centro del buque
 export function puestosEscolta() {
   if (!L || L.tipo !== 'exocet') return [];
-  return formationSlots(4).slice(0, L.escoltas || 0).map(p => ({
-    x: L.x + p.dx * ESCOLTA_K, y: L.y + 1.5 + p.dy * ESCOLTA_K, z: L.z + p.dz * ESCOLTA_K * 3,
-  }));
+  // (25/11, el autor: "mis compañeros salen desde atras y aceleran y sobrevuelan cerca del avion, no fijos, vuelan natural"):
+  // entran de atras de la camara al lado tuyo en ESCOLTA_ENTRA s, y despues cada uno se mece en su puesto con su propio
+  // ritmo (de costado, de alto y de adelante-atras) — nunca dos iguales
+  const u = Math.min(1, L.t / ESCOLTA_ENTRA), e = u * u * (3 - 2 * u);
+  return formationSlots(4).slice(0, L.escoltas || 0).map((p, i) => {
+    const x1 = L.x + p.dx * ESCOLTA_K + Math.sin(L.t * 0.8 + i * 2.1) * 2.6 + Math.sin(L.t * 0.31 + i) * 1.6;
+    const y1 = L.y + 1.5 + p.dy * ESCOLTA_K + Math.sin(L.t * 1.1 + i * 1.3) * 1.3;
+    const z1 = L.z + p.dz * ESCOLTA_K * 3 + Math.sin(L.t * 0.55 + i * 1.7) * 9;
+    const x0 = plane.x + (p.dx >= 0 ? 1 : -1) * (5 + i * 2.5), y0 = plane.y + 2 + i, z0 = PZ - 9;
+    return { x: x0 + (x1 - x0) * e, y: y0 + (y1 - y0) * e, z: z0 + (z1 - z0) * e };
+  });
 }
 
 export function caerLider(motivo) {

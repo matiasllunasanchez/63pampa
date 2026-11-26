@@ -85,7 +85,7 @@ export function resetBlanco(on, nombre, clase, tipo, base) {
   blanco.z = 0; blanco.zPrev = 0; blanco.dano = 0; blanco.hundido = false; blanco.sinkT = 0;
   blanco.pasada = 0; blanco.marcas.length = 0; blanco.res = ''; blanco.resT = -9;
   blanco.cues.length = 0; for (const k in blanco.dicho) delete blanco.dicho[k];
-  blanco.lento = false; blanco.negroT = -1; blanco.salidaT = -1; blanco.pendiente = null; blanco.altPiso = -1;
+  blanco.lento = false; blanco.lentoPend = false; blanco.negroT = -1; blanco.salidaT = -1; blanco.pendiente = null; blanco.altPiso = -1;
   blanco.preNegroT = -1; blanco.trabada = false;
   blanco.ala = null; blanco.alaN = 0; blanco.centroN = 0; blanco.pred = null; blanco.listo = false;
   blanco.extra = 0; blanco.enDist = false; blanco.buenaAlt = false; blanco.tuvoVentana = false; blanco.perdidaT = -1;

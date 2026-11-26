@@ -22,8 +22,16 @@ BLENDER = '/Applications/Blender.app/Contents/MacOS/Blender'
 W, H = 480, 270
 ESC = 3
 VERDE = (0x5e, 0xf5, 0x8a)
-MODELOS = ['supere_exocet', 'a4c', 'kc130', 'exocet', 'invincible']
-TODAS = MODELOS + ['mapa_invincible']
+MODELOS = ['supere_exocet', 'a4c', 'kc130', 'exocet', 'invincible', 'belgrano', 'sheffield', 'neptune']
+# LOS MAPAS: (lon, lat) del reabastecimiento (esquematico) y del blanco, y cuanto rodea la ruta por el sur (px)
+# · EL SHEFFIELD (26/11): tocado en ≈52°45'S 57°15'O (naval-history.net: «52¾S, 57¼»), unas 60-70 millas al SE de
+#   Puerto Argentino, de piquete por delante de los portaaviones. La cita con el Hercules (50°30'S 65°30'O) cae fuera
+#   de cuadro, al oeste: la cruz va en el borde, como en la del Invincible.
+MAPAS = {
+    'mapa_invincible': dict(cruz=(-61.2, -53.0), blanco=(-56.0, -52.45), rodeo=34),
+    'mapa_sheffield': dict(cruz=(-61.2, -53.0), blanco=(-57.25, -52.75), rodeo=22),
+}
+TODAS = MODELOS + list(MAPAS)
 
 # ============================ EL FOSFORO ============================
 def fosforo(linea, relleno=None, k_relleno=0.07, k_brillo=0.55, radio=3.5):
@@ -101,7 +109,7 @@ def contornos(Hm, nivel=0.0):
             segs.append((tuple(P[par[0]][k]), tuple(P[par[1]][k])))
     return segs
 
-def mapa():
+def mapa(cruz_ll=(-61.2, -53.0), blanco_ll=(-56.0, -52.45), rodeo=34):
     Hm, cab = dem()
     nx, nz, cell = int(cab['nx']), int(cab['nz']), cab['cell']
     # suavizado leve y a la mitad de resolucion: la costa como trazo, no como serrucho
@@ -136,12 +144,12 @@ def mapa():
         return ((ox + x / 1000 / km_px) * S, (oy + z / 1000 / km_px) * S)
     # LA RUTA (esquematica): de Rio Grande (oeste, fuera de cuadro) por el SUR de las islas, la carga
     # de los KC-130 y la vuelta hacia el grupo de portaaviones al este-sudeste
-    cruz = ll(-61.2, -53.0)
-    blanco = ll(-56.0, -52.45)
+    cruz = ll(*cruz_ll)
+    blanco = ll(*blanco_ll)
     ruta = [(-6 * S, 214 * S), (40 * S, 212 * S), cruz]
     # curva suave del reabastecimiento al blanco, rodeando por el sur
     c0, c1 = cruz, blanco
-    ctrl = ((c0[0] + c1[0]) / 2, max(c0[1], c1[1]) + 34 * S)
+    ctrl = ((c0[0] + c1[0]) / 2, max(c0[1], c1[1]) + rodeo * S)
     for k in range(1, 41):
         t = k / 40
         ruta.append(((1 - t) ** 2 * c0[0] + 2 * (1 - t) * t * ctrl[0] + t * t * c1[0],
@@ -177,7 +185,7 @@ def punteada(dr, pts, guion, hueco, ancho, radio_blanco=0, blanco=None):
 
 # ============================ LA HOJA DE CONTACTO ============================
 def hoja(ruta):
-    cols, filas, pad = 2, 3, 16
+    cols, filas, pad = 2, (len(TODAS) + 1) // 2, 16
     im = Image.new('RGBA', (cols * W + (cols + 1) * pad, filas * H + (filas + 1) * pad), (0, 0, 0, 255))
     for k, n in enumerate(TODAS):
         lam = Image.open(os.path.join(SALIDA, n + '.png'))
@@ -199,8 +207,9 @@ if __name__ == '__main__':
     pedidas = args or TODAS
     os.makedirs(SALIDA, exist_ok=True)
     for n in pedidas:
-        if n == 'mapa_invincible':
-            im = mapa()
+        if n in MAPAS:
+            q = MAPAS[n]
+            im = mapa(q['cruz'], q['blanco'], q['rodeo'])
         else:
             if not sin_blender: hornear(n)
             im = desde_crudo(n)

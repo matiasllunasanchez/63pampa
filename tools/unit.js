@@ -1383,9 +1383,9 @@ test('libreta: 12 ventanas y 20 cartas — con CHAFITAS, METRALLA y CINTA quedan
   for (let i = 0; i < MIS.length; i++) if (ofertaTras(i) > 0) ventanas++;
   assert.equal(ventanas, 12, 'las ventanas no cambiaron');
   // El 10/10, la BRP-250: 21 para 12.
-  // El 17/11, el SILICONADO M-60: 22 para 12.
-  assert.equal(BANCO.length, UPS.length + 10, 'doce piruetas, cuatro chafitas, dos metrallas, dos cintas, la BRP y el siliconado');
-  assert.equal(BANCO.length - ventanas, 10, 'quedan diez sin aprender por partida');
+  // El 17/11, el SILICONADO M-60: 22 para 12. El 25/11, el SALTO DE OLA (una pirueta mas): 23 para 12.
+  assert.equal(BANCO.length, UPS.length + 10, 'trece piruetas, cuatro chafitas, dos metrallas, dos cintas, la BRP y el siliconado');
+  assert.equal(BANCO.length - ventanas, 11, 'quedan once sin aprender por partida');
   // y ninguna ventana puede quedar sin cartas para ofrecer
   for (let i = 0; i < MIS.length; i++) {
     const o = ofertaTras(i);
@@ -1407,7 +1407,7 @@ test('libreta: es un ARRAY NUEVO cada vez (nadie puede ensuciar el catalogo)', (
   // partida le agregaria mejoras a UPGRADES y la siguiente arrancaria con ellas.
   const a = loadAt(4); a.push('intruso');
   assert.equal(loadAt(4).length, 3);
-  assert.equal(UPS.length, 12);
+  assert.equal(UPS.length, 13);   // (25/11: + el SALTO DE OLA)
 });
 
 test('chafitas en el banco: la primera desde M3 «El invento», y cada MAS CHAFITAS pide la anterior', () => {

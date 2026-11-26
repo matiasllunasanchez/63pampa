@@ -156,6 +156,7 @@ const isFire = c => (c === 'KeyX' && !cfg.aim) || c === 'KeyK' || c === 'Space' 
 // derecho y lanzar la bomba ENTER": SHIFT der es el RT en vuelo, y ENTER el R3)
 const isTurbo = c => c === 'KeyC' || ((c === 'ShiftRight' || (c === 'ControlLeft' && cfg.aim)) && S.state === 'play');
 const esR3 = c => c === 'Enter' || c === 'NumpadEnter';
+const FLECHA_TOK = { ArrowUp: 'u', ArrowDown: 'd', ArrowLeft: 'l', ArrowRight: 'r' };
 const isLeft = c => c === 'ArrowLeft' || c === 'KeyA';
 const isRight = c => c === 'ArrowRight' || c === 'KeyD';
 const isUp = c => c === 'ArrowUp' || c === 'KeyW';
@@ -452,6 +453,15 @@ export function initInput(cv, a) {
     // MODO CAMARA: la partida no termina nunca sola (avion inmortal) — se sale con ESCAPE.
     // Solo en ese modo: en el PASILLO normal Escape sigue sin hacer nada durante el vuelo.
     if (S.state === 'play' && cfg.devcam && isBack(e.code)) { a.escToMenu(); e.preventDefault(); return; }
+    // EL EXOCET SE CARGA CON LAS FLECHAS (25/11, el autor: "bloqueemos el stick, que sea con las flechas"): en esa
+    // prueba solo cuentan ← → ↑ ↓ y el remate (ENTER / Z / TAB). WASD y lo demas no mandan nada.
+    if (S.state === 'pulso' && a.pulsoSoloFlechas && a.pulsoSoloFlechas()) {
+      const fl = FLECHA_TOK[e.code];
+      if (!e.repeat && fl) a.pulsoTap(fl);
+      else if (!e.repeat && (e.code === 'KeyZ' || e.code === 'Tab' || esR3(e.code))) a.pulsoTap('Z');
+      if (fl || e.code === 'Tab') e.preventDefault();
+      return;
+    }
     // PIRUETAS: cada toque fresco alimenta el detector de combos (ver dirTap). Sale del CAMPO que
     // la tecla escribe, no de la tecla: asi A/D dan 'l'/'r' o 'L'/'R' segun en que vida esten.
     // ALT solo no hace nada (y no le deja el foco al menu de la ventana)
@@ -886,7 +896,13 @@ export function initInput(cv, a) {
       // la Chancha y la camara). Fuera del pasillo ◄ ► no hacen nada: libres para lo que venga.
       const dl = lx < 0 ? 1 : 0, dr = lx > 0 ? 1 : 0;
       const du = (cfg.invY ? ly > 0 : ly < 0) ? 1 : 0, dd = (cfg.invY ? ly < 0 : ly > 0) ? 1 : 0;
-      const teclea = S.state === 'play' || S.state === 'pulso';   // los dos consumen TOQUES
+      // (en la carga del Exocet el stick no cuenta: la CRUCETA, como las flechas del teclado — 25/11)
+      const soloCruz = S.state === 'pulso' && a.pulsoSoloFlechas && a.pulsoSoloFlechas();
+      const teclea = (S.state === 'play' || S.state === 'pulso') && !soloCruz;   // los dos consumen TOQUES
+      if (soloCruz) {
+        const cz = { u: down(12), d: down(13), l: down(14), r: down(15) };
+        for (const k in cz) { if (cz[k] && !padHeld['cz' + k]) a.pulsoTap(k); padHeld['cz' + k] = cz[k]; }
+      } else for (const k of ['u', 'd', 'l', 'r']) padHeld['cz' + k] = 1;   // al entrar, una cruceta ya apretada no cuenta
       if (teclea) {
         if (dl && !padHeld.l) dirTap('l');
         if (dr && !padHeld.r) dirTap('r');

@@ -19,6 +19,8 @@ export function toggle() {
   if (radarP.carga < R.MIN_PRENDER) return 'vacio';
   radarP.on = true; radarP.cadaT = 0;   // la primera onda sale al toque
   radarP.onT = 0; radarP.detectando = false; radarP.detectado = false;   // y detecta de nuevo
+  // LA FALLA (el Neptune, data/radar_propio.js FALLA_*): se tira al prender
+  radarP.fallaEn = R.FALLA_P && Math.random() < R.FALLA_P ? R.FALLA_T[0] + Math.random() * (R.FALLA_T[1] - R.FALLA_T[0]) : -1;
   return 'on';
 }
 
@@ -44,6 +46,11 @@ export function tick(dt, e) {
   if (radarP.carga <= 0) { if (radarP.detectando) out.det = 'termina'; radarP.on = false; radarP.detectando = false; radarP.ve = false; out.sig = 'sinCarga'; return out; }
   radarP.ve = e.alt >= R.ALT_MIN && !!e.aTiro;
   radarP.onT += dt;
+  // SE CORTO: la carga a cero de una — a esperar la recarga entera
+  if (radarP.fallaEn >= 0 && radarP.onT >= radarP.fallaEn) {
+    if (radarP.detectando) out.det = 'termina';
+    radarP.on = false; radarP.detectando = false; radarP.ve = false; radarP.carga = 0; radarP.fallaEn = -1; out.sig = 'falla'; return out;
+  }
   // LA DETECCION (data/radar_propio.js DETECTA_*): arranca al segundo de prendido si hay algo para
   // detectar, y al terminar marca todo de una — el blanco, los Harrier y los otros buques.
   if (!radarP.detectado) {

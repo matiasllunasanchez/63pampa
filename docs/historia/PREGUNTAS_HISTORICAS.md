@@ -1736,6 +1736,8 @@ De `src/data/libro_vuelo.js` (r6) y `src/data/busqueda.js`. Lo confirmado: la Ar
 - **El techo de nubes a 150 m** y el temporal: puestos por el autor; las fuentes dicen "bajo techo" sin la cifra.
 - **Helicópteros:** el autor los quiere como opción; no se encontró registro de helicópteros en la búsqueda aérea. ¿Cuáles fueron, si hubo?
 - **Los otros aviones de apoyo** (Beechcraft B-200, Electra L-188, Fokker F-28) no existen en el juego todavía.
+- **(25/11) Las zonas del radar y un solo Neptune:** el autor pidió buscar la mancha con el radar en zonas «?» de la barra (más alto, más chance) y después las balsas a ojo en mar abierto; se vuela solo el 2-P-111. Lo que se sabe (Infobae 21/11/2023, Diario Nuevo Día 2/5/2025, Wikipedia «Escuadrilla Aeronaval de Exploración»): **ninguna fuente da la altura de búsqueda**, solo el techo de nubes a 150 m y "muy baja altitud"; las balsas se vieron **a ojo**; la mancha, entre las 09:00 y las 09:20 (unas 10 millas de largo); el radar se usó para que el Piedra Buena tomara al avión. Que el APS-20 encontrara la mancha es **licencia de juego**. Las horas siguen sin cerrar: Wikipedia pone al 2-P-111 despegando unos 15 minutos antes de que aterrizara el 2-P-112 (06:30), no a las ≈03:00 del juego; y las balsas, de 09:55 (contacto por radio, Wikipedia) a 13:15–13:20 (Infobae, Fundación Malvinas).
+- **El radar del Neptune falla en el juego** (se corta y vacía la carga): el 4 de mayo el del 2-P-112 quedó fuera de servicio a las 09:30 y el radarista reemplazaba los cristales a mano (Infobae).
 
 ## Los buques de las islas: armas, bombas y lo nuestro en el agua (21/11)
 
@@ -1776,3 +1778,10 @@ Reescritas en `src/data/libro_vuelo.js` (`R1_CONTEXTO` … `R5_CONTEXTO`) como e
 - **R4 · HOY:** el 8 de junio "los británicos mueven tropas hacia Bahía Agradable" (el desembarco en Fitzroy / Bahía Agradable). ¿Cómo lo sabían los pilotos argentinos esa mañana?
 - **R5 · ANTES:** "De los cinco Exocet se usaron cuatro: dos contra el Sheffield el 4 de mayo y dos contra el Atlantic Conveyor el 25." ¿Confirmado que fueron dos y dos?
 - **R5 · HOY:** el Invincible "al este de las islas", y "desde ahí despegan los Harrier".
+
+## La Plymouth (r4) — 26/11
+
+- **La bomba:** el PDF del autor dice BR-250 (lisa); el juego usa la BRP-250 (la única de 250 kg que tiene). ¿Cuál llevaban PERRO y GATO?
+- **Las espoletas:** según la Presidencia, ninguna de las cuatro explotó de forma normal; en el juego la BRP-250 detona casi siempre (desde el 25/5). ¿Se refleja?
+- **El punto de quiebre:** «sobre isla Jorge, a unos 128 km». ¿128 km de dónde: de la base o del blanco? Decide dónde bajar al ras en la ruta.
+- **El clima:** despejado en la base, lluvia en otra zona y tormenta a la vuelta. El pasillo no cambia el clima por tramo: hoy se vuela despejado de punta a punta.

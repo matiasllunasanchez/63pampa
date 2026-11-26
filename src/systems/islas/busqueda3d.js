@@ -1,11 +1,17 @@
 // LA BUSQUEDA EN 3D (libro de vuelo r6, EL RESCATE DEL BELGRANO): dibuja lo que arma systems/islas/busqueda.js en el
 // agua — la MANCHA DE ACEITE (una lamina oscura con brillo de arcoiris), los INDICIOS falsos (espuma, restos, un
 // cajon, algas…), las BALSAS (naranjas, en racimo, que suben y bajan con las olas) y el HUMO de los marcadores (una
-// columna que sube y se tuerce con el viento). Geometria propia y chica: no hay malla horneada todavia.
+// columna que sube y se tuerce con el viento). La mancha, los indicios y el humo son geometria propia y chica.
+// LAS BALSAS, HORNEADAS (25/11, el autor: "botes con carpitas naranjas… horneálos por separado así los podemos repartir
+// en todo alrededor"): la balsa autoinflable de las fotos —dos tubos, la carpa en cupula con su arco y la entrada con
+// naufragos— sale de Blender (tools/blender/modelos_rescate.py → assets/mallas/balsa_salvavidas.js) y se dibuja como el
+// avion (avion3d.js `grupoDe`). Mientras la malla no llega, la balsa provisoria de antes.
 // EXAGERADO A PROPOSITO, como el pasillo: una balsa de 2 m vista desde 120 m es un punto.
+import * as avion3d from './avion3d.js';
 const THREE = window.THREE || null;
-const R = { g: null, mancha: null, ind: [], balsas: [], humos: [], tex: null };
+const R = { g: null, mancha: null, ind: [], balsas: [], humos: [], beng: [], tex: null, texMancha: null, texLuz: null };
 const BALSA_K = 3.2, N_PUFF = 18, HUMO_ALTO = 200;
+const BALSA_MALLA = 'balsa_salvavidas', BALSA_MALLA_K = 2.4;   // (la horneada mide 2,8 m de punta a punta: 2,4 la deja como la de antes)
 
 function texHumo() {
   if (R.tex) return R.tex;
@@ -16,16 +22,74 @@ function texHumo() {
   R.tex = new THREE.CanvasTexture(c);
   return R.tex;
 }
+/** LA MANCHA DE ACEITE con forma (26/11, el autor: "veo una parte rectangular que parece una pista de aterrizaje"): una
+ *  textura con el borde deshilachado —ruido sobre una elipse alargada—, el negro del aceite y vetas de brillo tornasol. */
+function texMancha() {
+  if (R.texMancha) return R.texMancha;
+  const N = 128, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'), img = g.createImageData(N, N);
+  const h = (i, j, s) => { const v = Math.sin(i * 127.1 + j * 311.7 + s * 74.7) * 43758.5453; return v - Math.floor(v); };
+  const ruido = (x, y, s) => {
+    const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+    const a = h(xi, yi, s), b = h(xi + 1, yi, s), cc = h(xi, yi + 1, s), d = h(xi + 1, yi + 1, s);
+    return a + (b - a) * u + (cc - a) * v + (a - b - cc + d) * u * v;
+  };
+  const fbm = (x, y, s) => ruido(x, y, s) * 0.55 + ruido(x * 2.1, y * 2.1, s + 1) * 0.3 + ruido(x * 4.3, y * 4.3, s + 2) * 0.15;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const u = x / N * 2 - 1, v = y / N * 2 - 1;
+    // la elipse, mas ancha adelante (donde se derramo) y afinandose hacia la punta que deriva
+    const ancho = 0.55 + 0.4 * (1 - (v + 1) / 2);
+    const d = Math.hypot(u / ancho, v) + (fbm(x / 14, y / 14, 3) - 0.5) * 0.7;
+    const i = (y * N + x) * 4;
+    if (d > 0.95) { img.data[i + 3] = 0; continue; }
+    const borde = Math.min(1, (0.95 - d) / 0.25);
+    // el aceite, casi negro; las VETAS tornasol donde el ruido corta bandas finas
+    const veta = Math.abs(Math.sin(fbm(x / 9, y / 22, 7) * 18)) < 0.18;
+    const k = fbm(x / 6, y / 6, 9);
+    const col = veta ? [52 + k * 30, 58 + k * 30, 72 + k * 40] : [4 + k * 8, 5 + k * 8, 4 + k * 6];
+    img.data[i] = col[0]; img.data[i + 1] = col[1]; img.data[i + 2] = col[2];
+    img.data[i + 3] = Math.round(255 * borde * (veta ? 0.75 : 0.95));
+  }
+  g.putImageData(img, 0, 0);
+  R.texMancha = new THREE.CanvasTexture(c);
+  R.texMancha.magFilter = THREE.NearestFilter;
+  return R.texMancha;
+}
+/** La LUZ de una bengala: un punto blanco con halo rojo (se suma: brilla en el temporal). */
+function texLuz() {
+  if (R.texLuz) return R.texLuz;
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 1, 32, 32, 31);
+  gr.addColorStop(0, 'rgba(255,255,240,1)'); gr.addColorStop(0.12, 'rgba(255,210,150,1)'); gr.addColorStop(0.35, 'rgba(255,70,30,0.55)');
+  gr.addColorStop(1, 'rgba(255,40,20,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  R.texLuz = new THREE.CanvasTexture(c);
+  return R.texLuz;
+}
+// LAS BENGALAS (26/11, busqueda.js): cada una cae colgada de su paracaidas desde BENG_ALTO, se apaga al tocar el agua y
+// otra arranca arriba; la luz se ve de lejos (sin niebla), con un hilo de humo arriba
+// (la LUZ va a tamaño FIJO en pantalla —`sizeAttenuation` apagado, BENG_LUZ en fraccion del alto—: a 5 km un sprite en
+// metros era un puntito; asi se ve de lejos, que es para lo que esta)
+const BENG_ALTO = 170, BENG_CAE = 22, BENG_LUZ = 0.08;
+function bengala() {
+  const g = new THREE.Group();
+  const luz = new THREE.Sprite(new THREE.SpriteMaterial({ map: texLuz(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, sizeAttenuation: false }));
+  luz.scale.set(BENG_LUZ, BENG_LUZ, 1); luz.renderOrder = 6; g.add(luz);
+  for (let i = 0; i < 6; i++) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: texHumo(), transparent: true, depthWrite: false, color: new THREE.Color(0.85, 0.8, 0.78) }));
+    s.renderOrder = 5; g.add(s);
+  }
+  R.g.add(g);
+  return g;
+}
 function crear(escena) {
   R.g = new THREE.Group(); escena.add(R.g);
   // LA MANCHA: una lamina un poco arriba del agua, oscura y translucida
   const gm = new THREE.PlaneGeometry(1, 1); gm.rotateX(-Math.PI / 2);
   // (sin prueba de profundidad: el mar del temporal tiene olas de metros y la tapaba; va antes que las balsas)
-  R.mancha = new THREE.Mesh(gm, new THREE.MeshBasicMaterial({ color: new THREE.Color(0.03, 0.035, 0.03), transparent: true, opacity: 0.82, depthWrite: false, depthTest: false }));
+  // (con forma y vetas: la textura de `texMancha` — antes un rectangulo negro, que se leia como una pista)
+  R.mancha = new THREE.Mesh(gm, new THREE.MeshBasicMaterial({ map: texMancha(), transparent: true, depthWrite: false, depthTest: false }));
   R.mancha.renderOrder = 2; R.mancha.visible = false; R.g.add(R.mancha);
-  // el BRILLO del aceite: otra lamina mas angosta, verde-violeta
-  const br = new THREE.Mesh(gm, new THREE.MeshBasicMaterial({ color: new THREE.Color(0.4, 0.3, 0.55), transparent: true, opacity: 0.4, depthWrite: false, depthTest: false }));
-  br.scale.set(0.45, 1, 0.8); br.position.y = 0.05; br.renderOrder = 3; R.mancha.add(br);
 }
 function balsa() {
   const m = new THREE.Group();
@@ -33,7 +97,16 @@ function balsa() {
   const techo = new THREE.Mesh(new THREE.ConeGeometry(0.85, 0.9, 10), new THREE.MeshLambertMaterial({ color: new THREE.Color(0.95, 0.5, 0.1) }));
   techo.position.y = 0.6; m.add(casco); m.add(techo);
   m.scale.setScalar(BALSA_K); R.g.add(m);
+  m.userData.prov = true;
   return m;
+}
+/** Cambia la balsa provisoria por la horneada apenas llega la malla (avion3d la pide la primera vez). */
+function horneada(m) {
+  if (!m.userData.prov) return;
+  const g = avion3d.grupoDe(BALSA_MALLA);
+  if (!g) return;
+  while (m.children.length) m.remove(m.children[0]);
+  g.scale.setScalar(BALSA_MALLA_K / BALSA_K); m.add(g); m.userData.prov = false;
 }
 function indicio(t) {
   const plano = t.id === 'espuma' || t.id === 'algas';
@@ -70,13 +143,28 @@ export function frame(escena, e, t = 0, viento = [6, 0]) {
     R.mancha.scale.set(m.ancho, 1, L);
     R.mancha.rotation.y = -m.rot;
   }
+  // LAS BENGALAS: las vivas caen y brillan; las barridas sin contacto, apagadas
+  const bs = e.bengalas || [];
+  ajustar(R.beng, bs.length, bengala);
+  bs.forEach((q, k) => {
+    const g = R.beng[k];
+    g.visible = q.viva;
+    if (!q.viva) return;
+    const ciclo = BENG_ALTO / BENG_CAE, u = ((t + q.f) % ciclo) / ciclo, y = BENG_ALTO * (1 - u);
+    g.position.set(q.x + Math.sin(t * 0.7 + k) * 8, 0, q.z);
+    const [luz, ...humo] = g.children;
+    luz.position.set(0, y, 0);
+    const parpadeo = 0.85 + 0.15 * Math.sin(t * 23 + k * 3);
+    luz.scale.set(BENG_LUZ * parpadeo, BENG_LUZ * parpadeo, 1);
+    humo.forEach((s, i) => { const yy = y + 6 + i * 9; s.position.set(viento[0] * i * 1.4, yy, viento[1] * i * 1.4); const r = 6 + i * 4; s.scale.set(r, r, 1); s.material.opacity = 0.5 * (1 - i / 6); });
+  });
   // LOS INDICIOS (cada uno con su forma: se crean una vez por lista)
   if (R.ind.length !== e.ind.length) { R.ind.forEach(o => R.g.remove(o)); R.ind = e.ind.map(indicio); }
   e.ind.forEach((i, k) => { const o = R.ind[k]; o.position.set(i.x, 0.4 + Math.sin(t * 1.3 + k) * 0.3, i.z); o.rotation.y = i.rot; });
   // LAS BALSAS: suben y bajan con el mar
   const bl = e.balsas || [];
   ajustar(R.balsas, bl.length, balsa);
-  bl.forEach((b, k) => { const o = R.balsas[k]; o.position.set(b.x, 0.6 + Math.sin(t * 1.7 + b.f) * 0.9, b.z); o.rotation.set(Math.sin(t * 1.1 + b.f) * 0.18, b.rot, Math.cos(t * 1.4 + b.f) * 0.15); });
+  bl.forEach((b, k) => { const o = R.balsas[k]; horneada(o); o.position.set(b.x, 0.6 + Math.sin(t * 1.7 + b.f) * 0.9, b.z); o.rotation.set(Math.sin(t * 1.1 + b.f) * 0.18, b.rot, Math.cos(t * 1.4 + b.f) * 0.15); });
   // EL HUMO: cada marcador, una columna que sube y se tuerce con el viento; se abre arriba
   ajustar(R.humos, e.humos.length, humo);
   e.humos.forEach((h, k) => {

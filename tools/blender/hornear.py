@@ -455,8 +455,10 @@ def hornear(raiz):
             tips[-1].append(al_cuadro(mw @ L) + al_cuadro(mw @ R))
             if rots:
                 if col == 0: rot.append([])
-                rot[-1].append([al_cuadro(mw @ Vector((x, y, z))) + al_cuadro(mw @ Vector((x + rr, y, z))) + al_cuadro(mw @ Vector((x, y, z + rr)))
-                                for x, y, z, rr, _n, _c in rots])
+                # (las HELICES —eje 'z', 25/11— giran en el plano x-y: el segundo radio va hacia arriba, no a lo largo)
+                rot[-1].append([al_cuadro(mw @ Vector((x, y, z))) + al_cuadro(mw @ Vector((x + rr, y, z)))
+                                + al_cuadro(mw @ (Vector((x, y + rr, z)) if len(e) > 6 and e[6] == 'z' else Vector((x, y, z + rr))))
+                                for e in rots for x, y, z, rr in [e[:4]]])
             sc.render.filepath = os.path.join(OUT, 'f_%d_%d.png' % (row, col))
             bpy.ops.render.render(write_still=True)
             if mz:
@@ -465,7 +467,7 @@ def hornear(raiz):
                 sc.render.filepath = os.path.join(OUT, 'f_%d_%d_z.png' % (row, col))
                 bpy.ops.render.render(write_still=True)
                 vl.material_override = None
-    json.dump(dict({'tips': tips}, **({'rot': rot, 'rotn': [[n, c / rr] for _x, _y, _z, rr, n, c in rots]} if rots else {})),
+    json.dump(dict({'tips': tips}, **({'rot': rot, 'rotn': [[e[4], e[5] / e[3]] + (['z'] if len(e) > 6 and e[6] == 'z' else []) for e in rots]} if rots else {})),
               open(os.path.join(OUT, 'tips.json'), 'w'))
 
 # ============================ EL .blend PARA MIRARLO ============================
@@ -597,7 +599,7 @@ if __name__ == '__main__':
         mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
         K = dict(mat_cel=mat_cel, mat_cel_nodo=mat_cel_nodo, mat_emisivo=mat_emisivo, lin=lin,
                  perilla=perilla, mezcla=mezcla, ocultar_si=ocultar_si,
-                 cargas=bool(GUARDAR or CAPA), controles=CONTROLES, insignias=SELECTOR)
+                 cargas=bool(GUARDAR or CAPA), controles=CONTROLES, insignias=SELECTOR, vista=VISTA)
         raiz = mod.construir(MODELO, T, K) if MODELO in getattr(mod, 'FICHAS', {}) else getattr(mod, MODELO)(T, K)
         if CAPA:
             # LA CAPA: solo sus piezas (la carga y su pilon) se pintan; el avion queda de OCLUSOR
