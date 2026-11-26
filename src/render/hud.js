@@ -656,6 +656,17 @@ function drawPuntos(x, y) {
   ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.textAlign = 'right';
   ctx.fillText(T('hud_pts'), x + w - 3, y + 9);
 }
+/** Un contador de la mision ({ rot, n, de }): el rotulo apagado y la cuenta, en verde al completarse. */
+function drawContador(x, y, c) {
+  const num = c.n + '/' + c.de;
+  ctx.font = 'bold 9px monospace'; const nw = ctx.measureText(num).width;
+  ctx.font = F_ROT; const rw = ctx.measureText(c.rot).width;
+  const w = Math.max(46, Math.ceil(4 + rw + 6 + nw + 4));
+  plate(x, y, w, 12);
+  ctx.textAlign = 'left'; ctx.font = F_ROT; ctx.fillStyle = P.dim; ctx.fillText(c.rot, x + 4, y + 8.5);
+  ctx.font = 'bold 9px monospace'; ctx.fillStyle = c.n >= c.de ? '#7fe07a' : P.accent; ctx.textAlign = 'right';
+  ctx.fillText(num, x + w - 4, y + 9); ctx.textAlign = 'left';
+}
 /** LA AMENAZA (modos sueltos, 18/10): rotulo, el numero en su color —verde al arrancar, ambar, rojo al final—
  *  y una barrita de cinco que se llena hasta el siguiente nivel; en el tope dice MAX. `xd` = el borde DERECHO. */
 const OLEADA_COL = ['#7fc8a0', '#c9c25a', P.accent, '#e0703c', P.warn];
@@ -3428,6 +3439,9 @@ export function drawHUD(h) {
   // ya esta en la cinta de arriba; en el ciclo la cinta es del blanco, asi que va su placa aca.
   // (y en LAS ISLAS, que no tienen cinta: el sobrevuelo junta puntos — 23/11)
   if ((gameMode === 'cycle' && h.suelto) || h.brujula) { drawPuntos(MARGEN, ty); ty += 12 + AIRE; }
+  // EL CONTADOR DE LA MISION (26/11, el autor: "arriba un contador separado del mensaje principal: una cosa es la accion que
+  // se solicita y otra el contador general de la mision activa"): BALSAS 1/2 en su placa, debajo de los puntos
+  if (h.contador) { drawContador(MARGEN, ty, h.contador); ty += 12 + AIRE; }
   // EL ATAJO DEL TALLER (18/10): con aviones con fallas, la tecla que los manda a todos a reparar
   if (h.suelto && h.fallados > 0) { drawAtajoTaller(MARGEN, ty, h.fallados); ty += 9 + AIRE; }
   // LA CINTA: contra el buque si hay objetivo, contra tu record si es POR LA PATRIA.
@@ -3888,7 +3902,10 @@ export function drawHUD(h) {
   // (VA EN EL LUGAR DEL MACH: el hueco de al lado del gas es el de la Chancha, que en las islas tambien va)
   // …Y EN POR LA PATRIA TAMBIEN (23/11, el autor: "aunque no sirva tanto, para rellenar y que el usuario se acostumbre a
   // todos los controles, exactamente en el mismo lugar que isla"): `h.brujulaPasillo`, sin objetivo
-  if (bru) drawBrujula(X_MACH, enCabina() ? CUADROS_Y : CUADROS_Y - AIRE - CUADRO, bru);
+  // (26/11, el autor: "estoy harto de que la UI de pasillo difiera de la isla… no puede haber 2 indicadores uno arriba del
+  // otro"): la regla del PASILLO — la brujula va en el lugar del termometro solo si el avion no lo tiene; nunca apilada.
+  // Con termometro, el rumbo al objetivo lo da la marca en pantalla (game.js, con su flecha al costado si quedo atras)
+  if (bru && (enCabina() || !h.temp)) drawBrujula(X_MACH, CUADROS_Y, bru);
   // (21/11, el autor: "no pongas arriba el coso, metelo todo en horizontal"): en la fila, en el lugar que era el
   // reloj de la Chancha (que paso a ser el icono de arriba de la nafta)
   // (21/11, el autor: "el indicador de temperatura del lado izquierdo: nafta, temperatura, velocidad, nivel"): en

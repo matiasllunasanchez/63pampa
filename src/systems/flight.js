@@ -168,8 +168,11 @@ function vertLibre(dt, G, TH, DIVE) {
     // alcanza sube CON ella. Toques cortos no llegan: no hay recarga infinita apretando como loco)
     // (en las dos SUAVE igual: lo que las distinguia —la carga en LLENA_S o de golpe— ya lo marca la aguja)
     if (cfg.vert === 'planeo' || cfg.vert === 'planeo_m') {
-      const aguja = run.throttle || 0;
       let sv = Math.max(0, (run.sosten ?? 1) - dt / S0.DURA_S);
+      // (26/11, el autor: "mantengo gas, carga desde 1% LENTO aunque tenga la barra ahi, y recien luego de cargar puedo
+      // controlar el avion"): al apretar, la aguja arranca DESDE LA BARRA — sostiene en el acto y la sigue subiendo
+      if (inp.mant && run.fuel > 0 && (run.throttle || 0) < sv) run.throttle = sv;
+      const aguja = run.throttle || 0;
       if (inp.mant && run.fuel > 0 && aguja >= sv - S0.ALCANZA) sv = Math.max(sv, Math.min(1, aguja));
       run.sosten = sv;
       sosten = run.sosten;
@@ -529,7 +532,10 @@ export function flightSystem(dt, deps) {
   if (run.fuel <= 0) run.fuel = 0;
   // LA NAFTA DECORATIVA (26/11, el autor, el Rescate del Belgrano: "el combustible debe alcanzar y sobrar para toda la
   // mision, es meramente decorativo"): con `cfg.naftaPiso` la aguja baja, pero nunca por debajo del piso
-  if (cfg.naftaPiso && run.fuel < cfg.naftaPiso) run.fuel = cfg.naftaPiso;
+  // (…salvo EN LA BUSQUEDA del mar abierto, donde la nafta se acaba —es el reloj— y en la vuelta, que queda con lo que
+  // sobro: `run.naftaVuelta`, game.js terminarBusqueda)
+  { const piso = run.bengalaHumo ? 0 : run.naftaVuelta != null ? Math.min(cfg.naftaPiso || 0, run.naftaVuelta) : cfg.naftaPiso;
+    if (piso && run.fuel < piso) run.fuel = piso; }
   // ---- LA CAMA DE VUELO (systems/vuelo.js): integrar, topes, camara y actitudes con peso. Estas
   // lineas VIVIAN ACA; se mudaron enteras para poder correrlas tambien en una cinematica, donde el
   // avion se quedaba quieto y la camara clavada (PLAN_CINE_PESO §0). El pasillo no cambia: es la
@@ -809,7 +815,9 @@ export function flightSystem(dt, deps) {
     // (EL 909 DEL BUQUE, PLAN_DEFENSAS_BUQUE: cerca de un buque con su Sea Dart apagado, no carga — `radarBuque`)
     if (run.radarVisto) run.detection += dt / ((cfg.detCargaS || 1.4) * (run.detK || 1)) * radarBuque(); else run.detection -= dt / 0.9 * (run.trackerK || 1);
     // EL RADAR PROPIO TE DELATA (15/10): prendido, los buques escuchan la emision — aunque vueles al ras
-    if (radarP.on) run.detection += dt * ((radarP.p.DELATA ?? RADAR_PROPIO.DELATA) + (run.radarVisto ? 0 : 1 / 0.9));
+    // (26/11: FUERA DEL ALCANCE de su radar —la ruta, antes de la linea— no hay nadie que escuche: no delata. EL SHEFFIELD
+    // busca ahi, alto y lejos)
+    if (radarP.on && !sinRadarArriba(RADAR_ALT)) run.detection += dt * ((radarP.p.DELATA ?? RADAR_PROPIO.DELATA) + (run.radarVisto ? 0 : (run.delataBajoK || 1) / 0.9));
     run.detection = Math.max(0, Math.min(1, run.detection));
   }
   // TE PINTARON (§11.3). Solo puede pasar en una mision con fases: sin ellas `pinta` no existe y

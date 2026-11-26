@@ -556,7 +556,8 @@ export function objetivoPasillo() {
   const pz = enCabina() ? CABINA.PZ : CABINA.PZ_AFUERA;
   const dx = O.x - P3.x, dz = O.z - P3.z, sy = Math.sin(P3.yaw), cy = Math.cos(P3.yaw);
   const d = sy * dx - cy * dz, l = cy * dx + sy * dz;
-  if (d < 30) return null;
+  // ATRAS (o de costado): sin punto en pantalla — la flecha al borde del lado por donde hay que girar
+  if (d < 30) return { atras: true, lado: l >= 0 ? 1 : -1, dist: Math.hypot(dx, dz), n: O.n };
   return { x: plane.x + l, y: O.g - P3.g + 12, z: d + pz, dist: Math.hypot(dx, dz), n: O.n };
 }
 
@@ -678,9 +679,10 @@ const MAN = {
   ddu: { k: 'vuelta', sube: -1, h: 45, avion: 'splits' },
   // (26/11, el autor: "para cortar la picada hacia arriba apretar hacia abajo 2 veces, asi puedo subir y bajar en picada
   // todo lo necesario; igual para abajo"): la vertical ya no se corta sola a los 2,6 s — sigue hasta ↓↓ (la de arriba) o
-  // ↑↑ (la de abajo), con un tope de VERT_TOPE s; la picada igual saca sola cerca del suelo
-  duuu: { k: 'vertical', dir: 1, dur: 30, v: 70, avion: 'climb' },
-  uddd: { k: 'vertical', dir: -1, dur: 30, v: 80, avion: 'dive' },
+  // ↑↑ (la de abajo), con un tope de 4 s (26/11: con 30 s, la que salia sin querer dando gas a toques trababa el avion
+  // de frente sin poder virar); la picada igual saca sola cerca del suelo
+  duuu: { k: 'vertical', dir: 1, dur: 4, v: 70, avion: 'climb' },
+  uddd: { k: 'vertical', dir: -1, dur: 4, v: 80, avion: 'dive' },
 };
 // la media vuelta en tiempos (s): ROLA panza arriba (solo la de abajo), CABECEA hasta la trompa al jugador, la camara
 // GIRA, y la de arriba ENDEREZA. TOPE: los grados de la vuelta al girar la camara (la fila 190 de la hoja 4).

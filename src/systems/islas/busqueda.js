@@ -171,6 +171,8 @@ export function humoEn(hx, hz) {
   B.humos.push({ x: hx, z: hz, t: 0 });
   const g = B.grupos.find(q => q.vista && !q.marcada && Math.hypot(hx - q.x, hz - q.z) < BUSQ.MARCA);
   B.ev.push({ k: 'humo', ok: !!g, quedan: B.quedan });
+  // SIN BENGALAS Y CON BALSAS SIN MARCAR: se pierde
+  if (B.quedan <= 0 && B.grupos.some(q => !q.marcada && q !== g)) B.ev.push({ k: 'sinHumos' });
   if (!g) return;
   g.marcada = true; g.humo = { x: hx, z: hz };
   // (26/11, el autor: "le tire la bengala y me dice SEGUI LAS BENGALAS, pero todavia tengo que subir y llamar al destructor

@@ -36,7 +36,10 @@ export const BUSQ = {
   PIERDE: 1600, DERIVA_PERDIDA: 600,
   // EL HUMO: HUMOS marcadores; uno que cae a menos de MARCA m del racimo las marca. Dura HUMO_S s (y se renueva)
   // (FRENTE / FRENTE_ANG: soltar la bengala con el grupo adelante, a menos de FRENTE m y dentro de ±FRENTE_ANG°, ya marca)
-  HUMOS: 8, MARCA: 320, FRENTE: 1100, FRENTE_ANG: 35, HUMO_S: 240,
+  // (26/11, el autor: "formas de perder"): HUMOS bengalas de humo, bastantes pero contadas — si se acaban y falta marcar
+  // algun grupo, se pierde; y LA NAFTA de la busqueda: arranca en NAFTA_INI % y baja NAFTA_S %/s (sin el piso de la ida)
+  NAFTA_INI: 60, NAFTA_S: 0.25, NAFTA_AVISO: 15,
+  HUMOS: 5, MARCA: 320, FRENTE: 1100, FRENTE_ANG: 35, HUMO_S: 240,
   // LOS CIRCULOS: arriba de CIRCULO_ALT m, a menos de CIRCULO_R m del humo, sumar VUELTAS vueltas de rumbo
   CIRCULO_ALT: 260, CIRCULO_R: 1500, VUELTAS: 2, CIRCULO_S: 3.5,   // (26/11: RADAR prendido CIRCULO_S s, arriba y cerca)
   // LOS INDICIOS FALSOS: cuantos, y a que distancia del centro (lo que se ve en el mar y no es)

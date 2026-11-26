@@ -117,13 +117,19 @@ const cfgReal = over => P({ fuelOn: true, fuelScale: 0.065, globos: false, mar: 
 // tiene sentido"): se vuela como el Super Etendard de EL INVINCIBLE — `lanzamiento` abre la ZONA AZUL de la barra
 // (el radar tira el dado, mas facil arriba), PATRIA 2 avisa y en la zona se lanza; el tramo es solo mar (game.js
 // `tramoMar`). La BASE avisa por radio que el Neptune paso la posicion. Sin la despedida de los A-4C: el Exocet pega.
+// EL TRANSITO LARGO DEL SHEFFIELD (26/11, el autor: "la distancia deberia ser mas larga, la Chancha viene a recargar
+// cuando no gaste casi nada de nafta; tiene que justificarse al menos a la mitad; no modifiques el gasto, modifica la
+// distancia"): como EL INVINCIBLE, el tramo alto se estira (SHE_TRANSITO) y el resto dura lo mismo. `sheT` lleva una
+// fraccion del molde de siempre (transito 0.25) a la de ahora — para lo que se escribe a mano, como la zona azul.
+const SHE_TRANSITO = 0.357;
+const sheT = p => +(SHE_TRANSITO + (p - 0.25) * (1 - SHE_TRANSITO) / 0.75).toFixed(4);
 const r1 = {
-  id: 'r1', name: 'EL SHEFFIELD',
+  id: 'r1', name: 'ATAQUE HMS SHEFFIELD',
   fecha: '4 DE MAYO DE 1982', hora: '11:04', horaQue: 'lanzamiento',
   desc: 'Dos Super Étendard de la Armada salen de Río Grande a buscar a la flota con un Exocet cada uno. Al ras del mar, con niebla, guiados por un Neptune.',
   despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'blanco: destructor clase 42' },
   horaDespegue: '09:45',
-  goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: LARGO },
+  goal: { kind: 'ship', ship: 'HMS SHEFFIELD', dist: Math.round(LARGO * 0.75 / (1 - SHE_TRANSITO)) },
   // LA PASADA DE LA ETAPA 3 (26/11, el autor: "tiene que ser igual que la pasada de la etapa 3… debo poder pasar por
   // encima… y meter el escapa"; "la unica diferencia con la bomba es que se lanza solo si la secuencia es correcta y
   // despues apunta solo; el resto es igual"): la SUELTA sobre el buque, con el Exocet. Con el buque a tiro la tecla entra
@@ -132,8 +138,13 @@ const r1 = {
   // la pasada el otro Super Etendard. (LICENCIA: el real se lanzo a 20-30 millas y nunca vio al buque.)
   climax: 'suelta',
   exocetPulso: true, escape: true,
-  // LA ZONA AZUL (la busqueda con el radar), antes de que el buque asome: en fraccion de la ida
-  buscaZona: [0.78, 0.93],
+  // LA ZONA AZUL (26/11, el autor: "el radar tengo que lanzarlo LEJOS, fuera del radar de ellos, ALTO; sobre el radar
+  // enemigo, por debajo con menos probabilidad; y si llego al final de la zona ya debo poder verlo y lanzar"): arranca
+  // en el tramo alto, antes de la linea del radar enemigo (SHE_TRANSITO), y llega hasta que el buque asoma. Afuera
+  // del radar, mas alto mas chance; adentro, al ras y con poca chance (game.js BUSCA_PROPIA). Al final, ubicado solo
+  buscaZona: [0.22, 0.84],
+  // el radar propio al ras, adentro del radar enemigo, delata mas despacio: una carga entera no llena la barra
+  radarBajoK: 0.75,
   cfg: cfgReal({ sky: 'cloudy', fog: 1, fogLen: 1, squad: 2, caza: 0 }),
   chanchaMinT: 40,
   chanchaVeces: { ida: 1, vuelta: 0 },
@@ -141,7 +152,11 @@ const r1 = {
   // Grande; el blanco, a unos 650. LA ZONA DE LA CITA NO ES LA HISTORICA: en el juego, a 150 km de la
   // base el tanque todavia esta lleno y el Hercules te llenaba en dos segundos y se iba (medido: 98%).
   // Se corre a la segunda mitad del transito, donde ya gastaste, y llega hasta el radar.
-  ruta: { blancoKm: 650, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [420, 200] },
+  // (26/11) LA CHANCHA A MEDIA NAFTA: el Super Etendard con Exocet y un tanque lleva 2.150 km (core/nafta.js) y arriba
+  // gasta ~0,95 km de tanque por km. Con el blanco a 650 la cita caia a los 230 km —con el 90% del tanque—; ahora el
+  // blanco esta a 1.400 y la cita empieza a los 1.130 (≈50%) y termina antes de la linea del radar (1.220).
+  // LICENCIA: la distancia real a la flota era de unos 650 km; la cinta de arriba muestra la del juego.
+  ruta: { blancoKm: 1400, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [270, 200], chanchaAncla: true },
   // SIN VUELTA: el Pulso cierra la mision. La vuelta real (al ras hasta Rio Grande, 12:04) no tuvo
   // nada que jugar, y la del juego despues del Pulso se volaba en negro (12/10).
   // MAR ABIERTO de punta a punta, que es lo real: el ataque fue sobre el Atlantico, a 20-30 millas de
@@ -149,10 +164,10 @@ const r1 = {
   // (25/11, el autor: "hay DEMASIADOS pajaros y todos concentrados en el pasillo"): con `solo: MAR` casi todo lo que
   // nace en la ida es bandada (la ola va por el clima), y la densidad de la ida la multiplica. Como en EL INVINCIBLE:
   // un cuarto de las bandadas del carril y mas olas para que la ida no quede vacia (las de adorno, afuera, siguen)
-  // LA BASE: EL NEPTUNE DIO LA POSICION (26/11, el autor): al empezar la segunda mitad del rasante, antes de la zona azul.
+  // LA BASE: EL NEPTUNE DIO LA POSICION (26/11, el autor): en el tramo alto, justo antes de que se abra la zona azul.
   // (La cerca es solo mar: nunca hubo helicopteros — y el `solo` vale tambien en el escape)
-  fases: fases({ cerca: MAR, casa: false, ida: { aves: 0.25, olas: 1.8 } }).map((f, i, a) =>
-    (f.tipo === 'rasante' && a[i - 1] && a[i - 1].tipo === 'rasante' ? { ...f, radio: 'libro_r1_neptune' } : f)),
+  fases: fases({ cerca: MAR, casa: false, transito: SHE_TRANSITO, ida: { aves: 0.25, olas: 1.8 } }).map((f, i, a) =>
+    (i === 1 ? { ...f, radio: 'libro_r1_neptune' } : f)),   // (26/11: en el tramo alto, antes de la zona azul)
   // EL PREMIO SUELTA UN EXOCET, no cuatro: cada Super Etendard lanzo uno. Y la dificultad del Pulso
   // es la de M4 (4 de mayo): la cuenta por indice de campaña le daba la de la ultima mision.
   pulsoBombas: 1, pulsoT01: 3 / 13,
@@ -178,8 +193,14 @@ const r1 = {
 // (12:30, contra la Glasgow). Se vuela ORO. La bomba atraveso a la Glasgow y estallo en el agua.
 // Al volver, uno de ORO cruzo Pradera del Ganso y lo derribo la antiaerea propia. Ultimo dia de
 // niebla.
+// LA CHANCHA A MEDIA NAFTA (26/11, el autor: "en todas las misiones donde esta la Chancha la aparicion no se justifica;
+// minimamente la distancia recorrida debio haber gastado la mitad del tanque o mas"): como EL SHEFFIELD, se alarga la
+// DISTANCIA y no el gasto. El A-4B con 2 tanques + bomba lleva 2.600 km y arriba gasta 1,15 por km: con el blanco a 780
+// la cita empezaba a los 280 km (12% del tanque). Ahora el blanco esta a 1.400 y la cita empieza a los 1.130 (≈50%);
+// `chanchaAncla` (core/ruta.js) la pone a la mitad del tramo alto, para que tenga tiempo de llenarte antes del radar.
+// LICENCIA: de Rio Gallegos al estrecho eran unos 780 km; la cinta de arriba muestra la del juego.
 const r2 = {
-  id: 'r2', name: 'HMS GLASGOW',   // nombre completo (autor, 16/10: "LA GLASGOW" quedaba feo)
+  id: 'r2', name: 'ATAQUE HMS GLASGOW',   // nombre completo (autor, 16/10: "LA GLASGOW" quedaba feo)
   fecha: '12 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
   desc: 'Dos escuadrillas de A-4B salen de Río Gallegos contra dos buques en el estrecho. Volás la segunda, ORO, contra la Glasgow.',
   despegue: { desde: 'BASE AÉREA MILITAR RÍO GALLEGOS', zona: 'SANTA CRUZ', rumbo: 'blanco: destructor clase 42' },
@@ -198,7 +219,7 @@ const r2 = {
   chanchaMinT: 40,
   chanchaVeces: { ida: 1, vuelta: 1 },
   // KM APROXIMADOS (a confirmar): de Rio Gallegos al estrecho, unos 780.
-  ruta: { blancoKm: 780, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [500, 200], chanchaVuelta: [350, 420] },
+  ruta: { blancoKm: 1400, radarKm: 180, niveladoKm: 120, potenciaKm: 50, chanchaIda: [270, 200], chanchaVuelta: [350, 420], chanchaAncla: true },
   // LA RUTA: mar, la costa de la Gran Malvina, el estrecho, la Isla Soledad, y los buques frente a
   // Puerto Argentino. Sobre las islas no hay antiaerea enemiga (eran nuestras). EN LA VUELTA, PRADERA
   // DEL GANSO: tierra con ANTIAEREA PROPIA, en alerta roja — la que bajo a uno de ORO. Es el adicional
@@ -251,16 +272,16 @@ const r2 = {
 // reabastecimiento. A la salida, dos Sea Harrier: los tres derribados; dos se eyectan.
 // LA CITA REAL va en la vuelta, cuando entran los cazas: «¡Harrier! ¡Harrier!».
 const r3 = {
-  id: 'r3', name: 'LA ARDENT',
+  id: 'r3', name: 'ATAQUE HMS ARDENT',
   fecha: '21 DE MAYO DE 1982', hora: '14:10', horaQue: 'despegue',
   desc: 'Tres A-4Q de la Armada, sin Hércules: cada litro contado. El blanco asignado no está; el alternativo, los buques de San Carlos.',
   despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'blanco alternativo: bahía San Carlos' },
   horaDespegue: '14:10',
   goal: { kind: 'ship', ship: 'HMS ARDENT', dist: LARGO },
   climax: 'suelta',
-  // LA BRP-250 hasta que exista la MK-82 Snakeye: es la bomba con cola retardadora que el juego ya
-  // tiene (la mas parecida en como cae). La Ardent tenia Sea Cat.
-  bomba: 'brp', defensa: 'cat',
+  // LA MK-82 SNAKEYE (26/11, el autor: "dale, usa la Snakeye en la Ardent"): la de cola retardadora que llevaban los
+  // A-4Q (data/bombas.js `snakeye`: arma enseguida, se suelta mas bajo). La Ardent tenia Sea Cat.
+  bomba: 'snakeye', defensa: 'cat',
   // LA ARDENT YA HERIDA (PLAN_DEFENSAS_BUQUE F5): la oleada anterior (Dagger, ~14:00) le pego en el
   // hangar y se llevo el lanzador del Sea Cat y el Lynx; los A-4Q llegaron despues (≈ a confirmar,
   // PREGUNTAS_HISTORICAS "EL ARMAMENTO DE CADA BUQUE" punto 3). Le queda el 4,5" y los 20 mm.
@@ -316,7 +337,7 @@ const r3 = {
 // esperaban el ataque hacia las 13:30 y llego unos minutos antes. Va con «≈».
 // LA CITA REAL va en el tramo del blanco: «¡Buque enemigo a las tres!».
 const r4 = {
-  id: 'r4', name: 'LA PLYMOUTH',
+  id: 'r4', name: 'ATAQUE HMS PLYMOUTH',
   fecha: '8 DE JUNIO DE 1982', hora: '≈13:00', horaQue: 'ataque',
   desc: 'Seis Dagger salen de Río Grande hacia Bahía Agradable. Al ras y muy rápidos, se pasan, y encuentran una fragata sola en el estrecho.',
   despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'rumbo: Bahía Agradable' },
@@ -400,7 +421,7 @@ const r4 = {
 // el tramo alto de EL INVINCIBLE, en fraccion de su largo (antes 0.25 de LARGO * 1.2: ~1:37; ahora ~2:40)
 const INV_TRANSITO = 0.357;
 const r5 = {
-  id: 'r5', name: 'EL INVINCIBLE',
+  id: 'r5', name: 'ATAQUE HMS INVINCIBLE',
   fecha: '30 DE MAYO DE 1982', hora: '12:30', horaQue: 'despegue',
   desc: 'Dos Super Étendard con el último Exocet y cuatro A-4C salen juntos de Río Grande a buscar al portaaviones. Primero lanzás el misil; después, lo escoltás.',
   despegue: { desde: 'BASE AERONAVAL RÍO GRANDE', zona: 'TIERRA DEL FUEGO', rumbo: 'blanco: el grupo de portaaviones' },
@@ -464,7 +485,7 @@ const r5 = {
 // islas: LA BUSQUEDA (systems/islas/busqueda.js). Vuelta por el pasillo. La nafta es decorativa (`naftaPiso`): alcanza y sobra.
 const LARGO_BELGRANO = 12000;
 const r6 = {
-  id: 'r6', name: 'EL RESCATE DEL BELGRANO',
+  id: 'r6', name: 'RESCATE ARA GENERAL BELGRANO',
   fecha: '3 DE MAYO DE 1982', hora: '≈09:00', horaQue: 'mancha',
   // (25/11, el autor: "Sí, armala" — la descripcion propuesta con el diseño de las zonas)
   desc: 'La tarde anterior hundieron al crucero General Belgrano. Un Neptune de la Armada sale de Río Grande a buscar a los náufragos, bajo un techo de nubes de 150 metros y con el mar en temporal. Se busca con el radar y siguiendo bengalas.',
@@ -506,6 +527,8 @@ const r6 = {
 // (26/11, el autor, para la 0.2.0: "Invencible, Sheffield, Glasgow, Ardent y Plymouth, las otras quedan en proximamente":
 // el Rescate del Belgrano sigue EN DESARROLLO)
 // (26/11, el autor: "habilitame la mision del Belgrano en la version produccion")
+// LOS NOMBRES (26/11, el autor: "los nombres adentro, ataque a tal cosa… nada de articulos"): ATAQUE HMS …, RESCATE ARA …;
+// en la lista del libro va la FECHA (render/menus.js) y el nombre se ve al entrar
 export const LIBRO_ABIERTAS = ['r1', 'r2', 'r3', 'r4', 'r5', 'r6'];
 /** Las salidas, en orden de fecha: es el orden del LIBRO DE VUELO. */
 export const LIBRO_VUELO = [r6, r1, r2, r3, r5, r4];
@@ -642,14 +665,14 @@ export const LIBRO_SCENES = {
     ['NUESTRO PLAN. No tenemos la posición exacta del hundimiento.\n\nLos Neptune de la Armada salen de Río Grande a buscar en distintas zonas del trayecto, con el radar de búsqueda.', 'ui_busca', 'LAS ZONAS DE BÚSQUEDA'],
     // (26/11, el autor: "no se si es necesario volar rasante por las dudas, y no siento que este bien explicado, claro y conciso")
     // (26/11, el autor, con su texto: "La barra de arriba marca el trayecto…")
-    ['EN EL CAMINO. La barra de arriba marca el trayecto. Encontrarás zonas de búsqueda marcadas en ella.\n\nVamos a hacer el recorrido de ida y vuelta, y el combustible solo alcanza para eso: cubrí bien las zonas y no dejes ninguna sin revisar.', 'ui_busca', 'LAS ZONAS DE BÚSQUEDA'],
+    ['EN EL CAMINO. La barra de arriba marca el trayecto. Encontrarás zonas de búsqueda marcadas en ella.\n\nLa nafta es justa: cubrí bien las zonas y no dejes ninguna sin revisar.', 'ui_busca', 'LAS ZONAS DE BÚSQUEDA'],
     // (no entraba en una hoja: lo de cada zona va aparte, con la tecla del radar dibujada en el cuadro)
     // (26/11: las nubes empastan el radar —game.js pZona—; sin el radar enemigo, que en esta salida no hay)
     ['EN CADA ZONA. Volamos arriba de las nubes. En cada zona, bajá justo debajo de ellas y prendé el radar hasta cubrirla.\n\nMás alto, más lejos ve. Adentro o arriba de las nubes no ve nada.', 'neptune', 'PRENDER EL RADAR', 'Radar'],
     // (26/11, el autor: "una vez que encuentres la zona aproximada del hundimiento entras en mar abierto. Busca las bengalas,
     // seguilas y prende el radar cuando estes cerca, busca una mancha de aceite en el agua, es donde ocurrio el hundimiento")
     // (26/11, el autor, con su texto; sin la lamina del crucero —repetida— para que el texto use todo el ancho y entre)
-    'EN LA ZONA. Cuando encuentres la zona del hundimiento, entrarás de lleno en el mar abierto.\n\nNos informaron que lanzaron bengalas: seguilas y prendé el radar cerca de cada una. Al lado de algunas hay grupos de balsas; otras están solas.\n\nMarcá cada grupo de balsas con humo.',
+    'EN LA ZONA. Cuando encuentres la zona del hundimiento, entrarás de lleno en el mar abierto.\n\nNos informaron que lanzaron bengalas: seguilas y prendé el radar cerca de cada una. Al lado de algunas hay grupos de balsas; otras están solas.\n\nMarcá cada grupo de balsas con humo. La nafta y las bengalas son contadas.',
     // (26/11, el autor: "no hace falta explicarlo con texto; si vas a explicar como marcarlas, usa el cuadrado de la derecha y
     // los sticks o teclas que ya conocemos"): la lamina `mando:Gun` dibuja el mando del cañon (el que suelta el humo)
     // (26/11, el autor, con su texto; y "como debe quedar el espacio con las balsas y el humo": la lamina con la columna de

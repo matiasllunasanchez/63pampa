@@ -2821,7 +2821,26 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     // lo que son, y DENTRO de estos el listado de cada cosa, no en la misma pantalla"). `campVista`:
     // 'raiz' (las dos puertas), 'campanas' (continuar + las campañas) o 'libro' (las salidas). El ATRAS
     // de adentro vuelve a la raiz, con el cursor sobre la puerta de la que se vino.
-    let campVista = 'raiz';
+    let campVista = 'raiz', campDia = 0;
+    // LOS DIAS DEL LIBRO: las salidas (y las que vienen) agrupadas por fecha, en orden. Cada item es la fila de siempre
+    // (`libro` k / `proxima` k). (las que no estan en LIBRO_ABIERTAS, en gris y EN DESARROLLO — 23/11; DEV las abre todas;
+    // las que vienen, PROXIMAMENTE tambien en la FULL — 21/11)
+    const MESES_LIBRO = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    const diaDe = f => { const m = /^(\d+).*?DE ([A-ZÁÉÍÓÚ]+) DE (\d{4})/.exec(f || ''); return m ? +m[3] * 10000 + (MESES_LIBRO.indexOf(m[2]) + 1) * 100 + +m[1] : 99999999; };
+    let diasCache = null;
+    function diasLibro() {
+      if (diasCache) return diasCache;
+      const items = [
+        ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k, fecha: m.fecha, disabled: !DEV && !TODO && !LIBRO_ABIERTAS.includes(m.id) })),
+        ...LIBRO_PROXIMAS.map((m, k) => ({ id: 'proxima', k, fecha: m.fecha ? m.fecha.es : '', disabled: true })),
+      ];
+      const dias = [];
+      for (const it of items) { let g = dias.find(d => d.fecha === it.fecha); if (!g) dias.push(g = { fecha: it.fecha, items: [] }); g.items.push(it); }
+      dias.sort((a, b) => diaDe(a.fecha) - diaDe(b.fecha));
+      return (diasCache = dias);
+    }
+    /** El dia (indice de diasLibro) donde esta la salida `k` del libro. */
+    const diaDeSalida = k => diasLibro().findIndex(g => g.items.some(x => x.id === 'libro' && x.k === k));
     const campRows = () => campVista === 'campanas' ? (CAMPANA_BLOQUEADA && !TODO ? [
       { id: 'c1', disabled: true },
       { id: 'back', back: true, sub: true },
@@ -2836,12 +2855,14 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       ...TUTORIAL_ETAPAS.map((m, k) => ({ id: 'tut', k, hecha: etapaHecha(k), disabled: !DEV && !FULL && k > 0 && !etapaHecha(k - 1) })),
       { id: 'back', back: true, tut: true },
     ] : campVista === 'libro' ? [
-      // (las que no estan en LIBRO_ABIERTAS, en gris y EN DESARROLLO — 23/11; el modo DEV las abre todas)
-      ...LIBRO_VUELO.map((m, k) => ({ id: 'libro', k, disabled: !DEV && !TODO && !LIBRO_ABIERTAS.includes(m.id) })),
-      // las que vienen, en gris debajo (17/10): se ven y se marcan, no se entran
-      // (21/11, el autor: "las que no estan hechas marcar como PROXIMAMENTE"): tambien en la FULL
-      ...LIBRO_PROXIMAS.map((m, k) => ({ id: 'proxima', k, disabled: true })),
+      // POR DIA (26/11, el autor: "metamos los que ocurrieron el mismo dia en un agrupador por dia"): una fila por fecha,
+      // en orden; la de un dia con una sola salida ES esa salida, y la de un dia con varias se abre (`dia`) y adentro
+      // estan sus salidas con el nombre. Las que vienen (PROXIMAMENTE) se mezclan por fecha con las que se juegan
+      ...diasLibro().map((g, i) => g.items.length === 1 ? g.items[0] : { id: 'dia', g: i, fecha: g.fecha, n: g.items.length, juegan: g.items.filter(x => !x.disabled).length, disabled: g.items.every(x => x.disabled) }),
       { id: 'back', back: true, sub: true },
+    ] : campVista === 'dia' ? [
+      ...((diasLibro()[campDia] || { items: [] }).items.map(x => ({ ...x, enDia: true }))),
+      { id: 'back', back: true, dia: true },
     ] : [
       { id: 'secCampanas' },
       { id: 'secLibro' },
@@ -2861,6 +2882,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     /** Sube un nivel en HISTORIA (ATRAS o ESC adentro de una seccion). */
     function campAtras() {
       if (campVista === 'tutorial') { modeSel = MODES.indexOf('tutorial'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
+      // de adentro de un DIA se vuelve al libro, sobre ese dia
+      if (campVista === 'dia') { const g = campDia; campIr('libro', r => r.id === 'dia' && r.g === g); beep(400, 0.06, 'square', 0.05); return; }
       const de = campVista === 'libro' ? 'secLibro' : 'secCampanas';
       campIr('raiz', r => r.id === de); beep(400, 0.06, 'square', 0.05);
     }
@@ -2882,7 +2905,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // ATRAS deja el cursor del menu principal SOBRE la fila de la que se vino: volver no puede
       // costar volver a buscar donde estabas.
       // el ATRAS de adentro de una seccion vuelve a la raiz de HISTORIA, sobre la seccion
-      if (r.id === 'back' && (r.sub || r.tut)) { campAtras(); return; }
+      if (r.id === 'back' && (r.sub || r.tut || r.dia)) { campAtras(); return; }
+      if (r.id === 'dia') { campDia = r.g; campIr('dia'); beep(600, 0.06, 'square', 0.05); return; }
       if (r.id === 'back') { modeSel = MODES.indexOf('campaign'); setState('modeselect'); beep(400, 0.06, 'square', 0.05); return; }
       if (r.id === 'secCampanas') { campIr('campanas'); beep(600, 0.06, 'square', 0.05); return; }
       if (r.id === 'secLibro') { campIr('libro'); beep(600, 0.06, 'square', 0.05); return; }
@@ -3054,6 +3078,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     // radar. Por eso la zona ya no termina en el cierre del lanzamiento sino a FIN de la ventana: al verlo, todavia se lanza.
     // (25/11, el autor: "las probabilidades de encontrarlo en la zona azul son re bajas… duplica las probabilidades de todo"):
     // cada tirada vale el doble (DOBLE), con tope TOPE. Una pasada de radar al entrar a la zona: ~50% → ~80%.
+    // (la zona propia: chance por segundo afuera del radar enemigo [al ras, a ALTO metros o mas], adentro arriba y al ras)
+    const BUSCA_PROPIA = { FUERA: [0.15, 0.45], ALTO: 60, ARRIBA: 0.35, ABAJO: 0.08 };
     const BUSCA = { ANTES: 0.07, P0: 0.12, ARRIBA: 4, ARRIBA_MIN: 0.45, FIN: 0.5, DOBLE: 2, TOPE: 0.97 };
     // (EL SHEFFIELD, 26/11: la mision puede traer su propia zona, `buscaZona` [desde, hasta] en fraccion de la ida, sin el
     // lanzamiento lejos — ahi el Exocet se lanza en la pasada sobre el buque)
@@ -3075,6 +3101,14 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         let p = BUSCA.P0 + (1 - BUSCA.P0) * u * u;   // sube despacio y al final es seguro
         if (run.radarVisto) p = Math.min(0.95, Math.max(BUSCA.ARRIBA_MIN, p * BUSCA.ARRIBA));
         p = Math.min(BUSCA.TOPE, p * BUSCA.DOBLE);
+        // LA ZONA PROPIA (EL SHEFFIELD, 26/11, el autor: "el radar tengo que lanzarlo LEJOS, fuera del radar de ellos,
+        // ALTO; y sobre el radar enemigo tengo que poder lanzarlo por debajo con menos probabilidad"): afuera del alcance
+        // de su radar la chance crece con la altura; adentro, al ras, es chica (y arriba, la de siempre: te pintan)
+        if (curMission() && curMission().buscaZona) {
+          const fuera = rutaSys.hay() && !rutaSys.enAlcance();
+          p = fuera ? BUSCA_PROPIA.FUERA[0] + (BUSCA_PROPIA.FUERA[1] - BUSCA_PROPIA.FUERA[0]) * Math.min(1, Math.max(0, plane.y / BUSCA_PROPIA.ALTO))
+            : run.radarVisto ? BUSCA_PROPIA.ARRIBA : BUSCA_PROPIA.ABAJO;
+        }
         if (Math.random() < p) { ubicarExo(); return; }
       }
     }
@@ -3234,11 +3268,12 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // —visto o con el radar, la marca roja— ya se lanza, aunque PATRIA 2 todavia no haya abierto la ventana
       : zonaLanzamiento() ? enZonaLanza() || (run.exoUbicado && run.dist < cierreM())
         // EL EXOCET EN LA PASADA (EL SHEFFIELD, 26/11): con el buque a tiro, la tecla entra al Pulso
-        : exocetPasada() ? blancoSys.exocetATiro()
+        : exocetPasada() ? blancoSys.exocetATiro() || (run.exoUbicado && blancoSys.exocetUbicable())
         : runClimax() === 'pulso' && !(curMission() && curMission().lanzamiento) && objectiveDist > 0);
     /** Los km que faltan al blanco (con ruta, los reales; sin ruta, los del pasillo; en las islas, al portaaviones). */
     const kmAlBlanco = () => islas.enPasillo() ? (islas.portaavionesKm() ?? 999) : rutaSys.hay() ? rutaSys.alBlanco() : Math.max(0, objectiveDist - run.dist) / 1000;
-    const exocetATiro = () => exocetLanzable() && (zonaLanzamiento() || kmAlBlanco() <= EXOCET_ALCANCE_KM);
+    // (EL SHEFFIELD: en la pasada manda el radar — ubicado en la zona azul ya se lanza, sin la cuenta de las 30 millas)
+    const exocetATiro = () => exocetLanzable() && (zonaLanzamiento() || exocetPasada() || kmAlBlanco() <= EXOCET_ALCANCE_KM);
     /** EL ERROR DEL EXOCET: la tecla apretada sin blanco ubicado. EXOCET_ERROR es el sonido (assets/sfx); mientras no
      *  esta, un doble zumbido grave. */
     function exocetSinBlanco() {
@@ -3585,7 +3620,10 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         setState('campmenu');
         return;
       }
-      campIr('libro', r => r.id === 'libro' && r.k === k);
+      // (de vuelta sobre la misma salida: adentro de su DIA si el dia tiene varias)
+      const g = diaDeSalida(k);
+      if (g >= 0 && diasLibro()[g].items.length > 1) { campDia = g; campIr('dia', r => r.id === 'libro' && r.k === k); }
+      else campIr('libro', r => r.id === 'libro' && r.k === k);
       setState('campmenu');
     }
     // ---------- REINTENTAR SI / NO (23/11) ----------
@@ -3949,6 +3987,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // CON EL EXOCET NO HAY BOMBAS (23/11, el autor: "al seleccionar el Super Etendard tengo 3 bombas, no se por que"): la
       // carga es el misil y un tanque — el arma es el Exocet y nada mas. El tablero no muestra la fila de la bomba.
       run.soloExocet = !!(cargaDe(cfg.carga) || {}).exocet;
+      // (EL SHEFFIELD: el radar propio prendido al ras, adentro del radar enemigo, delata MAS DESPACIO — `radarBajoK`)
+      run.delataBajoK = (curMission() && curMission().radarBajoK) || 1;
       run.exoUbicado = false;   // el blanco del Exocet: lo ubica el ECO del radar (abajo, radarSys.tick)
       zonasM = null;   // LAS ZONAS DEL NEPTUNE se arman de nuevo en cada corrida (al azar: ver armarZonas)
       if (run.soloExocet) { run.mslMax = 0; run.msl = 0; run.secundaria = 'exocet'; }
@@ -4745,7 +4785,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     // usando (su paso de marcar abre el mapa)
     const mapaVale = () => islas.enPasillo() && !(libro && !libro.tut);
     // LA BUSQUEDA EN EL MAR (libro r6): el humo con el gatillo (flanco) y la espera despues de que el destructor te tomo
-    let humoAntes = false, busqFinT = 0;
+    let humoAntes = false, busqFinT = 0, busqNaftaDicha = false;
     const busqDef = () => (libro && !libro.tut ? libroDef().busqueda || null : null);
     /** LLEGASTE A LA ZONA: fundido, y el MAR ABIERTO del motor de las islas (systems/islas/busqueda.js). */
     function empezarBusqueda() {
@@ -4756,15 +4796,17 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         busqueda: { encuentra: av.encuentra !== false, semilla: zonasM ? (Math.random() * 4294967296) >>> 0 : hashTexto(libroDef().id + '/' + (libro.av || 0)) } });
       busqFinT = 0; humoAntes = true; fadeT = 2.2; run.dist = objectiveDist - 1;
       run.bengalaHumo = true;   // (la tecla de la bomba suelta la bengala del humo: flight.js y tryLaunchMissile)
+      run.fuel = BUSQ.NAFTA_INI; run.naftaVuelta = null; busqNaftaDicha = false;   // (la nafta de la busqueda: el reloj)
       cartel(T('busq_entra'), P.accent, T('busq_entra_sub'));
     }
     /** EL DESTRUCTOR TE TOMO (o la zona quedo barrida): de vuelta al pasillo, a casa con la nafta que quede. */
     function terminarBusqueda() {
-      run.bengalaHumo = false;
+      run.bengalaHumo = false; run.naftaVuelta = Math.max(5, run.fuel);
       cartelSostenido('busq', false);
-      islas.activar(false);
-      clearWorld({ keepFx: false });
-      volverDelBlanco();
+      // (26/11, el autor: "la vuelta a base es innecesaria, terminar la mision una vez rescatadas las balsas"): con todas
+      // informadas la mision se cumple ahi (el barrido sin balsas, el 2-P-112, tambien termina aca)
+      islas.activar(false); clearWorld({ keepFx: false });
+      run.climaxHecho = true; finishObjective();
     }
     /** Un cuadro de la busqueda: el humo, los avisos y la consigna de la fase. */
     function pasoBusqueda(dt) {
@@ -4774,6 +4816,12 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // la nafta, y el avion quedaba clavado
       run.dist = Math.min(run.dist, objectiveDist - 1);
       humoAntes = !!inp.fire;
+      // LA NAFTA ES EL RELOJ (26/11, el autor: "el combustible podemos empezar a bajarlo de a poco, lo que nos evita poner un
+      // contador de tiempo"): baja sola mientras se busca; sin nafta el avion planea y cae (islas.js) y se pierde
+      if (!islas.busquedaHecha() && cfg.fuelOn) {
+        run.fuel = Math.max(0, run.fuel - BUSQ.NAFTA_S * dt);
+        if (!busqNaftaDicha && run.fuel < BUSQ.NAFTA_AVISO) { busqNaftaDicha = true; beep(300, 0.18, 'square', 0.05); cartel(T('busq_nafta'), P.warn, T('busq_nafta_sub'), { alerta: true }); }
+      }
       // INFORMANDO, EL RADAR NO SE VACIA (26/11, el autor: "lanzar radar 3 o 4 segundos y ahi gano"): con la carga a cero se
       // apagaba solo y el informe tardaba el triple
       { const bh = islas.busquedaHud(); if (bh && bh.fase === 'informar' && radarP.on) radarP.carga = Math.max(radarP.carga, 0.3); }
@@ -4786,6 +4834,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         else if (e.k === 'bengalaVacia') { cartel(T('busq_beng_vacia'), '#c9ced3', T('busq_beng_vacia_sub', { n: e.quedan })); beep(300, 0.1, 'square', 0.04, -40); }
         else if (e.k === 'humo') { cartel(T(e.ok ? 'busq_humo_ok' : 'busq_humo_lejos'), e.ok ? '#7fe07a' : '#c9ced3', T('busq_humo_sub', { n: e.quedan })); sfxOne('swoosh'); }
         else if (e.k === 'sinHumo') cartel(T('busq_sin_humo'), P.warn);
+        else if (e.k === 'sinHumos') { die('death_sin_humo'); return; }   // (sin bengalas y con balsas sin marcar)
         else if (e.k === 'marcadas') cartel(T('busq_marcadas'), '#7fe07a', T('busq_marcadas_sub'), { alerta: true });
         else if (e.k === 'tomadas') { cartel(T('busq_tomadas'), '#7fe07a', T('busq_tomadas_sub'), { alerta: true }); beep(980, 0.2, 'square', 0.06, 1200); }
         else if (e.k === 'barrido') cartel(T('busq_barrido'), P.accent, T('busq_barrido_sub'), { alerta: true });
@@ -4858,7 +4907,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     let fogWarned = false;   // el aviso de entrada al banco sale UNA vez por banco
     function reset() {
       guia = null; guiaHecha = false;   // (el Learjet guia vuelve a entrar en cada salida)
-      run.bengalaHumo = false;   // (la bengala del humo es solo de la busqueda)
+      run.bengalaHumo = false; run.naftaVuelta = null;   // (la bengala del humo y la nafta de la vuelta: solo de la busqueda)
       // EL FRENTE DE TORMENTA devuelve el cielo, la lluvia y el viento que piso — antes de que el mundo al azar
       // de los modos sueltos sortee el nuevo (systems/frente.js)
       if (resetFrente()) applyCfg();
@@ -8858,10 +8907,22 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // LAS ISLAS: LA MARCA DEL OBJETIVO en las vistas del pasillo (islas.js `objetivoPasillo`): cuatro
       // esquinas naranjas donde cae la base en el carril y, abajo, el nombre y a cuanto esta
       // (EN EL TUTORIAL no: se sigue la BRUJULA — 21/11, el autor: "la marca en el horizonte no deberia estar")
-      { const ob = ayudas() && !(libro && libro.tut) ? islas.objetivoPasillo() : null;   // (un INDICADOR DE AYUDA: segun la dificultad)
-        if (ob) {
+      // (en el tutorial se sigue la BRUJULA; si el avion tiene termometro la brujula no esta —regla del pasillo— y vuelve la marca)
+      { const ob = ayudas() && !(libro && libro.tut && sinTermometro()) ? islas.objetivoPasillo() : null;   // (un INDICADOR DE AYUDA: segun la dificultad)
+        // LA FLECHA AL COSTADO (26/11: sin la brujula apilada, el rumbo lo da esto): atras o fuera de cuadro, una flecha en el
+        // borde del lado por donde girar, con el nombre y la distancia
+        const flechaBorde = (lado, n, dist) => {
+          const x = lado > 0 ? W - 14 : 14, y = Math.round(H * 0.42), c = P.accent, a = 0.6 + 0.4 * Math.sin(performance.now() / 160);
+          ctx.globalAlpha = a; ctx.fillStyle = c;
+          for (let i = 0; i < 6; i++) ctx.fillRect(x + (lado > 0 ? -i : i - 1) + (lado > 0 ? 0 : 0), y - i, 1, i * 2 + 1);
+          ctx.globalAlpha = 1; ctx.font = '5px monospace'; ctx.textAlign = lado > 0 ? 'right' : 'left';
+          ctx.fillText(n + ' ' + (dist / 1000).toFixed(1) + ' km', lado > 0 ? x - 8 : x + 8, y + 2); ctx.textAlign = 'left';
+        };
+        if (ob && ob.atras) { if (ob.dist > 400) flechaBorde(ob.lado, ob.n, ob.dist); }   // (encima no hace falta)
+        else if (ob) {
           const q = proj(ob.x, ob.y, ob.z), k = Math.max(5, Math.min(26, 1200 / ob.z)), c = P.accent;
-          if (q.x > -20 && q.x < W + 20 && q.y > -20 && q.y < H + 20) {
+          if (!(q.x > -20 && q.x < W + 20)) flechaBorde(q.x > W / 2 ? 1 : -1, ob.n, ob.dist);
+          else if (q.y > -20 && q.y < H + 20) {
             ctx.fillStyle = c;
             for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
               const ex = Math.round(q.x + sx * k), ey = Math.round(q.y + sy * k * 0.7);
@@ -9142,7 +9203,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         // …Y LOS KM REALES, si la mision declara `ruta` (PLAN_NAFTA_ALCANCE N1): la barra cuenta
         // 520 / 700 km en vez de los metros del pasillo. null = la barra de siempre.
         chanchaFr: chanchaEnCinta(), busca: zonasCinta() || buscaCinta(),
-        humosBengala: run.bengalaHumo ? islas.humosQuedan() : null,   // (las bengalas de humo de la busqueda: el estante)
+        humosBengala: run.bengalaHumo ? islas.humosQuedan() : null,
+        contador: (() => { const bh = run.bengalaHumo ? islas.busquedaHud() : null; return bh && bh.grupos ? { rot: T('busq_contador'), n: bh.marcadas, de: bh.grupos } : null; })(),   // (las bengalas de humo de la busqueda: el estante)
         ruta: rutaSys.hay() ? { pos: blancoSys.escapando() ? rutaSys.dato().blancoKm : rutaSys.pos(), blanco: rutaSys.dato().blancoKm, radarKm: rutaSys.dato().radarKm || 0 } : null,
         // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
         fueraRadar: S.state === 'play' && !radarAlcance(),
@@ -9315,7 +9377,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       if (S.state === 'modeselect') menus.drawModeSelect({ modeSel, t: run.t, albumNuevos: albumNuevos.size });
       if (S.state === 'album') menus.drawAlbum({ entradas: albumLista(), cat: albumCatI, cats: ALBUM_CATS, todas: ALBUM, vistos: TODO ? albumTodo : albumVistos, nuevos: albumNuevos, sel: albumSel, t: run.t, lee: leeDe, planes: PLANES, joy: padActivo(), padTxt: padActivo() ? padTexto : null });
       // submenu de HISTORIA y lista de partidas: nativas como el selector de modos (puro texto)
-      if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t, vista: campVista, dT: deathT, rT: retryT });
+      if (S.state === 'campmenu') menus.drawCampMenu({ sel: campSel, rows: campRows(), t: run.t, vista: campVista, dT: deathT, rT: retryT, diaFecha: campVista === 'dia' ? (diasLibro()[campDia] || {}).fecha : null });
       if (S.state === 'libroavion' && libro) menus.drawLibroAvion({ m: libroDef(), sel: libroAvSel, cap: libroCap, t: run.t, mouse: { x: puntero.x / U, y: puntero.y / U, on: performance.now() - puntero.t < 6000 } });
       if (S.state === 'dificultad') menus.drawDificultad({ sel: difSel, difs: DIFICULTADES, t: run.t });
       if (S.state === 'quickmenu') menus.drawQuickMenu({ sel: quickSel, rows: quickRows(), dev: subMenu === 'dev', t: run.t });
@@ -9850,7 +9912,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       consigna: tutSys.consigna(), finT: tutFinT,
       carrera: carrera && { gas: +carrera.gas.toFixed(2), spd: Math.round(carrera.spd), dist: Math.round(carrera.dist), aire: carrera.aire }, fallas: carreraFallas }, tutSys.estado()));
     if (typeof window !== 'undefined') window.__librodbg = () => JSON.stringify({
-      state: S.state, libro, avSel: libroAvSel, modo: gameMode, test: S.test,
+      state: S.state, libro, avSel: libroAvSel, modo: gameMode, test: S.test, vista: campVista,
+      dias: diasLibro().map(g => g.items.filter(x => x.id === 'libro').map(x => x.k)),
       fila: (campRows()[campSel] || {}), filas: campRows().map(r => r.head || r.id + (r.k !== undefined ? r.k : '') + (r.disabled ? '-' : '')),
       mision: curMission() && curMission().id, plane: PLANES[selPlane] && PLANES[selPlane].key, carga: cfg.carga,
       squad: run.squad, lives: run.lives, climax: runClimax(), chancha: chanchaViva(),

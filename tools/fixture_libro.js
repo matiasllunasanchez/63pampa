@@ -35,6 +35,16 @@ const shot = async nombre => {
   const img = await win.webContents.capturePage();
   fs.writeFileSync(path.join(OUT, nombre + '.png'), img.toPNG());
 };
+/** Marca la salida `k` del libro: desde la lista de dias (si esta adentro de un DIA con varias, entra al dia). */
+async function marcarSalida(k) {
+  let d = await L();
+  if (d.vista === 'dia' && !(d.fila.id === 'libro' && d.fila.k === k)) { await tap('Escape'); d = await L(); }
+  if (d.fila.id === 'libro' && d.fila.k === k) return d;
+  d = await hasta(x => x.state === 'campmenu' && ((x.fila.id === 'libro' && x.fila.k === k) || (x.fila.id === 'dia' && x.dias[x.fila.g].includes(k))), 'Down');
+  if (!d || d.fila.id === 'libro') return d;
+  await tap('Return');
+  return hasta(x => x.state === 'campmenu' && x.vista === 'dia' && x.fila.id === 'libro' && x.fila.k === k, 'Down');
+}
 /** Espera a que el estado sea `st` (o se cumpla `f`), tocando `k` cada tanto si se pasa. */
 async function hasta(f, k, seg = 12) {
   for (let t0 = Date.now(); Date.now() - t0 < seg * 1000;) {
@@ -78,19 +88,20 @@ app.whenReady().then(async () => {
   if (d.fila.id === 'secCampanas') ok('ESC vuelve a la raiz, sobre CAMPAÑAS'); else bad('ESC desde CAMPAÑAS: ' + JSON.stringify(d.fila));
   await tap('Down'); await tap('Return');                   // a LIBRO DE VUELO
   d = await L();
-  // las seis salidas (21/11: EL RESCATE DEL BELGRANO), despues LAS QUE VIENEN en gris (17/10, deshabilitadas: el '-') y ATRAS
-  const jugables = d.filas.filter(f => /^libro\d$/.test(f)), proximas = d.filas.filter(f => /^proxima\d+-$/.test(f));
-  const esperado = [...['libro0', 'libro1', 'libro2', 'libro3', 'libro4', 'libro5'], ...proximas, 'back'];
-  if (proximas.length && jugables.length === 6 && JSON.stringify(d.filas) === JSON.stringify(esperado)) ok('adentro del LIBRO DE VUELO: las seis salidas, ' + proximas.length + ' en desarrollo debajo y ATRAS');
-  else bad('filas del libro: ' + JSON.stringify(d.filas));
-  if (d.fila.id === 'libro' && d.fila.k === 0) ok('el cursor arranca en la primera salida');
+  // POR DIA (26/11): una fila por fecha —la salida sola, o el DIA con varias adentro— y ATRAS al final. Las seis
+  // salidas estan, cada una en un solo dia, y los dias con mas de una son filas `dia`
+  const todas = d.dias.flat().sort();
+  if (JSON.stringify(todas) === '[0,1,2,3,4,5]' && d.filas.some(f => /^dia/.test(f)) && d.filas[d.filas.length - 1] === 'back')
+    ok('adentro del LIBRO DE VUELO: ' + (d.filas.length - 1) + ' dias, las seis salidas repartidas y ATRAS');
+  else bad('filas del libro: ' + JSON.stringify(d.filas) + ' dias ' + JSON.stringify(d.dias));
+  if ((d.fila.id === 'libro' && d.fila.k === 0) || (d.fila.id === 'dia' && d.dias[d.fila.g].includes(0))) ok('el cursor arranca en el primer dia');
   else bad('el cursor arranca en ' + JSON.stringify(d.fila));
   await shot('1_historia');
 
   for (let k = 0; k < 6; k++) {
     console.log(`\n${k + 2}. salida ${k + 1}:`);
     paso = 'salida ' + (k + 1);
-    d = await hasta(x => x.state === 'campmenu' && x.fila.id === 'libro' && x.fila.k === k, 'Down');
+    d = await marcarSalida(k);
     if (!d) { bad('no se pudo marcar la salida ' + k); continue; }
     await tap('Return');
     d = await hasta(x => x.state === 'story');
@@ -122,10 +133,10 @@ app.whenReady().then(async () => {
     d = await hasta(x => x.state === 'epilogue');
     if (!d) { bad('al terminar no se conto lo que pasó'); continue; }
     ok('lo que pasó: ' + d.escena);
-    // REINTENTAR SI / NO (23/11): al terminar lo que pasó se pregunta; NO (ESC) vuelve al libro
-    d = await hasta(x => x.state === 'reintentar', 'Return', 20);
-    if (d) ok('pregunta REINTENTAR'); else bad('no pregunto REINTENTAR');
-    await sleep(500); await tap('Escape');
+    // AL GANAR, DERECHO AL LIBRO (game.js: "al ganar se va derecho a donde iba el NO; el estado 'reintentar' queda sin
+    // uso"). Si alguna vez vuelve a preguntar, NO (ESC) tambien vuelve al libro
+    d = await hasta(x => x.state === 'reintentar' || x.state === 'campmenu', 'Return', 20);
+    if (d && d.state === 'reintentar') { await sleep(500); await tap('Escape'); }
     d = await hasta(x => x.state === 'campmenu', null, 10);
     if (d && d.fila.id === 'libro' && d.fila.k === k && d.libro === null) ok('NO: vuelve al libro, sobre la misma salida');
     else bad('no volvio al libro: ' + JSON.stringify(d && { st: d.state, fila: d.fila, libro: d.libro }));
@@ -134,7 +145,7 @@ app.whenReady().then(async () => {
   // UN DERRIBO NO CUENTA LO QUE PASÓ: pregunta REINTENTAR (23/11) y NO vuelve al libro
   console.log('\n7. derribado:');
   paso = 'derribado';
-  d = await hasta(x => x.state === 'campmenu' && x.fila.id === 'libro' && x.fila.k === 4, 'Up');
+  d = await marcarSalida(4);
   await tap('Return');
   d = await hasta(x => x.state === 'libroavion' || x.state === 'takeoff' || x.state === 'play', 'Return', 20);
   if (d && d.state === 'libroavion') await tap('Return');

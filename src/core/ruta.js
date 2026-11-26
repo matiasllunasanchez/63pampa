@@ -43,7 +43,7 @@
 
 /** Las claves que una ruta puede traer. Cualquier otra es error de datos (el validador la
  *  rechaza): una clave mal escrita no hace nada y no avisa, que es la peor forma de fallar. */
-export const CLAVES = ['blancoKm', 'radarKm', 'niveladoKm', 'potenciaKm', 'chanchaIda', 'chanchaVuelta'];
+export const CLAVES = ['blancoKm', 'radarKm', 'niveladoKm', 'potenciaKm', 'chanchaIda', 'chanchaVuelta', 'chanchaAncla'];
 
 const esKm = v => typeof v === 'number' && v > 0 && isFinite(v);
 const esZona = v => Array.isArray(v) && v.length === 2 && v.every(esKm);
@@ -58,6 +58,15 @@ export function anclas(ruta, fases) {
   const ini = inicios(fases);
   const primera = tipo => { const i = fases.findIndex(f => f.tipo === tipo); return i < 0 ? null : ini[i]; };
   const pon = (p, desdeBlanco) => { if (p !== null && p > 0 && p < 1) a.push({ p, km: ruta.blancoKm - desdeBlanco }); };
+  // LA CITA A MEDIA NAFTA (26/11, el autor: "la distancia recorrida debio haber gastado la mitad del tanque o mas"): con
+  // `chanchaAncla` la entrada a la zona de la Chancha de la ida (`chanchaIda[0]`) se ancla al comienzo del SEGUNDO tramo
+  // de transito. Los km de antes —los que gastan la mitad del tanque— se comprimen en la primera parte del tramo alto, y
+  // la cita conserva la segunda entera para llegar, engancharse y llenar antes de la linea del radar. Sin esto, alargar
+  // `blancoKm` dejaba la cita en unos 600 m de pasillo (diez segundos).
+  if (ruta.chanchaAncla && Array.isArray(ruta.chanchaIda)) {
+    const tr = fases.map((f, i) => (f.tipo === 'transito' ? i : -1)).filter(i => i >= 0);
+    if (tr.length > 1) pon(ini[tr[1]], ruta.chanchaIda[0]);
+  }
   if (ruta.radarKm) pon(primera('descenso'), ruta.radarKm);
   if (ruta.niveladoKm) pon(primera('rasante'), ruta.niveladoKm);
   if (ruta.potenciaKm) pon(primera('blanco'), ruta.potenciaKm);

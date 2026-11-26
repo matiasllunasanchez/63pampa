@@ -823,7 +823,7 @@ export function collisionSystem(dt) {
 
   // EL EXOCET: CAE este rato antes de prender el motor, despues acelera (ACEL, u/s²) hasta REL por encima
   // de tu velocidad, a RAS de altura; el humo dura HUMO_T
-  const EXOCET = { CAE: 0.45, ACEL: 260, REL: 170, RAS: 2.0, HUMO_T: 0.9 };
+  const EXOCET = { CAE: 0.45, ACEL: 260, REL: 170, REL_GUIA: 650, RAS: 2.0, HUMO_T: 0.9 };
   // MISILES DEL JUGADOR — viajan hacia el horizonte y destruyen blancos aéreos.
   // IMPORTANTE: nunca se chequean contra el hitbox del avión (no pueden causar la muerte del jugador).
   for (const pm of pmissiles) {
@@ -841,7 +841,8 @@ export function collisionSystem(dt) {
       // a la linea en que lo soltaste — sin guiado lateral: se apunta con el avion. Sin el techo de
       // la bomba: un misil no se queda atras.
       pm.motor = true;
-      pm.vz = Math.min(run.spd + EXOCET.REL, pm.vz + EXOCET.ACEL * dt);
+      // (el GUIADO de EL SHEFFIELD sale con el buque todavia lejos —hasta 4 km de pasillo—: va mucho mas rapido, o tardaba 14 s)
+      pm.vz = pm.guia ? Math.min(run.spd + EXOCET.REL_GUIA, pm.vz + EXOCET.ACEL * 3 * dt) : Math.min(run.spd + EXOCET.REL, pm.vz + EXOCET.ACEL * dt);
       pm.vy += ((EXOCET.RAS - pm.y) * 3 - pm.vy) * Math.min(1, dt * 4); pm.y += pm.vy * dt;
       pm.z += (pm.vz - run.spd) * dt;
       // GUIADO (EL SHEFFIELD, 26/11, el autor: "se lanza solo si la secuencia es correcta y despues apunta solo"): el que
@@ -949,7 +950,7 @@ export function collisionSystem(dt) {
   // el corte sube de 240 a SPAWN_Z: con el tiro oblicuo la bomba puede adelantarse de verdad, y
   // 240 la borraba en pleno vuelo. Mas alla de donde nace el mundo no tiene sentido seguirla.
   // (el Exocet GUIADO sale con el buque todavia lejos, mas alla de SPAWN_Z: vive hasta pegarle — EL SHEFFIELD, 26/11)
-  prune(pmissiles, pm => (pm.z < SPAWN_Z || (pm.guia && pm.z < 5000)) && pm.y > -3);
+  prune(pmissiles, pm => (pm.z < SPAWN_Z || (pm.guia && pm.z < 9000)) && pm.y > -3);
 
   return false;
 }

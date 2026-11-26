@@ -861,18 +861,28 @@ function campText(r) {
   // se DESPLIEGA hacia abajo y escribe, a maquina, los tres datos por los que se la reconoce — el dia, la
   // hora (y de que) y el avion (`compacta`, ver drawRowMenu). La escuadrilla y el texto largo ya no van
   // aca: son del detalle de la mision, al entrar.
+  // UN DIA DEL LIBRO CON VARIAS SALIDAS (26/11, el agrupador por dia): la fecha, y cuantas pasaron ese dia
+  if (r.id === 'dia') return { name: r.fecha, marca: r.disabled ? T('libroProximamente') : null,
+    desc: T('libroSalidasDia', { n: r.n }) + (r.disabled ? '  ·  ' + T('libroEnDesarrollo') : ''), compacta: true };
   if (r.id === 'libro') {
     const m = LIBRO_VUELO[r.k], av = PLANES.find(p => p.key === m.aviones[0].plane);
+    // ADENTRO DE SU DIA (`enDia`): el titulo es el NOMBRE (la fecha ya esta arriba)
+    if (r.enDia) return { name: m.name, marca: r.disabled ? T('libroProximamente') : null,
+      desc: r.disabled ? T('libroEnDesarrollo') : m.hora + ' ' + T('libroHora_' + m.horaQue) + '  ·  ' + (av ? av.name : ''), compacta: true };
     // (la bloqueada, EN DESARROLLO como las que vienen: 23/11)
-    if (r.disabled) return { name: m.name, marca: T('libroProximamente'), desc: m.fecha + '  ·  ' + T('libroEnDesarrollo'), compacta: true };
-    return { name: m.name, desc: m.fecha + '  ·  ' + m.hora + ' ' + T('libroHora_' + m.horaQue) + '  ·  ' + (av ? av.name : ''),
+    // (26/11, el autor: "en vez de los nombres de cosas, pongamos fechas"): la FECHA es el titulo de la fila y el nombre
+    // de la salida baja a la linea chica, con la hora y el avion
+    // (…"y los nombres adentro": la fila no los dice — se ven al entrar, en el contexto)
+    if (r.disabled) return { name: m.fecha, marca: T('libroProximamente'), desc: T('libroEnDesarrollo'), compacta: true };
+    return { name: m.fecha, desc: m.hora + ' ' + T('libroHora_' + m.horaQue) + '  ·  ' + (av ? av.name : ''),
       compacta: true };
   }
   // LAS QUE VIENEN (17/10): el nombre y, pegado a la fecha, EN DESARROLLO
   if (r.id === 'proxima') {
     const m = LIBRO_PROXIMAS[r.k], es = getLang() !== 'en';
     const f = m.fecha ? (es ? m.fecha.es : m.fecha.en) : T('libroSinFecha');
-    return { name: es ? m.es : m.en, marca: T('libroProximamente'), desc: f + '  ·  ' + T('libroEnDesarrollo'), compacta: true };
+    if (r.enDia) return { name: es ? m.es : m.en, marca: T('libroProximamente'), desc: T('libroEnDesarrollo'), compacta: true };
+    return { name: f, marca: T('libroProximamente'), desc: (es ? m.es : m.en) + '  ·  ' + T('libroEnDesarrollo'), compacta: true };
   }
   return { name: CAMPAIGNS[1].name, desc: T('campC2Desc') + '  ·  ' + T('campSoon') };
 }
@@ -1035,9 +1045,17 @@ function drawRowMenu(w, titleKey, textOfBase, geo) {
 // arranca en 240.
 export const LIBRO_ROWS = { y0: 84, rh: 34, headH: 18, view: 8 };   // 34: aire entre resaltes (13/10); la fila abierta decide cuantas entran
 export function drawCampMenu(w) {
-  const conLibro = w.rows.some(r => r.id === 'libro');
+  const conLibro = w.rows.some(r => r.id === 'libro' || r.id === 'dia' || r.id === 'proxima');
   // el rotulo dice en que nivel de HISTORIA estas: la raiz, o adentro de una de sus dos puertas
   const titulo = w.vista === 'campanas' ? 'campSecCampanas' : w.vista === 'libro' ? 'campSecLibro' : w.vista === 'tutorial' ? 'modeTutorial' : 'campTitle';
+  // ADENTRO DE UN DIA (26/11): el rotulo es LIBRO DE VUELO · la fecha
+  if (w.vista === 'dia') {
+    const geo = { ...LIBRO_ROWS, sinTitulo: true };
+    drawRowMenu(w, titulo, campText, geo);
+    ctx.textAlign = 'left'; ctx.fillStyle = P.dim; ctx.font = labelFont(13);
+    ctx.fillText(T('campSecLibro') + '  ·  ' + (w.diaFecha || ''), 40, geo.y0 - 22);
+    return;
+  }
   drawRowMenu(w, titulo, campText, conLibro ? LIBRO_ROWS : CAMP_ROWS);
   // (la descripcion de la salida ya no va al pie: se abre adentro de su fila, ver drawRowMenu)
 }

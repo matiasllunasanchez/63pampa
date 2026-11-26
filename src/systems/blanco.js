@@ -243,6 +243,10 @@ export function tomarBomba() {
 /** EL EXOCET DEL PULSO (EL SHEFFIELD, 26/11): con el buque a tiro y el misil todavia colgado, se puede entrar al Pulso.
  *  No se traba ni cae: si la secuencia sale bien, game.js lo suelta con `tomarBomba` y se guia solo (collision.js). */
 export const exocetATiro = () => aTiro() && blanco.centroN > 0 && !blanco.cumplido;
+/** …y UBICADO CON EL RADAR, desde la zona azul (26/11, el autor: "estoy en zona, me marca todo, quiero lanzar el Exocet y
+ *  me tira sin blanco"): el buque todavia no asomo (mas alla de VISIBLE_Z), pero el misil ya sabe donde esta. */
+export const exocetUbicable = () => blanco.on && blanco.z > PZ && blanco.negroT < 0 && blanco.perdidaT < 0
+  && blanco.preNegroT < 0 && !blanco.escapando && blanco.centroN > 0 && !blanco.cumplido;
 /** EL EXOCET DEL PULSO SALE (EL SHEFFIELD): del estante, sin el sorteo de la traba — eso es de la bomba que cae. */
 export function tomarExocet() {
   if (blanco.centroN <= 0) return false;

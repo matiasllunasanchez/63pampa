@@ -43,6 +43,7 @@ export const DERROTAS = {
   death_pulso: { que: 'que_pulso', hist: 'hist_bomba' },
   death_exocet_errado: { que: 'que_exocet_errado', hist: 'hist_exocet' },
   death_sin_contacto: { que: 'que_sin_contacto', hist: 'hist_neptune' },
+  death_sin_humo: { que: 'que_sin_humo', hist: 'hist_neptune' },
   death_pasada: { que: 'que_pasada', hist: 'hist_bomba' },
 };
 
@@ -73,7 +74,7 @@ export function derrota(causa, veredicto, bomba) {
   if (causa === 'death_fallo_blanco' || causa === 'death_suelta') {
     const v = ['dormida', 'corta', 'larga', 'costado', 'averiado'].includes(veredicto) ? veredicto : 'nada';
     const hist = v === 'dormida' ? 'hist_bomba_dormida'
-      : bomba === 'mk17' || bomba === 'brp' ? 'hist_bomba_' + bomba : 'hist_bomba';
+      : bomba === 'mk17' || bomba === 'brp' || bomba === 'snakeye' ? 'hist_bomba_' + bomba : 'hist_bomba';
     return { que: 'que_bomba_' + v, hist };
   }
   return DERROTAS[causa] || { que: null, hist: null };
