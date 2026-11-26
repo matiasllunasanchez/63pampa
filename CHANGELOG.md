@@ -16,7 +16,7 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
-## 0.2.0 — 26/11/2026
+## 0.2.0 — 26/11/2026 (Steam BuildID 26938453)
 
 - **Libro de vuelo:** se juegan cinco salidas: El Sheffield, HMS Glasgow, La Ardent, La Plymouth y El Invincible. El Rescate del Belgrano sigue EN DESARROLLO.
 - **El Sheffield:** la búsqueda con la posición que pasa el Neptune, las láminas y la pantalla de GANASTE con el buque ardiendo. Se ajustaron también la Glasgow y la Plymouth.
