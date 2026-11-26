@@ -19,7 +19,10 @@ contextBridge.exposeInMainWorld('rasanteVentana', {
   salir: () => ipcRenderer.send('salir'),   // SALIR del menu: cierra la app entera (electron/main.js)
 });
 // LOS TEMAS DE music/original, como estan en la carpeta (electron/main.js; los usa systems/audio.js)
-contextBridge.exposeInMainWorld('rasanteMusica', { original: () => ipcRenderer.sendSync('musica-original') });
+contextBridge.exposeInMainWorld('rasanteMusica', {
+  original: () => ipcRenderer.sendSync('musica-original'),
+  soundtrack: () => ipcRenderer.sendSync('musica-soundtrack'),
+});
 // STEAM (electron/steam.js): logros y si esta conectado. Fuera del build de Steam devuelven false / activo:false.
 contextBridge.exposeInMainWorld('rasanteSteam', {
   logro: id => ipcRenderer.sendSync('steam-logro', String(id)),

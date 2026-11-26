@@ -97,7 +97,31 @@ const MUSIC_MISION = ORIGINAL_DISCO.length ? ORIGINAL_DISCO.map(f => ORIGINAL_DI
   '../assets/music/original/tangalfa.m4a',
   '../assets/music/original/tangbeta.m4a',
 ].filter(Boolean);
+// EL AZAR DEL VUELO ES ORIGINAL + SOUNDTRACK (26/11, el autor: "metamos aleatorio con soundtrack y original, a veces
+// instrumental a veces no"): en Electron se lee la carpeta music/soundtrack entera (sin opcionales/); sin Electron, las
+// cuatro del reproductor. Sin repetidos: la isla libre suma misty por su cuenta y no tiene que pesar doble.
+const SOUNDTRACK_DISCO = (() => {
+  try { const l = typeof window !== 'undefined' && window.rasanteMusica && window.rasanteMusica.soundtrack && window.rasanteMusica.soundtrack(); return Array.isArray(l) ? l : []; }
+  catch (e) { return []; }
+})();
+const SOUNDTRACK_DIR = ['..', 'assets', 'music', 'soundtrack', ''].join('/');
+// …SALVO LAS DE LA CAMPAÑA (26/11, el autor: "excepto el mate, gambeta 1 y 2, nadie vuela solo: esos los dejamos para
+// la campaña"; despues: "agregale nadie vuela solo" — esa SI suena en vuelo): no entran en el azar ni en la lista de
+// OPCIONES. Se compara el nombre del archivo sin extension.
+const SOLO_CAMPANA = ['el_mate', 'gambeta', 'gambeta2'];
+const deVuelo = src => !SOLO_CAMPANA.includes(decodeURIComponent(String(src).split('/').pop()).replace(/\.[^.]+$/, '').toLowerCase());
+const MUSIC_SOUNDTRACK = (SOUNDTRACK_DISCO.length ? SOUNDTRACK_DISCO.map(f => SOUNDTRACK_DIR + encodeURIComponent(f)) : MUSIC_POOL.map(([, src]) => src)).filter(deVuelo);
+const sinRepetir = l => l.filter((x, i) => l.findIndex(y => decodeURIComponent(y) === decodeURIComponent(x)) === i);
+const MUSIC_VUELO = sinRepetir([...MUSIC_MISION, ...MUSIC_SOUNDTRACK]);
 const SOLO_ORIGINAL = true;   // ver setRunMusic (21/11)
+/** EL NOMBRE DE UN TEMA, del archivo: «nadie_vuela_solo_short.m4a» → NADIE VUELA SOLO (el «short» es del archivo) */
+const nombreTema = src => decodeURIComponent(String(src).split('/').pop()).replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+short$/i, '').trim().toUpperCase();
+/** LA MUSICA EN VUELO DEL JUGADOR (OPCIONES, 26/11, el autor: "permitir cambiar musica desde opciones, DENTRO de
+ *  opciones"): null = al azar; un nombre de tema = ese, y al terminar vuelve a empezar. Lo que la mision fija
+ *  (las etapas del tutorial, 21/11: "siempre, sin posibilidad de cambio") manda igual. */
+let temaPreferido = null;
+export function temasVuelo() { return MUSIC_VUELO.map(nombreTema); }
+export function setTemaPreferido(nombre) { temaPreferido = nombre && temasVuelo().includes(nombre) ? nombre : null; }
 const musMision = new Audio(); musMision.volume = 0.22;
 let enMision = false, misionSrc = '';
 /** Carga en musMision una pista de MUSIC_MISION al azar, distinta de la anterior. */
@@ -105,7 +129,7 @@ let enMision = false, misionSrc = '';
 // originales en el mapa de islas libre, de forma aleatoria"): el mismo sorteo de music/original con esas pistas sumadas
 let azarPool = null;
 function sortearMision() {
-  const pool = azarPool || MUSIC_MISION;
+  const pool = azarPool || MUSIC_VUELO;
   if (!pool.length) return false;
   let src;
   do src = pool[(Math.random() * pool.length) | 0];
@@ -117,8 +141,9 @@ function sortearMision() {
 // UN TEMA FIJO de music/original (`musica: 'original:<nombre>'` en la mision — 21/11, el autor: "karera2 en la etapa 1
 // del tutorial"): suena ese, y al terminar vuelve a empezar en vez de sortear otro
 let misionFija = false;
+let elegido = false;   // suena el tema que eligio el jugador (OPCIONES o ◄ ► en la pausa): al terminar se repite
 function fijarMision(nombre) {
-  const src = MUSIC_MISION.find(s => decodeURIComponent(s.split('/').pop()).replace(/\.[^.]+$/, '').toLowerCase() === nombre.toLowerCase());
+  const src = MUSIC_VUELO.find(s => decodeURIComponent(s.split('/').pop()).replace(/\.[^.]+$/, '').toLowerCase() === nombre.toLowerCase());
   if (!src) return false;
   misionSrc = src; if (!musMision.src.endsWith(src.split('/').pop())) musMision.src = src;
   return true;
@@ -134,7 +159,7 @@ function fijarLista(txt) {
 }
 musMision.addEventListener('ended', () => {
   if (enMision && misionLista) { listaIdx = (listaIdx + 1) % misionLista.length; misionSrc = musMision.src = misionLista[listaIdx]; musMision.play().catch(() => { }); syncPlayerBtn(); return; }
-  if (enMision && misionFija) { try { musMision.currentTime = 0; } catch (e) { } musMision.play().catch(() => { }); return; } if (enMision && sortearMision()) { musMision.play().catch(() => { }); syncPlayerBtn(); } });
+  if (enMision && (misionFija || elegido)) { try { musMision.currentTime = 0; } catch (e) { } musMision.play().catch(() => { }); return; } if (enMision && sortearMision()) { musMision.play().catch(() => { }); syncPlayerBtn(); } });
 
 // PLAYLIST del REPRODUCTOR: la base del juego + el soundtrack, presentadas como TRACK 1..N.
 // Es la lista que se puede cambiar en vuelo (modos que NO son historia) y de la que la campaña
@@ -972,11 +997,13 @@ export function setRunMusic(isCampaign, level, keep, prueba, pista, mision) {
     const fija = typeof pista === 'string' && pista.startsWith('original:') ? pista.slice(9) : null;
     const lista = typeof pista === 'string' && pista.startsWith('lista:') ? pista.slice(6) : null;
     const azar = typeof pista === 'string' && pista.startsWith('azar:') ? pista.slice(5) : null;
-    azarPool = azar ? [...MUSIC_MISION, ...azar.split('|').map(x => x.trim()).filter(Boolean)
-      .map(r => '../assets/music/' + r.split('/').map(encodeURIComponent).join('/'))] : null;
+    azarPool = azar ? sinRepetir([...MUSIC_VUELO, ...azar.split('|').map(x => x.trim()).filter(Boolean)
+      .map(r => '../assets/music/' + r.split('/').map(encodeURIComponent).join('/'))]) : null;
     misionLista = null;
     misionFija = lista ? fijarLista(lista) : !!fija && fijarMision(fija);
-    enMision = misionFija || ((SOLO_ORIGINAL || (!!mision && !prueba && pedida < 0)) && sortearMision());
+    // el tema que eligio el jugador en OPCIONES, salvo que la mision traiga el suyo
+    elegido = !misionFija && !!temaPreferido && fijarMision(temaPreferido);
+    enMision = misionFija || elegido || ((SOLO_ORIGINAL || (!!mision && !prueba && pedida < 0)) && sortearMision());
     if (antes && !enMision && !musMision.paused) musMision.pause();
   }
   if (prueba && !keep && trackIdx !== ZONA_IDX) {
@@ -1002,7 +1029,7 @@ export function sortearPista() { trackIdx = (Math.random() * PLAYLIST.length) | 
 export function trackCount() { return PLAYLIST.length; }
 export function currentTrackName() {
   // con music/original sonando (libro de vuelo, POR LA PATRIA, CICLO): el nombre del tema, del archivo
-  if (enMision && misionSrc) return decodeURIComponent(misionSrc.split('/').pop()).replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').toUpperCase();
+  if (enMision && misionSrc) return nombreTema(misionSrc);
   return 'TRACK ' + (trackIdx + 1);
 }
 
@@ -1014,14 +1041,19 @@ export function setTrack(i) {
   updateMusic(lastState);   // si estamos en juego (no lobby/historia), suena la nueva ya
 }
 // ◄ ► CON music/original SONANDO (17/10): no hay lista que recorrer — salta a otro tema al azar
-function saltarMision() {
-  if (!sortearMision()) return;
+function saltarMision(dir = 1) {
+  // EN ORDEN (26/11): ◄ ► en la pausa recorren los temas uno por uno, y el que queda es el elegido (se repite)
+  const pool = azarPool || MUSIC_VUELO;
+  if (!pool.length) return;
+  const i = pool.findIndex(x => decodeURIComponent(x) === decodeURIComponent(misionSrc));
+  misionSrc = pool[((i < 0 ? 0 : i + dir) % pool.length + pool.length) % pool.length];
+  musMision.src = misionSrc; elegido = true;
   syncPlayerBtn();
   if (musicStarted && !muted && !musPausa) musMision.play().catch(() => { });   // (en la pausa suena al seguir)
 }
 // (un tema FIJO no se cambia — 21/11, el autor: "siempre, sin posibilidad de cambio")
-export function nextTrack() { if (enMision && misionFija) return; if (enMision) return saltarMision(); setTrack(trackIdx + 1); }
-export function prevTrack() { if (enMision && misionFija) return; if (enMision) return saltarMision(); setTrack(trackIdx - 1); }
+export function nextTrack() { if (enMision && misionFija) return; if (enMision) return saltarMision(1); setTrack(trackIdx + 1); }
+export function prevTrack() { if (enMision && misionFija) return; if (enMision) return saltarMision(-1); setTrack(trackIdx - 1); }
 
 // avance automatico al terminar cada pista (ver 'ENCADENADO' arriba).
 PLAYLIST.forEach((a2, i) => a2.addEventListener('ended', () => {

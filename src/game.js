@@ -152,7 +152,7 @@ import * as world from './render/world.js';
 import { drawMarco } from './render/marco.js';
 import * as soldierArt from './render/soldiers.js';
 import { theme, applyTheme, pasoTema } from './render/theme.js';
-import { misilCerca, setNivel, currentTrackName, retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando, salpicon as salpiconSfx } from './systems/audio.js';
+import { temasVuelo, setTemaPreferido, misilCerca, setNivel, currentTrackName, retenerMusica, sonidoTubo, sonidoFicha, arranquePc, zumbido, sonidoCarga, zonaRadar, pausarAudio, sortearPista, detectando, salpicon as salpiconSfx } from './systems/audio.js';
 import { drawCarga, CARGA, CARGA_T } from './render/carga.js';
 import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, updateMusic, engineFly,
          engineOff, engineRumble, duck, tickDuck, setRunMusic, prevTrack, nextTrack,
@@ -3981,6 +3981,11 @@ import { apodoAvion } from './data/apodos_aviones.js';
         get: () => (isMuted() ? 'no' : 'si'), set: v => setMuted(v === 'no') },
       { label: () => T('optMusicaOn'), opts: ['si', 'no'], names: yesNo,
         get: () => (musicaOn() ? 'si' : 'no'), set: v => { if ((v === 'si') !== musicaOn()) musicaToggle(); } },
+      // LA MUSICA EN VUELO (26/11, el autor: "permitir cambiar musica desde opciones, DENTRO de opciones"): AL AZAR
+      // (music/original + music/soundtrack) o un tema, que suena en todo vuelo y se repite. Las etapas del tutorial
+      // traen el suyo y mandan igual. En la pausa, OPCIONES → TEMA ◄ ► lo cambia en el momento.
+      { label: () => T('optTemaVuelo'), opts: ['azar', ...temasVuelo()], names: () => [T('optTemaAzar'), ...temasVuelo()],
+        get: () => cfg.temaVuelo || 'azar', set: v => { cfg.temaVuelo = v; setTemaPreferido(v === 'azar' ? null : v); }, save: 'rasante_tema_vuelo' },
       ...['musica', 'ambiente', 'unidad'].map(p => ({ label: () => T('optVol_' + p), opts: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         names: () => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => n * 10 + '%'),
         get: () => volSel[p], set: v => { volSel[p] = v; setNivel(p, v / 10); }, save: 'rasante_vol_' + p })),

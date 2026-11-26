@@ -16,6 +16,12 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
+## 0.3.0 — 26/11/2026
+
+- **La música en vuelo:** al azar entre `music/original` (instrumentales) y `music/soundtrack`, que incluye Zona Rasante, Nadie vuela solo, Alambre, Misty Malvinas y Dicen de mí 2. El mate y Gambeta 1 y 2 quedan para la campaña.
+- **OPCIONES → MÚSICA EN VUELO:** AL AZAR o un tema fijo que se repite. Queda guardado. Las etapas del tutorial siguen con su tema.
+- **En la pausa:** OPCIONES → TEMA ◄ ► recorre los temas en orden, y el elegido se repite.
+
 ## 0.2.0 — 26/11/2026 (Steam BuildID 26938453)
 
 - **Libro de vuelo:** se juegan cinco salidas: El Sheffield, HMS Glasgow, La Ardent, La Plymouth y El Invincible. El Rescate del Belgrano sigue EN DESARROLLO.

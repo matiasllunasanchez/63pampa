@@ -355,7 +355,7 @@ export const STRINGS = {
     // Las filas venian del menu [M], que era solo-castellano porque era una herramienta interna.
     // Al mudarse a OPCIONES —que tiene el selector de IDIOMA adentro— quedar a medio traducir se
     // notaria de una, asi que pasan todas por T().
-    optSecSonido: 'SONIDO', optSonidoTodo: 'TODO EL SONIDO', optMusicaOn: 'MÚSICA', optVol_musica: 'VOLUMEN DE MÚSICA', optVol_ambiente: 'VOLUMEN DE AMBIENTE', optVol_unidad: 'VOLUMEN DE UNIDAD',
+    optSecSonido: 'SONIDO', optSonidoTodo: 'TODO EL SONIDO', optMusicaOn: 'MÚSICA', optTemaVuelo: 'MÚSICA EN VUELO', optTemaAzar: 'AL AZAR', optVol_musica: 'VOLUMEN DE MÚSICA', optVol_ambiente: 'VOLUMEN DE AMBIENTE', optVol_unidad: 'VOLUMEN DE UNIDAD',
     optSecJuego: 'JUEGO', optSecControl: 'CONTROL Y VISTA', optSecPartida: 'PARTIDA',
     optSecAmbiente: 'AMBIENTE',
     optNoteAmbiente: 'FONDO y AGUA los elige la campaña en cada misión', optNoteAmbienteK: '', optNoteAmbienteP: '',
@@ -1649,7 +1649,7 @@ export const STRINGS = {
     optNet: 'RADAR MESH',
     optNetOff: 'OFF', optNetEnter: 'ON ENTERING', optNetAlways: 'ALWAYS',
     optKeys: '[↑] [↓] SELECT      [<] [>] CHANGE      [ESC] BACK',
-    optSecSonido: 'SOUND', optSonidoTodo: 'ALL SOUND', optMusicaOn: 'MUSIC', optVol_musica: 'MUSIC VOLUME', optVol_ambiente: 'AMBIENT VOLUME', optVol_unidad: 'UNIT VOLUME',
+    optSecSonido: 'SOUND', optSonidoTodo: 'ALL SOUND', optMusicaOn: 'MUSIC', optTemaVuelo: 'IN-FLIGHT MUSIC', optTemaAzar: 'RANDOM', optVol_musica: 'MUSIC VOLUME', optVol_ambiente: 'AMBIENT VOLUME', optVol_unidad: 'UNIT VOLUME',
     optSecJuego: 'GAME', optSecControl: 'CONTROLS & VIEW', optSecPartida: 'RUN',
     optSecAmbiente: 'WEATHER',
     optNoteAmbiente: 'SKY and WATER are set by the campaign each mission', optNoteAmbienteK: '', optNoteAmbienteP: '',
