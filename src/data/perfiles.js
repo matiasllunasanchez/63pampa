@@ -33,7 +33,9 @@ export const MANIOBRAS = {
   pesado: ['mask', 'climb', 'climbmax', 'dive', 'divemax'],
 };
 
-const BASE = { maniobras: 'agil', rolido: 1, bancoKm: null, grupos: {}, fallasK: 1, frio: {}, esquive: 0.08 };
+// `rayo` (26/11, data/tuning.js TORMENTA_ELEC): cuanto le pega a la electronica un rayo cercano (1 = A-4B). Mas el Neptune
+// (radar grande, mucho equipo), el Hercules y el Super Etendard (avionica de ataque); menos los entrenadores simples
+const BASE = { maniobras: 'agil', rolido: 1, bancoKm: null, grupos: {}, fallasK: 1, frio: {}, esquive: 0.08, rayo: 1 };
 
 /** EL ESQUIVE (21/11, el autor: "cualquier pirueta aumenta muchisimo las chances de no recibir disparos y esquivarlos,
  *  va a depender del avion… un % de esquive base segun avion que aumenta bastante con ciertas piruetas que puede o no
@@ -73,17 +75,17 @@ export const PERFILES = {
   // mas: tenian un sistema de soplado caliente") — sin hielo, y la sal se pega mucho mas despacio. A VERIFICAR
   // (23/11, el autor: "el Super Etendard no tenia problema de temperatura: quitemos el termometro y pongamos la brujula"):
   // `termometro: false` — sin reloj de temperatura en el tablero; en su lugar, la brujula (pasillo e islas)
-  supere: { esquive: 0.09, rolido: 0.9, bancoKm: 8, grupos: { inteligencia: 2 }, fallasK: 0.5, frio: { canon: 0.5, arranque: 0.7, hielo: 0, sal: 0.35, termometro: false } },
+  supere: { rayo: 1.2, esquive: 0.09, rolido: 0.9, bancoKm: 8, grupos: { inteligencia: 2 }, fallasK: 0.5, frio: { canon: 0.5, arranque: 0.7, hielo: 0, sal: 0.35, termometro: false } },
   // el MIRAGE 5P: el mas rapido y el mas duro de rolar; armas y defensa
   mirage: { esquive: 0.12, maniobras: 'rigido', rolido: 0.85, grupos: { armas: 1.4, defensa: 1.3 }, frio: { canon: 0.5, turbulencia: 0.9 }, ras: RAS_DELTA },
   // los LIVIANOS: rolan rapido, hacen todo, y el banco abre mas seguido (baratos, faciles de atender)
-  pucara: { esquive: 0.15, rolido: 1.35, bancoKm: 5, frio: { canon: 0.8, sal: 0.5, arranque: 1.5, turbulencia: 1.3 } },
-  mb339: { esquive: 0.16, rolido: 1.3, bancoKm: 5, frio: { canon: 0.5, arranque: 1.4, turbulencia: 1.3 } },
-  pampa: { esquive: 0.16, rolido: 1.25, bancoKm: 5, frio: { canon: 0.5, arranque: 0.8, turbulencia: 1.2 } },
+  pucara: { rayo: 0.8, esquive: 0.15, rolido: 1.35, bancoKm: 5, frio: { canon: 0.8, sal: 0.5, arranque: 1.5, turbulencia: 1.3 } },
+  mb339: { rayo: 0.9, esquive: 0.16, rolido: 1.3, bancoKm: 5, frio: { canon: 0.5, arranque: 1.4, turbulencia: 1.3 } },
+  pampa: { rayo: 0.9, esquive: 0.16, rolido: 1.25, bancoKm: 5, frio: { canon: 0.5, arranque: 0.8, turbulencia: 1.2 } },
   // el HERCULES: 70 toneladas. Nada acrobatico, rola lentisimo; el banco le da municion, taller y chapa
-  herc: { esquive: 0.02, maniobras: 'pesado', rolido: 0.25, grupos: { taller: 1.6, defensa: 1.5 }, frio: { hielo: 0.2, sal: 0.6, arranque: 0.8, turbulencia: 0.5 } },
+  herc: { rayo: 1.2, esquive: 0.02, maniobras: 'pesado', rolido: 0.25, grupos: { taller: 1.6, defensa: 1.5 }, frio: { hielo: 0.2, sal: 0.6, arranque: 0.8, turbulencia: 0.5 } },
   // los de patrulla y transporte de las secundarias
-  neptune: { esquive: 0.03, maniobras: 'pesado', rolido: 0.3, frio: { hielo: 0.4, sal: 0.7, arranque: 1.3, turbulencia: 0.6 } },
+  neptune: { rayo: 1.4, esquive: 0.03, maniobras: 'pesado', rolido: 0.3, frio: { hielo: 0.4, sal: 0.7, arranque: 1.3, turbulencia: 0.6 } },
   guarani: { esquive: 0.05, maniobras: 'pesado', rolido: 0.35, frio: { turbulencia: 0.9 } },
   // el ESCUADRON FENIX (civiles): rolan como lo que son, ejecutivos
   learjet: { maniobras: 'rigido', rolido: 0.7, frio: { hielo: 0.3, arranque: 0.8, turbulencia: 0.8 } },

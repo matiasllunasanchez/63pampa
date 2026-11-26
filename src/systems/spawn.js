@@ -34,6 +34,10 @@ import { nivel as nivelEst } from './estrellas.js';
  *  el que corresponda, que es la misma forma que ya tenia `trVal`. */
 const val = (clave, base) => trVal(clave, fsVal(clave, base));
 const AVES_ADORNO_P = 0.3;   // por siembra: cuantas veces sale una bandada de adorno afuera del carril
+// LOS PAJAROS SEGUN EL CLIMA (26/11, el autor: "hay muchisimos pajaros; dependen del clima, no deberia haber mucho pajaro
+// con mucha tormenta"): la fraccion de bandadas que se queda (del carril y de adorno). Con temporal casi no vuelan
+const AVES_CLIMA = { storm: 0.12, lluvia: 0.35, niebla: 0.7 };
+const avesClima = () => (cfg.sky === 'storm' ? AVES_CLIMA.storm : cfg.rain ? AVES_CLIMA.lluvia : cfg.fog ? AVES_CLIMA.niebla : 1);
 
 /** …Y ENCIMA DE TODO, LAS ESTRELLAS (PLAN_ESTRELLAS_BUSQUEDA §5). No pisan lo resuelto: le ponen
  *  un PISO. Que sea `Math.max` y no reemplazo es la mitad del diseño — una mision que ya bombardea
@@ -744,12 +748,12 @@ export function spawnSystem(dt, objectiveDist) {
       }
     }
     // MENOS AVES (`aves`, 0..1, 23/11): de las bandadas que nacen en el carril se queda esa fraccion; el resto, hueco
-    const aves = val('aves', 1);
+    const aves = val('aves', 1) * avesClima();
     if (aves < 1 && obstacles.length > n0 && obstacles[n0].type === 'birds' && rnd() > aves) { obstacles.length = n0; soldiers.length = s0; }
     // LAS AVES DE ADORNO (23/11, el autor: "que haya pajaros tambien por fuera del pasillo, de adorno, para que no se vea
     // tan claro que estan solo en la zona donde nos movemos"): bandadas afuera del carril —mas alla de FLY_X, donde el
     // avion no llega— que no chocan (systems/collision.js `adorno`). Sobre el mar y la tierra, en cualquier fase
-    if (rnd() < AVES_ADORNO_P) {
+    if (rnd() < AVES_ADORNO_P * avesClima()) {
       const lado = rnd() < 0.5 ? -1 : 1;
       obstacles.push({ type: 'birds', adorno: true, x: lado * (FLY_X + 12 + rnd() * 45), y: spawnY('birds') + rnd() * 18,
         z: SPAWN_Z * (0.75 + rnd() * 0.25), ...rumboAve(), white: rnd() < 0.5, done: false, ph: rnd() * 6.28 });

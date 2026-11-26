@@ -503,7 +503,8 @@ const r6 = {
  *  Se van sumando a medida que cada una tenga sus laminas y su repaso. */
 // (26/11, el autor, para la 0.2.0: "Invencible, Sheffield, Glasgow, Ardent y Plymouth, las otras quedan en proximamente":
 // el Rescate del Belgrano sigue EN DESARROLLO)
-export const LIBRO_ABIERTAS = ['r1', 'r2', 'r3', 'r4', 'r5'];
+// (26/11, el autor: "habilitame la mision del Belgrano en la version produccion")
+export const LIBRO_ABIERTAS = ['r1', 'r2', 'r3', 'r4', 'r5', 'r6'];
 /** Las salidas, en orden de fecha: es el orden del LIBRO DE VUELO. */
 export const LIBRO_VUELO = [r6, r1, r2, r3, r5, r4];
 
@@ -609,11 +610,23 @@ export const LIBRO_SCENES = {
   ]),
   // (25/11: las hojas del ANTES y del PLAN, texto propuesto — espera el OK del autor; la lamina del Belgrano hundiendose
   // con las balsas, tools/blender/modelos_libro.py `belgrano_hundiendose`)
+  // (26/11, el autor: "situarse en el dia y momento POST evento, como para que la campaña sea HOY, y cuando termina contar
+  // todo completo"; "explicar que submarino fue y que el Belgrano NO ESTABA EN LA ZONA, se estaba yendo"; "explicar el
+  // temporal"; "nuestro plan: aclarar que no teniamos la ubicacion exacta"; "explicar como buscar en el juego"; "falta la
+  // parte de que hacer en ISLAS"). Texto para el OK del autor.
   R6_CONTEXTO: tarjeta('R6_CONTEXTO', r6.name, [dato(r6),
-    ['ANTES. El 2 de mayo a las 16:02 un submarino británico torpedeó al crucero General Belgrano. Se hundió en alrededor de una hora y la tripulación lo abandonó en balsas, en pleno temporal.', 'belgrano', 'ARA GENERAL BELGRANO'],
-    ['EL PLAN. Radar en las zonas ? de la barra; en la zona, radar junto a cada bengala hasta dar con la mancha. Las balsas, a ojo y con humo.', 'ui_busca', 'LA BÚSQUEDA'],
+    ['HOY. 3 de mayo, de madrugada. Ayer a las 16:02 el submarino nuclear británico HMS Conqueror torpedeó al crucero General Belgrano. Estaba fuera de la zona de exclusión que había declarado el Reino Unido y navegaba hacia el oeste, alejándose de las islas.', 'belgrano', 'ARA GENERAL BELGRANO'],
+    ['El crucero se hundió en alrededor de una hora. Hay reportes de balsas en el agua, pero nadie sabe dónde están: en la oscuridad y el mal tiempo, los destructores que lo escoltaban perdieron el contacto.', 'belgrano', 'LAS BALSAS'],
+    'EL TEMPORAL. Viento, lluvia, mar embravecido y agua helada. Las nubes están a 150 metros del mar: para ver algo hay que volar por debajo. Cada hora que pasa, el viento y las olas arrastran las balsas más lejos.',
+    ['NUESTRO PLAN. No tenemos la posición exacta del hundimiento. Los Neptune de la Armada salen de Río Grande a buscar en distintas zonas del trayecto, con el radar de búsqueda.', 'ui_busca', 'LAS ZONAS DE BÚSQUEDA'],
+    ['EN EL CAMINO. Volá rasante por las dudas. En la barra de arriba hay zonas con ?: en cada una subí y prendé el radar, que cuanto más alto, más lejos ve, y después volvé al ras. Cuidado: el radar prendido enciende las alarmas del radar enemigo. Buscá en todas las zonas del trayecto hasta tener contacto; si pasás la última sin nada, damos la vuelta una sola vez.', 'ui_busca', 'EL RADAR'],
+    ['EN LA ZONA. Con el contacto entrás al mar abierto. Hay cinco bengalas: seguilas y prendé el radar cerca de cada una hasta dar con la mancha de aceite. Seguí la mancha al sudeste: las balsas están más allá de la punta.', 'belgrano', 'LA MANCHA'],
+    'LAS BALSAS. Cuando las veas, marcalas con humo (ESPACIO · ✕ · R1), porque si te alejás sin marcarlas se pierden. Después subí por encima de 260 metros y da vueltas sobre el humo hasta que el destructor te tome. Volvé a Río Grande con la nafta que quede.',
   ]),
-  R6_LO_QUE_PASO: tarjeta('R6_LO_QUE_PASO', r6.name, [PENDIENTE], 'rot_lqp'),
+  R6_LO_QUE_PASO: tarjeta('R6_LO_QUE_PASO', r6.name, [
+    ['3 de mayo de 1982. Poco después de las 9, el Neptune 2-P-111 vio la mancha de aceite bajo las nubes. Siguió buscando y encontró las balsas; voló en círculos sobre ellas hasta que el radar del destructor Piedra Buena lo tomó, y volvió a Río Grande casi sin combustible.', 'belgrano', 'ARA GENERAL BELGRANO'],
+    'El rescate siguió hasta el 4 de mayo con los destructores Bouchard y Piedra Buena, el aviso Gurruchaga y el Bahía Paraíso. De los 1.093 tripulantes del Belgrano volvieron 770. Murieron 323, la mayoría en las explosiones del ataque.',
+  ], 'rot_lqp'),
   R5_LO_QUE_PASO: tarjeta('R5_LO_QUE_PASO', r5.name, [
     ['30 de mayo de 1982. Según la Argentina, el Exocet y las bombas alcanzaron al HMS Invincible. Según los británicos, el misil cayó al mar y los A-4C atacaron a la fragata Avenger sin acertar.', 'invincible', 'HMS INVINCIBLE'],
     ['Dos de los cuatro A-4C fueron derribados; sus pilotos no volvieron.', 'a4c', 'A-4C SKYHAWK'],

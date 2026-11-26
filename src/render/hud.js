@@ -30,7 +30,8 @@ import { T } from '../core/i18n.js';
 import { AGU, ancho as anchoSector, pos as posInd, ventana as ventanaAgu,
   concentracion as concSeg } from '../core/aguante.js';
 import { P, RADAR_VERDE, RADAR_OPACO, RADAR_GRIS, colDefensa } from '../data/palette.js';
-import { ALTO, FALLA_ALERTA } from '../data/tuning.js';
+import { ALTO, FALLA_ALERTA, VIENTO_ALTO } from '../data/tuning.js';
+import { va as vientoAltoEst } from '../core/vientoAlto.js';
 import { MSL_MAX, RADAR_ALT, EST_MAX, VOZ_COLS, KMH_U, A_MAR, M_CONO, FLY_TOP, BANDA_ALT, PERF_ALT, ZONAS_GASTO, METRALLAS } from '../data/tuning.js';
 import { machNow } from '../core/mach.js';
 import { alMando, filaOk, filaDeVidas } from '../core/squad.js';
@@ -752,6 +753,8 @@ export function vozMin() {
 // la caja que la cinta ocupo ESTE cuadro. Se borra al empezar cada HUD: una caja vieja, de un
 // cuadro que ya paso, colgaria la radio de una cinta que no esta.
 let cajaCinta = null;
+const RADAR_FALLA_COL = '#ff7a3a';   // la falla del radar propio (el naranja del cartel que reemplaza)
+let cajaRadarP = null;   // donde se dibujo el reloj del RADAR PROPIO (zonaHud 'radarP': sus carteles salen de ahi)
 let cajaZona = null;   // el ultimo lugar donde se dibujo ZONA RADAR / FUERA DE RADAR (zonaHud 'radar')
 export const cintaCaja = () => cajaCinta;
 // LA COLUMNA DERECHA, de arriba abajo, y las dos medidas juntas porque son la misma decision: los
@@ -864,7 +867,8 @@ export function zonaHud(id) {
   if (id === 'temp') return { x: X_MACH, y: CUADROS_Y - CUADRO - 4, w: CUADRO, h: CUADRO };   // el termometro (drawTemperatura)
   if (id === 'rack') return { x: X_RACK, y: CUADROS_Y, w: RACK_W, h: CUADRO };
   if (id === 'ruta') return cajaCinta ? { x: cajaCinta.x, y: MARGEN, w: cajaCinta.w, h: 11 } : null;
-  if (id === 'radar') return cajaZona;   // (21/11, el autor: "no se explican que el indicador es la zona de radar")
+  if (id === 'radar') return cajaZona;
+  if (id === 'radarP') return cajaRadarP;   // (21/11, el autor: "no se explican que el indicador es la zona de radar")
   return null;
 }
 
@@ -1652,7 +1656,9 @@ function reloj(x, y, o) { return alTablero(x, y, () => relojFila(x, y, o)); }
 // ---- LAS FALLAS EN LOS RELOJES (PLAN_FALLAS, modos sueltos; data/fallas.js) ----
 /** El grado de la falla `id` del avion que vuela (0 sano). Solo hay fallas en los modos sueltos. */
 let altLag = 0;   // el altimetro que ATRASA (falla media): la altura que muestra
-const falHud = id => (run.fallasFlota ? ((run.fallasFlota[alMando(run)] || {})[id] || 0) : 0);
+const falFlota = id => (run.fallasFlota ? ((run.fallasFlota[alMando(run)] || {})[id] || 0) : 0);
+// (26/11) …y lo que quema un RAYO CERCA por unos segundos (systems/tormenta.js rayoCerca): el altimetro atrasa o muere
+const falHud = id => id === 'altimetro' ? Math.max(falFlota(id), vientoAltoEst.altiFalla || 0) : falFlota(id);
 /** Lo que la falla le hace a las OPCIONES de un reloj: LEVE la aguja tiembla, MEDIA ademas el vidrio
  *  partido y saltos, TOTAL la aguja caida y sin numero. */
 function conFalla(o, g) {
@@ -2183,6 +2189,7 @@ function avisoSostenido(id, on, txt, col = P.warn, base) {
 const avisoVivo = id => { const a = avisos[id]; return !!a && avisoReloj() - a.t0 < a.hasta; };
 // LA CAUSA DEL GOLPE, en corto (la ultima `run.golpeCausa`; ver systems/damage.js takeHit)
 let golpeVisto = 0;
+let rayoVisto = 0;   // el ultimo `rayoN` (core/vientoAlto.js) que ya salio de atras del altimetro
 function causaCorta(c) {
   const k = 'golpe_' + String(c || '').replace(/^death_/, '');
   const t = T(k);
@@ -2192,6 +2199,19 @@ function drawAvisosCaja() {
   // los que mira el tablero solo: el CAÑON trabado, el ROCE del agua (el mismo ¡PELIGRO! BAJA ALTURA de arriba)
   avisoSostenido('canon', !!run.overheat && !run.sinCanon, T('bar_overheat'));
   avisoSostenido('alt', run.scrapeVib > 0.6, T('scrapeSub'));
+  // EL RADAR PROPIO (26/11, el autor: "el efecto de radar prendido ponerlo desde abajo en el cuadrado de radar, que salga
+  // desde atras como nafta y chancha, y se mantenga; el fallo del radar representarlo tambien en el indicador"): prendido,
+  // RADAR PRENDIDO en azul sostenido; cortado solo, FALLO EL RADAR en naranja hasta que recargue entero
+  if (radarP.tiene) avisoSostenido('radarP', radarP.on || radarP.fallo, radarP.fallo && !radarP.on ? T('radar_falla') : T('radar_on'),
+    radarP.fallo && !radarP.on ? RADAR_FALLA_COL : '#5ab4ff');
+  // EL VIENTO (26/11, systems/vientoAlto.js): sale de atras del ALTIMETRO, que es donde se lee la altura que lo causa.
+  // La correntada en naranja mientras te hunde; arriba de VIENTO_ALTO.AVISO, VIENTO FUERTE; el viento en contra de un
+  // tramo (`viento: true`) dice lo suyo — antes era un cartel titilando arriba al centro
+  { const va = vientoAltoEst, corr = va.corr > 0.15;
+    avisoSostenido('alt~v', corr || va.k >= VIENTO_ALTO.AVISO || run.windF < 0.97,
+      corr ? T('vaCorr') : va.k >= VIENTO_ALTO.AVISO ? T('vaFuerte') : T('vaFrente'), corr ? P.warn : P.crest, 'alt'); }
+  // EL RAYO CERCA (26/11): DESCARGA sale de atras del altimetro, en el blanco azulado del rayo (el radar dice lo suyo en su reloj)
+  if ((vientoAltoEst.rayoN | 0) !== rayoVisto) { rayoVisto = vientoAltoEst.rayoN | 0; if (rayoVisto) avisoCaja('alt~r', vientoAltoEst.altiFalla ? T('vaRayoAlti') : T('vaRayo'), '#cfe0ff', 2.4, 'alt'); }
   if ((run.golpeN | 0) !== golpeVisto) { golpeVisto = run.golpeN | 0; if (golpeVisto) avisoApilado('salud', causaCorta(run.golpeCausa)); }
   const ahora = avisoReloj();
   for (const id in avisos) {
@@ -2789,10 +2809,18 @@ function radarReloj(x, y) {
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(ang) * (R - 0.5), cy + Math.sin(ang) * (R - 0.5)); ctx.stroke();
     }
     ctx.restore();
+    // LA FALLA (26/11): la pantalla cruzada y el aro en naranja, titilando, hasta que recargue entero (`radarP.fallo`)
+    const falla = radarP.fallo && !on;
+    if (falla && late) {
+      ctx.save(); ctx.strokeStyle = RADAR_FALLA_COL; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+      const d = R * 0.62; ctx.beginPath(); ctx.moveTo(cx - d, cy - d); ctx.lineTo(cx + d, cy + d); ctx.moveTo(cx + d, cy - d); ctx.lineTo(cx - d, cy + d); ctx.stroke();
+      ctx.restore();
+    }
     // el avioncito: el mismo icono que la placa del avion, arriba del piloto
     // (iconoEn redondea la esquina a pixel entero: con 7×5 su centro cae medio pixel corrido — se lo devuelve al centro)
     { const ox = cx - (Math.round(cx - 3) + 3.5), oy = cy - (Math.round(cy - 2) + 2.5);
-      ctx.save(); ctx.translate(ox, oy); iconoEn(cx, cy, 'avion', !on ? '#5d6a70' : late ? '#d8ecff' : '#9cc4ea'); ctx.restore(); }
+      ctx.save(); ctx.translate(ox, oy); iconoEn(cx, cy, 'avion', falla ? RADAR_FALLA_COL : !on ? '#5d6a70' : late ? '#d8ecff' : '#9cc4ea'); ctx.restore(); }
     // el eco del blanco, arriba, titilando mientras dure la marca. EL BLANCO DEL EXOCET YA UBICADO (23/11, el autor: "debe
     // marcar ahi el objetivo en rojo"): un punto ROJO que late y se queda, prendido o apagado el radar
     if (run.soloExocet && run.exoUbicado) {
@@ -2812,7 +2840,7 @@ function radarReloj(x, y) {
       ctx.strokeStyle = '#16222e'; ctx.beginPath(); ctx.arc(cx, cy, Ra, a0, a1); ctx.stroke();
       if (f <= 0) continue;
       const punta = k === Math.floor(lleno - 0.001);
-      ctx.strokeStyle = radarP.carga < 0.15 ? P.warn : !on ? RADAR_AZUL_BAJO.cerca : punta ? RADAR_AZUL.punta : RADAR_AZUL.cerca;
+      ctx.strokeStyle = falla ? RADAR_FALLA_COL : radarP.carga < 0.15 ? P.warn : !on ? RADAR_AZUL_BAJO.cerca : punta ? RADAR_AZUL.punta : RADAR_AZUL.cerca;
       ctx.beginPath(); ctx.arc(cx, cy, Ra, a0, a0 + (a1 - a0) * f); ctx.stroke();
     }
     ctx.restore();
@@ -3450,11 +3478,8 @@ export function drawHUD(h) {
   // …y la cinta cierra en y=15, no en 31: el aviso sube con ella en vez de dejar un hueco.
   const topBase = (objectiveDist > 0 || gameMode === 'survival') ? 24 : 20;
 
-  if (run.windF < 0.97) {
-    ctx.textAlign = 'center'; ctx.font = 'bold 7px monospace';
-    ctx.fillStyle = Math.sin(run.t * 8) > 0 ? P.crest : P.dim;
-    ctx.fillText(T('windWarn'), W / 2, topBase);
-  }
+  // (el VIENTO EN CONTRA titilaba aca, arriba al centro: desde el 26/11 sale de atras del altimetro — drawAvisosCaja)
+  void topBase;
 
   // LA RACHA junto al avión, en DOS TIEMPOS (12/9). Ya no se escriben multiplicadores: el x5 /
   // x10 / x25 que crecia de tamaño al lado del avion era un numero que nadie leia volando a ras
@@ -3688,6 +3713,8 @@ export function drawHUD(h) {
   // chica queda solo para la cabina.
   const radarArriba = !radarEnFila && !enCabina();
   const yRadarArriba = CUADROS_Y - AIRE - CUADRO;
+  cajaRadarP = !radarP.tiene ? null : radarEnFila ? { x: X_CHANCHA, y: CUADROS_Y, w: CUADRO, h: CUADRO }
+    : radarArriba ? { x: X_CARGA, y: yRadarArriba, w: CUADRO, h: CUADRO } : { x: X_CARGA, y: CUADROS_Y - AIRE - ALERTA_H, w: RADAR_W, h: ALERTA_H };
   if (radarP.tiene) {
     if (radarEnFila) radarReloj(X_CHANCHA, CUADROS_Y);
     else if (radarArriba) radarReloj(X_CARGA, yRadarArriba);

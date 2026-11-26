@@ -84,7 +84,7 @@ export function stepVuelo(dt, o) {
   // llega POR PARAMETRO: la cama de vuelo no sabe que existe el zigzag. Sin el parametro vale 0,
   // y por eso una cinematica —o el juego con el pasillo recto— integra exactamente como siempre.
   plane.x += (plane.vx + (o.deriva || 0)) * dt;
-  plane.y += plane.vy * dt;
+  plane.y += (plane.vy + (o.vyViento || 0)) * dt;   // (la correntada del viento de altura, systems/vientoAlto.js)
   // EL TOPE LATERAL, que por omision es el carril de siempre. Lo levanta EL CALLEJON (zigzag Z3)
   // y por una razon de correccion, no de gusto: con paredes, la cara de la roca queda MAS AFUERA
   // que FLY_X, asi que el avion se frenaba contra el borde invisible de siempre y no podia tocar

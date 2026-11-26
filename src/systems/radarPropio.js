@@ -41,7 +41,7 @@ export function tick(dt, e) {
   if (radarP.buquesT > 0) radarP.buquesT = Math.max(0, radarP.buquesT - dt);
   if (radarP.ecoT >= 0) radarP.ecoT += dt;
   if (!e.enVuelo) { if (radarP.detectando) out.det = 'termina'; radarP.on = false; radarP.detectando = false; radarP.ve = false; return out; }
-  if (!radarP.on) { radarP.carga = Math.min(1, radarP.carga + R.RECARGA * (radarP.recargaK || 1) * dt); radarP.ve = false; dijoBajo = false; return out; }
+  if (!radarP.on) { radarP.carga = Math.min(1, radarP.carga + R.RECARGA * (radarP.recargaK || 1) * dt); radarP.ve = false; dijoBajo = false; if (radarP.carga >= 1) radarP.fallo = false; return out; }
   radarP.carga = Math.max(0, radarP.carga - R.GASTA * dt);
   if (radarP.carga <= 0) { if (radarP.detectando) out.det = 'termina'; radarP.on = false; radarP.detectando = false; radarP.ve = false; out.sig = 'sinCarga'; return out; }
   radarP.ve = e.alt >= R.ALT_MIN && !!e.aTiro;
@@ -49,7 +49,7 @@ export function tick(dt, e) {
   // SE CORTO: la carga a cero de una — a esperar la recarga entera
   if (radarP.fallaEn >= 0 && radarP.onT >= radarP.fallaEn) {
     if (radarP.detectando) out.det = 'termina';
-    radarP.on = false; radarP.detectando = false; radarP.ve = false; radarP.carga = 0; radarP.fallaEn = -1; out.sig = 'falla'; return out;
+    radarP.on = false; radarP.detectando = false; radarP.ve = false; radarP.carga = 0; radarP.fallaEn = -1; radarP.fallo = true; out.sig = 'falla'; return out;
   }
   // LA DETECCION (data/radar_propio.js DETECTA_*): arranca al segundo de prendido si hay algo para
   // detectar, y al terminar marca todo de una — el blanco, los Harrier y los otros buques.

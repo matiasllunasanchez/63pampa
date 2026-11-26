@@ -103,6 +103,7 @@ import { intensidadCruda, suavizar } from './core/intensidad.js';
 import { PISTAS_CAPAS, CAPAS_PRUEBA } from './data/musica_capas.js';
 import { drawArtilleria } from './render/artilleria.js';
 import { drawZonaSW, drawEngancheSW, drawMisilSW, drawHumoSW } from './render/seawolf.js';
+import { va as vientoAltoEst } from './core/vientoAlto.js';
 import { drawAim9 } from './render/aim9.js';   // el Sidewinder de los Harrier
 import { drawAden, drawAvisoAden } from './render/aden.js';   // la rafaga de los Harrier
 import * as escapeSys from './systems/escape.js';
@@ -173,7 +174,7 @@ import { drawNubesCielo } from './render/nubes_cielo.js';   // las nubes y la vi
 import { setFrente, sortearFrente, resetFrente, hayFrente, frenteManda, stepFrente } from './systems/frente.js';
 import { drawFrenteMuro, drawFrenteNiebla, solTapado } from './render/frente.js';
 import { drawRayos } from './render/rayos.js';
-import { stepTormenta, resetTormenta, fogonazoTormenta, rayosVivos } from './systems/tormenta.js';
+import { stepTormenta, resetTormenta, fogonazoTormenta, rayosVivos, rayoCerca } from './systems/tormenta.js';
 import { nocheDe, drawNoche, tableroNoche, luzNoche, drawReflejoLuna } from './render/noche.js';
 import { NOCHE } from './data/noche.js';
 import { drawAureola, AURA_NORMAL, AURA_DBG } from './render/aureola.js';   // AURA_DBG: QUITAR con __auradbg
@@ -3094,7 +3095,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
     let zonasM = null;
     function armarZonas() {
       const d = zonasDef(), n = d.n, paso = (d.hasta - d.desde - d.largo) / Math.max(1, n - 1);
-      zonasM = { lista: [], blanco: Math.floor(Math.random() * n), hallada: false, acc: 0, irT: -1, avisada: false, bajoDicho: -1 };
+      zonasM = { lista: [], blanco: Math.floor(Math.random() * n), hallada: false, acc: 0, irT: -1, avisada: false, bajoDicho: -1, vuelta: false, ultAviso: false };
       for (let i = 0; i < n; i++) zonasM.lista.push({ f0: d.desde + i * paso, f1: d.desde + i * paso + d.largo, estado: '?', barrido: 0 });
     }
     /** La probabilidad por segundo de ver la mancha desde `alt` m (adentro de su zona, con el radar prendido). */
@@ -3117,7 +3118,20 @@ import { apodoAvion } from './data/apodos_aviones.js';
       }
       const f = run.dist / objectiveDist, ult = Z.lista[Z.lista.length - 1];
       if (!Z.avisada && f >= Z.lista[0].f0 - ZONAS.AVISO) { Z.avisada = true; beep(660, 0.08, 'sine', 0.05, 200); cartel(T('zona_aviso'), '#5ab4ff', T('zona_aviso_sub'), { alerta: true }); }
-      if (f > ult.f1) { cartelSostenido('zona', false); die('death_sin_contacto'); return true; }
+      // LA ULTIMA ZONA, AVISADA (26/11, el autor: "no queda claro cuando pierdo")
+      if (!Z.ultAviso && f >= ult.f0) { Z.ultAviso = true; beep(500, 0.1, 'square', 0.05); cartel(T('zona_ultima'), P.warn, T(Z.vuelta ? 'zona_ultima_pierde' : 'zona_ultima_vuelta'), { alerta: true }); }
+      // PASASTE TODAS SIN CONTACTO: UNA VUELTA MAS (26/11, el autor: "si me pase una seccion y no encontre nada, el juego
+      // deberia permitirme volver por el mismo camino para intentar nuevamente, al menos una vez"). El trayecto vuelve a
+      // la primera zona con un fundido; las ya barridas sin contacto quedan apagadas. La segunda vez, se pierde.
+      if (f > ult.f1) {
+        cartelSostenido('zona', false);
+        if (Z.vuelta) { die('death_sin_contacto'); return true; }
+        Z.vuelta = true; Z.ultAviso = false; Z.acc = 0;
+        run.dist = objectiveDist * Math.max(0, Z.lista[0].f0 - ZONAS.AVISO);
+        fadeT = 0.9;
+        cartel(T('zona_vuelta'), P.warn, T('zona_vuelta_sub'), { alerta: true });
+        return false;
+      }
       const i = Z.lista.findIndex(z => f >= z.f0 && f <= z.f1), z = i >= 0 ? Z.lista[i] : null;
       const barre = !!z && z.estado === '?' && radarP.on;
       cartelSostenido('zona', barre, T('zona_barre'), '#5ab4ff', null, T(plane.y < ZONAS.ALT_MIN ? 'zona_barre_bajo' : 'zona_barre_sub'));
@@ -3881,7 +3895,7 @@ import { apodoAvion } from './data/apodos_aviones.js';
       const avSel = PLANES[selPlane];
       run.vuelo = (avSel && avSel.vuelo) || null;
       run.rolidoK = perfilDe(avSel && avSel.key).rolido;   // el giro libre [Q]/[E] de ESTE avion (data/perfiles.js)
-      { const pf = perfilDe(avSel && avSel.key); run.esquiveBase = pf.esquive; run.esquiveClase = pf.maniobras; }   // EL ESQUIVE de ESTE avion (data/perfiles.js)
+      { const pf = perfilDe(avSel && avSel.key); run.esquiveBase = pf.esquive; run.esquiveClase = pf.maniobras; vientoAltoEst.rayoK = pf.rayo; }   // EL ESQUIVE de ESTE avion (data/perfiles.js)
       frio.reiniciar(); frio.avion(perfilDe(avSel && avSel.key).frio);   // EL FRIO de ESTE avion (data/perfiles.js `frio`)
       fallasFrioHechas = false;
       run.canon = (avSel && avSel.canon) || null;
@@ -5416,9 +5430,11 @@ import { apodoAvion } from './data/apodos_aviones.js';
         if (r === 'on') cobrar('radar');
         // (16/10: prender suena el radar AZUL; sin samples, el bip de siempre. Apagar corta el azul y la
         // deteccion si estaban sonando)
-        if (r === 'on') { if (!sfxOne('radarAzul')) beep(980, 0.07, 'sine', 0.05, 200); cartel(T('radar_on'), '#5ab4ff', T('radar_on_sub')); }
+        // (26/11, el autor: "necesitar cada vez menos los mensajes de texto en medio de la pantalla"): RADAR PRENDIDO ya no es
+        // cartel — sale de atras del reloj del radar y se queda mientras este prendido (render/hud.js drawAvisosCaja)
+        if (r === 'on') { radarP.fallo = false; if (!sfxOne('radarAzul')) beep(980, 0.07, 'sine', 0.05, 200); }
         else if (r === 'off') { sfxStop('radarAzul', 0.3); sfxStop('radarDetecta', 0.2); beep(520, 0.06, 'sine', 0.04, -150); }
-        else if (r === 'vacio') { beep(180, 0.08, 'square', 0.04); cartel(T('radar_sin'), P.dim); }
+        else if (r === 'vacio') { beep(180, 0.08, 'square', 0.04); hud.avisoCaja('radarP', T('radar_sin'), P.dim, 2); }
       },
       // EL RADAR SE SOSTIENE (23/11): soltar la tecla lo apaga (prendido, la misma tecla lo prende: radarToggle)
       radarSoltar: () => {
@@ -9549,6 +9565,9 @@ import { apodoAvion } from './data/apodos_aviones.js';
       // EL FUEGO DEL BUQUE de la suelta: si la artilleria esta activa, si hay rafaga, cuantas trazadoras y la defensa cercana
       window.__fuegodbg = () => ({ activo: fuegoBuqueOn, rafaga: artilleria.rafaga(), traz: missiles.filter(m => m.tracer && !m.done).length, sw: !!seawolfSys.snapshot(PZ), clima: runClimax(), sis: blancoSys.negro ? blancoSys.negro() : null });
       // EL HIELO a mano (0..1), para mirar la escarcha de los relojes y las alas — y verla derretirse: __hielo(0.9)
+      // EL VIENTO DE ALTURA (systems/vientoAlto.js): su estado y donde esta el avion
+      window.__rayoCerca = torm => { if (torm) cfg.sky = 'storm'; return JSON.stringify(rayoCerca()); };   // (26/11) un rayo cerca a pedido (con `true` pone el cielo de tormenta): devuelve que quemo
+      window.__vientoAlto = () => JSON.stringify({ ...vientoAltoEst, x: +plane.x.toFixed(1), y: +plane.y.toFixed(1), spd: Math.round(run.spd) });
       window.__hielo = n => { if (n != null) run.hielo = +n; return run.hielo; };
       // CONTROLES abiertos en la pestaña `tab`, para fotografiarlos: __controles(0)
       window.__opciones = () => { setState('options'); optCtrl = false; return S.state; };   // OPCIONES, para capturas
@@ -10683,8 +10702,8 @@ import { apodoAvion } from './data/apodos_aviones.js';
         else if (rp.sig === 'eco') {
           if (run.soloExocet) run.exoUbicado = true; beep(1250, 0.08, 'sine', 0.05, 300); cartel(T('radar_eco'), '#5ab4ff', null, { alerta: true }); }
         else if (rp.sig === 'ecoAereo') { beep(1100, 0.08, 'sine', 0.05, 250); cartel(T('radar_eco_aereo'), '#5ab4ff', null, { alerta: true }); }
-        else if (rp.sig === 'sinCarga') { beep(220, 0.1, 'square', 0.04, -60); cartel(T('radar_sin'), P.dim); }
-        else if (rp.sig === 'falla') { beep(160, 0.18, 'sawtooth', 0.05, -90); cartel(T('radar_falla'), '#ff7a3a', T('radar_falla_sub')); }
+        else if (rp.sig === 'sinCarga') { beep(220, 0.1, 'square', 0.04, -60); hud.avisoCaja('radarP', T('radar_sin'), P.dim, 2); }
+        else if (rp.sig === 'falla') beep(160, 0.18, 'sawtooth', 0.05, -90);   // (26/11: la falla la dice el reloj del radar, no un cartel)
         else if (rp.sig === 'bajo') cartel(T('radar_bajo'), '#5ab4ff', T('radar_bajo_sub')); }
       // (LA SONDA FLOJA, PLAN_FALLAS: carga mas lento — leve al 60%, media al 35%)
       if (ch.carga > 0) run.fuel = Math.min(100, run.fuel + ch.carga * [1, 0.6, 0.35, 0][falla('reabast')]);

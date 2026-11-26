@@ -105,6 +105,7 @@ import { AGU } from '../core/aguante.js';
 import { multOf } from '../core/util.js';
 import { movesSystem, mvAllowsFire, mvAllowsTurbo, mvTurboForzado, mvLegado, derrapeLead } from './moves.js';
 import { stepVuelo, estelaVuelo } from './vuelo.js';
+import { paso as vaPaso, climaK } from './vientoAlto.js';
 import * as zigzag from './zigzag.js';
 import { enPared, enBarrera, paredCara, pared as paredCfg } from '../core/zigzag.js';
 import * as momentum from '../legacy/momentum.js';
@@ -265,6 +266,10 @@ export function flightSystem(dt, deps) {
   if (vientoAca && plane.y > 16) run.windT = Math.min(6, run.windT + dt);
   else run.windT = Math.max(0, run.windT - dt * 2);
   run.windF = windFactor(run.windT, vientoAca);
+  // EL VIENTO DE ALTURA (systems/vientoAlto.js, data/tuning.js VIENTO_ALTO): frente, costado, correntadas y turbulencia
+  // que crecen con la altura, en TODO el pasillo. Abajo del carril vale nada y el vuelo es el de siempre.
+  const va = vaPaso(dt, plane.y, climaK(cfg, fsVal('vientoAlto', null)), Math.random, cfg.sky === 'storm' ? 1 : 0);
+  if (va.altiFalla && run.t >= va.altiHasta) va.altiFalla = 0;   // el altimetro que quemo un rayo vuelve solo (systems/tormenta.js)
   // AFTERBURNER SOSTENIDO: aguantar BOOST + RASANTE acumula tiempo; cada AFTER_STEP s sube un
   // escalón (hasta AFTER_MAX). Cada escalón multiplica la velocidad (AFTER_GAIN) y levanta el
   // techo (AFTER_CAP) para que el aumento se SIENTA. Soltar turbo o trepar lo corta (con gracia).
@@ -300,7 +305,7 @@ export function flightSystem(dt, deps) {
   const cobraF = run.mv ? 1 - run.mvFreno : 1;
   const spdLleno = speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: run.boost, afterTier: run.afterTier });
   const spdSin = avT === 1 ? spdLleno : speedTarget({ t: run.t, rasLevel: run.rasLevel, mult: run.mult, windF: run.windF, boost: false, afterTier: 0 });
-  const spdTarget = (spdSin + (spdLleno - spdSin) * avT) * avV * av.spd * velC * cobraF;
+  const spdTarget = (spdSin + (spdLleno - spdSin) * avT) * avV * av.spd * velC * cobraF * va.frenoVel;
   // lo que la carga y las averias le sacan a tu velocidad, a la vista de la PERSECUCION: el lider
   // vuela en el mismo cielo con la misma carga, y sin esto con bombas colgadas lo perdias siempre
   run.factorVel = av.spd * velC * avV;
@@ -341,11 +346,22 @@ export function flightSystem(dt, deps) {
       plane.vy += Math.sin(rafT * 1.7 + 0.5) * raf * 22 * dt;
       if (Math.abs(g) > 0.7) run.shake = Math.max(run.shake, raf * 2);
     } }
+  // …el de altura: sacude (mas en la correntada) y, con CONTROL POR ALABEO, le mueve las alas
+  if (va.k > 0.02 || va.shake > 0.05) {
+    run.shake = Math.max(run.shake, va.shake);
+    if (cfg.control === CTRL_BANK) windRock += (Math.random() - 0.5) * 1.6 * (va.k + va.tormenta * 0.3 + va.pulso) * dt * 4;
+  }
   // ráfagas visibles cruzando el cielo
   if (run.windT > 0.8 && Math.random() < (run.windT / 6) * 0.9)
     gusts.push({ x: W + 10, y: 4 + Math.random() * (HOR + 26), v: 260 + Math.random() * 170, len: 10 + Math.random() * 18, life: 2 });
-  gusts.forEach(g => { g.x -= g.v * dt; g.life -= dt; });
-  prune(gusts, g => g.x > -32 && g.life > 0);
+  // (las del viento de altura van PARA DONDE SOPLA: se ve de que lado te empuja; en la correntada caen)
+  if (va.k > 0.1 && Math.random() < va.k * 0.7) {
+    const der = va.lado >= 0, cae = va.corr > 0.3;
+    gusts.push({ x: der ? -10 : W + 10, y: 4 + Math.random() * (HOR + 26), v: (der ? -1 : 1) * (200 + Math.random() * 160),
+      vy: cae ? 60 + Math.random() * 60 : 0, len: 10 + Math.random() * 18, life: 2 });
+  }
+  gusts.forEach(g => { g.x -= g.v * dt; if (g.vy) g.y += g.vy * dt; g.life -= dt; });
+  prune(gusts, g => g.x > -32 && g.x < W + 32 && g.life > 0);
   // LOS DOS ODOMETROS SE CONGELAN JUNTOS, y el segundo no es un detalle: `run.fuelDist` es lo que
   // decide cuando nace un bidon (spawn.js), asi que dejarlo corriendo haria aparecer uno apenas
   // termina la charla, pagado con metros que el jugador no volo (SPEC_CHARLAS_VUELO §7
@@ -543,7 +559,9 @@ export function flightSystem(dt, deps) {
     ras: rasante.cam(),
     // EL ZIGZAG (PLAN_PASILLO_ZIGZAG Z2). Los dos valen 0 con el pasillo recto, que es lo que
     // hace que `npm run feel` de identico — la misma mecanica que `ras`, que devuelve null.
-    deriva: zigzag.derivaZigzag(),
+    deriva: zigzag.derivaZigzag() + va.deriva + va.temX,
+    // …y la vertical del viento de altura: la correntada que hunde y el temblor (0 abajo del carril)
+    vyViento: va.temY - va.hunde,
     // …y EL DERRAPE afloja el seguimiento lateral para que el cruce se vea (systems/moves.js)
     lead: zigzag.leadZigzag() + derrapeLead(),
     // EL CALLEJON CORRE EL TOPE hasta la roca: sin esto el avion se frena en FLY_X, que esta

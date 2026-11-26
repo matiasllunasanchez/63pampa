@@ -12,6 +12,11 @@
 import { run } from '../core/run.js';
 import { trueno, truenoOla } from './audio.js';
 import { dado } from '../core/azar.js';
+import { plane } from '../core/state.js';
+import { va, resetTormentaElec } from '../core/vientoAlto.js';
+import { radarP } from '../core/radarPropio.js';
+import { vibrar } from '../core/vibra.js';
+import { TORMENTA_ELEC as TE } from '../data/tuning.js';
 const rnd = dado('tormenta');   // el azar FIJO del libro de vuelo (core/azar.js)
 
 const T = {
@@ -38,6 +43,10 @@ function zigzag(x, y0, y1, amp) {
 
 /** Una descarga nueva: `hor` = la y del horizonte, `ancho` = el ancho de la pantalla. */
 function descargar(hor, ancho) {
+  // EL RAYO CERCA (26/11, TORMENTA_ELEC): mas probable cuanto mas alto (arriba estas adentro de las nubes). Su azar es el
+  // comun y no el fijo del libro: la secuencia de rayos de siempre no se corre
+  const pc = TE.CERCA_P[0] + (TE.CERCA_P[1] - TE.CERCA_P[0]) * Math.min(1, Math.max(0, plane.y / TE.CERCA_ALT));
+  if (Math.random() < pc) { rayoCerca(hor, ancho); return; }
   const lejos = rnd();                                   // 0 cerca … 1 muy lejos
   const k = 1 - lejos * 0.6;
   fogonazo = Math.max(fogonazo, 0.55 + 0.45 * k);
@@ -52,6 +61,38 @@ function descargar(hor, ancho) {
     rayos.push({ tronco, ramas, t0: run.t, k });
   }
   truenos.push({ t: run.t + T.retraso[0] + (T.retraso[1] - T.retraso[0]) * lejos, k });
+}
+
+/** EL RAYO QUE PASA CERCA: fogonazo pleno, trueno casi encima, el mando vibra de una y la ELECTRONICA puede caer —
+ *  el radar propio se corta (el reloj del radar lo muestra) y el altimetro atrasa o muere unos segundos. Cuanto le pega
+ *  a cada avion lo dice su `rayo` (data/perfiles.js). Lo exporta para la sonda. */
+export function rayoCerca(hor = ultHor, ancho = ultAncho) {
+  fogonazo = 1;
+  const x = ancho * (0.2 + Math.random() * 0.6), y0 = Math.max(-10, hor - 150);
+  const tronco = zigzag(x, y0, hor + 30, 9);
+  const ramas = [];
+  for (let i = 0, n = 2 + (Math.random() * 2 | 0); i < n; i++) {
+    const p = tronco[1 + (Math.random() * (tronco.length - 3) | 0)];
+    ramas.push(zigzag(p[0], p[1], p[1] + 16 + Math.random() * 30, 6));
+  }
+  rayos.push({ tronco, ramas, t0: run.t, k: 1 });
+  truenos.push({ t: run.t + 0.08 + Math.random() * 0.15, k: 1 });
+  vibrar(...TE.VIBRA.rayo);
+  va.pulso = 1; va.rayoN++;
+  const sens = va.rayoK || 1, F = TE.FALLA, golpe = [];
+  if (radarP.tiene && Math.random() < F.radar * sens) {
+    // por el MISMO camino que la falla del Neptune (systems/radarPropio.js tick): prendido, se corta al proximo cuadro
+    // con sus señales (apaga la deteccion y su sonido); apagado, se queda sin carga y con la cruz hasta recargar
+    if (radarP.on) { radarP.fallaEn = 0; radarP.onT = Math.max(radarP.onT, 0); }
+    else { radarP.carga = 0; radarP.fallo = true; }
+    golpe.push('radar');
+  }
+  if (Math.random() < F.alti * sens) {
+    va.altiFalla = Math.max(va.altiFalla, Math.random() < F.ALTI_MUERTO ? 3 : 2);
+    va.altiHasta = run.t + F.ALTI_S[0] + Math.random() * (F.ALTI_S[1] - F.ALTI_S[0]);
+    golpe.push('alti');
+  }
+  return golpe;
 }
 
 /** UN RAYO A PEDIDO (la ola gigante, 13/11): cae en la fraccion `fx` (0..1) del ancho de la pantalla, detras
@@ -77,6 +118,7 @@ export function descargaEn(fx, z) {
 /** Un cuadro de vuelo con tormenta. `hor`/`ancho` de la pantalla (render/ctx.js). */
 export function stepTormenta(dt, hor, ancho) {
   ultHor = hor; ultAncho = ancho;
+  if (va.altiFalla && run.t >= va.altiHasta) va.altiFalla = 0;   // el altimetro vuelve solo
   proxima -= dt;
   if (proxima <= 0) { descargar(hor, ancho); proxima = T.cada[0] + rnd() * (T.cada[1] - T.cada[0]); }
   fogonazo = Math.max(0, fogonazo - dt * 3.2);
@@ -84,12 +126,15 @@ export function stepTormenta(dt, hor, ancho) {
   for (let i = truenos.length - 1; i >= 0; i--) if (run.t >= truenos[i].t) {
     const tr = truenos[i];
     if (tr.ola) truenoOla(tr.z); else trueno(tr.k);
+    // (26/11) el trueno SACUDE y VIBRA el mando, segun lo cerca que cayo
+    va.pulso = Math.max(va.pulso, 0.35 * tr.k * tr.k);
+    vibrar(TE.VIBRA.trueno[0] * tr.k, TE.VIBRA.trueno[1] * tr.k, TE.VIBRA.trueno[2] * (0.5 + 0.5 * tr.k));
     truenos.splice(i, 1);
   }
 }
 
 /** Sin tormenta (o al cambiar de corrida): nada en el aire. */
-export function resetTormenta() { rayos.length = 0; truenos = []; fogonazo = 0; proxima = 1.5; }
+export function resetTormenta() { rayos.length = 0; truenos = []; fogonazo = 0; proxima = 1.5; resetTormentaElec(); }
 
 /** Lo que dibuja render/rayos.js: los rayos vivos y cuanto se ve cada uno ahora (parpadea). */
 export function rayosVivos() {

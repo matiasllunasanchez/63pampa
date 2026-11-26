@@ -2688,6 +2688,49 @@ export const ALTO = {
   ENTRA: 120, ENTRA_BAJO: 25,
 };
 
+// ---------- EL VIENTO DE ALTURA (26/11/2026, el autor: "faltan las complejidades de viento, mas cuando esta en una altura
+// grande… vientos laterales o frontales que me hagan ir mas lento y bajar, por correntadas… a los 600 o 700 metros quiza ya
+// pueden haber otras problematicas"; systems/vientoAlto.js). EN TODAS LAS MISIONES Y MODOS del pasillo, por capas:
+// abajo del carril nada (el juego al ras no cambia: `npm run feel`), desde ~300 m se nota, desde 600–700 m es lo fuerte.
+//   CAPAS     [altura m, intensidad 0..1]: se interpola entre capas; arriba de la ultima queda la ultima
+//   FRENTE    cuanto te frena el viento de frente a intensidad 1 (0.22 = -22% del objetivo de velocidad); sube y baja
+//             lento (FRENTE_VAR de vaivén)
+//   LADO      m/s de deriva de costado a intensidad 1; la direccion gira sola (LADO_PER s el ciclo largo) y a veces da vuelta
+//   TURB      sacudida a intensidad 1: m/s de temblor en la posicion (TURB_MS) y el shake de pantalla (TURB_SHAKE)
+//   CORR      LA CORRENTADA descendente: aparece desde intensidad CORR.DESDE, cada [CADA] s (dividido la intensidad),
+//             dura [DURA] s y te hunde a HUNDE m/s a intensidad 1 (con el gas se pelea: la trepada alta da 75 m/s)
+//   AVISO     intensidad desde la que el altimetro saca VIENTO FUERTE de atras de su caja (la correntada siempre)
+//   CLIMA     el multiplicador del dia: calmo (cfg.wind apagado), ventoso, tormenta (lluvia >= 2 o cielo de tormenta).
+//             Una mision puede pisarlo con `vientoAlto: n` en sus fases (libro_vuelo `ida`)
+export const VIENTO_ALTO = {
+  CAPAS: [[80, 0], [300, 0.3], [600, 0.7], [900, 1]],
+  FRENTE: 0.22, FRENTE_VAR: 0.35,
+  LADO: 7, LADO_PER: 26,
+  TURB_MS: 3.2, TURB_SHAKE: 2.6,
+  CORR: { DESDE: 0.25, CADA: [5, 11], DURA: [1.6, 3], HUNDE: 24 },
+  AVISO: 0.4,
+  CLIMA: { calmo: 0.6, ventoso: 1, tormenta: 1.4 },
+};
+
+// ---------- LA TORMENTA ELECTRICA (26/11/2026, el autor: "que la tormenta electrica me genere turbulencia, me vibre el
+// joystick… y rayos pasando cerca que inhabiliten cosas electronicas o radares… y me lo hagan fallar"; systems/tormenta.js,
+// systems/vientoAlto.js, core/vibra.js). Con cielo de tormenta (cfg.sky 'storm'), a CUALQUIER altura:
+//   TURB_MS   temblor propio de la tormenta (m/s) al ras; TURB_ALTO el mismo arriba de 300 m (se suma al de altura)
+//   SACUDON   cada trueno da un sacudon de esta fuerza × su cercania (0..1), que se apaga en SACUDON_S s
+//   CERCA_P   la chance de que una descarga caiga CERCA: [al ras, a CERCA_ALT m o mas] (arriba estas en las nubes)
+//   CERCA_K   cuanto se cuenta la sensibilidad del avion (data/perfiles.js `rayo`, 1 = A-4B)
+//   FALLA     lo que hace el rayo cercano a la electronica (× la sensibilidad del avion):
+//               radar   chance de cortar el RADAR PROPIO (Neptune, Super Etendard): FALLO EL RADAR hasta recargar entero
+//               alti    chance de que el ALTIMETRO quede ATRASANDO (grado 2) ALTI_S s; ALTI_MUERTO de que muera (grado 3)
+//   VIBRA     el mando: trueno [fuerte, debil, ms] a cercania 1; la turbulencia vibra desde TURB_VIBRA de sacudon
+export const TORMENTA_ELEC = {
+  TURB_MS: 0.6, TURB_ALTO: 2.4,
+  SACUDON: 6, SACUDON_S: 0.9,
+  CERCA_P: [0.06, 0.3], CERCA_ALT: 500,
+  FALLA: { radar: 0.6, alti: 0.45, ALTI_MUERTO: 0.3, ALTI_S: [5, 10] },
+  VIBRA: { trueno: [0.9, 0.6, 520], rayo: [1, 1, 750], TURB_VIBRA: 1.2 },
+};
+
 // ---------- LA SAL EN EL PARABRISAS (17/11/2026, el autor; systems/salitre.js, render/salitre.js) ----------
 // Volando RASANTE sobre el mar el rocio se seca contra el vidrio y deja una costra de sal (y lo que arrastra:
 // plancton, algas) que va tapando la vista DE LOS BORDES AL CENTRO. Tarda: la vista entera se pierde recien
