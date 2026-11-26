@@ -16,7 +16,7 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
-## 0.4.1 — 26/11/2026
+## 0.4.1 — 26/11/2026 (Steam BuildID 26956472)
 
 - **El Rescate del Belgrano, ajustes:** la cúpula y las bengalas propias pasan a azul (el verde queda para lo británico). El radar muestra su avance con una torta y una barra, y al terminar, el ícono del radar. Pasar cerca de una bengala sola la da por revisada. Las balsas están siempre, y el radar solo las marca más claro. Las bengalas ya revisadas no desaparecen, pero dejan de titilar.
 
