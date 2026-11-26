@@ -26,16 +26,19 @@ export const BUSQ = {
   MANCHA_ANCHO: 300, MANCHA_LARGO: 1800, MANCHA_RUMBO: 135,
   // LAS BENGALAS (26/11): cuantas, a que distancia del centro, separadas cuanto (y de la entrada); el radar las barre a
   // menos de BENGALA_R, arriba de RADAR_ALT, durante BENGALA_S segundos
-  BENGALAS: 5, BENGALA_D: [700, 3400], BENGALA_SEP: 1400,   // (26/11, el autor: "estan demasiado lejos": eran [900, 5200] y 2200)
+  // (26/11, el autor: "pocas bengalas, 3 o 4, y 2 o 3 grupos de balsas; 1 o 2 bengalas solas lejos"): GRUPOS de las
+  // BENGALAS tienen balsas al lado (a GRUPO_A m, entre BENGALA_D del centro); las solas, mas lejos (BENGALA_SOLA_D)
+  BENGALAS: 4, GRUPOS: 2, GRUPO_A: 260, BENGALA_D: [700, 2400], BENGALA_SOLA_D: [2600, 3800], BENGALA_SEP: 1400,   // (26/11, el autor: "estan demasiado lejos": eran [900, 5200] y 2200)
   BENGALA_R: 2000, BENGALA_S: 2.5, RADAR_ALT: 22,
   // LAS BALSAS: N, en un racimo de RACIMO m, DERIVA m mas alla de la punta SE de la mancha
-  BALSAS_N: 9, RACIMO: 140, DERIVA: [700, 1300],
+  BALSAS_N: 6, RACIMO: 110, DERIVA: [700, 1300],
   // SI NO LAS MARCAS SE PIERDEN: alejarse PIERDE m de las balsas sin humo y vuelven a ser invisibles (derivaron)
   PIERDE: 1600, DERIVA_PERDIDA: 600,
   // EL HUMO: HUMOS marcadores; uno que cae a menos de MARCA m del racimo las marca. Dura HUMO_S s (y se renueva)
-  HUMOS: 6, MARCA: 320, HUMO_S: 240,
+  // (FRENTE / FRENTE_ANG: soltar la bengala con el grupo adelante, a menos de FRENTE m y dentro de ±FRENTE_ANG°, ya marca)
+  HUMOS: 8, MARCA: 320, FRENTE: 1100, FRENTE_ANG: 35, HUMO_S: 240,
   // LOS CIRCULOS: arriba de CIRCULO_ALT m, a menos de CIRCULO_R m del humo, sumar VUELTAS vueltas de rumbo
-  CIRCULO_ALT: 260, CIRCULO_R: 2600, VUELTAS: 2, CIRCULO_S: 3.5,   // (26/11: RADAR prendido CIRCULO_S s, arriba y cerca)
+  CIRCULO_ALT: 260, CIRCULO_R: 1500, VUELTAS: 2, CIRCULO_S: 3.5,   // (26/11: RADAR prendido CIRCULO_S s, arriba y cerca)
   // LOS INDICIOS FALSOS: cuantos, y a que distancia del centro (lo que se ve en el mar y no es)
   INDICIOS_N: 9,
 };

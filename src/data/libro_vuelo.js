@@ -649,12 +649,12 @@ export const LIBRO_SCENES = {
     // (26/11, el autor: "una vez que encuentres la zona aproximada del hundimiento entras en mar abierto. Busca las bengalas,
     // seguilas y prende el radar cuando estes cerca, busca una mancha de aceite en el agua, es donde ocurrio el hundimiento")
     // (26/11, el autor, con su texto; sin la lamina del crucero —repetida— para que el texto use todo el ancho y entre)
-    'EN LA ZONA. Cuando encuentres la zona del hundimiento, entrarás de lleno en el mar abierto para encontrar exactamente dónde están las balsas.\n\nNos informaron que lanzaron bengalas: buscalas y usá el radar cerca de ellas. Buscá rastros del hundimiento, como manchas de aceite en el agua.\n\nPara verlos en el agua, bajá de los 50 metros: más bajo, más lejos ves. Seguí esos rastros hasta encontrar las balsas.',
+    'EN LA ZONA. Cuando encuentres la zona del hundimiento, entrarás de lleno en el mar abierto.\n\nNos informaron que lanzaron bengalas: seguilas y prendé el radar cerca de cada una. Al lado de algunas hay grupos de balsas; otras están solas.\n\nMarcá cada grupo de balsas con humo.',
     // (26/11, el autor: "no hace falta explicarlo con texto; si vas a explicar como marcarlas, usa el cuadrado de la derecha y
     // los sticks o teclas que ya conocemos"): la lamina `mando:Gun` dibuja el mando del cañon (el que suelta el humo)
     // (26/11, el autor, con su texto; y "como debe quedar el espacio con las balsas y el humo": la lamina con la columna de
     // humo y, encima, la tecla que lo suelta)
-    { es: 'LAS BALSAS. Al encontrarlas, marcalas con humo para no perder la ubicación.\n\nLuego subí arriba de 260 metros cerca del humo y prendé el radar hasta que el destructor te ubique.\n\nSuerte, compañero.', lamina: 'balsas_humo', laminaTxt: 'LANZAR LA BENGALA DE HUMO', mando: 'TiraB' },
+    { es: 'LAS BALSAS. La bengala de humo se lanza como una bomba, adentro de la cúpula verde.\n\nCon cada grupo marcado, subí pasando las nubes, arriba de 260 metros, sin salir de la cúpula, y prendé el radar para informar la posición.\n\nSuerte, compañero.', lamina: 'balsas_humo', laminaTxt: 'LANZAR LA BENGALA DE HUMO', mando: 'TiraB' },
   ]),
   R6_LO_QUE_PASO: tarjeta('R6_LO_QUE_PASO', r6.name, [
     hoy(r6, 'Poco después de las 9, el Neptune 2-P-111 vio la mancha de aceite bajo las nubes. Siguió buscando y encontró las balsas; voló en círculos sobre ellas hasta que el radar del destructor Piedra Buena lo tomó, y volvió a Río Grande casi sin combustible.', 'belgrano', 'ARA GENERAL BELGRANO'),

@@ -427,7 +427,7 @@ function bombas(dt, m) {
   for (const { pm, que, x, z, alto } of golpes) {
     // LA BENGALA DEL HUMO (26/11, el autor: "el humo con una bengala puesta en la caida como una bomba cualquiera"): donde
     // toca el agua (o lo que sea) nace el humo de la busqueda; no estalla
-    if (pm.bengala) { busqueda.humoEn(x, z); const j = pmissiles.indexOf(pm); if (j >= 0) pmissiles.splice(j, 1); continue; }
+    if (pm.bengala) { if (!pm.marco) busqueda.humoEn(x, z); const j = pmissiles.indexOf(pm); if (j >= 0) pmissiles.splice(j, 1); continue; }
     // LA EXPLOSION EN 3D (estallido3d.js): la ven todas las camaras, tambien la de arriba
     estallido(x, alto, z, que === 'blanco' ? 2.2 : que === 'agua' ? 0.8 : 1, que === 'agua' ? 'agua' : 'fuego');
     if (que === 'agua') continue;   // (el agua la resolvio el pasillo: la bomba ya no esta)
@@ -524,6 +524,7 @@ export const soltarHumo = () => { if (I.mar) I.humo = true; };
 export const enMar = () => enPasillo() && !!I.mar;
 export const busquedaEventos = () => (I.mar ? busqueda.tomarEventos() : []);
 export const humosQuedan = () => (I.mar ? busqueda.humosQuedan() : 0);
+export const bengalaSuelta = () => (I.mar ? busqueda.bengalaSuelta() : false);
 export const busquedaHud = () => (enPasillo() && I.mar ? busqueda.hud() : null);
 export const busquedaHecha = () => !!I.mar && busqueda.hecho();
 export const busquedaEscena = () => (enPasillo() && I.mar ? busqueda.escena() : null);
@@ -543,7 +544,7 @@ export function brujula() {
  *  (En MAR ABIERTO, lo que diga la busqueda: el centro de la zona o el humo de las balsas.) */
 function blanco() {
   if (MARCA.on) return MARCA;
-  if (I.mar) { const b = busqueda.blanco(); return b ? { x: b.x, z: b.z, g: 0, n: T('busq_humo_marca') } : null; }
+  if (I.mar) { const b = busqueda.blanco(); return b ? { x: b.x, z: b.z, g: 0, n: T(b.n || 'busq_humo_marca') } : null; }
   const O = objetivo.OBJ;
   return O.on && O.vivo ? { x: O.x, z: O.z, g: O.g, n: T('islasObjetivoCorto') } : null;
 }

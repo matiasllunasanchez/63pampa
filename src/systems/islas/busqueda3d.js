@@ -9,7 +9,7 @@
 // EXAGERADO A PROPOSITO, como el pasillo: una balsa de 2 m vista desde 120 m es un punto.
 import * as avion3d from './avion3d.js';
 const THREE = window.THREE || null;
-const R = { g: null, mancha: null, ind: [], balsas: [], humos: [], beng: [], tex: null, texMancha: null, texLuz: null };
+const R = { g: null, mancha: null, ind: [], balsas: [], humos: [], beng: [], circ: [], tex: null, texMancha: null, texLuz: null };
 const BALSA_K = 3.2, N_PUFF = 18, HUMO_ALTO = 200;
 const BALSA_MALLA = 'balsa_salvavidas', BALSA_MALLA_K = 2.4;   // (la horneada mide 2,8 m de punta a punta: 2,4 la deja como la de antes)
 
@@ -127,6 +127,23 @@ function humo() {
   R.g.add(g);
   return g;
 }
+// EL CIRCULO DONDE TIRAR EL HUMO (26/11, el autor: "que haya una zona clara aceptable para tirar el humo"): un anillo
+// verde sobre el agua alrededor de cada grupo visto sin marcar, del radio en que el humo lo marca (BUSQ.MARCA); sin prueba
+// de profundidad, para que las olas del temporal no lo tapen
+// …Y LA CUPULA (26/11, el autor: "una cupula grande como la de la zona de disparo del buque, para marcar la zona y si el
+// jugador se va, saber donde tiene que volver… asi en las 3 zonas"): media esfera de malla verde sobre el anillo
+function circulo() {
+  const g = new THREE.Group();
+  const gm = new THREE.RingGeometry(0.93, 1, 64); gm.rotateX(-Math.PI / 2);
+  const anillo = new THREE.Mesh(gm, new THREE.MeshBasicMaterial({ color: new THREE.Color(0.35, 1, 0.45), transparent: true, opacity: 0.8, depthTest: false, depthWrite: false }));
+  anillo.renderOrder = 4; g.add(anillo);
+  // (26/11, el autor: "la zona verde es demasiado obvia, mas sutil"): menos gajos y casi transparente
+  const cupula = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 5, 0, Math.PI * 2, 0, Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(0.35, 1, 0.45), wireframe: true, transparent: true, opacity: 0.09, depthWrite: false, fog: false }));
+  cupula.renderOrder = 3; g.add(cupula);
+  R.g.add(g);
+  return g;
+}
 const ajustar = (lista, n, fab) => { while (lista.length < n) lista.push(fab()); lista.forEach((m, i) => { m.visible = i < n; }); };
 
 /** Un cuadro. `e` = busqueda.escena() (o null: se apaga todo). `t` el reloj, `viento` [x, z] m/s. */
@@ -162,6 +179,10 @@ export function frame(escena, e, t = 0, viento = [6, 0]) {
   // LOS INDICIOS (cada uno con su forma: se crean una vez por lista)
   if (R.ind.length !== e.ind.length) { R.ind.forEach(o => R.g.remove(o)); R.ind = e.ind.map(indicio); }
   e.ind.forEach((i, k) => { const o = R.ind[k]; o.position.set(i.x, 0.4 + Math.sin(t * 1.3 + k) * 0.3, i.z); o.rotation.y = i.rot; });
+  // LOS CIRCULOS del humo (late suave)
+  const cs = e.circulos || [];
+  ajustar(R.circ, cs.length, circulo);
+  cs.forEach((c, k) => { const o = R.circ[k]; o.position.set(c.x, 0.5, c.z); o.scale.set(c.r, c.r, c.r); o.children[0].material.opacity = 0.3 + 0.15 * Math.sin(t * 3); });
   // LAS BALSAS: suben y bajan con el mar
   const bl = e.balsas || [];
   ajustar(R.balsas, bl.length, balsa);

@@ -3293,6 +3293,18 @@ function drawEstante(h) {
   const r = h.rack, verde = !!(r && h.sueltaYa && titilaSuelta());
   const c = cargaDe(cfg.carga);
   const hayAla = !!(r ? r.ala : c.ala);
+  // LAS BENGALAS DE HUMO (EL RESCATE DEL BELGRANO, 26/11): en la busqueda el estante del Neptune —que no lleva armas— muestra
+  // las que quedan, en verde, en la fila del medio (la de la bomba: se tiran igual)
+  if (h.humosBengala != null) {
+    plate(X_RACK, CUADROS_Y, RACK_W, CUADRO);
+    const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1, yc = CUADROS_Y + 13, n = h.humosBengala;
+    px(X_RACK - 3, yc - 2, 1, 5, P.accent); px(X_RACK - 2, yc - 1, 1, 3, P.accent); px(X_RACK - 1, yc, 1, 1, P.accent);
+    iconoEn(cx, yc, 'bomba', n > 0 ? '#7fe07a' : '#2e3c45', undefined, true);
+    digito(xd, yc - 2, n, n > 0 ? '#7fe07a' : '#2e3c45');
+    ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.dim;
+    ctx.fillText(T('estanteHumo'), X_RACK + RACK_W / 2, CUADROS_Y - 2); ctx.textAlign = 'left';
+    return;
+  }
   if (!r && !hayAla && !(run.chapitasMax > 0) && !c.exocet && (run.sinBombas || run.soloExocet || !pide(run.msl < (run.mslMax || MSL_MAX)))) return;   // (sin armas, sin estante: 17/10)
   plate(X_RACK, CUADROS_Y, RACK_W, CUADRO);
   const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1;
@@ -3936,7 +3948,8 @@ export function drawHUD(h) {
   alTablero(X_RACK, CUADROS_Y, () => drawEstante(h));
   drawCostos();   // los -N de lo que se uso, arriba de cada uno
   // el LANZADOR fallado: el bisel del estante (ambar que late) o, TOTAL, en rojo y con la cruz
-  { const gB = falHud('bombas');
+  // (sin estante —un avion sin armas, como el Neptune— no hay lanzador que pueda fallar: el bisel naranja quedaba solo)
+  { const gB = run.sinBombas && h.humosBengala == null ? 0 : falHud('bombas');
     if (gB) alTablero(X_RACK, CUADROS_Y, () => {
       bordePlaca(X_RACK, CUADROS_Y, RACK_W, CUADRO, gB >= 3 ? '#8a2a1e' : Math.sin(run.t * 6) > 0 ? '#d08a2e' : '#7a5120');
       if (gB >= 3) { ctx.fillStyle = '#e0503a'; const cx = X_RACK + RACK_W / 2, cy = CUADROS_Y + 13;

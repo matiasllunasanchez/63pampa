@@ -3109,12 +3109,17 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     }
     /** Un cuadro de las zonas. true = la mision se perdio (o se fue a la busqueda) en este cuadro. */
     function pasoZonas(dt) {
-      if (!zonasDef() || S.state !== 'play' || islas.enMar() || !(objectiveDist > 0) || run.dist >= objectiveDist) return false;
+      // (26/11, el autor: "luego de eso, en vez de finalizar la mision, me reinicio"): terminada la busqueda la vuelta arranca
+      // un metro antes de la meta, y la zona —todavia 'hallada'— volvia a abrir el mar abierto. Con el climax hecho, nada
+      if (!zonasDef() || S.state !== 'play' || islas.enMar() || run.climaxHecho || !(objectiveDist > 0) || run.dist >= objectiveDist) return false;
       if (!zonasM) armarZonas();
       const Z = zonasM;
       // HALLADA: el cartel y, un momento despues, el fundido al mar abierto (las balsas, a ojo)
       if (Z.hallada) {
         Z.irT += dt;
+        // (26/11, el autor: "conciso y claro, en verde con el check del tutorial: ENCONTRASTE LA ZONA DEL HUNDIMIENTO, y fade
+        // a negro"): el cartel con el ✓ (okF de 1 a 0), y al final el fundido a negro antes del mar abierto
+        cartelSostenido('zona', true, T('zona_encontrada'), '#7fe07a', { okF: Math.max(0, 1 - Z.irT / ZONAS.IR_S) });
         if (Z.irT >= ZONAS.IR_S) { cartelSostenido('zona', false); empezarBusqueda(); return true; }
         return false;
       }
@@ -3167,7 +3172,6 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
             Z.hallada = true; Z.irT = 0; z.estado = 'mancha';
             cartelSostenido('zona', false);
             beep(1250, 0.08, 'sine', 0.05, 300); setTimeout(() => beep(1500, 0.1, 'sine', 0.05, 300), 110);
-            cartel(T('zona_contacto'), '#7fe07a', T('zona_contacto_sub'), { alerta: true });
             return false;
           }
         } else if (++z.barrido >= ZONAS.VACIA_S) {
@@ -3179,7 +3183,6 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
             Z.hallada = true; Z.irT = 0; quedan[0].estado = 'mancha';
             cartelSostenido('zona', false);
             beep(1250, 0.08, 'sine', 0.05, 300); setTimeout(() => beep(1500, 0.1, 'sine', 0.05, 300), 110);
-            cartel(T('zona_deducida'), '#7fe07a', T('zona_deducida_sub'), { alerta: true });
             return false;
           }
           cartel(T('zona_vacia'), '#c9ced3', T('zona_vacia_sub'));
@@ -4771,15 +4774,16 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // la nafta, y el avion quedaba clavado
       run.dist = Math.min(run.dist, objectiveDist - 1);
       humoAntes = !!inp.fire;
+      // INFORMANDO, EL RADAR NO SE VACIA (26/11, el autor: "lanzar radar 3 o 4 segundos y ahi gano"): con la carga a cero se
+      // apagaba solo y el informe tardaba el triple
+      { const bh = islas.busquedaHud(); if (bh && bh.fase === 'informar' && radarP.on) radarP.carga = Math.max(radarP.carga, 0.3); }
       // EL BARRIDO DE UNA BENGALA (26/11): mientras el radar la barre, el cartel con el avance
       { const bh = islas.busquedaHud(); const b = bh ? bh.barre : 0;
         cartelSostenido('beng', b > 0 && b < 1, T('busq_beng_barre'), '#5ab4ff', null, Math.round(b * 100) + '%'); }
       for (const e of islas.busquedaEventos()) {
-        if (e.k === 'indicio') cartel(T('busq_ind_' + e.id), '#c9ced3', T('busq_nada'));
-        else if (e.k === 'mancha') { cartel(T(e.radar ? 'busq_mancha_radar' : 'busq_mancha'), P.accent, T('busq_mancha_sub'), { alerta: true }); beep(660, 0.12, 'square', 0.05); }
+        if (e.k === 'grupo') { cartel(T('busq_grupo', { h: e.reloj }), '#7fe07a', T('busq_grupo_sub'), { alerta: true }); beep(880, 0.16, 'square', 0.06); }
+        else if (e.k === 'informada') { cartel(T('busq_grupo_marcado', { m: e.m, n: e.n }), '#7fe07a', T('busq_grupo_marcado_sub')); beep(980, 0.12, 'square', 0.05, 300); }
         else if (e.k === 'bengalaVacia') { cartel(T('busq_beng_vacia'), '#c9ced3', T('busq_beng_vacia_sub', { n: e.quedan })); beep(300, 0.1, 'square', 0.04, -40); }
-        else if (e.k === 'balsas') { cartel(T('busq_balsas', { h: e.reloj }), '#7fe07a', T('busq_balsas_sub'), { alerta: true }); beep(880, 0.16, 'square', 0.06); }
-        else if (e.k === 'perdidas') cartel(T('busq_perdidas'), P.warn, T('busq_perdidas_sub'), { alerta: true });
         else if (e.k === 'humo') { cartel(T(e.ok ? 'busq_humo_ok' : 'busq_humo_lejos'), e.ok ? '#7fe07a' : '#c9ced3', T('busq_humo_sub', { n: e.quedan })); sfxOne('swoosh'); }
         else if (e.k === 'sinHumo') cartel(T('busq_sin_humo'), P.warn);
         else if (e.k === 'marcadas') cartel(T('busq_marcadas'), '#7fe07a', T('busq_marcadas_sub'), { alerta: true });
@@ -4787,13 +4791,24 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         else if (e.k === 'barrido') cartel(T('busq_barrido'), P.accent, T('busq_barrido_sub'), { alerta: true });
         else if (e.k === 'fuera') cartel(T('busq_fuera'), P.warn, T('busq_fuera_sub'));
       }
-      // LA CONSIGNA de la fase, arriba mientras dure
-      const h = islas.busquedaHud();
-      const C = h && {
-        mancha: ['busq_mancha_buscar', 'busq_mancha_buscar_sub'], balsas: ['busq_balsas_buscar', 'busq_balsas_buscar_sub'],
-        marcar: ['busq_marcar', 'busq_marcar_sub'], circulos: ['busq_circulos', 'busq_circulos_sub'], barrido: ['busq_barrer', 'busq_barrer_sub'] }[h.fase];
+      // LA CONSIGNA de la fase, arriba mientras dure — con el MANDO dibujado cuando hay que apretar algo (26/11, el autor:
+      // "tiene que ser claro como lanzar el humo… durante el juego tambien usar los textos del medio para indicar como")
+      const h = islas.busquedaHud(), pad = padActivo();
+      const mando = id => glifosDe(pad ? padTexto(T('ctrl' + id + 'P')) : T('ctrl' + id + 'K'), pad);
+      let C = null, gl = null;
+      if (h && h.fase === 'bengalas') {
+        if (h.marcar) { C = ['busq_marcar', 'busq_marcar_sub']; gl = mando('TiraB'); }
+        else { C = ['busq_seguir', 'busq_seguir_sub']; gl = mando('Radar'); }
+      } else if (h && h.fase === 'informar') {
+        // SUBIR EN VERTICAL (↓ ↑ ↑ ↑, se corta con ↓ ↓) hasta pasar los 260 m; arriba y cerca, INFORMANDO POSICION
+        // (26/11, el autor: "no hace falta que suba vertical; tiene que subir pero no irse del radio hasta informar")
+        if (!h.cerca) C = ['busq_volve_humo', 'busq_volve_humo_sub'];
+        else if (h.alto < BUSQ.CIRCULO_ALT) C = ['busq_subi', 'busq_subi_sub'];
+        else { C = ['busq_informa', 'busq_informa_sub']; gl = mando('Radar'); }
+      } else if (h && h.fase === 'barrido') C = ['busq_barrer', 'busq_barrer_sub'];
       const n = h ? (h.fase === 'barrido' ? Math.round(h.prog * 8) : h.humos) : 0;
-      cartelSostenido('busq', !!C, C ? T(C[0]) : '', P.accent, null, C ? T(C[1], { n, p: h.prog == null ? 0 : Math.round(h.prog * 100) }) : null);
+      cartelSostenido('busq', !!C, C ? T(C[0], { p: h && h.prog != null ? Math.round(h.prog * 100) : 0 }) : '', P.accent, gl ? { glifos: gl } : null,
+        C ? T(C[1], { n, m: h.marcadas, t: h.grupos, p: h.prog == null ? 0 : Math.round(h.prog * 100) }) : null);
       if (islas.busquedaHecha()) { busqFinT += dt; if (busqFinT > 4) terminarBusqueda(); }
     }
     /** El rotulo de la salida en curso: el lugar, la zona, el dia y la hora del despegue (la del avion elegido si
@@ -6120,7 +6135,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // agua nace el humo (systems/islas/islas.js `bombas`, busqueda.js `humoEn`)
       if (islas.enMar()) {
         if (islas.humosQuedan() <= 0) { beep(150, 0.08, 'square', 0.04); cartel(T('busq_sin_humo'), P.dim); run.mslCd = 0.5; return; }
-        const pm = bombaSale(); pm.bengala = true; pmissiles.push(pm);
+        const pm = bombaSale(); pm.bengala = true; pm.marco = islas.bengalaSuelta(); pmissiles.push(pm);   // (adentro de la cupula o con el grupo adelante, ya marca)
         vibraSuelta('humo'); beep(520, 0.06, 'square', 0.04, -80); run.mslCd = 0.5;
         return;
       }
@@ -9127,6 +9142,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         // …Y LOS KM REALES, si la mision declara `ruta` (PLAN_NAFTA_ALCANCE N1): la barra cuenta
         // 520 / 700 km en vez de los metros del pasillo. null = la barra de siempre.
         chanchaFr: chanchaEnCinta(), busca: zonasCinta() || buscaCinta(),
+        humosBengala: run.bengalaHumo ? islas.humosQuedan() : null,   // (las bengalas de humo de la busqueda: el estante)
         ruta: rutaSys.hay() ? { pos: blancoSys.escapando() ? rutaSys.dato().blancoKm : rutaSys.pos(), blanco: rutaSys.dato().blancoKm, radarKm: rutaSys.dato().radarKm || 0 } : null,
         // fuera del horizonte de radar: la placa FUERA DE RADAR y sin marca de techo en el altimetro
         fueraRadar: S.state === 'play' && !radarAlcance(),
