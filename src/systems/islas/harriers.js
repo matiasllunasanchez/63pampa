@@ -18,7 +18,7 @@
 // pasillo los mueve, los esquiva y los cobra como siempre. Lo dibuja teatro3d.js (la malla del Harrier).
 import * as mundo from './mundo.js';
 import { missiles, bullets } from '../../core/world.js';
-import { plane } from '../../core/state.js';
+import { plane, stats } from '../../core/state.js';
 import { run } from '../../core/run.js';
 import { lanzarCola, lanzarFrente } from '../../core/aim9.js';
 import { AIM9, ADEN } from '../../data/tuning.js';
@@ -215,6 +215,7 @@ export function paso(dt, P, pz, boom, jugando) {
       if (h.hp <= 0) {
         h.fase = 'cae'; h.rafaga = null; h.cae = { vy: -5, giro: (Math.random() < 0.5 ? -1 : 1) * 2.5, humo: 0 };
         h.pac.__bajados = (h.pac.__bajados || 0) + 1;
+        stats.harriers++;   // (el ALBUM: la cabina del Sea Harrier sale a los 20 — game.js)
         boom(h.x, h.y, h.z, 1.1, 'avion', 0, 0);
         out.push({ k: 'bajado', c: h.pac });
       }

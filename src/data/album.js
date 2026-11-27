@@ -86,6 +86,23 @@ export const TEMAS = [
     que: 'Tu propio radar: te muestra el blanco, pero prenderlo es asomarte. Se sube, se prende unos segundos para apuntar, y se vuelve al ras.',
     dato: 'UNA SOLA VEZ',
     historia: 'El Super Etendard volaba al ras, sin radar, hasta la posición que había pasado el Neptune. Para apuntar subía, encendía el radar unos segundos, disparaba de lejos y se iba: nunca veía el barco.' },
+  // LAS CABINAS (27/11, el autor: "agreguemos estas cabinas como estampitas"; la del Harrier, "describiendo
+  // la diferencia tecnologica, todo lo que contaba un Harrier en su cabina, algo claro para denotar la diferencia del
+  // Skyhawk"; la del Skyhawk, "un despelote de controles analogicos: destacar a los pilotos argentinos leyendo todo eso en
+  // pocos segundos mientras esquivan y vuelan en rasante… justificando la UI del juego"). `foto`: la lamina de assets/ui/
+  // (render/menus.js albumIcono). La del Harrier sale a los 20 Harrier bajados; la del Skyhawk, al terminar el tutorial. Lo del Sea Harrier: Wikipedia EN
+  // (Sea Harrier: cabina elevada con burbuja, radar Ferranti Blue Fox, la palanca de las toberas; Blue Fox: no veia hacia
+  // abajo sobre mar grueso); lo del A-4B: docs/historia/ARMAMENTO_1982.md §6 y AVIONES_CATALOGO.md.
+  { id: 'cabina_harrier', foto: 'ui/cabina_harrier.webp', name: 'LA CABINA DEL SEA HARRIER', grupo: 'inteligencia',
+    desc: 'Lo que tenía el que te perseguía',
+    que: 'Cabina alta, con burbuja, para mirar todo alrededor. Adelante, el radar Blue Fox: encontraba buques de lejos y un avión del tamaño de un A-4. Junto al acelerador, la palanca de las toberas que lo dejaba despegar y aterrizar vertical en el portaaviones.',
+    dato: 'RADAR Y SIDEWINDER DE FRENTE',
+    historia: 'Contra el A-4B la diferencia era de otra época: el Sea Harrier te buscaba con su radar y te tiraba el AIM-9L de frente. El Skyhawk no tenía radar, ni alerta radar, ni un misil para contestar. Su punto débil: el Blue Fox veía mal hacia abajo sobre mar grueso. Por eso se volaba pegado al agua.' },
+  { id: 'cabina_a4', foto: 'ui/cabina_a4.webp', name: 'LA CABINA DEL SKYHAWK', grupo: 'taller',
+    desc: 'Un despelote de relojes, y el mar adelante',
+    que: 'Todo es aguja: altura, velocidad, nafta, horizonte, motor. Ninguna pantalla te muestra al enemigo. Al ras, había que leerlo todo de un vistazo, sin dejar de mirar el agua, mientras se esquivaba la antiaérea y se calculaba a ojo dónde iba a caer la bomba. El tablero del juego es eso mismo.',
+    dato: 'SIN RADAR, SIN ALERTA, SIN MISILES',
+    historia: 'El A-4B fue a la guerra sin radar de a bordo, sin alerta radar, sin contramedidas y sin misiles aire-aire: bombas y cañón. Le preguntaron al capitán Pablo Carballo qué sentían cuando se activaba el alertador radar. Contestó: "Nada." No tenían. Lo demás lo ponían los pilotos: oficio, sangre fría y coraje.' },
 ];
 
 export const temaDe = id => TEMAS.find(t => t.id === id) || null;

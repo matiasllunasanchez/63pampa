@@ -505,7 +505,7 @@ function derribar() {
   const s = proj(C.x, C.y, C.z);
   popup(s.x, s.y - 10, '+' + CAZA_PTS.derribo, P.warn, true);
   hablar('PUMA', T('caza_kill'));
-  stats.air++;
+  stats.air++; stats.harriers++;
   if (C.final === 'bola') {
     // REVIENTA EN EL AIRE, ahi mismo. No queda nada que seguir: se termina en este cuadro.
     explodeAt(C.x, C.y, C.z, true);

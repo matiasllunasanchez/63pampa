@@ -292,6 +292,9 @@ export const stats = {
   // que no este declarada no se limpia entre corridas, y la toma de la mision anterior se colaria
   // en el recuento de la siguiente. Arrancan en 0 (falsy) y por eso la fila no aparece sola.
   land: 0, landPts: 0,
+  // LOS HARRIER BAJADOS en la corrida (27/11, el autor: "cuando matamos los primeros harriers (20 total) desbloqueamos la
+  // cabina como estampita"): los jets del pasillo, la cola y los de las islas. game.js los acumula entre partidas.
+  harriers: 0,
 };
 
 export function resetStats() {

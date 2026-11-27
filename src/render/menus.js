@@ -2330,7 +2330,18 @@ function dibujarRecortado(im, sx, sy, sw, sh, cx, cy, lado) {
 }
 const hojaImg = ruta => { let im = BUQUE_IMG[ruta]; if (!im) { im = BUQUE_IMG[ruta] = new Image(); im.src = '../assets/' + ruta + '.png'; } return im.complete && im.naturalWidth ? im : null; };
 const buqueImg = (c, hoja) => { const n = hoja || 'buque_' + c; let im = BUQUE_IMG[n]; if (!im) { im = BUQUE_IMG[n] = new Image(); im.src = '../assets/world/enemies/' + n + '.png'; } return im.complete && im.naturalWidth ? im : null; };
+// LAS LAMINAS DE LAS CABINAS (27/11, data/album.js `foto`): una imagen grande de assets/ui/, recortada al centro
+const fotoImg = ruta => { let im = BUQUE_IMG[ruta]; if (!im) { im = BUQUE_IMG[ruta] = new Image(); im.src = '../assets/' + ruta; } return im.complete && im.naturalWidth ? im : null; };
+function dibujarFoto(im, x, y, w, h, cubrir) {
+  const iw = im.naturalWidth, ih = im.naturalHeight;
+  let sx = 0, sy = 0, sw = iw, sh = ih;
+  if (cubrir) { const k = Math.max(w / iw, h / ih); sw = w / k; sh = h / k; sx = (iw - sw) / 2; sy = (ih - sh) / 2; }
+  const suave = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = true;   // (una lamina grande achicada: sin dientes)
+  ctx.drawImage(im, sx, sy, sw, sh, Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+  ctx.imageSmoothingEnabled = suave;
+}
 function albumIcono(e, cx, cy, lado) {
+  if (e.foto) { const im = fotoImg(e.foto); if (im) dibujarFoto(im, cx - lado / 2, cy - lado / 2, lado, lado, true); return; }
   // LOS DIBUJOS DE VERDAD, nunca el icono del tablero agrandado: el buque horneado, la ilustracion del avion (tambien
   // la de la mision: el avion con que se volo) o el arte de una carta (los temas lo toman prestado con `arte`)
   if (e.sprite) {

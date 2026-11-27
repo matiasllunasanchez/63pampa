@@ -1978,7 +1978,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     /** El epilogo de la mision que se acaba de volar. */
     function irAlEpilogo() {
       // EL TUTORIAL no cuenta nada al final: la etapa queda tildada y se vuelve a su menu
-      if (libro && libro.tut) { libro.desde = 0; marcarEtapa(libro.k); pedirReintento(reintentarLibro, volverAlLibro); return; }   // (…con REINTENTAR, 23/11; terminada, se reintenta de cero)
+      if (libro && libro.tut) { libro.desde = 0; marcarEtapa(libro.k); if (tutorialHecho(TUTORIAL_ETAPAS.length)) albumDescubrir('cabina_a4'); pedirReintento(reintentarLibro, volverAlLibro); return; }   // (…con REINTENTAR, 23/11; terminada, se reintenta de cero)
       // EL LIBRO DE VUELO cuenta lo que pasó SIEMPRE, y lo que pasó es de la salida en curso — no
       // depende de que la corrida haya llegado a armar su recuento.
       if (libro && curMission() && curMission().epi) { initStory(curMission().epi); setState('epilogue'); return; }
@@ -2061,6 +2061,24 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       if (albumSeg[pl.key] >= ALBUM_AVION_S) albumDescubrir('avion:' + pl.key);
       if ((albumSegGuardo += dt) > 10) { albumSegGuardo = 0; try { localStorage.setItem(ALBUM_KEY + '_seg', JSON.stringify(albumSeg)); } catch (e) { } }
     }
+    // LAS CABINAS (27/11, el autor: "cuando matamos los primeros harriers (20 total) desbloqueamos la cabina [del Harrier]
+    // como estampita"; la del Skyhawk, "luego de pasar el tutorial"). Los Harrier se cuentan por corrida en `stats.harriers`
+    // (collision.js, caza.js, islas/harriers.js) y aca se acumulan entre partidas.
+    const ALBUM_HARRIERS = 20;
+    let albumHar = (() => { try { return +localStorage.getItem(ALBUM_KEY + '_harriers') || 0; } catch (e) { return 0; } })();
+    let albumHarPrev = 0;
+    function albumCabinas() {
+      if (sinRastro()) { albumHarPrev = stats.harriers; return; }
+      const h = stats.harriers || 0;
+      if (h > albumHarPrev && !albumVistos.has('cabina_harrier')) {
+        albumHar += h - albumHarPrev;
+        try { localStorage.setItem(ALBUM_KEY + '_harriers', String(albumHar)); } catch (e) { }
+        if (albumHar >= ALBUM_HARRIERS) albumDescubrir('cabina_harrier');
+      }
+      albumHarPrev = h;   // (al reiniciar la corrida vuelve a 0: se sigue contando desde ahi)
+    }
+    // (quien ya termino el tutorial antes de que existiera la estampita, la tiene igual)
+    if (tutorialHecho(TUTORIAL_ETAPAS.length)) albumDescubrir('cabina_a4');
     /** MISION COMPLETADA: el avion con que se volo, y en el libro de vuelo la salida y su buque. */
     function albumMisionCumplida() {
       const pl = PLANES[selPlane]; if (pl) albumDescubrir('avion:' + pl.key);
@@ -10794,6 +10812,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // altimetro (render/hud.js `avisoSostenido('alt', …)`). Para volver: descomentar la linea de abajo.
       // cartelSostenido('peligro', S.state === 'play' && run.scrapeVib > 0.6, T('scrape'), P.warn, { alerta: true, subCol: P.ink }, T('scrapeSub'));
       tickCarteles(now / 1000);   // los carteles del pasillo (core/cartel.js): reloj de pared
+      albumCabinas();   // (el ALBUM: la cabina del Sea Harrier, a los 20 Harrier bajados)
       // PAUSA: se saltea update() ENTERO (y el reloj del momentum, y el del telon) — el mundo
       // queda clavado tal cual se ve. draw() sigue corriendo: dibuja el frame congelado y el
       // menu encima. pauseT es el unico reloj vivo (parpadeos del overlay).

@@ -784,7 +784,7 @@ export function collisionSystem(dt) {
             : o.type === 'aa' || o.type === 'aatruck' ? 350 : o.type === 'manpad' ? 220 : o.type === 'radar' ? 300
             : o.type === 'tower' ? 300 : o.type === 'depot' ? 280 : o.type === 'flag' ? 120
             : o.type === 'bldg' ? 300 : o.type === 'lcu' ? 250 : 150;   // el AA es el blanco prioritario
-          run.score += pts; stats.air++;
+          run.score += pts; stats.air++; if (o.type === 'jet') stats.harriers++;
           sfxEn(air ? 'exMedium' : 'exXsmall', o.z);   // aeronaves: medium · blancos chicos: xsmall (cerca suena cerca)
           const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts);
           // D2: muere con SU receta. La bala ademas EMPUJA — poquito, pero hacia adelante: el
@@ -880,7 +880,7 @@ export function collisionSystem(dt) {
         // explosivo, enciende a los vecinos; vacio voltea lo que vuela y a lo demas lo deja tocado.
         if (pm.tanque) { pegaTanque(pm, o); pm.z = 9999; break; }
         const pts = (o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150) + 100;   // +bonus por misil
-        run.score += pts; stats.air++;
+        run.score += pts; stats.air++; if (o.type === 'jet') stats.harriers++;
         const s = proj(o.x, o.y, o.z); popup(s.x, s.y - 8, '+' + pts, P.accent);
         morir(o, { vz: 60, vy: 6 }, 0, 'misil');   // el misil irradia mas que la bala
 
@@ -947,7 +947,7 @@ export function collisionSystem(dt) {
           const oy = o.y != null ? o.y : (o.h || 0) / 2;
           if (oy - (o.h || 0) / 2 > sy + bi.radio) continue;          // lo que vuela alto no lo toca
           const pts = 150;
-          run.score += pts; stats.air++;
+          run.score += pts; stats.air++; if (o.type === 'jet') stats.harriers++;
           const s = proj(o.x, oy, o.z); popup(s.x, s.y - 8, '+' + pts, P.accent);
           morir(o, { vz: 20, vy: 10 }, 0, 'misil');
           o.z = -99; o.done = true; o.hp = 0;
@@ -974,7 +974,7 @@ function pegaTanque(pm, o) {
   const s = proj(o.x, o.y, o.z);
   if (g.mata) {
     const pts = (o.type === 'helo' ? 300 : o.type === 'jet' ? 250 : 150) + 100;
-    run.score += pts; stats.air++;
+    run.score += pts; stats.air++; if (o.type === 'jet') stats.harriers++;
     popup(s.x, s.y - 8, '+' + pts, P.accent);
     morir(o, { vz: 60, vy: 6 }, 0, 'misil');
     o.z = -99; o.done = true; o.hp = 0;
