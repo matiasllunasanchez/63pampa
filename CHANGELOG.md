@@ -16,7 +16,7 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
-## 0.6.1 — 27/11/2026
+## 0.6.1 — 27/11/2026 (Steam BuildID 26985670)
 
 - **Arreglo: el juego quedaba en gris al arrancar** si ya habías terminado el tutorial (lo rompía la estampita del Skyhawk de la 0.6.0).
 - **La nafta:** pedir gas con el tanque vacío avisa SIN NAFTA, y en las islas el tanque dura unos 5 minutos.
