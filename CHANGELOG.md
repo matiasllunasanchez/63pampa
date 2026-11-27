@@ -32,6 +32,7 @@ anterior y se sube el número que corresponde:
   - La mira del buque titila en vez del nombre, y lo que todavía no está listo se ve apagado en lugar de rojo.
 - **El chaff** al lanzarse hace una explosión física y suena.
 - **Los soldados argentinos:** rehechos más grandes, con dos poses nuevas: de guardia con el FAL y rodilla en tierra.
+- **El joystick en CONTROLES:** cada botón con su nombre (LT, RB, STICK R, CRUZ ▲…) delante de su acción.
 
 ## 0.5.0 — 27/11/2026 (Steam BuildID 26964631)
 
