@@ -247,8 +247,8 @@ const PUNTAS = [
   { n: 'L', px: 68, py: 374, al: 'izq', ac: ['Direccion'], l3: true, dy: -2.6 },   // stick izquierdo
   { n: '✚▲', px: 25, py: 446, al: 'izq', ac: ['Secund'], dy: 0.8 },            // cruceta ▲
   { n: '✚◄', px: 25, py: 485, al: 'izq', ac: ['Eyecta'], dy: 1.9 },            // cruceta ◄ (23/11: dos toques = eyeccion)
-  { n: 'BACK', px: 527, py: 45, al: 'arr', ac: ['Cam'], dx: -8 },                // BACK / SELECT (23/11: la camara)
-  { n: 'START', px: 733, py: 45, al: 'arr', ac: ['Pause'] },                      // START
+  { n: 'BACK', px: 527, py: 45, al: 'arr', ac: ['Cam'], dx: -14 },                // BACK / SELECT (23/11: la camara)
+  { n: 'START', px: 733, py: 45, al: 'arr', ac: ['Pause'], dx: 6 },                      // START
   { n: 'RT', px: 1138, py: 76, al: 'der', ac: ['Boost'] },                     // RT
   { n: 'RB', px: 1186, py: 158, al: 'der', ac: ['Tempo'] },                    // RB (23/11: momentum)
   { n: 'Y', px: 1176, py: 237, al: 'der', ac: ['Especial'] },                 // Y (23/11: el radar; el autor: "la Y seria ACTIVAR ESPECIAL (si tiene)")

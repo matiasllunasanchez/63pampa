@@ -9947,7 +9947,6 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       window.__chacall = () => { chUltimo = null; pedirChancha(); return JSON.stringify({ r: chUltimo, y: +plane.y.toFixed(1), techo: fases.techoRadar(RADAR_ALT), alc: rutaSys.hay() && rutaSys.enAlcance(), ...JSON.parse(window.__chadbg()) }); };
       // LA SUELTA (systems/blanco.js): el HUD calculado + el veredicto y el daño del buque.
       window.__suelta = () => JSON.stringify(Object.assign({ st: S.state, msl: run.msl, spd: Math.round(run.spd) }, blancoSys.hud() || {}, { res: blancoSys.estado().res, dano: blancoSys.estado().dano, extra: blancoSys.estado().extra, envion: blancoSys.envion(), hundido: blancoSys.estado().hundido, z: Math.round(blancoSys.estado().z), d: blancoSys.estado().z - PZ, pred: blancoSys.estado().pred, alt: plane.y, x: plane.x, vx: plane.vx, esc: blancoSys.escapando(), est: run.estrellas }));
-      window.__TMPmando = () => { ctx.fillStyle = '#05080a'; ctx.fillRect(0, 0, DW, DH); drawMando({ pad: true, t: 0, a: 1 }); return ctx.canvas.toDataURL(); };
       window.__chaput = (x, y) => { plane.x = +x; plane.y = +y; plane.vy = 0; return JSON.stringify({ x: plane.x, y: plane.y }); };
       // los otros dos gates, puestos desde afuera: el COMBUSTIBLE apagado (donde el poder no
       // existe) y la MISION posterior a la rotura del guion. Se escriben las CAUSAS —cfg.fuelOn y
