@@ -34,7 +34,9 @@ const ARO_R = 11;
 // (27/11, el autor: "que sentido tiene la caida si no cambia de color? deberia cambiar de color y titilar si la esta sosteniendo,
 // para avisarme que apriete"): el "pega" va en el AMARILLO de la mira (no verde) y la curva TITILA
 const VERDE = { linea: '#e8a33d', luz: [232, 163, 61], css: '232,163,61' };
-const ROJO = { luz: [255, 90, 60], css: '255,110,80' };
+// (27/11, el autor: "las partes rojas darle menos protagonismo, no tienen mucho sentido"): el "todavia no" ya no es rojo —un
+// gris claro y tenue—; lo unico con color es el AMARILLO de "ahora"
+const ROJO = { luz: [150, 165, 172], css: '170,184,190' };
 export function drawTrayectoria(tr, listo, verde) {
   enVerde = !!verde;
   if (!tr || !tr.pts.length) return;
@@ -98,7 +100,7 @@ function luzDeMira(pts, tr, a, listo) {
     const u = (d - largos[i - 1]) / Math.max(1e-6, largos[i] - largos[i - 1]);
     return { x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * u, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * u };
   };
-  const fuerza = listo ? 1 : 0.4;
+  const fuerza = (listo ? 1 : 0.4) * (enVerde ? 1 : 0.45);   // (27/11: el "todavia no", apagado)
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';

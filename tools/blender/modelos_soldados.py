@@ -80,7 +80,10 @@ def boina(padre, K, color, x, y, z=0.0):
 # sin barba, eran jovenes de 18"): a 100 m de la camara el casco es lo que dice quien es. Las isl_*_arg lo llevan
 # CASCO_ISLAS veces mas grande (el del pasillo queda como estaba).
 CASCO_ISLAS = 1.4
-CASCO_K = [1.0]
+# (27/11, rehorneo a 96 px: el del pasillo apenas mas grande que el de antes; con el de las islas el autor: "son
+# demasiado grandes esos cascos")
+CASCO_PASILLO = 1.0   # (27/11: "achica un poco mas")
+CASCO_K = [CASCO_PASILLO]
 
 def casco_m1(padre, m, x, y, z=0.0):
     """EL CASCO M1 del conscripto (rehecho 4/10 con la foto del autor: "es horrible el casco, hace un
@@ -89,7 +92,7 @@ def casco_m1(padre, m, x, y, z=0.0):
     que lo rodea y los dos vidrios redondos al frente (-x, hacia donde mira). Le queda GRANDE: baja
     hasta las cejas y sobresale de la cabeza."""
     k = CASCO_K[0]
-    y = y + 0.06 * (k - 1)   # (el grande sube un poco: sigue bajando hasta las cejas, no tapa la cara)
+    y = y + 0.10 * (k - 1)   # (el grande sube un poco: sigue bajando hasta las cejas, no tapa la cara)
     cupula = [(-0.105, 0.232, 0.240), (-0.090, 0.222, 0.230), (-0.060, 0.210, 0.216), (-0.010, 0.206, 0.210),
               (0.050, 0.195, 0.198), (0.100, 0.165, 0.168), (0.140, 0.115, 0.118), (0.165, 0.055, 0.056), (0.172, 0.012, 0.012)]
     TI.columna('casco', padre, m['HELM'], x, z, [(y + dy * k, w * k, d * k) for dy, w, d in cupula], expo=2.0)
@@ -101,10 +104,17 @@ def casco_m1(padre, m, x, y, z=0.0):
         elipsoide('marco', (x - 0.205 * k, y - 0.010 * k, z + dz * k), (0.03 * k, 0.058 * k, 0.058 * k), padre, m['BANDA'], seg=12, anillos=6)
         elipsoide('antiparra', (x - 0.222 * k, y - 0.010 * k, z + dz * k), (0.022 * k, 0.045 * k, 0.045 * k), padre, m['ANTIPARRA'], seg=12, anillos=6)
 
+# LA CABEZA DEL CONSCRIPTO (27/11, el autor: "creo que quiza el tema es la cabeza"): con la de siempre el casco la
+# tapaba entera y la cara quedaba en una rayita marron. Un poco mas grande, el cuello mas largo y el casco montado mas
+# arriba: se ve la cara de un pibe bajo el ala.
+CABEZA_ARG = dict(k=1.18, cuello=0.03, casco=0.035)
+
 def _cabeza(padre, m, y, x=0.0, K=None, color='verde'):
-    elipsoide('cuello', (x - 0.01, y + 0.09, 0), (0.06, 0.06, 0.07), padre, m['SKIN'], seg=8, anillos=6)
-    elipsoide('cabeza', (x - 0.02, y + 0.23, 0), (0.11, 0.12, 0.10), padre, m['SKIN'], seg=12, anillos=8)
-    if color == 'casco': casco_m1(padre, m, x - 0.01, y + 0.31)
+    c = CABEZA_ARG if color == 'casco' else dict(k=1.0, cuello=0.0, casco=0.0)
+    k, y = c['k'], y + c['cuello']
+    elipsoide('cuello', (x - 0.01, y + 0.09 - c['cuello'] / 2, 0), (0.06, 0.06 + c['cuello'] / 2, 0.07), padre, m['SKIN'], seg=8, anillos=6)
+    elipsoide('cabeza', (x - 0.02, y + 0.23, 0), (0.11 * k, 0.12 * k, 0.10 * k), padre, m['SKIN'], seg=12, anillos=8)
+    if color == 'casco': casco_m1(padre, m, x - 0.01, y + 0.31 + c['casco'])
     else: boina(padre, K, color, x - 0.01, y + 0.33)
 
 # MIEMBROS LEGIBLES (9/10, el autor: "los soldados se ven horribles, no parecen soldados"): con los
@@ -152,7 +162,7 @@ def soldado_corre(T, K, paso='0', bergen='0', bando='brit'):
     # el FUSIL cruzado al pecho
     d = Vector((-math.sin(0.55), math.cos(0.55), 0)) * 0.31
     o = Vector((-0.18, yc - 0.26, -ANCHO * 0.30))
-    hueso('fusil', tr, m['GUN'], tuple(o - d), tuple(o + d), 0.035, 0.03, seg=6)
+    fal(tr, m, o - d * 1.15, o + d * 1.15)
     for lado in (-1, 1):                                                       # las piernas, el paso
         a = -s * 0.62 * lado
         flex = 0.15 + 0.9 * max(0.0, c * lado)
@@ -162,6 +172,95 @@ def soldado_corre(T, K, paso='0', bergen='0', bando='brit'):
         pie, R2 = miembro(g, m['UD'], rod, R, 0, flex, PIERNA, 0.07 * f * LEGIBLE, 0.055 * f * LEGIBLE)
         b = pieza('bota', g, m['BOOT'], (0.21, 0.10, 0.13), tuple(pie + Vector((-0.04, -0.02, 0))))
         b.rotation_euler = (0, 0, math.atan2(R2[1][0], R2[0][0]))
+    return g
+
+def fal(padre, m, culata, boca):
+    """EL FAL (27/11, rehorneo a 96 px): a 48 px el fusil era un hilo de 1 px y no se veia. Ahora con LEGIBLE: el
+    cuerpo grueso, la culata mas ancha atras, el cargador colgando y el caño fino adelante."""
+    a, b = Vector(culata), Vector(boca)
+    d = b - a
+    hueso('culata', padre, m['GUN'], tuple(a), tuple(a + d * 0.28), 0.055, 0.045, seg=6)
+    hueso('fusil', padre, m['GUN'], tuple(a + d * 0.26), tuple(a + d * 0.72), 0.045, 0.04, seg=6)
+    hueso('cano', padre, m['GUN'], tuple(a + d * 0.70), tuple(b), 0.022, 0.02, seg=6)
+    # el cargador: perpendicular al fusil, hacia "abajo" del arma
+    n = Vector((d.y, -d.x, 0)); n = n.normalized() if n.length > 1e-6 else Vector((0, -1, 0))
+    if n.y > 0: n = -n
+    c = a + d * 0.52
+    hueso('cargador', padre, m['GUN'], tuple(c), tuple(c + n * 0.13), 0.035, 0.03, seg=6)
+
+def _cuerpo_parado(bando):
+    """Los grosores de las poses de pie (guardia y rodilla): los mismos que la carrera."""
+    f = 0.80 if bando == 'arg' else 1.12
+    ft = 0.98 if bando == 'arg' else 1.12
+    yc = Y_HOMBRO - Y_CADERA
+    return f, ft, yc
+
+def _torso(tr, m, K, bando, f, ft, yc):
+    elipsoide('torso', (0.0, yc / 2 - 0.02, 0), (0.17 * ft, yc / 2 + 0.10, ANCHO / 2 * ft), tr, m['U'], seg=14, anillos=10)
+    if bando == 'arg':
+        elipsoide('capucha', (0.10, yc + 0.02, 0), (0.10, 0.08, 0.15), tr, m['U'], seg=10, anillos=6)
+    zp = ANCHO / 2 * ft + 0.012
+    if bando == 'arg':
+        for k, col in enumerate(('#7fb2d8', '#e8eef0', '#7fb2d8')):
+            pieza('bandera', tr, K['mat_cel']('bandera%d' % k, col), (0.11, 0.035, 0.02), (0.0, yc - 0.06 - 0.035 * k, zp))
+    else:
+        pieza('bandera', tr, K['mat_cel']('union_azul', '#2d4a8a'), (0.12, 0.09, 0.02), (0.0, yc - 0.10, zp))
+        pieza('bandera', tr, K['mat_cel']('union_roja', '#c4302a'), (0.12, 0.03, 0.025), (0.0, yc - 0.10, zp))
+        pieza('bandera', tr, K['mat_cel']('union_roja', '#c4302a'), (0.035, 0.09, 0.025), (0.0, yc - 0.10, zp))
+    elipsoide('cinto', (0.0, yc - 0.30, 0), (0.18 * ft, 0.05, (ANCHO / 2 + 0.01) * ft), tr, m['GEAR'], seg=12, anillos=6)
+    if bando != 'arg':
+        elipsoide('bufanda', (-0.02, yc + 0.04, 0), (0.12, 0.06, 0.13), tr, K['mat_cel']('bufanda', '#2e2b22'), seg=12, anillos=6)
+    bloque('mochila', tr, m['GEAR'], (0.21 * f, yc - 0.16, 0), (0.17 * f, 0.32 * f, ANCHO * 0.74 * f), bisel=0.04)
+    _cabeza(tr, m, yc, K=K, color='casco' if bando == 'arg' else 'verde')
+
+def _bota(g, m, pie, R2):
+    b = pieza('bota', g, m['BOOT'], (0.21, 0.10, 0.13), tuple(pie + Vector((-0.04, -0.02, 0))))
+    b.rotation_euler = (0, 0, math.atan2(R2[1][0], R2[0][0]))
+
+def soldado_guardia(T, K, bando='brit'):
+    """DE GUARDIA (27/11, la base del despegue: "darle vida"): parado derecho, el FAL al frente en diagonal (la
+    posicion de "arma al pecho"), las dos manos en el arma y las piernas apenas abiertas."""
+    g = vacio(T, 'guardia', escala=ESC_ARG if bando == 'arg' else 1.0); m = _mats(K, bando)
+    f, ft, yc = _cuerpo_parado(bando)
+    tr = vacio(g, 'tronco', (0, Y_CADERA, 0), (0, 0, 0.03))
+    _torso(tr, m, K, bando, f, ft, yc)
+    # el FAL al pecho: la culata abajo a la cadera de atras, la boca arriba adelante
+    fal(tr, m, Vector((-0.15, yc - 0.79, -ANCHO * 0.36)), Vector((-0.55, yc + 0.01, -ANCHO * 0.36)))
+    for lado in (-1, 1):
+        zH = lado * ANCHO * 0.42
+        tono = m['UL'] if lado < 0 else m['U']
+        # los brazos doblados hacia el arma: el de adelante sube, el de atras baja a la empuñadura
+        codo, R = miembro(tr, tono, (0, yc - 0.02, zH * f), Matrix.Identity(3), 0, -0.20 if lado > 0 else -0.05, BRAZO, 0.065 * f * LEGIBLE, 0.055 * f * LEGIBLE)
+        miembro(tr, tono, codo, R, 0, -1.0 if lado > 0 else -0.85, ANTEBRAZO, 0.055 * f * LEGIBLE, 0.045 * f * LEGIBLE)
+    for lado in (-1, 1):
+        rod, R = miembro(g, m['UD'], (0, Y_CADERA, lado * ANCHO * 0.24 * f), Matrix.Identity(3), 0, 0.06 * lado, MUSLO, 0.085 * f * LEGIBLE, 0.07 * f * LEGIBLE)
+        pie, R2 = miembro(g, m['UD'], rod, R, 0, 0.02, PIERNA, 0.07 * f * LEGIBLE, 0.055 * f * LEGIBLE)
+        _bota(g, m, pie, R2)
+    return g
+
+def soldado_rodilla(T, K, bando='brit'):
+    """RODILLA EN TIERRA (27/11): la rodilla de atras al piso, el pie de adelante plantado, el torso erguido y el FAL
+    apuntando hacia afuera (-x), a la altura del hombro. Es la pose de un puesto, mirando el horizonte."""
+    g = vacio(T, 'rodilla', escala=ESC_ARG if bando == 'arg' else 1.0); m = _mats(K, bando)
+    f, ft, yc = _cuerpo_parado(bando)
+    YC = 0.60                                   # la cadera, arrodillado
+    tr = vacio(g, 'tronco', (0, YC, 0), (0, 0, 0.10))
+    _torso(tr, m, K, bando, f, ft, yc)
+    # el FAL al hombro, apuntando afuera
+    fal(tr, m, Vector((0.10, yc - 0.06, -ANCHO * 0.30)), Vector((-0.86, yc + 0.02, -ANCHO * 0.30)))
+    for lado in (-1, 1):
+        zH = lado * ANCHO * 0.42
+        tono = m['UL'] if lado < 0 else m['U']
+        codo, R = miembro(tr, tono, (0, yc - 0.02, zH * f), Matrix.Identity(3), 0, -1.05 if lado > 0 else -0.70, BRAZO, 0.065 * f * LEGIBLE, 0.055 * f * LEGIBLE)
+        miembro(tr, tono, codo, R, 0, -0.45 if lado > 0 else -0.75, ANTEBRAZO, 0.055 * f * LEGIBLE, 0.045 * f * LEGIBLE)
+    # la pierna de ADELANTE (-x): el muslo horizontal hacia adelante, la canilla vertical al piso
+    rod, R = miembro(g, m['UD'], (0, YC, -ANCHO * 0.24 * f), Matrix.Identity(3), 0, -1.45, MUSLO, 0.085 * f * LEGIBLE, 0.07 * f * LEGIBLE)
+    pie, R2 = miembro(g, m['UD'], rod, R, 0, 1.45, PIERNA, 0.07 * f * LEGIBLE, 0.055 * f * LEGIBLE)
+    _bota(g, m, pie, R2)
+    # la de ATRAS: el muslo hacia abajo a la rodilla en el piso, la canilla atras en el suelo
+    rod, R = miembro(g, m['UD'], (0, YC, ANCHO * 0.24 * f), Matrix.Identity(3), 0, 0.12, MUSLO, 0.085 * f * LEGIBLE, 0.07 * f * LEGIBLE)
+    pie, R2 = miembro(g, m['UD'], rod, R, 0, 1.45, PIERNA, 0.07 * f * LEGIBLE, 0.055 * f * LEGIBLE)
+    _bota(g, m, pie, R2)
     return g
 
 def soldado_tierra(T, K, bergen='0', bando='brit'):
@@ -177,7 +276,7 @@ def soldado_tierra(T, K, bergen='0', bando='brit'):
     elipsoide('cabeza', (-LARGO / 2 + 0.06, Y + 0.17, 0), (0.11, 0.10, 0.10), g, m['SKIN'], seg=12, anillos=8)
     if bando == 'arg': casco_m1(g, m, -LARGO / 2 + 0.03, Y + 0.27)
     else: boina(g, K, 'bordo' if bergen else 'verde', -LARGO / 2 + 0.03, Y + 0.27)
-    hueso('fusil', g, m['GUN'], (-LARGO / 2 - 0.15, Y + 0.06, -ANCHO * 0.3), (-LARGO / 2 + 0.35, Y + 0.06, -ANCHO * 0.3), 0.03, 0.03, seg=6)
+    fal(g, m, Vector((-LARGO / 2 + 0.45, Y + 0.06, -ANCHO * 0.3)), Vector((-LARGO / 2 - 0.45, Y + 0.10, -ANCHO * 0.3)))
     return g
 
 # ============================ LA EYECCION ============================
@@ -289,7 +388,7 @@ def _casco_islas(f):
     def h(T, K):
         CASCO_K[0] = CASCO_ISLAS
         try: return f(T, K)
-        finally: CASCO_K[0] = 1.0
+        finally: CASCO_K[0] = CASCO_PASILLO
     return h
 for _b in ('brit', 'arg'):
     for _p in ('0', '2', '4'):

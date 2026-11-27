@@ -45,7 +45,7 @@ export function cartel(txt, col, sub, o) {
   const ya = v.find(x => x.txt === txt && x.sub === (sub || null) && !x.id);
   if (ya) { ya.t0 = -1; return; }
   // (`o.ico`: un icono a la izquierda del texto — 'engranaje', 23/11 la escuadrilla con fallas)
-  v.unshift({ txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null, glifos: (o && o.glifos) || null, ico: (o && o.ico) || null, t0: -1, id: null, y: null });
+  v.unshift({ txt, col: col || null, sub: sub || null, alerta: !!(o && o.alerta), subCol: (o && o.subCol) || null, glifos: (o && o.glifos) || null, ico: (o && o.ico) || null, okF: o && o.okF != null ? o.okF : null, t0: -1, id: null, y: null });   // (`okF`: con el CHECK de cumplido, 27/11)
   recortar(v);
 }
 

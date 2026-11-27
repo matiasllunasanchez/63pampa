@@ -1657,6 +1657,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
      *  de la maquina de fideos: abre el freno —se pierde velocidad, el precio de MEJORAS_PICHON §1—,
      *  deja una nube de aluminio que se lleva a los misiles de radar que vienen, y si te estaban
      *  viendo, bajar del radar enseguida borra las alarmas (el orquestador lo cierra en update). */
+    const CHAF_ATRAS = 4;   // a cuantas unidades detras del avion (hacia la camara) revienta el cartucho
     function chapitasAccion() {
       if (S.state !== 'play' || cfg.devcam) return;
       const visto = run.detection > 0.001 || run.estrellas > 0 || run.radarVisto;
@@ -1673,8 +1674,14 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         for (let i = 0; i < 14; i++) { const an = Math.random() * 6.283, v = 20 + Math.random() * 50;
           parts.push({ x: sc.x, y: sc.y, vx: Math.cos(an) * v, vy: Math.sin(an) * v * 0.6 + 10, life: 0.35 + Math.random() * 0.3,
             c: Math.random() < 0.5 ? '#9aa4a8' : '#d9dfe2', r: Math.max(1, sc.k * 0.25) }); } }
-      beep(1300, 0.05, 'square', 0.04, 600); setTimeout(() => beep(1500, 0.05, 'square', 0.035, 700), 70);
-      run.shake = Math.max(run.shake, 1.2);
+      // (27/11, el autor: "el chaff cuando se lanza debe hacer una explosion fisica y sonido igual que cuando explota el
+      // misil o el avion, pero detras del avion a unos metros"; "hoy hace ruido de arena o gas"): la bola de fuego y las
+      // chispas de explodeAt unos metros atras y abajo, con la explosion pesada de verdad en vez de los dos pitidos
+      explodeAt(plane.x, plane.y - 0.4, PZ - CHAF_ATRAS, false, true, true);
+      // la bola PIXEL del derribo (crashFX), mas chica: la que revienta con huecos, no la hoja frontal que taparia el avion
+      obstacles.push({ type: 'airboom', pix: true, x: plane.x, y: plane.y - 0.4, z: PZ - CHAF_ATRAS, boomT: 0, scale: 0.4, done: true, vz: 0, vy2: 0, ph: Math.random() * 6 });
+      sfxOne('exHeavy', 0.7, true); setTimeout(() => sfxOne('exHeavyDist', 0.5, true), 250);
+      run.shake = Math.max(run.shake, 2.5);
       cartel(T('chapitas_fuera'), P.accent, r.length ? T('chapitas_toman', { n: r.length })
         : visto ? T('chapitas_baja') : T('chapitas_quedan', { n: run.chapitas }));
     }
@@ -2949,6 +2956,11 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
      *  donde moriste"): el paso desde el que se retoma — ya en el aire, sin repetir el despegue ni lo anterior. */
     function abrirTutorial(k, desde = 0) {
       if (!TUTORIAL_ETAPAS[k]) return;
+      // (27/11, el autor: "mori en el escape y al reiniciar no hay enemigos"): lo que viene DESPUES de la suelta (el escape, la
+      // nafta, la Chancha) necesita el buque hundido y la fase de escape; la corrida nueva arranca sin eso. Se retoma desde el
+      // paso del buque, que ya arranca cerca (ver mas abajo)
+      { const ps = TUTORIAL_ETAPAS[k].pasos || [], kb = ps.findIndex(p => p.cuando && p.cuando.faltan != null);
+        if (kb >= 0 && desde > kb) desde = kb; }
       libro = { k, av: null, tut: true, desde };
       gameMode = 'cycle'; S.test = false;
       // LA ETAPA 4 (20/11) se vuela sobre LAS ISLAS; las otras, en el pasillo (y apagan las islas que hubiera dejado PRUEBAS)
@@ -2961,6 +2973,10 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       if (desde > 0) cfg.start = 'air';
       libroAvSel = 0;
       libroDespegar();
+      // (27/11, el autor: "mori en la etapa de la pasada, y al reintentar tardo muchisimo hasta que el tutorial me dijo que
+      // hacer"): si el paso donde se retoma espera el buque (`cuando.faltan`), se arranca casi ahi — no a 9 km de vuelo vacio
+      { const pd = (TUTORIAL_ETAPAS[k].pasos || [])[desde], q = pd && pd.cuando;
+        if (desde > 0 && q && q.faltan != null && objectiveDist > 0) run.dist = Math.max(run.dist, objectiveDist * (1 - q.faltan) - 250); }
       // LA ETAPA 4 SALE DE PUERTO ARGENTINO SIN SECUENCIA (25/11): ya en el aire, a la altura de salida sobre la cabecera de
       // la BAM MALVINAS y con el tren abajo, que se guarda solo — como si recien hubiera levantado. Ahi reaparece tambien
       if (TUTORIAL_ETAPAS[k].desdePuerto && cfg.start === 'air') {
@@ -4931,7 +4947,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // (25/11) al reintentar despues de morir, desde el paso donde se cayo — y con lo que los pasos de antes ya prendieron
       const tutDesde = libro && libro.tut ? libro.desde || 0 : 0;
       if (tutDesde) for (const p of libroDef().pasos.slice(0, tutDesde)) if (p.poderes) cfg.poderes = true;
-      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null, tutDesde); tutNaftaPrev = null; tutPasados = 0; tutRotos = 0; tutEsquivados = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false; tutGolpes = 0; tutRoceT = 0;
+      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null, tutDesde); tutNaftaPrev = null; tutChanchaOK = false; tutPasados = 0; tutRotos = 0; tutEsquivados = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false; tutGolpes = 0; tutRoceT = 0;
       // (…y LOS MODOS SUELTOS igual — 23/11, el autor: "en POR LA PATRIA aparece Puma hablando, no deberia": ahi no
       // vuela nadie de la campaña; lo que gritaba Puma lo dice el que vuela detras, PATRIA 2, 3…)
       setVozLibro((libro && libro.av !== null && !libro.tut) || suelto() ? {
@@ -6633,8 +6649,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     // EL TUTORIAL (26/11): que lo mata y como golpea lo demas (ver onDeath)
     const TUT_MACIZO = /^death_(sea|land|cliff|pared|mast|buque|ship|palos|tree|bldg|depot|radar|aagun|lcu|tower)$/;
     const TUT_GOLPE = { golpe: 25, piso: 25, gracia: 1.2 };
-    const TUT_NAFTA_PISO = 60, TUT_NAFTA_RESERVA = 6, TUT_NAFTA_SEG = 1;   // (SEG: % por segundo que baja en el tutorial)
-    let tutNaftaPrev = null;   // % de tanque que el tutorial sostiene hasta el paso de la nafta (tutSys.naftaPendiente)
+    const TUT_NAFTA_PISO = 60, TUT_NAFTA_RESERVA = 5, TUT_NAFTA_MITAD = 50, TUT_NAFTA_SEG = 1, TUT_NAFTA_TURBO = 0.5;   // (SEG: % por segundo que baja en el tutorial)
+    let tutNaftaPrev = null, tutChanchaOK = false;   // % de tanque que el tutorial sostiene hasta el paso de la nafta (tutSys.naftaPendiente)
     const TUT_RAFAGA = 7;   // m/s de costado que empuja la rafaga de un globo con viento (sembrarPractica `viento`)
     function aguantarGolpe(sm, cause) {
       run.scrapeT = 0;
@@ -6778,9 +6794,23 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // LA NAFTA BAJA EN TODO EL TUTORIAL, MUY LENTO (27/11, el autor: "que la gasolina descienda en todo el tutorial pero
       // MUY MUY LENTO, quiza 1% por segundo"): lo que el vuelo gaste de mas se devuelve —y si no gasta nada (etapas sin
       // COMBUSTIBLE), baja igual—; lo que SUBE (la Chancha) no se toca
-      if (tutNaftaPrev != null && run.fuel <= tutNaftaPrev && S.state === 'play') run.fuel = Math.max(0, tutNaftaPrev - TUT_NAFTA_SEG * dt);
-      const pisoN = tutSys.naftaPendiente() ? TUT_NAFTA_PISO : TUT_NAFTA_RESERVA;
-      if (run.fuel < pisoN) run.fuel = pisoN;
+      // (27/11, el autor: "la Chancha llego al final y NO pude recargar… esperar a la Chancha para seguir el dialogo y
+      // finalizar"): la carga cuenta cuando estuviste ENGANCHADO y el tanque volvio a llenarse
+      if (chancha.conectado() && run.fuel >= 85) tutChanchaOK = true;
+      const naftaTut = !(curMission() && curMission().islas);   // (27/11: en LAS ISLAS la nafta y la Chancha son las del juego)
+      // (27/11, el autor: "la nafta luego de escapar, que en el tutorial baje normal con un limite de 5%, asi justificamos que
+      // este en rojo y que llamemos a la Chancha"): pasada la leccion de la nafta, gasta como en el juego (sin freno)
+      const naftaLibre = tutSys.ensenaNafta() && !tutSys.naftaPendiente();
+      if (naftaTut && !naftaLibre && tutNaftaPrev != null && run.fuel <= tutNaftaPrev && S.state === 'play') run.fuel = Math.max(0, tutNaftaPrev - (tutSys.ensenaNafta() ? TUT_NAFTA_SEG
+        // (27/11, el autor: "que solo gaste nafta en poscombustion y despues baje MUY MUY MUY lento, 1% por minuto, en etapa 1 y 2")
+        : run.boost ? TUT_NAFTA_TURBO : 1 / 60) * dt);
+      // (27/11, el autor: "la nafta debe tener un limite maximo de gasto en el tutorial 1… que no tenga que reiniciar todo si
+      // falla ahi"): en las etapas que NO enseñan la nafta, no baja de la mitad; en la 3, el piso de siempre
+      const pisoN = !tutSys.ensenaNafta() ? TUT_NAFTA_MITAD : tutSys.naftaPendiente() ? TUT_NAFTA_PISO : TUT_NAFTA_RESERVA;
+      if (naftaTut && run.fuel < pisoN) run.fuel = pisoN;
+      // (27/11, el autor: "en etapa 1 nunca recargamos con la Chancha, por ende NUNCA deberia bajar nafta"): en las etapas
+      // que no enseñan la nafta (sin Chancha), el tanque queda lleno
+
       tutNaftaPrev = run.fuel;
       // (…y el que llega ANTES de la charla, `misilPrimero`: sale apenas el paso empieza a esperar)
       const ma = tutSys.misilAntes();
@@ -6800,7 +6830,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         pasados: tutPasados, rotos: tutRotos, esquivados: tutEsquivados, misEsq: run.misEsq || {}, overheat: !!run.overheat, enVuelo: S.state === 'play',
         mv: run.mv || null, bombasVuelo: pmissiles.filter(p => !p.tanque).length, climaxHecho: !!run.climaxHecho, termina: tutTermina, pego: blancoSys.alarma() || !!run.climaxHecho,
         faltan: objectiveDist > 0 ? (objectiveDist - run.dist) / objectiveDist : 1, aterrizando: S.state === 'landing', tren: landDown, aterrizo: tutAterrizo,
-        pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), momentumLleno: !tempo.active() && tempo.meterVal() >= 1, chancha: chancha.enCurso(),
+        pausado: paused, secundaria: run.secundaria, momentum: tempo.active(), momentumLleno: !tempo.active() && tempo.meterVal() >= 1, chancha: tutChanchaOK,   /* (27/11: el paso se cumple con la carga HECHA, no al llamarla — "esperar a la chancha para seguir") */
         aguante: run.aguante === 1, aguN: run.aguN | 0, rasante: rasante.active(), sal: run.sal || 0, hielo: run.hielo || 0, temp: run.temp,
         chafitas: chapitasSys.nubesEnElAire().length > 0,
         marca: islas.marcado(), objIslas: !!islas.objetivoDe() && !islas.objetivoDe().vivo,
@@ -6845,7 +6875,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       else if (a.tipo === 'fin') {
         decirLn(a.linea);
         cfg.obstacles = 0;
-        cartel(T('tutEtapaOk'), P.accent);
+        // (27/11, el autor: "etapa completa, convertir a verde con check como el resto de las cosas que suceden en el tutorial")
+        cartel(T('tutEtapaOk'), '#8fd16a', null, { okF: 0 });
         tutFinT = 4;
       }
     }
@@ -9543,7 +9574,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         // tablero: con la caja arriba va justo encima de la fila de relojes; con la caja abajo, arriba de todo)
         // LA BOMBA EN GRANDE (27/11): el stick derecho (o la ↓ y ENTER) mientras explican la suelta
         if (lecFoco && lecFoco.demo === 'bomba') { const y0 = arriba ? DH - 36 - 58 : 30; ctx.fillStyle = '#05080ad0'; ctx.fillRect(0, y0, DW, 52); drawDemoBomba({ t: performance.now() / 1000, a: Math.min(1, dlgT / 0.3), y0, pad: padActivo() }); }
-        if (lecFoco && lecFoco.demo === 'rasante') { const y0 = arriba ? DH - 36 - 58 : 8; ctx.fillStyle = '#05080ad0'; ctx.fillRect(0, y0, DW, 50); drawDemoRasante({ t: performance.now() / 1000, a: Math.min(1, dlgT / 0.3), y0 }); }
+        if (lecFoco && lecFoco.demo === 'rasante') { const y0 = arriba ? DH - 36 - 58 : 8; ctx.fillStyle = '#05080ad0'; ctx.fillRect(0, y0, DW, 50); drawDemoRasante({ t: performance.now() / 1000, a: Math.min(1, dlgT / 0.3), y0, pad: padActivo(), foco: tutSys.lineaIntro() }); }
         const caja = screens.cajaVN({
           personaje: radioBox.personaje, cara: radioBox.cara, wrap: radioBox.wrap,
           ease: radioBox.ease, cursor: dlgT > DLG_GRACIA && dlgTyped === Infinity, parpadeo: dlgT, barra: null, arriba, continuar: true,
@@ -9916,6 +9947,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       window.__chacall = () => { chUltimo = null; pedirChancha(); return JSON.stringify({ r: chUltimo, y: +plane.y.toFixed(1), techo: fases.techoRadar(RADAR_ALT), alc: rutaSys.hay() && rutaSys.enAlcance(), ...JSON.parse(window.__chadbg()) }); };
       // LA SUELTA (systems/blanco.js): el HUD calculado + el veredicto y el daño del buque.
       window.__suelta = () => JSON.stringify(Object.assign({ st: S.state, msl: run.msl, spd: Math.round(run.spd) }, blancoSys.hud() || {}, { res: blancoSys.estado().res, dano: blancoSys.estado().dano, extra: blancoSys.estado().extra, envion: blancoSys.envion(), hundido: blancoSys.estado().hundido, z: Math.round(blancoSys.estado().z), d: blancoSys.estado().z - PZ, pred: blancoSys.estado().pred, alt: plane.y, x: plane.x, vx: plane.vx, esc: blancoSys.escapando(), est: run.estrellas }));
+      window.__TMPmando = () => { ctx.fillStyle = '#05080a'; ctx.fillRect(0, 0, DW, DH); drawMando({ pad: true, t: 0, a: 1 }); return ctx.canvas.toDataURL(); };
       window.__chaput = (x, y) => { plane.x = +x; plane.y = +y; plane.vy = 0; return JSON.stringify({ x: plane.x, y: plane.y }); };
       // los otros dos gates, puestos desde afuera: el COMBUSTIBLE apagado (donde el poder no
       // existe) y la MISION posterior a la rotura del guion. Se escriben las CAUSAS —cfg.fuelOn y

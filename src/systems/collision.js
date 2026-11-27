@@ -42,7 +42,7 @@ import { cartel } from '../core/cartel.js';
 import { scrapeLimit } from '../core/physics.js';
 // y la ALTURA se evalua contra el mismo bulto que dibuja el mar: una sola fuente de verdad
 import { olaBump } from '../core/sea.js';
-import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct } from '../core/hitbox.js';
+import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, isSoftStruct, globoToca } from '../core/hitbox.js';
 import { mvTight } from '../data/moves.js';
 // EL SIDEWINDER (30/9/2026): la cuenta de su vuelo, pura, y la voz de Puma que avisa cuando quebrar
 import { lanzarFrente, pasoAim9, quiebreGrupal } from '../core/aim9.js';
@@ -279,7 +279,9 @@ export function collisionSystem(dt) {
         });
       }
     }
-    if (!o.done && o.z <= PZ + 1.5) {
+    // (el GLOBO se decide a la profundidad del avion y no 1,5 adelante: un poco mas lejos se ve un poco corrido hacia el
+    // centro, y lo que se compara tiene que ser lo que se ve al cruzarlo — 27/11)
+    if (!o.done && o.z <= PZ + (o.type === 'balloon' ? 0 : 1.5)) {
       o.done = true;
       if (o.type === 'jet') run.jets++;
       // --- especiales sin colision dura ---
@@ -372,7 +374,7 @@ export function collisionSystem(dt) {
           const s = proj(o.x, o.y, PZ); popup(s.x, s.y, T('pickFuel'), P.foam);
           beep(700, 0.1, 'triangle', 0.05, 1000); o.z = -99;
         }
-      } else if ((dx < 0 && dy < 0) || hullHit) {
+      } else if (o.type === 'balloon' ? globoToca(o, run.t, plane.x, plane.y, pw, ph2) : (dx < 0 && dy < 0) || hullHit) {
         if (isSoftStruct(o) && o.type !== 'tent') {
           // COSA CHICA (nido de ametralladoras, antiaereo de campaña...): del tamaño de un
           // soldado, asi que la choca y sigue. Golpea fuerte pero no derriba — ver SOFT_H.

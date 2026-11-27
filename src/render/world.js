@@ -42,7 +42,7 @@ import { NOCHE } from '../data/noche.js';
 import { formationSlots, puestoFormacion } from '../core/squad.js';
 import { PLANE_SCALE } from './plane.js';
 import { SHIP_CLASS } from '../data/ships.js';
-import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER } from '../core/hitbox.js';
+import { hitbox, planeBox, hullReach, HULL_Y, SOLDIER, globoY } from '../core/hitbox.js';
 import { inBank, fogVis, fogTop, fogFade, alfaCielo } from '../systems/fog.js';
 import { mvTight } from '../data/moves.js';
 import * as boomArt from './boom.js';
@@ -514,7 +514,8 @@ function drawBaseVeg(dv) {
       // trotando en el lugar de la celda, de un lado a otro (va y viene: nunca aparece de la nada).
       if (h1 > 0.972 && Math.abs(wx) < R.hw + 30 && soldierArt.isReady()) {
         const dir = wx < 0 ? -1 : 1;
-        if (h2 < 0.7) soldierArt.drawArgentino(ctx, s.x, s.y, s.k, 0, dir, true);
+        // (27/11, la hoja a 96 px con dos poses quietas): tendidos, de GUARDIA con el FAL y RODILLA EN TIERRA apuntando
+        if (h2 < 0.7) soldierArt.drawArgentino(ctx, s.x, s.y, s.k, 0, dir, h2 < 0.32 ? true : h2 < 0.52 ? 'guardia' : 'rodilla');
         else {
           const T = 6 + h3 * 4, f = ((run.t + h2 * 40) % (2 * T)) / T, ida = f < 1;
           const u = ida ? f : 2 - f, ox = (u - 0.5) * SP * 1.6;
@@ -2330,7 +2331,7 @@ function dibujarObstaculo(o) {
     ctx.globalAlpha = 1;
     px(base.x - 0.35 * k, ly - 0.35 * k, Math.max(1, 0.7 * k), Math.max(1, 0.7 * k), lit > 0.7 ? '#ffd3c4' : P.warn);
   } else if (o.type === 'balloon') {
-    const oy = o.y + Math.sin(run.t * 1.3 + o.ph) * 0.6;
+    const oy = globoY(o, run.t);   // (core/hitbox.js: la misma altura con la que se choca)
     // el cable queda ANCLADO en xa mientras el globo se pasea (cfg.enemyMove): el globo se
     // INCLINA sobre su cable — el paseo se lee como viento, no como un globo que flota suelto
     const s = proj(o.x, oy, o.z), base = proj(o.xa !== undefined ? o.xa : o.x, 0, o.z);

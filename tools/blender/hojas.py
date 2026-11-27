@@ -225,12 +225,17 @@ HOJAS = {
     # soldado media 14 px y el contorno claro de dos tonos lo dejaba en esqueleto. Mismo encuadre (la
     # grilla de diseño sigue siendo 24, render/soldiers.js RES), miembros mas gruesos (modelos_soldados
     # LEGIBLE) y el contorno de dos tonos mas SUAVE: sin el, el camuflaje lo perdia sobre la turba.
-    'soldados': dict(fw=48, fh=48, pos=(0, 0.9667, 6.8217), fov=24, lookY=0.9667, cols=7, cajas=False,
+    # A 96 PX Y CON DOS POSES MAS (27/11, el autor: "mejorar los soldados argentinos visualmente"): en la base del
+    # despegue la camara los agarra cerca y la celda de 48 se estiraba al doble, borrosa. Ahora 96 px (RES 4 en
+    # render/soldiers.js), el FAL de verdad (modelos_soldados `fal`), el conscripto con el CASCO GRANDE de las islas
+    # (`isl_*`), y dos columnas nuevas: 7 DE GUARDIA (parado, el FAL al pecho) y 8 RODILLA EN TIERRA (apuntando afuera).
+    'soldados': dict(fw=96, fh=96, pos=(0, 0.9667, 6.8217), fov=24, lookY=0.9667, cols=9, cajas=False,
                      contorno2=('#7f8258', '#14170e'),
                      destino='assets/world/soldats/soldados.png',
-                     # fila 2: EL CONSCRIPTO ARGENTINO (casco M1, oliva liso, 90 % de alto), sin bergen
+                     # fila 2: EL CONSCRIPTO ARGENTINO (casco M1 grande, oliva liso, 90 % de alto), sin bergen
                      frames=[dict(modelo=m, rots=[]) for b, bando in ((0, 'brit'), (1, 'brit'), (0, 'arg'))
-                             for m in ['bl:soldado_corre:%d:%d:%s' % (i, b, bando) for i in range(6)] + ['bl:soldado_tierra:%d:%s' % (b, bando)]]),
+                             for m in ['bl:soldado_corre:%d:%d:%s' % (i, b, bando) for i in range(6)]
+                             + ['bl:soldado_tierra:%d:%s' % (b, bando), 'bl:soldado_guardia:%s' % bando, 'bl:soldado_rodilla:%s' % bando]]),
     # LA EYECCION: el encuadre de bake_enemies.html. Filas 0 (el argentino) y 1 (el britanico): 4 cuadros
     # del asiento dando tumbos y 3 bajo la cupula hamacandose; fila 2, el asiento VACIO cayendo aparte.
     # El punto 0 es EL ARNES (el origen del modelo): el juego ancla los dos actos ahi.

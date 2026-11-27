@@ -46,6 +46,22 @@ export function hitbox(o) {
   return { hw: air ? 3 : 2.6, hh: air ? 1.6 : 1.9, oy: o.y };
 }
 
+// EL GLOBO SE CHOCA COMO SE VE (27/11, el autor: "acabo de chocar con un globo que para mi no estaba por chocar"). Era
+// una caja de 2,6 x 1,9 sumada a la del avion: en diagonal, la esquina mataba con el avion afuera del dibujo; y el globo
+// se dibuja meciendose ±0,6 que la caja no tenia. Ahora es una ELIPSE —la silueta horneada mide 5,6 x 5 de mundo; la
+// elipse queda adentro, con algo de perdon— contra el rectangulo del avion, a la altura a la que se lo esta viendo.
+export const GLOBO = { A: 2.4, B: 1.9, MECE: 0.6, MECE_V: 1.3 };
+/** La altura a la que se DIBUJA el globo ahora (render/world.js) — la misma con la que se choca. */
+export const globoY = (o, t) => o.y + Math.sin(t * GLOBO.MECE_V + (o.ph || 0)) * GLOBO.MECE;
+/** ¿El rectangulo del avion (centro px,py, semi-ejes pw,ph) toca la elipse del globo? El punto del avion mas cerca
+ *  del centro del globo, adentro de la elipse. */
+export function globoToca(o, t, px, py, pw, ph) {
+  const oy = globoY(o, t);
+  const cx = Math.max(px - pw, Math.min(px + pw, o.x)), cy = Math.max(py - ph, Math.min(py + ph, oy));
+  const u = (cx - o.x) / GLOBO.A, v = (cy - oy) / GLOBO.B;
+  return u * u + v * v < 1;
+}
+
 /** Perfil del AVION. En PIRUETA las alas van de canto → perfil minimo: pasa por espacios mas finos. */
 export function planeBox(rolling) {
   return rolling ? { pw: 1.0, ph: 0.7 } : { pw: 2.1, ph: 1.0 };

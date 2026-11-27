@@ -1034,7 +1034,7 @@ const PODER_H = 7, PODER_W = CUADRO - 2;   // el relleno, adentro de la placa de
 // lee para donde va: hacia adelante.
 const ONDA_W = 8, ONDA_S = 1.5;      // ancho de la cresta y segundos que tarda en cruzar
 const GLIFO = 3;                     // lo que mide una letra del rotulo (5 px monospace)
-const RACHA_W = 24;                  // los px utiles de la barra de racha: lo que mide PERFECTO
+const RACHA_W = 20;                  // los px utiles de la barra de racha (27/11: 24 → 20, para no pisar el avion)
 // EL TITILEO DEL TOQUE ERRADO: cuanto dura y a que ritmo. 0,4 s a ~9,5 Hz son unos cuatro
 // parpadeos —se ve sin dudas— y termina antes del cruce siguiente, que a la velocidad de la meseta
 // llega a los 0,24 s… asi que a veces se pisan: es a proposito, el que erro tiene que ver que la
@@ -3388,7 +3388,7 @@ function drawEstante(h) {
   // —arriba tanques y bomba, 16 px; abajo las chafitas, 8 px— con 2 px de aire entre las dos
   // (…"con el rectangulo mas chico, mismo ancho, mas alargado; y hacer mas grandes las bombas"): la de arriba crece a 18 y sus
   // iconos van x1,3; la de las chafitas queda una franja de 6, con el icono x0,7
-  const ALTO_SEC = 18, HUECO = 2, conCh = run.chapitasMax > 0, GRANDE = 1.3, CHICO = 0.7;
+  const ALTO_SEC = 18, HUECO = 2, conCh = run.chapitasMax > 0, GRANDE = 1.1, CHICO = 0.5;   // (27/11: 1,3 se salia del cuadro; las chafitas 0,7 → 0,5, "mas chicas")
   plate(X_RACK, CUADROS_Y, RACK_W, conCh ? ALTO_SEC : CUADRO);
   if (conCh) plate(X_RACK, CUADROS_Y + ALTO_SEC + HUECO, RACK_W, CUADRO - ALTO_SEC - HUECO);
   const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1;
@@ -3410,9 +3410,18 @@ function drawEstante(h) {
   const yElegida = { tanque: CUADROS_Y + 5, bomba: CUADROS_Y + 13, exocet: CUADROS_Y + 13 }[run.secundaria];
   // FIJO (23/11, el autor: "la flechita cuando esta LOCKEADA en azul"): un solo secundario para elegir
   const colFlecha = run.secFija ? SEC_FIJA_COL : P.accent;
+  // (27/11, el autor: "que no sobresalga del cuadrado, y las bombas diseñalas mejor con sombras o algo mas claro"): el icono
+  // un pelo mas adentro, recortado a la placa, con su sombra dura abajo a la derecha y un punto mas de luz
+  const cxI = cx + 0.5;
   const fila = (yy, ico, n, col, mono, colDig, k = GRANDE) => {
-    ctx.save(); ctx.translate(cx, yy); ctx.scale(k, k); ctx.translate(-cx, -yy);
-    iconoEn(cx, yy, ico, col, undefined, mono);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(X_RACK + 1, yy - 6, BOMBA_W + 1, 12); ctx.clip();
+    ctx.translate(cxI, yy); ctx.scale(k, k); ctx.translate(-cxI, -yy);
+    // la sombra: el mismo icono en negro, corrido 0,7 abajo a la derecha
+    ctx.globalAlpha = 0.8; iconoEn(cxI + 0.7, yy + 0.7, ico, '#000000', undefined, true); ctx.globalAlpha = 1;
+    iconoEn(cxI, yy, ico, col, undefined, mono);
+    // …y un punto mas de luz encima (suma: aclara sin cambiar el dibujo)
+    if (!mono) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.22; iconoEn(cxI, yy, ico, col, undefined, mono); }
     ctx.restore();
     const elegida = yy === yElegida;
     if (n !== null) digito(xd, yy - 2, n, elegida && n > 0 ? colFlecha : colDig || (n > 0 ? P.foam : VACIO));
@@ -3428,6 +3437,8 @@ function drawEstante(h) {
     // se cuenta aca arriba con los del ala — los tres tanques en una fila
     const n = r && c.ext && c.centro === 'tanque' ? (run.tanque ? (run.tanque.pilones || []).length : 3) : cuelga ? 2 : 0;
     fila(ya, 'tanque', n, n > 0 ? '#8d9a78' : VACIO);
+    // (27/11, el autor: "a los tanques de gasolina agregarle el icono de gotita de nafta que tiene el indicador de la Chancha")
+    if (n > 0) gotaEn(X_RACK + 3.5, ya - 2, '#7fe08d', 0.75);
   } else if (ala === 'bomba') {
     const n = r ? r.alaN : 2;
     fila(ya, 'bomba', n, n > 0 ? (verde ? SUELTA_COL : null) : VACIO, !(n > 0) || verde);
@@ -3621,7 +3632,9 @@ export function drawHUD(h) {
     const s = enCabina() ? { x: W / 2 + 58, y: H - 4 } : { x: pw.x / U, y: pw.y / U };
     // TRES RENGLONES, de arriba a abajo: la palabra, la barra del pulso y —solo en RASANTE— el
     // temporizador de la ventana. Todo el cartelito subio 2 px para hacerle lugar al tercero.
-    const bx = s.x + 25, by = s.y - 7;
+    // (27/11, el autor: "que la barra rasante al lado del avion no pase por encima del mismo… corramos un poco mas lejos la
+    // barra flotante, para que no pise la animacion del avion"): mas afuera, y mas todavia con el poder puesto (el avion crece)
+    const bx = s.x + (ras.on ? 44 : 32), by = s.y - 7;
     const enEstado = run.aguante === 1;
     // EL DESTELLO DEL ACIERTO: la palabra y el sector se van al claro por un pestañeo. Es el
     // unico "si" que da el estado, y tiene que caber en el tiempo que queda hasta el proximo.
@@ -3667,15 +3680,29 @@ export function drawHUD(h) {
         : enEstado ? Math.min(nL, Math.round(nL * Math.min(1, concSeg(run.aguN) / AGU.CONC_MIN))) : nL;
       // SIN FONDO: el recuadro oscuro detras de la palabra era una mancha pegada al avion. La
       // palabra va en NEGRITA, que es lo que la sostiene sobre el mar a 5 px.
-      ctx.textAlign = 'left'; ctx.font = 'bold 5px monospace';
+      // (27/11, el autor: "el texto RASANTE que se va gastando, achicarlo, y migrar los efectos de consumo de barra que tenia
+      // el poder encima de la imagen del piloto"): en el flow la palabra va mas chica y la barrita trae lo de barraPoder —
+      // el titileo del color, el bisel claro y las chispas de la punta que se quema
+      ctx.textAlign = 'left'; ctx.font = enFlow ? 'bold 4px monospace' : 'bold 5px monospace';
+      // (27/11: "la palabra rasante debe tener el mismo ancho que la barra"): de punta a punta de la barra, siempre
+      const pasoL = (RACHA_W - GLIFO) / Math.max(1, nL - 1), rxL = bx;
       for (let i = 0; i < nL; i++) {
         const on = i < prendidas;
         ctx.fillStyle = !enEstado && !enFlow ? P.accent : !on ? '#2e3c45' : golpe ? '#ffffff' : RAS_COL;
-        ctx.fillText(pal[i], rx + i * paso, s.y - 9);
+        ctx.fillText(pal[i], rxL + i * pasoL, s.y - (enFlow ? 8 : 9));
+      }
+      // RASANTE PERFECTO (27/11): cargando PERFECTO, arriba va RASANTE chico y fino, estirado al ancho de la palabra
+      if (!enEstado && !enFlow) {
+        const RAS = T('mult_rasante'), p2 = (RACHA_W - 2) / Math.max(1, RAS.length - 1);
+        ctx.font = '3px monospace'; ctx.fillStyle = P.accent;
+        for (let i = 0; i < RAS.length; i++) ctx.fillText(RAS[i], bx + i * p2, s.y - 13);
       }
       if (enFlow) {
         const fr = Math.max(0, Math.min(1, ras.dur > 0 ? ras.resta / ras.dur : 0));
-        px(bx, by, RACHA_W, 2, '#2e3c45'); px(bx, by, Math.max(1, Math.round(RACHA_W * fr)), 2, RAS_COL);
+        const fw = Math.max(1, Math.round(RACHA_W * fr)), c = Math.sin(run.t * 14) > 0 ? RAS_CLARO : RAS_COL;
+        px(bx, by, RACHA_W, 2, '#2e3c45'); px(bx, by, fw, 2, c);
+        ctx.globalAlpha = 0.4; px(bx, by, fw, 1, '#f2f7fb'); ctx.globalAlpha = 1;   // el bisel
+        chispas(bx + fw, by, 2, '#ffffff', RAS_COL);                                // la punta que se quema
       }
     }
     if (enFlow) {

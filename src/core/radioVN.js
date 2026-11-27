@@ -122,7 +122,9 @@ export function decir(raw, caraDe) {
   radio.ease = 0;
 }
 const BLOQUE = 3;            // los renglones que entran en la caja en vuelo (25/11, el autor: "agrandar para que entre una linea mas")
-const durDe = filas => { const n = filas.join(' ').length; return Math.min(T_MAX, Math.max(T_MIN, T_MIN + n * T_POR_CHAR)); };
+// DOS VELOCIDADES (27/11, el autor: "que los dialogos in game sean el doble de rapido, salvo que tengan 2 o 3 lineas… mensajes
+// cortos y largos"): el de UN renglon dura la mitad; el de dos o tres, como siempre
+const durDe = filas => { const n = filas.join(' ').length, d = Math.min(T_MAX, Math.max(T_MIN, T_MIN + n * T_POR_CHAR)); return filas.length <= 1 ? d / 2 : d; };
 /** Los renglones que muestra AHORA la caja en vuelo (dos, del bloque en curso). La pausa de dialogo usa `wrap` entero. */
 export const bloque = () => radio.wrap.slice(radio.bloque * BLOQUE, radio.bloque * BLOQUE + BLOQUE);
 /** ¿Queda otro bloque de la misma linea? (no si ya se leyo entera en una pausa de dialogo) */

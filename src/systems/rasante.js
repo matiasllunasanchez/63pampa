@@ -171,3 +171,6 @@ if (typeof window !== 'undefined') {
   };
   window.__rscharge = p => cargar(p);
 }
+
+// sonda para las capturas (27/11): lanza el poder con `s` segundos, sin juntar aciertos
+if (typeof window !== 'undefined') window.__rasLanzar = s => lanzar(s || 7);

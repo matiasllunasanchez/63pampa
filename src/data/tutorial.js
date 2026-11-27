@@ -40,6 +40,7 @@
 // (las 7 letras de RASANTE = CONC_MIN de core/aguante.js: data no importa de core, asi que va el numero; si cambia
 // alla, cambia aca)
 const CONC_MIN = 7;
+const CARGA_PERF = 4;   // = AGU.CARGA (core/aguante.js): los segundos de PERFECTO (va como numero por el lint de capas)
 import { CAMPAIGN_CFG } from './missions.js';
 
 // sin nafta, sin globos, sin cazas, sin bombas y SIN RADAR (subir arriba del techo es un ejercicio, no
@@ -307,7 +308,9 @@ export const TUTORIAL_ETAPAS = [
     // (25/11, el autor: "no engancha bien entre el despegue y la isla, despeguemos DIRECTAMENTE en la isla, no secuencia"):
     // ya no hay carrera en la pista del pasillo y salto al mapa — arranca en el aire, recien levantado sobre la cabecera de
     // la BAM MALVINAS, con el tren todavia abajo (game.js `abrirTutorial`)
-    cfg: P({ sky: 'cloudy', terrain: 'sea', start: 'air', carga: 'tanques_bomba', radar: 'normal' }), pasos: ETAPA4,
+    // (27/11, el autor: "la etapa 4 ya deberia poder llamarlo… ya funcionaria normal"): nafta y Chancha como en el juego
+    chancha: true, chanchaMinT: 0,
+    cfg: P({ sky: 'cloudy', terrain: 'sea', start: 'air', carga: 'tanques_bomba', radar: 'normal', fuelOn: true }), pasos: ETAPA4,
     consejos: { es: ['En las islas la altura se mide desde el suelo: el cerro te la come.', 'Marcá en el MAPA de la pausa y seguí la brújula.', 'Adentro de un radar inglés, abajo de 20 m.'],
       en: ['On the islands altitude is measured from the ground: hills eat it.', 'Mark a point on the pause MAP and follow the compass.', 'Inside a British radar, stay under 20 m.'] } },
 ];
@@ -390,7 +393,8 @@ const LISTA = [
   escena('TUT1_TURBO_OK', T(TURCO, 'turco_radio_aprueba', 'Eso, ura. Largalo, que te chupa la nafta.')),
   escena('TUT1_PAUSA',
     T(TURCO, 'turco_radio_aprueba', 'Si te olvidás de algo, pausá: ahí ta todo ordenao.'),
-    B(PICHON, 'pichon_radio_sonrisa', 'Mirá, te muestro… Te lo ordené por categoría.')),
+    // (27/11, el autor: "tiene que ser ANTES de abrir la pausa"): en la pausa de dialogo, no por radio despues
+    T(PICHON, 'pichon_radio_sonrisa', 'Mirá, te muestro… Te lo ordené por categoría.')),
   escena('TUT1_PAUSA_OK', T(TURCO, 'turco_radio_sonrisa', 'Bien. Seguimo.')),
   escena('TUT1_FIN',
     T(TURCO, 'turco_radio_sonrisa', 'Arriba está la barra de ruta. Te dice cuánto falta y pa dónde. Por hoy, estamo.'),
@@ -437,9 +441,10 @@ const LISTA = [
     B(PICHON, 'pichon_radio_orgullo', 'Chafitas, Turco. Les puse de nombre chafitas.')),
   escena('TUT2_CHAFITAS_OK', T(TURCO, 'turco_radio_aprueba', 'Eso, vago.')),
   escena('TUT2_RASANTE',
-    T(PICHON, 'pichon_radio_explicando', 'Volá 4 segundos abajo de la raya naranja del altímetro y se carga el poder RASANTE.'),
-    T(TURCO, 'turco_radio_aprueba', 'Cuando la aguja pasa por lo azul, toque de gas: prendés una letra. RASANTE completa, el poder es tuyo.'),
-    T(PICHON, 'pichon_radio_neutro', 'Picá o mantené el gas pa largarlo: un rato sos intocable.')),
+    // (27/11, el autor, textual; los segundos son AGU.CARGA de core/aguante.js —el autor escribio 6, el juego pide 4—; va como numero por el lint de capas)
+    T(PICHON, 'pichon_radio_explicando', `Cuando te mantengas en rasante aparecerá una barra naranja: PERFECTO. Si lo mantenés por ${CARGA_PERF} segundos, podés armar el RASANTE perfecto.`),
+    T(TURCO, 'turco_radio_aprueba', 'Una vez que completes la barra naranja, se convertirá en una azul. Acá la mecánica es simple: levantás el stick cada vez que pase la aguja por la zona azul de la barra, pa juntar cargas.'),
+    T(PICHON, 'pichon_radio_neutro', 'Cada acierto llena una carga del poder RASANTE. Una vez que lo completás, se lanza la habilidad y te vas a sentir indestructible por unos segundos.')),
   escena('TUT2_RASANTE_OK', T(PICHON, 'pichon_radio_risa', '¡Eso es RASANTE! Nadie te toca mientras dura.')),
   escena('TUT2_RAS_ESQUIVA',
     T(TURCO, 'turco_radio_escucha', 'No te hace inmortal: esquivá los globos en rasante.')),
@@ -474,8 +479,8 @@ const LISTA = [
     T(TURCO, 'turco_radio_sonrisa', 'Llamá a la Chancha, el Hércules cisterna. Ponete atrás y abajo de la manguera, quietito.')),
   escena('TUT3_CHANCHA_OK', T(TURCO, 'turco_radio_risa', 'La Chancha no falla nunca. Bueno, casi.')),
   escena('TUT3_BLANCO',
-    T(PICHON, 'pichon_radio_alerta', 'El buque. Mirá arriba: cuando el nombre del casco se pone amarillo y titila, ¡SOLTÁ!'),
-    T(TURCO, 'turco_radio_sonrisa', 'Mantené el recorrido pa ver ande cae. Cuando se pone amarillo y titila, la largás.'),
+    // (27/11, el autor, textual)
+    T(PICHON, 'pichon_radio_alerta', 'Ahí está el buque. Ponete a su altura, apuntá la caída y, cuando la mira del buque se ponga amarilla y titile, ¡soltá la bomba con R3!'),
     B(PICHON, 'pichon_radio_preocupado', 'Si errás, otra pasada. El casco no se va.')),
   escena('TUT3_ESCAPE',
     T(TURCO, 'turco_radio_grito', '¡Le diste! Ahora escapá rasante, que te tiran.')),

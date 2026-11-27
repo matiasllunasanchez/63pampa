@@ -50,6 +50,8 @@ export function despegueEspera() {
   const k = pasos.findIndex(p => (p.sigue || []).some(c => c.despega));
   return k >= 0 && (i < k || (i === k && fase !== 'practica'));
 }
+/** ¿Esta etapa enseña la nafta? (la 3; en las otras la nafta solo baja de adorno, con un piso alto — 27/11) */
+export const ensenaNafta = () => pasos.some(p => p.nafta != null);
 export const naftaPendiente = () => !fin && pasos.slice(i).some(p => p.nafta != null);
 export const misilPractica = () => (!fin && fase === 'practica' && okT <= 0 && pasos[i] && (pasos[i].sigue || [])[sub] ? pasos[i].misil || null : null);
 
@@ -89,6 +91,8 @@ export function esperaBlanco() {
 }
 
 /** Para las sondas y los fixtures. */
+/** La linea de la intro que se esta mostrando (1, 2, 3…), o 0 — la lamina del RASANTE enfoca su paso (27/11). */
+export const lineaIntro = () => (fase === 'intro' ? linea : 0);
 export const estado = () => ({ paso: i, id: pasos[i] ? pasos[i].dice : null, fase, sub, fin, n: pasos.length });
 /** ¿El paso actual es la PRACTICA LIBRE (se termina desde la pausa)? */
 export const libre = () => !fin && fase === 'practica' && !!(pasos[i] && pasos[i].libre);

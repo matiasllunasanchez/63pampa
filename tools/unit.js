@@ -1294,7 +1294,8 @@ test('radio: una linea larga dura mas que una corta, y ninguna es eterna', () =>
   RV.decir('CONDOR: SETENTA METROS. TIRA LA RED, LA LEVANTA, LA VUELVE A TIRAR. Y MIENTRAS TANTO ANOTA TODO LO QUE LE PASA AL LADO.', () => null);
   const larga = RV.radio.dur;
   assert.ok(larga > corta, 'la linea larga tiene que durar mas');
-  assert.ok(corta >= 2.5, 'ninguna linea puede irse antes de poder leerla');
+  // (27/11: las de UN renglon van al doble de rapido — el autor, "mensajes cortos y largos": el piso es la mitad)
+  assert.ok(corta >= 1.25, 'ninguna linea puede irse antes de poder leerla');
   assert.ok(larga <= 9, 'ninguna linea puede quedarse para siempre');
 });
 
@@ -2079,7 +2080,8 @@ test('soldados: la hoja horneada tiene la grilla que el render espera', () => {
   const R = numDe(render, 'RES_BLENDER');
   const png = readFileSync(new URL('../assets/world/soldats/soldados.png', import.meta.url));
   const w = png.readUInt32BE(16), h = png.readUInt32BE(20);
-  assert.equal(w, (PASOS + 1) * FW * R, 'la hoja no tiene las columnas que el render recorta');
+  // (27/11) dos columnas quietas despues del cuerpo a tierra: guardia y rodilla (COL_GUARDIA, COL_RODILLA)
+  assert.equal(w, (PASOS + 3) * FW * R, 'la hoja no tiene las columnas que el render recorta');
   assert.equal(h, (ARG + 1) * FH * R, 'la hoja no tiene las tres filas (guarnicion, desembarco, conscripto)');
 });
 

@@ -446,6 +446,13 @@ function corchetes(listo, alt, previa) {
   ctx.globalAlpha = apM;
   if (alt < 0) flechaIn(cx, top - 3 + late, 1, 'blanco', 1);   // (27/11: blanca, como el corchete)     // arriba del buque, apuntando abajo
   else flechaIn(cx, bot + 3 - late, 1, 'blanco', -1);            // debajo del buque, apuntando arriba
+  // (27/11, el autor: "la flecha blanca que te indica bajar deberia tener arriba texto que diga BAJA"): la palabra, del lado
+  // de la cola de la flecha — BAJÁ arriba de la que apunta abajo, SUBÍ abajo de la que apunta arriba
+  ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const yTxt = alt < 0 ? top - 3 + late - 13 : bot + 3 - late + 13;
+  ctx.fillStyle = '#0a0e11'; ctx.fillText(T(alt < 0 ? 'bl_baja' : 'bl_subi'), cx + 0.6, yTxt + 0.6);
+  ctx.fillStyle = '#ffffff'; ctx.fillText(T(alt < 0 ? 'bl_baja' : 'bl_subi'), cx, yTxt);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.globalAlpha = 1;
 }
 

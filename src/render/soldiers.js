@@ -34,13 +34,19 @@ export const isReady = () => sheet.complete && sheet.naturalWidth > 0;
 
 export const FW = 24, FH = 24;      // lado de la celda, en pixeles de DISEÑO (los de la hoja vieja)
 /** LA HOJA DE BLENDER VA AL DOBLE (9/10): 48 px de celda con el MISMO encuadre, asi que FW/FH/SUELO
- *  siguen valiendo en la grilla de diseño y solo el recorte se multiplica. La de three.js, a 1. */
-export const RES_BLENDER = 2;
+ *  siguen valiendo en la grilla de diseño y solo el recorte se multiplica. La de three.js, a 1.
+ *  (27/11, el autor: "mejorar los soldados argentinos visualmente"): a 96 px —x4—, porque en la base del despegue la
+ *  camara los agarra cerca y la de 48 se estiraba al doble, borrosa. */
+export const RES_BLENDER = 4;
 const RES = HORNO_VIEJO ? 1 : RES_BLENDER;
 export const WU = 2.9;              // lo que mide esa celda en unidades de MUNDO
 export const SUELO = 20;            // fila del piso dentro de la celda
 export const PASOS = 6;             // columnas del ciclo de carrera; la 6 es el cuerpo a tierra
 export const COL_TIERRA = PASOS;
+/** LAS POSES QUIETAS (27/11, solo en la hoja de Blender): 7 DE GUARDIA (parado, el FAL al pecho) y 8 RODILLA EN TIERRA
+ *  (apuntando afuera). La de three.js no las tiene: ahi caen al cuerpo a tierra. */
+export const COL_GUARDIA = PASOS + 1, COL_RODILLA = PASOS + 2;
+const COLS = HORNO_VIEJO ? PASOS + 1 : PASOS + 3;   // (la de three.js no tiene las quietas)
 /** Filas: 0 = guarnicion (mochila chica) · 1 = desembarco (bergen). La UNICA diferencia entre las
  *  dos es la silueta de la espalda, y alcanza: a 12 px no se lee otra cosa. */
 export const FILA_BERGEN = 1;
@@ -83,8 +89,10 @@ export function drawProne(ctx, x, y, k, dir, bergen) {
   celda(ctx, COL_TIERRA, bergen ? FILA_BERGEN : 0, x, y, k, dir);
 }
 
-/** EL CONSCRIPTO ARGENTINO (fila 2): corriendo (fase `ph`) o, con `tendido`, cuerpo a tierra. */
+/** EL CONSCRIPTO ARGENTINO (fila 2): corriendo (fase `ph`) o quieto en una pose: `tendido` true (o 'tierra') cuerpo a
+ *  tierra, 'guardia' parado con el FAL, 'rodilla' rodilla en tierra apuntando. */
 export function drawArgentino(ctx, x, y, k, ph, dir, tendido) {
-  const col = tendido ? COL_TIERRA : ((ph | 0) % PASOS + PASOS) % PASOS;
+  const quieta = tendido === 'guardia' ? COL_GUARDIA : tendido === 'rodilla' ? COL_RODILLA : tendido ? COL_TIERRA : -1;
+  const col = quieta >= COLS ? COL_TIERRA : quieta >= 0 ? quieta : ((ph | 0) % PASOS + PASOS) % PASOS;
   celda(ctx, col, FILA_ARGENTINO, x, y, k, dir);
 }

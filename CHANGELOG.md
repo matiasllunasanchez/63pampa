@@ -16,6 +16,23 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
+## 0.5.1 — 27/11/2026
+
+- **El tutorial, ajustes:**
+  - La nafta no baja en la etapa 1. En la 2 solo gasta la poscombustión y después baja muy lento. En las islas funciona como en el juego.
+  - Se espera a la Chancha antes de seguir el diálogo.
+  - Al reintentar después de morir en el escape o en la pasada, vuelven los enemigos y no hay que esperar.
+  - La etapa completa se marca en verde con un check.
+- **Los diálogos:** los de un renglón van al doble de rápido.
+- **El globo** se choca como se ve.
+- **El tablero:**
+  - La barra RASANTE se corre para no pisar el avión. La palabra va del ancho de la barra, con RASANTE PERFECTO arriba en chico.
+  - Las bombas, los tanques (con la gotita de nafta) y las chafitas, mejor dibujados y sin salirse del cuadro.
+  - La flecha de bajar dice BAJA.
+  - La mira del buque titila en vez del nombre, y lo que todavía no está listo se ve apagado en lugar de rojo.
+- **El chaff** al lanzarse hace una explosión física y suena.
+- **Los soldados argentinos:** rehechos más grandes, con dos poses nuevas: de guardia con el FAL y rodilla en tierra.
+
 ## 0.5.0 — 27/11/2026 (Steam BuildID 26964631)
 
 - **El tutorial, más corto y más claro:**
