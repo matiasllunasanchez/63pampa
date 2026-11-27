@@ -16,6 +16,27 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
+## 0.5.0 — 27/11/2026
+
+- **El tutorial, más corto y más claro:**
+  - Vida infinita salvo en las islas, y REINTENTAR aparece solo al perder.
+  - La etapa 1 está reordenada: rolido y poscombustión al principio, el salitre en el rasante con olas y el poder RASANTE y el tablero al final.
+  - La etapa 2 trae globos para romper o esquivar, algunos con ráfagas de viento.
+  - La etapa 4 solo presenta Malvinas: el radar, los Harrier y la base.
+  - El avión espera en la cabecera hasta que pidas gas, y la nafta baja de a poco y nunca se seca.
+- **El poder RASANTE:** se gana llenando la palabra letra por letra al costado del avión (7 aciertos). Cada acierto de más suma un segundo.
+- **El MOMENTUM:** con dos cargas, y el avión se mueve más rápido que el mundo.
+- **Los misiles:**
+  - El de frente avisa 1,5 s antes y se puede bajar a balazos.
+  - Cualquier pirueta pierde al que viene de cola.
+  - Las chafitas contra un misil de cola, con pausa.
+- **La suelta de la bomba:** en blanco y amarillo, con la caída que titila. En las islas, un aro en el suelo marca dónde cae (rojo si no arma). LB ya no suelta la bomba.
+- **Otros:**
+  - El estante de cargas en dos placas.
+  - La brújula siempre en la fila.
+  - El mapa queda solo para mirar fuera del modo dev.
+  - Los diálogos del Turco y el Pichón, corregidos.
+
 ## 0.4.1 — 26/11/2026 (Steam BuildID 26956472)
 
 - **El Rescate del Belgrano, ajustes:** la cúpula y las bengalas propias pasan a azul (el verde queda para lo británico). El radar muestra su avance con una torta y una barra, y al terminar, el ícono del radar. Pasar cerca de una bengala sola la da por revisada. Las balsas están siempre, y el radar solo las marca más claro. Las bengalas ya revisadas no desaparecen, pero dejan de titilar.

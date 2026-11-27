@@ -37,7 +37,9 @@
 // LA PROSA ES BORRADOR: espera el OK del autor. El tono sale del canon (docs/historia/GUION_3.md): el
 // Turco es el mecanico jefe, tucumano y seco; el Pichon, el pibe que se leyo el manual. El Pichon explica
 // lo de piloto y el Turco lo de la maquina y los mandos. NINGUNO NOMBRA UNA TECLA: las pone el juego.
-import { AGU } from '../core/aguante.js';
+// (las 7 letras de RASANTE = CONC_MIN de core/aguante.js: data no importa de core, asi que va el numero; si cambia
+// alla, cambia aca)
+const CONC_MIN = 7;
 import { CAMPAIGN_CFG } from './missions.js';
 
 // sin nafta, sin globos, sin cazas, sin bombas y SIN RADAR (subir arriba del techo es un ejercicio, no
@@ -141,7 +143,7 @@ const ETAPA1 = [
   // tres consignas seguidas: entrar, acertar el azul, soltarlo)
   // (`demo`: la barrita dibujada en grande mientras se explica — 21/11, el autor: "que MUESTREN la barrita")
   { dice: 'TUT2_RASANTE', foco: ['alt'], teclas: ['Gas', 'Dive'], poderes: true, demo: 'rasante',
-    sigue: [{ aguante: true, consigna: 'tutC_perfecto' }, { aciertos: AGU.CONC_MIN, consigna: 'tutC_aciertos' },
+    sigue: [{ aguante: true, consigna: 'tutC_perfecto' }, { aciertos: CONC_MIN, consigna: 'tutC_aciertos' },
       { rasante: true, consigna: 'tutC_soltaRas' }], remate: 'TUT2_RASANTE_OK' },
   // (27/11, el autor: "dice volá rasante para derretir el hielo pero nunca se congeló nada, así que ni lo pongamos en el
   // tutorial"): sin el paso del HIELO — las escenas TUT1_HIELO quedan sin usar

@@ -1,6 +1,6 @@
 {
   "name": "rasante",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "RASANTE — juego arcade 2D de vuelo rasante en Malvinas 1982. Migración a Electron para Steam.",
   "private": true,
   "main": "electron/main.js",
