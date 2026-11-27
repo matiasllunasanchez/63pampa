@@ -16,7 +16,7 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
-## 0.5.1 — 27/11/2026
+## 0.5.1 — 27/11/2026 (Steam BuildID 26973175)
 
 - **El tutorial, ajustes:**
   - La nafta no baja en la etapa 1. En la 2 solo gasta la poscombustión y después baja muy lento. En las islas funciona como en el juego.
