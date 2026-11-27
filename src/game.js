@@ -2067,7 +2067,11 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     const ALBUM_HARRIERS = 20;
     let albumHar = (() => { try { return +localStorage.getItem(ALBUM_KEY + '_harriers') || 0; } catch (e) { return 0; } })();
     let albumHarPrev = 0;
+    let albumA4Visto = false;
     function albumCabinas() {
+      // (quien ya termino el tutorial antes de que existiera la estampita, la tiene igual. Va aca y no suelto en el
+      // arranque: ahi `sinRastro` todavia no existe y el juego quedaba en gris — 0.6.0)
+      if (!albumA4Visto) { albumA4Visto = true; if (tutorialHecho(TUTORIAL_ETAPAS.length)) albumDescubrir('cabina_a4'); }
       if (sinRastro()) { albumHarPrev = stats.harriers; return; }
       const h = stats.harriers || 0;
       if (h > albumHarPrev && !albumVistos.has('cabina_harrier')) {
@@ -2077,8 +2081,6 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       }
       albumHarPrev = h;   // (al reiniciar la corrida vuelve a 0: se sigue contando desde ahi)
     }
-    // (quien ya termino el tutorial antes de que existiera la estampita, la tiene igual)
-    if (tutorialHecho(TUTORIAL_ETAPAS.length)) albumDescubrir('cabina_a4');
     /** MISION COMPLETADA: el avion con que se volo, y en el libro de vuelo la salida y su buque. */
     function albumMisionCumplida() {
       const pl = PLANES[selPlane]; if (pl) albumDescubrir('avion:' + pl.key);
@@ -7631,6 +7633,14 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
             const a = rr.rebA !== undefined ? rr.rebA : rr.t0, b2 = rr.rebB !== undefined ? rr.rebB : RELEVO_WRECK;
             const u = Math.max(0, Math.min(1, (rr.t - a) / (b2 - a)));
             const off = rr.reb * (1 - u * u * (3 - 2 * u)), dd = off - rr.off;
+            // EL HUMO Y LAS BRASAS DEL CHOQUE SE QUEDAN CON EL CHOQUE (27/11, el autor: "al retroceder retrocedio
+            // tambien el efecto del suelo ademas del avion"): las `parts` son de PANTALLA, sin profundidad, y
+            // quedaban clavadas mientras el mundo corria. Se corren con lo que la proyeccion mueve el lugar del choque.
+            if (!rr.solo && dd) {
+              const a = proj(rr.wx, 1, PZ + rr.reb - rr.off), b = proj(rr.wx, 1, PZ + rr.reb - off);
+              const mx = b.x - a.x, my = b.y - a.y;
+              for (const p of parts) { p.x += mx; p.y += my; }
+            }
             run.dist += dd; rr.off = off;
             if (!rr.solo && dd) { for (const o of obstacles) o.z -= dd; for (const sd of soldiers) sd.z -= dd; }
             blancoSys.alOdometro();
