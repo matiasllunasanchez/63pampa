@@ -16,7 +16,7 @@ import { drawCascoDelBuque } from './world.js';
 import { estructura } from '../data/estructuras.js';
 import { PERFIL } from '../data/blanco.js';
 import { mez } from './paredes.js';
-import { flechaIn } from './rotulo.js';
+import { flechaIn, flechaLado } from './rotulo.js';
 import { T } from '../core/i18n.js';
 import * as enemyArt from './enemies.js';
 import { drawMira } from './miras.js';
@@ -396,8 +396,9 @@ function llama(f, u, semilla) {
 // `corchetes`), asi que ya estan enteros cuando el buque todavia es niebla — dicen "ahi" sin
 // marcar un pedazo de cielo vacio.
 const CORCHETES_Z = BL.VISIBLE_Z;
+const CORCHETE_VERDE = '#5fd35f';   // (el verde del EXCELENTE: el mismo de los avisos verdes del tablero)
 
-function corchetes(listo, alt, previa) {
+function corchetes(listo, alt, previa, lado) {
   if (blanco.z > BL.VISIBLE_Z || blanco.z < PZ) return;
   const z = zVista(blanco.z);
   const s = proj(BL.X, blanco.base, z), k = s.k;
@@ -418,7 +419,11 @@ function corchetes(listo, alt, previa) {
   // (21/11, el autor: "el borde corchete verde CONFUNDE"): los corchetes ya no se ponen verdes — dicen "ahi esta el
   // blanco" y nada mas. CUANDO soltar lo dice el SEMAFORO de arriba (`semaforo`)
   void verde;
-  const COL = '#e8eef0';
+  // (27/11, el autor: "cuando la flecha te dice BAJA… la palabra pasa a decir EXCELENTE en verde, y el corchete pasa a
+  // verde al mismo momento, se mantiene en verde mientras vos estes bien de altura"): a buena altura, corchete VERDE fijo
+  // (en TIERRA, ademas, encima de la zona marcada: `lado`)
+  const bienAlto = !alt && !lado;
+  const COL = bienAlto ? CORCHETE_VERDE : '#e8eef0';
   // EL MISMO APARECER DEL BUQUE (drawBlanco), tres veces mas rapido: enteros al primer tercio
   const apM = Math.min(1, 3 * Math.max(0, (BL.VISIBLE_Z - blanco.z) / (BL.VISIBLE_Z - BL.APARECE_Z)));
   if (apM <= 0) return;
@@ -440,7 +445,32 @@ function corchetes(listo, alt, previa) {
   //   viene DE ABAJO, apuntando arriba  ->  estas bajo, SUBI
   // Y se van las dos cuando la ventana se abre: ahi ya no hay nada que corregir, y lo que queda
   // es el corchete en verde y la mira. Que desaparezcan ES la señal.
-  if (!cerca || listo || !alt) return;
+  if (!cerca) return;
+  if (bienAlto) {
+    // EXCELENTE donde estaba la palabra de la flecha (arriba del corchete), en verde, mientras la altura este bien
+    ctx.globalAlpha = apM;
+    ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const yTxt = top - 3 - 13;
+    ctx.fillStyle = '#0a0e11'; ctx.fillText(T('bl_excelente'), cx + 0.6, yTxt + 0.6);
+    ctx.fillStyle = CORCHETE_VERDE; ctx.fillText(T('bl_excelente'), cx, yTxt);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = 1;
+    return;
+  }
+  // EL COSTADO (solo en tierra): la flecha acostada al lado del corchete, apuntando hacia donde hay que ir, con la palabra
+  if (lado) {
+    const lt = Math.round(Math.abs(Math.sin(run.t * 5)));
+    ctx.globalAlpha = apM;
+    const xp = lado > 0 ? xl - 3 + lt : xr + 3 - lt, ym = (top + bot) / 2;
+    flechaLado(xp, ym, 1, 'blanco', lado);
+    ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const tx = lado > 0 ? xp - 25 : xp + 25, txt = T(lado > 0 ? 'bl_der' : 'bl_izq');
+    ctx.fillStyle = '#0a0e11'; ctx.fillText(txt, tx + 0.6, ym + 0.6);
+    ctx.fillStyle = '#ffffff'; ctx.fillText(txt, tx, ym);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = 1;
+  }
+  if (listo || !alt) return;
   // late HACIA donde hay que ir: la flecha de bajar cabecea para abajo y la de subir para arriba.
   const late = Math.round(Math.abs(Math.sin(run.t * 5)));
   ctx.globalAlpha = apM;
@@ -469,7 +499,7 @@ export function drawBlancoHud(h, forzar) {
   // (25/11, el autor: "el recorrido de bomba esta raro… sacalo"): el SEMAFORO ya no se dibuja — el momento de soltar lo
   // dice la barra de arriba (render/hud.js: la pestaña del buque se llena de verde y titila). La funcion queda por si vuelve
   if (!h || !h.enAtaque) return;
-  corchetes(h.listo, h.alt, h.previa);
+  corchetes(h.listo, h.alt, h.previa, h.lado);
   // LA MIRA SOLO EN VERDE: en la ventana de distancia Y a buena altura. Antes adentro de los
   // corchetes iba tambien una cuenta atras en numeros; el autor los saco el 26/9 ("quitemos los
   // numeros dentro"), asi que lo que queda es binario y se lee de un golpe: o hay mira, o no hay.

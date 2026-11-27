@@ -25,7 +25,7 @@ import { ALBUM, ALBUM_KEY, ALBUM_CATS, ALBUM_AVION_S } from './data/album.js';
 import { descPlano } from './data/desc_iconos.js';
 import { perfilDe, puedeManiobra, capacidadesDe, frenaAlRas } from './data/perfiles.js';
 import * as frio from './systems/frio.js';
-import { ALTO, VERT_MODOS, SALITRE, FALLA_ALERTA, PENA_MUERTE } from './data/tuning.js';
+import { ALTO, VERT_MODOS, SALITRE, FALLA_ALERTA, PENA_MUERTE, TEMPO_SUAVE } from './data/tuning.js';
 import { BUSQ } from './data/busqueda.js';
 import { DMG_MODES } from './core/damage.js';
 import { L, T, getLang, setLang, applyChrome } from './core/i18n.js';
@@ -4993,6 +4993,9 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       if (!suelto() && cfgPersec && gameMode === 'persec') { Object.assign(cfg, cfgPersec); cfgPersec = null; applyCfg(); }
       cfg.pintaSuelto = suelto() ? 'cap' : null;
       if (!suelto()) { cfg.detCargaS = null; cfg.bidonSolo = null; }   // (los pone aplicarPresion, solo en los modos sueltos)
+      // EL TUTORIAL SE PUEDE ESCAPAR (27/11, el autor: "el escape, al menos en el tutorial, es MUY dificil: MUCHOS MISILES,
+      // MUCHOS HELICOPTEROS"): el radar tarda 2,2 veces mas en cargar (la oleada llega la mitad de seguido) y cada oleada es UN misil (systems/flight.js)
+      if (libro && libro.tut) { cfg.detCargaS = 1.4 * 2.2; cfg.oleadaMax = 1; } else cfg.oleadaMax = null;
       // …y CON COMBUSTIBLE (autor, 16/10): la nafta es el reloj, y sin ella la Chancha no existe
       if (suelto()) { cfg.fuelOn = true; cfg.fuelScale = NAFTA_ESCALA; }
       kmPrevios = 0;
@@ -5703,6 +5706,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       im.onload = () => { world3D.invalidatePalette(); };
     }
     /** Fila del horizonte de la imagen activa (0..1). Si no hay imagen no se usa. */
+    const MARGEN_TELON = 400;   // px de cielo por fuera del telon: con el mundo girado la esquina de la pantalla llega lejos
     function tbackHor() { const e = tbackEntry(); return e ? e.hor : 0.72; }
 
 
@@ -8634,7 +8638,20 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         // FONDO por clima: cover con el horizonte de la imagen clavado en HOR (trae su propio
         // sol) + parallax suave (x0.8) para que el telon tambien respire
         const dw = W + 140, dh = dw * tb2.naturalHeight / tb2.naturalWidth;
-        ctx.fillStyle = '#0a1014'; ctx.fillRect(-70, -140, dw, HOR + 144);   // margen sobre la imagen
+        // EL MARGEN SOBRE LA IMAGEN, CON LA IMAGEN (27/11, el autor: "inclinar la pantalla, en el borde superior
+        // izquierdo hay un cacho negro — no quiero que se vea el afuera de la pantalla"): era un relleno casi negro, y
+        // con el mundo girado la esquina de la pantalla pasaba el borde del telon. Ahora la fila de arriba y las
+        // columnas de los costados del telon se estiran hacia afuera, MARGEN_TELON px: se ve cielo, nunca el borde
+        {
+          const ix = -70 - cam.x * FONDO_PAR - zfxT, iy = HOR - tbackHor() * dh, nw = tb2.naturalWidth, nh = tb2.naturalHeight, M = MARGEN_TELON;
+          const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(tb2, 0, 0, nw, 1, ix, iy - M, dw, M + 1);                 // arriba
+          ctx.drawImage(tb2, 0, 0, 1, nh, ix - M, iy, M + 1, dh);                 // izquierda
+          ctx.drawImage(tb2, nw - 1, 0, 1, nh, ix + dw - 1, iy, M + 1, dh);       // derecha
+          ctx.drawImage(tb2, 0, 0, 1, 1, ix - M, iy - M, M + 1, M + 1);           // las dos esquinas de arriba
+          ctx.drawImage(tb2, nw - 1, 0, 1, 1, ix + dw - 1, iy - M, M + 1, M + 1);
+          ctx.imageSmoothingEnabled = sm;
+        }
         // EL TELON SE CORRE TOPEADO. El resto del fondo (nubes, sierras) da la vuelta con un
         // modulo, asi que puede correrse lo que quiera; el telon es UNA imagen dibujada una vez,
         // con 70 px de margen a cada lado — pasado eso se ve su BORDE, un bloque duro en la
@@ -8647,7 +8664,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       } else {
       const g = ctx.createLinearGradient(0, 0, 0, HOR);
       g.addColorStop(0, theme.sky.skyTop); g.addColorStop(0.6, theme.sky.skyMid); g.addColorStop(1, theme.sky.horizon);
-      ctx.fillStyle = g; ctx.fillRect(-70, -140, W + 140, HOR + 144);   // margenes: paneo + rolls completos del momentum
+      ctx.fillStyle = g; ctx.fillRect(-70 - MARGEN_TELON, -MARGEN_TELON, W + 140 + 2 * MARGEN_TELON, HOR + MARGEN_TELON + 4);   // margenes: paneo + rolls (27/11: los del giro del mundo tambien)
       ctx.globalAlpha = 0.4; px(-70, HOR - 10, W + 140, 10, theme.sky.sunGlow); ctx.globalAlpha = 1;
       // sol bajo
       const sunX = W / 2 - cam.x * 1.4 - zfx;
@@ -10922,8 +10939,12 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // (BL.LENTO, systems/blanco.js). Tambien compone multiplicando.
       const dt = raw * tempo.scale() * (S.state === 'pasada' ? pasada.slow() : 1) * (S.state === 'play' ? blancoSys.slow() : 1);
       // EL AVION GANA AL TIEMPO (27/11): con el momentum puesto, su movimiento de costado va (1/escala)^0.6 —2× en el
-      // suave, ~2,8× en el lento— para que esquivar en camara lenta sea mas facil y no igual (systems/vuelo.js)
-      run.tempoMano = tempo.active() ? Math.min(3, Math.pow(1 / tempo.scale(), 0.6)) : 1;
+      // suave— para que esquivar en camara lenta sea mas facil y no igual (systems/vuelo.js)
+      // (27/11, el autor: "el momentum nivel 2 debe dejarme mover igual de veloz al avion que el momentum 1… pero el
+      // tiempo es el doble de lento"): en el LENTO el avion va, en segundos de verdad, IGUAL que en el suave — la
+      // velocidad de costado Y la respuesta al mando (`tempoRel`, systems/flight.js). Antes iba al ~80 % (2,8× con tope 3)
+      run.tempoRel = tempo.active() ? TEMPO_SUAVE / tempo.scale() : 1;
+      run.tempoMano = tempo.active() ? Math.pow(1 / TEMPO_SUAVE, 0.6) * run.tempoRel : 1;
       // LA CHANCHA (SPEC_PODER_CHANCHA) va ACA y no adentro de update(): con el dt del MUNDO —el
       // ETA es tiempo de mision, asi que pedirla en camara lenta tiene que tardar lo mismo en
       // tiempo de juego— y en TODOS los estados, que es lo que le permite despedirse sola cuando

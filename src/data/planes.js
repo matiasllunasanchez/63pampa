@@ -308,7 +308,7 @@ PLANES.forEach(pl => {
     pl.capas = {};
     for (const nom of capasAvion(pl.key)) {
       // (la '5' es la de la HOJA FINA; el horno viejo no la tiene)
-      pl.capas[nom] = ['', '2', '3', '4', ...(!HORNO_VIEJO ? ['5', '6'] : [])].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
+      pl.capas[nom] = ['', '2', '3', '4', ...(!HORNO_VIEJO ? ['5', '6', '7'] : [])].map(suf => { const im = new Image(); im.src = dir + nom + suf + '.png'; return im; });
     }
     // LAS VARIANTES DEL ESCUADRON (autor, 8/10: "todos tienen el mismo avion — deberian tener
     // variantes"): cuatro hojas base por avion, una por numeral — otro reparto y tono del camuflaje,
@@ -336,6 +336,14 @@ PLANES.forEach(pl => {
       pl.sheet6Img = new Image();
       pl.sheet6Img.onload = () => { pl.sheet6Ok = true; };
       pl.sheet6Img.src = dir + 'sheet6.png';
+    }
+    // LA HOJA 7 (27/11): EL TONEL DEL PODER RASANTE — la vuelta entera sobre su eje desde la camara de tres cuartos de la
+    // hoja 3, cada 15° (24 columnas, una fila, cuadro de 168; hornear.py --vista rastonel). Sin ella, el giro de siempre.
+    pl.sheet7Ok = false;
+    if (!HORNO_VIEJO) {
+      pl.sheet7Img = new Image();
+      pl.sheet7Img.onload = () => { pl.sheet7Ok = true; };
+      pl.sheet7Img.src = dir + 'sheet7.png';
     }
     // (EL SELECTOR ANIMADO, 16/10: las hojas seleccion_anim / seleccion_tonel siguen en cada carpeta, pero el
     // menu dibuja la ilustracion quieta — "deja de moverlos, que floten nomas" — y ya no se piden)

@@ -85,6 +85,7 @@ const FINO_NF = 13, FINO_GRADOS = [14, 10.5, 7, 3.5, 0, -3.5, -7, -10.5, -14], F
 // LA HOJA DEL PODER RASANTE (25/11, el autor: "las poses del poder RASANTE tienen que ser muchas"): 25 alabeos (uno cada 5°)
 // x los 5 cabeceos de la fina — la ULTI esquiva y dispara sola, siempre moviendose
 const RAS_NF = 25;
+const RT_DESDE = 0.2;   // rad de giro libre a partir de los cuales el poder dibuja el tonel de la hoja 7 (~11°)
 let finoFila = 2, finoAnt = 2, finoCambioT = -1, finoPrev = 2;
 // LA TREPADA SOSTENIDA SE ASIENTA (21/11, el autor: "el dibujo del avion cambia… se ve mas feo — trepando, arriba"):
 // con W sostenido el cabeceo quedaba clavado en el tope (la fila de 14°, la que muestra el lomo plano) toda la trepada y
@@ -1130,6 +1131,15 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // viejo, o no cargo) cae a la fila de 100° de la cobra, de frente. Sin ninguna de las dos, el dibujo de siempre.
   const hoja6D = skFino && skFino.sheet6Img ? skFino.sheet6Img : (pl.sheet6Ok ? pl.sheet6Img : null);
   const imgTV = run.mvTonelV != null && useSheet && !HORNO_VIEJO ? (hoja6D || hoja4D) : null;
+  // EL TONEL DEL PODER RASANTE (hoja 7, 27/11 — el autor: "las piruetas con el stick derecho son HORRIBLES: el avion hace
+  // una mortal adelante cuando deberia girar sobre el eje longitudinal", "en todos los aviones"). Con el poder la camara
+  // mira de tres cuartos, y GIRAR en pantalla el cuadro de la hoja 3 no lo rola: lo da vuelta de punta. Cuando el avion
+  // ROLA —el tonel, el giro libre del stick derecho, el medio tonel de una pirueta— se dibuja la columna de la hoja 7
+  // que corresponde a ese angulo (la vuelta entera sobre su eje desde esa camara, cada 15°) y la pantalla no gira.
+  const hoja7D = ras && useSheet && !HORNO_VIEJO && !imgTV && !steepV && !(run.mvCobra > 0.05) && !enMortalF
+    ? (skRas && skRas.sheet7Img ? skRas.sheet7Img : (pl.sheet7Ok ? pl.sheet7Img : null)) : null;
+  const giroRT = (run.mvRoll || 0) + gl.rot + hz;
+  const imgRT = hoja7D && (rolling || run.mvRoll || Math.abs(giroRT) > RT_DESDE) ? hoja7D : null;
   const pir13 = !HORNO_VIEJO && useSheet && (((enMortalF || run.mvCobra > 0.05) && !!(hoja4D || hoja2D)) || !!(steepV && hoja2D));
   const ancho13 = fino || pir13;
   // (la hoja 3, la del poder RASANTE, tambien va con 13 alabeos desde el 15/10; sus tres cabeceos, los de siempre)
@@ -1194,8 +1204,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // (`mvGiro`: la diagonal del derrape), que el horizonte giratorio no se come como al `mvRoll`
   // + el GIRO LIBRE de [Q]/[E] (`freeRoll`, core/horizon.js): tambien solo del dibujo — el mundo queda quieto
   // (el TONEL EN VERTICAL gira solo con `mvGiro`: el giro sobre el eje ya lo trae la columna de la hoja 6)
-  ctx.rotate(imgTV ? (run.mvGiro || 0) : spinTot + (run.senalT > 0 ? run.senalRot : 0) + (run.mvGiro || 0) + gl.rot);
-  if (rolling && !imgTV) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
+  ctx.rotate(imgTV || imgRT ? (run.mvGiro || 0) : spinTot + (run.senalT > 0 ? run.senalRot : 0) + (run.mvGiro || 0) + gl.rot);
+  if (rolling && !imgTV && !imgRT) ctx.scale(0.94 + 0.06 * Math.cos(prRoll * Math.PI * 2), 1);   // leve pulso: vende el giro
   else if (!run.mvRoll && !useSheet) ctx.scale(1 - Math.abs(bank) * 0.26, 1 - plane.pitch * 0.05);
   // Todo este bloque esta authorado para la grilla de 320x180 (fogonazos, fallback de rects,
   // sangre), asi que se escala por U. Las HOJAS ya vienen horneadas a 1.5x, por eso se dibujan
@@ -1230,6 +1240,15 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     ctx.drawImage(imgTV, sxT, syT, FWt, FHt, -dWt / 2, -dHt / 2, dWt, dHt);
     drawBorde(ctx, imgTV, sxT, syT, FWt, FHt, -dWt / 2, -dHt / 2, dWt, dHt);
     dibujarCarga(pl, h6 ? 5 : 3, sxT, syT, FWt, FHt, dWt, dHt);
+  } else if (imgRT) {
+    // EL TONEL DEL PODER (ver imgRT): una fila de 24 columnas, 0 = nivelado desde la camara del poder, + = hacia [E].
+    // Al tamaño de la hoja 3 (cuadro de 168 dibujado como el de 84). Sin tobera, parches ni estelas, como la hoja 6
+    ctx.imageSmoothingEnabled = false;
+    const colRT = ((Math.round(giroRT * 180 / Math.PI / 15) % 24) + 24) % 24;
+    const FWr = SHEET3_FW * PX, FHr = SHEET3_FH * PX, sxR = colRT * FWr;
+    ctx.drawImage(imgRT, sxR, 0, FWr, FHr, -spW / 2, -spH / 2, spW, spH);
+    drawBorde(ctx, imgRT, sxR, 0, FWr, FHr, -spW / 2, -spH / 2, spW, spH);
+    dibujarCarga(pl, 6, sxR, 0, FWr, FHr, spW, spH);
   } else if (useSheet) {
     ctx.imageSmoothingEnabled = false;   // pixel art nítido (el save/restore de afuera lo repone)
     // COLUMNA por alabeo. bank>0 = va a la DERECHA → tiene que banquear a la derecha, pero
@@ -1398,7 +1417,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // Con la hoja del poder NO se dibuja: el vapor se levanta del EXTRADOS del ala y esa cara, desde
   // una camara que mira al avion por debajo, esta del otro lado. Es el mismo criterio que ya usa la
   // tobera con su gate `cara` — si no lo ves, no hay nada que brille.
-  if (alive && !rasHoja && !imgTV) {
+  if (alive && !rasHoja && !imgTV && !imgRT) {
     const gLoad = Math.min(1, Math.abs(bank) * 1.15 + (run.mv ? 0.45 : 0) + (rolling ? 0.3 : 0));
     drawVaporAla(spW, spH, run.spd, gLoad, run.t);
   }
@@ -1436,7 +1455,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // Prendida siempre, como estaba antes, el hilo era permanente y dejaba de significar nada.
     const enManiobra = !!run.mv;
     // (en el TONEL EN VERTICAL no hay estela: las puntas no estan medidas en esa pose y se juntan en el centro)
-    const fuerzaTip = S.state !== 'play' || imgTV ? 0 : enManiobra ? 1 : (run.boost ? 0.4 : 0);
+    const fuerzaTip = S.state !== 'play' || imgTV || imgRT ? 0 : enManiobra ? 1 : (run.boost ? 0.4 : 0);
     // QUITAR — lo que el RENDER vio en este cuadro. Sin esto, un `f=0` no distingue entre
     // "la fuerza dio cero" y "esta funcion ni se llamo", que son dos bugs distintos.
     TIP_DBG.vio = (S.state === 'play' ? 'P' : S.state) + (run.mv || '-') + (run.boost ? 'B' : '');
@@ -1448,8 +1467,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     //
     // OJO CON EL ESPACIO: esto corre DESPUES del `restore()`, o sea en pixeles de MUNDO, y el
     // sprite se dibujo con `spW`/`spH`. Las fracciones van contra ESO y nada mas.
-    const T = imgTV ? [0, 0, 0, 0] : AN.tips[rowPose][colPose];
-    const giroT = imgTV ? (run.mvGiro || 0) : spinTot + (run.mvGiro || 0) + giroLibre().rot;   // con los giros del dibujo, igual que el sprite
+    const T = imgTV || imgRT ? [0, 0, 0, 0] : AN.tips[rowPose][colPose];
+    const giroT = imgTV || imgRT ? (run.mvGiro || 0) : spinTot + (run.mvGiro || 0) + giroLibre().rot;   // con los giros del dibujo, igual que el sprite
     const cs = Math.cos(giroT), sn = Math.sin(giroT);
     const gx = (fx, fy) => cx + fx * spW * cs - fy * spH * sn;
     const gy = (fx, fy) => cy + fx * spW * sn + fy * spH * cs;
@@ -1464,7 +1483,7 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
     // LAS LUCES DE NAVEGACION DE MI AVION (22/10, el autor: "las luces de los aviones, si es de dia, no van
     // encendidas — solo de noche o niebla"): roja en la punta izquierda, verde en la derecha y el destello
     // blanco anticolision, con su reflejo en el agua. `run.lucesK` lo pone game.js (cuanto de noche o niebla).
-    if ((run.lucesK || 0) > 0.02 && S.state !== 'dead' && !imgTV) navMias(alaLx, alaLy, alaRx, alaRy, cx, cy, run.lucesK);
+    if ((run.lucesK || 0) > 0.02 && S.state !== 'dead' && !imgTV && !imgRT) navMias(alaLx, alaLy, alaRx, alaRy, cx, cy, run.lucesK);
   }
 
   // mira: en el MOUSE (PC, punteria libre) o adelante del avion (tactil/legacy)

@@ -2072,27 +2072,30 @@ export function drawPause(w) {
   }
 
   // ---- menu raiz ----
-  const y0 = 104, rh = 28;
+  // (27/11, el autor: "achica un poco las letras y subilo mas para que no quede tan abajo"): la ultima fila y el
+  // [ESC] caian sobre el tablero de relojes. Letra 13 → 11, filas 28 → 21 y arriba; el [ESC] va pegado a la lista
+  const y0 = 92, rh = 21;
   for (let i = 0; i < w.rows.length; i++) {
     const r = w.rows[i], y = y0 + i * rh, on = i === w.sel;
     const col = r.quit ? (on ? P.warn : '#7d6a63') : on ? P.accent : P.body;
-    ctx.textAlign = 'center'; ctx.fillStyle = col; ctx.font = menuFont(13);
+    ctx.textAlign = 'center'; ctx.fillStyle = col; ctx.font = menuFont(11);
     if (on) {
-      ctx.font = menuFont(13); const wn = ctx.measureText(r.label).width;
+      const wn = ctx.measureText(r.label).width;
       ctx.fillStyle = col; ctx.globalAlpha = 0.13;
-      ctx.fillRect(NW / 2 - wn / 2 - 12, y - 13, wn + 24, 19); ctx.globalAlpha = 1;
+      ctx.fillRect(NW / 2 - wn / 2 - 10, y - 11, wn + 20, 16); ctx.globalAlpha = 1;
       ctx.fillStyle = col;
-      ctx.fillText('>', NW / 2 - wn / 2 - 22, y);
+      ctx.fillText('>', NW / 2 - wn / 2 - 19, y);
     }
     ctx.fillText(r.label, NW / 2, y);
   }
+  const yPie = y0 + (w.rows.length - 1) * rh + 22;
   // flash de confirmacion del guardado (late un rato y se va)
   if (w.msg >= 0 && w.msg < 1.6) {
     ctx.fillStyle = Math.sin(w.t * 10) > -0.4 ? P.accent : P.dim; ctx.font = menuFont(10);
-    ctx.fillText(T('pauseSaved'), NW / 2, NH - 26);
+    ctx.fillText(T('pauseSaved'), NW / 2, yPie + 14);
   }
   ctx.fillStyle = '#7d8f95'; ctx.font = labelFont(7);
-  ctx.fillText(T('pauseHint'), NW / 2, NH - 12);
+  ctx.fillText(T('pauseHint'), NW / 2, yPie);
 }
 
 // ---------- EL ALBUM DE MALVINAS (22/11/2026, data/album.js) ----------

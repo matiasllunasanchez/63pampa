@@ -1423,7 +1423,9 @@ function drawCartel() {
   let techo = islasHud ? MARGEN : MARGEN + CARTEL_Y;
   // A LA ALTURA DE FUERA DE RADAR (22/11, el autor: "los mensajes del estilo ARRANCASTE CON FALLAS mas arriba, a esta
   // misma altura de fuera de radar y con ese mismo ancho y alto"): el primero arranca donde esta esa placa
-  if (enPlacaRadar()) techo = cajaZona.y;
+  // …PERO NUNCA ENCIMA DE LA CINTA (27/11, el autor: "se esta tapando esto en el tutorial"): sin la escuadrilla la placa
+  // sube a la fila de la cinta, y el cartel quedaba debajo de ella
+  if (enPlacaRadar()) techo = Math.max(cajaZona.y, MARGEN + CARTEL_Y);
   const lista = cartelesAhora(performance.now() / 1000);
   if (enCabina()) {
     let alto = 0;

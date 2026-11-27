@@ -243,8 +243,7 @@ export function spawnOla(kind, hFijo) {
   // no es que no haya ojos, es que nadie transmite. Un compañero gritando "¡OLA!" en el tramo
   // donde el silencio de radio ES la escena la rompe entera — y es de las pocas voces que igual
   // sonarian, porque la ola no es siembra: sale del clima.
-  if (kind === 'rebelde' && run.lives > 1 && val('voces', true) !== false)
-    popup(0, 26, T('ola_call'), P.warn, true);
+  // (27/11, el autor: "pared de agua quitar"): el cartel "PARED DE AGUA ADELANTE" ya no sale
   obstacles.push(o);
   return o;
 }

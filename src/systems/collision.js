@@ -981,7 +981,7 @@ function pegaTanque(pm, o) {
   } else {
     o.hp -= g.dano;
     explodeAt(o.x, o.y, o.z, false, true, true);           // el golpe seco: chispas, sin bola
-    popup(s.x, s.y - 8, T('tq_tocado'), P.dim);
+    // (27/11, el autor: "TOCADO quitar"): el golpe ya se ve en las chispas y se oye
     beep(300, 0.06, 'square', 0.05, -120);
   }
   if (pm.tanque === 'lleno') { explodeAt(o.x, o.y, o.z, true); run.shake = Math.min(6, run.shake + 1.6); }

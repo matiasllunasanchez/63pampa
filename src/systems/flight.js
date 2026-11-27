@@ -285,7 +285,7 @@ export function flightSystem(dt, deps) {
   run.afterTier = Math.min(AFTER_MAX, Math.floor(run.afterT / AFTER_STEP));
   if (run.afterTier > prevTier) {                   // subió de escalón: feedback
     const s = proj(plane.x, plane.y, PZ);
-    popup(s.x, s.y - 22, T('afterburner'), P.warn);
+    // (27/11, el autor: "el texto de postcombustion no hace falta ponerlo"): queda el sonido, el sacudon y las chispas
     beep(360 + run.afterTier * 130, 0.16, 'sawtooth', 0.06, 220 + run.afterTier * 90);
     run.shake = Math.min(6, run.shake + 1.1);
     for (let i = 0; i < 10 + run.afterTier * 3; i++) {
@@ -431,6 +431,9 @@ export function flightSystem(dt, deps) {
   // respuesta de costado y vertical cae a TURBO.REACCION — cuesta mas arrancar, frenar y cambiar de
   // altura. Entra y sale suave (REAC_RATE); los topes de velocidad no cambian.
   reac += ((run.boost ? TURBO.REACCION : 1) - reac) * Math.min(1, dt * TURBO.REAC_RATE);
+  // EL MANDO DE COSTADO EN EL MOMENTUM LENTO (27/11): corre con el reloj del SUAVE (`run.tempoRel`, game.js) — alabear,
+  // acelerar y frenar de costado tardan en segundos de verdad lo mismo en los dos niveles. Lo vertical no se toca
+  const dtL = dt * (run.tempoRel || 1);
   if (run.mv && rollVx === null) { /* la pirueta ya escribio vx/vy */ } else if (pointer.steer) {
     const wx = (pointer.steer.x - W / 2) / (F / PZ) + cam.x;
     const wy = cam.y - (pointer.steer.y - HOR) / (F / PZ);
@@ -440,7 +443,7 @@ export function flightSystem(dt, deps) {
     // CONTROL POR ALABEO: ←/→ ROLAN y el desplazamiento lateral sale del banqueo (core/physics.js).
     // El viento entra por el mismo lado: en vez de empujar el avion de costado le SACUDE LAS ALAS,
     // que es lo que despues lo mueve. Si no, la rafaga escribia vx y la linea de abajo la borraba.
-    run.bankA = bankStep(run.bankA, inp.r - inp.l, dt * reac) + windRock;
+    run.bankA = bankStep(run.bankA, inp.r - inp.l, dtL * reac) + windRock;
     run.bankA = Math.max(-BANK_MAX, Math.min(BANK_MAX, run.bankA));
     plane.vx = bankVx(run.bankA);
     const G = 22, TH = 55, DIVE = 30;
@@ -453,8 +456,8 @@ export function flightSystem(dt, deps) {
       vertLibre(dt, G, TH, DIVE);
     }
   } else {
-    plane.vx += (inp.r - inp.l) * 115 * reac * dt;
-    if (!inp.r && !inp.l) plane.vx *= Math.max(0, 1 - 4.5 * reac * dt);
+    plane.vx += (inp.r - inp.l) * 115 * reac * dtL;
+    if (!inp.r && !inp.l) plane.vx *= Math.max(0, 1 - 4.5 * reac * dtL);
     plane.vx = Math.max(-30, Math.min(30, plane.vx));
     // gas: mantener ARRIBA empuja hacia arriba; al soltar, la gravedad gana y el avión cae
     const G = 22, TH = 55, DIVE = 30;
@@ -864,7 +867,7 @@ export function flightSystem(dt, deps) {
     // cantidad y el ritmo crecian a la vez y a los 8 segundos habia 42 misiles en pantalla — eso
     // no es una escalada, es un muro (y ademas se come el frame). Con el tope, la presion sigue
     // creciendo sin fin pero de forma legible: siempre hay un hueco por donde salir.
-    const n = 1 + Math.floor((run.radarWave - 1) / 3);
+    const n = Math.min(cfg.oleadaMax || Infinity, 1 + Math.floor((run.radarWave - 1) / 3));   // (el TUTORIAL: de a uno — game.js)
     run.detection = Math.min(0.55, 0.35 + (run.radarWave - 1) * 0.03);
     // TECHO DE OBJETOS EN VUELO, no de la oleada. El tamaño de la tanda sigue creciendo sin fin
     // (que es la idea), pero por encima de ~48 misiles simultaneos el frame se cae y cada uno

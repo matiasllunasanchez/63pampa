@@ -185,6 +185,21 @@ export function drawRotuloVuelo(txt, t, estilo, sub, sobre, tamano) {
 /** LA FLECHA DEL "IN ▼", apuntando abajo a (cx, puntaY). Forma de la referencia —ancha arriba, en
  *  punta abajo, con contorno— y color del estilo `fuego`: contorno casi negro y el relleno en el
  *  degrade amarillo → rojo, fila por fila. `u` es el tamaño del pixel (en pixeles de mundo). */
+/** LA MISMA FLECHA ACOSTADA (27/11, el blanco en tierra pide tambien el costado): `dir` 1 apunta a la DERECHA, -1 a la
+ *  izquierda; `puntaX` es la punta y `cy` el medio. El dibujo es el de `flechaIn` leido de costado. */
+export function flechaLado(puntaX, cy, u, verde, dir) {
+  const k = u || 1, d = dir < 0 ? -1 : 1;
+  const FL = ['KKKKKKKKKKK', 'K111111111K', 'K222222222K', '.K3333333K.', '..K44444K..', '...K555K...', '....K5K....', '.....K.....'];
+  const COL = verde === 'blanco'
+    ? { K: '#14181d', 1: '#ffffff', 2: '#f4f6f8', 3: '#e2e6ea', 4: '#c9cfd6', 5: '#aab2bc' }
+    : { K: '#1c0804', 1: '#fff6a8', 2: '#ffd02c', 3: '#f7a020', 4: '#f27a18', 5: '#c8300f' };
+  const n = FL.length, w = FL[0].length, y0 = Math.round(cy - (w * k) / 2);
+  const x0 = d > 0 ? Math.round(puntaX - n * k + k) : Math.round(puntaX);
+  for (let j = 0; j < n; j++) {
+    const fila = FL[j], col = d > 0 ? j : n - 1 - j;
+    for (let i = 0; i < w; i++) { const ch = fila[i]; if (ch !== '.') px(x0 + col * k, y0 + i * k, k, k, COL[ch]); }
+  }
+}
 export function flechaIn(cx, puntaY, u, verde, dir) {
   const k = u || 1, d = dir < 0 ? -1 : 1;
   const F = ['KKKKKKKKKKK', 'K111111111K', 'K222222222K', '.K3333333K.', '..K44444K..', '...K555K...', '....K5K....', '.....K.....'];

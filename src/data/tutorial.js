@@ -287,7 +287,8 @@ export const TUTORIAL_ETAPAS = [
       { tipo: 'rasante', hasta: 0.85, solo: MAR, bombs: 0, bidones: false },
       { tipo: 'blanco', hasta: 1, solo: MAR, bombs: 0, bidones: false },
       // (25/11) el ESCAPE con enemigos —olas, pajaros y Harriers— hasta 1,35; despues, mar calmo para la Chancha y la llegada
-      { tipo: 'vuelta', hasta: 1.35, obstacles: 1.1, caza: 1, bombs: 0, bidones: false },
+      // (27/11, el autor: "permitamos que el jugador pueda escapar al menos en el tutorial"): menos cosas y sin Harriers
+      { tipo: 'vuelta', hasta: 1.35, obstacles: 0.35, caza: 0, bombs: 0, bidones: false },
       { tipo: 'vuelta', hasta: 2, obstacles: 0, caza: 0, bombs: 0, bidones: false },
     ],
     aviones: [{ ...AVION[0], carga: 'tanques_bomba' }],
@@ -481,6 +482,8 @@ const LISTA = [
   escena('TUT3_BLANCO',
     // (27/11, el autor, textual)
     T(PICHON, 'pichon_radio_alerta', 'Ahí está el buque. Ponete a su altura, apuntá la caída y, cuando la mira del buque se ponga amarilla y titile, ¡soltá la bomba con R3!'),
+    // (27/11, el autor: "y eso ponerlo en el tutorial, en la explicacion"): la flecha BAJÁ/SUBÍ y el EXCELENTE verde (render/blanco.js)
+    B(PICHON, 'pichon_radio_explicando', 'La flecha te dice BAJÁ o SUBÍ. Corchete verde y EXCELENTE: estás bien. La mira titilando: ¡soltá!'),
     B(PICHON, 'pichon_radio_preocupado', 'Si errás, otra pasada. El casco no se va.')),
   escena('TUT3_ESCAPE',
     T(TURCO, 'turco_radio_grito', '¡Le diste! Ahora escapá rasante, que te tiran.')),

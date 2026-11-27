@@ -525,7 +525,15 @@ export function initInput(cv, a) {
     if (flechaMira(e.code)) { inp.apunta = true; e.preventDefault(); if (!e.repeat) dirTap('D'); }   // ↓ mantenida: la mira de la bomba (y su toque, para las piruetas)
     // ENTER = R3: con la mira puesta tira la bomba (el gatillo); sin mira, el secundario como [Z]
     if (esR3(e.code) && S.state === 'play' && !e.repeat) {   // (solo el primer toque: las repeticiones del ENTER que cerro un dialogo no tiran nada)
-      if (inp.apunta) { inp.fire = true; flags.r3Fire = true; } else inp.msl = true;
+      // (27/11, el autor: "el R3 no lanza la bomba, lanza el arma secundaria: estoy seleccionando los tanques y no lanza
+      // nada"): sin mira, ENTER/R3 suelta EL SECUNDARIO ELEGIDO, igual que [Z] — bomba, tanques o chafitas
+      if (inp.apunta) { inp.fire = true; flags.r3Fire = true; }
+      else {
+        const sec = a.secundaria();
+        if (sec === 'tanque') { inp.tanq = true; flags.r3Tanq = true; }
+        else if (sec === 'chafitas') a.chapitas();
+        else inp.msl = true;
+      }
       if (!e.repeat) flags.anyPress = true;
     }
     // LA CRUCETA EN EL NUMPAD (y 1 2 3 de respaldo, mas abajo): ▲ rota el secundario, ► la Chancha, ▼ camara o relevo,
@@ -587,7 +595,7 @@ export function initInput(cv, a) {
     if (e.code === 'KeyQ') secundarioArriba();
     if (e.code === 'KeyQ') inp.rollL = 0; if (e.code === 'KeyE') inp.rollR = 0;   // (con mouse Q/E rolan: se sueltan)
     if (e.code === 'KeyR') inp.rise = 0; if (e.code === 'KeyF') inp.sink = 0;      // (la camara libre de DEV)
-    if (esR3(e.code)) { inp.msl = false; if (flags.r3Fire) { flags.r3Fire = false; inp.fire = false; } }
+    if (esR3(e.code)) { inp.msl = false; if (flags.r3Fire) { flags.r3Fire = false; inp.fire = false; } if (flags.r3Tanq) { flags.r3Tanq = false; inp.tanq = false; } }
   });
 
   // tactil: arrastre a la izquierda = volar; derecha arriba = fuego; derecha abajo = turbo
@@ -991,12 +999,15 @@ export function initInput(cv, a) {
       // R3); L1 queda para la eyeccion (L1+R1) y el Pulso. Fuera del pasillo (arena, pasada) L1 sigue siendo el misil
       const l1 = S.state === 'play' ? down(2) : down(4);
       flags.padEyect = down(4) && down(5);   // L1+R1 juntos = EYECCION (LAS ISLAS sin nafta: game.js `islasSeco`)
-      if (l1 && !padHeld.l1) padSec = S.state === 'play' ? a.secundaria() : 'bomba';
-      setPad('msl', (l1 && (padSec === 'bomba' || padSec === 'exocet')) || (r3 && !miraStick));
-      setPad('tanq', l1 && padSec === 'tanque');
-      if (l1 && !padHeld.l1 && padSec === 'chafitas') a.chapitas();
-      padHeld.l1 = l1;
-      if (!l1) padSec = null;
+      // (27/11, el autor: "el R3 lanza el arma secundaria: con los tanques elegidos no lanza nada"): R3 sin la mira entra
+      // por el MISMO camino que □ — lo elegido se toma al apretar —, asi suelta bomba, tanques o chafitas
+      const suelta = l1 || (r3 && !miraStick);
+      if (suelta && !padHeld.l1) padSec = S.state === 'play' ? a.secundaria() : 'bomba';
+      setPad('msl', suelta && (padSec === 'bomba' || padSec === 'exocet'));
+      setPad('tanq', suelta && padSec === 'tanque');
+      if (suelta && !padHeld.l1 && padSec === 'chafitas') a.chapitas();
+      padHeld.l1 = suelta;
+      if (!suelta) padSec = null;
       // ...y en el PULSO ese mismo boton es EL REMATE, igual que la Z del teclado. Por FLANCO:
       // sostenerlo tiene que valer una sola suelta, como una tecla que no repite.
       if (S.state === 'pulso' && (hit(4) || hit(2))) a.pulsoTap('Z');

@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 BLENDER = '/Applications/Blender.app/Contents/MacOS/Blender'
-VISTAS = ('base', 'empinada', 'ras', 'cobra', 'fino', 'tonelv')   # + la FINA (14/10): 13 alabeos x 5 cabeceos
+VISTAS = ('base', 'empinada', 'ras', 'cobra', 'fino', 'tonelv', 'rastonel')   # + la FINA (14/10): 13 alabeos x 5 cabeceos
 # + EL TONEL EN VERTICAL (21/11, hoja 6): trompa al cielo, la vuelta entera sobre su eje cada 15°
 # `VISTAS=cobra python3 hornear_todo.py`: hornea SOLO esas vistas (la cobra se sumo el 4/10 y no hacia
 # falta rehornear las otras tres para estrenarla)
@@ -34,7 +34,7 @@ NUEVOS_1811 = ('chinook_faa', 'chinook_ej', 'uh1h', 'bell212', 'puma_ej', 'puma_
 for _k in NUEVOS_1811: CAPAS_SOLO[_k] = ()
 CELULAS = CELULAS + NUEVOS_1811
 PX = {'herc': 2, 'neptune': 2, 'guarani': 2, 'chinook_faa': 2, 'chinook_ej': 2, 'skyvan': 2}
-PX_VISTA = {'base': 84, 'empinada': 84, 'fino': 84, 'ras': 168, 'cobra': 126, 'tonelv': 126}
+PX_VISTA = {'base': 84, 'empinada': 84, 'fino': 84, 'ras': 168, 'cobra': 126, 'tonelv': 126, 'rastonel': 168}
 capas_de = lambda k: CAPAS_SOLO[k] if k in CAPAS_SOLO else CAPAS + CAPAS_EXTRA.get(k, ())
 TODAS = CELULAS + ('skin_tero', 'skin_puma', 'skin_gitano', 'skin_pichon', 'skin_vasco')
 

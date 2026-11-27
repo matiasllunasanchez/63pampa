@@ -85,8 +85,11 @@ VISTAS = {  # vista -> (filas, lado del cuadro, sufijo, simetrizar)
     # del mismo giro, no espejos alrededor del centro de la fila. Sin anclas propias: el juego no le
     # pega tobera ni estelas en esa pose (render/plane.js). sheet6.png y sus capas de carga.
     'tonelv': (1, 126, '6', False),
+    # EL TONEL DEL PODER RASANTE (27/11, hornear.py --vista rastonel): la vuelta entera sobre su eje desde la camara de la
+    # hoja 3, cada 15° (24 columnas), cuadro de 168. Sin simetria ni anclas propias, como la hoja 6. sheet7.png
+    'rastonel': (1, 168, '7', False),
 }
-COLS_DE = {'fino': 13, 'empinada': 13, 'cobra': 13, 'ras': 25, 'tonelv': 24}   # (piruetas y poder desde el 15/10); la base: 9
+COLS_DE = {'fino': 13, 'empinada': 13, 'cobra': 13, 'ras': 25, 'tonelv': 24, 'rastonel': 24}   # (piruetas y poder desde el 15/10); la base: 9
 # `VISTAS=cobra .venv-art/bin/python3 armar_juego.py`: arma SOLO esas vistas (las anclas de las otras
 # se leen de lo que ya escribio la ultima armada completa — ver escribir_anclas)
 if os.environ.get('VISTAS'): VISTAS = {k: v for k, v in VISTAS.items() if k in os.environ['VISTAS'].split(',')}

@@ -760,6 +760,11 @@ export function hud() {
     // debajo la bomba no alcanza a armarse (la espoleta), por encima el radar te ve.
     alt: vivo && aTiro()
       ? (plane.y > altIdeal()[1] ? -1 : plane.y < altIdeal()[0] ? 1 : 0) : 0,
+    // EL COSTADO, SOLO EN TIERRA (27/11, el autor: "en la isla deberia funcionar similar pero teniendo en cuenta los
+    // laterales tambien"): -1 hay que ir a la IZQUIERDA, 1 a la DERECHA, 0 estas sobre la zona marcada (BL.CENTRO). En
+    // el buque no se pide: el casco cruza el pasillo entero y desde cualquier lado le pegas
+    lado: vivo && aTiro() && blanco.tipo === 'estructura'
+      ? (plane.x < BL.X - BL.LEN * BL.CENTRO ? 1 : plane.x > BL.X + BL.LEN * BL.CENTRO ? -1 : 0) : 0,
     enAtaque: vivo && aTiro(),
     // SE PASO LA VENTANA: la tuvo y ya no (el semaforo dice TARDE — render/blanco.js `semaforo`, 21/11)
     tarde: vivo && aTiro() && !!blanco.tuvoVentana && !blanco.enDist && !blanco.listo,

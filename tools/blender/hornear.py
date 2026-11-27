@@ -100,6 +100,15 @@ if VISTA == 'cobra':
 # la cara de la fila de 100° de la cobra (la que mira a la camara sin girar); columna c = tonel c*15° en el
 # sentido de [E] (rolido a la derecha en el pasillo — en la hoja base eso es alabeo NEGATIVO, de ahi el
 # signo). Mismo cuadro y camara que la cobra (x1,5): el juego la dibuja con la escala de la hoja 4.
+# `--vista rastonel`: LA HOJA 7 (sheet7.png), EL TONEL DEL PODER RASANTE (27/11, el autor: "las piruetas que hagas con el
+# stick derecho son HORRIBLES — el avion hace una mortal adelante cuando deberia girar sobre el eje longitudinal"). Con el
+# poder la camara mira de tres cuartos (la de la hoja 3), y girar ESE sprite en el plano de la pantalla no lo rola: lo
+# da vuelta como una mortal. Esto es la vuelta entera SOBRE SU EJE desde esa misma camara y con las mismas
+# compensaciones (RAS_PITCH/RAS_ROLL), cada 15° (24 columnas, una fila). Columna c = rolido c*15° en el sentido de
+# [E], como la hoja 6. El juego la dibuja con la escala de la hoja 3.
+if VISTA == 'rastonel':
+    PITCHES = [0]
+    ANGLES = [-t for t in range(0, 360, 15)]
 if VISTA == 'tonelv':
     PITCHES = [90]
     ANGLES = [-t for t in range(0, 360, 15)]
@@ -136,7 +145,7 @@ if SELECTOR:
     _e, _a = math.radians(SEL_ELEV), math.radians(SEL_YAW)
     CAM = dict(CAM, pos=(_d * math.cos(_e) * math.sin(_a), CAM['lookY'] + _d * math.sin(_e), _d * math.cos(_e) * math.cos(_a)),
                ref=CAM['ref'] / SEL_ZOOM, lookZ=SEL_Z)       # mira un poco hacia la trompa: el avion queda centrado
-if VISTA == 'ras':
+if VISTA in ('ras', 'rastonel'):
     FW = FH = int(arg('--px', '168'))
     _d = math.hypot(CAM['pos'][1] - CAM['lookY'], CAM['pos'][2])
     _e, _a = math.radians(RAS_ELEV), math.radians(RAS_YAW)
@@ -448,7 +457,7 @@ def hornear(raiz):
         tips.append([])
         for col, a in enumerate(ANGLES):
             # LA POSE, como en three: rotation.x = cabeceo, rotation.z = alabeo, orden XYZ
-            dp, dr = (RAS_PITCH, RAS_ROLL) if VISTA == 'ras' else (0, 0)
+            dp, dr = (RAS_PITCH, RAS_ROLL) if VISTA in ('ras', 'rastonel') else (0, 0)
             raiz.matrix_basis = Matrix.Rotation(math.radians(pa + dp), 4, 'X') @ Matrix.Rotation(math.radians(a + dr), 4, 'Z')
             bpy.context.view_layer.update()
             mw = raiz.matrix_world

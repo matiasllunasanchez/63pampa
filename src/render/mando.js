@@ -401,10 +401,8 @@ export function drawDemoRasante({ t = 0, a = 1, y0 = 24, pad = true, foco = 0 })
   // 1 · VOLÁ PERFECTO: la barra naranja, con PERFECTO arriba ("la barra naranja debe decir PERFECTO arriba")
   titulo(1, T('demoRas1'), P.accent);
   ctx.globalAlpha = alfa(1);
-  ctx.textAlign = 'center'; ctx.font = 'bold 5px monospace'; ctx.fillStyle = P.accent; ctx.fillText(T('mult_perfect'), xs[0] + CW / 2, yB - 6);
-  // (27/11, el autor: "siempre hablar de RASANTE PERFECTO: la palabra rasante arriba de perfecto, mas chica y finita, que
-  // ocupe el ancho total de la palabra perfecto")
-  rotuloEstirado(T('mult_rasante'), xs[0] + CW / 2, yB - 10.5, ctx.measureText(T('mult_perfect')).width, '3px monospace', P.accent);
+  // (27/11, el autor: "innecesario repetirlo, deja uno — el que se lee mejor"): el titulo ya dice RASANTE PERFECTO;
+  // el rotulo chico RASANTE/PERFECTO de arriba de la barra se saco
   barra(xs[0], yB - 2, CW, 5, P.accent, '#ffe0a0', foco === 1 || !foco ? lleno1 : 1);
   nota(1, T('demoRas1n', { n: CARGA }));
   // 2 · GAS EN EL AZUL: la barra azul con su sector y LA AGUJA (no una rayita: un fiel con cabeza)

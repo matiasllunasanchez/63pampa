@@ -483,6 +483,10 @@ function drawLucesPista(dv) {
   ctx.restore();
 }
 
+// EL TROTE DE LOS CONSCRIPTOS de la base (27/11): unidades por segundo, ida y vuelta de cuanto, y cuanto avanzan
+// en un ciclo entero de piernas (el soldado mide ~2,2 u: una zancada doble de algo mas que su altura)
+const TROTE_V = 2.6, TROTE_RANGO = 8, TROTE_ZANCADA = 2.6;   // (RANGO chico: van y vienen al costado de la pista, sin pisarla)
+
 /** EL CAMPO DE LA BASE (4/10/2026, pedido del autor: "en el pasto del despegue el efecto parece
  *  lluvia — conviene ponerle directamente los arbustos como tienen los otros terrenos"): matojos del
  *  pasto (en su estado de viento), matas de las islas y alguna piedra, sobre la turba de la base y a
@@ -517,10 +521,14 @@ function drawBaseVeg(dv) {
         // (27/11, la hoja a 96 px con dos poses quietas): tendidos, de GUARDIA con el FAL y RODILLA EN TIERRA apuntando
         if (h2 < 0.7) soldierArt.drawArgentino(ctx, s.x, s.y, s.k, 0, dir, h2 < 0.32 ? true : h2 < 0.52 ? 'guardia' : 'rodilla');
         else {
-          const T = 6 + h3 * 4, f = ((run.t + h2 * 40) % (2 * T)) / T, ida = f < 1;
-          const u = ida ? f : 2 - f, ox = (u - 0.5) * SP * 1.6;
+          // (27/11, el autor: "se mueven a una velocidad mas lenta de lo que se mueve su animacion de trote"): iban
+          // 4,5 u en 6..10 s con las piernas a 9 cuadros por segundo — patinaban. Ahora trotan de verdad (TROTE_V) y
+          // la fase sale de lo RECORRIDO: un ciclo de piernas cada TROTE_ZANCADA, el pie no resbala
+          const v = TROTE_V * (0.85 + h3 * 0.3);
+          const reco = (run.t + h2 * 40) * v, f = (reco / TROTE_RANGO) % 2, ida = f < 1;
+          const u = ida ? f : 2 - f, ox = (u - 0.5) * TROTE_RANGO;
           const r = proj(jx + ox, gy, jz - dv);
-          soldierArt.drawArgentino(ctx, r.x, r.y, r.k, run.t * 9 + h3 * 6, ida ? 1 : -1, false);
+          soldierArt.drawArgentino(ctx, r.x, r.y, r.k, reco * soldierArt.PASOS / TROTE_ZANCADA + h3 * 6, ida ? 1 : -1, false);
         }
         continue;
       }
