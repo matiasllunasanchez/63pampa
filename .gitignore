@@ -29,3 +29,7 @@ trailer/
 # Steam: el contenido de los depots y lo que genera tools/steam.js (se rehace con npm run steam:build)
 steam/contenido/
 steam/generado/
+
+# las imagenes en webp sin perdida que saca tools/webp.js de los PNG (se rehacen con npm run build:game)
+assets/webp/
+src/data/webp_lista.js

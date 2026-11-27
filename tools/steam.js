@@ -64,6 +64,7 @@ function build() {
   if (process.platform !== 'darwin') falta('el build de Mac (universal) solo se arma desde una Mac');
   const meta = `-c.extraMetadata.rasanteFull=true -c.extraMetadata.rasanteSteam=${cfg.appId}`;
   fs.rmSync(SALIDA, { recursive: true, force: true });
+  correr('node tools/webp.js --exigir');
   correr('npm run -s build:game');
   correr(`npx electron-builder --win dir --x64 ${meta} -c.directories.output=dist/steam/win`);
   correr(`npx electron-builder --mac dir --universal ${meta} -c.directories.output=dist/steam/mac`);

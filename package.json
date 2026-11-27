@@ -6,7 +6,7 @@
   "main": "electron/main.js",
   "scripts": {
     "serve": "python3 -m http.server 8475",
-    "build:game": "esbuild src/game.js --bundle --format=iife --define:__RASANTE_VERSION__=\\\"$npm_package_version\\\" --outfile=src/game.bundle.js",
+    "build:game": "node tools/webp.js && esbuild src/game.js --bundle --format=iife --define:__RASANTE_VERSION__=\\\"$npm_package_version\\\" --outfile=src/game.bundle.js",
     "prestart": "npm run build:game",
     "start": "electron .",
     "prod": "npm run build:game && electron . --prod",
@@ -39,10 +39,10 @@
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
     "pack": "electron-builder --dir",
-    "dist:amigos": "npm run build:game && electron-builder --win portable --x64 -c.extraMetadata.rasanteFull=true -c.directories.output=dist/amigos && electron-builder --mac dmg --universal -c.extraMetadata.rasanteFull=true -c.directories.output=dist/amigos",
+    "dist:amigos": "node tools/webp.js --exigir && npm run build:game && electron-builder --win portable --x64 -c.extraMetadata.rasanteFull=true -c.directories.output=dist/amigos && electron-builder --mac dmg --universal -c.extraMetadata.rasanteFull=true -c.directories.output=dist/amigos",
     "prebuild:web": "npm run build:game",
-    "predist": "npm run build:game",
-    "prepack": "npm run build:game",
+    "predist": "node tools/webp.js --exigir && npm run build:game",
+    "prepack": "node tools/webp.js --exigir && npm run build:game",
     "smoke:web": "electron tools/smoke.js",
     "agua": "electron tools/fixture_agua.js",
     "tierra": "electron tools/fixture_tierra.js",
@@ -62,7 +62,8 @@
     "trailer": "electron tools/trailer.js",
     "steam:build": "node tools/steam.js build",
     "steam:subir": "node tools/steam.js subir",
-    "steam:probar": "npm run build:game && electron . --prod --full --steam"
+    "steam:probar": "npm run build:game && electron . --prod --full --steam",
+    "webp": "node tools/webp.js"
   },
   "author": "Matias Luna",
   "license": "UNLICENSED",
@@ -89,6 +90,10 @@
       "assets/story/**/*.webp",
       "assets/portraits/**/*.png",
       "assets/ammo/**/*",
+      "assets/webp/**/*",
+      "!assets/{planes,ui,world,photos,portraits,ammo}/**/*.png",
+      "assets/ui/icono.png",
+      "assets/planes/{ch47c-chinook-ejercito,ch47c-chinook-faa,hercules-bombardero,ia50-guarani,sc7-skyvan,sp2h-neptune}/sheet3_hd.png",
       "package.json"
     ],
     "win": {

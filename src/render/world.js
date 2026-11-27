@@ -2167,6 +2167,9 @@ const APPROACH_FAR = SPAWN_Z, APPROACH_NEAR = 40;   // z donde arranca y donde l
 const APPROACH_MIN = 0.85, APPROACH_MAX = 1.12;   // multiplicador de escala lejos / encima
 // VIRAJE DEL HELICOPTERO: lejos viene DE FRENTE y al acercarse se pone DE COSTADO.
 const HELO_TURN_FAR = 150, HELO_TURN_NEAR = 55;  // z donde empieza y donde termina el viraje
+// EL HELO DE LEJOS: cuanto se agranda en el nacimiento (EXTRA, sobre 1) y desde que z ya es de tamaño real (Z0)
+const HELO_LEJOS = { EXTRA: 1.3, Z0: 80 };
+const heloLejos = z => 1 + HELO_LEJOS.EXTRA * clamp01((z - HELO_LEJOS.Z0) / (SPAWN_Z - HELO_LEJOS.Z0));
 
 const clamp01 = v => Math.max(0, Math.min(1, v));
 
@@ -2366,7 +2369,11 @@ function dibujarObstaculo(o) {
   } else if (o.type === 'helo') {
     const oy = o.y + Math.sin(run.t * 2 + o.ph) * 0.8;
     const s = proj(o.x, oy, o.z);
-    const kk = k * approachZoom(o.z);
+    // (27/11, feedback: "los helicopteros a veces spawnean de la nada, no se ven venir"): de frente y a 320 m el
+    // helo era una astilla de 3×1 px —medido en Node: 8 px² a 150 m contra 137 a 60— y se lo veia recien al
+    // virar, a ~100 m (1,3 s). De lejos se lo dibuja mas grande y se va al tamaño de verdad antes de HELO_LEJOS.Z0,
+    // asi que donde se juega el choque no cambia nada (es solo dibujo, como approachZoom)
+    const kk = k * approachZoom(o.z) * heloLejos(o.z);
     // VIRAJE: yaw 0 = viene de frente (cuerpo angosto, cola escondida detras) · yaw 1 = de costado
     // (cuerpo entero y cola extendida). No son dos dibujos: es UNO que se estira por escorzo.
     const yaw = clamp01((HELO_TURN_FAR - o.z) / (HELO_TURN_FAR - HELO_TURN_NEAR));

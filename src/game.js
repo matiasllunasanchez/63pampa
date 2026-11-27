@@ -1,5 +1,6 @@
 // RASANTE — entry point. Los modulos de datos se bundlean con esbuild (npm run build:game);
 // hace falta bundlear porque Electron carga por file://, donde Chromium bloquea los ES modules.
+import './core/webp.js';   // (27/11) PRIMERO: las imagenes piden su webp sin perdida — ver tools/webp.js
 import { STRINGS } from './data/strings.js';
 import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
