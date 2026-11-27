@@ -16,7 +16,7 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
-## 0.6.0 — 27/11/2026
+## 0.6.0 — 27/11/2026 (Steam BuildID 26975211)
 
 - **Dos estampitas nuevas en el álbum (TEMAS):**
   - **La cabina del Sea Harrier:** se destapa al bajar 20 Harrier en total, contando entre partidas.
