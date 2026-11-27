@@ -73,8 +73,9 @@ const LUGAR_R = 6000;
 // (izquierda)"). No son puntos elegibles: el rotulo va en el medio de cada isla (Soledad, sobre Lafonia, donde no hay
 // otros nombres)
 export const ISLAS_NOMBRES = [
-  { n: 'ISLA GRAN MALVINA', lon: -60.25, lat: -51.76 },
-  { n: 'ISLA SOLEDAD', lon: -58.65, lat: -52.0 },
+  // (27/11, el autor: "dejar fijos los nombres de las islas, quiza mas abajo, que no tapen terreno"): en el mar, al sur de cada isla
+  { n: 'ISLA GRAN MALVINA', lon: -60.25, lat: -52.39 },
+  { n: 'ISLA SOLEDAD', lon: -58.65, lat: -52.57 },
 ];
 
 // `radar`: LA LLAVE DEL RADAR DE LAS ISLAS (19/11, el autor: "la mecanica de radar tiene que estar en las

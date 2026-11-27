@@ -187,7 +187,7 @@ export const STRINGS = {
     sq_yours: 'TENÉS EL MANDO!', sq_last: '! ÚLTIMO AVIÓN !',
     sq_spent: '{c} SALE DE LA CORRIDA',
     dead_out: 'FUERA DE COMBATE',
-    bar_fuel: 'COMB', bar_cannon: 'CAÑÓN 20MM', bar_overheat: 'RECALENTADO', bar_fuelLow: 'NAFTA BAJA',
+    bar_fuel: 'COMB', bar_cannon: 'CAÑÓN 20MM', bar_overheat: 'RECALENTADO', bar_fuelLow: 'NAFTA BAJA', gas_seco: 'SIN NAFTA',
     bar_tempo: 'MOMENTUM', tempoMas: 'MOMENTUM ×2', tempoOn: 'MOMENTUM', tempoOff: 'TIEMPO REAL', tempoReady: '! MOMENTUM LISTO — [4] !',   // sin uso desde el 12/9: ahora es la lengueta LISTO
     // LA CHANCHA (tecla 5): el ritual de radio del reabastecimiento. Las lineas citan el TONO de
     // la escena del guion sin reproducirla — esa es del modo historia.
@@ -1548,7 +1548,7 @@ export const STRINGS = {
     sq_yours: 'YOU HAVE CONTROL!', sq_last: '! LAST AIRCRAFT !',
     sq_spent: '{c} IS OFF THE RUN',
     dead_out: 'OUT OF ACTION',
-    bar_fuel: 'FUEL', bar_cannon: 'CANNON 20MM', bar_overheat: 'OVERHEAT', bar_fuelLow: 'LOW FUEL',
+    bar_fuel: 'FUEL', bar_cannon: 'CANNON 20MM', bar_overheat: 'OVERHEAT', bar_fuelLow: 'LOW FUEL', gas_seco: 'NO FUEL',
     bar_tempo: 'MOMENTUM', tempoMas: 'MOMENTUM ×2', tempoOn: 'MOMENTUM', tempoOff: 'REAL TIME', tempoReady: '! MOMENTUM READY — [4] !',
     bar_chancha: 'TANKER', ch_ready: '! TANKER READY — [J] !',
     bar_rasante: 'RASANTE',

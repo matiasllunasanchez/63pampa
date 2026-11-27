@@ -42,6 +42,7 @@
 const CONC_MIN = 7;
 const CARGA_PERF = 4;   // = AGU.CARGA (core/aguante.js): los segundos de PERFECTO (va como numero por el lint de capas)
 import { CAMPAIGN_CFG } from './missions.js';
+import { NAFTA_ISLAS } from './modos_sueltos.js';   // (27/11: la nafta de la etapa 4, en las islas)
 
 // sin nafta, sin globos, sin cazas, sin bombas y SIN RADAR (subir arriba del techo es un ejercicio, no
 // tiene que traer a nadie), Esteban solo
@@ -311,7 +312,9 @@ export const TUTORIAL_ETAPAS = [
     // la BAM MALVINAS, con el tren todavia abajo (game.js `abrirTutorial`)
     // (27/11, el autor: "la etapa 4 ya deberia poder llamarlo… ya funcionaria normal"): nafta y Chancha como en el juego
     chancha: true, chanchaMinT: 0,
-    cfg: P({ sky: 'cloudy', terrain: 'sea', start: 'air', carga: 'tanques_bomba', radar: 'normal', fuelOn: true }), pasos: ETAPA4,
+    // (27/11, el autor: "en isla dura MUY POCO el combustible, tiene que durar lo suficiente como para poder ir recargando"):
+    // sin escala era la del pasillo de medio minuto (FUEL_RATE: ~31 s de tanque). Con NAFTA_ISLAS, ~5 min
+    cfg: P({ sky: 'cloudy', terrain: 'sea', start: 'air', carga: 'tanques_bomba', radar: 'normal', fuelOn: true, fuelScale: NAFTA_ISLAS }), pasos: ETAPA4,
     consejos: { es: ['En las islas la altura se mide desde el suelo: el cerro te la come.', 'Marcá en el MAPA de la pausa y seguí la brújula.', 'Adentro de un radar inglés, abajo de 20 m.'],
       en: ['On the islands altitude is measured from the ground: hills eat it.', 'Mark a point on the pause MAP and follow the compass.', 'Inside a British radar, stay under 20 m.'] } },
 ];

@@ -483,6 +483,9 @@ export function flightSystem(dt, deps) {
   // palanca la mueve LT (mantener), no ↑ — ↑ ↓ ya son subir y bajar como los costados
   const suave = cfg.vert === 'planeo' || cfg.vert === 'planeo_m';
   const gasOn = run.fuel > 0 && (suave ? !!inp.mant : (inp.u || (pointer.steer && plane.vy > 0.5)));
+  // (27/11, el autor: "en isla el gas a veces se traba y no se lanza, mantengo apretado y no carga y queda en cero" — era
+  // el tanque vacio): pedir gas sin nafta no hace nada, y ahora se avisa — SIN NAFTA sale de atras del reloj del gas (hud.js)
+  run.gasSeco = run.fuel <= 0 && !!(suave ? inp.mant : inp.u);
   if (suave) run.throttle = Math.max(0, Math.min(1, run.throttle + (gasOn ? dt / VERT_SOSTEN.AGUJA_SUBE : -dt / VERT_SOSTEN.AGUJA_BAJA)));   // (pareja: la aguja ES el tiempo que mantenes)
   else run.throttle += ((gasOn ? 1 : 0) - run.throttle) * Math.min(1, dt * 7);
   // COMBUSTIBLE: NO (menú [M]) = tanque infinito, para pruebas.

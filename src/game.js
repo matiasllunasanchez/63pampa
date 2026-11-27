@@ -6,7 +6,7 @@ import { P, SKY_PRESETS } from './data/palette.js';
 import { MOM_LAYOUTS, SHIP_CLASS } from './data/ships.js';
 import { SHIPS, MISSIONS, SHIP_MISSIONS, climaxOf, CFG_SIN_MISION, PREFS_QUE_PISA_UNA_MISION } from './data/missions.js';
 import * as director from './systems/director.js';
-import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, DETECCION, nivelCorrida, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, MAPA, CLIMA, ARRANQUE, oleadaDe } from './data/modos_sueltos.js';
+import { DIFICULTADES, DIF_DEFAULT, RAMPA, ALARMA, DETECCION, nivelCorrida, PERILLAS, ENTORNO, COSTOS, NAFTA_ESCALA, NAFTA_ISLAS, MAPA, CLIMA, ARRANQUE, oleadaDe } from './data/modos_sueltos.js';
 import { MISIONES_PRUEBA } from './data/pruebas_misiones.js';
 import { LIBRO_VUELO, LIBRO_PROXIMAS, LIBRO_SCENES, CAMPANA_BLOQUEADA, LIBRO_ABIERTAS } from './data/libro_vuelo.js';
 import { TUTORIAL_ETAPAS, TUT_SCENES } from './data/tutorial.js';
@@ -2679,8 +2679,9 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     // (27/11, el autor: "lo de marcar lo quitamos, es para el modo dev. Quitemos en produccion poder moverte por el mapa… que
     // lo descubra solo. La realidad es que no tenian"): fuera del modo dev el mapa se abre y se mira, nada mas
     const mapaDev = () => typeof window !== 'undefined' && !!window.RASANTE_DEV;
+    // (27/11, el autor: "si pongo el cursor o el selector con el stick me muestra el nombre de lo que es"): MIRAR el mapa con
+    // el cursor —mouse, stick, Q/E de punto en punto— vale en produccion; MARCAR y SALTAR siguen siendo del modo dev
     function mapaMover(du, dv) {
-      if (!mapaDev()) return;
       if (!mapaCur) { const d = islas.mapaDatos(null); mapaCur = d ? { u: d.avion.u, v: d.avion.v } : { u: 0.5, v: 0.5 }; }
       mapaCur = { u: Math.max(0, Math.min(1, mapaCur.u + du)), v: Math.max(0, Math.min(1, mapaCur.v + dv)) };
       beep(520, 0.03, 'square', 0.02);
@@ -2700,7 +2701,6 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     }
     /** Q/E · L1/R1: salta al punto siguiente (lugar, base, buque, objetivo), de oeste a este. */
     function mapaPunto(dir) {
-      if (!mapaDev()) return;
       const d = islas.mapaDatos(mapaCur);
       if (!d || !d.puntos.length) return;
       const L = d.puntos, c = mapaCur || d.avion;
@@ -3763,7 +3763,11 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     // El TREN va con la puerta de entrada: si el nivel empieza ya volando, viene recogido de fabrica
     // (nunca hubo pista de la que levantarlo); si hay carrera, baja para el despegue.
     function afterBrief() {
-      run.gear = cfg.start === 'air' ? 0 : 1;
+      // (27/11, el autor: "debe despegar con ruedas y despues irseles, como siempre"): la etapa 4 del tutorial (y el
+      // SOBREVUELO) arranca en el aire RECIEN LEVANTADA de la BAM MALVINAS — el tren abajo, y se guarda solo en vuelo.
+      // Aca se lo pisaba a 0 por arrancar en el aire, y el avion salio de la pista sin ruedas
+      const recienLevanta = cfg.start === 'air' && islas.activa() && (sobrevuelo || (libro && libro.tut && TUTORIAL_ETAPAS[libro.k] && TUTORIAL_ETAPAS[libro.k].desdePuerto));
+      run.gear = cfg.start === 'air' && !recienLevanta ? 0 : 1;
       // UNA CUENTA SOLA (18/10, el autor: "el conteo es doble; si hay despegue es con despegue, y si no hay
       // despegue, 3 segundos antes de darme el control"): con pista, la cuenta es la del despegue y el control
       // llega al despegar; la corrida suelta que arranca EN VUELO entra al despegue ya pasada la carrera (toT 3)
@@ -4997,7 +5001,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // MUCHOS HELICOPTEROS"): el radar tarda 2,2 veces mas en cargar (la oleada llega la mitad de seguido) y cada oleada es UN misil (systems/flight.js)
       if (libro && libro.tut) { cfg.detCargaS = 1.4 * 2.2; cfg.oleadaMax = 1; } else cfg.oleadaMax = null;
       // …y CON COMBUSTIBLE (autor, 16/10): la nafta es el reloj, y sin ella la Chancha no existe
-      if (suelto()) { cfg.fuelOn = true; cfg.fuelScale = NAFTA_ESCALA; }
+      if (suelto()) { cfg.fuelOn = true; cfg.fuelScale = islas.activa() ? NAFTA_ISLAS : NAFTA_ESCALA; }   // (27/11: en las islas, mas)
       kmPrevios = 0;
       if (startCiclo !== null) { cfg.start = startCiclo; startCiclo = null; }
       // …y LOS MODOS SUELTOS SALEN SIEMPRE DE LA PISTA (18/10, el autor: "¿por que no se arranca desde el
@@ -5278,12 +5282,12 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       pauseConfirm: () => pauseConfirm(),
       // EL MAPA DE LAS ISLAS con mouse y mando (19/11): mover el cursor, saltar de punto, marcar, borrar, ir
       mapaAbierto: () => paused && pauseView === 'mapa',
-      mapaStick: (dx, dy) => { if (!mapaDev()) return; if (!mapaCur) mapaMover(0, 0); mapaCur = { u: Math.max(0, Math.min(1, mapaCur.u + dx)), v: Math.max(0, Math.min(1, mapaCur.v + dy)) }; },
+      mapaStick: (dx, dy) => { if (!mapaCur) mapaMover(0, 0); mapaCur = { u: Math.max(0, Math.min(1, mapaCur.u + dx)), v: Math.max(0, Math.min(1, mapaCur.v + dy)) }; },
       mapaPunto: dir => mapaPunto(dir),
       mapaBorrar: () => mapaBorrar(),
       mapaSaltar: () => mapaSaltar(),
-      mapaClick: (x, y, boton) => { if (!mapaDev()) return; const q = mapaUVde(x, y); if (!q || !mapaPoner(q.u, q.v)) return; if (boton === 2 || boton === 1) mapaSaltar(); else mapaMarcar(); },   // (la RUEDITA tambien teletransporta: desarrollo, 21/11)
-      mapaHover: (x, y) => { if (!mapaDev()) return; const q = mapaUVde(x, y); if (q) mapaPoner(q.u, q.v); },
+      mapaClick: (x, y, boton) => { const q = mapaUVde(x, y); if (!q || !mapaPoner(q.u, q.v) || !mapaDev()) return; if (boton === 2 || boton === 1) mapaSaltar(); else mapaMarcar(); },   // (la RUEDITA tambien teletransporta: desarrollo, 21/11)
+      mapaHover: (x, y) => { const q = mapaUVde(x, y); if (q) mapaPoner(q.u, q.v); },
       pauseBack: () => pauseBack(),
       // submenu de HISTORIA y lista de partidas guardadas
       campNav: dir => campNav(dir),
@@ -7204,7 +7208,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         // (21/11, el autor: "el sonido de las balas lo reproducis cuando no me estan disparando… tiene que sonar cuando las
         // balas salen desde el barco"): suena mientras dura una RAFAGA recien disparada (systems/artilleria.js `rafaga`,
         // y en las islas teatro.js `fuegoCerca`) — las balas, la chapa y el agua, al azar adentro de esa ventana
-        fuegoBuque: artilleria.rafaga() || islas.fuegoBuque(),
+        fuegoBuque: artilleria.rafaga() || islas.fuegoBuque() || escapeSys.sonando(),   // (27/11: y la de popa del escape)
         tempo: tempo.active(), freno: run.mv === 'cobra' || run.mv === 'cobrainv' });   // loops con fade
       // camara CERCA: interpola hacia el objetivo; fuera de vuelo (o al morir) vuelve sola a 1
       // para que cada entrada a play arranque con zoom-in suave y sin saltos entre estados
@@ -8271,7 +8275,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         if (blancoSys.escapando() && salio && !vir) { vir = { fase: 'perdimos', t: 0 }; if (!(libro && libro.tut)) radioTramo('vir_perdimos'); missiles.length = 0; }
         // LA LINEA RECTA (V2): la artilleria de popa tira mientras escapas. Un tiro que pega es un
         // golpe de chapa; si el avion no aguanta, entra el siguiente — y el escape sigue.
-        const es = blancoSys.escapando() && !vir ? escapeSys.step(dt) : null;
+        const es = blancoSys.escapando() && !vir ? escapeSys.step(dt, !!chancha.snapshot()) : null;   // (27/11: con la Chancha, el buque calla)
         if (es === 'hit') {
           escapeSys.limpiar();
           // EN ESCUADRON (el modo de siempre) UN TIRO DE POPA NO ES UN DERRIBO (8/10, el autor: "me matan

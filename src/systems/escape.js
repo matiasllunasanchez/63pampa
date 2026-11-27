@@ -25,7 +25,7 @@ export function empezar(pz) {
   escape.rafT = 0.4;   // la primera rafaga llega apenas bajas del salto
 }
 
-export function terminar() { resetEscape(); }
+export function terminar() { resetEscape(); sonT = 0; }
 /** Un derribo durante el escape: lo que estaba en el aire no se hereda (morir dos veces). */
 export function limpiar() { escape.tiros.length = 0; }
 
@@ -35,8 +35,17 @@ export function limpiar() { escape.tiros.length = 0; }
  *  mostrar la panza (medido: viboreando caias igual que yendo derecho). */
 export const panza = () => Math.abs(plane.x - escape.carrilX) > ESC.CARRIL || !!run.mv;
 
+// EL SONIDO DE LA RAFAGA DE POPA (27/11, el autor: "el sonido no se reproduce cuando vuelan las balas y chocan contra la
+// chapa… al menos no en el tutorial"): el fuego del buque sonaba solo con la artilleria de la APROXIMACION
+// (systems/artilleria.js `rafaga`); la de popa del escape —la que te tira al irte, "escapá rasante, que te tiran"— era
+// muda. Lo mismo que alla: la ventana de RAFAGA_SON s desde cada rafaga (game.js la suma a `fuegoBuque`)
+const RAFAGA_SON = 1.4;
+let sonT = 0;
+export const sonando = () => escape.on && sonT > 0;
+
 /** Una rafaga: `n` tiros alrededor de (cx, cy) con dispersion `s`. */
 function rafaga(n, cx, cy, s) {
+  sonT = RAFAGA_SON;
   for (let i = 0; i < n; i++) {
     escape.tiros.push({
       ox: escape.carrilX + (Math.random() - 0.5) * 6, oy: AGUA + 1.5,
@@ -49,9 +58,13 @@ function rafaga(n, cx, cy, s) {
 let xAnt = 0;
 /** La puntería empeora con la distancia al buque: cuanto mas escapaste, mas se abren los tiros (ESC.LEJOS_K). */
 const lejos = () => 1 + escape.t * ESC.LEJOS_K;
-export function step(dt) {
+/** `callado` (27/11, el autor: "cuando el avion pasa por la zona de recarga del Hercules hace ruido de chapa y efecto de
+ *  particulas como si le provocase daño"): con la Chancha en escena el buque ya quedo atras — no salen rafagas nuevas
+ *  (lo que ya estaba en el aire termina de caer) y no suena el fuego. */
+export function step(dt, callado) {
   if (!escape.on) return null;
   escape.t += dt;
+  sonT = callado ? 0 : Math.max(0, sonT - dt);
   escape.panza = panza();
   // EL SALTO TE DEJA ALTO UN RATO: sin la gracia, el techo a 6 completaba la barra del radar en el
   // cuadro del cruce y la oleada de misiles pegaba antes de que pudieras bajar (medido en V0).
@@ -61,7 +74,7 @@ export function step(dt) {
   const vib = escape.t >= ESC.RECTA_T && escape.t < ESC.VIBORA_HASTA;
   const entra = vib && !escape.vibora;
   escape.vibora = vib;
-  if (vib) {
+  if (vib && !callado) {
     // cada INVERSION del movimiento lateral la tira a cero: eso es viborear. La velocidad lateral
     // sale de cuanto se MOVIO el avion y no de `plane.vx`: con la mira del mouse o con el alabeo
     // el que mueve al avion no siempre escribe vx, y la vibora tiene que valer con cualquier control.
@@ -81,7 +94,7 @@ export function step(dt) {
   }
   // LAS RAFAGAS COMUNES de popa, mientras dura el alcance. En la linea recta la punteria depende de
   // la panza; en la vibora, ademas, se va cerrando con la solucion.
-  if (escape.t < ESC.VIBORA_HASTA) {
+  if (escape.t < ESC.VIBORA_HASTA && !callado) {
     escape.rafT -= dt;
     if (escape.rafT <= 0) {
       escape.rafT = ESC.RAFAGA_CADA * (0.8 + Math.random() * 0.4);

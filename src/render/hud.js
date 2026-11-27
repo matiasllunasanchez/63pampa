@@ -2281,6 +2281,7 @@ function drawAvisosCaja() {
   // los que mira el tablero solo: el CAÑON trabado, el ROCE del agua (el mismo ¡PELIGRO! BAJA ALTURA de arriba)
   avisoSostenido('canon', !!run.overheat && !run.sinCanon, T('bar_overheat'));
   avisoSostenido('alt', run.scrapeVib > 0.6, T('scrapeSub'));
+  avisoSostenido('gas', !!run.gasSeco, T('gas_seco'));   // (27/11: pedis gas con el tanque vacio)
   // EL RADAR PROPIO (26/11, el autor: "el efecto de radar prendido ponerlo desde abajo en el cuadrado de radar, que salga
   // desde atras como nafta y chancha, y se mantenga; el fallo del radar representarlo tambien en el indicador"): prendido,
   // RADAR PRENDIDO en azul sostenido; cortado solo, FALLO EL RADAR en naranja hasta que recargue entero
@@ -3340,7 +3341,7 @@ const DIG = {
   3: ['######.', '#######', '.....##', '.....##', '.....##', '.....##', '.######', '.######', '.....##', '.....##', '.....##', '.....##', '.....##', '#######', '######.'],
   4: ['##...##', '##...##', '##...##', '##...##', '##...##', '##...##', '#######', '#######', '.....##', '.....##', '.....##', '.....##', '.....##', '.....##', '.....##'],
 };
-function digito(x, y, n, col) {
+function digito(x, y, n, col, esc = 1) {
   // MAS DE 4 (la bodega del Hercules bombardero, 16/10: hasta 12): la tabla de pixeles llega a 4, asi
   // que el numero va en la letra chica del estante
   if ((n | 0) > 4) {
@@ -3350,13 +3351,13 @@ function digito(x, y, n, col) {
   }
   const d = DIG[Math.max(0, Math.min(4, n | 0))];
   ctx.fillStyle = col;
-  const x0 = x + FINO;                                   // 7 de 9: centrado en la celda de 3
+  const P_ = FINO * esc, x0 = x + P_;                     // 7 de 9: centrado en la celda de 3
   for (let j = 0; j < d.length; j++) {
     const f = d[j];
     for (let i = 0; i < f.length;) {
       let k = i + 1;
       while (k < f.length && f[k] === f[i]) k++;
-      if (f[i] === '#') ctx.fillRect(x0 + i * FINO, y + j * FINO, (k - i) * FINO, FINO);
+      if (f[i] === '#') ctx.fillRect(x0 + i * P_, y + j * P_, (k - i) * P_, P_);
       i = k;
     }
   }
@@ -3390,6 +3391,7 @@ function drawEstante(h) {
   // —arriba tanques y bomba, 16 px; abajo las chafitas, 8 px— con 2 px de aire entre las dos
   // (…"con el rectangulo mas chico, mismo ancho, mas alargado; y hacer mas grandes las bombas"): la de arriba crece a 18 y sus
   // iconos van x1,3; la de las chafitas queda una franja de 6, con el icono x0,7
+  const DIG_CHICO = 0.6;   // el digito de las chafitas: 3 px de alto en una cajita de 4 adentro
   const ALTO_SEC = 18, HUECO = 2, conCh = run.chapitasMax > 0, GRANDE = 1.1, CHICO = 0.5;   // (27/11: 1,3 se salia del cuadro; las chafitas 0,7 → 0,5, "mas chicas")
   plate(X_RACK, CUADROS_Y, RACK_W, conCh ? ALTO_SEC : CUADRO);
   if (conCh) plate(X_RACK, CUADROS_Y + ALTO_SEC + HUECO, RACK_W, CUADRO - ALTO_SEC - HUECO);
@@ -3426,7 +3428,10 @@ function drawEstante(h) {
     if (!mono) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.22; iconoEn(cxI, yy, ico, col, undefined, mono); }
     ctx.restore();
     const elegida = yy === yElegida;
-    if (n !== null) digito(xd, yy - 2, n, elegida && n > 0 ? colFlecha : colDig || (n > 0 ? P.foam : VACIO));
+    // (27/11, el autor: "el numero 2 de las chafitas debe ser mas chico y entrar bien en el espacio que dispone"): en la
+    // cajita de abajo (la fila CHICA) el digito va mas chico y centrado en su alto — entero se salia por el borde de abajo
+    const chico = k === CHICO, escD = chico ? DIG_CHICO : 1, hD = 15 * FINO * escD;
+    if (n !== null) digito(xd, chico ? yy - hD / 2 : yy - 2, n, elegida && n > 0 ? colFlecha : colDig || (n > 0 ? P.foam : VACIO), escD);
   };
   if (yElegida !== undefined) {
     px(X_RACK - 3, yElegida - 2, 1, 5, colFlecha); px(X_RACK - 2, yElegida - 1, 1, 3, colFlecha); px(X_RACK - 1, yElegida, 1, 1, colFlecha);

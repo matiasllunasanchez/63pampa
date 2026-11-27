@@ -11,6 +11,9 @@ const X0 = 8, Y0 = 26, MW = 300, MH = NH - Y0 - 10;
 const OBJ_R = 5, OBJ_PULSO = 1.4, OBJ_ARO = 10;
 
 /** Donde cae el mapa en pantalla (lo usa tambien game.js para mover el cursor en pixeles parejos). */
+// los nombres de los lugares escritos siempre (hasta el 27/11); ahora solo los dice el cursor
+const NOMBRES_LUGARES = false;
+
 export function marco(img) {
   const k = Math.min(MW / img.width, MH / img.height);
   return { x: X0, y: Y0, w: Math.round(img.width * k), h: Math.round(img.height * k) };
@@ -44,6 +47,9 @@ export function drawMapaIslas(d, t) {
   for (const l of d.lugares) {
     const [x, y] = aP(l), w = ctx.measureText(l.n).width + 2;
     ctx.fillStyle = '#ffd84a'; ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
+    // (27/11, el autor: "que no tapen terreno: si pongo el cursor o el selector me muestra el nombre, asi no ocupa tanto
+    // espacio"): el lugar es SOLO el punto; su nombre lo escribe el cursor cuando se le pega (abajo, EL CURSOR)
+    if (!NOMBRES_LUGARES) continue;
     // (el que no entra a la derecha va a la izquierda del punto)
     const lx = x + 3 + w > m.x + m.w ? x - 3 - w : x + 3;
     const r = { x: lx - 1, y: y - 5, w, h: 7 };
@@ -134,7 +140,11 @@ export function drawMapaIslas(d, t) {
     const p = d.cursor.punto, [x, y] = aP(p || d.cursor);
     if (p) {
       ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.strokeRect(Math.round(x) - 5.5, Math.round(y) - 5.5, 11, 11);
-      ctx.font = 'bold 6px monospace'; nombre(p.n, Math.round(x) + 8, Math.round(y) + 2, '#ffffff');
+      // (27/11: el nombre ARRIBA del cuadro, centrado y adentro del mapa — al costado se metia en la columna de la derecha
+      // o pisaba el nombre del objetivo)
+      ctx.font = 'bold 6px monospace';
+      const w = ctx.measureText(p.n).width, lx = Math.max(m.x + 2, Math.min(m.x + m.w - 2 - w, x - w / 2));
+      nombre(p.n, Math.round(lx), Math.round(y) - 9, '#ffffff');
     } else if (Math.floor(t * 4) % 2 === 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x) - 4, Math.round(y), 9, 1); ctx.fillRect(Math.round(x), Math.round(y) - 4, 1, 9); }
   }
   // LA COLUMNA DE LA DERECHA: donde estas

@@ -108,6 +108,9 @@ export const CLIMA = { cadaKm: [2, 4], lluvia: 0.3, viento: 0.7 };
  *  se vaciaba en ~30 s y el avion se iba a reserva sin que se entendiera por que (16/10). Asi dura ~2 min,
  *  y los bidones y la Chancha la reponen. */
 export const NAFTA_ESCALA = 0.25;
+/** …Y EN LAS ISLAS (27/11, el autor: "en isla dura MUY POCO el combustible, tiene que durar lo suficiente como para poder
+ *  ir recargando"): el mapa es grande y la Chancha esta lejos — ~5 min de tanque. */
+export const NAFTA_ISLAS = 0.1;
 
 /** LO QUE CUESTA USAR (en puntos). Sin el puntaje alcanzado, la accion no sale y se avisa. */
 export const COSTOS = {
