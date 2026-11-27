@@ -16,7 +16,7 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
-## 0.5.0 — 27/11/2026
+## 0.5.0 — 27/11/2026 (Steam BuildID 26964631)
 
 - **El tutorial, más corto y más claro:**
   - Vida infinita salvo en las islas, y REINTENTAR aparece solo al perder.
