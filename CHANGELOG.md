@@ -16,6 +16,20 @@ anterior y se sube el número que corresponde:
 - **Y (menor):** contenido o funciones nuevas (modos, aviones, mecánicas, pantallas).
 - **Z (parche):** solo arreglos y ajustes, sin nada nuevo.
 
+## 0.6.1 — 27/11/2026
+
+- **Arreglo: el juego quedaba en gris al arrancar** si ya habías terminado el tutorial (lo rompía la estampita del Skyhawk de la 0.6.0).
+- **La nafta:** pedir gas con el tanque vacío avisa SIN NAFTA, y en las islas el tanque dura unos 5 minutos.
+- **El tutorial:** la etapa 4 sale con el tren abajo y Pichón tiene una línea nueva.
+- **El escape:** suena el fuego de popa, y se calla cuando entra la Chancha.
+- **La pista de las islas:** gastada como la del pasillo, con línea amarilla, pozos tapados y sin peatonal.
+- **Lo que se ve de lejos:** el helicóptero se dibuja más grande para verlo venir, y vuelve a su tamaño a los 80 m.
+- **El momentum lento** mueve al avión de costado igual que el suave.
+- **La puntería:** EXCELENTE en verde y el corchete verde a buena altura del blanco; en tierra también de costado, con flecha DERECHA/IZQUIERDA.
+- **El tablero:** el 2 de las chafitas entra en su cajita.
+- **El relevo:** el humo y las brasas del choque retroceden con el avión.
+- **Más liviano:** las imágenes van en webp sin pérdida; el paquete baja unos 135 MB.
+
 ## 0.6.0 — 27/11/2026 (Steam BuildID 26975211)
 
 - **Dos estampitas nuevas en el álbum (TEMAS):**
