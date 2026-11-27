@@ -253,17 +253,31 @@ console.log('\nmomentum — el especial del pasillo (tecla 4, se carga con TIEMP
   if (tempo.toggle(0) === 'on' && tempo.scale() === TEMPO_SUAVE)
     console.log(`  ✓ ${'llena se LANZA (suave)'.padEnd(42)} escala ${TEMPO_SUAVE}`);
   else { bad++; console.log('  ✗ la barra llena no lanza'); }
-  if (tempo.toggle(0) === 'mas' && tempo.scale() === TEMPO_SCALE && tempo.active())
-    console.log(`  ✓ ${'otro toque: mas lento'.padEnd(42)} escala ${TEMPO_SCALE}`);
-  else { bad++; console.log('  ✗ el segundo toque no baja a TEMPO_SCALE'); }
   // el lanzamiento dura `dur` segundos REALES y se corta solo; el tiempo que pasa lanzado NO
   // recarga la barra que se esta gastando
   t = 0;
   while (tempo.active() && t < 10) { tempo.tick(DT, true, 0); t += DT; }
   check(`el lanzamiento dura ${N0.dur} s (nivel 0)`, t, N0.dur, 0.05);
-  if (tempo.scale() === 1 && tempo.meterVal() === 0)
+  // (con DOS CARGAS lo que sobro al llenar la primera queda: unas milesimas, no una carga)
+  if (tempo.scale() === 1 && tempo.meterVal() < 0.01)
     console.log(`  ✓ ${'agotado: mundo a 1× y barra a cero'.padEnd(42)}`);
   else { bad++; console.log(`  ✗ agotado quedo raro (escala ${tempo.scale()}, barra ${tempo.meterVal()})`); }
+  // (27/11: DOS CARGAS) con una sola, el segundo toque CORTA; con las dos, baja a TEMPO_SCALE y las gasta juntas
+  tempo.resetTempo(); tempo.llenar(1); tempo.toggle(0);
+  if (tempo.toggle(0) === 'off' && !tempo.active()) console.log(`  ✓ ${'una carga: el segundo toque corta'.padEnd(42)}`);
+  else { bad++; console.log('  ✗ con una sola carga el segundo toque no corta'); }
+  tempo.resetTempo(); t = 0;
+  while (tempo.meterVal() < 2 && t < 90) { tempo.tick(DT, true, 0); t += DT; }
+  check(`las dos cargas en ${2 * N0.cast} s`, t, 2 * N0.cast, 0.05);
+  tempo.toggle(0);
+  if (tempo.toggle(0) === 'mas' && tempo.scale() === TEMPO_SCALE && tempo.active())
+    console.log(`  ✓ ${'dos cargas: otro toque, mas lento'.padEnd(42)} escala ${TEMPO_SCALE}`);
+  else { bad++; console.log('  ✗ el segundo toque no baja a TEMPO_SCALE'); }
+  t = 0;
+  while (tempo.active() && t < 10) { tempo.tick(DT, true, 0); t += DT; }
+  check(`las dos juntas duran ${N0.dur} s`, t, N0.dur, 0.05);
+  check('…y se gastan las dos', tempo.meterVal(), 0, 0.001);
+  tempo.resetTempo();
   // FUERA DEL PASILLO NO CARGA: si no, esperar quieto en la pausa o en una charla lo regalaria
   for (let i = 0; i < 600; i++) tempo.tick(DT, false, 0);
   check('fuera del pasillo NO carga (10 s)', tempo.meterVal(), 0, 0.001);
@@ -286,7 +300,7 @@ console.log('\nmomentum — el especial del pasillo (tecla 4, se carga con TIEMP
     console.log(`  ✓ ${'la carga sobrevive al relevo'.padEnd(42)}`);
   else { bad++; console.log(`  ✗ el relevo borro la carga (barra ${tempo.meterVal()})`); }
   tempo.toggle(0); tempo.tick(DT, false, 0);
-  if (!tempo.active() && tempo.meterVal() === 0)
+  if (!tempo.active() && tempo.meterVal() < 0.01)
     console.log(`  ✓ ${'morir con el poder lanzado lo pierde'.padEnd(42)}`);
   else { bad++; console.log('  ✗ el poder lanzado sobrevivio a la muerte'); }
   tempo.resetTempo();

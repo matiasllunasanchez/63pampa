@@ -161,7 +161,7 @@ import { audio, beep, boom, sfxOne, sfxSrc, setMuted, isMuted, updateSfx, update
 import * as world3D from './legacy/three-world.js';
 import { cv, ctx, W, H, DW, DH, HOR, F, PZ, SC, px, panel, U, pxFino, avisoFont, labelFont, probarFuente, setPZ, titleFont } from './render/ctx.js';
 import * as screens from './render/screens.js';
-import { drawMando, drawDemoRasante } from './render/mando.js';
+import { drawMando, drawDemoRasante, drawDemoBomba } from './render/mando.js';
 import { decir as decirRadio, apuntar as apuntarRadio, callar as callarRadio, tickRadio, radio as radioBox, restante as radioRest, visible as radioVis, log as radioLog, retener as retenerRadio, ocupada as radioOcupada } from './core/radioVN.js';
 import { PLANES, SHEET_FW, SHEET_FH, SHEET_NF, SHEET_ROWS } from './data/planes.js';
 import { TIP_DBG } from './render/plane.js';   // QUITAR con __tipdbg
@@ -1357,7 +1357,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // poderes del juego, que suben. Es la version en un sonido de lo que el §7 pide — este no
       // grita, y se tiene que notar antes de que el jugador entienda por que.
       if (r === 'on') { beep(220, 0.14, 'square', 0.05, -90); rasanteRadio(); return; }
-      beep(520, 0.09, 'square', 0.05, 160); cartel(T('rasOff'), P.dim);
+      beep(520, 0.09, 'square', 0.05, 160);   // (27/11, el autor: "quitar el cartel de rasante fin")
     }
 
     let islasChanchaT = -1e9;            // LAS ISLAS: cuando se pidio la ultima Chancha (run.t)
@@ -2353,7 +2353,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     const conBrujula = () => sinTermometro() || frio.perfilAvion().brujula === true;
     function brujulaPasillo() {
       // (…y en TODOS los modos para el avion sin termometro —y los Skyhawk—: 23/11)
-      if ((gameMode !== 'survival' && !conBrujula()) || islas.enPasillo()) return null;
+      // (27/11, el autor: "la brujula tiene que estar SIEMPRE EN TODOS LOS AVIONES… y en todos los modos")
+      if (islas.enPasillo()) return null;
       if (S.state !== 'play' && S.state !== 'relevo' && S.state !== 'dead' && S.state !== 'takeoff') return null;
       const eje = Math.PI / 2 + 0.22 * Math.sin(run.dist / 1400);   // hacia donde va el pasillo
       // EL BLANCO DEL EXOCET UBICADO (23/11, el autor: "debe marcar el objetivo en rojo ademas en la brujula"): adelante,
@@ -2647,7 +2648,11 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     // EL CURSOR DEL MAPA DE LAS ISLAS (u, v: fraccion del mapa); arranca sobre el avion
     let mapaCur = null;
     const MAPA_PASO = 0.012;
+    // (27/11, el autor: "lo de marcar lo quitamos, es para el modo dev. Quitemos en produccion poder moverte por el mapa… que
+    // lo descubra solo. La realidad es que no tenian"): fuera del modo dev el mapa se abre y se mira, nada mas
+    const mapaDev = () => typeof window !== 'undefined' && !!window.RASANTE_DEV;
     function mapaMover(du, dv) {
+      if (!mapaDev()) return;
       if (!mapaCur) { const d = islas.mapaDatos(null); mapaCur = d ? { u: d.avion.u, v: d.avion.v } : { u: 0.5, v: 0.5 }; }
       mapaCur = { u: Math.max(0, Math.min(1, mapaCur.u + du)), v: Math.max(0, Math.min(1, mapaCur.v + dv)) };
       beep(520, 0.03, 'square', 0.02);
@@ -2667,6 +2672,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     }
     /** Q/E · L1/R1: salta al punto siguiente (lugar, base, buque, objetivo), de oeste a este. */
     function mapaPunto(dir) {
+      if (!mapaDev()) return;
       const d = islas.mapaDatos(mapaCur);
       if (!d || !d.puntos.length) return;
       const L = d.puntos, c = mapaCur || d.avion;
@@ -2680,6 +2686,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     /** MARCAR EL OBJETIVO donde esta el cursor (pegado al punto, si hay uno cerca): la brujula y la marca del
      *  pasillo lo señalan y se sigue volando. Sobre la marca que ya estaba, la borra. */
     function mapaMarcar() {
+      if (!mapaDev()) return;
       if (!mapaCur) { beep(160, 0.06, 'square', 0.04); return; }
       const d = islas.mapaDatos(mapaCur), c = d && d.cursor;
       if (!c) return;
@@ -2691,12 +2698,14 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       beep(760, 0.08, 'square', 0.05);
     }
     function mapaBorrar() {
+      if (!mapaDev()) return;
       islas.desmarcar();
       cartel(T('islasMarcaBorrada'), P.dim);
       beep(400, 0.06, 'square', 0.05);
     }
     /** IR AHI (I / △ / click derecho / ruedita): el avion salta al cursor, como antes hacia ENTER. */
     function mapaSaltar() {
+      if (!mapaDev()) return;
       if (!mapaCur) { beep(160, 0.06, 'square', 0.04); return; }
       islas.mapaIr(mapaCur.u, mapaCur.v); mapaCur = null; pauseView = 'menu'; pauseToggle();
       beep(600, 0.06, 'square', 0.05);
@@ -4922,7 +4931,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // (25/11) al reintentar despues de morir, desde el paso donde se cayo — y con lo que los pasos de antes ya prendieron
       const tutDesde = libro && libro.tut ? libro.desde || 0 : 0;
       if (tutDesde) for (const p of libroDef().pasos.slice(0, tutDesde)) if (p.poderes) cfg.poderes = true;
-      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null, tutDesde); tutPasados = 0; tutRotos = 0; tutEsquivados = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false; tutGolpes = 0; tutRoceT = 0;
+      tutSys.empezar(libro && libro.tut ? libroDef().pasos : null, tutDesde); tutNaftaPrev = null; tutPasados = 0; tutRotos = 0; tutEsquivados = 0; tutFinT = -1; tutSiembraT = 0; tutAterrizo = false; tutGolpes = 0; tutRoceT = 0;
       // (…y LOS MODOS SUELTOS igual — 23/11, el autor: "en POR LA PATRIA aparece Puma hablando, no deberia": ahi no
       // vuela nadie de la campaña; lo que gritaba Puma lo dice el que vuela detras, PATRIA 2, 3…)
       setVozLibro((libro && libro.av !== null && !libro.tut) || suelto() ? {
@@ -5229,12 +5238,12 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       pauseConfirm: () => pauseConfirm(),
       // EL MAPA DE LAS ISLAS con mouse y mando (19/11): mover el cursor, saltar de punto, marcar, borrar, ir
       mapaAbierto: () => paused && pauseView === 'mapa',
-      mapaStick: (dx, dy) => { if (!mapaCur) mapaMover(0, 0); mapaCur = { u: Math.max(0, Math.min(1, mapaCur.u + dx)), v: Math.max(0, Math.min(1, mapaCur.v + dy)) }; },
+      mapaStick: (dx, dy) => { if (!mapaDev()) return; if (!mapaCur) mapaMover(0, 0); mapaCur = { u: Math.max(0, Math.min(1, mapaCur.u + dx)), v: Math.max(0, Math.min(1, mapaCur.v + dy)) }; },
       mapaPunto: dir => mapaPunto(dir),
       mapaBorrar: () => mapaBorrar(),
       mapaSaltar: () => mapaSaltar(),
-      mapaClick: (x, y, boton) => { const q = mapaUVde(x, y); if (!q || !mapaPoner(q.u, q.v)) return; if (boton === 2 || boton === 1) mapaSaltar(); else mapaMarcar(); },   // (la RUEDITA tambien teletransporta: desarrollo, 21/11)
-      mapaHover: (x, y) => { const q = mapaUVde(x, y); if (q) mapaPoner(q.u, q.v); },
+      mapaClick: (x, y, boton) => { if (!mapaDev()) return; const q = mapaUVde(x, y); if (!q || !mapaPoner(q.u, q.v)) return; if (boton === 2 || boton === 1) mapaSaltar(); else mapaMarcar(); },   // (la RUEDITA tambien teletransporta: desarrollo, 21/11)
+      mapaHover: (x, y) => { if (!mapaDev()) return; const q = mapaUVde(x, y); if (q) mapaPoner(q.u, q.v); },
       pauseBack: () => pauseBack(),
       // submenu de HISTORIA y lista de partidas guardadas
       campNav: dir => campNav(dir),
@@ -6541,6 +6550,22 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // choque no puede costar un Fiel y seguir. Lo que no es choque (misiles, fuego) sigue averiado.
       if (relevoRompe() && esChoque(cause)) { die(cause); return; }
       // EL TUTORIAL NO TIENE RELEVO (25/11): morir es perder la etapa — REINTENTAR la arranca de cero
+      // (26/11, el autor: "explota por cualquier cosa el avion… el tutorial debe tener vida infinita, al menos como antes,
+      // o bastante resistente"): en el tutorial NADA lo voltea. Todo es un golpe que resta salud (nunca baja del piso) y
+      // se sigue volando. Contra lo MACIZO —agua, ola, tierra, buque, lo construido— ademas se lo sube a una altura
+      // segura: asi era antes con `sinMuerte` y por eso se sacó (25/11), el avion quedaba trabado golpeando cuadro tras cuadro
+      // (lo que no es un golpe —errar la bomba, la nafta, eyectarse— sigue terminando la etapa como siempre)
+      // (26/11, el autor: "lo dije en ISLA… en el resto de etapas no"): en LAS ISLAS (etapa 4) se muere, como el 25/11
+      if (libro && libro.tut && !(curMission() && curMission().islas) && !erroSuelta(cause) && !/pulso|exocet|sin_|pasada|eyecto|fuel|seco/.test(cause)) {
+        aguantarGolpe(TUT_GOLPE, cause);
+        if (TUT_MACIZO.test(cause)) {
+          const wz = run.dist + PZ;
+          const suelo = esTierraEn(plane.x, wz) ? alturaSuelo(plane.x, wz) : 0;
+          plane.y = Math.max(plane.y, suelo + (/buque|ship|mast|palos/.test(cause) ? 26 : 12));
+          plane.vy = Math.max(0, plane.vy);
+        }
+        return;
+      }
       if (libro && libro.tut) { die(cause); return; }
       if (canRelevo(run.lives)) {
         // en campaña el lider NO revienta: queda averiado y vuelve (norma 3/8, GUION_2)
@@ -6605,6 +6630,12 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
      *  chapa que baja hasta el piso, y el margen del roce devuelto para que el agua no vuelva a
      *  cobrar en el cuadro siguiente. Durante la gracia no pasa nada: ni daño ni efecto. */
     let graciaGolpeT = -1;
+    // EL TUTORIAL (26/11): que lo mata y como golpea lo demas (ver onDeath)
+    const TUT_MACIZO = /^death_(sea|land|cliff|pared|mast|buque|ship|palos|tree|bldg|depot|radar|aagun|lcu|tower)$/;
+    const TUT_GOLPE = { golpe: 25, piso: 25, gracia: 1.2 };
+    const TUT_NAFTA_PISO = 60, TUT_NAFTA_RESERVA = 6, TUT_NAFTA_SEG = 1;   // (SEG: % por segundo que baja en el tutorial)
+    let tutNaftaPrev = null;   // % de tanque que el tutorial sostiene hasta el paso de la nafta (tutSys.naftaPendiente)
+    const TUT_RAFAGA = 7;   // m/s de costado que empuja la rafaga de un globo con viento (sembrarPractica `viento`)
     function aguantarGolpe(sm, cause) {
       run.scrapeT = 0;
       // un reloj de OTRA corrida (run.t vuelve a cero al reintentar) no puede dejar al avion intocable
@@ -6658,7 +6689,9 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
      *  del Pichon): no hay choque ni derrota en la pista. */
     function pasoDespegue(dt) {
       toT += dt;
-      pasoCarrera(carrera, dt, !!inp.u, cfg.coast);
+      // (en el tutorial, quieto en la cabecera hasta que le piden el gas: tutSys.despegueEspera, 27/11)
+      if (libro && libro.tut && tutSys.despegueEspera()) { carrera.spd = 0; carrera.dist = 0; carrera.gas = 0; }
+      else pasoCarrera(carrera, dt, !!inp.u, cfg.coast);
       // APOYADO SOBRE LAS RUEDAS (18/11, "la sombra en la pista esta demasiado adelante"): a 1,2 m, como el despegue
       // automatico (core/state.js resetPlane). A 0 el dibujo quedaba hundido en la pista y la sombra corrida
       const RUEDAS = 1.2;
@@ -6716,6 +6749,8 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         if (ln) decirRadio(ln.personaje + ': ' + dialogue.txtOf(ln), () => ln.cara);
       }
       for (const o of obstacles) {
+        // LA RAFAGA DEL GLOBO (26/11): pasando cerca de un globo con viento, el avion tambien se va para ese lado
+        if (o.viento && !o.done && S.state === 'play' && Math.abs(o.z - PZ) < 22) plane.x += o.viento * TUT_RAFAGA * dt;
         if (o.practica && !o._tutRoto && o.hp <= 0) { o._tutRoto = true; tutRotos++; }
         if (!o._tutPaso && o.z < PZ - 3) {
           o._tutPaso = true;
@@ -6733,6 +6768,23 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       } else tutSiembraT = 0;
       // EL SIDEWINDER DE PRACTICA (`misil` del paso: 'frente' | 'cola', 23/11): uno por vez; cuando se va (esquivado o
       // reventado al lado, sin matar: collision.js `practica`) sale otro a los TUT_MISIL_S s
+      // SI LA CONSIGNA DICE «LANZÁ EL MOMENTUM», LA BARRA ESTA (27/11, el autor: "si el tutorial me dice lanza momentum tiene
+      // que cargarme la barra automaticamente")
+      { const cg = tutSys.consigna(); if (cg && (cg.clave === 'tutC_momentum' || cg.clave === 'tutC_esquivaMom') && !cg.hecho && !tempo.active() && tempo.meterVal() < 1) tempo.llenar(1); }
+      // (…y si se gasto sin esquivar lo que pedia —«esquivá con momentum» sigue en pantalla—, la carga vuelve en el acto)
+      // LA NAFTA NO SE SECA ANTES DE ENSEÑARLA (27/11): hasta el paso de la nafta, piso de TUT_NAFTA_PISO
+      // …y despues tampoco se seca nunca (27/11, el autor: "y explota cuando se queda sin nafta, horrible"): queda en la
+      // reserva hasta que venga la Chancha
+      // LA NAFTA BAJA EN TODO EL TUTORIAL, MUY LENTO (27/11, el autor: "que la gasolina descienda en todo el tutorial pero
+      // MUY MUY LENTO, quiza 1% por segundo"): lo que el vuelo gaste de mas se devuelve —y si no gasta nada (etapas sin
+      // COMBUSTIBLE), baja igual—; lo que SUBE (la Chancha) no se toca
+      if (tutNaftaPrev != null && run.fuel <= tutNaftaPrev && S.state === 'play') run.fuel = Math.max(0, tutNaftaPrev - TUT_NAFTA_SEG * dt);
+      const pisoN = tutSys.naftaPendiente() ? TUT_NAFTA_PISO : TUT_NAFTA_RESERVA;
+      if (run.fuel < pisoN) run.fuel = pisoN;
+      tutNaftaPrev = run.fuel;
+      // (…y el que llega ANTES de la charla, `misilPrimero`: sale apenas el paso empieza a esperar)
+      const ma = tutSys.misilAntes();
+      if (ma && S.state === 'play' && !missiles.some(m => m.practica && !m.done && m.z > 0)) tirarMisilPractica(ma);
       const mp = tutSys.misilPractica();
       if (mp && S.state === 'play' && !missiles.some(m => m.practica && !m.done && m.z > 0)) {
         tutMisilT += dt;
@@ -6741,6 +6793,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       if ((run.misGolpe || 0) < tutMisGolpe) tutMisGolpe = run.misGolpe || 0;   // (una corrida nueva)
       if (run.misGolpe > tutMisGolpe) { tutMisGolpe = run.misGolpe; decirTut(mp === 'cola' ? 'TUT2_MISIL_COLA_TEDIO' : 'TUT2_MISIL_FRENTE_TEDIO'); }
       const a = tutSys.tick(dt, { alt: plane.y, techo: fases.techoRadar(RADAR_ALT), roza: run.scrapeVib > 0.6,
+        misilVivo: missiles.some(m => m.practica && !m.done && m.z > 0 && m.t > 0.8),
         // (el mando rola con el stick derecho, que escribe rollAx y no rollL/rollR: cuenta igual — 18/11, "no puedo
         // pasar de rolar")
         inp: Object.assign({}, inp, { rollL: inp.rollL || inp.rollAx < -0.3, rollR: inp.rollR || inp.rollAx > 0.3 }),
@@ -6778,7 +6831,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         if (a.paso.sal != null) { run.sal = Math.max(run.sal || 0, a.paso.sal); run.salAviso = true; }
         run.salTutK = a.paso.salRapido || 1;   // la sal que se junta al ras, apurada en el paso que la enseña
         run.hieloArribaTut = !!a.paso.hieloArriba;   // el paso del HIELO: arriba de las nubes tambien se junta
-        if (a.paso.nafta != null && cfg.fuelOn) run.fuel = Math.min(run.fuel, a.paso.nafta);
+        if (a.paso.nafta != null && cfg.fuelOn) { run.fuel = Math.min(run.fuel, a.paso.nafta); tutNaftaPrev = run.fuel; }
         if (a.paso.chafitas) chapitasSys.ponerCargas(Math.max(run.chapitas | 0, a.paso.chafitas));   // las chafitas para practicar
         // LA PAUSA GUIADA (`abre`): el juego abre la pausa sola, en CONTROLES y en la pestaña que se explica
         if (a.paso.abre) {
@@ -7084,10 +7137,10 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       pasoTema(Math.min(0.1, dtReal || dt));   // (la mezcla del cielo, si la hay)
       if (cfg.sky === 'storm' && !paused && (S.state === 'play' || S.state === 'takeoff' || S.state === 'relevo' || S.state === 'landing')) stepTormenta(dt, HOR, W);
       run.fgzTormenta = cfg.sky === 'storm' ? fogonazoTormenta() : 0;   // (lo lee la ola gigante: render/world.js)
-      detectando(S.state === 'play' && radarAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && !fases.sinRadarArriba(RADAR_ALT) && run.detection > 0.01);
+      detectando(S.state === 'play' && radarAlcance() && cfg.radar !== 'off' && plane.y > fases.techoRadar(RADAR_ALT) && !fases.sinRadarArriba(RADAR_ALT) && (run.detection > 0.01 || !!(libro && libro.tut)));   // (27/11: en el tutorial suena aunque nadie te busque)
       { const techo = fases.techoRadar(RADAR_ALT), RV_RANGO = 14;
         zonaRadar(S.state === 'play' && radarAlcance() && (rutaSys.hay() || suelto() || islas.enPasillo()), radarScanT >= 0 ? run.t - radarScanT : 99,
-          (plane.y - (techo - RV_RANGO)) / RV_RANGO, run.detection > 0.001); }   // (bajito hasta que dice DETECTANDO)
+          (plane.y - (techo - RV_RANGO)) / RV_RANGO, run.detection > 0.001 || !!(libro && libro.tut && plane.y > techo)); }   // (bajito hasta que dice DETECTANDO)
       // FOGONAZO (D3): se apaga solo, rapido. Va acá y no en un sistema porque tiene que correr en
       // TODOS los estados — la explosión que te mató sigue destellando mientras caés.
       run.flash = Math.max(0, run.flash - dt / FLASH_T);
@@ -8965,6 +9018,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       if (S.state === 'play' && !(islas.enPasillo() && !islas.vistaPasillo())) drawRadarOndas();   // (en las islas, en las vistas del pasillo)
       // los blancos de practica del TUTORIAL, marcados (en la pausa de una linea se dibujan encima del velo)
       if (S.state === 'play' && !dlgPausa) marcasTutorial(run.t);
+      if (!(S.state === 'play' && run.apuntaBomba) || (run.apuntaBomba && exocetElegido())) islas.aroBomba(null);
       if (S.state === 'play' && (run.apuntaBomba || run.apuntaTanque)) {
         const suelo = cfg.terrain === 'land' || cfg.terrain === 'coast' ? 0.3 : 1.0;
         if (hzW) { ctx.save(); const hcx = W / 2 + cm.x, hcy = H / 2 + cm.y; ctx.translate(hcx, hcy); ctx.rotate(hzW); ctx.translate(-hcx, -hcy); }
@@ -8979,7 +9033,12 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         const verdeBlanco = runClimax() === 'suelta' && !!(blancoSys.hud() || {}).listo;
         // EL EXOCET (16/10): no cae — la mira es una RECTA celeste al ras, y encuadra lo que cruza
         if (run.apuntaBomba && exocetElegido()) drawLineaExocet(plane.x, plane.y, PZ, exocetLanzable() ? exocetATiro() : true, marcaExocet());
-        else if (run.apuntaBomba) drawTrayectoria(trayectoria(bombaSale(), run.spd, suelo), hayBomba() || (run.apuntaTanque && hayTanque), verdeBlanco);
+        else if (run.apuntaBomba) {
+          const trB = trayectoria(bombaSale(), run.spd, suelo);
+          drawTrayectoria(trB, hayBomba() || (run.apuntaTanque && hayTanque), verdeBlanco);
+          // EN LAS ISLAS, EL ARO EN EL SUELO donde cae (27/11), y si cae ARMADA (la espoleta pide `armaT` s de caida)
+          if (islas.enPasillo()) islas.aroBomba(trB && trB.fin, trB && trB.t >= blanco.armaT);
+        }
         else if (run.apuntaTanque) drawTrayectoria(trayectoria(Object.assign(tanquesSalen('centro', 1)[0], { x: plane.x }), run.spd, suelo), hayTanque);
         if (hzW) ctx.restore();
       }
@@ -9480,7 +9539,11 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         // EL MANDO DIBUJADO (render/mando.js, 21/11): la lamina del joystick o del teclado, sobre el velo
         if (lecFoco && lecFoco.mando) { ctx.fillStyle = '#05080acc'; ctx.fillRect(0, 0, DW, DH); drawMando({ pad: padActivo(), t: performance.now() / 1000, a: Math.min(1, dlgT / 0.3) }); }
         // LA BARRITA DEL RASANTE EN GRANDE (render/mando.js, 21/11), mientras la explican
-        if (lecFoco && lecFoco.demo === 'rasante') { const oy = arriba ? 48 : 0; ctx.fillStyle = '#05080aa8'; ctx.fillRect(0, 20 + oy, DW, 82); drawDemoRasante({ t: performance.now() / 1000, a: Math.min(1, dlgT / 0.3), oy }); }
+        // (27/11: una franja de 56 que no se pisa con la caja —arriba o abajo— ni con las teclas que cuelgan de ella ni con el
+        // tablero: con la caja arriba va justo encima de la fila de relojes; con la caja abajo, arriba de todo)
+        // LA BOMBA EN GRANDE (27/11): el stick derecho (o la ↓ y ENTER) mientras explican la suelta
+        if (lecFoco && lecFoco.demo === 'bomba') { const y0 = arriba ? DH - 36 - 58 : 30; ctx.fillStyle = '#05080ad0'; ctx.fillRect(0, y0, DW, 52); drawDemoBomba({ t: performance.now() / 1000, a: Math.min(1, dlgT / 0.3), y0, pad: padActivo() }); }
+        if (lecFoco && lecFoco.demo === 'rasante') { const y0 = arriba ? DH - 36 - 58 : 8; ctx.fillStyle = '#05080ad0'; ctx.fillRect(0, y0, DW, 50); drawDemoRasante({ t: performance.now() / 1000, a: Math.min(1, dlgT / 0.3), y0 }); }
         const caja = screens.cajaVN({
           personaje: radioBox.personaje, cara: radioBox.cara, wrap: radioBox.wrap,
           ease: radioBox.ease, cursor: dlgT > DLG_GRACIA && dlgTyped === Infinity, parpadeo: dlgT, barra: null, arriba, continuar: true,
@@ -9906,7 +9969,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
     if (typeof window !== 'undefined') window.__escSin = v => { escoltaSinAmenazas = v !== 0; return escoltaSinAmenazas; };
     // sonda: donde va el tutorial (el fixture la lee para saber que hacer)
     // SONDA (21/11): abrir una etapa del tutorial (0..), como desde el menu
-    if (typeof window !== 'undefined') window.__tutorial = k => { abrirTutorial(k | 0); return S.state; };
+    if (typeof window !== 'undefined') window.__tutorial = (k, desde) => { abrirTutorial(k | 0, desde | 0); return S.state; };   // (desde: el paso, 27/11)
     if (typeof window !== 'undefined') window.__tutdbg = () => JSON.stringify(Object.assign({ st: S.state, dlg: dlgPausa,
       alt: +plane.y.toFixed(1), x: +plane.x.toFixed(1), pasados: tutPasados, rotos: tutRotos, over: !!run.overheat,
       blanco: (() => { let b = null; for (const o of obstacles) if (o.practica && !o.done && o.hp > 0 && o.z > PZ + 4 && (!b || o.z < b.z)) b = o;
@@ -10783,7 +10846,9 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // (muerte, relevo, climax, devcam) y avisa 'ready' UNA vez cuando la barra se llena.
       // el aviso de que se cargo YA NO ES UN CARTEL EN EL CENTRO (12/9): lo dice la lengueta
       // LISTO que sale de atras de su propia barra (render/hud.js, tabListo). El beep queda.
-      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam && cfg.poderes !== false, nivelMomentum()) === 'ready') beep(660, 0.1, 'square', 0.05, 140);
+      // (27/11, el autor: "si estamos probando el momentum debe cargarse mas rapido de lo normal para poder reusarlo si no
+      // salio el esquive"): en el tutorial, x4
+      if (tempo.tick(raw, S.state === 'play' && !cfg.devcam && cfg.poderes !== false, nivelMomentum(), libro && libro.tut ? 4 : 1) === 'ready') beep(660, 0.1, 'square', 0.05, 140);
       if (S.state !== veilPrev) {
         if (S.state === 'arena' || S.state === 'momentum') veilOut = VEIL_OUT;
         veilPrev = S.state;
@@ -10795,6 +10860,9 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
       // …y LA SUELTA: el MOMENTUM OBLIGADO desde que la bomba revienta en el casco hasta el cruce
       // (BL.LENTO, systems/blanco.js). Tambien compone multiplicando.
       const dt = raw * tempo.scale() * (S.state === 'pasada' ? pasada.slow() : 1) * (S.state === 'play' ? blancoSys.slow() : 1);
+      // EL AVION GANA AL TIEMPO (27/11): con el momentum puesto, su movimiento de costado va (1/escala)^0.6 —2× en el
+      // suave, ~2,8× en el lento— para que esquivar en camara lenta sea mas facil y no igual (systems/vuelo.js)
+      run.tempoMano = tempo.active() ? Math.min(3, Math.pow(1 / tempo.scale(), 0.6)) : 1;
       // LA CHANCHA (SPEC_PODER_CHANCHA) va ACA y no adentro de update(): con el dt del MUNDO —el
       // ETA es tiempo de mision, asi que pedirla en camara lenta tiene que tardar lo mismo en
       // tiempo de juego— y en TODOS los estados, que es lo que le permite despedirse sola cuando
@@ -10828,7 +10896,7 @@ import { vibraSuelta, vibraChoque } from './core/vibra.js';   // (26/11: el mand
         inPlay: S.state === 'play' && !cfg.devcam
           && gameMode !== 'arena' && gameMode !== 'pasadas',
       });
-      if (rs.sig === 'end') { beep(300, 0.12, 'square', 0.05, 90); cartel(T('rasOff'), P.dim); }
+      if (rs.sig === 'end') beep(300, 0.12, 'square', 0.05, 90);   // (sin el cartel RASANTE — FIN, 27/11)
       // EL LATIDO (RF-05): grave, corto y por debajo de todo. El modulo dice CUANDO —lleva el
       // reloj del poder— y el orquestador pone el sonido, como con cualquier otra señal.
       if (rs.latido) beep(RAS_LAT_HZ, 0.09, 'sine', 0.075, -14);

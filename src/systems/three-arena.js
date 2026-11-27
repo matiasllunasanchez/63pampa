@@ -47,7 +47,7 @@ import * as objetivo3d from './islas/objetivo3d.js';
 import * as estallido3d from './islas/estallido3d.js';
 import * as teatro3d from './islas/teatro3d.js';
 import * as radar3d from './islas/radar3d.js';
-import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo, mira as islasMira, tomarEstallidos, avionMuerto, teatroEscena, teatroTodo, cazasEnMapa, chanchaEnMapa, radaresEscena, busquedaEscena, vientoMapa, pistaEscena } from './islas/islas.js';
+import { proyectiles as islasProyectiles, objetivoDe as islasObjetivo, mira as islasMira, aro as islasAro, tomarEstallidos, avionMuerto, teatroEscena, teatroTodo, cazasEnMapa, chanchaEnMapa, radaresEscena, busquedaEscena, vientoMapa, pistaEscena } from './islas/islas.js';
 import * as pista3d from './islas/pista3d.js';
 import * as busqueda3d from './islas/busqueda3d.js';
 import { sueloH as islasSuelo, SUN as ISLAS_SOL } from './islas/mundo.js';
@@ -258,7 +258,7 @@ export function frame(w) {
     // (la MIRA solo desde arriba: en las vistas del pasillo esta la del pasillo)
     const arriba = !pas && islasCam.vista() === islasCam.ARRIBA;
     proy3d.crear(A3.scene); const zh = islasCam.ZOOMS[islasCam.nivelZoom()];
-    proy3d.frame(islasProyectiles(), true, arriba ? islasMira(zh * 0.42) : null, zh / islasCam.ZOOMS[1], dtI, rr.domElement.height / 2);
+    proy3d.frame(islasProyectiles(), true, arriba ? islasMira(zh * 0.42) : null, zh / islasCam.ZOOMS[1], dtI, rr.domElement.height / 2, islasAro());
     // LAS EXPLOSIONES EN 3D: en todas las camaras
     estallido3d.crear(A3.scene); estallido3d.frame(tomarEstallidos(), dtI, (x, z) => Math.max(islasSuelo(x, z), 0));
     objetivo3d.frame(A3.scene, islasObjetivo());

@@ -235,8 +235,11 @@ export function collisionSystem(dt) {
     }
     // MOVIMIENTO PROPIO (cfg.enemyMove): la personalidad se sortea en spawn.js (sway / drive /
     // home) y aca solo se APLICA — con la llave del menu apagada quedan plantados donde nacieron.
-    if (cfg.enemyMove) {
-      if (o.mvA) o.x = o.xa + Math.sin(run.t * o.mvW + o.ph) * o.mvA;   // oscila alrededor del ancla
+    // (los blancos de PRACTICA del tutorial se mueven siempre: el tutorial no lleva la llave — 26/11, "los globos no se mueven")
+    if (cfg.enemyMove || o.practica) {
+      // (el globo con RAFAGA del tutorial: tirado siempre para el lado del viento, a rachas)
+      if (o.viento) o.x = o.xa + o.viento * o.mvA * (0.55 + 0.45 * Math.sin(run.t * o.mvW * 2.2 + o.ph));
+      else if (o.mvA) o.x = o.xa + Math.sin(run.t * o.mvW + o.ph) * o.mvA;   // oscila alrededor del ancla
       if (o.home && o.z > PZ + 10) {
         // el caza corrige el ANCLA hacia tu carril (tope o.home u/s). El tejido sinusoidal va
         // encima: no es un misil que clava el rumbo, es un avion que se te cruza.
@@ -795,8 +798,14 @@ export function collisionSystem(dt) {
     // armamento real— o rebota en la chapa. `run.calibre`: 20 o 30 mm, segun el avion.
     if (blancoSys.balaBuque(b, z0, (b.dano || 1) * (run.calibre || 1))) { b.z = 999; stats.hits++; continue; }
     for (const m of missiles) {
-      if (m.z < z0 - 2 || m.z > b.z + 2) continue;
+      // DE FRENTE SE CRUZAN EN EL MISMO CUADRO (26/11, el autor: "le estoy disparando al que viene de frente, deberian
+      // llegar primero mis balas y explotarlo lejos"): el misil ya avanzo hacia vos este cuadro, asi que el tramo que
+      // barrio la bala se estira lo que el misil se acerco
+      const acerca = m.modo === 'frente' ? (run.spd + AIM9.FRENTE_V) * dt : 0;
+      if (m.z < z0 - 2 || m.z > b.z + 2 + acerca) continue;
       if (Math.abs(b.x - m.x) < 2.6 && Math.abs(b.y - m.y) < 2.2) {
+        // (en el tutorial, voltearlo cuenta como sacartelo de encima: systems/tutorial.js `misil`)
+        if (m.practica && m.modo) { run.misEsq = run.misEsq || {}; run.misEsq[m.modo] = (run.misEsq[m.modo] || 0) + 1; }
         b.z = 999; run.score += 400; stats.hits++; stats.air++;
         const s = proj(m.x, m.y, m.z); popup(s.x, s.y - 8, '+400', P.warn);
         explodeAt(m.x, m.y, m.z, true);

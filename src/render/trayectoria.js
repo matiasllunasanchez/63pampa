@@ -31,7 +31,9 @@ const ARO_R = 11;
 // EL COLOR DICE SI PEGA (8/10, el autor: "cuando el objetivo esta en VERDE, el trayecto tambien; y el
 // resplandor, en rojo"): con el blanco en verde —soltar ahora pega— la curva, el aro y el pulso van en
 // el verde de la señal; si no, la curva blanca de siempre y el pulso en ROJO: todavia no.
-const VERDE = { linea: '#7fe07a', luz: [127, 224, 122], css: '127,224,122' };
+// (27/11, el autor: "que sentido tiene la caida si no cambia de color? deberia cambiar de color y titilar si la esta sosteniendo,
+// para avisarme que apriete"): el "pega" va en el AMARILLO de la mira (no verde) y la curva TITILA
+const VERDE = { linea: '#e8a33d', luz: [232, 163, 61], css: '232,163,61' };
 const ROJO = { luz: [255, 90, 60], css: '255,110,80' };
 export function drawTrayectoria(tr, listo, verde) {
   enVerde = !!verde;
@@ -39,7 +41,7 @@ export function drawTrayectoria(tr, listo, verde) {
   const a = listo === false ? 0.45 : 0.9;
   // LA LINEA FIJA AL 50% (8/10, el autor: "menos solida, que el haz tome mas protagonismo"): la curva y
   // el aro van a media opacidad; el haz, el pulso y las ondas (luzDeMira) siguen con la `a` entera
-  const aL = a * 0.5;
+  const aL = a * 0.5 * (verde && Math.floor(performance.now() / 160) % 2 ? 0.35 : 1);
   const pts = tr.pts.map(p => proj(p.x, p.y, p.z));
   const fin = tr.fin ? proj(tr.fin.x, tr.fin.y, tr.buque ? zVista(tr.fin.z) : tr.fin.z) : null;
   if (fin) pts.push(fin);

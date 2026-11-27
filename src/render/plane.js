@@ -1471,7 +1471,8 @@ export function drawPlane(selPlane, viewMouse, camScale, ras, dz) {
   // …SALVO CON EL BUQUE DE LA SUELTA A LA VISTA (data/blanco.js): la mira apunta a donde vas, y
   // donde vas es el buque — el reticulo le caia justo encima y lo tapaba entero hasta los ultimos
   // cientos de metros (playtest 23/9). Ahi la mira es la marca de BLANCO, y la del cañon se guarda.
-  const miraBuque = blanco.on && blanco.z > 0 && blanco.z < BL_BLANCO.VISIBLE_Z;   // tambien ardiendo: el final no lleva mira
+  // (27/11, el autor: "esa mira podriamos quitarla y priorizar la del barco y la bomba"): en TODA la suelta, no solo con el buque cerca
+  const miraBuque = blanco.on && blanco.z > 0;   // tambien ardiendo: el final no lleva mira
   // …ni mientras se apunta la bomba o los tanques (27/9): la marca de donde caen cae justo ahi
   // adelante y la mira del cañon la tapaba entera
   if (S.state === 'play' && !miraBuque && !run.apuntaBomba && !run.apuntaTanque) {

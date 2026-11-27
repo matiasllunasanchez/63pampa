@@ -1046,6 +1046,16 @@ function addBala(o) {
   const y = P3.g + (o.y || 0);   // (a la altura del avion: el mismo suelo que `estadoA`)
   PROY.push({ k: 'bala', p: { x: a.x, y, z: a.z }, c: { x: a.x + a.dx * 6, y, z: a.z + a.dz * 6 }, h: null });
 }
+/** EL ARO DE LA CAIDA EN EL SUELO (27/11, el autor: "no es claro como apuntar con la caida en ISLAS… marcar LITERALMENTE UN
+ *  CIRCULO EN EL SUELO que es donde deberia caer, y a una altura minima para que la espoleta funcione"): game.js le pasa el
+ *  final de la caida (en el carril) y si llegaria ARMADA; aca se pone en el mapa, apoyado en el relieve. */
+let ARO = null;
+export function aroBomba(fin, armada) {
+  if (!fin || !enPasillo() || !I.puesto) { ARO = null; return; }
+  const p = aMundo(fin.x, 0.4, fin.z, {});
+  ARO = { x: p.x, y: p.y, z: p.z, armada: !!armada };
+}
+export const aro = () => (enPasillo() ? ARO : null);
 /** LA MIRA de la vista de arriba: adelante del avion, en su rumbo (la dibuja proyectiles3d.js). */
 // (a una distancia que va con el zoom, `d`: asi cae siempre en el mismo lugar de la pantalla, arriba del avion)
 export function mira(d = 60) {

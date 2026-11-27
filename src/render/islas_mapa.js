@@ -102,7 +102,10 @@ export function drawMapaIslas(d, t) {
     }
   }
   // LA GUIA DEL TUTORIAL: una flecha que late sobre la base costera, MARCA ACA, y abajo del mapa como se hace
-  if (d.guia) {
+  // (27/11, el autor: "lo de marcar es para el modo dev… la realidad es que no tenian"): la guia, el cursor y las teclas,
+  // solo en el modo dev — en produccion el mapa se MIRA y nada mas
+  const dev = typeof window !== 'undefined' && !!window.RASANTE_DEV;
+  if (d.guia && dev) {
     const [x, y] = aP(d.guia), b = Math.round(Math.abs(Math.sin(t * 4)) * 4);
     ctx.fillStyle = '#ffe14d'; ctx.strokeStyle = '#000';
     ctx.beginPath(); ctx.moveTo(x, y - 7 - b); ctx.lineTo(x - 5, y - 15 - b); ctx.lineTo(x + 5, y - 15 - b); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -148,5 +151,6 @@ export function drawMapaIslas(d, t) {
   if (d.marca) { y += 4; linea(T('mapaMarca'), '#ffe14d', 7); linea(d.marca.n + '  ' + (d.marca.d / 1000).toFixed(1) + ' km', '#ffe14d'); }
   if (d.cursor) { y += 4; linea(T('mapaCursor'), '#ffffff', 7); if (d.cursor.punto) linea(d.cursor.punto.n, '#ffffff'); linea(d.cursor.lat, P.foam); linea(d.cursor.lon, P.foam); linea(d.cursor.h + ' m', P.dim); }
   y = NH - 46;
-  for (const k of ['mapaTeclas1', 'mapaTeclas2', 'mapaTeclas3', 'mapaTeclas4', 'mapaTeclas5']) linea(T(k), '#9fb0b6', 5);
+  const dev2 = typeof window !== 'undefined' && !!window.RASANTE_DEV;
+  for (const k of dev2 ? ['mapaTeclas1', 'mapaTeclas2', 'mapaTeclas3', 'mapaTeclas4', 'mapaTeclas5'] : ['mapaTeclasVolver']) linea(T(k), '#9fb0b6', 5);
 }

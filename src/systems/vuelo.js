@@ -83,7 +83,10 @@ export function stepVuelo(dt, o) {
   // Como el resto de lo que este modulo no conoce (el poder RASANTE, el techo de una cinematica),
   // llega POR PARAMETRO: la cama de vuelo no sabe que existe el zigzag. Sin el parametro vale 0,
   // y por eso una cinematica —o el juego con el pasillo recto— integra exactamente como siempre.
-  plane.x += (plane.vx + (o.deriva || 0)) * dt;
+  // (27/11, el autor: "esquivar con momentum es complicado… el avion deberia moverse mas rapido que el tiempo para que
+  // tenga sentido"): con el MOMENTUM puesto el desplazamiento de COSTADO va con `run.tempoMano` (game.js: >1 mientras el
+  // mundo va lento) — el avion esquiva a un ritmo mas cercano al real que lo que se le viene encima
+  plane.x += (plane.vx * (run.tempoMano || 1) + (o.deriva || 0)) * dt;
   plane.y += (plane.vy + (o.vyViento || 0)) * dt;   // (la correntada del viento de altura, systems/vientoAlto.js)
   // EL TOPE LATERAL, que por omision es el carril de siempre. Lo levanta EL CALLEJON (zigzag Z3)
   // y por una razon de correccion, no de gusto: con paredes, la cara de la roca queda MAS AFUERA

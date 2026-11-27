@@ -2334,6 +2334,19 @@ function dibujarObstaculo(o) {
     // el cable queda ANCLADO en xa mientras el globo se pasea (cfg.enemyMove): el globo se
     // INCLINA sobre su cable — el paseo se lee como viento, no como un globo que flota suelto
     const s = proj(o.x, oy, o.z), base = proj(o.xa !== undefined ? o.xa : o.x, 0, o.z);
+    // LA RAFAGA (26/11, el globo con `viento` del tutorial): rayitas blancas que cruzan de costado, a la altura del globo
+    // y del avion, para el lado que sopla
+    if (o.viento) {
+      ctx.save(); ctx.lineWidth = Math.max(1, 0.25 * k); ctx.strokeStyle = '#ffffff';
+      for (let i = 0; i < 6; i++) {
+        const u = (run.t * 1.4 + i * 0.37 + o.ph) % 1, a = Math.sin(Math.PI * u) * 0.55;
+        const xw = (o.xa || o.x) - o.viento * 7 + o.viento * 14 * u, yw = oy - 2.2 + (i % 3) * 1.6 + (i > 2 ? 0.7 : 0);
+        const zw = o.z + (i - 2.5) * 2.5;
+        const p0 = proj(xw, yw, zw), p1 = proj(xw + o.viento * 2.6, yw, zw);
+        ctx.globalAlpha = a; ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+      }
+      ctx.restore();
+    }
     ctx.strokeStyle = P.bodyDark; ctx.beginPath();
     ctx.moveTo(s.x, s.y + 1.6 * k); ctx.lineTo(base.x, base.y); ctx.stroke();
     // LOS GLOBOS DEL TUTORIAL llevan CARITAS de aerosol (18/11: "Vos les dibujaste las caritas"): una de las

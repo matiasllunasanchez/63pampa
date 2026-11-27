@@ -101,11 +101,13 @@ export const AGU = {
   CONC_LETRAS: 8,  // las 7 letras de RASANTE + el borde: los segundos que la palabra puede mostrar
   // (21/11, el autor: "el tiempo de rasante deberia durar mas"): cada acierto paga SEG_ACIERTO segundos de poder (era 1)
   SEG_ACIERTO: 1.5,
-  CONC_TOPE: 8,    // el techo: con la palabra llena (8 aciertos) sale la ULTI (era 12, el de un jugador bueno bajo presion)
+  // (27/11, el autor: "marquemos la palabra y despues si acierta mas suma +1 seg al total… que sea accesible el R A S A N T E"):
+  // la palabra (7 letras, CONC_MIN) es lo que hace falta; cada acierto de mas suma un segundo, hasta el TOPE, que lo larga solo
+  CONC_TOPE: 16,   // (era 8: la palabra llena largaba la ULTI)
   // EL PISO PARA QUE ARRANQUE. Por debajo de esto el flow no se dispara y lo juntado se pierde: el
   // poder cambia la camara y la lamina del avion de golpe, y dos segundos de eso no se leen como
   // una rafaga sino como un error grafico.
-  CONC_MIN: 6,     // (25/11: era 3 — el RASANTE es la ULTI: "que dure menos y cueste mas", RAS_ASIST en data/tuning.js)
+  CONC_MIN: 7,     // (27/11: las 7 letras de RASANTE; era 6 — 25/11, y antes 3)
   // LA GRACIA DE LA ENTRADA. Venis bombeando el gas para no rebotar contra el agua; el estado se
   // abre, el avion se clava —o sea que el gas ya no hace falta— pero tu dedo YA SALIO. Sin esto,
   // ese toque cae afuera del azul y te saca en el mismo instante en que entraste: el reflejo que
@@ -121,7 +123,9 @@ export const AGU = {
 export const ancho = n => Math.max(AGU.SEC_MIN, AGU.SEC0 - n * AGU.SEC_K);
 
 /** Vueltas por segundo del indicador con `n` aciertos encima. */
-export const vel = n => Math.min(AGU.VEL_MAX, AGU.VEL0 + n * AGU.VEL_K);
+// (27/11, el autor: "que sea accesible el RASANTE… que no sea imposible la velocidad"): hasta completar la palabra
+// (CONC_MIN) la aguja NO se acelera; recien los aciertos de mas —los que suman segundos— la apuran
+export const vel = n => Math.min(AGU.VEL_MAX, AGU.VEL0 + Math.max(0, n - AGU.CONC_MIN) * AGU.VEL_K);
 
 /** El multiplicador con `n` aciertos encima. */
 export const mult = n => Math.min(AGU.MULT_TOPE, AGU.MULT + n * AGU.MULT_PASO);

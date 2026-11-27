@@ -20,6 +20,7 @@ const ESPERA_0 = 0;       // …y antes del primero: NINGUNO (21/11, el autor: "
 const OK_T = 1.1;         // el tilde de una consigna cumplida, antes de pasar a la siguiente
 
 let tp = 0;   // segundos de practica del paso en curso
+let trabaL = 0;   // lineas ya dichas de `alTrabar` en el paso en curso
 let pasos = [], i = 0, fase = 'espera', t = 0, linea = 0, sub = 0, okT = 0, acum = 0, vistos = {}, base = {}, fin = true;
 
 /** Arranca una lista de pasos (vacia = apagado), desde el primero — o desde `desde` (25/11: al reintentar despues de
@@ -28,7 +29,7 @@ export function empezar(lista, desde = 0) {
   pasos = lista || []; i = Math.max(0, Math.min(desde | 0, Math.max(0, pasos.length - 1))); fin = !pasos.length;
   entrar();
 }
-function entrar() { fase = 'espera'; t = 0; linea = 0; sub = 0; okT = 0; acum = 0; vistos = {}; }
+function entrar() { trabaL = 0; fase = 'espera'; t = 0; linea = 0; sub = 0; okT = 0; acum = 0; vistos = {}; }
 
 /** ¿Hay un tutorial corriendo y sin terminar? */
 export const activo = () => !fin;
@@ -36,6 +37,20 @@ export const activo = () => !fin;
 /** Los blancos de practica del paso en curso mientras se practica (game.js los siembra), o null. */
 export const blancos = () => (!fin && fase === 'practica' && okT <= 0 && pasos[i] && (pasos[i].sigue || [])[sub] ? pasos[i].blancos || null : null);
 /** EL MISIL DE PRACTICA del paso en curso ('frente' | 'cola') mientras se practica (game.js lo tira), o null. */
+/** EL MISIL QUE LLEGA ANTES DE LA CHARLA (`misilPrimero`, 26/11): mientras el paso espera su intro, el misil del paso ya
+ *  viene — la pausa lo explica con el misil a la vista (`cuando: { misil: true }`). */
+export const misilAntes = () => (!fin && fase === 'espera' && pasos[i] && pasos[i].misilPrimero ? pasos[i].misil || null : null);
+/** ¿TODAVIA NO SE ENSEÑO LA NAFTA? (27/11, el autor: "se me gasta la nafta apenas entro en radar y la chancha no viene
+ *  a recargar"): mientras falte el paso con `nafta`, game.js no deja que el tanque baje de un piso. */
+/** ¿EL AVION ESPERA EN LA CABECERA? (27/11, el autor: "el primer despegue siempre se erra porque desde que te dicen que
+ *  presiones el gas hasta que se acaba la pista nunca llegas"): hasta que se PRACTICA el paso del despegue (`despega`), la
+ *  carrera no rueda — antes se comia la pista a paso de hombre durante el saludo y los mandos. */
+export function despegueEspera() {
+  if (fin) return false;
+  const k = pasos.findIndex(p => (p.sigue || []).some(c => c.despega));
+  return k >= 0 && (i < k || (i === k && fase !== 'practica'));
+}
+export const naftaPendiente = () => !fin && pasos.slice(i).some(p => p.nafta != null);
 export const misilPractica = () => (!fin && fase === 'practica' && okT <= 0 && pasos[i] && (pasos[i].sigue || [])[sub] ? pasos[i].misil || null : null);
 
 /** Lo que el jugador tiene que hacer AHORA, o null: { clave, n, prog, hecho }. `n` es el numero de la
@@ -44,10 +59,11 @@ export function consigna() {
   if (fin || fase !== 'practica') return null;
   const c = (pasos[i].sigue || [])[sub];
   if (!c) return null;
-  const n = c.altSobre ?? c.altBajo ?? c.bajoTecho ?? c.pasa ?? c.rompe ?? c.aciertos ?? c.esquiva ?? (c.misil ? c.n || 1 : null) ?? (c.usa ? c.usa.length : null);
+  const n = c.altSobre ?? c.altBajo ?? c.bajoTecho ?? c.pasa ?? c.rompe ?? c.despeja ?? c.aciertos ?? c.esquiva ?? (c.misil ? c.n || 1 : null) ?? (c.usa ? c.usa.length : null);
   const prog = c.bajoTecho != null ? Math.min(c.bajoTecho, acum)
     : c.pasa != null ? Math.min(c.pasa, acum)
     : c.rompe != null ? Math.min(c.rompe, acum)
+    : c.despeja != null ? Math.min(c.despeja, acum)
     : c.aciertos != null ? Math.min(c.aciertos, acum)
     : c.esquiva != null ? Math.min(c.esquiva, acum)
     : c.misil ? Math.min(c.n || 1, acum)
@@ -103,6 +119,8 @@ function cumple(c, s, dt) {
   }
   if (c.pasa != null) { acum = s.pasados - base.pasados; return acum >= c.pasa; }
   if (c.rompe != null) { acum = s.rotos - base.rotos; return acum >= c.rompe; }
+  // DESPEJAR (26/11, el autor: "en etapa 2 esquive y/o dispare globos"): cuenta igual romperlo o esquivarlo
+  if (c.despeja != null) { acum = (s.rotos - base.rotos) + ((s.esquivados || 0) - (base.esquivados || 0)); return acum >= c.despeja; }
   if (c.esquiva != null) { acum = (s.esquivados || 0) - (base.esquivados || 0); return acum >= c.esquiva; }
   // EL SIDEWINDER ESQUIVADO (23/11, el autor: "el tutorial debe explicarme como esquivar un misil de frente con piruetas, o
   // desde atras; tiene que tener ambas cosas"): `misil: 'frente' | 'cola'`, `n` cuantos (1 si no dice)
@@ -160,6 +178,8 @@ function llego(q, s) {
   if (q.faltan != null) return !!s.climaxHecho || s.faltan <= q.faltan;   // (fraccion del camino al blanco)
   if (q.vuelta) return !!s.climaxHecho && s.enVuelo;
   if (q.aterrizando) return !!s.aterrizando;
+  if (q.misil) return !!s.misilVivo;
+  if (q.rasanteFin) return !s.rasante;   // (el poder RASANTE ya se termino: 27/11)   // (el misil del paso ya viene: misilAntes)
   return true;
 }
 
@@ -186,7 +206,9 @@ export function tick(dt, s, escenas) {
   }
   // UNO A LA VEZ (19/11): mientras la radio en vuelo esta diciendo algo (el remate, un aviso), la
   // pausa de dialogo espera a que se calle — si no, la congelada le pisa la linea a mitad de leer
-  if (fase === 'intro' && s.radio) return null;
+  // (27/11, el autor: "mientras habla el Turco… los segundos de volar cercano al mar bajo los 5 metros"): si ya no quedan
+  // lineas —la ultima fue radio en vuelo—, la practica y su contador arrancan mientras habla
+  if (fase === 'intro' && s.radio && linea < ((escenas[p.dice] || {}).lineas || []).length) return null;
   if (fase === 'intro') {
     const ls = (escenas[p.dice] || {}).lineas || [];
     if (linea < ls.length) {
@@ -200,6 +222,12 @@ export function tick(dt, s, escenas) {
   }
   if (fase === 'practica') {
     tp += dt;
+    // AL TRABARSE EL CAÑON (26/11, el autor: "que lo de trabar la metralleta ocurra dentro de esa eliminacion de 10
+    // globos"): `alTrabar` = la escena que va por radio, sin frenar, la primera vez que se recalienta en este paso
+    if (p.alTrabar && (trabaL > 0 || s.overheat) && !s.radio) {
+      const ls = (escenas[p.alTrabar] || {}).lineas || [];
+      if (trabaL < ls.length) return { tipo: 'radio', linea: ls[trabaL++] };
+    }
     const c = (p.sigue || [])[sub];
     if (c) {
       if (okT > 0) {

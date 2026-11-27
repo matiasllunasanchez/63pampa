@@ -204,3 +204,19 @@ pico pasó de **22 a 10,8 rad/s**.
 tiene que *verse* brusca. El Split-S además **invierte el sprite** por rotación en pantalla: se ve
 el avión panza arriba picando. La hoja 2 es opcional: el build web la descarta y el render cae a
 las filas normales de la hoja base — la maniobra se juega igual, solo pierde pose.
+
+## ⏳ Pendiente de revisión del autor — la maniobra temprana contra el misil de cola (26/11/2026)
+
+**Hoy (provisorio):** `AIM9.COLA_SIEMPRE = true` (`src/data/tuning.js`). Cualquier pirueta pierde al Sidewinder de
+atrás en **cualquier momento** de la persecución, desde que sale hasta que te alcanza (`core/aim9.js` `pasoCola`).
+Vale en todo el juego, no solo en el tutorial. El grito de ¡AHORA! sigue saliendo al entrar en la zona, como aviso.
+
+**Antes:** la pirueta solo servía con el misil **en la zona** (`COLA_ZONA` = el último 38% del camino, ~1,2 s de
+`COLA_T` 3,2 s). La hecha antes ("la maniobra temprana") no servía: el misil todavía corregía.
+
+**Pedido del autor:** "cualquier pirueta hecha dentro del margen de los segundos que tarda el misil en darte" — y después,
+"la maniobra temprana dejame revisarla, anotala como pendiente de revisión… quizá volvemos a eso".
+
+**Para volver a la regla vieja:** `COLA_SIEMPRE: false`. La prueba de `tools/unit.js` («sidewinder de atras: la maniobra
+temprana…») sigue a la llave sola. Ojo: si se vuelve, el tutorial (etapa 2, `TUT2_MISIL_COLA`) ya no explica el grito
+—"Tenés otro misil detrás… ¡Hacé otra pirueta para esquivarlo!"— y habría que volver a decir que se espera el ¡AHORA!.

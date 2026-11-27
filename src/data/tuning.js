@@ -2563,6 +2563,7 @@ export const AIM9 = {
   // 0.62 deja los ultimos ~1,2 s: un tonel (0,55 s) lanzado en cualquier momento de ahi, o un
   // poco antes y todavia en curso al entrar, lo saca. Antes no sirve: todavia puede corregir.
   COLA_ZONA: 0.62,
+  COLA_SIEMPRE: true,  // (26/11) una pirueta lo pierde en CUALQUIER momento de la persecucion (no solo en la zona)
   COLA_LAG: 0.16,      // s que el buscador se queda atras de lo que hace el avion (se lo ve corregir)
   COLA_WOB: 0.9,       // el cabeceo del buscador, en unidades; se apaga al llegar
   // PERDIDO: sigue de largo con lo que traia y se te adelanta hasta perderse.
@@ -2616,6 +2617,10 @@ export const AIM9 = {
   FRENTE_P: 0.45,      // que fraccion de los cazas del pasillo viene armada (la de las trazadoras)
   FRENTE_P2: 0.25,     // de los armados, cuantos traen el SEGUNDO
   FRENTE_GAP: 0.55,    // s entre el primero y el segundo del mismo caza
+  // EL AVISO (26/11, el autor: "cuando viene un misil de frente no te da tiempo a esquivar… punto rojo de 1.5 segundos,
+  // luego como esta ahora, rojo con punto blanco de 1 segundo mas, y recien ahi nos impacta"): sale y se queda AVISO s
+  // adelante, solo el punto rojo latiendo (render/aim9.js); despues vuela y tarda VUELO s en llegarte
+  FRENTE_AVISO: 1.5, FRENTE_VUELO: 1.0,
   // LA CAJA DE IMPACTO de frente: la MISMA que cualquier misil que cruza tu plano en collision.js
   // (3 x 2,2), y la misma que se encoge con una pirueta de alas de canto (`tight`: 1,6 x 1,2).
   CAJA: { rx: 3, ry: 2.2, rxT: 1.6, ryT: 1.2 },

@@ -25,7 +25,8 @@ import { nocheDe, luzNoche } from './noche.js';
 import { reflejoLuz, nucleoLuz } from './luces_enemigos.js';
 import { detras } from './oclusion.js';
 // EL VERDE DE LA SUELTA, el mismo que titila en el tablero (SUELTA_COL de render/hud.js).
-const VERDE_SUELTA = '#7fe07a';
+// (27/11, el autor: "cuando esta para disparar NO VERDE, sino amarillo como la mira del avion"): el acento de la mira
+const VERDE_SUELTA = '#e8a33d';
 
 /** El buque, en el mundo. Va ANTES de los obstaculos del pasillo: casi siempre es lo mas lejano. */
 /** EL BLANCO, RECORTADO POR LO QUE TIENE DELANTE (13/11): se dibuja DESPUES del terreno (game.js), asi lo que
@@ -403,12 +404,13 @@ function corchetes(listo, alt, previa) {
   // CON TAMAÑO MINIMO: a la distancia de suelta la zona real mide 14 x 4 px y los corchetes se
   // confundian con las marcas de la mira. Nunca mas chicos que 20 x 8: de lejos dicen "ahi", de
   // cerca abrazan la zona exacta.
-  const cx = s.x, mw = Math.max(10, (proj(BL.X + BL.LEN * BL.CENTRO, blanco.base, z).x - cx));
+  // (27/11, el autor: "corchete mas finito y mas espaciado a los costados horizontales"): un 40% mas abierto
+  const cx = s.x, mw = Math.max(14, (proj(BL.X + BL.LEN * BL.CENTRO, blanco.base, z).x - cx) * 1.4);
   const xl = cx - mw, xr = cx + mw;
   const bot = s.y + 1, top = Math.min(bot - 8, proj(BL.X, blanco.base + altoEn(BL.X) * 0.55, z).y);
   // MAS GRUESOS (pedido del autor, 26/9). Eran k*0.35 con piso de 1 px, o sea una linea de un
   // pixel casi siempre: al lado de la mira verde no se leian como un marco sino como ruido.
-  const t = Math.max(2, Math.round(k * 0.7)), a = Math.max(4, (xr - xl) * 0.25);
+  const t = Math.max(1, Math.round(k * 0.35)), a = Math.max(4, (xr - xl) * 0.2);   // (27/11: mas finito)
   // EN DISTANCIA DE SOLTAR, verde y titilando con el latido del tablero (render/hud.js):
   // corchetes y mira dicen "ahora" junto con la cinta, el altimetro y el estante.
   // …y ANTES, en la PREVIA (8/10): verde FIJO —llegando a la zona, corregi—; titila recien cuando es ya
@@ -442,8 +444,8 @@ function corchetes(listo, alt, previa) {
   // late HACIA donde hay que ir: la flecha de bajar cabecea para abajo y la de subir para arriba.
   const late = Math.round(Math.abs(Math.sin(run.t * 5)));
   ctx.globalAlpha = apM;
-  if (alt < 0) flechaIn(cx, top - 3 + late, 1, false, 1);     // arriba del buque, apuntando abajo
-  else flechaIn(cx, bot + 3 - late, 1, false, -1);            // debajo del buque, apuntando arriba
+  if (alt < 0) flechaIn(cx, top - 3 + late, 1, 'blanco', 1);   // (27/11: blanca, como el corchete)     // arriba del buque, apuntando abajo
+  else flechaIn(cx, bot + 3 - late, 1, 'blanco', -1);            // debajo del buque, apuntando arriba
   ctx.globalAlpha = 1;
 }
 

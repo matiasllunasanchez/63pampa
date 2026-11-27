@@ -30,9 +30,9 @@ export function trayectoria(b, spd, suelo) {
     // el casco: se cruza en el marco del mundo contra donde esta el buque AHORA
     if (blanco.on && zwAntes < blanco.z && zw >= blanco.z) {
       const h = altoEn(x);
-      if (h >= 0 && y <= AGUA + h) return { pts, fin: { x, y, z: blanco.z }, buque: true };
+      if (h >= 0 && y <= AGUA + h) return { pts, fin: { x, y, z: blanco.z }, buque: true, t };
     }
-    if (y <= suelo) return { pts, fin: { x, y: suelo, z: zw }, buque: false };
+    if (y <= suelo) return { pts, fin: { x, y: suelo, z: zw }, buque: false, t };   // (`t`: lo que tarda en caer — la espoleta, 27/11)
     if (zw > SPAWN_Z * 3) break;
   }
   return { pts, fin: null, buque: false };

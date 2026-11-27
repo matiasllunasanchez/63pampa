@@ -78,7 +78,7 @@ export function lanzarFrente(desde, b, P = AIM9) {
   const cierre = b.spd + P.FRENTE_V;
   const tti = Math.max(0.3, (desde.z - b.pz) / Math.max(1, cierre));
   return {
-    tipo: 'aim9', modo: 'frente', fase: 'guia', t: 0, done: false,
+    tipo: 'aim9', modo: 'frente', fase: 'guia', t: 0, done: false, aviso: P.FRENTE_AVISO || 0,
     x: desde.x, y: desde.y, z: desde.z,
     // la puntería del disparo: el camino recto de donde sale a donde estabas
     vx: (b.x - desde.x) / tti, vy: (b.y - desde.y) / tti, vz: 0,
@@ -286,7 +286,9 @@ function pasoCola(m, dt, b, P) {
   // LA REGLA DE LA COLA: una pirueta con el misil en la zona lo pierde. Vale cualquiera del
   // catalogo, y vale si ya venias haciendola al entrar — lo que cuenta es estar maniobrando
   // CUANDO esta cerca, no el cuadro exacto en que apretaste.
-  if (m.zona && b.maniobra) return perder(m, P, 'maniobra');
+  // (26/11, el autor: "cualquier pirueta debe poder quitarte un misil en la parte trasera… cualquiera hecha dentro del
+  // margen de los segundos que tarda el misil en darte"): con COLA_SIEMPRE vale desde que sale, no solo en la zona
+  if ((m.zona || P.COLA_SIEMPRE) && b.maniobra) return perder(m, P, 'maniobra');
   if (u >= 1) {
     // LLEGO. Sin evasion esta exactamente sobre vos y pega; con evasion a medias puede llegar
     // CORRIDO por el atraso de su buscador, y entonces pasa de largo. Es la misma caja que
@@ -307,6 +309,18 @@ function seVa(m, dt, P) {
 }
 
 function pasoFrente(m, dt, b, P) {
+  // EL AVISO: quieto adelante —se acomoda a la distancia de FRENTE_VUELO s— y al largar se apunta de nuevo a donde estas
+  if (m.aviso > 0) {
+    const cierre = Math.max(1, b.spd + P.FRENTE_V), zObj = b.pz + cierre * (P.FRENTE_VUELO || 1);
+    m.z += (zObj - m.z) * Math.min(1, dt * 3);
+    m.aviso -= dt;
+    if (m.aviso <= 0) {
+      m.z = zObj;
+      const tti = Math.max(0.3, (m.z - b.pz) / cierre);
+      m.vx = (b.x - m.x) / tti; m.vy = (b.y - m.y) / tti; m.cx = 0; m.cy = 0;
+    }
+    return null;
+  }
   m.z -= (b.spd + P.FRENTE_V) * dt;
   if (m.fase === 'guia') evasion(m, dt, b, P);
   if (m.fase === 'guia') {
@@ -331,6 +345,6 @@ function pasoFrente(m, dt, b, P) {
     m.fase = 'pasa';
     return 'cruza';
   }
-  if (m.z <= 2 || m.t > P.VIDA) return 'fin';
+  if (m.z <= 2 || m.t > P.VIDA + (P.FRENTE_AVISO || 0)) return 'fin';
   return null;
 }

@@ -258,6 +258,8 @@ export function drawAim9(m) {
   ctx.globalAlpha = fr ? 0.9 : 0.55;
   px(s.x - w / 2, s.y - w / 2, w, w, '#f0582a');
   ctx.globalAlpha = 1;
+  // EL AVISO (26/11): mientras no larga, solo el punto rojo que late — sin la ojiva ni el centro blanco
+  if (fr && m.aviso > 0) return;
   const b = Math.max(fr ? 4 : 1, 0.7 * k);
   px(s.x - b / 2, s.y - b / 2, b, b, '#2e3336');
   const e = Math.max(fr ? 2.5 : 1, 0.35 * k);

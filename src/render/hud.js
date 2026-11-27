@@ -859,7 +859,7 @@ const COL = i => MARGEN + PIL_W + AIRE + i * (CUADRO + AIRE);
 // LOS RELOJES DEL VUELO (ver drawHUD): hasta donde llega cada escala, y el ancho del estante de
 // misiles que les hizo lugar.
 const SALTO_COL = '#ffd479';        // LA SUELTA: la altura que hay que saltar para pasar el buque
-const SUELTA_COL = '#7fe07a';        // LA SUELTA: el verde de "es el momento de soltar"
+const SUELTA_COL = '#e8a33d';        // LA SUELTA: "es el momento de soltar" — (27/11) el amarillo de la mira, ya no verde
 // LA CARGA DE LA CHANCHA en el reloj de nafta (ver drawHUD): desde cuanto, hasta cuanto, cuando se solto
 let cargaDesde = null, cargaHasta = 0, cargaFinT = 0;
 const CARGA_FUNDE = 1.6;   // s: lo que tarda en apagarse el verde al desconectarse
@@ -2349,7 +2349,8 @@ function bordesAvisos() {
  *  gris; cargando en amarillo; LLENA late en claro; GASTANDOSE titila y le saltan chispas a la punta. */
 function barritaMomentum(x, y, w) {
   if (cfg.poderes === false) { donde.momentum = null; return; }
-  const v = Math.max(0, Math.min(1, tempoMeter())), on = tempoActive(), llena = v >= 1 && !on;
+  // (27/11: DOS CARGAS — la barrita se parte al medio; cada mitad es una carga, y "llena" es tener al menos una)
+  const v = Math.max(0, Math.min(1, tempoMeter() / 2)), on = tempoActive(), llena = tempoMeter() >= 1 && !on;
   px(x, y, w, 2, '#2e3c45');
   const fw = Math.round(w * v);
   // LA ELECTRICIDAD (23/11, el autor: "darle efecto como la radioactiva del radar, pero esta seria como electricidad"):
@@ -2373,6 +2374,7 @@ function barritaMomentum(x, y, w) {
     }
   }
   if (on && fw > 0) chispas(x + fw, y, 2, '#ffffff', MOM_COL);
+  px(x + Math.round(w / 2), y - 1, 1, 4, '#0b1013');   // la division entre las dos cargas
   donde.momentum = [x + w / 2, y];
 }
 /** EL ICONO DEL HIELO (23/11, el autor: "en los 3 indicadores, pero BIEN HECHO el icono de hielo y arriba a la derecha"):
@@ -3382,9 +3384,25 @@ function drawEstante(h) {
     return;
   }
   if (!r && !hayAla && !(run.chapitasMax > 0) && !c.exocet && (run.sinBombas || run.soloExocet || !pide(run.msl < (run.mslMax || MSL_MAX)))) return;   // (sin armas, sin estante: 17/10)
-  plate(X_RACK, CUADROS_Y, RACK_W, CUADRO);
+  // (27/11, el autor: "las chafitas separarlas un poco de las otras dos armas, un espaciado fisicamente real"): DOS placas
+  // —arriba tanques y bomba, 16 px; abajo las chafitas, 8 px— con 2 px de aire entre las dos
+  // (…"con el rectangulo mas chico, mismo ancho, mas alargado; y hacer mas grandes las bombas"): la de arriba crece a 18 y sus
+  // iconos van x1,3; la de las chafitas queda una franja de 6, con el icono x0,7
+  const ALTO_SEC = 18, HUECO = 2, conCh = run.chapitasMax > 0, GRANDE = 1.3, CHICO = 0.7;
+  plate(X_RACK, CUADROS_Y, RACK_W, conCh ? ALTO_SEC : CUADRO);
+  if (conCh) plate(X_RACK, CUADROS_Y + ALTO_SEC + HUECO, RACK_W, CUADRO - ALTO_SEC - HUECO);
   const cx = X_RACK + 1 + (BOMBA_W - 1) / 2, xd = X_RACK + 1 + BOMBA_W + 1;
   const VACIO = '#2e3c45';
+  // DOS SECCIONES CON BORDE PROPIO (27/11, el autor: "visualmente separar lo switcheable con bordes diferentes en una
+  // seccion separada de las chafitas"): arriba lo que se elige y se suelta (tanques / bomba), con borde ambar; abajo las
+  // chafitas, en su propia cajita con borde celeste
+  const marco = (y0, hh, col) => {
+    px(X_RACK, y0, RACK_W, 1, col); px(X_RACK, y0 + hh - 1, RACK_W, 1, col);
+    px(X_RACK, y0, 1, hh, col); px(X_RACK + RACK_W - 1, y0, 1, hh, col);
+  };
+  // (sobre el borde de la placa, para no pisar los digitos: el estante mide 16 px)
+  marco(CUADROS_Y, conCh ? ALTO_SEC : CUADRO, '#a8742e');
+  if (conCh) marco(CUADROS_Y + ALTO_SEC + HUECO, CUADRO - ALTO_SEC - HUECO, '#4f9db3');
   // EL SECUNDARIO ELEGIDO (9/10, [Z] suelta lo elegido; 1/2/3 o la ruedita lo cambian): su fila lleva
   // una flechita naranja afuera, a la izquierda, y su numero en naranja. Fila por fila es el mismo orden
   // que las teclas: arriba los tanques (1), al medio la bomba (2), abajo las chafitas (3).
@@ -3392,8 +3410,10 @@ function drawEstante(h) {
   const yElegida = { tanque: CUADROS_Y + 5, bomba: CUADROS_Y + 13, exocet: CUADROS_Y + 13 }[run.secundaria];
   // FIJO (23/11, el autor: "la flechita cuando esta LOCKEADA en azul"): un solo secundario para elegir
   const colFlecha = run.secFija ? SEC_FIJA_COL : P.accent;
-  const fila = (yy, ico, n, col, mono, colDig) => {
+  const fila = (yy, ico, n, col, mono, colDig, k = GRANDE) => {
+    ctx.save(); ctx.translate(cx, yy); ctx.scale(k, k); ctx.translate(-cx, -yy);
     iconoEn(cx, yy, ico, col, undefined, mono);
+    ctx.restore();
     const elegida = yy === yElegida;
     if (n !== null) digito(xd, yy - 2, n, elegida && n > 0 ? colFlecha : colDig || (n > 0 ? P.foam : VACIO));
   };
@@ -3416,19 +3436,13 @@ function drawEstante(h) {
   const yc = CUADROS_Y + 13;
   if (r) {
     const on = r.centroN > 0;
-    bordePlaca(X_RACK, yc - 4, RACK_W, 9, on && !r.bloqueada && verde ? SUELTA_COL : P.warn);
+    bordePlaca(X_RACK, yc - 5, RACK_W, 9, on && !r.bloqueada && verde ? SUELTA_COL : P.warn);
     fila(yc, 'bomba', r.centroN, !on ? VACIO : verde ? SUELTA_COL : r.bloqueada ? '#6b7680' : null,
       !on || verde || r.bloqueada);
     // TRABADA (autor, 8/10): la del buque no salio — una cruz roja encima, que titila, y queda
     if (on && r.trabada && Math.sin(Date.now() / 90) > -0.4) {
       ctx.fillStyle = '#e8321e';
       for (let i = -3; i <= 3; i++) { ctx.fillRect(cx + i, yc + i, 1, 1); ctx.fillRect(cx + i, yc - i, 1, 1); }
-    }
-    // QUE BOMBA ES (data/bombas.js): el nombre corto encima del estante — MK-17 o BRP
-    if (r.bomba) {
-      ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = P.dim;
-      ctx.fillText(r.bomba === 'exocet' ? 'EXOCET' : r.bomba === 'mk17' ? 'MK17' : r.bomba === 'snakeye' ? 'MK82' : 'BRP', X_RACK + RACK_W / 2, CUADROS_Y - 2);
-      ctx.textAlign = 'left';
     }
   } else if (c.centro === 'tanque') {
     const cuelga = !run.tanque || (run.tanque.pilones || []).includes('centro');
@@ -3440,14 +3454,22 @@ function drawEstante(h) {
     if (c.exocet && (run.soloExocet || run.secundaria === 'exocet')) { const n = run.exoGastado ? 0 : 1; fila(yc, 'exocet', n, n > 0 ? null : VACIO, !(n > 0)); }
     else if (!run.sinBombas && !run.soloExocet) fila(yc, 'bomba', run.msl, run.msl > 0 ? null : VACIO, !(run.msl > 0));
   }
+  // LO ELEGIDO, ARRIBA (27/11, el autor: "arriba donde dice BRP podria decir lo que seleccionaste, MK17 o TANQUES… de a
+  // uno"): un solo rotulo —antes iba siempre el nombre de la bomba, aunque estuvieras en los tanques—
+  {
+    const nomBomba = b => b === 'exocet' ? 'EXOCET' : b === 'mk17' ? 'MK17' : b === 'snakeye' ? 'MK82' : b === 'brp' ? 'BRP' : T('estanteBomba');
+    const rot = run.secundaria === 'tanque' && hayAla ? T('estanteTanques') : run.secundaria === 'exocet' ? 'EXOCET' : nomBomba(r && r.bomba);
+    ctx.font = 'bold 5px monospace'; ctx.textAlign = 'right'; ctx.fillStyle = yElegida !== undefined ? colFlecha : P.dim;
+    ctx.fillText(rot, X_RACK + RACK_W, CUADROS_Y - 2);   // (al borde derecho: TANQUES es mas ancho que el estante)
+    ctx.textAlign = 'left';
+  }
   // ABAJO: las chapitas (vacio si el avion no trae)
   // …SEPARADAS: son el ELEMENTO DE APOYO, no un secundario (18/11). Una raya punteada las aparta del estante y van
   // en celeste, con el digito en celeste tambien: se leen como otra cosa, que sale con su propia tecla.
-  const yb = CUADROS_Y + 21;
+  const yb = CUADROS_Y + ALTO_SEC + HUECO + 3;
   if (run.chapitasMax > 0) {
     const n = run.chapitas, APOYO = '#7fc6d8';
-    for (let i = 1; i < RACK_W - 1; i += 2) px(X_RACK + i, yb - 5, 1, 1, '#3d5560');
-    fila(yb, 'chapitas', n, n > 0 ? APOYO : VACIO, !(n > 0) || Math.floor(run.t * 3) % 4 !== 0, n > 0 ? APOYO : VACIO);
+    fila(yb, 'chapitas', n, n > 0 ? APOYO : VACIO, !(n > 0) || Math.floor(run.t * 3) % 4 !== 0, n > 0 ? APOYO : VACIO, CHICO);
   }
 }
 
@@ -3632,16 +3654,29 @@ export function drawHUD(h) {
     // avion"). Aca quedan la PALABRA y el PULSO; lo que se llena y se gasta —la concentracion y el
     // flow— va en su barra del tablero, con la forma que tenia antes del 13/9 (ver barraPoder mas
     // abajo). En el flow el cartelito de aca no dibuja nada.
-    if (enFlow) { /* la barra esta arriba de MOMENTUM */
-    } else {
-      const pal = T(enEstado ? 'mult_rasante' : 'mult_perfect');
+    // (27/11, el autor: "el RASANTE llenarlo en el mismo lugar encima de la barra azul, quitarlo del nombre de TERO, y que
+    // cuando se vaya gastando este en el mismo lugar en el costado"): la PALABRA es la carga — en la racha se prende una
+    // letra por acierto (las apagadas en el surco) y en el flow se van apagando de atras para adelante, con la barrita
+    // que se vacia debajo. Ya no hay barra al lado del piloto
+    {
+      const pal = T(enEstado || enFlow ? 'mult_rasante' : 'mult_perfect');
       const paso = Math.max(3, Math.floor((RACHA_W - GLIFO) / Math.max(1, pal.length - 1)));
       const rx = bx + Math.floor((RACHA_W - (GLIFO + paso * (pal.length - 1))) / 2);
+      const nL = pal.length;
+      const prendidas = enFlow ? Math.ceil(nL * (ras.dur > 0 ? ras.resta / ras.dur : 0))
+        : enEstado ? Math.min(nL, Math.round(nL * Math.min(1, concSeg(run.aguN) / AGU.CONC_MIN))) : nL;
       // SIN FONDO: el recuadro oscuro detras de la palabra era una mancha pegada al avion. La
       // palabra va en NEGRITA, que es lo que la sostiene sobre el mar a 5 px.
       ctx.textAlign = 'left'; ctx.font = 'bold 5px monospace';
-      ctx.fillStyle = enEstado ? (golpe ? '#ffffff' : RAS_COL) : P.accent;
-      for (let i = 0; i < pal.length; i++) ctx.fillText(pal[i], rx + i * paso, s.y - 9);
+      for (let i = 0; i < nL; i++) {
+        const on = i < prendidas;
+        ctx.fillStyle = !enEstado && !enFlow ? P.accent : !on ? '#2e3c45' : golpe ? '#ffffff' : RAS_COL;
+        ctx.fillText(pal[i], rx + i * paso, s.y - 9);
+      }
+      if (enFlow) {
+        const fr = Math.max(0, Math.min(1, ras.dur > 0 ? ras.resta / ras.dur : 0));
+        px(bx, by, RACHA_W, 2, '#2e3c45'); px(bx, by, Math.max(1, Math.round(RACHA_W * fr)), 2, RAS_COL);
+      }
     }
     if (enFlow) {
       // EN EL FLOW NO HAY NADA MAS QUE LA BARRA: ni pulso, ni ventana, ni carga. La racha se
@@ -3806,7 +3841,11 @@ export function drawHUD(h) {
   // (26/11, el autor: "la UI en islas tiene el radar encima de otro indicador, pongamos tal cual esta en pasillo;
   // respetemos la consistencia de la UI"): afuera de la cabina la fila es SIEMPRE la del pasillo — temperatura en el
   // lugar del mach, radar en el de la Chancha—; la brujula (islas y POR LA PATRIA) sube arriba de la temperatura
-  const radarEnFila = !enCabina();
+  // (27/11, el autor: "la brujula tiene que estar SIEMPRE, en todos los aviones y en todos los modos"): la BRUJULA tiene su
+  // lugar fijo en la fila —el hueco de la Chancha, entre el gas y el cañon— y el RADAR PROPIO, si el avion lo lleva, sube
+  // arriba del grupo de la derecha
+  const brujulaFila = !enCabina() && !!(h.brujula || h.brujulaPasillo);
+  const radarEnFila = !enCabina() && !brujulaFila;
   // (25/11, el autor: "el icono del radar en ISLAS de cualquier avion debe ser el mismo de pasillo, mismo tamaño y todo"):
   // con el hueco tomado (las islas: brujula y termometro) va EL MISMO RELOJ, arriba del grupo de la derecha. La placa
   // chica queda solo para la cabina.
@@ -3971,7 +4010,8 @@ export function drawHUD(h) {
   // (26/11, el autor: "estoy harto de que la UI de pasillo difiera de la isla… no puede haber 2 indicadores uno arriba del
   // otro"): la regla del PASILLO — la brujula va en el lugar del termometro solo si el avion no lo tiene; nunca apilada.
   // Con termometro, el rumbo al objetivo lo da la marca en pantalla (game.js, con su flecha al costado si quedo atras)
-  if (bru && (enCabina() || !h.temp)) drawBrujula(X_MACH, CUADROS_Y, bru);
+  if (bru && enCabina() && !h.temp) drawBrujula(X_MACH, CUADROS_Y, bru);
+  else if (bru && !enCabina()) drawBrujula(X_CHANCHA, CUADROS_Y, bru);   // (27/11: siempre, en su lugar fijo)
   // (21/11, el autor: "no pongas arriba el coso, metelo todo en horizontal"): en la fila, en el lugar que era el
   // reloj de la Chancha (que paso a ser el icono de arriba de la nafta)
   // (21/11, el autor: "el indicador de temperatura del lado izquierdo: nafta, temperatura, velocidad, nivel"): en
@@ -4010,11 +4050,11 @@ export function drawHUD(h) {
     // el nombre adentro, el celeste de mar— y la FUNCION de ahora: aparece recien cuando la racha
     // empieza a juntar concentracion (4to acierto) y se llena; con el flow puesto se va GASTANDO; y
     // cuando se termina, DESAPARECE. No hay lengueta LISTO: el flow no se lanza, te agarra.
-    const llenando = run.aguante === 1 && run.aguN >= AGU.CONC_GATE;
-    if (ras.on || llenando) {
+    const llenando = false;   // (27/11: la carga y el gasto del RASANTE van en la palabra, al lado del avion)
+    if (llenando) {
       const fr = ras.on
         ? (ras.dur > 0 ? ras.resta / ras.dur : 0)
-        : Math.max(0, Math.min(1, (concSeg(run.aguN) - AGU.CONC_GATE) / (AGU.CONC_TOPE - AGU.CONC_GATE)));
+        : Math.max(0, Math.min(1, (concSeg(run.aguN) - AGU.CONC_GATE) / (AGU.CONC_MIN - AGU.CONC_GATE)));
       barraPoder(PIL_X(), yPod, fr, RAS_COL, RAS_CLARO, RAS_OSCURO, ras.on, false, T('bar_rasante'));
     }
   }

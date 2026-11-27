@@ -532,6 +532,14 @@ export function sembrarPractica(tipo, x, y, z, mueve, op = {}) {
   // `real` (21/11): un Harrier DE VERDAD —teje y te busca el carril, como los del juego—; `armado`, con un Sidewinder seguro
   if (tipo === 'jet' && op.real) { Object.assign(o, mov('jet', x)); if (op.armado) Object.assign(o, { aim9: 1, acd: 0 }); }
   else if (tipo === 'jet') Object.assign(o, { xa: x, amenaza: true });
+  // EL GLOBO DEL TUTORIAL (26/11, el autor: "variedad entre los 10 globos, que algunos se muevan… y graficamente viento
+  // corriendo en algunos, que mueva el avion y el globo, efecto vientito"): la mitad quieta; la otra mitad con una
+  // RAFAGA de costado (`viento` = ±1) que la tira para ese lado a rachas (collision.js), se ve con rayitas (world.js) y
+  // empuja al avion al pasar cerca (game.js)
+  else if (mueve && tipo === 'balloon') {
+    o.xa = x;
+    if (rnd() < 0.5) Object.assign(o, { viento: rnd() < 0.5 ? -1 : 1, mvA: 3 + rnd() * 1.5, mvW: 0.9 + rnd() * 0.4 });
+  }
   else if (mueve) Object.assign(o, mov(tipo, x));
   obstacles.push(o);
   return o;

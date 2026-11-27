@@ -4110,10 +4110,12 @@ test('estructura · la cuenta ve las lomas, y en el terreno de t18 igual hay sue
     }
   });
 
-  test('sidewinder de atras: la maniobra temprana no sirve, pero el reintento tras el enfriamiento llega', () => {
-    // el que entra en panico y tonelea apenas sale el misil: esa no cuenta (todavia corrige)…
+  test('sidewinder de atras: la maniobra temprana tambien sirve (COLA_SIEMPRE), y el reintento tras el enfriamiento llega', () => {
+    // (26/11, el autor: "cualquier pirueta hecha dentro del margen de los segundos que tarda el misil en darte"): el que
+    // tonelea apenas sale el misil tambien lo pierde
     const temprano = cola('tonel', 0.1);
-    assert.ok(temprano.some(e => e.e === 'impacto'), 'un tonel a los 0,1 s ya lo perdia: la zona no significa nada');
+    if (P9.COLA_SIEMPRE) assert.ok(temprano.some(e => e.e === 'pierde'), 'un tonel a los 0,1 s no lo pierde, y COLA_SIEMPRE dice que si');
+    else assert.ok(temprano.some(e => e.e === 'impacto'), 'un tonel a los 0,1 s ya lo perdia: la zona no significa nada');
     // …pero si aprieta de nuevo apenas se le enfria la pirueta, todavia llega. Se mide el PEOR
     // caso: el tonel que termina justo en el borde de la zona, y el segundo recien despues del
     // enfriamiento. Si esto falla, apurarse te condena sin segunda oportunidad.

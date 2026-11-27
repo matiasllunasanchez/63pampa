@@ -106,11 +106,28 @@ export function crear(escena) {
   R.mira = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xffa040, fog: false, depthTest: false, transparent: true }));
   R.mira.renderOrder = 7; R.mira.frustumCulled = false; R.mira.visible = false;
   escena.add(R.mira);
+  // EL ARO DE LA CAIDA (27/11): un anillo plano en el suelo donde cae la bomba (islas.js `aro`), con una cruz al centro.
+  // AMARILLO si cae armada —el de la mira—, ROJO si se soltaria tan bajo que la espoleta no arma
+  const ga = new THREE.RingGeometry(9, 11.5, 48); ga.rotateX(-Math.PI / 2);
+  R.aro = new THREE.Mesh(ga, new THREE.MeshBasicMaterial({ color: 0xe8a33d, fog: false, depthTest: false, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
+  const gc = new THREE.BufferGeometry();
+  gc.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-4, 0, 0, 4, 0, 0, 0, 0, -4, 0, 0, 4]), 3));
+  R.aroCruz = new THREE.LineSegments(gc, new THREE.LineBasicMaterial({ color: 0xe8a33d, fog: false, depthTest: false, transparent: true }));
+  R.aro.add(R.aroCruz);
+  R.aro.renderOrder = 7; R.aro.frustumCulled = false; R.aro.visible = false;
+  escena.add(R.aro);
 }
 
 /** Un cuadro: `lista` = [{ k, p: {x,y,z}, c: {x,y,z} }] (islas.js `proyectiles`). */
-export function frame(lista, visible, mira = null, zoom = 1, dt = 1 / 60, medio = 300) {
+export function frame(lista, visible, mira = null, zoom = 1, dt = 1 / 60, medio = 300, aro = null) {
   if (!R.puntos) return;
+  R.aro.visible = visible && !!aro;
+  if (aro) {
+    const late = aro.armada ? 0.65 + 0.35 * Math.abs(Math.sin(performance.now() / 160)) : 0.85;
+    const col = aro.armada ? 0xe8a33d : 0xff4a3a;
+    R.aro.material.color.setHex(col); R.aroCruz.material.color.setHex(col);
+    R.aro.material.opacity = late; R.aro.position.set(aro.x, aro.y, aro.z);
+  }
   H.t += dt; H.obj.material.uniforms.uMedio.value = medio;
   R.halos.visible = H.obj.visible = visible;
   R.puntos.visible = R.grandes.visible = R.lineas.visible = R.bombas.visible = R.sombras.visible = visible;

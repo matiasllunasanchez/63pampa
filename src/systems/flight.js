@@ -622,7 +622,10 @@ export function flightSystem(dt, deps) {
     // pegado al cartelito —25 px de diseño a la derecha del avion, o sea 25·U en mundo— porque el
     // premio tiene que estar donde esta la cosa que crecio, no en el tablero. Mismo criterio que el
     // "+75" del esquive, que sale donde casi te toca.
-    if (sigAgu === 'acierta') {
+    // (27/11, el autor: "llenemos la palabra RASANTE como antes y que sean esa cantidad de segundos"): el +1s vuelve a
+    // decir la verdad — cada acierto prende una letra y es un segundo de poder (ver el lanzar, abajo)
+    // (…y el +1s sale recien con la palabra completa: antes, cada acierto prende su letra)
+    if (sigAgu === 'acierta' && (run.aguN | 0) > AGU.CONC_MIN) {
       const pp = proj(plane.x, plane.y, PZ);
       popup(pp.x + 25 * 1.5, pp.y - 26, '+1s', P.foam);
     }
@@ -650,7 +653,8 @@ export function flightSystem(dt, deps) {
   const flowSeg = agu.tomarFlow();
   // (sin PODERES —la etapa 1 del tutorial— el flow no se dispara: "active RASANTE y no se entendio que era", 18/11)
   // (25/11: la ULTI dura RAS_ASIST.DUR fijos — "que dure menos"; antes, SEG_ACIERTO s por acierto)
-  if (flowSeg > 0 && cfg.poderes !== false) rasante.lanzar(RAS_ASIST.DUR);
+  // (27/11: dura los SEGUNDOS JUNTADOS —un acierto, un segundo, las letras de RASANTE— y no RAS_ASIST.DUR fijos)
+  if (flowSeg > 0 && cfg.poderes !== false) rasante.lanzar(flowSeg);
   run.multShow = agu.activo() ? agu.multAguante() : run.mult;
   run.score += (run.boost ? 2 : 1) * 12 * run.multShow * dt;
   // superficie LETAL: tocar el suelo (o el agua) = explotar. Sobre tierra hay que volar en la banda

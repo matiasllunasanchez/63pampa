@@ -26,47 +26,56 @@ import { TEMPO_SCALE, TEMPO_SUAVE, tempoNivel } from '../data/tuning.js';
 // DOS NIVELES (21/11, el autor: "momentum tiene que durar mas y tener dos niveles: uno, y si apretas otra vez es igual
 // de lento que ahora"): el primer toque parte el tiempo SUAVE (TEMPO_SUAVE); otro toque con el poder puesto lo lleva
 // a lo lento de siempre (TEMPO_SCALE) con lo que queda de barra; el tercero lo corta. Duracion y recarga, en la tabla
+// DOS CARGAS (27/11, el autor: "la barra de momentum tiene 2 niveles, quiza podemos hacer 2 cargas, y si presiono 2 veces
+// mientras una se esta gastando se gastan las dos a la vez"): la barra junta HASTA DOS cargas, de a una (`cast` cada una).
+// Un toque gasta UNA en lo SUAVE. Otro toque con el poder puesto y la segunda carga lista lo lleva a lo LENTO y gasta las
+// dos juntas —al doble de velocidad: dura lo mismo que una—. Sin segunda carga, el segundo toque lo corta.
+export const CARGAS = 2;
 let on = false;        // ¿el tiempo esta partido AHORA?
 let fase = 0;          // 1 = suave, 2 = lento (el de siempre); 0 apagado
-let meter = 0;
-let dur = tempoNivel(0).dur;   // lo que dura el lanzado EN CURSO (se fija al lanzar, ver toggle)
+let meter = 0;         // 0..CARGAS: las cargas juntadas (1,5 = una llena y media)
+let fin = 0;           // hasta donde baja la barra el lanzado EN CURSO (lo que queda guardado)
+let dur = tempoNivel(0).dur;   // lo que dura una carga del lanzado EN CURSO (se fija al lanzar, ver toggle)
 
 /**
  * Tecla 4. Devuelve la señal para el feedback (game.js pone el beep y el popup):
- * 'on' (lanzado) | 'off' (cortado a mano: descarta el resto) | 'empty' (la barra no esta llena).
+ * 'on' (lanzado) | 'mas' (las dos cargas, mas lento) | 'off' (cortado a mano: descarta lo que se gastaba) |
+ * 'empty' (no hay ni una carga).
  */
 export function toggle(nivel) {
-  if (on && fase === 1) { fase = 2; return 'mas'; }
-  if (on) { on = false; fase = 0; meter = 0; return 'off'; }
+  if (on && fase === 1 && fin >= 1) { fase = 2; fin -= 1; return 'mas'; }
+  if (on) { on = false; fase = 0; meter = fin; return 'off'; }
   if (meter < 1) return 'empty';
   // LA DURACION SE FIJA AL LANZAR: si justo te llega una mejora con el especial corriendo, el que
   // ya lanzaste termina como empezo. Cambiarla en el aire haria saltar la barra que se vacia.
   dur = tempoNivel(nivel).dur;
+  fin = meter - 1;
   on = true; fase = 1; return 'on';
 }
 
 /**
  * Una vez por frame, ANTES de escalar el dt, con el dt CRUDO. `inPlay` = pasillo jugable (game.js
  * resuelve: estado 'play' y sin devcam); `nivel` = cuantas mejoras lleva el jugador. Devuelve
- * 'ready' UNA vez cuando la barra se llena (game.js avisa con popup + beep) y null el resto.
+ * 'ready' cada vez que se completa una carga (game.js avisa con popup + beep) y null el resto.
  * Salir del pasillo — muerte, relevo, climax, devcam — corta el poder solo; la CARGA sobrevive
  * al relevo (es de la corrida), pero lo lanzado se pierde con el avion.
  *
  * FUERA DEL PASILLO NO CARGA: el reloj de casteo es tiempo de VUELO. Si cargara en el menu de
  * pausa, en una charla o en el negro de la suelta, bastaria con esperar quieto para tenerlo.
  */
-export function tick(dt, inPlay, nivel) {
+export function tick(dt, inPlay, nivel, rapido = 1) {   // (`rapido`: el tutorial recarga mas ligero, 27/11)
   if (!inPlay) {
-    if (on) { on = false; fase = 0; meter = 0; }
+    if (on) { on = false; fase = 0; meter = fin; }
     return null;
   }
   let ready = null;
   if (on) {
-    meter -= dt / dur;
-    if (meter <= 0) { meter = 0; on = false; fase = 0; }  // se agoto: el mundo vuelve de golpe
-  } else if (meter < 1) {                       // lanzado no recarga: primero se gasta el super
-    meter = Math.min(1, meter + dt / tempoNivel(nivel).cast);
-    if (meter >= 1) ready = 'ready';
+    meter -= (fase === 2 ? 2 : 1) * dt / dur;
+    if (meter <= fin) { meter = fin; on = false; fase = 0; }  // se agoto: el mundo vuelve de golpe
+  } else if (meter < CARGAS) {                  // lanzado no recarga: primero se gasta el super
+    const antes = Math.floor(meter);
+    meter = Math.min(CARGAS, meter + dt * rapido / tempoNivel(nivel).cast);
+    if (Math.floor(meter) > antes) ready = 'ready';
   }
   return ready;
 }
@@ -81,8 +90,8 @@ export const meterVal = () => meter;
 
 /** arranque de partida: barra vacia, poder apagado. */
 /** Llena la barra (el TUTORIAL, para enseñarlo sin hacer esperar: data/tutorial.js `llena`). */
-export function llenar() { meter = 1; }
-export function resetTempo() { on = false; fase = 0; meter = 0; dur = tempoNivel(0).dur; }
+export function llenar(n = 1) { meter = Math.max(meter, Math.min(CARGAS, n)); }
+export function resetTempo() { on = false; fase = 0; meter = 0; fin = 0; dur = tempoNivel(0).dur; }
 
 // sondas para las pruebas headless (mismo patron que __adbg/__aset del arena)
 if (typeof window !== 'undefined') {
@@ -93,7 +102,7 @@ if (typeof window !== 'undefined') {
   // respondia nunca. Cualquier cosa que no sea un numero cuenta como cero, nunca como NaN.
   window.__tcharge = p => {
     const n = p === undefined ? 1 : Number(p);
-    meter = Math.min(1, meter + Math.max(0, Number.isFinite(n) ? n : 0));
+    meter = Math.min(CARGAS, meter + Math.max(0, Number.isFinite(n) ? n : 0));
     return meter;
   };
 }

@@ -19,7 +19,7 @@ const BORDE = '#7f9099', TINTA = '#1c2226';
 //   k: 'gat' gatillo · 'bum' bomper · 'cara' boton de color · 'stick' · 'cruz' cruceta · 'menu' START
 const PAD = [
   { k: 'gat', t: 'LT', x: 30, y: 40, ac: ['Mant'] },
-  { k: 'bum', t: 'LB', x: 30, y: 51, ac: ['Msl'] },
+  { k: 'bum', t: 'LB', x: 30, y: 51, ac: [] },   // (27/11: LB ya no suelta el secundario)
   { k: 'stick', t: 'L', x: 30, y: 66, dirs: 'udlr', ac: ['Fly', 'Gas', 'Dive'], l3: true },
   { k: 'cruz', x: 30, y: 92, ac: ['Secund', 'Chancha', 'Eyecta'] },
   { k: 'menu', t: 'START', x: 160, y: 40, ac: ['Pause'], centro: true },
@@ -237,7 +237,7 @@ IMG_MANDO.src = '../assets/ui/mando_xbox.png';
 const MI = { s: 0.095, y: 37 };   // escala del PNG en la lamina (320x180) y su borde de arriba; se centra a lo ancho
 const PUNTAS = [
   { px: 122, py: 72, al: 'izq', ac: ['Mant'] },                       // LT: mantener la altura (22/11)
-  { px: 53, py: 163, al: 'izq', ac: ['Msl'] },                        // LB
+  { px: 53, py: 163, al: 'izq', ac: [] },                            // LB (27/11: ya no suelta el secundario)
   // (23/11, el autor: "reduzcamos el ESQUIVAR y todo el resto solo por DIRECCION DE VUELO"): un renglon
   // (23/11, el autor: "el texto de los botones se esta superponiendo, el de las direcciones y cortar rasante"): el bloque
   // de dos renglones del stick sube y los de la cruceta bajan, para que las placas no se pisen
@@ -346,45 +346,110 @@ function dibujarTeclado(t) {
 // viene y el reloj naranja de abajo. Es un dibujo: no lee el estado del juego, se anima solo con `t`.
 const RAS_AZUL = '#5ab4ff', SURCO = '#2e3c45';
 // `oy`: cuanto se corre hacia abajo (la caja del dialogo cuelga del techo cuando el foco esta en el tablero)
-export function drawDemoRasante({ t = 0, a = 1, oy = 0 }) {
+export function drawDemoRasante({ t = 0, a = 1, y0 = 24 }) {
+  // (27/11, el autor: "mejora esta forma de mostrarlo, tiene que ser mas intuitivo y no pisarse"): TRES PASOS en fila,
+  // numerados y con flechas —1 BAJÁ, 2 GAS EN EL AZUL, 3 LA PALABRA—, en una franja de 56 de alto que game.js ubica
+  // entre la caja del dialogo y el tablero (`y0`). El 3 es lo que de verdad pasa en el juego: cada acierto prende una
+  // letra de RASANTE, y con la palabra completa el poder es tuyo.
   ctx.save();
   ctx.globalAlpha = a;
-  ctx.translate(0, oy);
   ctx.textBaseline = 'middle';
-  const BW = 120, x = (W - BW) / 2;
-  // 1 · PERFECTO, cargando (4 s)
-  ctx.textAlign = 'center'; ctx.font = 'bold 9px monospace'; ctx.fillStyle = P.accent;
-  ctx.fillText(T('mult_perfect'), W / 2, 30);
-  const carga = (t % 4) / 4;
-  ctx.fillStyle = SURCO; ctx.fillRect(x, 38, BW, 3);
-  ctx.fillStyle = P.accent; ctx.fillRect(x, 38, Math.round(BW * carga), 3);
-  ctx.font = '4.5px monospace'; ctx.fillStyle = '#e8eef0';
-  ctx.fillText(T('demoRasPerf'), W / 2, 47);
-  // 2 · RASANTE: el pulso
-  ctx.font = 'bold 9px monospace'; ctx.fillStyle = RAS_AZUL;
-  ctx.fillText(T('mult_rasante'), W / 2, 62);
-  const y = 70, sec0 = 0.55, secW = 0.3;
-  ctx.fillStyle = SURCO; ctx.fillRect(x, y, BW, 10);
-  ctx.fillStyle = RAS_AZUL; ctx.fillRect(x + BW * sec0, y, BW * secW, 10);
-  // la aguja va y viene (una vuelta por segundo y medio, como en el juego pero mas lenta para leerla)
-  const f = (t * 0.6) % 1, pos = f < 0.5 ? f * 2 : 2 - f * 2;
-  const enAzul = pos >= sec0 && pos <= sec0 + secW;
-  ctx.fillStyle = enAzul ? '#ffffff' : '#e9edf0'; ctx.fillRect(x + Math.round(pos * (BW - 2)), y - 3, 2, 16);
-  // el reloj de la ventana, abajo, vaciandose
-  const ven = 1 - ((t * 0.25) % 1);
-  ctx.fillStyle = SURCO; ctx.fillRect(x, y + 14, BW, 3);
-  ctx.fillStyle = P.accent; ctx.fillRect(x, y + 14, Math.round(BW * ven), 3);
-  // los rotulos
-  ctx.font = '4.5px monospace';
-  ctx.textAlign = 'left'; ctx.fillStyle = RAS_AZUL;
-  ctx.fillText('◄ ' + T('demoRasAzul'), x + BW + 4, y + 5);
-  ctx.textAlign = 'right'; ctx.fillStyle = '#e8eef0';
-  ctx.fillText(T('demoRasAguja') + ' ►', x - 4, y + 5);
-  ctx.textAlign = 'left'; ctx.fillStyle = P.accent;
-  ctx.fillText('◄ ' + T('demoRasReloj'), x + BW + 4, y + 15.5);
-  // EL GAS: cuando la aguja pasa por el azul, se "aprieta" (el destello que dice cuando)
-  ctx.textAlign = 'center'; ctx.font = 'bold 6px monospace';
-  ctx.fillStyle = enAzul ? '#ffffff' : '#5d6a71';
-  ctx.fillText(enAzul ? T('demoRasAhora') : T('demoRasEspera'), W / 2, y + 26);
+  const CW = 78, GAP = 10, x1 = (W - (CW * 3 + GAP * 2)) / 2, xs = [x1, x1 + CW + GAP, x1 + 2 * (CW + GAP)];
+  const yT = y0 + 6, yB = y0 + 20, yC = y0 + 33;
+  // el ciclo de la demo: 4 s de PERFECTO, despues pasadas de la aguja; cada pasada por el azul es un acierto
+  const T_CICLO = 4 + 7 * 1.25 + 1.5, tc = t % T_CICLO, fase1 = tc < 4;
+  const tg = Math.max(0, tc - 4), f = (tg * 0.8) % 1, pos = f < 0.5 ? f * 2 : 2 - f * 2;
+  const sec0 = 0.55, secW = 0.3, enAzul = !fase1 && pos >= sec0 && pos <= sec0 + secW;
+  const letras = fase1 ? 0 : Math.min(7, Math.floor(tg / 1.25 + 0.35));
+  const titulo = (k, txt, col, on) => {
+    ctx.textAlign = 'left'; ctx.font = 'bold 6px monospace'; ctx.fillStyle = on ? col : '#5d6a71';
+    ctx.fillText(k + ' · ' + txt, xs[k - 1], yT);
+  };
+  const nota = (k, txt, col = '#c9d3d7') => {
+    ctx.textAlign = 'left'; ctx.font = '4.2px monospace'; ctx.fillStyle = col;
+    String(txt).split('\n').forEach((l, i) => ctx.fillText(l, xs[k - 1], yC + i * 5.5));
+  };
+  // las flechas entre pasos
+  ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#5d6a71';
+  ctx.fillText('►', xs[1] - GAP / 2, yB); ctx.fillText('►', xs[2] - GAP / 2, yB);
+  // 1 · BAJÁ: la carga de PERFECTO
+  titulo(1, T('demoRas1'), P.accent, fase1);
+  ctx.fillStyle = SURCO; ctx.fillRect(xs[0], yB - 2, CW, 4);
+  ctx.fillStyle = P.accent; ctx.fillRect(xs[0], yB - 2, Math.round(CW * (fase1 ? tc / 4 : 1)), 4);
+  nota(1, T('demoRas1n'));
+  // 2 · GAS EN EL AZUL: la aguja que va y viene
+  titulo(2, T('demoRas2'), RAS_AZUL, !fase1);
+  ctx.fillStyle = SURCO; ctx.fillRect(xs[1], yB - 4, CW, 8);
+  ctx.fillStyle = RAS_AZUL; ctx.fillRect(xs[1] + CW * sec0, yB - 4, CW * secW, 8);
+  if (!fase1) { ctx.fillStyle = '#ffffff'; ctx.fillRect(xs[1] + Math.round(pos * (CW - 2)), yB - 6, 2, 12); }
+  // EL BOTON DE GAS (27/11, el autor: "mostrar cuando dice GAS presionar el boton de gas hacia arriba"): el stick con su
+  // perilla, que SUBE mientras la aguja esta en el azul, y el rotulo ▲ GAS que se prende
+  {
+    const sx = xs[1] + CW - 6, sy = yC + 3, sube = enAzul ? -3 : 0;
+    ctx.strokeStyle = enAzul ? '#ffffff' : '#5d6a71'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI * 2); ctx.stroke(); ctx.lineWidth = 1;
+    ctx.fillStyle = enAzul ? P.accent : '#8a969c'; ctx.beginPath(); ctx.arc(sx, sy + sube, 2.6, 0, Math.PI * 2); ctx.fill();
+    ctx.textAlign = 'right'; ctx.font = 'bold 5px monospace'; ctx.fillStyle = enAzul ? P.accent : '#5d6a71';
+    ctx.fillText('▲ ' + T('demoRasAhora'), sx - 8, sy);
+  }
+  nota(2, T('demoRas2n'), '#c9d3d7');
+  // 3 · LA PALABRA: una letra por acierto
+  titulo(3, T('demoRas3'), RAS_AZUL, letras > 0);
+  // (cada letra en su casilla: se marca con el acierto — "marcar las letras R A S A N T E")
+  const PAL = 'RASANTE', lw = CW / 7;
+  ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center';
+  for (let i = 0; i < 7; i++) {
+    const on = i < letras, bx = xs[2] + lw * i + 0.5;
+    ctx.fillStyle = on ? RAS_AZUL : '#111a1f'; ctx.fillRect(bx, yB - 5, lw - 1, 10);
+    ctx.strokeStyle = on ? '#bfe2ff' : SURCO; ctx.lineWidth = 0.6; ctx.strokeRect(bx + 0.3, yB - 4.7, lw - 1.6, 9.4); ctx.lineWidth = 1;
+    ctx.fillStyle = on ? '#07131c' : '#3d4d56'; ctx.fillText(PAL[i], bx + (lw - 1) / 2, yB + 0.5);
+  }
+  nota(3, letras >= 7 ? T('demoRas3ok') : T('demoRas3n'), letras >= 7 ? RAS_AZUL : '#c9d3d7');
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------------------------
+// LA BOMBA, EN GRANDE (27/11, el autor: "nunca muestra el stick que necesitas para lanzar la bomba, es con el RIGHT STICK…
+// tiene que ser SUPER CLARO"): mientras explican la suelta, tres pasos en fila — 1 APUNTÁ (el stick derecho que baja y se
+// queda abajo, o la ↓ mantenida), 2 SOLTÁ (el clic del stick, R3, o ENTER) y 3 CUÁNDO (el nombre del casco en amarillo).
+// Es un dibujo animado con `t`; `pad` elige el mando o el teclado.
+export function drawDemoBomba({ t = 0, a = 1, y0 = 34, pad = false }) {
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.textBaseline = 'middle';
+  const CW = 78, GAP = 10, x1 = (W - (CW * 3 + GAP * 2)) / 2, xs = [x1, x1 + CW + GAP, x1 + 2 * (CW + GAP)];
+  const yT = y0 + 6, yB = y0 + 22, yC = y0 + 40;
+  const VERDE = '#e8a33d', ciclo = t % 3, abajo = ciclo > 0.4, clic = ciclo > 1.9 && ciclo < 2.4;
+  const titulo = (k, txt, col) => { ctx.textAlign = 'left'; ctx.font = 'bold 6px monospace'; ctx.fillStyle = col; ctx.fillText(k + ' · ' + txt, xs[k - 1], yT); };
+  const nota = (k, txt) => { ctx.textAlign = 'left'; ctx.font = '4.2px monospace'; ctx.fillStyle = '#c9d3d7'; String(txt).split('\n').forEach((l, i) => ctx.fillText(l, xs[k - 1], yC + i * 5.5)); };
+  ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#5d6a71';
+  ctx.fillText('►', xs[1] - GAP / 2, yB); ctx.fillText('►', xs[2] - GAP / 2, yB);
+  // el stick derecho dibujado: aro, perilla y la flecha
+  const stick = (cx, cy, dy, apretado, col) => {
+    ctx.strokeStyle = '#8a969c'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = apretado ? '#ffffff' : col; ctx.beginPath(); ctx.arc(cx, cy + dy, apretado ? 4 : 5, 0, Math.PI * 2); ctx.fill();
+    if (apretado) { ctx.strokeStyle = '#ffffff'; ctx.beginPath(); ctx.arc(cx, cy + dy, 7.5, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.textAlign = 'center'; ctx.font = 'bold 4.5px monospace'; ctx.fillStyle = '#c9d3d7'; ctx.fillText('R', cx, cy - 13);
+  };
+  const tecla = (cx, cy, txt, on, ancho = 14) => {
+    ctx.fillStyle = on ? P.accent : '#1b252b'; ctx.fillRect(cx - ancho / 2, cy - 6, ancho, 12);
+    ctx.strokeStyle = on ? '#ffe0a0' : '#5d6a71'; ctx.lineWidth = 0.8; ctx.strokeRect(cx - ancho / 2 + 0.4, cy - 5.6, ancho - 0.8, 11.2); ctx.lineWidth = 1;
+    ctx.textAlign = 'center'; ctx.font = 'bold 6px monospace'; ctx.fillStyle = on ? '#14100a' : '#e8eef0'; ctx.fillText(txt, cx, cy + 0.5);
+  };
+  // 1 · APUNTÁ
+  titulo(1, T('demoBomba1'), P.accent);
+  if (pad) { stick(xs[0] + 14, yB, abajo ? 4.5 : 0, false, P.accent); ctx.textAlign = 'left'; ctx.font = 'bold 8px monospace'; ctx.fillStyle = P.accent; ctx.fillText('▼', xs[0] + 28, yB + 1); }
+  else tecla(xs[0] + 14, yB, '↓', abajo);
+  nota(1, T(pad ? 'demoBomba1p' : 'demoBomba1k'));
+  // 2 · SOLTÁ
+  titulo(2, T('demoBomba2'), P.accent);
+  if (pad) { stick(xs[1] + 14, yB, 4.5, clic, P.accent); ctx.textAlign = 'left'; ctx.font = 'bold 6px monospace'; ctx.fillStyle = clic ? '#ffffff' : '#8a969c'; ctx.fillText(T('demoBombaClic'), xs[1] + 28, yB + 1); }
+  else tecla(xs[1] + 20, yB, 'ENTER', clic, 30);
+  nota(2, T(pad ? 'demoBomba2p' : 'demoBomba2k'));
+  // 3 · CUÁNDO: el casco en verde
+  titulo(3, T('demoBomba3'), VERDE);
+  const titila = Math.sin(t * 10) > -0.2;
+  ctx.textAlign = 'left'; ctx.font = 'bold 7px monospace'; ctx.fillStyle = titila ? VERDE : '#2c5a33'; ctx.fillText('HMS ———', xs[2], yB);
+  nota(3, T('demoBomba3n'));
   ctx.restore();
 }
